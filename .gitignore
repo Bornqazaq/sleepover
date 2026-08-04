@@ -115,3 +115,17 @@ InitTestScene*.unity*
 /igruha/[Uu]ser[Ss]ettings/
 /igruha/[Mm]emoryCaptures/
 /igruha/[Rr]ecordings/
+
+# Vlozhennyy proekt: ostal'nye Unity-generiruemye puti, privyazannye k Assets/
+/igruha/[Aa]ssets/Plugins/Editor/JetBrains*
+/igruha/ServerData
+/igruha/[Aa]ssets/StreamingAssets/aa*
+/igruha/[Aa]ssets/AddressableAssetsData/link.xml*
+/igruha/[Aa]ssets/Addressables_Temp*
+/igruha/[Aa]ssets/AddressableAssetsData/*/*.bin*
+/igruha/[Aa]ssets/Unity.VisualScripting.Generated/VisualScripting.Flow/UnitOptions.db
+/igruha/[Aa]ssets/Unity.VisualScripting.Generated/VisualScripting.Flow/UnitOptions.db.meta
+/igruha/[Aa]ssets/Unity.VisualScripting.Generated/VisualScripting.Core/Property Providers
+/igruha/[Aa]ssets/Unity.VisualScripting.Generated/VisualScripting.Core/Property Providers.meta
+/igruha/[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
+/igruha/[Aa]ssets/[Ss]ceneDependencyCache*
