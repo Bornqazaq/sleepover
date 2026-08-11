@@ -6,7 +6,9 @@
         "Unity.Cinemachine",
         "Unity.TextMeshPro",
         "Unity.Addressables",
-        "Unity.ResourceManager"
+        "Unity.ResourceManager",
+        "com.unity.netcode.gameobjects",
+        "com.unity.transport"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
