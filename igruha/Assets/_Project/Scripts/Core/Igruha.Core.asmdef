@@ -7,7 +7,8 @@
         "Unity.TextMeshPro",
         "Unity.Addressables",
         "Unity.ResourceManager",
-        "com.unity.netcode.gameobjects",
+        "com.unity.netcode.runtime",
+        "com.unity.netcode.components",
         "com.unity.transport"
     ],
     "includePlatforms": [],
