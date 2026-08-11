@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e33c05712fb83554785e1c9bc8f8b695, type: 3}
+  m_Name: CharacterConfig
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Player.CharacterConfig
+  maxSpeed: 6.5
+  acceleration: 28
+  deceleration: 20
+  airControl: 0.55
+  rotationSpeed: 520
+  inputDeadzone: 0.15
+  jumpSpeed: 8.4
+  riseGravityMultiplier: 2.2
+  fallGravityMultiplier: 3
+  coyoteTime: 0.12
+  jumpBufferTime: 0.1
+  groundCheckDistance: 0.2
+  mass: 2
+  linearDamping: 0.05
+  angularDamping: 0.05
+  pushForce: 14
+  pushRadius: 1.6
+  pushUpward: 0.35
+  pushCooldown: 0.6
+  pushArcAngle: 140
+  punchImpactDelay: 0.25
+  faceHitForceMultiplier: 1.35
+  knockdownVelocityThreshold: 5
+  knockdownFrontDuration: 2.777778
+  knockdownBackDuration: 2.177778
+  knockdownDrag: 4

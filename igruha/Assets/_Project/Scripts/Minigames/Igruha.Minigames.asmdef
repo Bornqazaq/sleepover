@@ -3,7 +3,10 @@
     "rootNamespace": "Igruha.Minigames",
     "references": [
         "Igruha.Core",
-        "Igruha.Networking"
+        "Igruha.Networking",
+        "Unity.InputSystem",
+        "Unity.Cinemachine",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

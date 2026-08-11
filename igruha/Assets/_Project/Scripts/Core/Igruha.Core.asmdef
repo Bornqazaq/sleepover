@@ -2,7 +2,11 @@
     "name": "Igruha.Core",
     "rootNamespace": "Igruha.Core",
     "references": [
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "Unity.Cinemachine",
+        "Unity.TextMeshPro",
+        "Unity.Addressables",
+        "Unity.ResourceManager"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
