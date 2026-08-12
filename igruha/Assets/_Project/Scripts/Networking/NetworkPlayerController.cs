@@ -52,24 +52,45 @@ namespace Igruha.Networking
         }
 
         /// <summary>
-        /// Метод для толчка персонажа через сеть (future: будет ServerRpc).
-        /// Сейчас вызывает локально, позже будет идти через сервер.
+        /// Вызвать толчок персонажа через сеть (клиент → сервер).
+        /// Клиент просит толчок, сервер применяет и реплицирует всем.
         /// </summary>
         public void NetworkApplyPush(Vector3 direction, float force)
         {
+            // Клиент отправляет запрос серверу
+            ApplyPushServerRpc(direction, force);
+        }
+
+        /// <summary>
+        /// ServerRpc: только владелец может вызвать, сервер обрабатывает.
+        /// </summary>
+        [ServerRpc(RequireOwnershipck = true)]
+        private void ApplyPushServerRpc(Vector3 direction, float force)
+        {
             if (playerController != null && !playerController.IsKnockedDown)
             {
+                // Сервер применяет толчок
                 playerController.ApplyPush(direction, force);
-                Debug.Log($"💥 [{name}] ApplyPush({direction.normalized}, {force})");
+
+                // Логирование для отладки
+                Debug.Log($"💥 [{name}] ServerRpc ApplyPush — direction={direction.normalized}, force={force}");
+
+                // Результат толчка (изменение Rigidbody.linearVelocity и .rotation)
+                // автоматически реплицируется через NetworkTransform на всех клиентов
             }
         }
 
-        // TODO (IGR-53): Добавить ServerRpc для толчков
-        // [ServerRpc]
-        // private void ApplyPushServerRpc(Vector3 direction, float force)
-        // {
-        //     playerController.ApplyPush(direction, force);
-        //     // Сервер реплицирует результат толчка через NetworkTransform
-        // }
+        /// <summary>
+        /// ServerRpc: толчок произвольного направления (пружины, взрывы).
+        /// </summary>
+        [ServerRpc(RequireOwnershipck = true)]
+        public void ApplyImpulseServerRpc(Vector3 impulse)
+        {
+            if (playerController != null)
+            {
+                playerController.ApplyImpulse(impulse);
+                Debug.Log($"💫 [{name}] ServerRpc ApplyImpulse — impulse={impulse.magnitude:F2}");
+            }
+        }
     }
 }
