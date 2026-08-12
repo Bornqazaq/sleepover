@@ -52,8 +52,10 @@ GameObject:
   - component: {fileID: 8786391075286923910}
   - component: {fileID: 7496735259242241139}
   - component: {fileID: 9999999}
-  - component: {fileID: 9999998}
   - component: {fileID: 9999997}
+  - component: {fileID: 8950616540130601569}
+  - component: {fileID: 4264028153862867750}
+  - component: {fileID: 6104822510058981082}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -299,7 +301,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
   GlobalObjectIdHash: 0
   InScenePlacedSourceGlobalObjectIdHash: 0
@@ -310,7 +312,7 @@ MonoBehaviour:
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 1
---- !u!114 &9999998
+--- !u!114 &9999997
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -319,9 +321,21 @@ MonoBehaviour:
   m_GameObject: {fileID: 6047239826789173574}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e96cb6065543e43c4a752faaa1468eb1, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Unity.Netcode.Components::Unity.Netcode.Components.NetworkTransform
+  m_Script: {fileID: 11500000, guid: caf8576310ef1d94b87916ad0e750bcc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Igruha.Networking.NetworkPlayerController
+--- !u!114 &8950616540130601569
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6047239826789173574}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 526518d2602edaf4eb6d55d51147848c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Networking::Igruha.Networking.ClientNetworkTransform
   UseUnreliableDeltas: 0
   SyncPositionX: 1
   SyncPositionY: 1
@@ -341,7 +355,7 @@ MonoBehaviour:
   InLocalSpace: 0
   Interpolate: 1
   SlerpPosition: 0
---- !u!114 &9999997
+--- !u!114 &4264028153862867750
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -350,9 +364,23 @@ MonoBehaviour:
   m_GameObject: {fileID: 6047239826789173574}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: caf8576310ef1d94b87916ad0e750bcc, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::Igruha.Networking.NetworkPlayerController
+  m_Script: {fileID: 11500000, guid: f7a2b78511ed026458e1db4ebaa94b64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Networking::Igruha.Networking.OwnerNetworkAnimator
+  TransitionStateInfoList: []
+  m_Animator: {fileID: 8153474272100534532}
+--- !u!114 &6104822510058981082
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6047239826789173574}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 91c6fa42bc0490642ac50e2a22316afb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Networking::Igruha.Networking.LocalPlayerCameraBinder
 --- !u!1001 &2327340725824812181
 PrefabInstance:
   m_ObjectHideFlags: 0

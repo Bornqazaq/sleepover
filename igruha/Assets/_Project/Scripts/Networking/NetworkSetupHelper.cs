@@ -1,5 +1,6 @@
 using UnityEngine;
 using Unity.Netcode;
+using Unity.Netcode.Components;
 
 namespace Igruha.Networking
 {
@@ -57,20 +58,22 @@ namespace Igruha.Networking
             var nm = NetworkManager.Singleton;
 
             // Проверяем что Player.prefab зарегистрирована в DefaultNetworkPrefabs
-            if (nm.NetworkConfig.Prefabs == null || nm.NetworkConfig.Prefabs.Count == 0)
+            int registeredPrefabs = nm.NetworkConfig.Prefabs == null ? 0 : nm.NetworkConfig.Prefabs.Prefabs.Count;
+            if (registeredPrefabs == 0)
             {
                 Debug.LogWarning("⚠️  NetworkSetupHelper: No network prefabs registered in DefaultNetworkPrefabs");
             }
             else
             {
-                Debug.Log($"✅ NetworkSetupHelper: Found {nm.NetworkConfig.Prefabs.Count} registered network prefabs");
+                Debug.Log($"✅ NetworkSetupHelper: Found {registeredPrefabs} registered network prefabs");
             }
 
             // Проверяем что Player prefab имеет NetworkObject и NetworkTransform
-            if (nm.PlayerPrefab != null)
+            var playerPrefab = nm.NetworkConfig.PlayerPrefab;
+            if (playerPrefab != null)
             {
-                var playerNetObj = nm.PlayerPrefab.GetComponent<NetworkObject>();
-                var playerNetTransform = nm.PlayerPrefab.GetComponent<NetworkTransform>();
+                var playerNetObj = playerPrefab.GetComponent<NetworkObject>();
+                var playerNetTransform = playerPrefab.GetComponent<NetworkTransform>();
 
                 if (playerNetObj == null)
                     Debug.LogError("❌ NetworkSetupHelper: Player prefab is missing NetworkObject component!");

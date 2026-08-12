@@ -16,9 +16,16 @@ namespace Igruha.Networking
         private const int PROTOCOL_VERSION = 1;
         private const int MAX_PLAYERS = 8;
 
-        private void Start()
+        // Awake, а не Start: колбэк должен быть зарегистрирован до того, как
+        // AppNetworkManager поднимет хост или клиент в своём Start().
+        private void Awake()
         {
-            var networkManager = NetworkManager.Singleton;
+            // Singleton выставляется в NetworkManager.Awake, порядок Awake между
+            // компонентами не гарантирован — поэтому есть запасной путь
+            var networkManager = NetworkManager.Singleton != null
+                ? NetworkManager.Singleton
+                : GetComponent<NetworkManager>();
+
             if (networkManager == null)
             {
                 Debug.LogError("❌ ConnectionApprovalManager: NetworkManager not found!");
@@ -27,6 +34,9 @@ namespace Igruha.Networking
 
             // Включить Connection Approval
             networkManager.NetworkConfig.ConnectionApproval = true;
+
+            // Хост тоже проходит одобрение, поэтому payload нужен и ему
+            networkManager.NetworkConfig.ConnectionData = GetConnectionPayload();
 
             // Установить callback для валидации подключений
             networkManager.ConnectionApprovalCallback += HandleConnectionApproval;
@@ -56,9 +66,9 @@ namespace Igruha.Networking
             response.CreatePlayerObject = false;
 
             // Проверка 1: Версия протокола
-            if (!ValidateProtocolVersion(request.ClientNetworkIdentifier, request.Payload))
+            if (!ValidateProtocolVersion(request.ClientNetworkId, request.Payload))
             {
-                Debug.LogWarning($"❌ Client {request.ClientNetworkIdentifier}: Protocol version mismatch");
+                Debug.LogWarning($"❌ Client {request.ClientNetworkId}: Protocol version mismatch");
                 response.Reason = "Protocol version mismatch";
                 return;
             }
@@ -67,7 +77,7 @@ namespace Igruha.Networking
             int connectedPlayers = NetworkManager.Singleton.ConnectedClients.Count;
             if (connectedPlayers >= MAX_PLAYERS)
             {
-                Debug.LogWarning($"❌ Client {request.ClientNetworkIdentifier}: Server full (max {MAX_PLAYERS})");
+                Debug.LogWarning($"❌ Client {request.ClientNetworkId}: Server full (max {MAX_PLAYERS})");
                 response.Reason = "Server is full";
                 return;
             }
@@ -75,7 +85,7 @@ namespace Igruha.Networking
             // Проверка 3: Валидация данных подключения (против читов)
             if (!ValidateConnectionData(request.Payload))
             {
-                Debug.LogWarning($"❌ Client {request.ClientNetworkIdentifier}: Invalid connection data (potential cheat attempt)");
+                Debug.LogWarning($"❌ Client {request.ClientNetworkId}: Invalid connection data (potential cheat attempt)");
                 response.Reason = "Invalid connection data";
                 return;
             }
@@ -84,7 +94,23 @@ namespace Igruha.Networking
             response.Approved = true;
             response.CreatePlayerObject = true; // Сервер сам спавнит Player.prefab
 
-            Debug.Log($"✅ Client {request.ClientNetworkIdentifier} APPROVED — creating player object");
+            // Развести игроков по спавну: без этого все появляются в одной точке
+            // и выталкивают друг друга физикой
+            response.Position = GetSpawnPosition(request.ClientNetworkId);
+            response.Rotation = Quaternion.identity;
+
+            Debug.Log($"✅ Client {request.ClientNetworkId} APPROVED — creating player object at {response.Position}");
+        }
+
+        /// <summary>
+        /// Точка спавна по кругу вокруг центра арены — детерминированно от ClientId,
+        /// чтобы сервер и клиенты считали одинаково.
+        /// </summary>
+        private static Vector3 GetSpawnPosition(ulong clientId)
+        {
+            const float radius = 3f;
+            float angle = clientId * (360f / MAX_PLAYERS) * Mathf.Deg2Rad;
+            return new Vector3(Mathf.Cos(angle) * radius, 1.5f, Mathf.Sin(angle) * radius);
         }
 
         /// <summary>

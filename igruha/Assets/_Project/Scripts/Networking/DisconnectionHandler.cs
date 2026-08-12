@@ -53,15 +53,13 @@ namespace Igruha.Networking
 
             Debug.LogWarning($"🚪 CLIENT DISCONNECTED: ClientId={clientId}");
 
-            // Найти PlayerObject этого клиента и удалить его
-            if (networkManager.SpawnManager.TryGetPlayerNetworkObject(clientId, out var playerObject))
+            // NGO сам despawn'ит PlayerObject отключившегося клиента,
+            // здесь только логируем факт для отладки
+            var playerObject = networkManager.SpawnManager.GetPlayerNetworkObject(clientId);
+            if (playerObject != null)
             {
-                Debug.Log($"   └─ Despawning player object for ClientId={clientId}");
-                playerObject.Despawn();
+                Debug.Log($"   └─ Player object for ClientId={clientId} will be despawned by NGO");
             }
-
-            // Оповестить остальных клиентов о выходе
-            NotifyPlayerLeftClientRpc(clientId);
 
             // Проверить достаточно ли игроков осталось
             int remainingPlayers = networkManager.ConnectedClients.Count - 1; // -1 для self
@@ -72,16 +70,6 @@ namespace Igruha.Networking
             // {
             //     ReturnToLobbyServerRpc();
             // }
-        }
-
-        /// <summary>
-        /// ClientRpc: оповестить всех что игрок вышел.
-        /// </summary>
-        [ClientRpc]
-        private void NotifyPlayerLeftClientRpc(ulong clientId)
-        {
-            Debug.Log($"📡 [CLIENT] Player {clientId} left the game");
-            // TODO: UIManager.Instance.ShowMessage($"Player left the game");
         }
 
         // ========== HOST DISCONNECT HANDLING (IGR-58) ==========
@@ -142,23 +130,14 @@ namespace Igruha.Networking
 
             Debug.Log("🛑 Host: Initiating graceful shutdown...");
 
-            // Оповестить всех клиентов что хост выходит
-            NotifyHostShuttingDownClientRpc();
-
-            // Немного ждём чтобы RPC успел дойти
+            // Клиенты узнают о выходе хоста через OnServerStopped,
+            // поэтому отдельное оповещение не нужно
             Invoke(nameof(ActuallyShutdown), 0.5f);
-        }
-
-        [ClientRpc]
-        private void NotifyHostShuttingDownClientRpc()
-        {
-            Debug.Log("📡 [CLIENT] Host is shutting down");
-            // Дать время на UI сообщение перед тем как вернуться в меню
         }
 
         private void ActuallyShutdown()
         {
-            if (networkManager.IsRunning)
+            if (networkManager.IsListening)
             {
                 networkManager.Shutdown();
                 Debug.Log("✅ Network shut down");
@@ -180,7 +159,7 @@ namespace Igruha.Networking
 
             Debug.Log("🛑 Client: Initiating graceful disconnect...");
 
-            if (networkManager.IsRunning)
+            if (networkManager.IsListening)
             {
                 networkManager.Shutdown();
                 Debug.Log("✅ Disconnected from host");
