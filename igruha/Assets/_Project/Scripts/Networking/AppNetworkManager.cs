@@ -17,5 +17,7 @@ public class AppNetworkManager : MonoBehaviour
             NetworkManager.Singleton.StartHost();
             Debug.Log("🟢 Started as HOST - NetworkManager ready");
         }
+
+        // Sandbox загружается автоматически (позиция 1 в Build Settings)
     }
 }
