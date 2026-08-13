@@ -29,6 +29,20 @@ namespace Igruha.Core.Player
         public bool PushPressed { get; private set; }
         public bool InteractPressed { get; private set; }
 
+        /// <summary>
+        /// Ложь у персонажей, которыми эта машина не управляет: чужие сетевые
+        /// копии и манекены локального теста. Такой ридер нельзя включать снова —
+        /// иначе локальные нажатия дёргают сразу всех.
+        /// </summary>
+        public bool LocallyControlled { get; private set; } = true;
+
+        /// <summary>Навсегда отобрать управление у этой копии персонажа.</summary>
+        public void RevokeLocalControl()
+        {
+            LocallyControlled = false;
+            enabled = false;
+        }
+
         private void OnEnable()
         {
             Acquire(moveAction);

@@ -6,7 +6,8 @@
         "Unity.Netcode.Runtime",
         "Unity.Netcode.Components",
         "Unity.Networking.Transport",
-        "Unity.Cinemachine"
+        "Unity.Cinemachine",
+        "Unity.Collections"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

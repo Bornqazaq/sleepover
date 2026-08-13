@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 using Igruha.Core.Player;
 using Igruha.Core.Session;
@@ -30,6 +31,12 @@ namespace Igruha.Core.Spawning
         {
             spawned.Clear();
 
+            if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
+            {
+                Debug.Log($"{name}: сеть уже запущена — локальный спавн пропущен, персонажей создаёт сервер");
+                return spawned;
+            }
+
             if (playerPrefab == null || spawnPoints == null)
             {
                 Debug.LogError($"{name}: PlayerSpawner не настроен (prefab/spawnPoints)", this);
@@ -53,7 +60,7 @@ namespace Igruha.Core.Spawning
                 bool isHuman = i == 0;
                 if (!isHuman && instance.TryGetComponent(out PlayerInputReader reader))
                 {
-                    reader.enabled = false;
+                    reader.RevokeLocalControl();
                 }
 
                 if (instance.TryGetComponent(out PlayerRespawner respawner))

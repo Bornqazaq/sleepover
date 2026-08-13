@@ -37,6 +37,14 @@ namespace Igruha.Core.Arena
                 return;
             }
 
+            // Зона срабатывает на каждой машине матча, а факт смерти — исход,
+            // который решает сервер. Без этой проверки правила мини-игры получат
+            // событие столько раз, сколько в матче игроков.
+            if (!player.HasWorldAuthority)
+            {
+                return;
+            }
+
             onPlayerEntered?.Invoke(player);
 
             if (mode == ZoneMode.Respawn &&

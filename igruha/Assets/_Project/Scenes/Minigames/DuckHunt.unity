@@ -11687,6 +11687,8 @@ GameObject:
   - component: {fileID: 1836261064}
   - component: {fileID: 1836261063}
   - component: {fileID: 1836261062}
+  - component: {fileID: 1836261067}
+  - component: {fileID: 1836261068}
   m_Layer: 0
   m_Name: MinigameManager
   m_TagString: Untagged
@@ -11709,6 +11711,7 @@ MonoBehaviour:
   playerSpawner: {fileID: 1239973000}
   minigame: {fileID: 1836261063}
   cameraController: {fileID: 1258992254}
+  networkRosterTimeout: 15
 --- !u!114 &1836261063
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11770,6 +11773,40 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1836261067
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1836261061}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
+  GlobalObjectIdHash: 1367575480
+  InScenePlacedSourceGlobalObjectIdHash: 0
+  AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 1
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 1
+  SpawnWithObservers: 1
+  DontDestroyWithOwner: 0
+  AutoObjectParentSync: 1
+--- !u!114 &1836261068
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1836261061}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f936ac2daa96e34a92beb7cf4cf930d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Networking::Igruha.Networking.NetworkMinigameBridge
+  timeSyncRate: 10
 --- !u!1 &1839809416
 GameObject:
   m_ObjectHideFlags: 0

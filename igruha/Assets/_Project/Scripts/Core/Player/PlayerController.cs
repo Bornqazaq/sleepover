@@ -36,8 +36,19 @@ namespace Igruha.Core.Player
         /// </summary>
         public Vector3 Facing => rb != null ? rb.rotation * Vector3.forward : transform.forward;
 
+        /// <summary>
+        /// Вправе ли эта машина решать, что произошло с персонажем. В сетевой игре
+        /// true только на сервере, в одиночной — всегда.
+        ///
+        /// Мировые источники воздействий (ловушки, зоны смерти) обязаны спросить
+        /// перед тем, как что-то решать: их триггеры срабатывают на каждой машине
+        /// матча, и без проверки событие засчитается столько раз, сколько игроков.
+        /// </summary>
+        public bool HasWorldAuthority => worldEffectRelay == null || worldEffectRelay.HasAuthority;
+
         private Rigidbody rb;
         private CapsuleCollider capsule;
+        private IWorldEffectRelay worldEffectRelay;
         private Quaternion targetRotation;
         private float coyoteTimer;
         private float jumpBufferTimer;
@@ -47,6 +58,7 @@ namespace Igruha.Core.Player
         {
             rb = GetComponent<Rigidbody>();
             capsule = GetComponent<CapsuleCollider>();
+            worldEffectRelay = GetComponent<IWorldEffectRelay>();
             targetRotation = rb.rotation;
             rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
             ApplyBodyConfig();
@@ -238,8 +250,26 @@ namespace Igruha.Core.Player
         }
 
         /// <summary>
+        /// Импульс от мира: пружина, взрыв, попадание снаряда. Это точка входа
+        /// для всего, что находится вне персонажа — в сетевой игре решение
+        /// принимает сервер, а применяет владелец.
+        ///
+        /// Мировым источникам следует вызывать этот метод, а не ApplyImpulse:
+        /// прямой вызов на чужой копии персонажа будет перетёрт сетевым состоянием.
+        /// </summary>
+        public void ApplyWorldImpulse(Vector3 impulse)
+        {
+            if (worldEffectRelay != null && worldEffectRelay.TryRelayImpulse(impulse))
+            {
+                return;
+            }
+
+            ApplyImpulse(impulse);
+        }
+
+        /// <summary>
         /// Импульс произвольного направления (пружины, взрывы, попадания сверху).
-        /// Тоже единая точка входа для будущего server-authority.
+        /// Применяется здесь и сейчас — сетевую маршрутизацию делает ApplyWorldImpulse.
         /// </summary>
         public void ApplyImpulse(Vector3 impulse) => ApplyImpulse(impulse, KnockdownType.FallForward);
 
@@ -276,6 +306,21 @@ namespace Igruha.Core.Player
             // Пока лежит — гасим скольжение, иначе подъём проигрывается «на ходу».
             rb.linearDamping = config.KnockdownDrag;
             KnockdownStarted?.Invoke(type);
+        }
+
+        /// <summary>
+        /// Перенос как решение мира: респаун, смена арены, старт мини-игры.
+        /// В сетевой игре сервер поручает перенос владельцу, в одиночной
+        /// применяется сразу. Мировому коду нужен этот метод, а не TeleportTo.
+        /// </summary>
+        public void RequestTeleport(Vector3 position, Quaternion rotation)
+        {
+            if (worldEffectRelay != null && worldEffectRelay.TryRelayTeleport(position, rotation))
+            {
+                return;
+            }
+
+            TeleportTo(position, rotation);
         }
 
         /// <summary>Мгновенный перенос (респаун). Сбрасывает скорость и нокдаун.</summary>

@@ -66,6 +66,12 @@ namespace Igruha.Minigames.DuckHunt
 
         private void Update()
         {
+            // В сетевой катке роли одинаковы у всех — переключать их нельзя.
+            if (SessionScoreboard.IsNetworked)
+            {
+                return;
+            }
+
             Keyboard keyboard = Keyboard.current;
             if (keyboard == null || !keyboard[roleSwitchKey].wasPressedThisFrame)
             {
@@ -86,9 +92,14 @@ namespace Igruha.Minigames.DuckHunt
 
             ducks.Clear();
             hunter = null;
-            // Охотник ровно один. В соло-тесте роль переключается дебаг-кнопкой:
-            // если игрок — утка, охотником становится ближайший манекен.
-            hunterPlayerIndex = localPlayerIsHunter ? 0 : Mathf.Min(1, Players.Count - 1);
+
+            // Охотник ровно один. В сети роль выводим из ростера (он одинаков на
+            // всех машинах), поэтому договариваться по сети не нужно. В соло-тесте
+            // роль переключается дебаг-кнопкой: если игрок — утка, охотником
+            // становится ближайший манекен.
+            hunterPlayerIndex = SessionScoreboard.IsNetworked
+                ? 0
+                : localPlayerIsHunter ? 0 : Mathf.Min(1, Players.Count - 1);
 
             int duckIndex = 0;
             for (int i = 0; i < Players.Count; i++)
@@ -178,7 +189,7 @@ namespace Igruha.Minigames.DuckHunt
                 return;
             }
 
-            avatar.TeleportTo(point.transform.position, point.transform.rotation);
+            avatar.RequestTeleport(point.transform.position, point.transform.rotation);
 
             if (avatar.TryGetComponent(out PlayerRespawner respawner))
             {
@@ -188,7 +199,9 @@ namespace Igruha.Minigames.DuckHunt
 
         private void OnDuckArrived(DuckProgress duck)
         {
-            if (!RoundActive)
+            // Зона финиша срабатывает на каждой машине, но зачёт и досрочное
+            // завершение раунда — дело авторитета, иначе итоги разъедутся.
+            if (!RoundActive || !HasAuthority)
             {
                 return;
             }

@@ -1,5 +1,6 @@
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Igruha.Networking
 {
@@ -61,8 +62,9 @@ namespace Igruha.Networking
                 Debug.Log($"   └─ Player object for ClientId={clientId} will be despawned by NGO");
             }
 
-            // Проверить достаточно ли игроков осталось
-            int remainingPlayers = networkManager.ConnectedClients.Count - 1; // -1 для self
+            // К моменту вызова NGO уже удалил ушедшего из ConnectedClients,
+            // поэтому Count — это и есть остаток. Хост тоже входит в число игроков.
+            int remainingPlayers = networkManager.ConnectedClients.Count;
             Debug.Log($"   └─ Remaining players: {remainingPlayers}");
 
             // TODO (future): Если осталось < 2 игроков → вернуться в лобби
@@ -99,20 +101,26 @@ namespace Igruha.Networking
         /// </summary>
         private void ReturnToMainMenu(string reason)
         {
-            Debug.Log($"🔄 Returning to main menu: {reason}");
+            if (!Application.isPlaying)
+            {
+                return;
+            }
 
-            // TODO: Загрузить главное меню сцену
-            // UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu");
+            Debug.Log($"🔄 Returning to hub: {reason}");
 
-            // Убедиться что NetworkManager остановлен
             if (networkManager != null && (networkManager.IsServer || networkManager.IsClient))
             {
                 networkManager.Shutdown();
             }
 
-            // Показать сообщение пользователю
-            Debug.Log($"   └─ Reason: {reason}");
-            // TODO: UIManager.Instance.ShowDisconnectMessage(reason);
+            // NetworkManager живёт в DontDestroyOnLoad — без уничтожения
+            // следующая загрузка Boot создаст второй экземпляр.
+            if (networkManager != null)
+            {
+                Destroy(networkManager.gameObject);
+            }
+
+            SceneManager.LoadScene("Hub");
         }
 
         // ========== GRACEFUL SHUTDOWN ==========

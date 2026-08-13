@@ -1,3 +1,4 @@
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using TMPro;
@@ -140,7 +141,7 @@ namespace Igruha.Core.Hub
             {
                 MinigameAnchor anchor = pendingAnchor;
                 CloseConfirmation();
-                loader?.Load(anchor.Definition);
+                StartMinigame(anchor);
                 return;
             }
 
@@ -148,6 +149,18 @@ namespace Igruha.Core.Hub
             {
                 CloseConfirmation();
             }
+        }
+
+        private void StartMinigame(MinigameAnchor anchor)
+        {
+            NetworkManager network = NetworkManager.Singleton;
+            if (network != null && network.IsListening && !network.IsServer)
+            {
+                Debug.Log($"{name}: мини-игру запускает только хост");
+                return;
+            }
+
+            loader?.Load(anchor.Definition);
         }
 
         private void CloseConfirmation()

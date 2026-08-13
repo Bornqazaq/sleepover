@@ -11,8 +11,9 @@ namespace Igruha.Networking
     /// - Владелец обрабатывает ввод и двигает себя локально (ClientNetworkTransform)
     /// - Толчки идут через сервер: он валидирует запрос и назначает силу
     /// - Применяет толчок владелец цели, иначе результат будет перетёрт
+    /// - Воздействия мира (ловушки, зоны смерти) решает сервер, применяет владелец
     /// </summary>
-    public sealed class NetworkPlayerController : NetworkBehaviour, IPushRelay
+    public sealed class NetworkPlayerController : NetworkBehaviour, IPushRelay, IWorldEffectRelay
     {
         private PlayerController playerController;
         private NetworkTransform networkTransform;
@@ -62,10 +63,11 @@ namespace Igruha.Networking
             playerController.enabled = false;
 
             // Ридер гасит все нажатия в OnDisable, поэтому одного выключения
-            // достаточно для мотора, удара и взаимодействия
+            // достаточно для мотора, удара и взаимодействия. Забираем управление
+            // навсегда: мини-игра включает ввод по фазе и иначе разбудила бы копию.
             if (inputReader != null)
             {
-                inputReader.enabled = false;
+                inputReader.RevokeLocalControl();
             }
 
             // Иначе он перезапишет параметры Animator, пришедшие через NetworkAnimator
@@ -165,7 +167,43 @@ namespace Igruha.Networking
             Debug.Log($"💥 [{name}] Толчок применён: direction={direction.normalized}, force={force}");
         }
 
-        // ========== ИМПУЛЬСЫ ОТ МИРА (пружины, взрывы, ловушки) ==========
+        // ========== ВОЗДЕЙСТВИЯ МИРА (пружины, взрывы, зоны смерти) ==========
+
+        /// <summary>
+        /// Пока персонаж не заспавнен, сетевого авторитета не существует и решать
+        /// вправе локальная машина — так сцены продолжают работать без сети.
+        /// </summary>
+        public bool HasAuthority => !IsSpawned || IsServer;
+
+        public bool TryRelayImpulse(Vector3 impulse)
+        {
+            if (!IsSpawned)
+            {
+                return false;
+            }
+
+            if (IsServer)
+            {
+                ApplyImpulseRpc(impulse);
+            }
+
+            return true;
+        }
+
+        public bool TryRelayTeleport(Vector3 position, Quaternion rotation)
+        {
+            if (!IsSpawned)
+            {
+                return false;
+            }
+
+            if (IsServer)
+            {
+                TeleportRpc(position, rotation);
+            }
+
+            return true;
+        }
 
         /// <summary>
         /// Сервер: отправить импульс персонажу. Вызывать только на сервере —
@@ -192,6 +230,27 @@ namespace Igruha.Networking
 
             playerController.ApplyImpulse(impulse);
             Debug.Log($"💫 [{name}] Импульс применён: {impulse.magnitude:F2}");
+        }
+
+        [Rpc(SendTo.Owner)]
+        private void TeleportRpc(Vector3 position, Quaternion rotation)
+        {
+            if (playerController == null)
+            {
+                return;
+            }
+
+            playerController.TeleportTo(position, rotation);
+
+            // NetworkTransform интерполирует перенос между старой и новой точкой,
+            // поэтому без явного Teleport остальные увидят, как персонаж
+            // «проезжает» через всю карту вместо мгновенного respawn.
+            if (networkTransform != null)
+            {
+                networkTransform.Teleport(position, rotation, transform.localScale);
+            }
+
+            Debug.Log($"♻️ [{name}] Респавн: перенесён в {position}");
         }
     }
 }
