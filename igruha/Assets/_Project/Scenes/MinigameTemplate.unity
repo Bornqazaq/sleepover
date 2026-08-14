@@ -355,7 +355,7 @@ Transform:
   m_GameObject: {fileID: 211926071}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 5, y: 0.64, z: -12}
+  m_LocalPosition: {x: 5, y: 6.6613384e-17, z: -12}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -476,7 +476,7 @@ Transform:
   m_GameObject: {fileID: 416602000}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 7, y: 0.64, z: -12}
+  m_LocalPosition: {x: 7, y: 6.6613384e-17, z: -12}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -899,7 +899,7 @@ Transform:
   m_GameObject: {fileID: 692244995}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -7, y: 0.64, z: -12}
+  m_LocalPosition: {x: -7, y: 6.6613384e-17, z: -12}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -928,6 +928,7 @@ GameObject:
   m_Component:
   - component: {fileID: 739396095}
   - component: {fileID: 739396096}
+  - component: {fileID: 739396097}
   m_Layer: 0
   m_Name: Directional Light
   m_TagString: Untagged
@@ -1015,6 +1016,35 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!114 &739396097
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 739396094}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1 &756139773
 GameObject:
   m_ObjectHideFlags: 0
@@ -1211,7 +1241,7 @@ Transform:
   m_GameObject: {fileID: 1059554155}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 10, y: 0.64, z: -12}
+  m_LocalPosition: {x: 10, y: 6.6613384e-17, z: -12}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1624,7 +1654,7 @@ Transform:
   m_GameObject: {fileID: 1363505230}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -5, y: 0.64, z: -12}
+  m_LocalPosition: {x: -5, y: 6.6613384e-17, z: -12}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1669,7 +1699,7 @@ Transform:
   m_GameObject: {fileID: 1410626877}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -1, y: 0.64, z: -12}
+  m_LocalPosition: {x: -1, y: 6.6613384e-17, z: -12}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1851,7 +1881,7 @@ Transform:
   m_GameObject: {fileID: 1431649164}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -3, y: 0.64, z: -12}
+  m_LocalPosition: {x: -3, y: 6.6613384e-17, z: -12}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2467,7 +2497,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 937a6bcdfcc26d14095d222aaf89e472, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Spawning.PlayerSpawner
-  playerPrefab: {fileID: 6047239826789173574, guid: 8373dcb0a9d26f146bcadb097466c59c, type: 3}
+  roster: {fileID: 0}
   spawnPoints: {fileID: 1638957353}
   debugPlayerCount: 3
   defaultRole: 0
@@ -2771,7 +2801,7 @@ Transform:
   m_GameObject: {fileID: 1778236733}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 3, y: 0.64, z: -12}
+  m_LocalPosition: {x: 3, y: 6.6613384e-17, z: -12}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2816,7 +2846,7 @@ Transform:
   m_GameObject: {fileID: 1782728626}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 1, y: 0.64, z: -12}
+  m_LocalPosition: {x: 1, y: 6.6613384e-17, z: -12}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
