@@ -15,6 +15,7 @@ namespace Igruha.Core.Player
         [SerializeField] private Transform visualRoot;
 
         private static readonly int SpeedParameterHash = Animator.StringToHash("Speed");
+        private static readonly int CrouchParameterHash = Animator.StringToHash("Crouch");
         private static readonly int JumpParameterHash = Animator.StringToHash("Jump");
         private static readonly int PunchParameterHash = Animator.StringToHash("Punch");
         private static readonly int KnockdownFrontHash = Animator.StringToHash("KnockdownFront");
@@ -60,6 +61,7 @@ namespace Igruha.Core.Player
             if (animator != null && motor != null)
             {
                 animator.SetFloat(SpeedParameterHash, motor.NormalizedSpeed);
+                animator.SetBool(CrouchParameterHash, motor.IsCrouched);
             }
         }
 

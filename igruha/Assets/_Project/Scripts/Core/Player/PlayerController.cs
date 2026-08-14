@@ -16,6 +16,8 @@ namespace Igruha.Core.Player
         [SerializeField] private CharacterConfig config;
         [SerializeField] private PlayerInputReader inputReader;
         [SerializeField] private LayerMask groundLayer;
+        [Tooltip("Во что упирается макушка при попытке встать из приседа, помимо земли: укрытия, платформы, декорации")]
+        [SerializeField] private LayerMask crouchCeilingLayers;
         [Tooltip("Камера, относительно которой считается направление ввода. Пусто — берётся Camera.main при старте")]
         [SerializeField] private Transform cameraTransform;
 
@@ -26,6 +28,12 @@ namespace Igruha.Core.Player
         public CharacterConfig Config => config;
         public bool IsGrounded { get; private set; }
         public bool IsKnockedDown => knockdownTimer > 0f;
+
+        /// <summary>
+        /// Персонаж сидит: капсула ниже, скорость меньше. Отличается от запроса —
+        /// под низким потолком встать нельзя, и состояние держится дальше.
+        /// </summary>
+        public bool IsCrouched { get; private set; }
         /// <summary>0..1 — доля от максимальной скорости, для анимаций.</summary>
         public float NormalizedSpeed { get; private set; }
 
@@ -53,6 +61,10 @@ namespace Igruha.Core.Player
         private float coyoteTimer;
         private float jumpBufferTimer;
         private float knockdownTimer;
+        private float standingHeight;
+        private Vector3 standingCenter;
+        private bool crouchRequested;
+        private float crouchBlend;
 
         private void Awake()
         {
@@ -60,6 +72,8 @@ namespace Igruha.Core.Player
             capsule = GetComponent<CapsuleCollider>();
             worldEffectRelay = GetComponent<IWorldEffectRelay>();
             targetRotation = rb.rotation;
+            standingHeight = Mathf.Max(capsule.height, capsule.radius * 2f);
+            standingCenter = capsule.center;
             rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
             ApplyBodyConfig();
 
@@ -95,6 +109,7 @@ namespace Igruha.Core.Player
             IsGrounded = CheckGrounded();
             UpdateTimers();
             ApplyExtraGravity();
+            UpdateCrouch();
 
             if (IsKnockedDown)
             {
@@ -126,6 +141,72 @@ namespace Igruha.Core.Player
             jumpBufferTimer = config.JumpBufferTime;
         }
 
+        /// <summary>
+        /// Запросить приседание. Единая точка входа: сюда же придёт серверное
+        /// решение в сетевой фазе, логика ниже от источника не зависит.
+        /// </summary>
+        public void SetCrouched(bool crouched) => crouchRequested = crouched;
+
+        private void UpdateCrouch()
+        {
+            if (inputReader != null)
+            {
+                SetCrouched(inputReader.CrouchHeld);
+            }
+
+            // В нокдауне персонаж и так лежит: приседание игнорируем, но встать
+            // не даём, пока над макушкой препятствие — иначе капсула войдёт в него.
+            bool crouched = crouchRequested && !IsKnockedDown;
+            if (!crouched && IsCrouched && IsBlockedAbove())
+            {
+                crouched = true;
+            }
+
+            IsCrouched = crouched;
+
+            float step = config.CrouchTransitionTime > 0f
+                ? Time.fixedDeltaTime / config.CrouchTransitionTime
+                : 1f;
+            crouchBlend = Mathf.MoveTowards(crouchBlend, crouched ? 1f : 0f, step);
+            ApplyCapsuleHeight();
+        }
+
+        /// <summary>
+        /// Капсула сжимается к полу, а не к центру: подошвы обязаны остаться
+        /// на месте, иначе персонаж проваливается или подпрыгивает на присед.
+        /// </summary>
+        private void ApplyCapsuleHeight()
+        {
+            float crouchedHeight = Mathf.Max(standingHeight * config.CrouchHeightMultiplier, capsule.radius * 2f);
+            float height = Mathf.Lerp(standingHeight, crouchedHeight, crouchBlend);
+            if (Mathf.Approximately(capsule.height, height))
+            {
+                return;
+            }
+
+            capsule.height = height;
+            capsule.center = new Vector3(
+                standingCenter.x,
+                standingCenter.y - (standingHeight - height) * 0.5f,
+                standingCenter.z);
+        }
+
+        private bool IsBlockedAbove()
+        {
+            float radius = capsule.radius;
+            float currentTop = capsule.center.y + capsule.height * 0.5f;
+            float standingTop = standingCenter.y + standingHeight * 0.5f;
+            float distance = standingTop - currentTop;
+            if (distance <= 0.001f)
+            {
+                return false;
+            }
+
+            Vector3 topSphere = transform.TransformPoint(new Vector3(capsule.center.x, currentTop - radius, capsule.center.z));
+            return Physics.SphereCast(topSphere, radius * 0.95f, Vector3.up, out _, distance,
+                groundLayer | crouchCeilingLayers, QueryTriggerInteraction.Ignore);
+        }
+
         private Vector2 ReadMoveInput()
         {
             if (inputReader == null)
@@ -140,7 +221,8 @@ namespace Igruha.Core.Player
         private void ApplyLocomotion(Vector2 moveInput)
         {
             Vector3 desiredDirection = ToCameraRelative(moveInput);
-            Vector3 desiredVelocity = Vector3.ClampMagnitude(desiredDirection, 1f) * config.MaxSpeed;
+            float maxSpeed = config.MaxSpeed * Mathf.Lerp(1f, config.CrouchSpeedMultiplier, crouchBlend);
+            Vector3 desiredVelocity = Vector3.ClampMagnitude(desiredDirection, 1f) * maxSpeed;
             Vector3 currentHorizontal = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
 
             bool accelerating = desiredVelocity.sqrMagnitude > 0.01f;

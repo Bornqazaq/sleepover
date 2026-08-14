@@ -15,6 +15,7 @@ namespace Igruha.Core.Player
         [SerializeField] private InputActionReference jumpAction;
         [SerializeField] private InputActionReference pushAction;
         [SerializeField] private InputActionReference interactAction;
+        [SerializeField] private InputActionReference crouchAction;
 
         /// <summary>
         /// InputActionReference указывает на общий ассет: один InputAction на всю сцену.
@@ -28,6 +29,9 @@ namespace Igruha.Core.Player
         public bool JumpPressed { get; private set; }
         public bool PushPressed { get; private set; }
         public bool InteractPressed { get; private set; }
+
+        /// <summary>Приседание — удержание, а не нажатие: отпустил кнопку, встал.</summary>
+        public bool CrouchHeld { get; private set; }
 
         /// <summary>
         /// Ложь у персонажей, которыми эта машина не управляет: чужие сетевые
@@ -49,6 +53,7 @@ namespace Igruha.Core.Player
             Acquire(jumpAction);
             Acquire(pushAction);
             Acquire(interactAction);
+            Acquire(crouchAction);
         }
 
         private void OnDisable()
@@ -57,8 +62,10 @@ namespace Igruha.Core.Player
             Release(jumpAction);
             Release(pushAction);
             Release(interactAction);
+            Release(crouchAction);
             MoveInput = Vector2.zero;
             JumpPressed = PushPressed = InteractPressed = false;
+            CrouchHeld = false;
         }
 
         private void Update()
@@ -67,6 +74,7 @@ namespace Igruha.Core.Player
             JumpPressed |= WasPressed(jumpAction);
             PushPressed |= WasPressed(pushAction);
             InteractPressed |= WasPressed(interactAction);
+            CrouchHeld = crouchAction != null && crouchAction.action.IsPressed();
         }
 
         /// <summary>Сбросить одноразовые нажатия — вызывается потребителем после обработки.</summary>
