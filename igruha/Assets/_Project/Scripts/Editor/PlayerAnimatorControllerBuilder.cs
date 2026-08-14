@@ -159,6 +159,24 @@ namespace Igruha.EditorTools
                 }));
         }
 
+        [MenuItem("Igruha/Player/Build Fat Animator Controller")]
+        internal static void BuildFatController()
+        {
+            Build(new CharacterAnimationSet(
+                characterName: "Fat",
+                controllerPath: "Assets/_Project/Art/Animations/FatAnimator.controller",
+                playerPrefabPath: "Assets/_Project/Prefabs/Player/Fat.prefab",
+                idleClip: "Fat@Neutral Idle.fbx",
+                runClip: "Fat@Running.fbx",
+                jumpClip: "Fat@Forward Jump.fbx",
+                punchClip: "Fat@Cross Punch.fbx",
+                flyBackClip: "Fat@Sweep Fall.fbx",
+                standUpBackClip: "Fat@Kip Up.fbx",
+                fallForwardClip: "Fat@Fall Flat.fbx",
+                standUpForwardClip: "Fat@Stand Up Forward.fbx",
+                runJumpClip: "Fat@Running Jump.fbx"));
+        }
+
         private static void Build(CharacterAnimationSet set)
         {
             AnimationClip idle = LoadClip(set.IdleClip);

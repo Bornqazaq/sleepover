@@ -19,8 +19,8 @@ MonoBehaviour:
     prefab: {fileID: 966008085078528722, guid: e6010cfa7faeee645b661ec63dd6af90, type: 3}
   - displayName: Shlanga
     prefab: {fileID: 2248581674412273571, guid: 38e1030229a6a4649a36db8e135edccc, type: 3}
-  - displayName: ???
-    prefab: {fileID: 0}
+  - displayName: Fat
+    prefab: {fileID: 9171410491814777834, guid: 45655be5c30e24744a28fd24b860e478, type: 3}
   - displayName: ???
     prefab: {fileID: 0}
   - displayName: ???

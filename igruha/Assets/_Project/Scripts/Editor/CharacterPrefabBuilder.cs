@@ -34,6 +34,18 @@ namespace Igruha.EditorTools
             "Танец 5", "Танец 6", "Танец 7", "Танец 8"
         };
 
+        private const string FatPrefabPath = "Assets/_Project/Prefabs/Player/Fat.prefab";
+        // См. комментарий у ShlangaModelPath — та же схема: визуал из анимационного FBX.
+        private const string FatModelPath = "Assets/_Project/Art/Animations/Fat@Neutral Idle.fbx";
+        private const string FatIdleClipPath = FatModelPath;
+        private const string FatControllerPath = "Assets/_Project/Art/Animations/FatAnimator.controller";
+
+        /// <summary>Танцев у Fat нет — колесо эмоций у него просто не откроется.</summary>
+        private static readonly string[] FatEmotes = System.Array.Empty<string>();
+
+        /// <summary>Fat — того же роста, что и эталонный Boss.</summary>
+        private const float FatHeightFactor = 1f;
+
         [MenuItem("Igruha/Player/Create Shlanga Prefab")]
         private static void CreateShlanga()
         {
@@ -52,6 +64,25 @@ namespace Igruha.EditorTools
             // Второй прогон билдера — уже по существующему префабу: он допишет
             // в PlayerController длительности нокдауна по длине клипов Шланги.
             PlayerAnimatorControllerBuilder.BuildShlangaController();
+        }
+
+        [MenuItem("Igruha/Player/Create Fat Prefab")]
+        private static void CreateFat()
+        {
+            EnsureEmoteAbilityOnBasePrefab();
+
+            if (AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(FatControllerPath) == null)
+            {
+                PlayerAnimatorControllerBuilder.BuildFatController();
+            }
+
+            if (!Create("Fat", FatPrefabPath, FatModelPath, FatIdleClipPath, FatControllerPath, FatHeightFactor, FatEmotes))
+            {
+                return;
+            }
+
+            // Второй прогон билдера — уже по существующему префабу: см. комментарий в CreateShlanga.
+            PlayerAnimatorControllerBuilder.BuildFatController();
         }
 
         /// <summary>

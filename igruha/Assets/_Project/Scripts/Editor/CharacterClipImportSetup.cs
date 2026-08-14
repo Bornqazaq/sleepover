@@ -18,13 +18,21 @@ namespace Igruha.EditorTools
         private static readonly HashSet<string> LoopingClipSuffixes = new HashSet<string>
         {
             "idle", "run",
-            "dance1", "dance2", "dance3", "dance4", "dance5", "dance6", "dance7", "dance8"
+            "dance1", "dance2", "dance3", "dance4", "dance5", "dance6", "dance7", "dance8",
+            // У Fat исходники названы не по общей конвенции (idle/run) — суффиксы буквальные.
+            "Neutral Idle", "Running"
         };
 
         [MenuItem("Igruha/Player/Setup Shlanga Import Settings")]
         private static void SetupShlanga()
         {
             Setup("Shlanga");
+        }
+
+        [MenuItem("Igruha/Player/Setup Fat Import Settings")]
+        private static void SetupFat()
+        {
+            Setup("Fat");
         }
 
         /// <summary>
