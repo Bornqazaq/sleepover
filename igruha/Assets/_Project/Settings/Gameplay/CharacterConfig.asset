@@ -18,6 +18,9 @@ MonoBehaviour:
   airControl: 0.55
   rotationSpeed: 520
   inputDeadzone: 0.15
+  crouchSpeedMultiplier: 0.45
+  crouchHeightMultiplier: 0.5
+  crouchTransitionTime: 0.12
   jumpSpeed: 8.4
   riseGravityMultiplier: 2.2
   fallGravityMultiplier: 3
@@ -36,3 +39,4 @@ MonoBehaviour:
   faceHitForceMultiplier: 1.35
   knockdownVelocityThreshold: 5
   knockdownDrag: 4
+  lockStopTime: 0.08

@@ -54,7 +54,42 @@ namespace Igruha.Core.Spawning
                 return null;
             }
 
-            return rolePoints[index % rolePoints.Count];
+            return rolePoints[Wrap(index, rolePoints.Count)];
         }
+
+        /// <summary>
+        /// i-я из count точек роли с максимальным разносом по кольцу.
+        /// Подряд идущие точки при неполном лобби ставят всех в один угол —
+        /// на круглой арене это отдаёт всю толпу в один сектор обзора ведущего.
+        ///
+        /// Слот считается как index × точек / count, а не по целочисленному шагу:
+        /// шаг 8/3 = 2 дал бы 0, 2, 4 и оставил полкольца пустым, а эта формула —
+        /// 0, 2, 5, то есть настоящий разнос. Результат детерминирован, поэтому
+        /// сервер и клиент при одинаковых входах получают одни и те же точки.
+        /// </summary>
+        public SpawnPoint GetSpreadPoint(SpawnRole role, int index, int count)
+        {
+            IReadOnlyList<SpawnPoint> rolePoints = GetPoints(role);
+            if (rolePoints.Count == 0)
+            {
+                Debug.LogWarning($"{name}: нет точек спавна роли {role}", this);
+                return null;
+            }
+
+            if (count <= 0)
+            {
+                Debug.LogWarning($"{name}: разнос спавнов запрошен на {count} игроков — точки раздаются подряд", this);
+                return rolePoints[Wrap(index, rolePoints.Count)];
+            }
+
+            // Игроков не меньше, чем точек — разносить нечего, раздаём подряд по кругу.
+            int slot = count >= rolePoints.Count
+                ? index
+                : index * rolePoints.Count / count;
+
+            return rolePoints[Wrap(slot, rolePoints.Count)];
+        }
+
+        private static int Wrap(int value, int length) => ((value % length) + length) % length;
     }
 }

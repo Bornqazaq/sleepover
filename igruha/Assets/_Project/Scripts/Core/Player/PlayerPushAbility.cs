@@ -21,6 +21,7 @@ namespace Igruha.Core.Player
 
         private PlayerController self;
         private Igruha.Core.Items.PlayerCarryAbility carryAbility;
+        private IPushRelay pushRelay;
         private readonly Collider[] overlapResults = new Collider[MaxTargets];
         private float cooldownTimer;
         private float impactTimer;
@@ -30,6 +31,7 @@ namespace Igruha.Core.Player
         {
             self = GetComponent<PlayerController>();
             carryAbility = GetComponent<Igruha.Core.Items.PlayerCarryAbility>();
+            pushRelay = GetComponent<IPushRelay>();
         }
 
         private void Update()
@@ -100,11 +102,20 @@ namespace Igruha.Core.Player
                 Vector3 toTarget = target.transform.position - transform.position;
                 toTarget.y = 0f;
 
-                if (toTarget.sqrMagnitude < 0.0001f ||
-                    Vector3.Angle(transform.forward, toTarget) <= halfArc)
+                if (toTarget.sqrMagnitude >= 0.0001f &&
+                    Vector3.Angle(transform.forward, toTarget) > halfArc)
                 {
-                    target.ApplyPush(toTarget, config.PushForce);
+                    continue;
                 }
+
+                // В сетевой игре толчок доставляет владельцу цели сетевой слой,
+                // иначе локальное изменение будет перетёрто владельцем
+                if (pushRelay != null && pushRelay.TryRelayPush(target, toTarget, config.PushForce))
+                {
+                    continue;
+                }
+
+                target.ApplyPush(toTarget, config.PushForce);
             }
         }
     }

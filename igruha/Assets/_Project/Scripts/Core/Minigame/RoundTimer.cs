@@ -16,6 +16,12 @@ namespace Igruha.Core.Minigame
         public float Remaining { get; private set; }
         public float Duration { get; private set; }
 
+        /// <summary>
+        /// Время приходит от сервера: локальный тик выключен, а Finished не
+        /// стреляет. Иначе у каждого клиента раунд кончался бы в своё время.
+        /// </summary>
+        public bool DrivenExternally { get; set; }
+
         public void StartTimer(float duration)
         {
             Duration = Mathf.Max(0f, duration);
@@ -28,9 +34,17 @@ namespace Igruha.Core.Minigame
             IsRunning = false;
         }
 
+        /// <summary>Показать время, посчитанное сервером.</summary>
+        public void SyncFromNetwork(float remaining, float duration)
+        {
+            Duration = Mathf.Max(0f, duration);
+            Remaining = Mathf.Clamp(remaining, 0f, Duration);
+            IsRunning = Remaining > 0f;
+        }
+
         private void Update()
         {
-            if (!IsRunning)
+            if (!IsRunning || DrivenExternally)
             {
                 return;
             }

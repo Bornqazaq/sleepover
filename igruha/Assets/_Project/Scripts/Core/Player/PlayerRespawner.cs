@@ -29,7 +29,7 @@ namespace Igruha.Core.Player
                 return;
             }
 
-            motor.TeleportTo(respawnPoint.position, respawnPoint.rotation);
+            motor.RequestTeleport(respawnPoint.position, respawnPoint.rotation);
         }
     }
 }

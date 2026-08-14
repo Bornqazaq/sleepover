@@ -11,8 +11,12 @@ namespace Igruha.Core.Minigame
     /// База контроллера мини-игры: обучалка → раунд → таймер → авто-завершение →
     /// сбор результатов → отчёт (IMinigame). Конкретная игра переопределяет
     /// только хуки и CollectResults — весь общий цикл живёт здесь.
+    ///
+    /// Сеть: фазу, время раунда и итоговые места решает авторитет (сервер), а
+    /// остальные машины их применяют. Если моста нет (сцена открыта напрямую),
+    /// авторитет у локальной машины и цикл работает как раньше.
     /// </summary>
-    public abstract class MinigameControllerBase : MonoBehaviour, IMinigame
+    public abstract class MinigameControllerBase : MonoBehaviour, IMinigame, IMinigameNetworkTarget
     {
         [SerializeField] private MinigameDefinition definition;
         [SerializeField] private RoundTimer roundTimer;
@@ -21,15 +25,25 @@ namespace Igruha.Core.Minigame
 
         private readonly MinigameResults results = new MinigameResults();
         private readonly List<SessionPlayer> playerList = new List<SessionPlayer>(8);
-        private bool roundActive;
-        private bool finished;
+        private IMinigameNetworkBridge bridge;
+        private MinigamePhase phase = MinigamePhase.Idle;
 
         public MinigameDefinition Definition => definition;
         public event Action<MinigameResults> ResultsReported;
 
+        public MinigamePhase Phase => phase;
+
         protected IReadOnlyList<SessionPlayer> Players => playerList;
-        protected bool RoundActive => roundActive;
+        protected bool RoundActive => phase == MinigamePhase.Round;
         protected RoundTimer Timer => roundTimer;
+
+        /// <summary>Сервер сетевой катки либо единственная машина локального теста.</summary>
+        protected bool HasAuthority => bridge == null || bridge.HasAuthority;
+
+        protected virtual void Awake()
+        {
+            bridge = GetComponent<IMinigameNetworkBridge>();
+        }
 
         protected virtual void OnEnable()
         {
@@ -55,28 +69,91 @@ namespace Igruha.Core.Minigame
                 playerList.Add(players[i]);
             }
 
-            finished = false;
-            roundActive = false;
-
             hud?.Bind(roundTimer);
             SetPlayersControlEnabled(false);
             OnPlayersReady();
 
-            if (tutorialScreen != null)
+            // Фазы объявляет авторитет. Клиент уже готов (ростер и роли есть),
+            // но ждёт команды из сети, иначе его раунд пойдёт в своём времени.
+            if (!HasAuthority)
             {
-                tutorialScreen.Show(definition, BeginRound);
+                return;
             }
-            else
+
+            GoToPhase(tutorialScreen != null ? MinigamePhase.Tutorial : MinigamePhase.Round);
+        }
+
+        /// <summary>Завершение раунда: по таймеру или досрочно правилами игры.</summary>
+        public void EndMinigame()
+        {
+            if (phase == MinigamePhase.Results || phase == MinigamePhase.Idle)
             {
-                BeginRound();
+                return;
+            }
+
+            GoToPhase(MinigamePhase.Results);
+        }
+
+        // ========== ФАЗЫ ==========
+
+        private void GoToPhase(MinigamePhase next)
+        {
+            if (!HasAuthority || phase == next)
+            {
+                return;
+            }
+
+            ApplyPhase(next);
+            bridge?.PublishPhase(next);
+        }
+
+        /// <summary>Применить фазу: у авторитета — из GoToPhase, у клиента — из сети.</summary>
+        public void ApplyPhase(MinigamePhase next)
+        {
+            if (phase == next)
+            {
+                return;
+            }
+
+            phase = next;
+
+            if (roundTimer != null)
+            {
+                roundTimer.DrivenExternally = !HasAuthority;
+            }
+
+            switch (next)
+            {
+                case MinigamePhase.Tutorial:
+                    EnterTutorial();
+                    break;
+                case MinigamePhase.Round:
+                    EnterRound();
+                    break;
+                case MinigamePhase.Results:
+                    EnterResults();
+                    break;
             }
         }
 
-        private void BeginRound()
+        private void EnterTutorial()
         {
-            roundActive = true;
+            SetPlayersControlEnabled(false);
+            tutorialScreen?.Show(definition, HandleTutorialClosed);
+        }
+
+        private void HandleTutorialClosed()
+        {
+            // У клиента заставка гаснет только визуально: раунд начнёт сервер.
+            GoToPhase(MinigamePhase.Round);
+        }
+
+        private void EnterRound()
+        {
+            tutorialScreen?.Hide();
             SetPlayersControlEnabled(true);
-            if (roundTimer != null && definition != null)
+
+            if (HasAuthority && roundTimer != null && definition != null)
             {
                 roundTimer.StartTimer(definition.RoundDuration);
             }
@@ -84,26 +161,75 @@ namespace Igruha.Core.Minigame
             OnRoundStarted();
         }
 
-        private void HandleTimerFinished() => EndMinigame();
-
-        /// <summary>Завершение раунда: по таймеру или досрочно правилами игры.</summary>
-        public void EndMinigame()
+        private void EnterResults()
         {
-            if (finished)
-            {
-                return;
-            }
-
-            finished = true;
-            roundActive = false;
             roundTimer?.StopTimer();
             SetPlayersControlEnabled(false);
             OnRoundEnded();
 
+            if (!HasAuthority)
+            {
+                // Места посчитает сервер и пришлёт в ApplyResults.
+                return;
+            }
+
             results.Clear();
             CollectResults(results);
-            ResultsReported?.Invoke(results);
-            hud?.ShowResults(results, playerList);
+
+            SessionScoreboard.Current?.ReportResults(results);
+            bridge?.PublishResults(results);
+            ShowResults(results);
+        }
+
+        private void HandleTimerFinished() => EndMinigame();
+
+        // ========== ПРИЁМ СЕТЕВОГО СОСТОЯНИЯ ==========
+
+        public bool TryGetRoundTime(out float remaining, out float duration)
+        {
+            if (roundTimer == null)
+            {
+                remaining = 0f;
+                duration = 0f;
+                return false;
+            }
+
+            remaining = roundTimer.Remaining;
+            duration = roundTimer.Duration;
+            return true;
+        }
+
+        public void ApplyRoundTime(float remaining, float duration)
+        {
+            if (roundTimer == null || HasAuthority)
+            {
+                return;
+            }
+
+            roundTimer.SyncFromNetwork(remaining, duration);
+        }
+
+        public void ApplyResults(MinigameResults networkResults)
+        {
+            if (HasAuthority)
+            {
+                return;
+            }
+
+            results.Clear();
+            IReadOnlyList<MinigameResults.PlayerResult> entries = networkResults.Entries;
+            for (int i = 0; i < entries.Count; i++)
+            {
+                results.Add(entries[i].PlayerId, entries[i].Place);
+            }
+
+            ShowResults(results);
+        }
+
+        private void ShowResults(MinigameResults finalResults)
+        {
+            ResultsReported?.Invoke(finalResults);
+            hud?.ShowResults(finalResults, playerList);
         }
 
         private void SetPlayersControlEnabled(bool enabled)
@@ -111,16 +237,19 @@ namespace Igruha.Core.Minigame
             for (int i = 0; i < playerList.Count; i++)
             {
                 PlayerController avatar = playerList[i].Avatar;
-                if (avatar != null && avatar.TryGetComponent(out PlayerInputReader reader))
+                if (avatar == null || !avatar.TryGetComponent(out PlayerInputReader reader))
                 {
-                    // Манекенов не включаем: их ридер выключен спавнером навсегда.
-                    if (enabled && i != 0)
-                    {
-                        continue;
-                    }
-
-                    reader.enabled = enabled;
+                    continue;
                 }
+
+                // Манекены локального теста и чужие сетевые копии лишены
+                // управления навсегда — их будить нельзя.
+                if (!reader.LocallyControlled)
+                {
+                    continue;
+                }
+
+                reader.enabled = enabled;
             }
         }
 
@@ -133,7 +262,10 @@ namespace Igruha.Core.Minigame
         /// <summary>Раунд кончился (до сбора результатов).</summary>
         protected virtual void OnRoundEnded() { }
 
-        /// <summary>Заполнить места игроков по правилам конкретной игры.</summary>
+        /// <summary>
+        /// Заполнить места игроков по правилам конкретной игры.
+        /// Вызывается только у авторитета — клиенты получат готовые места.
+        /// </summary>
         protected abstract void CollectResults(MinigameResults results);
     }
 }

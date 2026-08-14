@@ -9,13 +9,14 @@ namespace Igruha.Core.Minigame
     }
 
     /// <summary>
-    /// Режим камеры мини-игры (GDD 9.2). Сегодня реализован только ThirdPerson;
+    /// Режим камеры мини-игры (GDD 9.2). Реализованы ThirdPerson и FirstPerson;
     /// TopDown и Fixed — точки расширения.
     /// </summary>
     public enum CameraMode
     {
         ThirdPerson,
         TopDown,
-        Fixed
+        Fixed,
+        FirstPerson
     }
 }

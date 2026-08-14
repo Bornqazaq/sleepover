@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 using Igruha.Core.CameraSystems;
 using Igruha.Core.Player;
@@ -36,6 +37,12 @@ namespace Igruha.Core.Spawning
         {
             spawned.Clear();
 
+            if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
+            {
+                Debug.Log($"{name}: сеть уже запущена — локальный спавн пропущен, персонажей создаёт сервер");
+                return spawned;
+            }
+
             if (humanCharacter == null || !humanCharacter.IsAvailable || roster == null || spawnPoints == null)
             {
                 Debug.LogError($"{name}: PlayerSpawner не настроен (humanCharacter/roster/spawnPoints)", this);
@@ -49,7 +56,7 @@ namespace Igruha.Core.Spawning
 
             for (int i = 0; i < debugPlayerCount; i++)
             {
-                SpawnPoint point = spawnPoints.GetPoint(defaultRole, i);
+                SpawnPoint point = spawnPoints.GetSpreadPoint(defaultRole, i, debugPlayerCount);
                 if (point == null)
                 {
                     break;
@@ -63,7 +70,7 @@ namespace Igruha.Core.Spawning
 
                 if (!isHuman && instance.TryGetComponent(out PlayerInputReader reader))
                 {
-                    reader.enabled = false;
+                    reader.RevokeLocalControl();
                 }
 
                 if (instance.TryGetComponent(out PlayerRespawner respawner))

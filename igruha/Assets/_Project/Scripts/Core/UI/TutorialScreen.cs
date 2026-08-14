@@ -60,6 +60,20 @@ namespace Igruha.Core.UI
             panel.SetActive(true);
         }
 
+        /// <summary>
+        /// Убрать заставку без обратного вызова: раунд уже начал сервер,
+        /// и просить старт второй раз не нужно.
+        /// </summary>
+        public void Hide()
+        {
+            onClosed = null;
+            visible = false;
+            if (panel != null)
+            {
+                panel.SetActive(false);
+            }
+        }
+
         private void Update()
         {
             if (!visible)

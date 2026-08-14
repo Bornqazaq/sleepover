@@ -1,4 +1,6 @@
+using System.Collections;
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 using Igruha.Core.CameraSystems;
 using Igruha.Core.Interaction;
@@ -11,8 +13,10 @@ using Igruha.Core.UI;
 namespace Igruha.Core.Hub
 {
     /// <summary>
-    /// Запуск хаба: экран выбора персонажа, затем спавн 2–8 персонажей
-    /// у лестницы, настройка камеры и привязка UI подсказок к локальному игроку.
+    /// Запуск хаба: в сети ждёт ростер (персонажей уже создал сервер) и вешает
+    /// камеру на своего игрока; в одиночку — экран выбора персонажа, затем
+    /// спавн 2–8 персонажей через PlayerSpawner (см. его network-guard: если
+    /// сеть уже поднята, локальный спавн сам себя пропускает).
     /// </summary>
     public sealed class HubBootstrap : MonoBehaviour
     {
@@ -22,59 +26,121 @@ namespace Igruha.Core.Hub
         [SerializeField] private CharacterSelectScreen characterSelect;
         [SerializeField] private EmoteWheel emoteWheel;
         [SerializeField] private CharacterRoster roster;
+        [SerializeField] private float networkRosterTimeout = 15f;
 
         private void Start()
         {
-            if (playerSpawner == null || characterSelect == null || roster == null)
-            {
-                Debug.LogError($"{name}: HubBootstrap не настроен (playerSpawner/characterSelect/roster)", this);
-                return;
-            }
-
-            characterSelect.Show(roster, OnCharacterChosen);
+            StartCoroutine(Boot());
         }
 
-        private void OnCharacterChosen(CharacterDefinition chosen)
+        private IEnumerator Boot()
         {
-            if (chosen == null)
+            bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+            IReadOnlyList<SessionPlayer> players;
+
+            if (networked)
             {
-                Debug.LogError($"{name}: персонаж не выбран — спавн отменён", this);
-                return;
+                yield return WaitForNetworkRoster();
+                ISessionScoreboard scoreboard = SessionScoreboard.Current;
+                if (scoreboard == null || scoreboard.Players.Count == 0)
+                {
+                    Debug.LogError($"{name}: сетевая сессия не отдала табло — хаб не стартует", this);
+                    yield break;
+                }
+
+                players = scoreboard.Players;
+            }
+            else
+            {
+                if (playerSpawner == null || characterSelect == null || roster == null)
+                {
+                    Debug.LogError($"{name}: HubBootstrap не настроен (playerSpawner/characterSelect/roster)", this);
+                    yield break;
+                }
+
+                CharacterDefinition chosen = null;
+                bool choiceMade = false;
+                characterSelect.Show(roster, picked =>
+                {
+                    chosen = picked;
+                    choiceMade = true;
+                });
+                yield return new WaitUntil(() => choiceMade);
+
+                if (chosen == null)
+                {
+                    Debug.LogError($"{name}: персонаж не выбран — спавн отменён", this);
+                    yield break;
+                }
+
+                players = playerSpawner.SpawnPlayers(chosen);
             }
 
-            IReadOnlyList<SessionPlayer> players = playerSpawner.SpawnPlayers(chosen);
             if (players.Count == 0)
             {
-                return;
+                yield break;
             }
 
-            // Живой игрок — всегда первый в списке (см. PlayerSpawner).
-            PlayerController localPlayer = players[0].Avatar;
-            if (localPlayer == null)
+            BindLocalPlayer(players);
+        }
+
+        private IEnumerator WaitForNetworkRoster()
+        {
+            float deadline = Time.realtimeSinceStartup + networkRosterTimeout;
+            while (Time.realtimeSinceStartup < deadline)
             {
-                Debug.LogError($"{name}: у префаба «{chosen.DisplayName}» нет PlayerController — камере не за кого цепляться", this);
-                return;
+                ISessionScoreboard scoreboard = SessionScoreboard.Current;
+                if (scoreboard != null && scoreboard.Players.Count > 0 && AllHaveAvatars(scoreboard.Players))
+                {
+                    yield break;
+                }
+
+                yield return null;
             }
 
-            Transform localAvatar = localPlayer.transform;
+            Debug.LogWarning($"{name}: ростер не собрался за {networkRosterTimeout:F0} с — стартуем с тем, что есть", this);
+        }
+
+        private static bool AllHaveAvatars(IReadOnlyList<SessionPlayer> players)
+        {
+            for (int i = 0; i < players.Count; i++)
+            {
+                if (players[i].Avatar == null)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private void BindLocalPlayer(IReadOnlyList<SessionPlayer> players)
+        {
+            SessionPlayer local = SessionScoreboard.Current?.LocalPlayer;
+            PlayerController avatar = local?.Avatar != null ? local.Avatar : players[0].Avatar;
+            if (avatar == null)
+            {
+                Debug.LogError($"{name}: у аватара нет PlayerController — камере не за кого цепляться", this);
+                return;
+            }
 
             if (cameraController != null)
             {
                 // CameraTarget — точка на уровне груди, а не корень капсулы: персонажи
                 // разного роста иначе кадрируются по-разному (см. PlayerController.CameraTarget).
-                cameraController.Apply(CameraMode.ThirdPerson, localPlayer.CameraTarget);
+                cameraController.Apply(CameraMode.ThirdPerson, avatar.CameraTarget);
             }
             else
             {
                 Debug.LogError($"{name}: не назначен cameraController — камера останется на месте вместо выбранного персонажа", this);
             }
 
-            if (hubController != null && localAvatar.TryGetComponent(out PlayerInteractor interactor))
+            if (hubController != null && avatar.TryGetComponent(out PlayerInteractor interactor))
             {
                 hubController.BindLocalPlayer(interactor);
             }
 
-            if (emoteWheel != null && localAvatar.TryGetComponent(out PlayerEmoteAbility emotes))
+            if (emoteWheel != null && avatar.TryGetComponent(out PlayerEmoteAbility emotes))
             {
                 emoteWheel.BindLocalPlayer(emotes);
             }

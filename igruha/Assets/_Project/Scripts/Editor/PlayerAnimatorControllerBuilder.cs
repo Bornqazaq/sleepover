@@ -75,6 +75,7 @@ namespace Igruha.EditorTools
         private const string AnimationsFolder = "Assets/_Project/Art/Animations/";
 
         private const string SpeedParameter = "Speed";
+        private const string CrouchParameter = "Crouch";
         private const string JumpParameter = "Jump";
         private const string PunchParameter = "Punch";
         private const string KnockdownFrontParameter = "KnockdownFront";
@@ -223,6 +224,9 @@ namespace Igruha.EditorTools
 
             AnimatorController controller = AnimatorController.CreateAnimatorControllerAtPath(set.ControllerPath);
             controller.AddParameter(SpeedParameter, AnimatorControllerParameterType.Float);
+            // Клипа приседания среди импортированных Mixamo-анимаций нет: параметр
+            // заведён под арт-фазу, состояний по нему пока нет — это не ошибка.
+            controller.AddParameter(CrouchParameter, AnimatorControllerParameterType.Bool);
             controller.AddParameter(JumpParameter, AnimatorControllerParameterType.Trigger);
             controller.AddParameter(PunchParameter, AnimatorControllerParameterType.Trigger);
             controller.AddParameter(KnockdownFrontParameter, AnimatorControllerParameterType.Trigger);

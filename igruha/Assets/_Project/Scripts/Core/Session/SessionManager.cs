@@ -6,23 +6,27 @@ using Igruha.Core.Minigame;
 namespace Igruha.Core.Session
 {
     /// <summary>
-    /// Мозг катки (минимум, без сети): список игроков, текущая мини-игра,
-    /// приём результатов, начисление очков по формуле «очки = число_игроков − место»
-    /// (GDD 3.1). Случайная выборка игр, ничьи, тай-брейк, rematch — позже;
-    /// структура для них открыта. При переходе на NGO счёт станет
-    /// NetworkVariable, начисление останется только на сервере.
+    /// Локальное табло катки для тестовых сцен без сети: список игроков и
+    /// начисление очков по формуле «очки = число_игроков − место» (GDD 3.1).
+    /// В сетевой катке его подменяет NetworkSessionManager — эта реализация
+    /// молча уходит на второй план (см. SessionScoreboard).
     /// </summary>
-    public sealed class SessionManager : MonoBehaviour
+    public sealed class SessionManager : MonoBehaviour, ISessionScoreboard
     {
         public static SessionManager Instance { get; private set; }
 
         public event Action ScoresChanged;
 
         private readonly List<SessionPlayer> players = new List<SessionPlayer>(8);
-        private IMinigame currentMinigame;
+        private readonly SpecialRoleHistory specialRoles = new SpecialRoleHistory();
 
         public IReadOnlyList<SessionPlayer> Players => players;
-        public IMinigame CurrentMinigame => currentMinigame;
+
+        /// <summary>В локальном тесте живой игрок — первый заспавненный.</summary>
+        public SessionPlayer LocalPlayer => players.Count > 0 ? players[0] : null;
+
+        /// <summary>Без сети решает эта машина — оспаривать некому.</summary>
+        public bool HasAuthority => true;
 
         private void Awake()
         {
@@ -33,6 +37,7 @@ namespace Igruha.Core.Session
             }
 
             Instance = this;
+            SessionScoreboard.RegisterLocal(this);
         }
 
         private void OnDestroy()
@@ -42,7 +47,7 @@ namespace Igruha.Core.Session
                 Instance = null;
             }
 
-            DetachMinigame();
+            SessionScoreboard.Unregister(this);
         }
 
         public void ClearPlayers()
@@ -69,27 +74,7 @@ namespace Igruha.Core.Session
             return null;
         }
 
-        /// <summary>Привязать текущую мини-игру: её результаты начислят очки.</summary>
-        public void AttachMinigame(IMinigame minigame)
-        {
-            DetachMinigame();
-            currentMinigame = minigame;
-            if (currentMinigame != null)
-            {
-                currentMinigame.ResultsReported += HandleResults;
-            }
-        }
-
-        private void DetachMinigame()
-        {
-            if (currentMinigame != null)
-            {
-                currentMinigame.ResultsReported -= HandleResults;
-                currentMinigame = null;
-            }
-        }
-
-        private void HandleResults(MinigameResults results)
+        public void ReportResults(MinigameResults results)
         {
             int playerCount = players.Count;
             IReadOnlyList<MinigameResults.PlayerResult> entries = results.Entries;
@@ -107,5 +92,19 @@ namespace Igruha.Core.Session
 
             ScoresChanged?.Invoke();
         }
+
+        // ========== ОСОБЫЕ РОЛИ ==========
+
+        public bool HasPlayedSpecialRole(int playerId, string roleKey) =>
+            specialRoles.HasPlayed(roleKey, playerId);
+
+        public void MarkSpecialRole(int playerId, string roleKey) =>
+            specialRoles.Mark(roleKey, playerId);
+
+        /// <summary>
+        /// История переживает смену мини-игр: ClearPlayers чистит ростер сцены,
+        /// а память о ролях остаётся на всю катку, как и счёт.
+        /// </summary>
+        public int PickSpecialRole(string roleKey) => specialRoles.Pick(roleKey, players);
     }
 }

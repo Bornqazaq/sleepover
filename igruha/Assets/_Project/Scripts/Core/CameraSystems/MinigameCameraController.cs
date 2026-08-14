@@ -6,17 +6,25 @@ namespace Igruha.Core.CameraSystems
 {
     /// <summary>
     /// Переключение режима камеры под тип мини-игры (GDD 9.2).
-    /// Сегодня реализован только ThirdPerson (party-риг из ядра);
-    /// TopDown/Fixed — заготовки: добавить риг-ребёнка и включить в switch.
+    /// Реализованы ThirdPerson (PartyCameraRig) и FirstPerson (риг ведущего);
+    /// TopDown/Fixed — заготовки: добавить риг и включить в switch.
     /// </summary>
     public sealed class MinigameCameraController : MonoBehaviour
     {
-        [Tooltip("3rd-person риг (PartyCameraRig) — единственный реализованный")]
+        [Tooltip("3rd-person риг (PartyCameraRig) — режим по умолчанию")]
         [SerializeField] private CinemachineCamera thirdPersonRig;
+        [Tooltip("1st-person риг ведущего (FirstPersonCameraRig)")]
+        [SerializeField] private CinemachineCamera firstPersonRig;
         [Tooltip("Заготовка под top-down риг")]
         [SerializeField] private CinemachineCamera topDownRig;
         [Tooltip("Заготовка под fixed-риг")]
         [SerializeField] private CinemachineCamera fixedRig;
+
+        /// <summary>Режим, включённый сейчас — чтобы было куда вернуться после спектатора.</summary>
+        public CameraMode CurrentMode { get; private set; } = CameraMode.ThirdPerson;
+
+        /// <summary>За кем камера следит сейчас.</summary>
+        public Transform CurrentTarget { get; private set; }
 
         public void Apply(CameraMode mode, Transform followTarget)
         {
@@ -27,10 +35,8 @@ namespace Igruha.Core.CameraSystems
                 rig = thirdPersonRig;
             }
 
-            SetRigActive(thirdPersonRig, rig == thirdPersonRig);
-            SetRigActive(topDownRig, rig == topDownRig);
-            SetRigActive(fixedRig, rig == fixedRig);
-
+            // Цель ставится до включения рига: 1st-person при старте подхватывает
+            // разворот персонажа, и без цели он смотрел бы в произвольную сторону.
             if (rig != null && followTarget != null)
             {
                 rig.Target.TrackingTarget = followTarget;
@@ -43,7 +49,16 @@ namespace Igruha.Core.CameraSystems
                 {
                     lookRig.ArmLookGuard();
                 }
+
+                CurrentTarget = followTarget;
             }
+
+            CurrentMode = mode;
+
+            SetRigActive(thirdPersonRig, rig == thirdPersonRig);
+            SetRigActive(firstPersonRig, rig == firstPersonRig);
+            SetRigActive(topDownRig, rig == topDownRig);
+            SetRigActive(fixedRig, rig == fixedRig);
         }
 
         /// <summary>
@@ -79,6 +94,7 @@ namespace Igruha.Core.CameraSystems
         {
             switch (mode)
             {
+                case CameraMode.FirstPerson: return firstPersonRig;
                 case CameraMode.TopDown: return topDownRig;
                 case CameraMode.Fixed: return fixedRig;
                 default: return thirdPersonRig;

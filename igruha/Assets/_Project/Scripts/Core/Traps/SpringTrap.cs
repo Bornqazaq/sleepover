@@ -48,7 +48,7 @@ namespace Igruha.Core.Traps
                     continue;
                 }
 
-                occupants[i].ApplyImpulse(direction * launchForce);
+                occupants[i].ApplyWorldImpulse(direction * launchForce);
             }
         }
     }

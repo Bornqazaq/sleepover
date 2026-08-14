@@ -16,6 +16,8 @@ namespace Igruha.Core.Player
         [SerializeField] private CharacterConfig config;
         [SerializeField] private PlayerInputReader inputReader;
         [SerializeField] private LayerMask groundLayer;
+        [Tooltip("Во что упирается макушка при попытке встать из приседа, помимо земли: укрытия, платформы, декорации")]
+        [SerializeField] private LayerMask crouchCeilingLayers;
         [Tooltip("Камера, относительно которой считается направление ввода. Пусто — берётся Camera.main при старте")]
         [SerializeField] private Transform cameraTransform;
         [Tooltip("Точка на уровне груди для привязки Cinemachine — у персонажей разного роста корень стоит на разной высоте, из-за чего камера кадрирует их по-разному. Выставляется CharacterPrefabBuilder пропорционально росту")]
@@ -30,12 +32,54 @@ namespace Igruha.Core.Player
         public event Action Jumped;
         public event Action<KnockdownType> KnockdownStarted;
         public event Action KnockdownEnded;
+        public event Action<bool> MovementLockChanged;
+
+        /// <summary>Персонажа перенесли: респаун, старт мини-игры, смена арены.</summary>
+        public event Action Teleported;
 
         public CharacterConfig Config => config;
         /// <summary>Куда должна целиться Cinemachine. Без назначенной точки — сам корень (запасной вариант для старых префабов).</summary>
         public Transform CameraTarget => cameraTarget != null ? cameraTarget : transform;
         public bool IsGrounded { get; private set; }
         public bool IsKnockedDown => knockdownTimer > 0f;
+
+        /// <summary>
+        /// Персонаж сидит: капсула ниже, скорость меньше. Отличается от запроса —
+        /// под низким потолком встать нельзя, и состояние держится дальше.
+        /// </summary>
+        public bool IsCrouched { get; private set; }
+
+        /// <summary>
+        /// «Замри»: ввод движения и прыжка обрублен, тело гасит бег и стоит.
+        /// В отличие от нокдауна персонаж не падает и не отыгрывает клип, а
+        /// камера остаётся управляемой — это состояние держит внешняя логика
+        /// (в сетевой фазе владелец ставит его по реплицированному состоянию).
+        ///
+        /// Блокировка и нокдаун независимы: управление вернётся, когда сняты оба.
+        /// Импульсы, толчки, нокдаун и телепорт продолжают работать.
+        /// </summary>
+        public bool MovementLocked
+        {
+            get => movementLocked;
+            set
+            {
+                if (movementLocked == value)
+                {
+                    return;
+                }
+
+                movementLocked = value;
+
+                // Нажатия, сделанные под блокировкой, не должны выстрелить в момент снятия.
+                if (value)
+                {
+                    inputReader?.ConsumeJump();
+                    jumpBufferTimer = 0f;
+                }
+
+                MovementLockChanged?.Invoke(value);
+            }
+        }
         /// <summary>0..1 — доля от максимальной скорости, для анимаций.</summary>
         public float NormalizedSpeed { get; private set; }
 
@@ -46,18 +90,38 @@ namespace Igruha.Core.Player
         /// </summary>
         public Vector3 Facing => rb != null ? rb.rotation * Vector3.forward : transform.forward;
 
+        /// <summary>
+        /// Вправе ли эта машина решать, что произошло с персонажем. В сетевой игре
+        /// true только на сервере, в одиночной — всегда.
+        ///
+        /// Мировые источники воздействий (ловушки, зоны смерти) обязаны спросить
+        /// перед тем, как что-то решать: их триггеры срабатывают на каждой машине
+        /// матча, и без проверки событие засчитается столько раз, сколько игроков.
+        /// </summary>
+        public bool HasWorldAuthority => worldEffectRelay == null || worldEffectRelay.HasAuthority;
+
         private Rigidbody rb;
         private CapsuleCollider capsule;
+        private IWorldEffectRelay worldEffectRelay;
         private Quaternion targetRotation;
         private float coyoteTimer;
         private float jumpBufferTimer;
         private float knockdownTimer;
+        private float standingHeight;
+        private Vector3 standingCenter;
+        private bool crouchRequested;
+        private float crouchBlend;
+        private bool movementLocked;
+        private bool facingOverridden;
 
         private void Awake()
         {
             rb = GetComponent<Rigidbody>();
             capsule = GetComponent<CapsuleCollider>();
+            worldEffectRelay = GetComponent<IWorldEffectRelay>();
             targetRotation = rb.rotation;
+            standingHeight = Mathf.Max(capsule.height, capsule.radius * 2f);
+            standingCenter = capsule.center;
             rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
             ApplyBodyConfig();
 
@@ -69,6 +133,17 @@ namespace Igruha.Core.Player
 
         /// <summary>Задать камеру-систему отсчёта для ввода (для персонажей, заспавненных в рантайме).</summary>
         public void SetCameraReference(Transform cameraToFollow) => cameraTransform = cameraToFollow;
+
+        /// <summary>
+        /// Развернуть тело внешним решением: риг от первого лица, скриптовая сцена.
+        /// Поворот применяется в FixedUpdate, а не здесь — Rigidbody нельзя двигать
+        /// вне физического тика, иначе появляется дрожание при интерполяции.
+        /// </summary>
+        public void SetFacing(float yawDegrees)
+        {
+            targetRotation = Quaternion.Euler(0f, yawDegrees, 0f);
+            facingOverridden = true;
+        }
 
         private void ApplyBodyConfig()
         {
@@ -93,6 +168,8 @@ namespace Igruha.Core.Player
             IsGrounded = CheckGrounded();
             UpdateTimers();
             ApplyExtraGravity();
+            UpdateCrouch();
+            ApplyFacingOverride();
 
             if (IsKnockedDown)
             {
@@ -108,9 +185,40 @@ namespace Igruha.Core.Player
                 return;
             }
 
+            // Блокировка живёт рядом с нокдауном, а не внутри него: пока идёт
+            // нокдаун, он главнее (персонаж и так не управляется), а когда
+            // закончится — блокировка продолжит держать тело на месте.
+            if (MovementLocked)
+            {
+                inputReader?.ConsumeJump();
+                jumpBufferTimer = 0f;
+                StopHorizontally();
+                NormalizedSpeed = 0f;
+                return;
+            }
+
             ReadJumpInput();
             ApplyLocomotion(ReadMoveInput());
             TryJump();
+        }
+
+        /// <summary>
+        /// Гасит только горизонталь: вертикальная скорость и гравитация остаются,
+        /// иначе заблокированный в воздухе завис бы вместо приземления.
+        /// </summary>
+        private void StopHorizontally()
+        {
+            Vector3 horizontal = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+            if (horizontal.sqrMagnitude < 0.0001f)
+            {
+                return;
+            }
+
+            float rate = config.LockStopTime > 0f
+                ? config.MaxSpeed / config.LockStopTime
+                : horizontal.magnitude / Time.fixedDeltaTime;
+            Vector3 stopped = Vector3.MoveTowards(horizontal, Vector3.zero, rate * Time.fixedDeltaTime);
+            rb.linearVelocity = new Vector3(stopped.x, rb.linearVelocity.y, stopped.z);
         }
 
         private void ReadJumpInput()
@@ -122,6 +230,98 @@ namespace Igruha.Core.Player
 
             inputReader.ConsumeJump();
             jumpBufferTimer = config.JumpBufferTime;
+        }
+
+        /// <summary>
+        /// Внешний разворот тела применяется и в нокдауне не применяется:
+        /// упавший персонаж должен свободно кувыркаться.
+        /// </summary>
+        private void ApplyFacingOverride()
+        {
+            if (!facingOverridden)
+            {
+                return;
+            }
+
+            facingOverridden = false;
+
+            if (!IsKnockedDown)
+            {
+                rb.MoveRotation(targetRotation);
+            }
+        }
+
+        /// <summary>
+        /// Запросить приседание. Единая точка входа: сюда же придёт серверное
+        /// решение в сетевой фазе, логика ниже от источника не зависит.
+        /// </summary>
+        public void SetCrouched(bool crouched) => crouchRequested = crouched;
+
+        private void UpdateCrouch()
+        {
+            // Ввод читаем только у ридера, который реально управляет этой копией.
+            // У выключенного CrouchHeld всегда false, и он затирал бы внешнее
+            // решение — в сетевой фазе сервер не смог бы посадить персонажа.
+            if (inputReader != null && inputReader.enabled && !MovementLocked)
+            {
+                SetCrouched(inputReader.CrouchHeld);
+            }
+
+            // В нокдауне персонаж и так лежит: приседание игнорируем. Под блокировкой
+            // поза застывает как есть — иначе присевший за низким укрытием вставал бы
+            // под луч ровно в тот момент, когда его заморозили.
+            bool crouched = MovementLocked
+                ? IsCrouched
+                : crouchRequested && !IsKnockedDown;
+
+            if (!crouched && IsCrouched && IsBlockedAbove())
+            {
+                crouched = true;
+            }
+
+            IsCrouched = crouched;
+
+            float step = config.CrouchTransitionTime > 0f
+                ? Time.fixedDeltaTime / config.CrouchTransitionTime
+                : 1f;
+            crouchBlend = Mathf.MoveTowards(crouchBlend, crouched ? 1f : 0f, step);
+            ApplyCapsuleHeight();
+        }
+
+        /// <summary>
+        /// Капсула сжимается к полу, а не к центру: подошвы обязаны остаться
+        /// на месте, иначе персонаж проваливается или подпрыгивает на присед.
+        /// </summary>
+        private void ApplyCapsuleHeight()
+        {
+            float crouchedHeight = Mathf.Max(standingHeight * config.CrouchHeightMultiplier, capsule.radius * 2f);
+            float height = Mathf.Lerp(standingHeight, crouchedHeight, crouchBlend);
+            if (Mathf.Approximately(capsule.height, height))
+            {
+                return;
+            }
+
+            capsule.height = height;
+            capsule.center = new Vector3(
+                standingCenter.x,
+                standingCenter.y - (standingHeight - height) * 0.5f,
+                standingCenter.z);
+        }
+
+        private bool IsBlockedAbove()
+        {
+            float radius = capsule.radius;
+            float currentTop = capsule.center.y + capsule.height * 0.5f;
+            float standingTop = standingCenter.y + standingHeight * 0.5f;
+            float distance = standingTop - currentTop;
+            if (distance <= 0.001f)
+            {
+                return false;
+            }
+
+            Vector3 topSphere = transform.TransformPoint(new Vector3(capsule.center.x, currentTop - radius, capsule.center.z));
+            return Physics.SphereCast(topSphere, radius * 0.95f, Vector3.up, out _, distance,
+                groundLayer | crouchCeilingLayers, QueryTriggerInteraction.Ignore);
         }
 
         private Vector2 ReadMoveInput()
@@ -138,7 +338,8 @@ namespace Igruha.Core.Player
         private void ApplyLocomotion(Vector2 moveInput)
         {
             Vector3 desiredDirection = ToCameraRelative(moveInput);
-            Vector3 desiredVelocity = Vector3.ClampMagnitude(desiredDirection, 1f) * config.MaxSpeed;
+            float maxSpeed = config.MaxSpeed * Mathf.Lerp(1f, config.CrouchSpeedMultiplier, crouchBlend);
+            Vector3 desiredVelocity = Vector3.ClampMagnitude(desiredDirection, 1f) * maxSpeed;
             Vector3 currentHorizontal = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
 
             bool accelerating = desiredVelocity.sqrMagnitude > 0.01f;
@@ -248,8 +449,26 @@ namespace Igruha.Core.Player
         }
 
         /// <summary>
+        /// Импульс от мира: пружина, взрыв, попадание снаряда. Это точка входа
+        /// для всего, что находится вне персонажа — в сетевой игре решение
+        /// принимает сервер, а применяет владелец.
+        ///
+        /// Мировым источникам следует вызывать этот метод, а не ApplyImpulse:
+        /// прямой вызов на чужой копии персонажа будет перетёрт сетевым состоянием.
+        /// </summary>
+        public void ApplyWorldImpulse(Vector3 impulse)
+        {
+            if (worldEffectRelay != null && worldEffectRelay.TryRelayImpulse(impulse))
+            {
+                return;
+            }
+
+            ApplyImpulse(impulse);
+        }
+
+        /// <summary>
         /// Импульс произвольного направления (пружины, взрывы, попадания сверху).
-        /// Тоже единая точка входа для будущего server-authority.
+        /// Применяется здесь и сейчас — сетевую маршрутизацию делает ApplyWorldImpulse.
         /// </summary>
         public void ApplyImpulse(Vector3 impulse) => ApplyImpulse(impulse, KnockdownType.FallForward);
 
@@ -288,6 +507,21 @@ namespace Igruha.Core.Player
             KnockdownStarted?.Invoke(type);
         }
 
+        /// <summary>
+        /// Перенос как решение мира: респаун, смена арены, старт мини-игры.
+        /// В сетевой игре сервер поручает перенос владельцу, в одиночной
+        /// применяется сразу. Мировому коду нужен этот метод, а не TeleportTo.
+        /// </summary>
+        public void RequestTeleport(Vector3 position, Quaternion rotation)
+        {
+            if (worldEffectRelay != null && worldEffectRelay.TryRelayTeleport(position, rotation))
+            {
+                return;
+            }
+
+            TeleportTo(position, rotation);
+        }
+
         /// <summary>Мгновенный перенос (респаун). Сбрасывает скорость и нокдаун.</summary>
         public void TeleportTo(Vector3 position, Quaternion rotation)
         {
@@ -308,6 +542,8 @@ namespace Igruha.Core.Player
             {
                 KnockdownEnded?.Invoke();
             }
+
+            Teleported?.Invoke();
         }
 
         private void OnCollisionEnter(Collision collision)

@@ -27,6 +27,16 @@ namespace Igruha.Core.Player
         [Tooltip("Мёртвая зона стика")]
         [SerializeField] private float inputDeadzone = 0.15f;
 
+        [Header("Приседание")]
+        [Tooltip("Множитель максимальной скорости в приседе")]
+        [Range(0.1f, 1f)]
+        [SerializeField] private float crouchSpeedMultiplier = 0.45f;
+        [Tooltip("Множитель высоты капсулы в приседе. Ниже 2×радиуса капсула не сжимается — это предел Unity")]
+        [Range(0.2f, 1f)]
+        [SerializeField] private float crouchHeightMultiplier = 0.5f;
+        [Tooltip("За сколько секунд капсула переходит между стойкой и приседом")]
+        [SerializeField] private float crouchTransitionTime = 0.12f;
+
         [Header("Прыжок и гравитация")]
         [Tooltip("Вертикальная скорость прыжка, м/с")]
         [SerializeField] private float jumpSpeed = 8.4f;
@@ -72,12 +82,20 @@ namespace Igruha.Core.Player
         [Tooltip("Дополнительное торможение, пока персонаж лежит — чтобы не уезжал по полу во время подъёма")]
         [SerializeField] private float knockdownDrag = 4f;
 
+        [Header("Блокировка движения (замри)")]
+        [Tooltip("За сколько секунд гасится бег при включении блокировки. Ноль — мгновенно, и персонаж 'клинит' на ходу")]
+        [SerializeField] private float lockStopTime = 0.08f;
+
         public float MaxSpeed => maxSpeed;
         public float Acceleration => acceleration;
         public float Deceleration => deceleration;
         public float AirControl => airControl;
         public float RotationSpeed => rotationSpeed;
         public float InputDeadzone => inputDeadzone;
+
+        public float CrouchSpeedMultiplier => crouchSpeedMultiplier;
+        public float CrouchHeightMultiplier => crouchHeightMultiplier;
+        public float CrouchTransitionTime => crouchTransitionTime;
 
         public float JumpSpeed => jumpSpeed;
         public float RiseGravityMultiplier => riseGravityMultiplier;
@@ -100,5 +118,7 @@ namespace Igruha.Core.Player
 
         public float KnockdownVelocityThreshold => knockdownVelocityThreshold;
         public float KnockdownDrag => knockdownDrag;
+
+        public float LockStopTime => lockStopTime;
     }
 }

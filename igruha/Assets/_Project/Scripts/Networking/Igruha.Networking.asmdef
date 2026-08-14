@@ -2,7 +2,12 @@
     "name": "Igruha.Networking",
     "rootNamespace": "Igruha.Networking",
     "references": [
-        "Igruha.Core"
+        "Igruha.Core",
+        "Unity.Netcode.Runtime",
+        "Unity.Netcode.Components",
+        "Unity.Networking.Transport",
+        "Unity.Cinemachine",
+        "Unity.Collections"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

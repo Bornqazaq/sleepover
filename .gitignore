@@ -129,3 +129,6 @@ InitTestScene*.unity*
 /igruha/[Aa]ssets/Unity.VisualScripting.Generated/VisualScripting.Core/Property Providers.meta
 /igruha/[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
 /igruha/[Aa]ssets/[Ss]ceneDependencyCache*
+
+# macOS
+.DS_Store

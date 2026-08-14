@@ -19,6 +19,7 @@ namespace Igruha.Core.Player
         [SerializeField] private InputActionReference emoteAction;
         [Tooltip("Тот же Look, что крутит камеру: пока открыто колесо, его дельта водит курсор по секторам")]
         [SerializeField] private InputActionReference lookAction;
+        [SerializeField] private InputActionReference crouchAction;
 
         /// <summary>
         /// InputActionReference указывает на общий ассет: один InputAction на всю сцену.
@@ -37,6 +38,23 @@ namespace Igruha.Core.Player
         /// <summary>Смещение мыши/стика за кадр — им же водится курсор колеса эмоций.</summary>
         public Vector2 LookDelta { get; private set; }
 
+        /// <summary>Приседание — удержание, а не нажатие: отпустил кнопку, встал.</summary>
+        public bool CrouchHeld { get; private set; }
+
+        /// <summary>
+        /// Ложь у персонажей, которыми эта машина не управляет: чужие сетевые
+        /// копии и манекены локального теста. Такой ридер нельзя включать снова —
+        /// иначе локальные нажатия дёргают сразу всех.
+        /// </summary>
+        public bool LocallyControlled { get; private set; } = true;
+
+        /// <summary>Навсегда отобрать управление у этой копии персонажа.</summary>
+        public void RevokeLocalControl()
+        {
+            LocallyControlled = false;
+            enabled = false;
+        }
+
         private void OnEnable()
         {
             Acquire(moveAction);
@@ -45,6 +63,7 @@ namespace Igruha.Core.Player
             Acquire(interactAction);
             Acquire(emoteAction);
             Acquire(lookAction);
+            Acquire(crouchAction);
         }
 
         private void OnDisable()
@@ -55,9 +74,11 @@ namespace Igruha.Core.Player
             Release(interactAction);
             Release(emoteAction);
             Release(lookAction);
+            Release(crouchAction);
             MoveInput = Vector2.zero;
             LookDelta = Vector2.zero;
             JumpPressed = PushPressed = InteractPressed = EmoteHeld = false;
+            CrouchHeld = false;
         }
 
         private void Update()
@@ -68,6 +89,7 @@ namespace Igruha.Core.Player
             JumpPressed |= WasPressed(jumpAction);
             PushPressed |= WasPressed(pushAction);
             InteractPressed |= WasPressed(interactAction);
+            CrouchHeld = crouchAction != null && crouchAction.action.IsPressed();
         }
 
         /// <summary>Сбросить одноразовые нажатия — вызывается потребителем после обработки.</summary>
