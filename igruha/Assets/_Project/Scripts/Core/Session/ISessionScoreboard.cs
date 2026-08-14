@@ -29,5 +29,19 @@ namespace Igruha.Core.Session
 
         /// <summary>Начислить очки за мини-игру. Вызывать только при HasAuthority.</summary>
         void ReportResults(Minigame.MinigameResults results);
+
+        /// <summary>Был ли игрок в этой особой роли с последнего сброса истории.</summary>
+        bool HasPlayedSpecialRole(int playerId, string roleKey);
+
+        /// <summary>Отметить, что игрок побывал в роли. Вызывать только при HasAuthority.</summary>
+        void MarkSpecialRole(int playerId, string roleKey);
+
+        /// <summary>
+        /// Выбрать следующего на особую роль (Водящий, охотник, оператор):
+        /// случайный из тех, кто ещё не был, со сбросом истории, когда побывали все.
+        /// Рандом обязан быть серверным, поэтому метод работает только при
+        /// HasAuthority; иначе возвращает SpecialRoleHistory.NoPlayer.
+        /// </summary>
+        int PickSpecialRole(string roleKey);
     }
 }

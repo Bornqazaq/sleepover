@@ -18,6 +18,7 @@ namespace Igruha.Core.Session
         public event Action ScoresChanged;
 
         private readonly List<SessionPlayer> players = new List<SessionPlayer>(8);
+        private readonly SpecialRoleHistory specialRoles = new SpecialRoleHistory();
 
         public IReadOnlyList<SessionPlayer> Players => players;
 
@@ -91,5 +92,19 @@ namespace Igruha.Core.Session
 
             ScoresChanged?.Invoke();
         }
+
+        // ========== ОСОБЫЕ РОЛИ ==========
+
+        public bool HasPlayedSpecialRole(int playerId, string roleKey) =>
+            specialRoles.HasPlayed(roleKey, playerId);
+
+        public void MarkSpecialRole(int playerId, string roleKey) =>
+            specialRoles.Mark(roleKey, playerId);
+
+        /// <summary>
+        /// История переживает смену мини-игр: ClearPlayers чистит ростер сцены,
+        /// а память о ролях остаётся на всю катку, как и счёт.
+        /// </summary>
+        public int PickSpecialRole(string roleKey) => specialRoles.Pick(roleKey, players);
     }
 }

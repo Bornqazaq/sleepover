@@ -50,6 +50,9 @@ namespace Igruha.Networking
         private readonly List<SessionPlayer> mirror = new List<SessionPlayer>(8);
         private readonly Dictionary<int, SessionPlayer> byId = new Dictionary<int, SessionPlayer>(8);
 
+        /// <summary>Кто уже был в особой роли. Живёт на сервере всю катку и переживает смену сцен.</summary>
+        private readonly SpecialRoleHistory specialRoles = new SpecialRoleHistory();
+
         public event Action ScoresChanged;
 
         public IReadOnlyList<SessionPlayer> Players => mirror;
@@ -131,6 +134,10 @@ namespace Igruha.Networking
             {
                 roster.RemoveAt(index);
             }
+
+            // Ушедший вычищается из истории вместе с ростером, иначе он вечно
+            // числится «уже побывавшим» и сдвигает выбор следующих ролей.
+            specialRoles.Forget((int)clientId);
         }
 
         private void AddToRoster(ulong clientId)
@@ -267,6 +274,38 @@ namespace Igruha.Networking
 
                 Debug.Log($"⭐ [СЕРВЕР] {state.DisplayName}: место {entries[i].Place}, всего очков {state.Score}");
             }
+        }
+
+        // ========== ОСОБЫЕ РОЛИ ==========
+
+        public bool HasPlayedSpecialRole(int playerId, string roleKey) =>
+            specialRoles.HasPlayed(roleKey, playerId);
+
+        public void MarkSpecialRole(int playerId, string roleKey)
+        {
+            if (!HasAuthority)
+            {
+                Debug.LogWarning($"{name}: MarkSpecialRole вызван не на сервере — проигнорирован", this);
+                return;
+            }
+
+            specialRoles.Mark(roleKey, playerId);
+        }
+
+        /// <summary>
+        /// Выбор роли — серверный: клиент не может назначить её себе (CLAUDE.md 3.1).
+        /// </summary>
+        public int PickSpecialRole(string roleKey)
+        {
+            if (!HasAuthority)
+            {
+                Debug.LogWarning($"{name}: PickSpecialRole вызван не на сервере — роль не выдана", this);
+                return SpecialRoleHistory.NoPlayer;
+            }
+
+            int picked = specialRoles.Pick(roleKey, mirror);
+            Debug.Log($"🎭 [СЕРВЕР] роль «{roleKey}» досталась игроку {picked}");
+            return picked;
         }
     }
 }
