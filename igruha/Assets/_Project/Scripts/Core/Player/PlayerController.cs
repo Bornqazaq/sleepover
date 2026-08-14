@@ -24,6 +24,7 @@ namespace Igruha.Core.Player
         public event Action Jumped;
         public event Action<KnockdownType> KnockdownStarted;
         public event Action KnockdownEnded;
+        public event Action<bool> MovementLockChanged;
 
         public CharacterConfig Config => config;
         public bool IsGrounded { get; private set; }
@@ -34,6 +35,38 @@ namespace Igruha.Core.Player
         /// под низким потолком встать нельзя, и состояние держится дальше.
         /// </summary>
         public bool IsCrouched { get; private set; }
+
+        /// <summary>
+        /// «Замри»: ввод движения и прыжка обрублен, тело гасит бег и стоит.
+        /// В отличие от нокдауна персонаж не падает и не отыгрывает клип, а
+        /// камера остаётся управляемой — это состояние держит внешняя логика
+        /// (в сетевой фазе владелец ставит его по реплицированному состоянию).
+        ///
+        /// Блокировка и нокдаун независимы: управление вернётся, когда сняты оба.
+        /// Импульсы, толчки, нокдаун и телепорт продолжают работать.
+        /// </summary>
+        public bool MovementLocked
+        {
+            get => movementLocked;
+            set
+            {
+                if (movementLocked == value)
+                {
+                    return;
+                }
+
+                movementLocked = value;
+
+                // Нажатия, сделанные под блокировкой, не должны выстрелить в момент снятия.
+                if (value)
+                {
+                    inputReader?.ConsumeJump();
+                    jumpBufferTimer = 0f;
+                }
+
+                MovementLockChanged?.Invoke(value);
+            }
+        }
         /// <summary>0..1 — доля от максимальной скорости, для анимаций.</summary>
         public float NormalizedSpeed { get; private set; }
 
@@ -65,6 +98,7 @@ namespace Igruha.Core.Player
         private Vector3 standingCenter;
         private bool crouchRequested;
         private float crouchBlend;
+        private bool movementLocked;
 
         private void Awake()
         {
@@ -125,9 +159,40 @@ namespace Igruha.Core.Player
                 return;
             }
 
+            // Блокировка живёт рядом с нокдауном, а не внутри него: пока идёт
+            // нокдаун, он главнее (персонаж и так не управляется), а когда
+            // закончится — блокировка продолжит держать тело на месте.
+            if (MovementLocked)
+            {
+                inputReader?.ConsumeJump();
+                jumpBufferTimer = 0f;
+                StopHorizontally();
+                NormalizedSpeed = 0f;
+                return;
+            }
+
             ReadJumpInput();
             ApplyLocomotion(ReadMoveInput());
             TryJump();
+        }
+
+        /// <summary>
+        /// Гасит только горизонталь: вертикальная скорость и гравитация остаются,
+        /// иначе заблокированный в воздухе завис бы вместо приземления.
+        /// </summary>
+        private void StopHorizontally()
+        {
+            Vector3 horizontal = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+            if (horizontal.sqrMagnitude < 0.0001f)
+            {
+                return;
+            }
+
+            float rate = config.LockStopTime > 0f
+                ? config.MaxSpeed / config.LockStopTime
+                : horizontal.magnitude / Time.fixedDeltaTime;
+            Vector3 stopped = Vector3.MoveTowards(horizontal, Vector3.zero, rate * Time.fixedDeltaTime);
+            rb.linearVelocity = new Vector3(stopped.x, rb.linearVelocity.y, stopped.z);
         }
 
         private void ReadJumpInput()
@@ -149,14 +214,18 @@ namespace Igruha.Core.Player
 
         private void UpdateCrouch()
         {
-            if (inputReader != null)
+            if (inputReader != null && !MovementLocked)
             {
                 SetCrouched(inputReader.CrouchHeld);
             }
 
-            // В нокдауне персонаж и так лежит: приседание игнорируем, но встать
-            // не даём, пока над макушкой препятствие — иначе капсула войдёт в него.
-            bool crouched = crouchRequested && !IsKnockedDown;
+            // В нокдауне персонаж и так лежит: приседание игнорируем. Под блокировкой
+            // поза застывает как есть — иначе присевший за низким укрытием вставал бы
+            // под луч ровно в тот момент, когда его заморозили.
+            bool crouched = MovementLocked
+                ? IsCrouched
+                : crouchRequested && !IsKnockedDown;
+
             if (!crouched && IsCrouched && IsBlockedAbove())
             {
                 crouched = true;

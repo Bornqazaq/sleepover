@@ -84,6 +84,10 @@ namespace Igruha.Core.Player
         [Tooltip("Дополнительное торможение, пока персонаж лежит — чтобы не уезжал по полу во время подъёма")]
         [SerializeField] private float knockdownDrag = 4f;
 
+        [Header("Блокировка движения (замри)")]
+        [Tooltip("За сколько секунд гасится бег при включении блокировки. Ноль — мгновенно, и персонаж 'клинит' на ходу")]
+        [SerializeField] private float lockStopTime = 0.08f;
+
         public float MaxSpeed => maxSpeed;
         public float Acceleration => acceleration;
         public float Deceleration => deceleration;
@@ -118,5 +122,7 @@ namespace Igruha.Core.Player
         public float KnockdownFrontDuration => knockdownFrontDuration;
         public float KnockdownBackDuration => knockdownBackDuration;
         public float KnockdownDrag => knockdownDrag;
+
+        public float LockStopTime => lockStopTime;
     }
 }

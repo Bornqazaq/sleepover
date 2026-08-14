@@ -41,3 +41,4 @@ MonoBehaviour:
   knockdownFrontDuration: 2.777778
   knockdownBackDuration: 2.177778
   knockdownDrag: 4
+  lockStopTime: 0.08
