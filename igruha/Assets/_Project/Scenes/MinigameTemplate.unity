@@ -119,6 +119,83 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1001 &101299624
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1246980262}
+    m_Modifications:
+    - target: {fileID: 1342569695706999963, guid: d9efe63c5979d4da68092a9f150eb337, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1342569695706999963, guid: d9efe63c5979d4da68092a9f150eb337, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1342569695706999963, guid: d9efe63c5979d4da68092a9f150eb337, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1342569695706999963, guid: d9efe63c5979d4da68092a9f150eb337, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1342569695706999963, guid: d9efe63c5979d4da68092a9f150eb337, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1342569695706999963, guid: d9efe63c5979d4da68092a9f150eb337, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1342569695706999963, guid: d9efe63c5979d4da68092a9f150eb337, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1342569695706999963, guid: d9efe63c5979d4da68092a9f150eb337, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1342569695706999963, guid: d9efe63c5979d4da68092a9f150eb337, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1342569695706999963, guid: d9efe63c5979d4da68092a9f150eb337, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7022886654534415756, guid: d9efe63c5979d4da68092a9f150eb337, type: 3}
+      propertyPath: m_Name
+      value: FirstPersonCameraRig
+      objectReference: {fileID: 0}
+    - target: {fileID: 7022886654534415756, guid: d9efe63c5979d4da68092a9f150eb337, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: d9efe63c5979d4da68092a9f150eb337, type: 3}
+--- !u!114 &101299625 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3856499221392878642, guid: d9efe63c5979d4da68092a9f150eb337, type: 3}
+  m_PrefabInstance: {fileID: 101299624}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9dfa5b682dcd46bda6128250e975f58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineCamera
+--- !u!4 &101299626 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1342569695706999963, guid: d9efe63c5979d4da68092a9f150eb337, type: 3}
+  m_PrefabInstance: {fileID: 101299624}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &149147458
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1434,6 +1511,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.CameraSystems.MinigameCameraController
   thirdPersonRig: {fileID: 149147459}
+  firstPersonRig: {fileID: 101299625}
   topDownRig: {fileID: 0}
   fixedRig: {fileID: 0}
 --- !u!4 &1246980262
@@ -1451,6 +1529,7 @@ Transform:
   m_Children:
   - {fileID: 1753238431}
   - {fileID: 149147460}
+  - {fileID: 101299626}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1274027087

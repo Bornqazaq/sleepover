@@ -102,6 +102,7 @@ namespace Igruha.Core.Player
         private bool crouchRequested;
         private float crouchBlend;
         private bool movementLocked;
+        private bool facingOverridden;
 
         private void Awake()
         {
@@ -122,6 +123,17 @@ namespace Igruha.Core.Player
 
         /// <summary>Задать камеру-систему отсчёта для ввода (для персонажей, заспавненных в рантайме).</summary>
         public void SetCameraReference(Transform cameraToFollow) => cameraTransform = cameraToFollow;
+
+        /// <summary>
+        /// Развернуть тело внешним решением: риг от первого лица, скриптовая сцена.
+        /// Поворот применяется в FixedUpdate, а не здесь — Rigidbody нельзя двигать
+        /// вне физического тика, иначе появляется дрожание при интерполяции.
+        /// </summary>
+        public void SetFacing(float yawDegrees)
+        {
+            targetRotation = Quaternion.Euler(0f, yawDegrees, 0f);
+            facingOverridden = true;
+        }
 
         private void ApplyBodyConfig()
         {
@@ -147,6 +159,7 @@ namespace Igruha.Core.Player
             UpdateTimers();
             ApplyExtraGravity();
             UpdateCrouch();
+            ApplyFacingOverride();
 
             if (IsKnockedDown)
             {
@@ -207,6 +220,25 @@ namespace Igruha.Core.Player
 
             inputReader.ConsumeJump();
             jumpBufferTimer = config.JumpBufferTime;
+        }
+
+        /// <summary>
+        /// Внешний разворот тела применяется и в нокдауне не применяется:
+        /// упавший персонаж должен свободно кувыркаться.
+        /// </summary>
+        private void ApplyFacingOverride()
+        {
+            if (!facingOverridden)
+            {
+                return;
+            }
+
+            facingOverridden = false;
+
+            if (!IsKnockedDown)
+            {
+                rb.MoveRotation(targetRotation);
+            }
         }
 
         /// <summary>

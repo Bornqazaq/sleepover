@@ -6,13 +6,15 @@ namespace Igruha.Core.CameraSystems
 {
     /// <summary>
     /// Переключение режима камеры под тип мини-игры (GDD 9.2).
-    /// Сегодня реализован только ThirdPerson (party-риг из ядра);
-    /// TopDown/Fixed — заготовки: добавить риг-ребёнка и включить в switch.
+    /// Реализованы ThirdPerson (PartyCameraRig) и FirstPerson (риг ведущего);
+    /// TopDown/Fixed — заготовки: добавить риг и включить в switch.
     /// </summary>
     public sealed class MinigameCameraController : MonoBehaviour
     {
-        [Tooltip("3rd-person риг (PartyCameraRig) — единственный реализованный")]
+        [Tooltip("3rd-person риг (PartyCameraRig) — режим по умолчанию")]
         [SerializeField] private CinemachineCamera thirdPersonRig;
+        [Tooltip("1st-person риг ведущего (FirstPersonCameraRig)")]
+        [SerializeField] private CinemachineCamera firstPersonRig;
         [Tooltip("Заготовка под top-down риг")]
         [SerializeField] private CinemachineCamera topDownRig;
         [Tooltip("Заготовка под fixed-риг")]
@@ -27,20 +29,24 @@ namespace Igruha.Core.CameraSystems
                 rig = thirdPersonRig;
             }
 
-            SetRigActive(thirdPersonRig, rig == thirdPersonRig);
-            SetRigActive(topDownRig, rig == topDownRig);
-            SetRigActive(fixedRig, rig == fixedRig);
-
+            // Цель ставится до включения рига: 1st-person при старте подхватывает
+            // разворот персонажа, и без цели он смотрел бы в произвольную сторону.
             if (rig != null && followTarget != null)
             {
                 rig.Target.TrackingTarget = followTarget;
             }
+
+            SetRigActive(thirdPersonRig, rig == thirdPersonRig);
+            SetRigActive(firstPersonRig, rig == firstPersonRig);
+            SetRigActive(topDownRig, rig == topDownRig);
+            SetRigActive(fixedRig, rig == fixedRig);
         }
 
         private CinemachineCamera SelectRig(CameraMode mode)
         {
             switch (mode)
             {
+                case CameraMode.FirstPerson: return firstPersonRig;
                 case CameraMode.TopDown: return topDownRig;
                 case CameraMode.Fixed: return fixedRig;
                 default: return thirdPersonRig;
