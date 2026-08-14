@@ -249,7 +249,10 @@ namespace Igruha.Core.Player
 
         private void UpdateCrouch()
         {
-            if (inputReader != null && !MovementLocked)
+            // Ввод читаем только у ридера, который реально управляет этой копией.
+            // У выключенного CrouchHeld всегда false, и он затирал бы внешнее
+            // решение — в сетевой фазе сервер не смог бы посадить персонажа.
+            if (inputReader != null && inputReader.enabled && !MovementLocked)
             {
                 SetCrouched(inputReader.CrouchHeld);
             }
