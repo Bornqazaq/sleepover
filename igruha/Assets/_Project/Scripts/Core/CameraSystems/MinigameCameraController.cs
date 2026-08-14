@@ -34,7 +34,45 @@ namespace Igruha.Core.CameraSystems
             if (rig != null && followTarget != null)
             {
                 rig.Target.TrackingTarget = followTarget;
+                SnapBehind(rig, followTarget);
+
+                // Камера получает героя сразу после спавна, а спавн — это несколько
+                // длинных кадров. Мусорная дельта от захвата курсора долетает уже
+                // после них, поэтому защиту взводим здесь, а не только при включении рига.
+                if (rig.TryGetComponent(out ThirdPersonCameraRig lookRig))
+                {
+                    lookRig.ArmLookGuard();
+                }
             }
+        }
+
+        /// <summary>
+        /// Поставить камеру за спину цели тем же кадром, без доводки из прежней позиции.
+        /// Простой смены TrackingTarget мало: Cinemachine считает предыдущее состояние
+        /// валидным и демпфирует переход, поэтому после выбора персонажа камера секунду
+        /// ползёт к нему через всю комнату — и по дороге ныряет в лестницу и стены
+        /// (deoccluder помогает только когда цель уже перекрыта, а не в полёте).
+        /// </summary>
+        private static void SnapBehind(CinemachineCamera rig, Transform followTarget)
+        {
+            if (rig.TryGetComponent(out CinemachineOrbitalFollow orbit))
+            {
+                // Орбита живёт в мировых координатах (BindingMode.WorldSpace), её угол
+                // не знает про разворот героя. Один раз доворачиваем ось ему за спину:
+                // это стартовая установка, а не привязка — дальше риг снова крутит камеру
+                // сам, независимо от того, куда повернётся персонаж.
+                InputAxis horizontal = orbit.HorizontalAxis;
+                horizontal.Value = Mathf.Repeat(followTarget.eulerAngles.y + 180f, 360f) - 180f;
+                orbit.HorizontalAxis = horizontal;
+
+                InputAxis vertical = orbit.VerticalAxis;
+                vertical.Value = Mathf.Clamp(vertical.Center, vertical.Range.x, vertical.Range.y);
+                orbit.VerticalAxis = vertical;
+            }
+
+            // Сброс демпфирования: ближайший пересчёт риг сделает «с нуля» и встанет
+            // в конечную точку сразу, а не поедет в неё.
+            rig.PreviousStateIsValid = false;
         }
 
         private CinemachineCamera SelectRig(CameraMode mode)

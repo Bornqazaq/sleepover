@@ -15,6 +15,10 @@ namespace Igruha.Core.Player
         [SerializeField] private InputActionReference jumpAction;
         [SerializeField] private InputActionReference pushAction;
         [SerializeField] private InputActionReference interactAction;
+        [Tooltip("Удержание Tab: пока зажато — открыто колесо эмоций")]
+        [SerializeField] private InputActionReference emoteAction;
+        [Tooltip("Тот же Look, что крутит камеру: пока открыто колесо, его дельта водит курсор по секторам")]
+        [SerializeField] private InputActionReference lookAction;
 
         /// <summary>
         /// InputActionReference указывает на общий ассет: один InputAction на всю сцену.
@@ -28,6 +32,10 @@ namespace Igruha.Core.Player
         public bool JumpPressed { get; private set; }
         public bool PushPressed { get; private set; }
         public bool InteractPressed { get; private set; }
+        /// <summary>Кнопка эмоций зажата — состояние, а не нажатие: колесо живёт всё удержание.</summary>
+        public bool EmoteHeld { get; private set; }
+        /// <summary>Смещение мыши/стика за кадр — им же водится курсор колеса эмоций.</summary>
+        public Vector2 LookDelta { get; private set; }
 
         private void OnEnable()
         {
@@ -35,6 +43,8 @@ namespace Igruha.Core.Player
             Acquire(jumpAction);
             Acquire(pushAction);
             Acquire(interactAction);
+            Acquire(emoteAction);
+            Acquire(lookAction);
         }
 
         private void OnDisable()
@@ -43,13 +53,18 @@ namespace Igruha.Core.Player
             Release(jumpAction);
             Release(pushAction);
             Release(interactAction);
+            Release(emoteAction);
+            Release(lookAction);
             MoveInput = Vector2.zero;
-            JumpPressed = PushPressed = InteractPressed = false;
+            LookDelta = Vector2.zero;
+            JumpPressed = PushPressed = InteractPressed = EmoteHeld = false;
         }
 
         private void Update()
         {
             MoveInput = moveAction != null ? moveAction.action.ReadValue<Vector2>() : Vector2.zero;
+            LookDelta = lookAction != null ? lookAction.action.ReadValue<Vector2>() : Vector2.zero;
+            EmoteHeld = emoteAction != null && emoteAction.action.IsPressed();
             JumpPressed |= WasPressed(jumpAction);
             PushPressed |= WasPressed(pushAction);
             InteractPressed |= WasPressed(interactAction);

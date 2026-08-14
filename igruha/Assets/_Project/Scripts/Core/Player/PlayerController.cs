@@ -19,6 +19,12 @@ namespace Igruha.Core.Player
         [Tooltip("Камера, относительно которой считается направление ввода. Пусто — берётся Camera.main при старте")]
         [SerializeField] private Transform cameraTransform;
 
+        [Header("Длительности нокдауна (привязаны к клипам ЭТОГО персонажа)")]
+        [Tooltip("Удар в лицо: полёт назад + подъём со спины. Выставляется билдером аниматора по длине клипов этого персонажа")]
+        [SerializeField] private float knockdownFrontDuration = 2.8f;
+        [Tooltip("Удар со спины: падение вперёд + подъём с живота. Выставляется билдером аниматора по длине клипов этого персонажа")]
+        [SerializeField] private float knockdownBackDuration = 2.2f;
+
         public event Action Jumped;
         public event Action<KnockdownType> KnockdownStarted;
         public event Action KnockdownEnded;
@@ -270,8 +276,8 @@ namespace Igruha.Core.Player
             }
 
             knockdownTimer = type == KnockdownType.FlyBack
-                ? config.KnockdownFrontDuration
-                : config.KnockdownBackDuration;
+                ? knockdownFrontDuration
+                : knockdownBackDuration;
 
             // Пока лежит — гасим скольжение, иначе подъём проигрывается «на ходу».
             rb.linearDamping = config.KnockdownDrag;

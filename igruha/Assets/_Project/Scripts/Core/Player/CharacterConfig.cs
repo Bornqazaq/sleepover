@@ -5,7 +5,9 @@ namespace Igruha.Core.Player
     /// <summary>
     /// Единый геймплейный конфиг персонажа. Общий для ВСЕХ персонажей —
     /// балансовых отличий между ними нет. Индивидуальны только размеры
-    /// капсулы и Animator Controller (задаются на prefab-варианте).
+    /// капсулы, Animator Controller и длительности нокдауна (задаются
+    /// на prefab-варианте — см. PlayerController.KnockdownFrontDuration/BackDuration,
+    /// они привязаны к длине клипов конкретного персонажа).
     /// </summary>
     [CreateAssetMenu(fileName = "CharacterConfig", menuName = "Igruha/Character Config")]
     public sealed class CharacterConfig : ScriptableObject
@@ -67,10 +69,6 @@ namespace Igruha.Core.Player
         [Header("Падение от удара (knockdown)")]
         [Tooltip("Порог: изменение скорости (м/с) от импульса/удара, после которого персонаж падает")]
         [SerializeField] private float knockdownVelocityThreshold = 5f;
-        [Tooltip("Удар в лицо: полёт назад + подъём со спины. Значение выставляется билдером аниматора по длине клипов")]
-        [SerializeField] private float knockdownFrontDuration = 2.8f;
-        [Tooltip("Удар со спины: падение вперёд + подъём с живота. Значение выставляется билдером аниматора")]
-        [SerializeField] private float knockdownBackDuration = 2.2f;
         [Tooltip("Дополнительное торможение, пока персонаж лежит — чтобы не уезжал по полу во время подъёма")]
         [SerializeField] private float knockdownDrag = 4f;
 
@@ -101,8 +99,6 @@ namespace Igruha.Core.Player
         public float FaceHitForceMultiplier => faceHitForceMultiplier;
 
         public float KnockdownVelocityThreshold => knockdownVelocityThreshold;
-        public float KnockdownFrontDuration => knockdownFrontDuration;
-        public float KnockdownBackDuration => knockdownBackDuration;
         public float KnockdownDrag => knockdownDrag;
     }
 }

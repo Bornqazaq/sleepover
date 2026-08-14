@@ -51,6 +51,7 @@ GameObject:
   - component: {fileID: 8649196647282045590}
   - component: {fileID: 8786391075286923910}
   - component: {fileID: 7496735259242241139}
+  - component: {fileID: 2605977533300995054}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -200,6 +201,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   cameraTransform: {fileID: 0}
+  knockdownFrontDuration: 2.777778
+  knockdownBackDuration: 2.177778
 --- !u!114 &5853460982915592438
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -216,6 +219,8 @@ MonoBehaviour:
   jumpAction: {fileID: 335763634227698153, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   pushAction: {fileID: 1903506563957944628, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   interactAction: {fileID: -5548793354506133487, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+  emoteAction: {fileID: 387294884226814714, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+  lookAction: {fileID: 6940538419726410420, guid: 052faaac586de48259a63d0c4782560b, type: 3}
 --- !u!114 &4182226869964336341
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -286,6 +291,22 @@ MonoBehaviour:
   holdAnchor: {fileID: 8996752670059678990}
   throwForce: 9
   throwUpward: 0.35
+--- !u!114 &2605977533300995054
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6047239826789173574}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f42e10ecbcc5e5f4588c942905d1aff9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Player.PlayerEmoteAbility
+  inputReader: {fileID: 5853460982915592438}
+  emoteNames: []
+  pointerSensitivity: 0.012
+  deadZone: 0.35
 --- !u!1001 &2327340725824812181
 PrefabInstance:
   m_ObjectHideFlags: 0

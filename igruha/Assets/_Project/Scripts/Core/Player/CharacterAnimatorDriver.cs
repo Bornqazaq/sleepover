@@ -19,12 +19,17 @@ namespace Igruha.Core.Player
         private static readonly int PunchParameterHash = Animator.StringToHash("Punch");
         private static readonly int KnockdownFrontHash = Animator.StringToHash("KnockdownFront");
         private static readonly int KnockdownBackHash = Animator.StringToHash("KnockdownBack");
+        private static readonly int EmoteHash = Animator.StringToHash("Emote");
+        private static readonly int EmotePlayHash = Animator.StringToHash("EmotePlay");
+        private static readonly int EmoteStopHash = Animator.StringToHash("EmoteStop");
 
         private PlayerPushAbility punchAbility;
+        private PlayerEmoteAbility emoteAbility;
 
         private void Awake()
         {
             punchAbility = GetComponent<PlayerPushAbility>();
+            emoteAbility = GetComponent<PlayerEmoteAbility>();
         }
 
         private void OnEnable()
@@ -39,6 +44,12 @@ namespace Igruha.Core.Player
             {
                 punchAbility.PunchStarted += OnPunchStarted;
             }
+
+            if (emoteAbility != null)
+            {
+                emoteAbility.EmotePlayed += OnEmotePlayed;
+                emoteAbility.EmoteStopped += OnEmoteStopped;
+            }
         }
 
         private void OnDisable()
@@ -52,6 +63,12 @@ namespace Igruha.Core.Player
             if (punchAbility != null)
             {
                 punchAbility.PunchStarted -= OnPunchStarted;
+            }
+
+            if (emoteAbility != null)
+            {
+                emoteAbility.EmotePlayed -= OnEmotePlayed;
+                emoteAbility.EmoteStopped -= OnEmoteStopped;
             }
         }
 
@@ -77,6 +94,35 @@ namespace Igruha.Core.Player
             {
                 animator.SetTrigger(PunchParameterHash);
             }
+        }
+
+        /// <summary>
+        /// Танец крутится в лупе сам: номер эмоции — состояние (Int), а вход в него —
+        /// разовое событие (Trigger). Одним только Int обойтись нельзя: переход
+        /// из AnyState срывался бы обратно в танец после каждого удара и прыжка,
+        /// пока игрок не сменит эмоцию.
+        /// </summary>
+        private void OnEmotePlayed(int emoteNumber)
+        {
+            if (animator == null)
+            {
+                return;
+            }
+
+            animator.SetInteger(EmoteHash, emoteNumber);
+            animator.SetTrigger(EmotePlayHash);
+        }
+
+        private void OnEmoteStopped()
+        {
+            if (animator == null)
+            {
+                return;
+            }
+
+            animator.SetInteger(EmoteHash, PlayerEmoteAbility.NoEmote);
+            animator.ResetTrigger(EmotePlayHash);
+            animator.SetTrigger(EmoteStopHash);
         }
 
         private void OnKnockdownStarted(KnockdownType type)
