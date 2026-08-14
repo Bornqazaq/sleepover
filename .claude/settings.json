@@ -1,0 +1,50 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(git pull --rebase:*)",
+      "Bash(git add:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "mcp__unity__read_console",
+      "mcp__unity__refresh_unity",
+      "mcp__unity__find_gameobjects",
+      "mcp__unity__find_in_file",
+      "mcp__unity__validate_script",
+      "mcp__unity__manage_script",
+      "mcp__unity__unity_docs",
+      "mcp__unity__unity_reflect",
+      "mcp__unity__get_sha",
+      "mcp__UnityMCP__read_console",
+      "mcp__UnityMCP__refresh_unity",
+      "mcp__UnityMCP__find_gameobjects",
+      "mcp__UnityMCP__find_in_file",
+      "mcp__UnityMCP__validate_script",
+      "mcp__UnityMCP__manage_script",
+      "mcp__UnityMCP__unity_docs",
+      "mcp__UnityMCP__unity_reflect",
+      "mcp__UnityMCP__get_sha",
+      "mcp__linear__list_issues",
+      "mcp__linear__get_issue",
+      "mcp__linear__list_issue_labels",
+      "mcp__linear__list_issue_statuses",
+      "mcp__linear__list_projects",
+      "mcp__linear__get_project",
+      "mcp__linear__list_teams",
+      "mcp__linear__list_comments",
+      "mcp__linear__save_issue",
+      "mcp__linear__save_comment"
+    ],
+    "deny": [
+      "Bash(git push --force:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(rm -rf:*)"
+    ]
+  }
+}

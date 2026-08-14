@@ -28,3 +28,25 @@
 # Видео (промо, Higgsfield)
 *.mp4 filter=lfs diff=lfs merge=lfs -text
 *.mov filter=lfs diff=lfs merge=lfs -text
+
+# Unity YAML — сцены, префабы, ассеты.
+# Работаем вдвоём в main, поэтому конфликты здесь неизбежны.
+# Чтобы merge работал, каждому разработчику один раз выполнить:
+#   git config merge.unityyamlmerge.name "Unity SmartMerge"
+#   git config merge.unityyamlmerge.driver '<путь к UnityYAMLMerge> merge -p %O %A %B %A'
+# macOS путь по умолчанию:
+#   /Applications/Unity/Hub/Editor/<версия>/Unity.app/Contents/Tools/UnityYAMLMerge
+# Без этой настройки правило безвредно — git просто откатится на обычный merge.
+*.unity      merge=unityyamlmerge eol=lf
+*.prefab     merge=unityyamlmerge eol=lf
+*.asset      merge=unityyamlmerge eol=lf
+*.mat        merge=unityyamlmerge eol=lf
+*.anim       merge=unityyamlmerge eol=lf
+*.controller merge=unityyamlmerge eol=lf
+*.physicMaterial merge=unityyamlmerge eol=lf
+*.meta       merge=unityyamlmerge eol=lf
+
+# Код
+*.cs text diff=csharp eol=lf
+*.shader text eol=lf
+*.md text eol=lf
