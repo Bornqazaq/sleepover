@@ -20,6 +20,12 @@ namespace Igruha.Core.CameraSystems
         [Tooltip("Заготовка под fixed-риг")]
         [SerializeField] private CinemachineCamera fixedRig;
 
+        /// <summary>Режим, включённый сейчас — чтобы было куда вернуться после спектатора.</summary>
+        public CameraMode CurrentMode { get; private set; } = CameraMode.ThirdPerson;
+
+        /// <summary>За кем камера следит сейчас.</summary>
+        public Transform CurrentTarget { get; private set; }
+
         public void Apply(CameraMode mode, Transform followTarget)
         {
             CinemachineCamera rig = SelectRig(mode);
@@ -34,7 +40,10 @@ namespace Igruha.Core.CameraSystems
             if (rig != null && followTarget != null)
             {
                 rig.Target.TrackingTarget = followTarget;
+                CurrentTarget = followTarget;
             }
+
+            CurrentMode = mode;
 
             SetRigActive(thirdPersonRig, rig == thirdPersonRig);
             SetRigActive(firstPersonRig, rig == firstPersonRig);

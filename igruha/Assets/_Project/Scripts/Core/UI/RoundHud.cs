@@ -16,6 +16,9 @@ namespace Igruha.Core.UI
         [SerializeField] private TMP_Text timerText;
         [SerializeField] private GameObject resultsPanel;
         [SerializeField] private TMP_Text resultsText;
+        [Tooltip("Панель наблюдателя: за кем сейчас смотрит выбывший")]
+        [SerializeField] private GameObject spectatorPanel;
+        [SerializeField] private TMP_Text spectatorText;
 
         private RoundTimer timer;
         private int lastShownSeconds = -1;
@@ -26,6 +29,28 @@ namespace Igruha.Core.UI
             if (resultsPanel != null)
             {
                 resultsPanel.SetActive(false);
+            }
+
+            HideSpectatorTarget();
+        }
+
+        /// <summary>Подписать, за кем смотрит наблюдатель. Зовётся только на смене цели.</summary>
+        public void ShowSpectatorTarget(string playerName)
+        {
+            if (spectatorPanel == null || spectatorText == null)
+            {
+                return;
+            }
+
+            spectatorText.text = $"Смотрим за: {playerName}";
+            spectatorPanel.SetActive(true);
+        }
+
+        public void HideSpectatorTarget()
+        {
+            if (spectatorPanel != null)
+            {
+                spectatorPanel.SetActive(false);
             }
         }
 
