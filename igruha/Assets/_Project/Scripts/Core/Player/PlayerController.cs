@@ -18,6 +18,8 @@ namespace Igruha.Core.Player
         [SerializeField] private LayerMask groundLayer;
         [Tooltip("Камера, относительно которой считается направление ввода. Пусто — берётся Camera.main при старте")]
         [SerializeField] private Transform cameraTransform;
+        [Tooltip("Точка на уровне груди для привязки Cinemachine — у персонажей разного роста корень стоит на разной высоте, из-за чего камера кадрирует их по-разному. Выставляется CharacterPrefabBuilder пропорционально росту")]
+        [SerializeField] private Transform cameraTarget;
 
         [Header("Длительности нокдауна (привязаны к клипам ЭТОГО персонажа)")]
         [Tooltip("Удар в лицо: полёт назад + подъём со спины. Выставляется билдером аниматора по длине клипов этого персонажа")]
@@ -30,6 +32,8 @@ namespace Igruha.Core.Player
         public event Action KnockdownEnded;
 
         public CharacterConfig Config => config;
+        /// <summary>Куда должна целиться Cinemachine. Без назначенной точки — сам корень (запасной вариант для старых префабов).</summary>
+        public Transform CameraTarget => cameraTarget != null ? cameraTarget : transform;
         public bool IsGrounded { get; private set; }
         public bool IsKnockedDown => knockdownTimer > 0f;
         /// <summary>0..1 — доля от максимальной скорости, для анимаций.</summary>

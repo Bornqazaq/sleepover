@@ -19,8 +19,10 @@ namespace Igruha.EditorTools
         {
             "idle", "run",
             "dance1", "dance2", "dance3", "dance4", "dance5", "dance6", "dance7", "dance8",
-            // У Fat исходники названы не по общей конвенции (idle/run) — суффиксы буквальные.
-            "Neutral Idle", "Running"
+            // У Fat и MyBoy исходники названы не по общей конвенции (idle/run) —
+            // суффиксы буквальные.
+            "Neutral Idle", "Running",
+            "Old Man Idle", "Goofy Running"
         };
 
         [MenuItem("Igruha/Player/Setup Shlanga Import Settings")]
@@ -33,6 +35,12 @@ namespace Igruha.EditorTools
         private static void SetupFat()
         {
             Setup("Fat");
+        }
+
+        [MenuItem("Igruha/Player/Setup MyBoy Import Settings")]
+        private static void SetupMyBoy()
+        {
+            Setup("MyBoy");
         }
 
         /// <summary>

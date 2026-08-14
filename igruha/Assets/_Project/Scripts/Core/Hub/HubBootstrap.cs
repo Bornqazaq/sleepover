@@ -60,7 +60,9 @@ namespace Igruha.Core.Hub
 
             if (cameraController != null)
             {
-                cameraController.Apply(CameraMode.ThirdPerson, localAvatar);
+                // CameraTarget — точка на уровне груди, а не корень капсулы: персонажи
+                // разного роста иначе кадрируются по-разному (см. PlayerController.CameraTarget).
+                cameraController.Apply(CameraMode.ThirdPerson, localPlayer.CameraTarget);
             }
             else
             {

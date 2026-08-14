@@ -113,7 +113,7 @@ namespace Igruha.EditorTools
         }
 
         [MenuItem("Igruha/Player/Build Boss Animator Controller")]
-        private static void BuildBoss()
+        internal static void BuildBossController()
         {
             Build(new CharacterAnimationSet(
                 characterName: "Boss",
@@ -175,6 +175,24 @@ namespace Igruha.EditorTools
                 fallForwardClip: "Fat@Fall Flat.fbx",
                 standUpForwardClip: "Fat@Stand Up Forward.fbx",
                 runJumpClip: "Fat@Running Jump.fbx"));
+        }
+
+        [MenuItem("Igruha/Player/Build MyBoy Animator Controller")]
+        internal static void BuildMyBoyController()
+        {
+            Build(new CharacterAnimationSet(
+                characterName: "MyBoy",
+                controllerPath: "Assets/_Project/Art/Animations/MyBoyAnimator.controller",
+                playerPrefabPath: "Assets/_Project/Prefabs/Player/MyBoy.prefab",
+                idleClip: "MyBoy@Old Man Idle.fbx",
+                runClip: "MyBoy@Goofy Running.fbx",
+                jumpClip: "MyBoy@Jumping.fbx",
+                punchClip: "MyBoy@Cross Punch.fbx",
+                flyBackClip: "MyBoy@fall_Back.fbx",
+                standUpBackClip: "MyBoy@standUpBack.fbx",
+                fallForwardClip: "MyBoy@fall_Forward.fbx",
+                standUpForwardClip: "MyBoy@standUpForward.fbx",
+                runJumpClip: "MyBoy@Running Jump.fbx"));
         }
 
         private static void Build(CharacterAnimationSet set)

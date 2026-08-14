@@ -21,8 +21,8 @@ MonoBehaviour:
     prefab: {fileID: 2248581674412273571, guid: 38e1030229a6a4649a36db8e135edccc, type: 3}
   - displayName: Fat
     prefab: {fileID: 9171410491814777834, guid: 45655be5c30e24744a28fd24b860e478, type: 3}
-  - displayName: ???
-    prefab: {fileID: 0}
+  - displayName: MyBoy
+    prefab: {fileID: 2361314342993753982, guid: aebc713a503dc784d89e1f90c04a47b9, type: 3}
   - displayName: ???
     prefab: {fileID: 0}
   - displayName: ???
