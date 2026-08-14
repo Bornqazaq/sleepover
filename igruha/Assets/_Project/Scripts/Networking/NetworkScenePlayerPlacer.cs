@@ -103,7 +103,7 @@ namespace Igruha.Networking
                 return;
             }
 
-            SpawnPoint point = spawnPoints.GetPoint(defaultRole, index);
+            SpawnPoint point = spawnPoints.GetSpreadPoint(defaultRole, index, networkManager.ConnectedClientsIds.Count);
             if (point == null)
             {
                 return;

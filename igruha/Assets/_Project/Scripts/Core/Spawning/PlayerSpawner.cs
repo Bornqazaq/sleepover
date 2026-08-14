@@ -48,7 +48,7 @@ namespace Igruha.Core.Spawning
 
             for (int i = 0; i < debugPlayerCount; i++)
             {
-                SpawnPoint point = spawnPoints.GetPoint(defaultRole, i);
+                SpawnPoint point = spawnPoints.GetSpreadPoint(defaultRole, i, debugPlayerCount);
                 if (point == null)
                 {
                     break;
