@@ -24,6 +24,15 @@
 
 Что шаблон даёт бесплатно: `PlayerController` + `CharacterConfig`, `PlayerPushAbility`, knockdown/вставание, `PlayerRespawner`, `KillZone`, `SpawnPoint`/`SpawnPointSet`/`PlayerSpawner` (роли, 2–8), `RoundTimer`, `TutorialScreen`, `RoundHud`, `PickupItem`/`PlayerCarryAbility`, `ProjectileShooter`/`Projectile`, `TrapBase`/`SpringTrap`/`FallingCrateTrap`/`TrapActivationButton`, `PlayerInteractor`, `MinigameCameraController`, `SessionManager` (очки = число игроков − место), `MinigameControllerBase`/`MinigameDefinition`/`MinigameLoader`.
 
+**Добавлено в Core 14.08 (Core-блок «Плачущих ангелов», IGR-277…284, всё In Review):**
+приседание (`PlayerController.SetCrouched`, Ctrl), `MovementLocked` («замри» без нокдауна),
+`VisionCone` (горизонтальный конус + LoS по двум точкам) и слой `Cover`,
+`StuckDetector` (авто-респавн застрявшего), `FirstPersonCameraRig` + `CameraMode.FirstPerson`
+(потолок скорости поворота), `SpectatorCamera` + строка «Смотрим за:» в `RoundHud`,
+`SpawnPointSet.GetSpreadPoint` (разнос N игроков по кольцу),
+`SpecialRoleHistory` в `ISessionScoreboard` (кто уже был Водящим/охотником).
+Половина нужна Duck Hunt сразу.
+
 ## 2. Сеть — что уже на сервере, что ещё нет
 
 | Механика | Авторитет сервера |
@@ -45,7 +54,7 @@
 | # | Игра | Спека | Каркас | Сеть | Арт | Эпик |
 |---|---|---|---|---|---|---|
 | 12 | **Duck Hunt** | ✅ `duck-hunt.md` (5 открытых вопросов) | 🔄 In Review | ❌ IGR-151 Backlog | ❌ | IGR-143 |
-| 14 | **Плачущие ангелы** | ✅ `crying-angels.md` — согласована, открытых вопросов нет | 📋 тикеты нарезаны, IGR-161 в Todo | 📋 IGR-166/288/289/290 | 📋 IGR-291…294 | IGR-159 |
+| 14 | **Плачущие ангелы** | ✅ `crying-angels.md` — согласована, открытых вопросов нет | 🔄 Core-блок закрыт, арена IGR-161 стоит; дальше 14.2+ | 📋 IGR-166/288/289/290 | 📋 IGR-291…294 | IGR-159 |
 | 8 | Секундомер | ❌ | ❌ | ❌ | ❌ | — |
 | 9 | Порядок банок | ❌ | ❌ | ❌ | ❌ | — |
 | 10 | Рейс на память | ❌ | ❌ | ❌ | ❌ | — |
@@ -59,12 +68,13 @@
 3. **IGR-275 Multiplayer Play Mode** — до сетевой фазы Duck Hunt.
 4. **IGR-272 сетевые снаряды** — блокер для IGR-151.
 5. **Duck Hunt, фаза 3 → сеть**, затем фаза 4 → арт, затем эпик закрыт.
-6. **Плачущие ангелы (IGR-159), фаза 2 → каркас** (`/mg-blockout`). Тикеты нарезаны: 14.1–14.18 под эпиком + 8 Core-тикетов в своих эпиках.
-   **Core-блок берём первым, он блокирует каркас и половина нужна Duck Hunt:**
-   IGR-277 (1.11 приседание), IGR-278 (1.12 блокировка движения), IGR-279 (1.13 конус зрения),
-   IGR-280 (1.14 анти-застревание), IGR-281 (6.11 1st-person риг), IGR-282 (6.12 спектаторы),
-   IGR-283 (4.16 разнос спавнов), IGR-284 (4.17 история спец-ролей).
-   Каждый — отдельным мелким коммитом, пушить сразу (правило работы вдвоём в `main`).
+6. **Плачущие ангелы (IGR-159), фаза 2 → каркас** (`/mg-blockout`).
+   ✅ Core-блок IGR-277…284 закрыт (8 коммитов, все In Review — нужен прогон в редакторе).
+   ✅ IGR-161 (14.1) арена стоит: `Scenes/Minigames/CryingAngels.unity`, In Review.
+   **Дальше по порядку:** 14.2 (Definition + роли и раздача), 14.3 (оповещение роли),
+   14.4 (фонарь и конус Водящего), 14.5 (заморозка), 14.6 (счётчик окаменения и респавн),
+   14.7 (позы), 14.8 (касание и места), 14.9 (проверка мёртвых зон).
+   В сцене пока висит `TemplateMinigame` — его снимает 14.2.
 
 ## 5. Известные расхождения в документации
 
