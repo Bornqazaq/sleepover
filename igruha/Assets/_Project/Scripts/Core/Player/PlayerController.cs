@@ -26,6 +26,9 @@ namespace Igruha.Core.Player
         public event Action KnockdownEnded;
         public event Action<bool> MovementLockChanged;
 
+        /// <summary>Персонажа перенесли: респаун, старт мини-игры, смена арены.</summary>
+        public event Action Teleported;
+
         public CharacterConfig Config => config;
         public bool IsGrounded { get; private set; }
         public bool IsKnockedDown => knockdownTimer > 0f;
@@ -494,6 +497,8 @@ namespace Igruha.Core.Player
             {
                 KnockdownEnded?.Invoke();
             }
+
+            Teleported?.Invoke();
         }
 
         private void OnCollisionEnter(Collision collision)
