@@ -206,7 +206,7 @@ MonoBehaviour:
     m_Bits: 64
   crouchCeilingLayers:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 256
   cameraTransform: {fileID: 0}
 --- !u!114 &5853460982915592438
 MonoBehaviour:
