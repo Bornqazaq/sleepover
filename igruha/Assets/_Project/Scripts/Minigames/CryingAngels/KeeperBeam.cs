@@ -17,10 +17,12 @@ namespace Igruha.Minigames.CryingAngels
         [SerializeField] private float intensity = 6f;
 
         private Light beam;
+        private KeeperBeamCone cone;
 
         private void Awake()
         {
             beam = GetComponent<Light>();
+            cone = GetComponentInChildren<KeeperBeamCone>(true);
             beam.type = LightType.Spot;
             beam.intensity = intensity;
             SetVisible(false);
@@ -39,6 +41,7 @@ namespace Igruha.Minigames.CryingAngels
 
             beam.spotAngle = coneAngle;
             beam.range = range;
+            ResolveCone()?.Build(coneAngle, range);
         }
 
         /// <summary>Фонарь горит. Выключен на стартовом отсчёте и после конца раунда.</summary>
@@ -50,6 +53,7 @@ namespace Igruha.Minigames.CryingAngels
             }
 
             beam.enabled = visible;
+            ResolveCone()?.SetVisible(visible);
         }
 
         /// <summary>Цвет луча — обратная связь по счётчику окаменения (14.7).</summary>
@@ -61,6 +65,17 @@ namespace Igruha.Minigames.CryingAngels
             }
 
             beam.color = color;
+            ResolveCone()?.SetColor(color);
+        }
+
+        private KeeperBeamCone ResolveCone()
+        {
+            if (cone == null)
+            {
+                cone = GetComponentInChildren<KeeperBeamCone>(true);
+            }
+
+            return cone;
         }
     }
 }
