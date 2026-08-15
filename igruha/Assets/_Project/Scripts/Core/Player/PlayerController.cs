@@ -411,12 +411,50 @@ namespace Igruha.Core.Player
         /// </summary>
         private Vector3 ToCameraRelative(Vector2 moveInput)
         {
-            if (cameraTransform == null)
+            if (!TryGetMoveBasis(out Vector3 forward, out Vector3 right))
             {
                 return new Vector3(moveInput.x, 0f, moveInput.y);
             }
 
-            Vector3 forward = cameraTransform.forward;
+            return right * moveInput.x + forward * moveInput.y;
+        }
+
+        /// <summary>
+        /// Перевести мировое направление во ввод этого персонажа — обратная
+        /// сторона <see cref="ToCameraRelative"/>. Нужна всем, кто задаёт
+        /// движение точкой в мире, а не нажатиями: болванке соло-теста,
+        /// автопилоту, скриптовой сцене. Без пересчёта такой источник ведёт
+        /// персонажа боком, как только у того появляется своя камера.
+        /// </summary>
+        public Vector2 WorldToMoveInput(Vector3 worldDirection)
+        {
+            worldDirection.y = 0f;
+            if (worldDirection.sqrMagnitude < 0.0001f)
+            {
+                return Vector2.zero;
+            }
+
+            worldDirection.Normalize();
+
+            if (!TryGetMoveBasis(out Vector3 forward, out Vector3 right))
+            {
+                return new Vector2(worldDirection.x, worldDirection.z);
+            }
+
+            return new Vector2(Vector3.Dot(worldDirection, right), Vector3.Dot(worldDirection, forward));
+        }
+
+        /// <summary>Базис ввода: куда для этого персонажа «вперёд» и «вправо». Ложь — камеры нет, ввод мировой.</summary>
+        private bool TryGetMoveBasis(out Vector3 forward, out Vector3 right)
+        {
+            if (cameraTransform == null)
+            {
+                forward = Vector3.forward;
+                right = Vector3.right;
+                return false;
+            }
+
+            forward = cameraTransform.forward;
             forward.y = 0f;
 
             if (forward.sqrMagnitude < 0.0001f)
@@ -427,8 +465,8 @@ namespace Igruha.Core.Player
             }
 
             forward.Normalize();
-            Vector3 right = new Vector3(forward.z, 0f, -forward.x);
-            return right * moveInput.x + forward * moveInput.y;
+            right = new Vector3(forward.z, 0f, -forward.x);
+            return true;
         }
 
         private void UpdateTimers()

@@ -31,6 +31,9 @@ namespace Igruha.Minigames.CryingAngels
         /// <summary>Слой укрытий: на нём живут и камни арены, и статуи окаменевших.</summary>
         private const string CoverLayerName = "Cover";
 
+        /// <summary>Слой пола, стен и постамента — так их кладёт билдер арены.</summary>
+        private const string GroundLayerName = "Ground";
+
         [Header("Арена")]
         [SerializeField] private SpawnPointSet spawnPoints;
         [SerializeField] private CryingAngelsConfig config;
@@ -52,6 +55,8 @@ namespace Igruha.Minigames.CryingAngels
         [SerializeField] private bool localPlayerIsKeeper;
         [Tooltip("Переключить роль локального игрока прямо в игре. Работает только во время раунда, не на обучалке. Не F-клавиша: на macOS их перехватывает система, до игры они не доходят")]
         [SerializeField] private Key roleSwitchKey = Key.P;
+        [Tooltip("Гнать болванок к постаменту. Выключить — встанут столбами на своих точках")]
+        [SerializeField] private bool driveDummyRunners = true;
 
         /// <summary>
         /// Состояние одного Бегущего за раунд. Лучший радиус копится весь раунд
@@ -70,6 +75,8 @@ namespace Igruha.Minigames.CryingAngels
             public float TouchTime;
             /// <summary>Номер по порядку зачёта, с 1. Именно он решает места дошедших.</summary>
             public int TouchOrder;
+            /// <summary>Водитель болванки. Пусто у живого игрока и в сетевой катке.</summary>
+            public DebugPlayerBot Bot;
         }
 
         private static readonly Comparison<RunnerRecord> RunnerRanking = CompareRunners;
@@ -133,10 +140,12 @@ namespace Igruha.Minigames.CryingAngels
             roundElapsed = 0f;
             countdownRemaining = config != null ? config.StartCountdown : 0f;
             SetBeamEnabled(false);
+            SetDummyBotsRunning(true);
         }
 
         protected override void OnRoundEnded()
         {
+            SetDummyBotsRunning(false);
             SetBeamEnabled(false);
             ReleaseAllRunners();
             ClearStatues();
@@ -333,6 +342,14 @@ namespace Igruha.Minigames.CryingAngels
                     keeperAvatar = avatar;
                     keeper = SetupKeeper(avatar);
                     MoveTo(avatar, spawnPoints?.GetPoint(SpawnRole.Special, 0));
+
+                    // Болванка, которой выпала роль Водящего, обязана бросить
+                    // ввод: иначе она уедет с постамента, продолжая идти к нему.
+                    if (avatar.TryGetComponent(out DebugPlayerBot keeperBot))
+                    {
+                        keeperBot.Stop();
+                    }
+
                     continue;
                 }
 
@@ -356,6 +373,7 @@ namespace Igruha.Minigames.CryingAngels
 
             RebindVision();
             BindVignette();
+            SetDummyBotsRunning(RoundActive);
             keeper?.ApplyTurnSpeed(firstPersonRig, KeeperTurnSpeed);
             keeper?.SetBeamVisible(BeamEnabled);
             ApplyRoleCamera();
@@ -382,8 +400,66 @@ namespace Igruha.Minigames.CryingAngels
                 PlayerId = playerId,
                 Avatar = avatar,
                 Body = avatar.GetComponent<Collider>(),
-                State = state
+                State = state,
+                Bot = EnsureDummyBot(avatar)
             };
+        }
+
+        /// <summary>
+        /// Болванке соло-теста нужен свой водитель: стоящие столбами болванки
+        /// не дают проверить ни порядок финиша, ни досрочный конец раунда, ни
+        /// переключение наблюдателя, а за Водящего при них смотреть не на что.
+        ///
+        /// Живому игроку и любой сетевой копии бот не ставится: там ввод идёт
+        /// от человека, и второй источник ввода — это гонка.
+        /// </summary>
+        private DebugPlayerBot EnsureDummyBot(PlayerController avatar)
+        {
+            if (!driveDummyRunners || SessionScoreboard.IsNetworked)
+            {
+                return null;
+            }
+
+            if (!avatar.TryGetComponent(out PlayerInputReader reader) || reader.LocallyControlled)
+            {
+                return null;
+            }
+
+            if (!avatar.TryGetComponent(out DebugPlayerBot bot))
+            {
+                bot = avatar.gameObject.AddComponent<DebugPlayerBot>();
+            }
+
+            // Препятствие для болванки — ровно та геометрия, из которой собрана
+            // арена: пол со стенами и постаментом да укрытия. Своих она не
+            // объезжает намеренно — толкучка у постамента здесь и нужна.
+            bot.Configure(LayerMask.GetMask(GroundLayerName, CoverLayerName));
+            return bot;
+        }
+
+        /// <summary>
+        /// Болванки бегут только внутри раунда: на обучалке они успели бы
+        /// столпиться у постамента ещё до старта, а касание там не засчитывается.
+        /// </summary>
+        private void SetDummyBotsRunning(bool running)
+        {
+            for (int i = 0; i < runners.Count; i++)
+            {
+                DebugPlayerBot bot = runners[i].Bot;
+                if (bot == null)
+                {
+                    continue;
+                }
+
+                if (running)
+                {
+                    bot.SetTarget(arenaCenter);
+                }
+                else
+                {
+                    bot.Stop();
+                }
+            }
         }
 
         /// <summary>

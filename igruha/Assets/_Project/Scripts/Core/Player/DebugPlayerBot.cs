@@ -1,0 +1,199 @@
+using UnityEngine;
+
+namespace Igruha.Core.Player
+{
+    /// <summary>
+    /// Болванка соло-теста: ведёт персонажа к точке на арене, огибая геометрию
+    /// и беря низкие ступени прыжком.
+    ///
+    /// Нужна потому, что половину правил мини-игры одному игроку проверить
+    /// нечем: порядок финиша, досрочный конец раунда, переключение наблюдателя
+    /// между живыми — всё это требует, чтобы до цели дошёл кто-то ещё. Двумя
+    /// персонажами руками не поуправляешь, а сети на фазе каркаса ещё нет.
+    ///
+    /// Это отладочный инструмент, а не игровой ИИ: болванка не прячется, не
+    /// блефует и не оценивает опасность. Ввод она подаёт через тот же
+    /// <see cref="PlayerInputReader"/>, что и человек, поэтому заморозка,
+    /// нокдаун, присед, толчки и авто-респавн застрявшего действуют на неё
+    /// сами собой — отдельных веток в этих системах не появляется.
+    /// </summary>
+    [RequireComponent(typeof(PlayerController))]
+    public sealed class DebugPlayerBot : MonoBehaviour
+    {
+        [Tooltip("Ближе этого расстояния до цели болванка стоит, юниты")]
+        [SerializeField] private float arriveRadius = 0.4f;
+        [Tooltip("На сколько вперёд болванка щупает геометрию, юниты")]
+        [SerializeField] private float probeDistance = 1.8f;
+        [Tooltip("Зазор между щупом и полом: без него щуп цепляет пол и болванка считает себя запертой, юниты")]
+        [SerializeField] private float probeClearance = 0.1f;
+        [Tooltip("Препятствие ниже этого — ступень, её берём прыжком. Выше — обходим. Юниты")]
+        [SerializeField] private float stepHeight = 0.6f;
+        [Tooltip("Шаг перебора направлений обхода, °")]
+        [SerializeField] private float avoidStep = 25f;
+        [Tooltip("Сколько шагов перебирается в каждую сторону")]
+        [SerializeField] private int avoidSteps = 5;
+
+        private PlayerController motor;
+        private PlayerInputReader reader;
+        private LayerMask obstacles;
+        private Vector3 target;
+        private float probeRadius;
+        private float footOffset;
+        private bool hasTarget;
+
+        /// <summary>
+        /// Сторона обхода прошлого решения. Без памяти о ней болванка на
+        /// симметричном камне каждый тик выбирает то левый, то правый путь
+        /// и топчется на месте вместо обхода.
+        /// </summary>
+        private bool preferRight = true;
+
+        /// <summary>Куда идём. Пусто — болванка стоит.</summary>
+        public bool HasTarget => hasTarget;
+
+        private void Awake()
+        {
+            motor = GetComponent<PlayerController>();
+            reader = GetComponent<PlayerInputReader>();
+
+            // Щуп должен быть толщиной с персонажа, а высоты считаться от ступней:
+            // у пятерых персонажей разный рост, и числами это не задать.
+            var capsule = GetComponent<CapsuleCollider>();
+            if (capsule != null)
+            {
+                probeRadius = capsule.radius;
+                footOffset = capsule.center.y - capsule.height * 0.5f;
+            }
+            else
+            {
+                probeRadius = 0.36f;
+                footOffset = 0f;
+            }
+        }
+
+        private void OnDisable()
+        {
+            // Снятая болванка обязана бросить ввод: иначе она уходит из-под
+            // управления с зажатым «вперёд» и уезжает в стену до конца раунда.
+            reader?.DriveMove(Vector2.zero);
+        }
+
+        /// <summary>Какая геометрия считается препятствием. Задаёт мини-игра: слои у каждой арены свои.</summary>
+        public void Configure(LayerMask obstacleLayers) => obstacles = obstacleLayers;
+
+        /// <summary>Идти к точке в мире.</summary>
+        public void SetTarget(Vector3 worldPoint)
+        {
+            target = worldPoint;
+            hasTarget = true;
+        }
+
+        /// <summary>Забыть цель и остановиться.</summary>
+        public void Stop()
+        {
+            hasTarget = false;
+            reader?.DriveMove(Vector2.zero);
+        }
+
+        private void FixedUpdate()
+        {
+            if (!hasTarget || reader == null || motor == null)
+            {
+                return;
+            }
+
+            // Заморозка и нокдаун болванку не касаются напрямую: она просто
+            // перестаёт жать «вперёд». Держать ввод под блокировкой нельзя —
+            // детектор застревания принял бы это за реальное застревание.
+            if (motor.MovementLocked || motor.IsKnockedDown)
+            {
+                reader.DriveMove(Vector2.zero);
+                return;
+            }
+
+            Vector3 offset = target - transform.position;
+            offset.y = 0f;
+            float distance = offset.magnitude;
+
+            if (distance <= arriveRadius)
+            {
+                reader.DriveMove(Vector2.zero);
+                return;
+            }
+
+            Vector3 course = ChooseCourse(offset / distance);
+            reader.DriveMove(motor.WorldToMoveInput(course));
+        }
+
+        /// <summary>
+        /// Куда шагнуть на самом деле. Прямо, если путь свободен; иначе — под
+        /// наименьшим углом от прямого, начиная с той стороны, которую выбрали
+        /// в прошлый раз.
+        /// </summary>
+        private Vector3 ChooseCourse(Vector3 desired)
+        {
+            if (IsPassable(desired))
+            {
+                return desired;
+            }
+
+            for (int i = 1; i <= avoidSteps; i++)
+            {
+                float angle = avoidStep * i;
+
+                Vector3 preferred = Rotate(desired, preferRight ? angle : -angle);
+                if (IsPassable(preferred))
+                {
+                    return preferred;
+                }
+
+                Vector3 opposite = Rotate(desired, preferRight ? -angle : angle);
+                if (IsPassable(opposite))
+                {
+                    preferRight = !preferRight;
+                    return opposite;
+                }
+            }
+
+            // Зажаты со всех сторон: упираемся вперёд и ждём StuckDetector —
+            // это ровно тот случай, ради которого он в проекте и появился.
+            return desired;
+        }
+
+        /// <summary>
+        /// Путь свободен или перегорожен ступенью, которую можно перепрыгнуть.
+        /// Прыжок отсюда и заказывается: решение «перешагнуть, а не обходить»
+        /// принимается там же, где меряется высота помехи.
+        ///
+        /// Помеха меряется двумя щупами, а не поиском её верха сверху вниз:
+        /// луч, пущенный вниз из точки ниже верхушки укрытия, стартует внутри
+        /// коллайдера, тот его не ловит, и высокий камень читается как ровный
+        /// пол. Пара «низкий щуп задел / верхний свободен» такой ошибки не даёт.
+        /// </summary>
+        private bool IsPassable(Vector3 direction)
+        {
+            if (IsBlocked(direction, stepHeight))
+            {
+                return false;
+            }
+
+            if (IsBlocked(direction, probeClearance) && motor.IsGrounded)
+            {
+                reader.DriveJump();
+            }
+
+            return true;
+        }
+
+        /// <summary>Щуп толщиной с персонажа на заданной высоте над ступнями.</summary>
+        private bool IsBlocked(Vector3 direction, float height)
+        {
+            Vector3 origin = transform.position + Vector3.up * (footOffset + height + probeRadius);
+            return Physics.SphereCast(origin, probeRadius, direction, out _, probeDistance,
+                obstacles, QueryTriggerInteraction.Ignore);
+        }
+
+        private static Vector3 Rotate(Vector3 direction, float degrees) =>
+            Quaternion.AngleAxis(degrees, Vector3.up) * direction;
+    }
+}
