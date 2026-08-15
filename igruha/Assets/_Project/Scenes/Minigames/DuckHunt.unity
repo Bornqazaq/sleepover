@@ -5270,6 +5270,8 @@ MonoBehaviour:
   timerText: {fileID: 544493806}
   resultsPanel: {fileID: 645062292}
   resultsText: {fileID: 11342177}
+  spectatorPanel: {fileID: 0}
+  spectatorText: {fileID: 0}
 --- !u!224 &958440930
 RectTransform:
   m_ObjectHideFlags: 0
@@ -7673,7 +7675,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 937a6bcdfcc26d14095d222aaf89e472, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Spawning.PlayerSpawner
-  roster: {fileID: 0}
+  roster: {fileID: 11400000, guid: e3b6a37137cf96c419aef650157ec842, type: 2}
   spawnPoints: {fileID: 1239972998}
   debugPlayerCount: 4
   defaultRole: 0
@@ -7964,6 +7966,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.CameraSystems.MinigameCameraController
   thirdPersonRig: {fileID: 258454913}
+  firstPersonRig: {fileID: 0}
   topDownRig: {fileID: 0}
   fixedRig: {fileID: 0}
 --- !u!4 &1258992255

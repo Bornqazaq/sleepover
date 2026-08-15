@@ -55,6 +55,33 @@ namespace Igruha.Core.Player
             enabled = false;
         }
 
+        /// <summary>
+        /// Подать ввод движения извне — болванке соло-теста или скриптовой
+        /// сцене. Разрешено только копиям без локального управления: своему
+        /// персонажу значение всё равно затрёт <c>Update</c>, а два источника
+        /// ввода на одном персонаже дают гонку, которую потом не найти.
+        /// </summary>
+        public void DriveMove(Vector2 move)
+        {
+            if (LocallyControlled)
+            {
+                return;
+            }
+
+            MoveInput = move;
+        }
+
+        /// <summary>Прыжок извне. Гасится потребителем через <see cref="ConsumeJump"/>, как обычное нажатие.</summary>
+        public void DriveJump()
+        {
+            if (LocallyControlled)
+            {
+                return;
+            }
+
+            JumpPressed = true;
+        }
+
         private void OnEnable()
         {
             Acquire(moveAction);

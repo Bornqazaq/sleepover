@@ -16,7 +16,7 @@ MonoBehaviour:
   category: 2
   sceneAddress: Minigames/CryingAngels
   sceneName: CryingAngels
-  roundDuration: 90
+  roundDuration: 120
   minPlayers: 3
   maxPlayers: 8
   cameraMode: 0

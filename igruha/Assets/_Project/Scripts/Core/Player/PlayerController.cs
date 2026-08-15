@@ -44,6 +44,17 @@ namespace Igruha.Core.Player
         public bool IsKnockedDown => knockdownTimer > 0f;
 
         /// <summary>
+        /// Персонаж не принимает толчки и импульсы. Нужен ролям, которые обязаны
+        /// стоять на своём месте весь раунд: Водящий «Плачущих ангелов» на
+        /// постаменте, ведущий в любой асимметричной игре. Без этого его просто
+        /// сшибают с точки, и раунд ломается.
+        ///
+        /// Не влияет на телепорт и респавн — те двигают персонажа адресно,
+        /// а не через физику.
+        /// </summary>
+        public bool ImpulseImmune { get; set; }
+
+        /// <summary>
         /// Персонаж сидит: капсула ниже, скорость меньше. Отличается от запроса —
         /// под низким потолком встать нельзя, и состояние держится дальше.
         /// </summary>
@@ -156,6 +167,7 @@ namespace Igruha.Core.Player
             rb.mass = config.Mass;
             rb.linearDamping = config.LinearDamping;
             rb.angularDamping = config.AngularDamping;
+            WarnIfCrouchBlockedByRadius();
         }
 
         private void FixedUpdate()
@@ -294,7 +306,7 @@ namespace Igruha.Core.Player
         /// </summary>
         private void ApplyCapsuleHeight()
         {
-            float crouchedHeight = Mathf.Max(standingHeight * config.CrouchHeightMultiplier, capsule.radius * 2f);
+            float crouchedHeight = Mathf.Max(ResolveCrouchedHeight(), capsule.radius * 2f);
             float height = Mathf.Lerp(standingHeight, crouchedHeight, crouchBlend);
             if (Mathf.Approximately(capsule.height, height))
             {
@@ -306,6 +318,38 @@ namespace Igruha.Core.Player
                 standingCenter.x,
                 standingCenter.y - (standingHeight - height) * 0.5f,
                 standingCenter.z);
+        }
+
+        /// <summary>
+        /// Высота капсулы в приседе. Абсолютная величина из конфига важнее
+        /// множителя: там, где присед обязан прятать за укрытием известной
+        /// высоты, доля от роста даёт разным персонажам разную макушку.
+        /// </summary>
+        private float ResolveCrouchedHeight() =>
+            config.CrouchTargetHeight > 0f
+                ? config.CrouchTargetHeight
+                : standingHeight * config.CrouchHeightMultiplier;
+
+        /// <summary>
+        /// Радиус капсулы — жёсткий пол для приседа: ниже собственной толщины
+        /// капсула не сжимается. Широкий персонаж молча не дотягивает до
+        /// заданной высоты и торчит из-за укрытия — предупреждаем один раз
+        /// на старте, а не ищем это потом на плейтесте.
+        /// </summary>
+        private void WarnIfCrouchBlockedByRadius()
+        {
+            if (config == null || capsule == null || config.CrouchTargetHeight <= 0f)
+            {
+                return;
+            }
+
+            float floor = capsule.radius * 2f;
+            if (floor > config.CrouchTargetHeight)
+            {
+                Debug.LogWarning(
+                    $"{name}: присед не дотягивает до {config.CrouchTargetHeight:F2} м — радиус капсулы {capsule.radius:F2} держит минимум {floor:F2} м. " +
+                    "Персонаж будет торчать из-за низких укрытий. Уменьшить радиус капсулы или поднять укрытия.", this);
+            }
         }
 
         private bool IsBlockedAbove()
@@ -367,12 +411,50 @@ namespace Igruha.Core.Player
         /// </summary>
         private Vector3 ToCameraRelative(Vector2 moveInput)
         {
-            if (cameraTransform == null)
+            if (!TryGetMoveBasis(out Vector3 forward, out Vector3 right))
             {
                 return new Vector3(moveInput.x, 0f, moveInput.y);
             }
 
-            Vector3 forward = cameraTransform.forward;
+            return right * moveInput.x + forward * moveInput.y;
+        }
+
+        /// <summary>
+        /// Перевести мировое направление во ввод этого персонажа — обратная
+        /// сторона <see cref="ToCameraRelative"/>. Нужна всем, кто задаёт
+        /// движение точкой в мире, а не нажатиями: болванке соло-теста,
+        /// автопилоту, скриптовой сцене. Без пересчёта такой источник ведёт
+        /// персонажа боком, как только у того появляется своя камера.
+        /// </summary>
+        public Vector2 WorldToMoveInput(Vector3 worldDirection)
+        {
+            worldDirection.y = 0f;
+            if (worldDirection.sqrMagnitude < 0.0001f)
+            {
+                return Vector2.zero;
+            }
+
+            worldDirection.Normalize();
+
+            if (!TryGetMoveBasis(out Vector3 forward, out Vector3 right))
+            {
+                return new Vector2(worldDirection.x, worldDirection.z);
+            }
+
+            return new Vector2(Vector3.Dot(worldDirection, right), Vector3.Dot(worldDirection, forward));
+        }
+
+        /// <summary>Базис ввода: куда для этого персонажа «вперёд» и «вправо». Ложь — камеры нет, ввод мировой.</summary>
+        private bool TryGetMoveBasis(out Vector3 forward, out Vector3 right)
+        {
+            if (cameraTransform == null)
+            {
+                forward = Vector3.forward;
+                right = Vector3.right;
+                return false;
+            }
+
+            forward = cameraTransform.forward;
             forward.y = 0f;
 
             if (forward.sqrMagnitude < 0.0001f)
@@ -383,8 +465,8 @@ namespace Igruha.Core.Player
             }
 
             forward.Normalize();
-            Vector3 right = new Vector3(forward.z, 0f, -forward.x);
-            return right * moveInput.x + forward * moveInput.y;
+            right = new Vector3(forward.z, 0f, -forward.x);
+            return true;
         }
 
         private void UpdateTimers()
@@ -428,7 +510,7 @@ namespace Igruha.Core.Player
         /// </summary>
         public void ApplyPush(Vector3 direction, float force)
         {
-            if (config == null)
+            if (config == null || ImpulseImmune)
             {
                 return;
             }
@@ -474,7 +556,7 @@ namespace Igruha.Core.Player
 
         public void ApplyImpulse(Vector3 impulse, KnockdownType knockdownType)
         {
-            if (config == null)
+            if (config == null || ImpulseImmune)
             {
                 return;
             }

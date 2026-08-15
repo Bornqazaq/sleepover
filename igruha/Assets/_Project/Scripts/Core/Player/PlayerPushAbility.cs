@@ -99,6 +99,13 @@ namespace Igruha.Core.Player
                     continue;
                 }
 
+                // Иммунного отсекаем здесь, а не на его стороне: иначе в сетевой
+                // игре на каждый замах уходит заведомо пустой толчок по сети.
+                if (target.ImpulseImmune)
+                {
+                    continue;
+                }
+
                 Vector3 toTarget = target.transform.position - transform.position;
                 toTarget.y = 0f;
 

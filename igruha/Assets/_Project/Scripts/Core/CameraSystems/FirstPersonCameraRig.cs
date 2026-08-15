@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Unity.Cinemachine;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -40,8 +41,12 @@ namespace Igruha.Core.CameraSystems
         [Header("Тело и глаз")]
         [Tooltip("Разворачивать тело персонажа вслед за обзором")]
         [SerializeField] private bool lockBodyRotation = true;
-        [Tooltip("Высота глаза над точкой слежения, м")]
-        [SerializeField] private float eyeHeight = 0.55f;
+        [Tooltip("Запасная высота глаза, м. Берётся только если у персонажа нет капсулы")]
+        [SerializeField] private float eyeHeight = 1.5f;
+        [Tooltip("На сколько глаз ниже макушки капсулы, м. Персонажи разного роста получают свою высоту")]
+        [SerializeField] private float eyeDropFromTop = 0.15f;
+        [Tooltip("Прятать собственную модель: иначе камера стоит внутри головы и видно изнанку текстур")]
+        [SerializeField] private bool hideOwnModel = true;
         [Tooltip("Поле зрения, °. Вместе с потолком скорости снижает риск укачивания")]
         [Range(40f, 110f)]
         [SerializeField] private float fieldOfView = 75f;
@@ -62,6 +67,8 @@ namespace Igruha.Core.CameraSystems
         private float yaw;
         private float desiredYaw;
         private float pitch;
+        private float resolvedEyeHeight;
+        private readonly List<Renderer> hiddenRenderers = new List<Renderer>(8);
 
         private void Awake()
         {
@@ -97,11 +104,29 @@ namespace Igruha.Core.CameraSystems
         private void OnDisable()
         {
             lookAction?.action.Disable();
+            RestoreOwnModel();
+
+            // Сбрасываем цель, иначе при следующем включении ResolveTarget решит,
+            // что она не менялась, и модель останется видимой.
+            trackedTarget = null;
 
             if (lockCursor)
             {
                 Cursor.lockState = CursorLockMode.None;
                 Cursor.visible = true;
+            }
+        }
+
+        /// <summary>
+        /// Потолок угловой скорости под правила конкретной мини-игры: в
+        /// асимметричных играх он зависит от числа убегающих и потому не может
+        /// быть зашит в риг. Значение ≤ 0 игнорируется — риг остаётся на своём.
+        /// </summary>
+        public void SetMaxTurnSpeed(float degreesPerSecond)
+        {
+            if (degreesPerSecond > 0f)
+            {
+                maxTurnSpeed = degreesPerSecond;
             }
         }
 
@@ -172,7 +197,7 @@ namespace Igruha.Core.CameraSystems
         {
             if (trackedTarget != null)
             {
-                transform.position = trackedTarget.position + Vector3.up * eyeHeight;
+                transform.position = trackedTarget.position + Vector3.up * resolvedEyeHeight;
             }
 
             transform.rotation = Quaternion.Euler(pitch, yaw, 0f);
@@ -191,8 +216,72 @@ namespace Igruha.Core.CameraSystems
                 return;
             }
 
+            RestoreOwnModel();
+
             trackedTarget = target;
             trackedBody = target != null ? target.GetComponent<PlayerController>() : null;
+            resolvedEyeHeight = ResolveEyeHeight(target);
+            HideOwnModel(target);
+        }
+
+        /// <summary>
+        /// Высота глаза считается от капсулы персонажа, а не задаётся числом:
+        /// точка персонажа лежит на уровне ступней, а ростом персонажи
+        /// различаются заметно. Фиксированная высота ставила бы камеру одному
+        /// в глаза, другому в живот.
+        /// </summary>
+        private float ResolveEyeHeight(Transform target)
+        {
+            if (target == null || !target.TryGetComponent(out CapsuleCollider capsule))
+            {
+                return eyeHeight;
+            }
+
+            float top = capsule.center.y + capsule.height * 0.5f;
+            return Mathf.Max(top - eyeDropFromTop, capsule.radius);
+        }
+
+        /// <summary>
+        /// Спрятать модель того, чьими глазами смотрим. Камера стоит внутри
+        /// головы, и без этого в кадр лезет изнанка собственных текстур.
+        /// Прячем только у себя: остальные игроки видят это тело как обычно.
+        /// </summary>
+        private void HideOwnModel(Transform target)
+        {
+            if (!hideOwnModel || target == null)
+            {
+                return;
+            }
+
+            target.GetComponentsInChildren(true, hiddenRenderers);
+            for (int i = hiddenRenderers.Count - 1; i >= 0; i--)
+            {
+                Renderer renderer = hiddenRenderers[i];
+
+                // Выключенное не нашей рукой возвращать потом нельзя, а
+                // помеченное как «оставить видимым» гасить нельзя вовсе:
+                // так на персонаже живёт фонарь ведущего, который ему и нужен.
+                if (!renderer.enabled || renderer.GetComponentInParent<KeepVisibleInFirstPerson>() != null)
+                {
+                    hiddenRenderers.RemoveAt(i);
+                    continue;
+                }
+
+                renderer.enabled = false;
+            }
+        }
+
+        private void RestoreOwnModel()
+        {
+            for (int i = 0; i < hiddenRenderers.Count; i++)
+            {
+                if (hiddenRenderers[i] != null)
+                {
+                    hiddenRenderers[i].enabled = true;
+                }
+            }
+
+            hiddenRenderers.Clear();
         }
 
         private bool IsMouseLook()

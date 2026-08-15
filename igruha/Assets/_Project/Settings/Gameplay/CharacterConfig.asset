@@ -20,6 +20,7 @@ MonoBehaviour:
   inputDeadzone: 0.15
   crouchSpeedMultiplier: 0.45
   crouchHeightMultiplier: 0.5
+  crouchTargetHeight: 0.8
   crouchTransitionTime: 0.12
   jumpSpeed: 8.4
   riseGravityMultiplier: 2.2

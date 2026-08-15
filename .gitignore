@@ -132,3 +132,7 @@ InitTestScene*.unity*
 
 # macOS
 .DS_Store
+
+# Отладочные скриншоты Unity MCP — рабочий мусор, в репозиторий не нужны
+igruha/Assets/Screenshots/
+igruha/Assets/Screenshots.meta

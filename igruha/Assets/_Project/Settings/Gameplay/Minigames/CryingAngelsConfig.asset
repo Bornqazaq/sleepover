@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e5355c2cb66524c4a9d73322244a69fd, type: 3}
+  m_Name: CryingAngelsConfig
+  m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.CryingAngels.CryingAngelsConfig
+  startCountdown: 3
+  turnSpeedAtFewestRunners: 60
+  turnSpeedAtMostRunners: 90
+  verticalLookLimit: 20
+  touchRadius: 1.08
+  stepHearingRadius: 4.32
+  petrifyThreshold: 4
+  petrifyGainMultiplier: 1
+  petrifyDecayMultiplier: 0.5
+  petrifyAnimationDuration: 0.5
+  runnerSpeedMultiplier: 1
+  freezePoseCount: 6
+  statuesRemainAsCover: 0
+  beamColorFeedback: 1
+  beamColorIdle: {r: 1, g: 1, b: 1, a: 1}
+  beamColorPetrifying: {r: 1, g: 0, b: 0, a: 1}

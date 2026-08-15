@@ -2847,7 +2847,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 937a6bcdfcc26d14095d222aaf89e472, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Spawning.PlayerSpawner
-  roster: {fileID: 0}
+  roster: {fileID: 11400000, guid: e3b6a37137cf96c419aef650157ec842, type: 2}
   spawnPoints: {fileID: 1638957353}
   debugPlayerCount: 3
   defaultRole: 0
