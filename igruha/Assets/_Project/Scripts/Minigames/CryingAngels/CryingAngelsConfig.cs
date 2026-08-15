@@ -15,6 +15,10 @@ namespace Igruha.Minigames.CryingAngels
     [CreateAssetMenu(fileName = "CryingAngelsConfig", menuName = "Igruha/Minigames/Crying Angels Config")]
     public sealed class CryingAngelsConfig : ScriptableObject
     {
+        [Header("Арена")]
+        [Tooltip("Радиус зала, юниты. По нему пересобирается арена (меню Igruha/Minigames) и настраивается дальность луча")]
+        [SerializeField] private float arenaRadius = 21.6f;
+
         [Header("Раунд")]
         [Tooltip("Стартовый отсчёт: фонарь выключен, Бегущие расходятся, с")]
         [SerializeField] private float startCountdown = 3f;
@@ -59,6 +63,7 @@ namespace Igruha.Minigames.CryingAngels
         [Tooltip("Цвет луча в момент окаменения цели")]
         [SerializeField] private Color beamColorPetrifying = Color.red;
 
+        public float ArenaRadius => arenaRadius;
         public float StartCountdown => startCountdown;
         public float VerticalLookLimit => verticalLookLimit;
         public float TouchRadius => touchRadius;
