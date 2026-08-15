@@ -419,6 +419,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AppNetworkManager
   gameplaySceneName: Hub
   sessionManagerPrefab: {fileID: 8511267318153478771, guid: 997b6a4499583fc4e8c3eb6e93435aeb, type: 3}
+  connectionTimeout: 600
+  retryDelay: 1
 --- !u!114 &1120909889
 MonoBehaviour:
   m_ObjectHideFlags: 0
