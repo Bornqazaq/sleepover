@@ -256,15 +256,18 @@ namespace Igruha.Core.CameraSystems
             target.GetComponentsInChildren(true, hiddenRenderers);
             for (int i = hiddenRenderers.Count - 1; i >= 0; i--)
             {
-                if (hiddenRenderers[i].enabled)
+                Renderer renderer = hiddenRenderers[i];
+
+                // Выключенное не нашей рукой возвращать потом нельзя, а
+                // помеченное как «оставить видимым» гасить нельзя вовсе:
+                // так на персонаже живёт фонарь ведущего, который ему и нужен.
+                if (!renderer.enabled || renderer.GetComponentInParent<KeepVisibleInFirstPerson>() != null)
                 {
-                    hiddenRenderers[i].enabled = false;
-                }
-                else
-                {
-                    // Выключенное не нашей рукой возвращать потом нельзя.
                     hiddenRenderers.RemoveAt(i);
+                    continue;
                 }
+
+                renderer.enabled = false;
             }
         }
 
