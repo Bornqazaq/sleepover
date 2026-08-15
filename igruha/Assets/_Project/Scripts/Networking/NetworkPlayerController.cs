@@ -1,6 +1,7 @@
 using Unity.Netcode;
 using Unity.Netcode.Components;
 using UnityEngine;
+using Igruha.Core.Combat;
 using Igruha.Core.Interaction;
 using Igruha.Core.Items;
 using Igruha.Core.Player;
@@ -16,7 +17,7 @@ namespace Igruha.Networking
     /// - Воздействия мира (ловушки, зоны смерти) решает сервер, применяет владелец
     /// - Взаимодействие с объектами: клиент шлёт намерение, сервер проверяет и исполняет
     /// </summary>
-    public sealed class NetworkPlayerController : NetworkBehaviour, IPushRelay, IWorldEffectRelay, IInteractionRelay
+    public sealed class NetworkPlayerController : NetworkBehaviour, IPushRelay, IWorldEffectRelay, IInteractionRelay, ICombatRelay
     {
         private PlayerController playerController;
         private NetworkTransform networkTransform;
@@ -24,6 +25,7 @@ namespace Igruha.Networking
         private PlayerInputReader inputReader;
         private PlayerInteractor interactor;
         private PlayerCarryAbility carryAbility;
+        private ProjectileShooter shooter;
 
         private void Awake()
         {
@@ -33,6 +35,7 @@ namespace Igruha.Networking
             inputReader = GetComponent<PlayerInputReader>();
             interactor = GetComponent<PlayerInteractor>();
             carryAbility = GetComponent<PlayerCarryAbility>();
+            shooter = GetComponentInChildren<ProjectileShooter>(true);
         }
 
         public override void OnNetworkSpawn()
@@ -345,6 +348,46 @@ namespace Igruha.Networking
             }
 
             carryAbility.ServerThrow(withImpulse);
+        }
+
+        // ========== СТРЕЛЬБА ==========
+
+        /// <summary>
+        /// Владелец отправляет серверу намерение выстрелить.
+        /// Снаряд спавнит сервер — клиент не создаёт его у себя даже на кадр.
+        /// </summary>
+        public bool TryRelayFire(Vector3 direction)
+        {
+            if (!IsSpawned)
+            {
+                return false;
+            }
+
+            if (!IsOwner)
+            {
+                return true;
+            }
+
+            RequestFireRpc(direction);
+            return true;
+        }
+
+        [Rpc(SendTo.Server, RequireOwnership = true)]
+        private void RequestFireRpc(Vector3 direction)
+        {
+            if (shooter == null)
+            {
+                return;
+            }
+
+            // Направление клиента принимаем, но нормализуем и проверяем на мусор:
+            // всё остальное — скорострел, точка вылета, скорость — считает сервер.
+            if (float.IsNaN(direction.x) || float.IsNaN(direction.y) || float.IsNaN(direction.z))
+            {
+                return;
+            }
+
+            shooter.ServerFire(direction);
         }
     }
 }

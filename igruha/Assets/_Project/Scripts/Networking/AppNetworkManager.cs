@@ -20,14 +20,16 @@ public class AppNetworkManager : MonoBehaviour
     [SerializeField] private NetworkObject sessionManagerPrefab;
 
     [Header("Подключение клиента")]
-    [Tooltip("Сколько раз клиент заходит на подключение после того, как NGO признал попытку неудачной. " +
-             "Одна попытка — это уже MaxConnectAttempts транспорта, то есть десятки секунд ожидания")]
-    [SerializeField] private int connectionAttempts = 3;
+    [Tooltip("Сколько секунд клиент ждёт хоста, прежде чем сдаться. Считаем сроком, а не числом " +
+             "попыток: на localhost закрытый порт отвечает отказом сразу, поэтому заходы сгорают " +
+             "за секунды и любое их число ничего не гарантирует")]
+    [SerializeField] private float connectionTimeout = 180f;
 
     [Tooltip("Пауза перед следующим заходом на подключение")]
     [SerializeField] private float retryDelay = 1f;
 
     private int failedAttempts;
+    private float giveUpTime;
     private bool isConnected;
     private bool isSubscribedToClientEvents;
 
@@ -49,6 +51,7 @@ public class AppNetworkManager : MonoBehaviour
         if (role == NetworkStartRole.Client)
         {
             Debug.Log($"🟢 Роль CLIENT ({reason}) — подключаюсь к хосту");
+            giveUpTime = Time.realtimeSinceStartup + connectionTimeout;
             SubscribeToClientEvents();
             StartClient();
             return;
@@ -146,14 +149,20 @@ public class AppNetworkManager : MonoBehaviour
         }
 
         failedAttempts++;
-        if (failedAttempts >= connectionAttempts)
+        if (Time.realtimeSinceStartup >= giveUpTime)
         {
-            Debug.LogError($"❌ CLIENT: хост не отозвался за {connectionAttempts} заходов — сеть не запущена");
+            Debug.LogError($"❌ CLIENT: хост не отозвался за {connectionTimeout:F0} сек ({failedAttempts} заходов) — сеть не запущена");
             UnsubscribeFromClientEvents();
             return;
         }
 
-        Debug.LogWarning($"⏳ CLIENT: хост не отозвался (заход {failedAttempts} из {connectionAttempts}), пробую ещё раз");
+        // Шумит только каждый десятый заход: на localhost отказ приходит мгновенно,
+        // и построчный лог за три минуты ожидания забил бы консоль.
+        if (failedAttempts % 10 == 1)
+        {
+            float left = giveUpTime - Time.realtimeSinceStartup;
+            Debug.Log($"⏳ CLIENT: хост ещё не поднялся (заход {failedAttempts}), жду ещё {left:F0} сек");
+        }
         StartCoroutine(RestartClientAfterShutdown());
     }
 
