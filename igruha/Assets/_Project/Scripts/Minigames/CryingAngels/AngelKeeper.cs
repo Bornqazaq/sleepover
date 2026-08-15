@@ -123,6 +123,15 @@ namespace Igruha.Minigames.CryingAngels
             }
         }
 
+        /// <summary>Цвет луча — обратная связь по счётчику окаменения самой близкой к нему цели.</summary>
+        public void SetBeamColor(Color color)
+        {
+            if (beam != null)
+            {
+                beam.SetColor(color);
+            }
+        }
+
         /// <summary>Потолок скорости поворота — его задаёт мини-игра по числу Бегущих.</summary>
         public void ApplyTurnSpeed(FirstPersonCameraRig rig, float degreesPerSecond)
         {

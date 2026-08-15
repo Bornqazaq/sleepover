@@ -191,6 +191,38 @@ namespace Igruha.Minigames.CryingAngels
             }
 
             keeperVision.Evaluate(runnerBodies);
+
+            // Счётчик копится и откатывается у всех, а не только у засвеченных:
+            // откат — половина смысла механики, он идёт, пока игрок уже бежит.
+            float hottest = 0f;
+            for (int i = 0; i < runners.Count; i++)
+            {
+                RunnerRecord runner = runners[i];
+                if (runner.State == null)
+                {
+                    continue;
+                }
+
+                runner.State.Tick(runner.Body != null && keeperVision.IsVisible(runner.Body), Time.fixedDeltaTime);
+                hottest = Mathf.Max(hottest, runner.State.PetrifyProgress);
+            }
+
+            ApplyBeamFeedback(hottest);
+        }
+
+        /// <summary>
+        /// Луч уходит от белого к красному по счётчику самой «горячей» цели.
+        /// Без этого Водящий не понимает, что счётчик существует, и бросает
+        /// жертву за полсекунды до окаменения.
+        /// </summary>
+        private void ApplyBeamFeedback(float progress)
+        {
+            if (config == null || !config.BeamColorFeedback || keeper == null)
+            {
+                return;
+            }
+
+            keeper.SetBeamColor(Color.Lerp(config.BeamColorIdle, config.BeamColorPetrifying, progress));
         }
 
         private void SetBeamEnabled(bool enabled)
@@ -319,6 +351,7 @@ namespace Igruha.Minigames.CryingAngels
                 state = avatar.gameObject.AddComponent<RunnerState>();
             }
 
+            state.Configure(config);
             state.ResetState();
 
             return new RunnerRecord
