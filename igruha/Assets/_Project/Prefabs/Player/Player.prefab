@@ -190,7 +190,7 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.2731952
+  m_Radius: 0.36
   m_Height: 1.65
   m_Direction: 1
   m_Center: {x: 0, y: 0.825, z: 0}
@@ -279,6 +279,7 @@ MonoBehaviour:
   motor: {fileID: 2264355084158667115}
   animator: {fileID: 8153474272100534532}
   visualRoot: {fileID: 2866217297803678590}
+  squashVisualOnCrouch: 1
 --- !u!114 &448288431574036101
 MonoBehaviour:
   m_ObjectHideFlags: 0
