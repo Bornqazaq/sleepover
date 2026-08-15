@@ -2,6 +2,7 @@ using Unity.Netcode;
 using Unity.Netcode.Components;
 using UnityEngine;
 using Igruha.Core.Interaction;
+using Igruha.Core.Items;
 using Igruha.Core.Player;
 
 namespace Igruha.Networking
@@ -22,6 +23,7 @@ namespace Igruha.Networking
         private CharacterAnimatorDriver animatorDriver;
         private PlayerInputReader inputReader;
         private PlayerInteractor interactor;
+        private PlayerCarryAbility carryAbility;
 
         private void Awake()
         {
@@ -30,6 +32,7 @@ namespace Igruha.Networking
             animatorDriver = GetComponent<CharacterAnimatorDriver>();
             inputReader = GetComponent<PlayerInputReader>();
             interactor = GetComponent<PlayerInteractor>();
+            carryAbility = GetComponent<PlayerCarryAbility>();
         }
 
         public override void OnNetworkSpawn()
@@ -311,6 +314,37 @@ namespace Igruha.Networking
             }
 
             interactor.ExecuteInteraction(targetObject.gameObject);
+        }
+
+        /// <summary>
+        /// Владелец отправляет серверу намерение расстаться с предметом.
+        /// Сам ничего не бросает: предмет — общий объект, его судьбу решает сервер.
+        /// </summary>
+        public bool TryRelayThrow(bool withImpulse)
+        {
+            if (!IsSpawned)
+            {
+                return false;
+            }
+
+            if (!IsOwner)
+            {
+                return true;
+            }
+
+            RequestThrowRpc(withImpulse);
+            return true;
+        }
+
+        [Rpc(SendTo.Server, RequireOwnership = true)]
+        private void RequestThrowRpc(bool withImpulse)
+        {
+            if (carryAbility == null)
+            {
+                return;
+            }
+
+            carryAbility.ServerThrow(withImpulse);
         }
     }
 }

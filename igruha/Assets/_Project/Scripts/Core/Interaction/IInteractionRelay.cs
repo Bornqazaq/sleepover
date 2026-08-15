@@ -19,5 +19,12 @@ namespace Igruha.Core.Interaction
         /// <c>false</c> — сети нет, вызывающему нужно выполнить действие локально.
         /// </summary>
         bool TryRelayInteract(GameObject target);
+
+        /// <summary>
+        /// Отправить серверу намерение расстаться с предметом.
+        /// <paramref name="withImpulse"/> различает бросок и «выронил».
+        /// Возврат — как у <see cref="TryRelayInteract"/>.
+        /// </summary>
+        bool TryRelayThrow(bool withImpulse);
     }
 }
