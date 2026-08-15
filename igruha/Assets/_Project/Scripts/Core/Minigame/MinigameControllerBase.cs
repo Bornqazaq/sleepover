@@ -36,6 +36,8 @@ namespace Igruha.Core.Minigame
         protected IReadOnlyList<SessionPlayer> Players => playerList;
         protected bool RoundActive => phase == MinigamePhase.Round;
         protected RoundTimer Timer => roundTimer;
+        /// <summary>HUD раунда — играм со стартовым отсчётом и своими строками статуса.</summary>
+        protected RoundHud Hud => hud;
 
         /// <summary>Сервер сетевой катки либо единственная машина локального теста.</summary>
         protected bool HasAuthority => bridge == null || bridge.HasAuthority;

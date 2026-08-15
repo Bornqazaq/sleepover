@@ -19,9 +19,12 @@ namespace Igruha.Core.UI
         [Tooltip("Панель наблюдателя: за кем сейчас смотрит выбывший")]
         [SerializeField] private GameObject spectatorPanel;
         [SerializeField] private TMP_Text spectatorText;
+        [Tooltip("Крупная строка стартового отсчёта. Не назначена — отсчёт просто не показывается")]
+        [SerializeField] private TMP_Text countdownText;
 
         private RoundTimer timer;
         private int lastShownSeconds = -1;
+        private int lastShownCountdown = -1;
 
         public void Bind(RoundTimer roundTimer)
         {
@@ -32,6 +35,39 @@ namespace Igruha.Core.UI
             }
 
             HideSpectatorTarget();
+            HideCountdown();
+        }
+
+        /// <summary>
+        /// Стартовый отсчёт перед активной фазой. Зовётся каждый кадр, а текст
+        /// пересобирается только на смене секунды — как и таймер раунда, чтобы
+        /// не аллоцировать строку в каждом кадре.
+        /// </summary>
+        public void ShowCountdown(float remaining)
+        {
+            if (countdownText == null)
+            {
+                return;
+            }
+
+            int seconds = Mathf.CeilToInt(remaining);
+            if (seconds == lastShownCountdown)
+            {
+                return;
+            }
+
+            lastShownCountdown = seconds;
+            countdownText.text = seconds > 0 ? seconds.ToString() : string.Empty;
+            countdownText.gameObject.SetActive(seconds > 0);
+        }
+
+        public void HideCountdown()
+        {
+            lastShownCountdown = -1;
+            if (countdownText != null)
+            {
+                countdownText.gameObject.SetActive(false);
+            }
         }
 
         /// <summary>Подписать, за кем смотрит наблюдатель. Зовётся только на смене цели.</summary>
