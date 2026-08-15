@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Igruha.Core.CameraSystems;
 using Igruha.Core.Minigame;
 using Igruha.Core.Player;
 using Igruha.Core.Session;
@@ -29,6 +30,14 @@ namespace Igruha.Minigames.CryingAngels
         [Header("Арена")]
         [SerializeField] private SpawnPointSet spawnPoints;
         [SerializeField] private CryingAngelsConfig config;
+
+        [Header("Водящий")]
+        [Tooltip("Камеры сцены: Бегущим 3rd person, Водящему 1st person")]
+        [SerializeField] private MinigameCameraController cameraController;
+        [Tooltip("Риг фонаря: Light + KeeperBeam + VisionCone. Вешается на аватар Водящего")]
+        [SerializeField] private GameObject keeperRigPrefab;
+        [Tooltip("Риг обзора от первого лица со сцены — ему задаётся потолок скорости поворота")]
+        [SerializeField] private FirstPersonCameraRig firstPersonRig;
 
         [Header("Дебаг (тест в одиночку)")]
         [Tooltip("Локальный игрок играет за Водящего, иначе за Бегущего")]
@@ -59,6 +68,7 @@ namespace Igruha.Minigames.CryingAngels
         private readonly List<int> placementOrder = new List<int>(8);
 
         private PlayerController keeperAvatar;
+        private AngelKeeper keeper;
         private int keeperPlayerId = SpecialRoleHistory.NoPlayer;
         private Vector3 arenaCenter;
         private float countdownRemaining;
@@ -168,6 +178,7 @@ namespace Igruha.Minigames.CryingAngels
             }
 
             BeamEnabled = enabled;
+            keeper?.SetBeamVisible(enabled);
             BeamEnabledChanged?.Invoke(enabled);
         }
 
@@ -240,10 +251,14 @@ namespace Igruha.Minigames.CryingAngels
                 {
                     keeperPlayerId = player.Id;
                     keeperAvatar = avatar;
+                    keeper = SetupKeeper(avatar);
                     MoveTo(avatar, spawnPoints?.GetPoint(SpawnRole.Special, 0));
                     continue;
                 }
 
+                // Бывший Водящий обязан вернуться в норму: без Detach он остался бы
+                // обездвиженным и неуязвимым, уже будучи Бегущим.
+                ClearKeeper(avatar);
                 runners.Add(new RunnerRecord { PlayerId = player.Id, Avatar = avatar });
             }
 
@@ -258,6 +273,55 @@ namespace Igruha.Minigames.CryingAngels
             {
                 SessionScoreboard.Current?.MarkSpecialRole(keeperPlayerId, KeeperRoleKey);
             }
+
+            keeper?.ApplyTurnSpeed(firstPersonRig, KeeperTurnSpeed);
+            keeper?.SetBeamVisible(BeamEnabled);
+            ApplyRoleCamera();
+        }
+
+        private AngelKeeper SetupKeeper(PlayerController avatar)
+        {
+            AngelKeeper component = avatar.GetComponent<AngelKeeper>();
+            if (component == null)
+            {
+                component = avatar.gameObject.AddComponent<AngelKeeper>();
+            }
+
+            component.Attach(keeperRigPrefab);
+            return component;
+        }
+
+        private static void ClearKeeper(PlayerController avatar)
+        {
+            AngelKeeper component = avatar.GetComponent<AngelKeeper>();
+            if (component != null)
+            {
+                component.Detach();
+            }
+        }
+
+        /// <summary>
+        /// Камера зависит от роли, а не от мини-игры: Водящий смотрит от первого
+        /// лица, Бегущие — из-за спины. Режим из MinigameDefinition для этой игры
+        /// поэтому не годится, он один на всех.
+        /// </summary>
+        private void ApplyRoleCamera()
+        {
+            if (cameraController == null)
+            {
+                return;
+            }
+
+            SessionPlayer local = SessionScoreboard.Current?.LocalPlayer;
+            if (local?.Avatar == null)
+            {
+                return;
+            }
+
+            bool localIsKeeper = local.Id == keeperPlayerId;
+            cameraController.Apply(
+                localIsKeeper ? CameraMode.FirstPerson : CameraMode.ThirdPerson,
+                local.Avatar.transform);
         }
 
         private int PickKeeperIndex()

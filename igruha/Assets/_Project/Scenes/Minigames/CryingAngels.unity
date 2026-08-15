@@ -1104,6 +1104,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: PartyCameraRig
       objectReference: {fileID: 0}
+    - target: {fileID: 2217328183586612515, guid: 180d13c631f5f3441904596fd20bed4c, type: 3}
+      propertyPath: TargetOffset.y
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3075845234251068397, guid: 180d13c631f5f3441904596fd20bed4c, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -1143,6 +1147,10 @@ PrefabInstance:
     - target: {fileID: 3075845234251068397, guid: 180d13c631f5f3441904596fd20bed4c, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7502180496260988884, guid: 180d13c631f5f3441904596fd20bed4c, type: 3}
+      propertyPath: TargetOffset.y
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -3300,6 +3308,9 @@ MonoBehaviour:
   hud: {fileID: 150850380}
   spawnPoints: {fileID: 1638957353}
   config: {fileID: 11400000, guid: 061beed3bdcc4434eacd9c9fbeaa7a90, type: 2}
+  cameraController: {fileID: 1246980261}
+  keeperRigPrefab: {fileID: 5154465038533938390, guid: 4d2168f4ae6fe411f9b947cce0f55369, type: 3}
+  firstPersonRig: {fileID: 1681181329}
   localPlayerIsKeeper: 0
   roleSwitchKey: 30
 --- !u!1 &760962445
@@ -6583,6 +6594,17 @@ Transform:
   - {fileID: 362502037}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1681181329 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7722555389584120828, guid: d9efe63c5979d4da68092a9f150eb337, type: 3}
+  m_PrefabInstance: {fileID: 101299624}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3288e83ae3d84465aa68af4fd90d9f9b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.CameraSystems.FirstPersonCameraRig
 --- !u!1 &1753238430
 GameObject:
   m_ObjectHideFlags: 0
