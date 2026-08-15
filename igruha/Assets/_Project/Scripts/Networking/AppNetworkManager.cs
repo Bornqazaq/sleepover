@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Unity.Netcode;
@@ -7,6 +8,9 @@ using Igruha.Networking;
 /// Точка входа сети в сцене Boot: поднимает хост или клиент и,
 /// если это хост, загружает игровую сцену через NGO SceneManager
 /// (клиенты синхронизируются автоматически).
+///
+/// Роль определяет <see cref="NetworkRoleResolver"/>: аргумент запуска для
+/// билдов, тег Multiplayer Play Mode или признак виртуального игрока.
 /// </summary>
 public class AppNetworkManager : MonoBehaviour
 {
@@ -14,6 +18,18 @@ public class AppNetworkManager : MonoBehaviour
 
     [Tooltip("Табло катки: сервер спавнит его один раз, счёт живёт между мини-играми")]
     [SerializeField] private NetworkObject sessionManagerPrefab;
+
+    [Header("Подключение клиента")]
+    [Tooltip("Сколько раз клиент заходит на подключение после того, как NGO признал попытку неудачной. " +
+             "Одна попытка — это уже MaxConnectAttempts транспорта, то есть десятки секунд ожидания")]
+    [SerializeField] private int connectionAttempts = 3;
+
+    [Tooltip("Пауза перед следующим заходом на подключение")]
+    [SerializeField] private float retryDelay = 1f;
+
+    private int failedAttempts;
+    private bool isConnected;
+    private bool isSubscribedToClientEvents;
 
     private void Start()
     {
@@ -28,15 +44,13 @@ public class AppNetworkManager : MonoBehaviour
             return;
         }
 
-        // Режим определяется аргументом запуска: билд с --client подключается
-        // к хосту, всё остальное поднимается как хост
-        bool isClientMode = System.Array.Exists(System.Environment.GetCommandLineArgs(),
-            element => element.Equals("--client"));
+        NetworkStartRole role = NetworkRoleResolver.Resolve(out string reason);
 
-        if (isClientMode)
+        if (role == NetworkStartRole.Client)
         {
-            NetworkManager.Singleton.StartClient();
-            Debug.Log("🟢 Started as CLIENT - Connecting to Host");
+            Debug.Log($"🟢 Роль CLIENT ({reason}) — подключаюсь к хосту");
+            SubscribeToClientEvents();
+            StartClient();
             return;
         }
 
@@ -44,8 +58,123 @@ public class AppNetworkManager : MonoBehaviour
         // до этого SceneManager ещё не готов принимать запросы
         NetworkManager.Singleton.OnServerStarted += HandleServerStarted;
         NetworkManager.Singleton.StartHost();
-        Debug.Log("🟢 Started as HOST - NetworkManager ready (with Connection Approval)");
+        Debug.Log($"🟢 Роль HOST ({reason}) — NetworkManager поднят (с Connection Approval)");
     }
+
+    private void OnDestroy()
+    {
+        UnsubscribeFromClientEvents();
+
+        if (NetworkManager.Singleton != null)
+        {
+            NetworkManager.Singleton.OnServerStarted -= HandleServerStarted;
+        }
+    }
+
+    // ========== КЛИЕНТ ==========
+
+    /// <summary>
+    /// Одна попытка подключения — это не одна посылка: транспорт внутри себя
+    /// повторяет запрос <c>MaxConnectAttempts</c> раз с интервалом
+    /// <c>ConnectTimeoutMS</c>, то есть сам ждёт хоста десятки секунд.
+    /// Обрывать это своим таймером нельзя: обрыв уже одобренного подключения
+    /// оставляет на сервере запись о клиенте и его персонажа в сцене.
+    /// </summary>
+    private void StartClient()
+    {
+        if (!NetworkManager.Singleton.StartClient())
+        {
+            Debug.LogError("❌ CLIENT: NetworkManager отказался стартовать — проверь транспорт в сцене Boot");
+        }
+    }
+
+    private void SubscribeToClientEvents()
+    {
+        if (isSubscribedToClientEvents)
+        {
+            return;
+        }
+
+        NetworkManager.Singleton.OnClientConnectedCallback += HandleClientConnected;
+        NetworkManager.Singleton.OnClientDisconnectCallback += HandleClientDisconnected;
+        isSubscribedToClientEvents = true;
+    }
+
+    private void UnsubscribeFromClientEvents()
+    {
+        if (!isSubscribedToClientEvents || NetworkManager.Singleton == null)
+        {
+            return;
+        }
+
+        NetworkManager.Singleton.OnClientConnectedCallback -= HandleClientConnected;
+        NetworkManager.Singleton.OnClientDisconnectCallback -= HandleClientDisconnected;
+        isSubscribedToClientEvents = false;
+    }
+
+    private void HandleClientConnected(ulong clientId)
+    {
+        if (clientId != NetworkManager.Singleton.LocalClientId)
+        {
+            return;
+        }
+
+        isConnected = true;
+        Debug.Log($"✅ CLIENT: подключился к хосту (заходов: {failedAttempts + 1})");
+        UnsubscribeFromClientEvents();
+    }
+
+    /// <summary>
+    /// На клиенте этот колбэк приходит и когда подключиться не удалось,
+    /// и когда соединение разорвалось после успешного входа. Второй случай —
+    /// не наше дело, его разбирает <see cref="DisconnectionHandler"/>.
+    /// </summary>
+    private void HandleClientDisconnected(ulong clientId)
+    {
+        if (isConnected)
+        {
+            return;
+        }
+
+        string reason = NetworkManager.Singleton.DisconnectReason;
+        if (!string.IsNullOrEmpty(reason))
+        {
+            // Сервер ответил и отказал — повторять бессмысленно, причина не пройдёт и в следующий раз
+            Debug.LogError($"❌ CLIENT: хост отклонил подключение — «{reason}»");
+            UnsubscribeFromClientEvents();
+            return;
+        }
+
+        failedAttempts++;
+        if (failedAttempts >= connectionAttempts)
+        {
+            Debug.LogError($"❌ CLIENT: хост не отозвался за {connectionAttempts} заходов — сеть не запущена");
+            UnsubscribeFromClientEvents();
+            return;
+        }
+
+        Debug.LogWarning($"⏳ CLIENT: хост не отозвался (заход {failedAttempts} из {connectionAttempts}), пробую ещё раз");
+        StartCoroutine(RestartClientAfterShutdown());
+    }
+
+    private IEnumerator RestartClientAfterShutdown()
+    {
+        NetworkManager networkManager = NetworkManager.Singleton;
+
+        while (networkManager.ShutdownInProgress)
+        {
+            yield return null;
+        }
+
+        yield return new WaitForSecondsRealtime(retryDelay);
+
+        if (!isConnected)
+        {
+            StartClient();
+        }
+    }
+
+    // ========== ХОСТ ==========
 
     private void HandleServerStarted()
     {

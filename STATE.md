@@ -263,6 +263,8 @@
 | 15.08 | Core: `PlayerInputReader.DriveMove`/`DriveJump`, `PlayerController.WorldToMoveInput`, новый `DebugPlayerBot` | болванки соло-теста обязаны ходить: стоящими столбами нельзя проверить ни порядок финиша, ни досрочный конец раунда, ни наблюдателя. Ввод болванки идёт через тот же ридер, что у человека, поэтому в движении, приседе и застревании отдельных веток не появилось | `767d009` |
 | 15.08 | `Player.prefab`: `groundLayer` = Ground + Cover | стоящий на укрытии считался висящим в воздухе — с камня не прыгнуть, аниматор показывает падение, управление с воздушным множителем. Спека «Ангелов» на залезание рассчитывает прямо. Варианты Boss/Shlanga/Fat/MyBoy наследуют значение | `224b367` |
 | 15.08 | `ProjectSettings/EditorBuildSettings`: `DuckHunt` выключен в списке билда | Addressables и Build Settings взаимно исключаются; регистрация «Ангелов» разъехала состояние, в котором DuckHunt лежал в обоих списках | `b0c3910` |
+| 15.08 | Пакет `com.unity.multiplayer.playmode` 2.0.2 в `Packages/manifest.json`; сценарий `Assets/Settings/PlayMode/Host + Client.asset`; теги `Host`/`Client` в `ProjectSettings/VirtualProjectsConfig.json` | сетевой тест перестал требовать двух билдов. Путь `Assets/Settings/PlayMode` задан самим Unity (`PlayModeConfigurationUtils.k_ConfigAssetsPath`), не нашей структурой — переносить нельзя, окно сценариев смотрит только туда | IGR-275 |
+| 15.08 | Networking: новый `NetworkRoleResolver`, `AppNetworkManager` больше не зависит только от `--client` | у виртуального игрока нет аргументов командной строки. Роль теперь считается по `--client` → тегу Play Mode → `CurrentPlayer.IsMainEditor`. Билды с `--client` работают как раньше | IGR-275 |
 
 **Что из этого напарнику важно знать:**
 
