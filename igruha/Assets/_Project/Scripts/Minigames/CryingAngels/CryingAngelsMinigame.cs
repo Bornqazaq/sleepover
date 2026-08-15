@@ -59,6 +59,8 @@ namespace Igruha.Minigames.CryingAngels
         [SerializeField] private Key roleSwitchKey = Key.P;
         [Tooltip("Гнать болванок к постаменту. Выключить — встанут столбами на своих точках")]
         [SerializeField] private bool driveDummyRunners = true;
+        [Tooltip("Водить лучом за болванку-Водящего. Выключить — фонарь замрёт в одном направлении")]
+        [SerializeField] private bool driveDummyKeeper = true;
 
         /// <summary>
         /// Состояние одного Бегущего за раунд. Лучший радиус копится весь раунд
@@ -602,6 +604,7 @@ namespace Igruha.Minigames.CryingAngels
             }
 
             component.Attach(keeperRigPrefab);
+            SetupKeeperBot(avatar, component);
 
             // Зона касания висит на самом Водящем, а не на постаменте: трогают
             // его, а постамент арена пересобирает билдером, и любой объект,
@@ -629,6 +632,43 @@ namespace Igruha.Minigames.CryingAngels
             {
                 Destroy(zone);
             }
+
+            DebugKeeperBot bot = avatar.GetComponent<DebugKeeperBot>();
+            if (bot != null)
+            {
+                Destroy(bot);
+            }
+        }
+
+        /// <summary>
+        /// Болванке в роли Водящего нужен свой водитель луча: без него фонарь
+        /// стоит неподвижно, и за Бегущего играть не во что — половина игры
+        /// это чтение чужого взгляда.
+        ///
+        /// Живому игроку бот не ставится и снимается при пересдаче роли: иначе
+        /// он крутил бы тело под собственной камерой игрока.
+        /// </summary>
+        private void SetupKeeperBot(PlayerController avatar, AngelKeeper role)
+        {
+            bool isDummy = avatar.TryGetComponent(out PlayerInputReader reader) && !reader.LocallyControlled;
+            DebugKeeperBot bot = avatar.GetComponent<DebugKeeperBot>();
+
+            if (!driveDummyKeeper || !isDummy || SessionScoreboard.IsNetworked)
+            {
+                if (bot != null)
+                {
+                    Destroy(bot);
+                }
+
+                return;
+            }
+
+            if (bot == null)
+            {
+                bot = avatar.gameObject.AddComponent<DebugKeeperBot>();
+            }
+
+            bot.Configure(this, role != null ? role.Vision : null);
         }
 
         /// <summary>

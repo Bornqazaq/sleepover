@@ -95,7 +95,11 @@ namespace Igruha.Minigames.CryingAngels
         /// <summary>Цвет конуса — та же обратная связь по счётчику, что и у света (14.7).</summary>
         public void SetColor(Color color)
         {
-            if (meshRenderer == null)
+            // Проверять только рендерер нельзя. Перезагрузка домена — правка
+            // скрипта под play-режимом — сохраняет ссылки на компоненты, но
+            // обнуляет всё несериализуемое: рендерер выживает, блок свойств
+            // пропадает, и по одной ссылке эта дыра не видна.
+            if (meshRenderer == null || properties == null)
             {
                 Awake();
             }

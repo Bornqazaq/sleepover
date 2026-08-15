@@ -63,6 +63,21 @@ namespace Igruha.Minigames.CryingAngels
         [Tooltip("Цвет луча в момент окаменения цели")]
         [SerializeField] private Color beamColorPetrifying = Color.red;
 
+        [Header("Дебаг: Водящий-болванка в соло-тесте")]
+        [Tooltip("Сколько секунд болванка ведёт луч, прежде чем замереть: от / до")]
+        [SerializeField] private Vector2 botSweepInterval = new Vector2(2.5f, 5f);
+        [Tooltip("Сколько секунд болванка стоит неподвижно: от / до")]
+        [SerializeField] private Vector2 botPauseDuration = new Vector2(0.6f, 1.8f);
+        [Tooltip("Вероятность развернуться в обратную сторону после паузы, 0..1")]
+        [SerializeField] private float botReverseChance = 0.45f;
+        [Tooltip("Сколько секунд болванка держит луч на пойманном, прежде чем бросить")]
+        [SerializeField] private float botHoldOnTarget = 5f;
+
+        public Vector2 BotSweepInterval => botSweepInterval;
+        public Vector2 BotPauseDuration => botPauseDuration;
+        public float BotReverseChance => botReverseChance;
+        public float BotHoldOnTarget => botHoldOnTarget;
+
         public float ArenaRadius => arenaRadius;
         public float StartCountdown => startCountdown;
         public float VerticalLookLimit => verticalLookLimit;
