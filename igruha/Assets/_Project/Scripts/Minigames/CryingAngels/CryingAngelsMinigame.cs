@@ -49,6 +49,8 @@ namespace Igruha.Minigames.CryingAngels
         [Header("Бегущий")]
         [Tooltip("Рамка окаменения на экране своего игрока")]
         [SerializeField] private PetrificationVignette vignette;
+        [Tooltip("Камера наблюдателя: дошедший смотрит за оставшимися до конца раунда")]
+        [SerializeField] private SpectatorCamera spectator;
 
         [Header("Дебаг (тест в одиночку)")]
         [Tooltip("Локальный игрок играет за Водящего, иначе за Бегущего")]
@@ -91,6 +93,7 @@ namespace Igruha.Minigames.CryingAngels
 
         private PlayerController keeperAvatar;
         private AngelKeeper keeper;
+        private KeeperTouchZone touchZone;
         private int keeperPlayerId = SpecialRoleHistory.NoPlayer;
         private Vector3 arenaCenter;
         private float countdownRemaining;
@@ -146,6 +149,7 @@ namespace Igruha.Minigames.CryingAngels
         protected override void OnRoundEnded()
         {
             SetDummyBotsRunning(false);
+            RestoreTouchedRunners();
             SetBeamEnabled(false);
             ReleaseAllRunners();
             ClearStatues();
@@ -175,6 +179,45 @@ namespace Igruha.Minigames.CryingAngels
             TickCountdown();
             TrackRunnerProgress();
             EvaluateBeam();
+            EvaluateTouches();
+        }
+
+        /// <summary>
+        /// Кто дотянулся до Водящего. Считается после луча: заморозка этого же
+        /// тика обязана успеть отменить касание, иначе пойманный вплотную
+        /// засчитывал бы его в тот самый момент, когда его уже держат.
+        ///
+        /// Бегущие перебираются строго по списку — на этом порядке стоит
+        /// правило спеки о двух касаниях в один тик: он одинаков на всех
+        /// машинах, а порядок событий физики — нет.
+        /// </summary>
+        private void EvaluateTouches()
+        {
+            if (touchZone == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < runners.Count && RoundActive; i++)
+            {
+                RunnerRecord runner = runners[i];
+                if (runner.Touched || runner.Avatar == null)
+                {
+                    continue;
+                }
+
+                // Касание засчитывается только свободному: замороженный вплотную
+                // к постаменту иначе доходил бы, ничего не сделав.
+                if (runner.State != null && !runner.State.IsFree)
+                {
+                    continue;
+                }
+
+                if (touchZone.Contains(runner.Avatar.transform.position))
+                {
+                    RegisterRunnerTouch(runner.PlayerId);
+                }
+            }
         }
 
         /// <summary>
@@ -320,8 +363,16 @@ namespace Igruha.Minigames.CryingAngels
                 return;
             }
 
+            // Игрок снова в деле: наблюдение снимается вместе с ролью и
+            // возвращает ему управление.
+            if (spectator != null && spectator.IsActive)
+            {
+                spectator.Deactivate();
+            }
+
             runners.Clear();
             touchCounter = 0;
+            touchZone = null;
             keeperAvatar = null;
             keeperPlayerId = SpecialRoleHistory.NoPlayer;
 
@@ -334,6 +385,13 @@ namespace Igruha.Minigames.CryingAngels
                 if (avatar == null)
                 {
                     continue;
+                }
+
+                // Пересдача ролей возвращает на арену и тех, кто уже дошёл:
+                // иначе дошедший получает роль, оставаясь снятым аватаром.
+                if (!avatar.gameObject.activeSelf)
+                {
+                    avatar.gameObject.SetActive(true);
                 }
 
                 if (i == keeperIndex)
@@ -544,6 +602,16 @@ namespace Igruha.Minigames.CryingAngels
             }
 
             component.Attach(keeperRigPrefab);
+
+            // Зона касания висит на самом Водящем, а не на постаменте: трогают
+            // его, а постамент арена пересобирает билдером, и любой объект,
+            // положенный туда руками, следующая пересборка сотрёт.
+            if (!avatar.TryGetComponent(out touchZone))
+            {
+                touchZone = avatar.gameObject.AddComponent<KeeperTouchZone>();
+            }
+
+            touchZone.Configure(config != null ? config.TouchRadius : 0f);
             return component;
         }
 
@@ -553,6 +621,13 @@ namespace Igruha.Minigames.CryingAngels
             if (component != null)
             {
                 component.Detach();
+            }
+
+            // Бывший Водящий не должен остаться ходячей зоной касания.
+            KeeperTouchZone zone = avatar.GetComponent<KeeperTouchZone>();
+            if (zone != null)
+            {
+                Destroy(zone);
             }
         }
 
@@ -722,9 +797,72 @@ namespace Igruha.Minigames.CryingAngels
             runner.TouchOrder = ++touchCounter;
             runner.BestRadius = 0f;
 
+            RetireRunner(runner);
+
             if (AllRunnersTouched())
             {
                 EndMinigame();
+            }
+        }
+
+        /// <summary>
+        /// Дошедший уходит с арены. Оставить его стоять нельзя: он продолжал бы
+        /// ловить луч, закрывать собой Водящего и служить укрытием остальным,
+        /// уже выйдя из игры.
+        /// </summary>
+        private void RetireRunner(RunnerRecord runner)
+        {
+            // Сначала отпустить, потом убрать из списка конуса: убранная цель
+            // считается вышедшей из луча, но искать её состояние будет уже негде.
+            runner.State?.ResetState();
+            runner.Bot?.Stop();
+
+            if (runner.Body != null)
+            {
+                runnerBodies.Remove(runner.Body);
+                runnerByBody.Remove(runner.Body);
+            }
+
+            // Аватар снимается до передачи камеры наблюдателю, а не после:
+            // наблюдатель выбирает первую живую цель в момент включения, и на
+            // ещё живом своём теле он выберет самого игрока — тот на кадр
+            // увидит, как исчезает он сам.
+            if (runner.Avatar != null)
+            {
+                runner.Avatar.gameObject.SetActive(false);
+            }
+
+            if (IsLocal(runner.PlayerId))
+            {
+                // Рамку окаменения снимаем вместе с аватаром: своего Бегущего
+                // на арене больше нет, а рамка осталась бы висеть до конца раунда.
+                vignette?.Track(null);
+                spectator?.Activate(Players);
+            }
+        }
+
+        private static bool IsLocal(int playerId)
+        {
+            SessionPlayer local = SessionScoreboard.Current?.LocalPlayer;
+            return local != null && local.Id == playerId;
+        }
+
+        /// <summary>
+        /// К экрану результатов дошедшие возвращаются на арену: их сняли только
+        /// на время раунда, а на итогах в зале обязаны стоять все.
+        ///
+        /// Наблюдение при этом не выключается: выход из него вернул бы игроку
+        /// управление, а на результатах все стоят на месте по правилам шаблона.
+        /// </summary>
+        private void RestoreTouchedRunners()
+        {
+            for (int i = 0; i < runners.Count; i++)
+            {
+                RunnerRecord runner = runners[i];
+                if (runner.Touched && runner.Avatar != null)
+                {
+                    runner.Avatar.gameObject.SetActive(true);
+                }
             }
         }
 

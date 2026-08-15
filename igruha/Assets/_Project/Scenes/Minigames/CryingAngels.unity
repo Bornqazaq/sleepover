@@ -4997,8 +4997,10 @@ MonoBehaviour:
   keeperRigPrefab: {fileID: 5154465038533938390, guid: 4d2168f4ae6fe411f9b947cce0f55369, type: 3}
   firstPersonRig: {fileID: 1681181329}
   vignette: {fileID: 982202402}
+  spectator: {fileID: 1246980263}
   localPlayerIsKeeper: 0
   roleSwitchKey: 30
+  driveDummyRunners: 1
 --- !u!1 &760578456
 GameObject:
   m_ObjectHideFlags: 0
