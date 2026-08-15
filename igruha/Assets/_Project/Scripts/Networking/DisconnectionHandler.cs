@@ -52,11 +52,24 @@ namespace Igruha.Networking
             if (!networkManager.IsServer)
                 return;
 
+            // Выключение сервера рассылает этот колбэк на каждого подключённого.
+            // Это не уход игрока, а конец сессии: SpawnManager уже разобран,
+            // и обращение к нему падает в NullReference. Выход хоста разбирает
+            // OnServerStopped, ему тут делать нечего.
+            //
+            // Признак именно IsListening: выход из play-режима зовёт
+            // ShutdownInternal напрямую, минуя Shutdown(), поэтому
+            // ShutdownInProgress на этом колбэке ещё false (замерено 15.08).
+            if (!networkManager.IsListening || networkManager.ShutdownInProgress)
+                return;
+
             Debug.LogWarning($"🚪 CLIENT DISCONNECTED: ClientId={clientId}");
 
             // NGO сам despawn'ит PlayerObject отключившегося клиента,
             // здесь только логируем факт для отладки
-            var playerObject = networkManager.SpawnManager.GetPlayerNetworkObject(clientId);
+            var playerObject = networkManager.SpawnManager != null
+                ? networkManager.SpawnManager.GetPlayerNetworkObject(clientId)
+                : null;
             if (playerObject != null)
             {
                 Debug.Log($"   └─ Player object for ClientId={clientId} will be despawned by NGO");

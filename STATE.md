@@ -265,6 +265,7 @@
 | 15.08 | `ProjectSettings/EditorBuildSettings`: `DuckHunt` выключен в списке билда | Addressables и Build Settings взаимно исключаются; регистрация «Ангелов» разъехала состояние, в котором DuckHunt лежал в обоих списках | `b0c3910` |
 | 15.08 | Пакет `com.unity.multiplayer.playmode` 2.0.2 в `Packages/manifest.json`; сценарий `Assets/Settings/PlayMode/Host + Client.asset`; теги `Host`/`Client` в `ProjectSettings/VirtualProjectsConfig.json` | сетевой тест перестал требовать двух билдов. Путь `Assets/Settings/PlayMode` задан самим Unity (`PlayModeConfigurationUtils.k_ConfigAssetsPath`), не нашей структурой — переносить нельзя, окно сценариев смотрит только туда | IGR-275 |
 | 15.08 | Networking: новый `NetworkRoleResolver`, `AppNetworkManager` больше не зависит только от `--client` | у виртуального игрока нет аргументов командной строки. Роль теперь считается по `--client` → тегу Play Mode → `CurrentPlayer.IsMainEditor`. Билды с `--client` работают как раньше | IGR-275 |
+| 15.08 | Networking `NetworkSessionManager`: ушедшие вычёркиваются из ростера **на ближайшем тике**, а не прямо в колбэке дисконнекта. `DisconnectionHandler`: колбэк дисконнекта выходит раньше при `!IsListening` | каждый выход хоста ронял два `NullReferenceException`. **Важно для тех, кто пишет реакцию на дисконнект: ростер к моменту колбэка ещё содержит ушедшего, он исчезнет на следующем кадре** | ниже |
 
 **Что из этого напарнику важно знать:**
 
