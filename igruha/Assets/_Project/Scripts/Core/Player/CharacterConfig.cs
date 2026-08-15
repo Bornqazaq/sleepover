@@ -34,6 +34,8 @@ namespace Igruha.Core.Player
         [Tooltip("Множитель высоты капсулы в приседе. Ниже 2×радиуса капсула не сжимается — это предел Unity")]
         [Range(0.2f, 1f)]
         [SerializeField] private float crouchHeightMultiplier = 0.5f;
+        [Tooltip("Абсолютная высота капсулы в приседе, м. 0 — считать множителем от роста. Абсолютная нужна там, где присед обязан прятать за укрытием фиксированной высоты: множитель даёт персонажам разного роста разную макушку, и за одним камнем один спрятался, а другой торчит")]
+        [SerializeField] private float crouchTargetHeight;
         [Tooltip("За сколько секунд капсула переходит между стойкой и приседом")]
         [SerializeField] private float crouchTransitionTime = 0.12f;
 
@@ -95,6 +97,7 @@ namespace Igruha.Core.Player
 
         public float CrouchSpeedMultiplier => crouchSpeedMultiplier;
         public float CrouchHeightMultiplier => crouchHeightMultiplier;
+        public float CrouchTargetHeight => crouchTargetHeight;
         public float CrouchTransitionTime => crouchTransitionTime;
 
         public float JumpSpeed => jumpSpeed;

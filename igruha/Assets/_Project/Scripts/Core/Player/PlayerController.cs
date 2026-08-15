@@ -167,6 +167,7 @@ namespace Igruha.Core.Player
             rb.mass = config.Mass;
             rb.linearDamping = config.LinearDamping;
             rb.angularDamping = config.AngularDamping;
+            WarnIfCrouchBlockedByRadius();
         }
 
         private void FixedUpdate()
@@ -305,7 +306,7 @@ namespace Igruha.Core.Player
         /// </summary>
         private void ApplyCapsuleHeight()
         {
-            float crouchedHeight = Mathf.Max(standingHeight * config.CrouchHeightMultiplier, capsule.radius * 2f);
+            float crouchedHeight = Mathf.Max(ResolveCrouchedHeight(), capsule.radius * 2f);
             float height = Mathf.Lerp(standingHeight, crouchedHeight, crouchBlend);
             if (Mathf.Approximately(capsule.height, height))
             {
@@ -317,6 +318,38 @@ namespace Igruha.Core.Player
                 standingCenter.x,
                 standingCenter.y - (standingHeight - height) * 0.5f,
                 standingCenter.z);
+        }
+
+        /// <summary>
+        /// Высота капсулы в приседе. Абсолютная величина из конфига важнее
+        /// множителя: там, где присед обязан прятать за укрытием известной
+        /// высоты, доля от роста даёт разным персонажам разную макушку.
+        /// </summary>
+        private float ResolveCrouchedHeight() =>
+            config.CrouchTargetHeight > 0f
+                ? config.CrouchTargetHeight
+                : standingHeight * config.CrouchHeightMultiplier;
+
+        /// <summary>
+        /// Радиус капсулы — жёсткий пол для приседа: ниже собственной толщины
+        /// капсула не сжимается. Широкий персонаж молча не дотягивает до
+        /// заданной высоты и торчит из-за укрытия — предупреждаем один раз
+        /// на старте, а не ищем это потом на плейтесте.
+        /// </summary>
+        private void WarnIfCrouchBlockedByRadius()
+        {
+            if (config == null || capsule == null || config.CrouchTargetHeight <= 0f)
+            {
+                return;
+            }
+
+            float floor = capsule.radius * 2f;
+            if (floor > config.CrouchTargetHeight)
+            {
+                Debug.LogWarning(
+                    $"{name}: присед не дотягивает до {config.CrouchTargetHeight:F2} м — радиус капсулы {capsule.radius:F2} держит минимум {floor:F2} м. " +
+                    "Персонаж будет торчать из-за низких укрытий. Уменьшить радиус капсулы или поднять укрытия.", this);
+            }
         }
 
         private bool IsBlockedAbove()
