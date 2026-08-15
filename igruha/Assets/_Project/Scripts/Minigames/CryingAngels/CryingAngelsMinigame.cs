@@ -7,6 +7,7 @@ using Igruha.Core.Minigame;
 using Igruha.Core.Player;
 using Igruha.Core.Session;
 using Igruha.Core.Spawning;
+using Igruha.Core.Vision;
 
 namespace Igruha.Minigames.CryingAngels
 {
@@ -54,6 +55,8 @@ namespace Igruha.Minigames.CryingAngels
         {
             public int PlayerId;
             public PlayerController Avatar;
+            public Collider Body;
+            public RunnerState State;
             public float BestRadius = float.MaxValue;
             public float BestRadiusTime;
             public bool Touched;
@@ -66,6 +69,10 @@ namespace Igruha.Minigames.CryingAngels
 
         private readonly List<RunnerRecord> runners = new List<RunnerRecord>(8);
         private readonly List<int> placementOrder = new List<int>(8);
+        // Списки под VisionCone.Evaluate: переиспользуются, чтобы не аллоцировать в FixedUpdate.
+        private readonly List<Collider> runnerBodies = new List<Collider>(8);
+        private readonly Dictionary<Collider, RunnerRecord> runnerByBody = new Dictionary<Collider, RunnerRecord>(8);
+        private VisionCone keeperVision;
 
         private PlayerController keeperAvatar;
         private AngelKeeper keeper;
@@ -123,6 +130,7 @@ namespace Igruha.Minigames.CryingAngels
         protected override void OnRoundEnded()
         {
             SetBeamEnabled(false);
+            ReleaseAllRunners();
             Hud?.HideCountdown();
         }
 
@@ -147,6 +155,7 @@ namespace Igruha.Minigames.CryingAngels
             roundElapsed += Time.fixedDeltaTime;
             TickCountdown();
             TrackRunnerProgress();
+            EvaluateBeam();
         }
 
         /// <summary>
@@ -170,6 +179,20 @@ namespace Igruha.Minigames.CryingAngels
             }
         }
 
+        /// <summary>
+        /// Кого сейчас держит луч. Физический тик, потому что решение зависит
+        /// от положения тел, а те двигаются в FixedUpdate.
+        /// </summary>
+        private void EvaluateBeam()
+        {
+            if (!BeamEnabled || keeperVision == null)
+            {
+                return;
+            }
+
+            keeperVision.Evaluate(runnerBodies);
+        }
+
         private void SetBeamEnabled(bool enabled)
         {
             if (BeamEnabled == enabled)
@@ -178,6 +201,14 @@ namespace Igruha.Minigames.CryingAngels
             }
 
             BeamEnabled = enabled;
+
+            // Гаснущий фонарь отпускает всех тем же кадром: держать заморозку
+            // выключенным лучом нечем.
+            if (!enabled)
+            {
+                ReleaseAllRunners();
+            }
+
             keeper?.SetBeamVisible(enabled);
             BeamEnabledChanged?.Invoke(enabled);
         }
@@ -259,7 +290,7 @@ namespace Igruha.Minigames.CryingAngels
                 // Бывший Водящий обязан вернуться в норму: без Detach он остался бы
                 // обездвиженным и неуязвимым, уже будучи Бегущим.
                 ClearKeeper(avatar);
-                runners.Add(new RunnerRecord { PlayerId = player.Id, Avatar = avatar });
+                runners.Add(CreateRunner(player.Id, avatar));
             }
 
             // Разнос по кольцу считается по числу Бегущих, а не игроков: иначе
@@ -274,9 +305,86 @@ namespace Igruha.Minigames.CryingAngels
                 SessionScoreboard.Current?.MarkSpecialRole(keeperPlayerId, KeeperRoleKey);
             }
 
+            RebindVision();
             keeper?.ApplyTurnSpeed(firstPersonRig, KeeperTurnSpeed);
             keeper?.SetBeamVisible(BeamEnabled);
             ApplyRoleCamera();
+        }
+
+        private RunnerRecord CreateRunner(int playerId, PlayerController avatar)
+        {
+            RunnerState state = avatar.GetComponent<RunnerState>();
+            if (state == null)
+            {
+                state = avatar.gameObject.AddComponent<RunnerState>();
+            }
+
+            state.ResetState();
+
+            return new RunnerRecord
+            {
+                PlayerId = playerId,
+                Avatar = avatar,
+                Body = avatar.GetComponent<Collider>(),
+                State = state
+            };
+        }
+
+        /// <summary>
+        /// Пересобрать списки для конуса и переподписаться на его события.
+        /// Зовётся на каждой раздаче ролей: при пересдаче меняется и состав
+        /// Бегущих, и сам конус (он живёт на риге нового Водящего).
+        /// </summary>
+        private void RebindVision()
+        {
+            if (keeperVision != null)
+            {
+                keeperVision.TargetEntered -= OnRunnerLit;
+                keeperVision.TargetExited -= OnRunnerUnlit;
+                keeperVision.ResetVisibility();
+            }
+
+            runnerBodies.Clear();
+            runnerByBody.Clear();
+            for (int i = 0; i < runners.Count; i++)
+            {
+                RunnerRecord runner = runners[i];
+                if (runner.Body == null)
+                {
+                    continue;
+                }
+
+                runnerBodies.Add(runner.Body);
+                runnerByBody[runner.Body] = runner;
+            }
+
+            keeperVision = keeper != null ? keeper.Vision : null;
+            if (keeperVision != null)
+            {
+                keeperVision.TargetEntered += OnRunnerLit;
+                keeperVision.TargetExited += OnRunnerUnlit;
+            }
+        }
+
+        private void OnRunnerLit(Collider body) => SetRunnerFrozen(body, true);
+
+        private void OnRunnerUnlit(Collider body) => SetRunnerFrozen(body, false);
+
+        /// <summary>
+        /// Единственная точка заморозки. Выход из-под луча мгновенный — это
+        /// правило спеки: задержка на разморозку читается как залипание.
+        /// </summary>
+        private void SetRunnerFrozen(Collider body, bool frozen)
+        {
+            if (!HasAuthority || body == null)
+            {
+                return;
+            }
+
+            if (runnerByBody.TryGetValue(body, out RunnerRecord runner) && runner.State != null)
+            {
+                runner.State.SetFrozen(frozen);
+            }
         }
 
         private AngelKeeper SetupKeeper(PlayerController avatar)
@@ -297,6 +405,16 @@ namespace Igruha.Minigames.CryingAngels
             if (component != null)
             {
                 component.Detach();
+            }
+        }
+
+        /// <summary>Погасший фонарь обязан всех отпустить, иначе замороженный останется стоять навсегда.</summary>
+        private void ReleaseAllRunners()
+        {
+            keeperVision?.ResetVisibility();
+            for (int i = 0; i < runners.Count; i++)
+            {
+                runners[i].State?.ResetState();
             }
         }
 
