@@ -175,6 +175,7 @@
 | 15.08 | `CharacterRoster` проставлен в сцены `MinigameTemplate` и `Minigames/DuckHunt` | после перехода `PlayerSpawner` на ростер поле было пустым — мини-игры не спавнили никого | `092b3ce` |
 | 15.08 | В `BossAnimator`/`ShlangaAnimator`/`FatAnimator`/`MyBoyAnimator` добавлен параметр `Crouch` | контроллеры собраны билдером до приседания из IGR-277, `CharacterAnimatorDriver` сыпал ошибку каждый кадр | `092b3ce` |
 | 15.08 | В префабах `Boss`/`Shlanga`/`Fat`/`MyBoy` назначен `OwnerNetworkAnimator.m_Animator` | было `NULL` → `UnassignedReferenceException` на спавне и гарантированно битые анимации в сетевой фазе | `092b3ce` |
+| 15.08 | Core `RoundHud`: необязательное поле `countdownText` + `ShowCountdown`/`HideCountdown`; `MinigameControllerBase`: `protected Hud` | стартовый отсчёт нужен любой игре с форой на разбег, не только «Ангелам». Поле необязательное — чужие сцены править не надо, но при их следующем сохранении в них добавится пустая строка `countdownText` | `011c0ae` |
 | 15.08 | `ProjectSettings/EditorBuildSettings`: `DuckHunt` выключен в списке билда | Addressables и Build Settings взаимно исключаются; регистрация «Ангелов» разъехала состояние, в котором DuckHunt лежал в обоих списках | `b0c3910` |
 
 **Что из этого напарнику важно знать:**
