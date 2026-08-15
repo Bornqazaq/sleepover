@@ -237,7 +237,7 @@ MonoBehaviour:
   inputReader: {fileID: 5853460982915592438}
   groundLayer:
     serializedVersion: 2
-    m_Bits: 64
+    m_Bits: 320
   crouchCeilingLayers:
     serializedVersion: 2
     m_Bits: 256
