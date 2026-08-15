@@ -41,6 +41,17 @@ namespace Igruha.Minigames.CryingAngels
         public bool IsFree => Current == Phase.Free;
 
         /// <summary>
+        /// Номер нелепой позы, в которой игрок замер, 0..FreezePoseCount-1.
+        /// Выбирается там же, где принимается решение о заморозке, — то есть
+        /// у авторитета, — и потому одинаков у всех: поза должна выглядеть
+        /// одинаково на всех машинах, иначе замерший «дёргается» по сети.
+        /// </summary>
+        public int FreezePose { get; private set; }
+
+        /// <summary>Точка внутри клипа, на которой встал стоп-кадр, 0..1.</summary>
+        public float FreezePoseTime { get; private set; }
+
+        /// <summary>
         /// Насколько игрок близок к окаменению, 0..1. По нему красится луч
         /// и виньетка (14.7): без обратной связи ни Водящий, ни Бегущий
         /// не понимают, что счётчик вообще существует.
@@ -79,9 +90,26 @@ namespace Igruha.Minigames.CryingAngels
                 return;
             }
 
+            if (frozen)
+            {
+                PickFreezePose();
+            }
+
             Current = next;
             motor.MovementLocked = frozen;
             Changed?.Invoke(Current);
+        }
+
+        /// <summary>
+        /// Случайная нелепая поза. На каркасе это стоп-кадр анимации в
+        /// произвольной точке клипа — отдельных клипов поз ещё нет, их
+        /// завозит арт-фаза, а механику надо щупать уже сейчас.
+        /// </summary>
+        private void PickFreezePose()
+        {
+            int poses = config != null ? config.FreezePoseCount : 1;
+            FreezePose = UnityEngine.Random.Range(0, poses);
+            FreezePoseTime = UnityEngine.Random.value;
         }
 
         /// <summary>

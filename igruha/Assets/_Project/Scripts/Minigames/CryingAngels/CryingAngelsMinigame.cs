@@ -28,6 +28,9 @@ namespace Igruha.Minigames.CryingAngels
         /// <summary>Ключ истории спец-ролей: своя очередь Водящего, независимая от других игр.</summary>
         private const string KeeperRoleKey = "CryingAngels.Keeper";
 
+        /// <summary>Слой укрытий: на нём живут и камни арены, и статуи окаменевших.</summary>
+        private const string CoverLayerName = "Cover";
+
         [Header("Арена")]
         [SerializeField] private SpawnPointSet spawnPoints;
         [SerializeField] private CryingAngelsConfig config;
@@ -39,6 +42,10 @@ namespace Igruha.Minigames.CryingAngels
         [SerializeField] private GameObject keeperRigPrefab;
         [Tooltip("Риг обзора от первого лица со сцены — ему задаётся потолок скорости поворота")]
         [SerializeField] private FirstPersonCameraRig firstPersonRig;
+
+        [Header("Бегущий")]
+        [Tooltip("Рамка окаменения на экране своего игрока")]
+        [SerializeField] private PetrificationVignette vignette;
 
         [Header("Дебаг (тест в одиночку)")]
         [Tooltip("Локальный игрок играет за Водящего, иначе за Бегущего")]
@@ -71,6 +78,7 @@ namespace Igruha.Minigames.CryingAngels
         private readonly List<int> placementOrder = new List<int>(8);
         // Списки под VisionCone.Evaluate: переиспользуются, чтобы не аллоцировать в FixedUpdate.
         private readonly List<Collider> runnerBodies = new List<Collider>(8);
+        private readonly List<PetrifiedStatue> statues = new List<PetrifiedStatue>(8);
         private readonly Dictionary<Collider, RunnerRecord> runnerByBody = new Dictionary<Collider, RunnerRecord>(8);
         private VisionCone keeperVision;
 
@@ -131,6 +139,8 @@ namespace Igruha.Minigames.CryingAngels
         {
             SetBeamEnabled(false);
             ReleaseAllRunners();
+            ClearStatues();
+            vignette?.Track(null);
             Hud?.HideCountdown();
         }
 
@@ -203,7 +213,14 @@ namespace Igruha.Minigames.CryingAngels
                     continue;
                 }
 
+                bool wasPetrified = runner.State.Current == RunnerState.Phase.Petrified;
                 runner.State.Tick(runner.Body != null && keeperVision.IsVisible(runner.Body), Time.fixedDeltaTime);
+
+                if (!wasPetrified && runner.State.Current == RunnerState.Phase.Petrified)
+                {
+                    TrySpawnStatue(runner);
+                }
+
                 hottest = Mathf.Max(hottest, runner.State.PetrifyProgress);
             }
 
@@ -338,6 +355,7 @@ namespace Igruha.Minigames.CryingAngels
             }
 
             RebindVision();
+            BindVignette();
             keeper?.ApplyTurnSpeed(firstPersonRig, KeeperTurnSpeed);
             keeper?.SetBeamVisible(BeamEnabled);
             ApplyRoleCamera();
@@ -353,6 +371,11 @@ namespace Igruha.Minigames.CryingAngels
 
             state.Configure(config);
             state.ResetState();
+
+            if (avatar.GetComponent<FreezePoseDriver>() == null)
+            {
+                avatar.gameObject.AddComponent<FreezePoseDriver>();
+            }
 
             return new RunnerRecord
             {
@@ -399,6 +422,22 @@ namespace Igruha.Minigames.CryingAngels
             }
         }
 
+        /// <summary>
+        /// Рамка окаменения показывает только своего игрока. Водящему она не
+        /// нужна: он не каменеет, и лишняя рамка сбивала бы ему обзор.
+        /// </summary>
+        private void BindVignette()
+        {
+            if (vignette == null)
+            {
+                return;
+            }
+
+            SessionPlayer local = SessionScoreboard.Current?.LocalPlayer;
+            RunnerRecord localRunner = local != null ? FindRunner(local.Id) : null;
+            vignette.Track(localRunner?.State);
+        }
+
         private void OnRunnerLit(Collider body) => SetRunnerFrozen(body, true);
 
         private void OnRunnerUnlit(Collider body) => SetRunnerFrozen(body, false);
@@ -439,6 +478,44 @@ namespace Igruha.Minigames.CryingAngels
             {
                 component.Detach();
             }
+        }
+
+        /// <summary>
+        /// Статуя на месте окаменения — по флагу конфига. Ставится там, где
+        /// игрока настигло, а не там, куда его вернуло: смысл укрытия в том,
+        /// что оно осталось на опасном месте.
+        /// </summary>
+        private void TrySpawnStatue(RunnerRecord runner)
+        {
+            if (config == null || !config.StatuesRemainAsCover || runner.Body == null)
+            {
+                return;
+            }
+
+            var capsule = runner.Body as CapsuleCollider;
+            if (capsule == null)
+            {
+                return;
+            }
+
+            PetrifiedStatue statue = PetrifiedStatue.Create(capsule, LayerMask.NameToLayer(CoverLayerName), transform);
+            if (statue != null)
+            {
+                statues.Add(statue);
+            }
+        }
+
+        private void ClearStatues()
+        {
+            for (int i = 0; i < statues.Count; i++)
+            {
+                if (statues[i] != null)
+                {
+                    statues[i].Remove();
+                }
+            }
+
+            statues.Clear();
         }
 
         /// <summary>Погасший фонарь обязан всех отпустить, иначе замороженный останется стоять навсегда.</summary>
