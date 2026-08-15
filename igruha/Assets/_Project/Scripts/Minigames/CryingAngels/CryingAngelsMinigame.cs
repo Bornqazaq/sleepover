@@ -33,8 +33,8 @@ namespace Igruha.Minigames.CryingAngels
         [Header("Дебаг (тест в одиночку)")]
         [Tooltip("Локальный игрок играет за Водящего, иначе за Бегущего")]
         [SerializeField] private bool localPlayerIsKeeper;
-        [Tooltip("Переключить роль локального игрока прямо в игре")]
-        [SerializeField] private Key roleSwitchKey = Key.F1;
+        [Tooltip("Переключить роль локального игрока прямо в игре. Работает только во время раунда, не на обучалке. Не F-клавиша: на macOS их перехватывает система, до игры они не доходят")]
+        [SerializeField] private Key roleSwitchKey = Key.P;
 
         /// <summary>
         /// Состояние одного Бегущего за раунд. Лучший радиус копится весь раунд
