@@ -44,6 +44,17 @@ namespace Igruha.Core.Player
         public bool IsKnockedDown => knockdownTimer > 0f;
 
         /// <summary>
+        /// Персонаж не принимает толчки и импульсы. Нужен ролям, которые обязаны
+        /// стоять на своём месте весь раунд: Водящий «Плачущих ангелов» на
+        /// постаменте, ведущий в любой асимметричной игре. Без этого его просто
+        /// сшибают с точки, и раунд ломается.
+        ///
+        /// Не влияет на телепорт и респавн — те двигают персонажа адресно,
+        /// а не через физику.
+        /// </summary>
+        public bool ImpulseImmune { get; set; }
+
+        /// <summary>
         /// Персонаж сидит: капсула ниже, скорость меньше. Отличается от запроса —
         /// под низким потолком встать нельзя, и состояние держится дальше.
         /// </summary>
@@ -428,7 +439,7 @@ namespace Igruha.Core.Player
         /// </summary>
         public void ApplyPush(Vector3 direction, float force)
         {
-            if (config == null)
+            if (config == null || ImpulseImmune)
             {
                 return;
             }
@@ -474,7 +485,7 @@ namespace Igruha.Core.Player
 
         public void ApplyImpulse(Vector3 impulse, KnockdownType knockdownType)
         {
-            if (config == null)
+            if (config == null || ImpulseImmune)
             {
                 return;
             }

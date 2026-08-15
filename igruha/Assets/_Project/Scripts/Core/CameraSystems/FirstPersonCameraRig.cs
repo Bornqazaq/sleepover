@@ -106,6 +106,19 @@ namespace Igruha.Core.CameraSystems
         }
 
         /// <summary>
+        /// Потолок угловой скорости под правила конкретной мини-игры: в
+        /// асимметричных играх он зависит от числа убегающих и потому не может
+        /// быть зашит в риг. Значение ≤ 0 игнорируется — риг остаётся на своём.
+        /// </summary>
+        public void SetMaxTurnSpeed(float degreesPerSecond)
+        {
+            if (degreesPerSecond > 0f)
+            {
+                maxTurnSpeed = degreesPerSecond;
+            }
+        }
+
+        /// <summary>
         /// Поставить обзор напрямую, минуя ввод и потолок скорости. Через это
         /// в сетевой фазе серверное значение yaw затирает локальное.
         /// </summary>
