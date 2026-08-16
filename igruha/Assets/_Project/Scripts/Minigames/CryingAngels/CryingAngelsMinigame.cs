@@ -104,6 +104,8 @@ namespace Igruha.Minigames.CryingAngels
         private float countdownRemaining;
         private float roundElapsed;
         private int touchCounter;
+        /// <summary>Про сбившийся состав луча ругаемся один раз за раунд, а не каждый физический такт.</summary>
+        private bool beamMismatchReported;
 
         /// <summary>Фонарь Водящего горит: отсчёт кончился, раунд идёт. Гейт для KeeperBeam (14.4).</summary>
         public bool BeamEnabled { get; private set; }
@@ -159,6 +161,7 @@ namespace Igruha.Minigames.CryingAngels
         {
             roundElapsed = 0f;
             countdownRemaining = config != null ? config.StartCountdown : 0f;
+            beamMismatchReported = false;
             ResetRunnersForRound();
             SetBeamEnabled(false);
             SetDummyBotsRunning(true);
@@ -336,7 +339,7 @@ namespace Igruha.Minigames.CryingAngels
         /// </summary>
         private void EvaluateBeam()
         {
-            if (!BeamEnabled || keeperVision == null)
+            if (!BeamEnabled || !EnsureBeamTargets())
             {
                 return;
             }
@@ -386,59 +389,72 @@ namespace Igruha.Minigames.CryingAngels
         /// <summary>Решение авторитета: фонарь загорелся или погас.</summary>
         private void SetBeamEnabled(bool enabled)
         {
-            if (enabled)
-            {
-                VerifyBeamTargets();
-            }
-
             ApplyBeamEnabled(enabled);
             network?.PublishBeam(enabled);
         }
 
         /// <summary>
-        /// Фонарь загорается — убедиться, что ему есть кого ловить.
-        ///
-        /// Луч решает по списку тел, собранному в <see cref="RebindVision"/>,
-        /// и по конусу с рига Водящего. Если список или конус разошлись с
-        /// составом, раунд идёт вхолостую: игрок физически стоит в луче, но
-        /// целью не считается — ни заморозки, ни счётчика окаменения. Ровно
-        /// так выглядела жалоба с плейтеста 16.08 («иду к свету и ничего»),
-        /// и разбирать её было нечем: в консоли не было ни строчки.
-        ///
-        /// Список пересобирается на месте: <see cref="RebindVision"/>
-        /// идемпотентен и стоит копейки, а раунд без единой цели — это раунд,
-        /// который игрок считает сломанной игрой. Предупреждение остаётся
-        /// громким: пересборка лечит симптом, а причину надо видеть.
+        /// Сколько Бегущих луч обязан держать целями прямо сейчас: все, кто
+        /// ещё в раунде и у кого есть тело.
         /// </summary>
-        private void VerifyBeamTargets()
+        private int CountBeamTargets()
         {
-            if (!HasAuthority)
-            {
-                return;
-            }
-
             int expected = 0;
             for (int i = 0; i < runners.Count; i++)
             {
-                if (!runners[i].Touched && runners[i].Body != null)
+                RunnerRecord runner = runners[i];
+                if (!runner.Touched && runner.Body != null)
                 {
                     expected++;
                 }
             }
 
-            if (expected == 0 || (runnerBodies.Count > 0 && keeperVision != null))
+            return expected;
+        }
+
+        /// <summary>
+        /// Сверить цели луча с составом и починить, если разошлись. Ложь —
+        /// светить нечем: конуса нет, считать засветку не по чему.
+        ///
+        /// Проверка живёт в такте луча, а не в одной точке на зажигании фонаря.
+        /// Список тел и конус собираются только в <see cref="RebindVision"/>,
+        /// то есть на раздаче ролей и на старте раунда, а между ними никто не
+        /// проверял, что они всё ещё описывают тот же состав. Раунд с
+        /// разошедшимся списком проходит вхолостую и молча: игрок стоит в луче,
+        /// целью не считается, ни заморозки, ни счётчика, ни строчки в консоли.
+        /// Ровно так выглядела жалоба с плейтеста 16.08 — «иду к свету и ничего».
+        ///
+        /// Стоит это перебора по Бегущим (их не больше семи) и сравнения двух
+        /// чисел — дешевле, чем раунд, который игрок считает сломанной игрой.
+        /// Ругаемся один раз за раунд: чинит проверка молча, а причину надо
+        /// видеть в консоли.
+        /// </summary>
+        private bool EnsureBeamTargets()
+        {
+            int expected = CountBeamTargets();
+            if (runnerBodies.Count == expected && keeperVision != null)
             {
-                return;
+                return true;
             }
 
-            Debug.LogWarning($"🕯️ Плачущие ангелы: фонарь зажёгся, а ловить некого — целей {runnerBodies.Count} " +
-                             $"при {expected} Бегущих, конус {(keeperVision != null ? "есть" : "ПОТЕРЯН")}. " +
-                             "Пересобираю список: без этого раунд пройдёт без заморозок", this);
+            if (!beamMismatchReported)
+            {
+                beamMismatchReported = true;
+                Debug.LogWarning($"🕯️ Плачущие ангелы: луч сбился с состава — целей {runnerBodies.Count} " +
+                                 $"при {expected} Бегущих, конус {(keeperVision != null ? "есть" : "ПОТЕРЯН")}. " +
+                                 "Пересобираю: без этого раунд прошёл бы без заморозок", this);
+            }
 
             RebindVision();
 
-            Debug.Log($"🕯️ Плачущие ангелы: после пересборки целей {runnerBodies.Count}, " +
-                      $"конус {(keeperVision != null ? "есть" : "ПОТЕРЯН")}");
+            if (keeperVision != null)
+            {
+                return true;
+            }
+
+            // Конус пересборкой не вернуть: он живёт на риге Водящего, а его
+            // в раунде нет. Такой раунд обязан был закончиться в DropKeeper.
+            return false;
         }
 
         /// <summary>Фонарь переключил сервер — применяем у себя.</summary>
@@ -978,7 +994,11 @@ namespace Igruha.Minigames.CryingAngels
             for (int i = 0; i < runners.Count; i++)
             {
                 RunnerRecord runner = runners[i];
-                if (runner.Body == null)
+
+                // Дошедшего в цели не возвращаем: он уже снят с арены. Иначе
+                // пересборка посреди раунда воскрешала бы его как цель, и
+                // сверка состава расходилась бы на каждом такте.
+                if (runner.Touched || runner.Body == null)
                 {
                     continue;
                 }
