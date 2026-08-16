@@ -30,7 +30,7 @@ namespace Igruha.Core.Minigame
         [SerializeField] private MinigameControllerBase minigame;
         [SerializeField] private MinigameCameraController cameraController;
         [Tooltip("Сколько секунд ждать ростер и аватары сетевой сессии")]
-        [SerializeField] private float networkRosterTimeout = 15f;
+        [SerializeField] private float networkRosterTimeout = 180f;
         [Tooltip("Сколько секунд состав не должен меняться, чтобы считать его собравшимся")]
         [SerializeField] private float networkRosterSettleTime = 1f;
 
@@ -121,7 +121,9 @@ namespace Igruha.Core.Minigame
                 yield return null;
             }
 
-            Debug.LogWarning($"{name}: ростер сессии не собрался за {networkRosterTimeout:F0} с — стартуем с тем, что есть", this);
+            int joined = SessionScoreboard.Current != null ? SessionScoreboard.Current.Players.Count : 0;
+            Debug.LogWarning($"{name}: ⏳ ростер сессии не собрался за {networkRosterTimeout:F0} с — стартуем с тем, " +
+                             $"что есть ({joined}). Если участников меньше двух, ролей не будет и фонарь не загорится", this);
         }
 
         /// <summary>Состав готов: играть есть с кем и у всех уже есть персонажи.</summary>

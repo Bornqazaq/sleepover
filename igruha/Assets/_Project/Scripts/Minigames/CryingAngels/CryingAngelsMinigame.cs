@@ -159,8 +159,54 @@ namespace Igruha.Minigames.CryingAngels
         {
             roundElapsed = 0f;
             countdownRemaining = config != null ? config.StartCountdown : 0f;
+            ResetRunnersForRound();
             SetBeamEnabled(false);
             SetDummyBotsRunning(true);
+        }
+
+        /// <summary>
+        /// Вернуть Бегущих в исходное состояние раунда.
+        ///
+        /// Без этого второй раунд подряд ломается: дошедший до постамента
+        /// вычеркнут из целей луча и помечен дошедшим, а раздача ролей —
+        /// единственное место, где записи собирались заново, — на новый раунд
+        /// не зовётся. В итоге луч физически видит игрока, но не считает его
+        /// целью: ни заморозки, ни счётчика. Замерено 16.08 на host + client.
+        ///
+        /// Начало раунда обязано быть самодостаточным: этого ждёт и rematch
+        /// из EPIC 4, и любой возврат в ту же сцену.
+        /// </summary>
+        private void ResetRunnersForRound()
+        {
+            touchCounter = 0;
+
+            for (int i = 0; i < runners.Count; i++)
+            {
+                RunnerRecord runner = runners[i];
+                runner.Touched = false;
+                runner.TouchTime = 0f;
+                runner.TouchOrder = 0;
+                runner.BestRadius = float.MaxValue;
+                runner.BestRadiusTime = 0f;
+                runner.State?.ResetState();
+
+                if (runner.Avatar != null && !runner.Avatar.gameObject.activeSelf)
+                {
+                    runner.Avatar.gameObject.SetActive(true);
+                }
+            }
+
+            // Списки конуса собираются из тех же записей — их надо пересобрать
+            // после возврата снятых, иначе цели так и останутся вычеркнутыми.
+            RebindVision();
+            BindVignette();
+
+            if (spectator != null && spectator.IsActive)
+            {
+                spectator.Deactivate();
+            }
+
+            PublishRunnerStates();
         }
 
         protected override void OnRoundEnded()
@@ -485,6 +531,20 @@ namespace Igruha.Minigames.CryingAngels
             // Расклад уходит в сеть до настройки луча: направление, с которого
             // луч стартует, задаётся здесь же.
             PublishRoles();
+
+            // Одна строка в консоль на каждую раздачу: по ней с плейтеста видно,
+            // собрался ли состав и досталась ли роль. Без неё «у меня не
+            // работает» приходится воспроизводить вслепую.
+            if (keeperPlayerId == SpecialRoleHistory.NoPlayer)
+            {
+                Debug.LogWarning($"🕯️ Плачущие ангелы: Водящего НЕТ (участников {Players.Count}). " +
+                                 "Фонарь не загорится: роль раздаётся с двух участников", this);
+            }
+            else
+            {
+                Debug.Log($"🕯️ Плачущие ангелы: Водящий — игрок {keeperPlayerId}, Бегущих {runners.Count}, " +
+                          $"потолок поворота {KeeperTurnSpeed:F0}°/с");
+            }
 
             RebindVision();
             BindVignette();
