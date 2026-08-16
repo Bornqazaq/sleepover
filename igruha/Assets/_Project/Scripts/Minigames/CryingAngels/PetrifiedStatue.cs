@@ -15,11 +15,17 @@ namespace Igruha.Minigames.CryingAngels
     public sealed class PetrifiedStatue : MonoBehaviour
     {
         /// <summary>
+        /// Чья это статуя. Нужно, чтобы снять её вместе с ушедшим игроком:
+        /// иначе на арене остаётся укрытие от того, кого в матче уже нет.
+        /// </summary>
+        public int OwnerId { get; private set; } = -1;
+
+        /// <summary>
         /// Собрать статую по капсуле игрока. Высота берётся его собственная:
         /// статуя обязана перекрывать луч ровно настолько, насколько перекрывал
         /// бы стоящий человек, иначе укрытие врёт.
         /// </summary>
-        public static PetrifiedStatue Create(CapsuleCollider source, int coverLayer, Transform parent)
+        public static PetrifiedStatue Create(CapsuleCollider source, int coverLayer, Transform parent, int ownerId)
         {
             if (source == null)
             {
@@ -37,7 +43,9 @@ namespace Igruha.Minigames.CryingAngels
             go.transform.rotation = source.transform.rotation;
             go.transform.localScale = new Vector3(width, height, width);
 
-            return go.AddComponent<PetrifiedStatue>();
+            PetrifiedStatue statue = go.AddComponent<PetrifiedStatue>();
+            statue.OwnerId = ownerId;
+            return statue;
         }
 
         /// <summary>Раунд кончился — арену надо вернуть в исходный вид.</summary>

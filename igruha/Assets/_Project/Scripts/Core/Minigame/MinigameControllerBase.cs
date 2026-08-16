@@ -85,6 +85,30 @@ namespace Igruha.Core.Minigame
             GoToPhase(tutorialScreen != null ? MinigamePhase.Tutorial : MinigamePhase.Round);
         }
 
+        /// <summary>
+        /// Участник вышел из матча: убрать его из состава раунда.
+        ///
+        /// Состав копируется на старте мини-игры и дальше живёт своей жизнью,
+        /// поэтому чистки ростера сессии мало: оставшийся в списке беглец
+        /// получит место в результатах, хотя его в матче уже нет. Зовёт правило
+        /// конкретной игры — только у авторитета, он один знает про уход.
+        /// </summary>
+        protected bool RemovePlayer(int playerId)
+        {
+            for (int i = 0; i < playerList.Count; i++)
+            {
+                if (playerList[i].Id != playerId)
+                {
+                    continue;
+                }
+
+                playerList.RemoveAt(i);
+                return true;
+            }
+
+            return false;
+        }
+
         /// <summary>Завершение раунда: по таймеру или досрочно правилами игры.</summary>
         public void EndMinigame()
         {

@@ -154,8 +154,14 @@ namespace Igruha.Minigames.CryingAngels
         private float lastSeenServerYaw;
         private float serverStillSince;
 
-        /// <summary>Когда каждому Бегущему можно снова слать счётчик. Параллелен списку.</summary>
-        private readonly List<float> nextProgressSync = new List<float>(8);
+        /// <summary>Когда каждому Бегущему можно снова слать счётчик, по playerId.</summary>
+        private readonly Dictionary<int, float> nextProgressSync = new Dictionary<int, float>(8);
+
+        /// <summary>Ушедшие, которых осталось разобрать. Почему не сразу — см. OnClientDisconnected.</summary>
+        private readonly List<ulong> pendingLeavers = new List<ulong>(4);
+
+        /// <summary>Состав Бегущих для клиента: переиспользуется, чтобы не аллоцировать на каждой дельте.</summary>
+        private readonly List<int> rosterBuffer = new List<int>(8);
 
         /// <summary>Идёт сетевая катка и эта половина живая.</summary>
         public bool IsActive => IsSpawned;
@@ -187,9 +193,13 @@ namespace Igruha.Minigames.CryingAngels
             lastSeenServerYaw = displayYaw;
             serverStillSince = Time.time;
 
-            // Подключились в середине раунда — догоняем то, что уже решено.
-            if (!IsServer)
+            if (IsServer)
             {
+                NetworkManager.OnClientDisconnectCallback += OnClientDisconnected;
+            }
+            else
+            {
+                // Подключились в середине раунда — догоняем то, что уже решено.
                 ApplyAllRunnerStates();
             }
         }
@@ -199,6 +209,11 @@ namespace Igruha.Minigames.CryingAngels
             keeperPlayerId.OnValueChanged -= OnKeeperChanged;
             beamOn.OnValueChanged -= OnBeamChanged;
             runnerStates.OnListChanged -= OnRunnerStatesChanged;
+
+            if (IsServer && NetworkManager != null)
+            {
+                NetworkManager.OnClientDisconnectCallback -= OnClientDisconnected;
+            }
 
             base.OnNetworkDespawn();
         }
@@ -261,7 +276,9 @@ namespace Igruha.Minigames.CryingAngels
         private void OnKeeperChanged(int previous, int current)
         {
             // У сервера роли уже розданы — пересдавать нечего.
-            if (!IsServer)
+            // Роль, ушедшая в «никого», — это не пересдача, а уход Водящего:
+            // пересдавать нечего, раунд всё равно заканчивает сервер.
+            if (!IsServer && current != SpecialRoleHistory.NoPlayer)
             {
                 game?.ApplyNetworkKeeper();
             }
@@ -319,11 +336,50 @@ namespace Igruha.Minigames.CryingAngels
             keeperRole?.SetBeamYaw(next);
         }
 
+        // ========== УХОД ИГРОКА ==========
+
+        /// <summary>
+        /// Разбираем уход не здесь, а на ближайшем тике — тем же приёмом, что
+        /// и <see cref="Igruha.Networking.NetworkSessionManager"/>. Этот колбэк
+        /// приходит и когда выключается сам сервер, а отличить два случая по
+        /// состоянию NetworkManager нельзя (замерено 15.08: на обоих
+        /// IsListening=True, ShutdownInProgress=False). При обычном выходе
+        /// игрока тик будет, при выключении сервера тиков больше нет — и
+        /// заканчивать раунд некому и незачем.
+        /// </summary>
+        private void OnClientDisconnected(ulong clientId)
+        {
+            if (IsServer)
+            {
+                pendingLeavers.Add(clientId);
+            }
+        }
+
+        private void ApplyPendingLeavers()
+        {
+            if (NetworkManager == null || NetworkManager.ShutdownInProgress || !NetworkManager.IsListening)
+            {
+                return;
+            }
+
+            for (int i = 0; i < pendingLeavers.Count; i++)
+            {
+                game?.HandlePlayerLeft((int)pendingLeavers[i]);
+            }
+
+            pendingLeavers.Clear();
+        }
+
         private void Update()
         {
             if (!IsSpawned)
             {
                 return;
+            }
+
+            if (IsServer && pendingLeavers.Count > 0)
+            {
+                ApplyPendingLeavers();
             }
 
             SubmitOwnerYaw();
@@ -452,27 +508,56 @@ namespace Igruha.Minigames.CryingAngels
         // ========== СОСТОЯНИЯ БЕГУЩИХ ==========
 
         /// <summary>
-        /// Пересобрать список под новый состав Бегущих. Только сервер: у
-        /// остальных состав приедет репликацией.
+        /// Привести список к новому составу Бегущих: убрать ушедших, добавить
+        /// новых, уже имеющихся не трогать. Только сервер.
+        ///
+        /// Именно слияние, а не «очистить и заполнить»: очистка прилетает
+        /// клиенту отдельным событием, и на этот кадр состав у него пуст —
+        /// он успевает вычистить свои записи о Бегущих и после добавления
+        /// оказывается без них до следующей раздачи ролей.
         /// </summary>
-        public void ServerResetRunners(IReadOnlyList<int> playerIds)
+        public void ServerSyncRoster(IReadOnlyList<int> playerIds)
         {
             if (!IsSpawned || !IsServer)
             {
                 return;
             }
 
-            runnerStates.Clear();
-            nextProgressSync.Clear();
+            for (int i = runnerStates.Count - 1; i >= 0; i--)
+            {
+                if (!Contains(playerIds, runnerStates[i].PlayerId))
+                {
+                    nextProgressSync.Remove(runnerStates[i].PlayerId);
+                    runnerStates.RemoveAt(i);
+                }
+            }
+
             for (int i = 0; i < playerIds.Count; i++)
             {
+                if (IndexOf(playerIds[i]) >= 0)
+                {
+                    continue;
+                }
+
                 runnerStates.Add(new RunnerNetState
                 {
                     PlayerId = playerIds[i],
                     Phase = (byte)RunnerState.Phase.Free
                 });
-                nextProgressSync.Add(0f);
             }
+        }
+
+        private static bool Contains(IReadOnlyList<int> ids, int value)
+        {
+            for (int i = 0; i < ids.Count; i++)
+            {
+                if (ids[i] == value)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -510,12 +595,13 @@ namespace Igruha.Minigames.CryingAngels
 
             if (!decided)
             {
-                if (state.PetrifyProgress == progress || Time.time < nextProgressSync[index])
+                nextProgressSync.TryGetValue(playerId, out float allowedAt);
+                if (state.PetrifyProgress == progress || Time.time < allowedAt)
                 {
                     return;
                 }
 
-                nextProgressSync[index] = Time.time + 1f / ProgressSyncRate;
+                nextProgressSync[playerId] = Time.time + 1f / ProgressSyncRate;
             }
 
             state.Phase = (byte)phase;
@@ -552,6 +638,16 @@ namespace Igruha.Minigames.CryingAngels
             {
                 return;
             }
+
+            // Сначала состав: ушедшего надо убрать из списка мини-игры, иначе
+            // он останется в нём с уничтоженным аватаром до конца раунда.
+            rosterBuffer.Clear();
+            for (int i = 0; i < runnerStates.Count; i++)
+            {
+                rosterBuffer.Add(runnerStates[i].PlayerId);
+            }
+
+            game.ApplyNetworkRunnerRoster(rosterBuffer);
 
             for (int i = 0; i < runnerStates.Count; i++)
             {

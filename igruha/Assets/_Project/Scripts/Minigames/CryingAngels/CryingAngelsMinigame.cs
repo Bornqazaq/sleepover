@@ -507,19 +507,34 @@ namespace Igruha.Minigames.CryingAngels
                 return;
             }
 
-            runnerIds.Clear();
-            for (int i = 0; i < runners.Count; i++)
-            {
-                runnerIds.Add(runners[i].PlayerId);
-            }
-
-            network.ServerResetRunners(runnerIds);
+            PublishRunnerRoster();
 
             // Луч стартует оттуда, куда развёрнуто тело: иначе он на первом
             // кадре смотрит в нулевой азимут и ползёт к игроку с потолком
             // скорости — до двух секунд светит мимо.
             float startYaw = keeperAvatar != null ? keeperAvatar.transform.eulerAngles.y : 0f;
             network.PublishKeeper(keeperPlayerId, startYaw);
+        }
+
+        /// <summary>
+        /// Отдать в сеть только состав Бегущих. Отдельно от <see cref="PublishRoles"/>
+        /// потому, что тот заодно перезадаёт стартовое направление луча: при
+        /// уходе одного из Бегущих это дёрнуло бы фонарь Водящего на ровном месте.
+        /// </summary>
+        private void PublishRunnerRoster()
+        {
+            if (!Networked || !HasAuthority)
+            {
+                return;
+            }
+
+            runnerIds.Clear();
+            for (int i = 0; i < runners.Count; i++)
+            {
+                runnerIds.Add(runners[i].PlayerId);
+            }
+
+            network.ServerSyncRoster(runnerIds);
         }
 
         // ========== ПРИЁМ СЕТЕВОГО СОСТОЯНИЯ ==========
@@ -567,6 +582,139 @@ namespace Igruha.Minigames.CryingAngels
             {
                 runner.Touched = true;
                 ApplyRunnerRetired(runner);
+            }
+            else if (!finished && runner.Touched)
+            {
+                // Сервер пересдал расклад: дошедший снова в игре. Без обратного
+                // хода его аватар остался бы снятым весь следующий раунд.
+                runner.Touched = false;
+                ApplyRunnerReturned(runner);
+            }
+        }
+
+        /// <summary>
+        /// Состав Бегущих приехал с сервера: убрать тех, кого в нём больше нет.
+        /// Ушедший иначе остался бы в списке с уничтоженным аватаром и попал бы
+        /// в сортировку мест.
+        /// </summary>
+        public void ApplyNetworkRunnerRoster(IReadOnlyList<int> playerIds)
+        {
+            for (int i = runners.Count - 1; i >= 0; i--)
+            {
+                bool present = false;
+                for (int j = 0; j < playerIds.Count; j++)
+                {
+                    if (playerIds[j] == runners[i].PlayerId)
+                    {
+                        present = true;
+                        break;
+                    }
+                }
+
+                if (!present)
+                {
+                    DropRunner(i);
+                }
+            }
+        }
+
+        // ========== УХОД ИГРОКА ==========
+
+        /// <summary>
+        /// Игрок вышел из матча. Зовёт сетевой слой на ближайшем тике после
+        /// дисконнекта — только у сервера.
+        ///
+        /// Правило спеки (раздел 10.2): уход Водящего заканчивает раунд сразу,
+        /// потому что светить больше некому и оставшиеся 90 секунд Бегущие
+        /// просто шли бы к пустому постаменту. Уход Бегущего раунд не трогает.
+        /// </summary>
+        public void HandlePlayerLeft(int playerId)
+        {
+            if (!HasAuthority)
+            {
+                return;
+            }
+
+            bool wasKeeper = playerId == keeperPlayerId;
+
+            RemoveRunner(playerId);
+            RemoveStatuesOf(playerId);
+
+            // Из состава раунда — иначе ушедший получит место в результатах.
+            RemovePlayer(playerId);
+
+            if (wasKeeper)
+            {
+                DropKeeper();
+                PublishRunnerRoster();
+                EndMinigame();
+                return;
+            }
+
+            PublishRunnerRoster();
+
+            // Последний Бегущий вышел — светить не в кого, дожидаться нечего.
+            if (RoundActive && runners.Count == 0)
+            {
+                EndMinigame();
+            }
+        }
+
+        /// <summary>Водящего в раунде больше нет: гасим фонарь и снимаем роль с учёта.</summary>
+        private void DropKeeper()
+        {
+            SetBeamEnabled(false);
+
+            keeperPlayerId = SpecialRoleHistory.NoPlayer;
+            keeperAvatar = null;
+            keeper = null;
+            touchZone = null;
+
+            // Конус жил на аватаре ушедшего: пересобираем привязку, иначе
+            // остаёмся подписанными на события уничтоженного объекта.
+            RebindVision();
+
+            // Роль обязана уехать в сеть отдельно: иначе у клиентов Водящим
+            // до конца раунда числится тот, кого в матче уже нет.
+            network?.PublishKeeper(SpecialRoleHistory.NoPlayer, 0f);
+            network?.ConfigureKeeper(null, false, firstPersonRig);
+        }
+
+        private void RemoveRunner(int playerId)
+        {
+            for (int i = 0; i < runners.Count; i++)
+            {
+                if (runners[i].PlayerId == playerId)
+                {
+                    DropRunner(i);
+                    return;
+                }
+            }
+        }
+
+        private void DropRunner(int index)
+        {
+            RunnerRecord runner = runners[index];
+            if (runner.Body != null)
+            {
+                runnerBodies.Remove(runner.Body);
+                runnerByBody.Remove(runner.Body);
+            }
+
+            runners.RemoveAt(index);
+        }
+
+        /// <summary>Статуи ушедшего снимаются вместе с ним: укрытие от того, кого в матче нет, — подарок остальным.</summary>
+        private void RemoveStatuesOf(int playerId)
+        {
+            for (int i = statues.Count - 1; i >= 0; i--)
+            {
+                PetrifiedStatue statue = statues[i];
+                if (statue == null || statue.OwnerId == playerId)
+                {
+                    statue?.Remove();
+                    statues.RemoveAt(i);
+                }
             }
         }
 
@@ -881,7 +1029,7 @@ namespace Igruha.Minigames.CryingAngels
                 return;
             }
 
-            PetrifiedStatue statue = PetrifiedStatue.Create(capsule, LayerMask.NameToLayer(CoverLayerName), transform);
+            PetrifiedStatue statue = PetrifiedStatue.Create(capsule, LayerMask.NameToLayer(CoverLayerName), transform, runner.PlayerId);
             if (statue != null)
             {
                 statues.Add(statue);
@@ -1093,6 +1241,27 @@ namespace Igruha.Minigames.CryingAngels
                 vignette?.Track(null);
                 spectator?.Activate(Players);
             }
+        }
+
+        /// <summary>Обратный ход к <see cref="ApplyRunnerRetired"/>: игрок снова в раунде.</summary>
+        private void ApplyRunnerReturned(RunnerRecord runner)
+        {
+            if (runner.Avatar != null && !runner.Avatar.gameObject.activeSelf)
+            {
+                runner.Avatar.gameObject.SetActive(true);
+            }
+
+            if (!IsLocal(runner.PlayerId))
+            {
+                return;
+            }
+
+            if (spectator != null && spectator.IsActive)
+            {
+                spectator.Deactivate();
+            }
+
+            vignette?.Track(runner.State);
         }
 
         private static bool IsLocal(int playerId)
