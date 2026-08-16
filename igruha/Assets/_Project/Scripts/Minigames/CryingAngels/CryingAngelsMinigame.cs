@@ -539,10 +539,35 @@ namespace Igruha.Minigames.CryingAngels
         }
 
         /// <summary>Состояние Бегущего решено сервером — применяем у себя.</summary>
-        public void ApplyNetworkRunnerPhase(int playerId, RunnerState.Phase phase)
+        public void ApplyNetworkRunnerState(
+            int playerId,
+            RunnerState.Phase phase,
+            int freezePose,
+            float freezePoseTime,
+            float petrifyProgress,
+            bool finished)
         {
             RunnerRecord runner = FindRunner(playerId);
-            runner?.State?.ApplyNetworkPhase(phase);
+            if (runner == null)
+            {
+                return;
+            }
+
+            RunnerState.Phase before = runner.State != null ? runner.State.Current : RunnerState.Phase.Free;
+            runner.State?.ApplyNetworkState(phase, freezePose, freezePoseTime, petrifyProgress);
+
+            // Статую ставит каждая машина у себя по тому же переходу состояния:
+            // это укрытие, а не эффект, и на клиентах оно обязано быть.
+            if (before != RunnerState.Phase.Petrified && phase == RunnerState.Phase.Petrified)
+            {
+                TrySpawnStatue(runner);
+            }
+
+            if (finished && !runner.Touched)
+            {
+                runner.Touched = true;
+                ApplyRunnerRetired(runner);
+            }
         }
 
         /// <summary>
@@ -559,10 +584,18 @@ namespace Igruha.Minigames.CryingAngels
             for (int i = 0; i < runners.Count; i++)
             {
                 RunnerRecord runner = runners[i];
-                if (runner.State != null)
+                if (runner.State == null)
                 {
-                    network.ServerSyncRunner(runner.PlayerId, runner.State.Current);
+                    continue;
                 }
+
+                network.ServerSyncRunner(
+                    runner.PlayerId,
+                    runner.State.Current,
+                    runner.State.FreezePose,
+                    runner.State.FreezePoseTime,
+                    runner.State.PetrifyProgress,
+                    runner.Touched);
             }
         }
 
@@ -1034,6 +1067,16 @@ namespace Igruha.Minigames.CryingAngels
                 runnerByBody.Remove(runner.Body);
             }
 
+            ApplyRunnerRetired(runner);
+        }
+
+        /// <summary>
+        /// Видимая половина ухода — она обязана отработать на каждой машине,
+        /// поэтому вынесена из серверного учёта: у авторитета её зовёт
+        /// <see cref="RetireRunner"/>, у остальных — приехавший флаг «дошёл».
+        /// </summary>
+        private void ApplyRunnerRetired(RunnerRecord runner)
+        {
             // Аватар снимается до передачи камеры наблюдателю, а не после:
             // наблюдатель выбирает первую живую цель в момент включения, и на
             // ещё живом своём теле он выберет самого игрока — тот на кадр

@@ -110,8 +110,21 @@ namespace Igruha.Minigames.CryingAngels
         /// и окаменение, но без правил: правила — работа сервера, здесь только
         /// применение результата.
         /// </summary>
-        public void ApplyNetworkPhase(Phase phase)
+        public void ApplyNetworkState(Phase phase, int freezePose, float freezePoseTime, float petrifyProgress)
         {
+            // Поза ставится до смены состояния: стоп-кадр читает её в обработчике
+            // Changed, и переставленная следом поза до него уже не доедет.
+            FreezePose = freezePose;
+            FreezePoseTime = freezePoseTime;
+
+            // Счётчик кладём в то же поле, из которого его считает сервер, а не
+            // в отдельное «сетевое»: тогда PetrifyProgress, виньетка и цвет луча
+            // считаются у всех одной формулой, и вторая ветка не заводится.
+            if (config != null)
+            {
+                petrifyTimer = Mathf.Clamp01(petrifyProgress) * config.PetrifyThreshold;
+            }
+
             if (Current == phase)
             {
                 return;

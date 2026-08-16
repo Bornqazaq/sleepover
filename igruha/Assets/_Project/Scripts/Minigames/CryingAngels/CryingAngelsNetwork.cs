@@ -25,13 +25,39 @@ namespace Igruha.Minigames.CryingAngels
         /// <summary><see cref="RunnerState.Phase"/> числом: enum в NetworkList не кладётся.</summary>
         public byte Phase;
 
+        /// <summary>Номер нелепой позы, в которой игрок замер. Выбирает сервер — иначе замерший «дёргается» по сети.</summary>
+        public byte FreezePose;
+
+        /// <summary>Точка внутри клипа, 0..1, ужатая в байт.</summary>
+        public byte FreezePoseTime;
+
+        /// <summary>
+        /// Счётчик окаменения, 0..1, ужатый в байт. Байта хватает с запасом:
+        /// по этому числу рисуется плотность виньетки и цвет луча, а 1/255
+        /// четырёхсекундного счётчика — это 16 мс, вдвое меньше сетевого тика.
+        /// </summary>
+        public byte PetrifyProgress;
+
+        /// <summary>Дошёл до Водящего и ушёл с арены.</summary>
+        public bool Finished;
+
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
             serializer.SerializeValue(ref PlayerId);
             serializer.SerializeValue(ref Phase);
+            serializer.SerializeValue(ref FreezePose);
+            serializer.SerializeValue(ref FreezePoseTime);
+            serializer.SerializeValue(ref PetrifyProgress);
+            serializer.SerializeValue(ref Finished);
         }
 
-        public bool Equals(RunnerNetState other) => PlayerId == other.PlayerId && Phase == other.Phase;
+        public bool Equals(RunnerNetState other) =>
+            PlayerId == other.PlayerId &&
+            Phase == other.Phase &&
+            FreezePose == other.FreezePose &&
+            FreezePoseTime == other.FreezePoseTime &&
+            PetrifyProgress == other.PetrifyProgress &&
+            Finished == other.Finished;
     }
 
     /// <summary>
@@ -92,6 +118,16 @@ namespace Igruha.Minigames.CryingAngels
         /// <summary>С какого расхождения луч на чужой машине ставится сразу, а не доводится, °.</summary>
         private const float RemoteSnapThreshold = 90f;
 
+        /// <summary>
+        /// Сколько раз в секунду уходит счётчик окаменения. Как время раунда
+        /// в NetworkMinigameBridge: каждый такт — это трафик впустую, виньетка
+        /// всё равно рисуется плавной кривой. Смена состояния, позы и ухода
+        /// с арены этой выдержке не подчиняется — они уходят сразу.
+        /// </summary>
+        private const float ProgressSyncRate = 10f;
+
+        private const float ByteScale = 255f;
+
         private readonly NetworkVariable<int> keeperPlayerId =
             new NetworkVariable<int>(SpecialRoleHistory.NoPlayer);
 
@@ -117,6 +153,9 @@ namespace Igruha.Minigames.CryingAngels
         /// <summary>Последнее увиденное серверное направление и момент, когда оно перестало меняться.</summary>
         private float lastSeenServerYaw;
         private float serverStillSince;
+
+        /// <summary>Когда каждому Бегущему можно снова слать счётчик. Параллелен списку.</summary>
+        private readonly List<float> nextProgressSync = new List<float>(8);
 
         /// <summary>Идёт сетевая катка и эта половина живая.</summary>
         public bool IsActive => IsSpawned;
@@ -424,6 +463,7 @@ namespace Igruha.Minigames.CryingAngels
             }
 
             runnerStates.Clear();
+            nextProgressSync.Clear();
             for (int i = 0; i < playerIds.Count; i++)
             {
                 runnerStates.Add(new RunnerNetState
@@ -431,6 +471,7 @@ namespace Igruha.Minigames.CryingAngels
                     PlayerId = playerIds[i],
                     Phase = (byte)RunnerState.Phase.Free
                 });
+                nextProgressSync.Add(0f);
             }
         }
 
@@ -438,8 +479,13 @@ namespace Igruha.Minigames.CryingAngels
         /// Записать состояние Бегущего, если оно изменилось. Сравнение обязательно:
         /// присваивание элемента NetworkList шлёт дельту без проверки, и запись
         /// тем же значением каждый такт превратилась бы в постоянный трафик.
+        ///
+        /// Смена состояния, позы и ухода с арены уходит сразу — это исход.
+        /// Счётчик окаменения ползёт непрерывно, поэтому он один подчиняется
+        /// выдержке <see cref="ProgressSyncRate"/>, и выдержка своя у каждого
+        /// Бегущего: общая растянула бы обновление счётчика на всю толпу.
         /// </summary>
-        public void ServerSyncRunner(int playerId, RunnerState.Phase phase)
+        public void ServerSyncRunner(int playerId, RunnerState.Phase phase, int freezePose, float freezePoseTime, float petrifyProgress, bool finished)
         {
             if (!IsSpawned || !IsServer)
             {
@@ -453,14 +499,36 @@ namespace Igruha.Minigames.CryingAngels
             }
 
             RunnerNetState state = runnerStates[index];
-            if (state.Phase == (byte)phase)
+            byte pose = (byte)Mathf.Clamp(freezePose, 0, byte.MaxValue);
+            byte poseTime = Quantize(freezePoseTime);
+            byte progress = Quantize(petrifyProgress);
+
+            bool decided = state.Phase != (byte)phase ||
+                           state.FreezePose != pose ||
+                           state.FreezePoseTime != poseTime ||
+                           state.Finished != finished;
+
+            if (!decided)
             {
-                return;
+                if (state.PetrifyProgress == progress || Time.time < nextProgressSync[index])
+                {
+                    return;
+                }
+
+                nextProgressSync[index] = Time.time + 1f / ProgressSyncRate;
             }
 
             state.Phase = (byte)phase;
+            state.FreezePose = pose;
+            state.FreezePoseTime = poseTime;
+            state.PetrifyProgress = progress;
+            state.Finished = finished;
             runnerStates[index] = state;
         }
+
+        private static byte Quantize(float value01) => (byte)Mathf.RoundToInt(Mathf.Clamp01(value01) * ByteScale);
+
+        private static float Dequantize(byte value) => value / ByteScale;
 
         private void OnRunnerStatesChanged(NetworkListEvent<RunnerNetState> changeEvent)
         {
@@ -488,7 +556,13 @@ namespace Igruha.Minigames.CryingAngels
             for (int i = 0; i < runnerStates.Count; i++)
             {
                 RunnerNetState state = runnerStates[i];
-                game.ApplyNetworkRunnerPhase(state.PlayerId, (RunnerState.Phase)state.Phase);
+                game.ApplyNetworkRunnerState(
+                    state.PlayerId,
+                    (RunnerState.Phase)state.Phase,
+                    state.FreezePose,
+                    Dequantize(state.FreezePoseTime),
+                    Dequantize(state.PetrifyProgress),
+                    state.Finished);
             }
         }
 
