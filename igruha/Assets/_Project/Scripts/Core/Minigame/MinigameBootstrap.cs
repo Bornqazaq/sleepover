@@ -16,11 +16,23 @@ namespace Igruha.Core.Minigame
     /// </summary>
     public sealed class MinigameBootstrap : MonoBehaviour
     {
+        /// <summary>
+        /// Меньше двух участников сетевая мини-игра не ждёт, но и не начинает:
+        /// начатая в одиночестве, она раздаёт роли на одного и доигрывает пустой
+        /// раунд, пока остальные ещё подключаются. Порог именно здесь, а не в
+        /// <c>MinigameDefinition.MinPlayers</c>: там указан состав, под который
+        /// игра задумана (у «Ангелов» — трое), а это техническая нижняя граница,
+        /// ниже которой сеть бессмысленна. Кого пускать в матч — дело лобби (EPIC 3).
+        /// </summary>
+        private const int MinNetworkPlayers = 2;
+
         [SerializeField] private PlayerSpawner playerSpawner;
         [SerializeField] private MinigameControllerBase minigame;
         [SerializeField] private MinigameCameraController cameraController;
         [Tooltip("Сколько секунд ждать ростер и аватары сетевой сессии")]
         [SerializeField] private float networkRosterTimeout = 15f;
+        [Tooltip("Сколько секунд состав не должен меняться, чтобы считать его собравшимся")]
+        [SerializeField] private float networkRosterSettleTime = 1f;
 
         private void Start()
         {
@@ -75,14 +87,33 @@ namespace Igruha.Core.Minigame
         /// <summary>
         /// Ждём, пока сервер пришлёт ростер и заспавнит персонажей: до этого
         /// у участников нет аватаров, и роли раздать некому.
+        ///
+        /// Мало дождаться непустого состава — надо дождаться, пока он перестанет
+        /// расти. Хост загружает сцену мини-игры сразу, как поднялся сервер, и
+        /// в этот момент в ростере он один: без выдержки мини-игра стартует на
+        /// одного, раздаёт роли на одного, а подключившийся следом клиент
+        /// приезжает в уже идущий раунд, где его нет ни в списке, ни в ролях.
+        /// Замерено 16.08 на host + client: у обоих в мини-игре был один
+        /// участник при ростере из двух.
         /// </summary>
         private IEnumerator WaitForNetworkRoster()
         {
             float deadline = Time.realtimeSinceStartup + networkRosterTimeout;
+            int settledCount = 0;
+            float settledSince = 0f;
 
             while (Time.realtimeSinceStartup < deadline)
             {
-                if (RosterReady())
+                if (!RosterReady(out int count))
+                {
+                    settledCount = 0;
+                }
+                else if (count != settledCount)
+                {
+                    settledCount = count;
+                    settledSince = Time.realtimeSinceStartup;
+                }
+                else if (Time.realtimeSinceStartup - settledSince >= networkRosterSettleTime)
                 {
                     yield break;
                 }
@@ -93,15 +124,23 @@ namespace Igruha.Core.Minigame
             Debug.LogWarning($"{name}: ростер сессии не собрался за {networkRosterTimeout:F0} с — стартуем с тем, что есть", this);
         }
 
-        private static bool RosterReady()
+        /// <summary>Состав готов: играть есть с кем и у всех уже есть персонажи.</summary>
+        private static bool RosterReady(out int count)
         {
+            count = 0;
+
             ISessionScoreboard scoreboard = SessionScoreboard.Current;
-            if (scoreboard == null || scoreboard.Players.Count == 0)
+            if (scoreboard == null)
             {
                 return false;
             }
 
             IReadOnlyList<SessionPlayer> players = scoreboard.Players;
+            if (players.Count < MinNetworkPlayers)
+            {
+                return false;
+            }
+
             for (int i = 0; i < players.Count; i++)
             {
                 if (players[i].Avatar == null)
@@ -110,6 +149,7 @@ namespace Igruha.Core.Minigame
                 }
             }
 
+            count = players.Count;
             return true;
         }
 

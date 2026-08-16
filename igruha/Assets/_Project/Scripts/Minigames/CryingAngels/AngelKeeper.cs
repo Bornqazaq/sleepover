@@ -27,6 +27,8 @@ namespace Igruha.Minigames.CryingAngels
         private VisionCone vision;
         private GameObject rigInstance;
         private bool pushWasEnabled;
+        private bool beamYawDriven;
+        private float beamYaw;
 
         /// <summary>Конус засветки Водящего. По нему в 14.5 считается попадание луча.</summary>
         public VisionCone Vision => vision;
@@ -94,11 +96,55 @@ namespace Igruha.Minigames.CryingAngels
             return Mathf.Max(top - beamDropFromTop, capsule.radius);
         }
 
+        /// <summary>
+        /// Направление луча приходит извне и ставится МИРОВЫМ поворотом, а не
+        /// наследуется от тела.
+        ///
+        /// Это и есть сетевой замок роли. Тело Водящего едет под авторитетом
+        /// владельца (ClientNetworkTransform реплицирует и поворот), поэтому
+        /// конус, висящий дочерним объектом, смотрел бы туда, куда развернулся
+        /// клиент, — и серверный расчёт засветки честно считал бы по подделанному
+        /// мгновенному развороту. Сняв луч с тела, мы оставляем клиенту его
+        /// картинку, а направление, решающее исход, — серверу.
+        ///
+        /// Пока метод не позвали, риг ведёт себя как раньше: висит на теле с
+        /// нулевым локальным поворотом. Соло-режим и болванка-Водящий этого
+        /// не замечают.
+        /// </summary>
+        public void SetBeamYaw(float worldYaw)
+        {
+            beamYawDriven = true;
+            beamYaw = worldYaw;
+            ApplyBeamYaw();
+        }
+
+        /// <summary>
+        /// Поворот тела приезжает по сети и правится физикой в течение всего
+        /// кадра, поэтому мировой поворот рига надо переставлять после всех
+        /// движений, а не один раз в момент получения значения.
+        /// </summary>
+        private void LateUpdate()
+        {
+            if (beamYawDriven)
+            {
+                ApplyBeamYaw();
+            }
+        }
+
+        private void ApplyBeamYaw()
+        {
+            if (rigInstance != null)
+            {
+                rigInstance.transform.rotation = Quaternion.Euler(0f, beamYaw, 0f);
+            }
+        }
+
         /// <summary>Роль ушла: вернуть персонажу движение, уязвимость и удар.</summary>
         public void Detach()
         {
             motor.MovementLocked = false;
             motor.ImpulseImmune = false;
+            beamYawDriven = false;
 
             if (pushAbility != null)
             {

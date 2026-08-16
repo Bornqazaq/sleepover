@@ -4879,6 +4879,7 @@ GameObject:
   - component: {fileID: 756139779}
   - component: {fileID: 756139780}
   - component: {fileID: 756139781}
+  - component: {fileID: 756139782}
   m_Layer: 0
   m_Name: MinigameManager
   m_TagString: Untagged
@@ -5001,6 +5002,19 @@ MonoBehaviour:
   localPlayerIsKeeper: 0
   roleSwitchKey: 30
   driveDummyRunners: 1
+  driveDummyKeeper: 1
+--- !u!114 &756139782
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 756139773}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fed3c7f41557148e986ec2675d934fed, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.CryingAngels.CryingAngelsNetwork
 --- !u!1 &760578456
 GameObject:
   m_ObjectHideFlags: 0
