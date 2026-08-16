@@ -212,7 +212,7 @@ namespace Igruha.Minigames.CryingAngels
         protected override void OnRoundEnded()
         {
             SetDummyBotsRunning(false);
-            RestoreTouchedRunners();
+            RestoreRunnersAfterRound();
             SetBeamEnabled(false);
             ReleaseAllRunners();
             PublishRunnerStates();
@@ -386,8 +386,59 @@ namespace Igruha.Minigames.CryingAngels
         /// <summary>Решение авторитета: фонарь загорелся или погас.</summary>
         private void SetBeamEnabled(bool enabled)
         {
+            if (enabled)
+            {
+                VerifyBeamTargets();
+            }
+
             ApplyBeamEnabled(enabled);
             network?.PublishBeam(enabled);
+        }
+
+        /// <summary>
+        /// Фонарь загорается — убедиться, что ему есть кого ловить.
+        ///
+        /// Луч решает по списку тел, собранному в <see cref="RebindVision"/>,
+        /// и по конусу с рига Водящего. Если список или конус разошлись с
+        /// составом, раунд идёт вхолостую: игрок физически стоит в луче, но
+        /// целью не считается — ни заморозки, ни счётчика окаменения. Ровно
+        /// так выглядела жалоба с плейтеста 16.08 («иду к свету и ничего»),
+        /// и разбирать её было нечем: в консоли не было ни строчки.
+        ///
+        /// Список пересобирается на месте: <see cref="RebindVision"/>
+        /// идемпотентен и стоит копейки, а раунд без единой цели — это раунд,
+        /// который игрок считает сломанной игрой. Предупреждение остаётся
+        /// громким: пересборка лечит симптом, а причину надо видеть.
+        /// </summary>
+        private void VerifyBeamTargets()
+        {
+            if (!HasAuthority)
+            {
+                return;
+            }
+
+            int expected = 0;
+            for (int i = 0; i < runners.Count; i++)
+            {
+                if (!runners[i].Touched && runners[i].Body != null)
+                {
+                    expected++;
+                }
+            }
+
+            if (expected == 0 || (runnerBodies.Count > 0 && keeperVision != null))
+            {
+                return;
+            }
+
+            Debug.LogWarning($"🕯️ Плачущие ангелы: фонарь зажёгся, а ловить некого — целей {runnerBodies.Count} " +
+                             $"при {expected} Бегущих, конус {(keeperVision != null ? "есть" : "ПОТЕРЯН")}. " +
+                             "Пересобираю список: без этого раунд пройдёт без заморозок", this);
+
+            RebindVision();
+
+            Debug.Log($"🕯️ Плачущие ангелы: после пересборки целей {runnerBodies.Count}, " +
+                      $"конус {(keeperVision != null ? "есть" : "ПОТЕРЯН")}");
         }
 
         /// <summary>Фонарь переключил сервер — применяем у себя.</summary>
@@ -535,15 +586,21 @@ namespace Igruha.Minigames.CryingAngels
             // Одна строка в консоль на каждую раздачу: по ней с плейтеста видно,
             // собрался ли состав и досталась ли роль. Без неё «у меня не
             // работает» приходится воспроизводить вслепую.
-            if (keeperPlayerId == SpecialRoleHistory.NoPlayer)
-            {
-                Debug.LogWarning($"🕯️ Плачущие ангелы: Водящего НЕТ (участников {Players.Count}). " +
-                                 "Фонарь не загорится: роль раздаётся с двух участников", this);
-            }
-            else
+            //
+            // Про отсутствие Водящего предупреждает только авторитет. У клиента
+            // первая раздача идёт всегда до того, как расклад приедет из сети,
+            // то есть «Водящего нет» там — норма, а не поломка: предупреждение
+            // в его консоли сбивало бы с толку ровно в том разборе, ради
+            // которого эти строки и заведены.
+            if (keeperPlayerId != SpecialRoleHistory.NoPlayer)
             {
                 Debug.Log($"🕯️ Плачущие ангелы: Водящий — игрок {keeperPlayerId}, Бегущих {runners.Count}, " +
                           $"потолок поворота {KeeperTurnSpeed:F0}°/с");
+            }
+            else if (HasAuthority)
+            {
+                Debug.LogWarning($"🕯️ Плачущие ангелы: Водящего НЕТ (участников {Players.Count}). " +
+                                 "Фонарь не загорится: роль раздаётся с двух участников", this);
             }
 
             RebindVision();
@@ -641,7 +698,14 @@ namespace Igruha.Minigames.CryingAngels
             if (finished && !runner.Touched)
             {
                 runner.Touched = true;
-                ApplyRunnerRetired(runner);
+
+                // Снимать дошедшего с арены имеет смысл только внутри раунда.
+                // Если флаг приехал уже к результатам, аватар обязан остаться:
+                // конец раунда только что вернул туда всех.
+                if (RoundActive)
+                {
+                    ApplyRunnerRetired(runner);
+                }
             }
             else if (!finished && runner.Touched)
             {
@@ -1331,18 +1395,28 @@ namespace Igruha.Minigames.CryingAngels
         }
 
         /// <summary>
-        /// К экрану результатов дошедшие возвращаются на арену: их сняли только
+        /// К экрану результатов снятые возвращаются на арену: их убрали только
         /// на время раунда, а на итогах в зале обязаны стоять все.
+        ///
+        /// Возвращаются все записи, а не только помеченные дошедшими: у клиента
+        /// флаг «дошёл» и фаза раунда приезжают разными сообщениями, и порядок
+        /// их прихода ничем не задан. Когда фаза обгоняла флаг, клиент
+        /// заканчивал раунд, ещё ничего не восстановив, а следом прятал аватар —
+        /// и на экране результатов свой Бегущий пропадал с арены, хотя у
+        /// остальных он там стоял. Замерено 16.08 на host + client.
         ///
         /// Наблюдение при этом не выключается: выход из него вернул бы игроку
         /// управление, а на результатах все стоят на месте по правилам шаблона.
+        ///
+        /// Флаг «дошёл» здесь не трогаем: по нему сразу после этого считаются
+        /// места (<see cref="CollectResults"/>), а чистит его начало раунда.
         /// </summary>
-        private void RestoreTouchedRunners()
+        private void RestoreRunnersAfterRound()
         {
             for (int i = 0; i < runners.Count; i++)
             {
                 RunnerRecord runner = runners[i];
-                if (runner.Touched && runner.Avatar != null)
+                if (runner.Avatar != null && !runner.Avatar.gameObject.activeSelf)
                 {
                     runner.Avatar.gameObject.SetActive(true);
                 }
