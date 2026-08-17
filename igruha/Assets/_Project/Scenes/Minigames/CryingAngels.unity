@@ -4902,7 +4902,8 @@ MonoBehaviour:
   playerSpawner: {fileID: 1638957352}
   minigame: {fileID: 756139781}
   cameraController: {fileID: 1246980261}
-  networkRosterTimeout: 15
+  networkRosterTimeout: 180
+  networkRosterSettleTime: 1
 --- !u!114 &756139776
 MonoBehaviour:
   m_ObjectHideFlags: 0

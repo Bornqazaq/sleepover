@@ -5272,6 +5272,7 @@ MonoBehaviour:
   resultsText: {fileID: 11342177}
   spectatorPanel: {fileID: 0}
   spectatorText: {fileID: 0}
+  countdownText: {fileID: 0}
 --- !u!224 &958440930
 RectTransform:
   m_ObjectHideFlags: 0
@@ -11744,7 +11745,8 @@ MonoBehaviour:
   playerSpawner: {fileID: 1239973000}
   minigame: {fileID: 1836261063}
   cameraController: {fileID: 1258992254}
-  networkRosterTimeout: 15
+  networkRosterTimeout: 180
+  networkRosterSettleTime: 1
 --- !u!114 &1836261063
 MonoBehaviour:
   m_ObjectHideFlags: 0
