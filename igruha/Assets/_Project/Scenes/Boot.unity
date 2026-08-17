@@ -526,6 +526,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c5cd5abbc5835804b8f1d5452d1447fe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Igruha.Networking::Igruha.Networking.ConnectionApprovalManager
+  roster: {fileID: 11400000, guid: e3b6a37137cf96c419aef650157ec842, type: 2}
 --- !u!114 &1120909894
 MonoBehaviour:
   m_ObjectHideFlags: 0
