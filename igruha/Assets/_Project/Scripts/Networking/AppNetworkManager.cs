@@ -2,6 +2,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Unity.Netcode;
+using Unity.Netcode.Transports.UTP;
 using Igruha.Networking;
 
 /// <summary>
@@ -50,18 +51,62 @@ public class AppNetworkManager : MonoBehaviour
 
         if (role == NetworkStartRole.Client)
         {
-            Debug.Log($"🟢 Роль CLIENT ({reason}) — подключаюсь к хосту");
+            ApplyEndpointArguments();
+            Debug.Log($"🟢 Роль CLIENT ({reason}) — подключаюсь к {DescribeEndpoint()}");
             giveUpTime = Time.realtimeSinceStartup + connectionTimeout;
             SubscribeToClientEvents();
             StartClient();
             return;
         }
 
+        ApplyEndpointArguments();
+
         // Сцену грузим только после того, как сервер реально поднялся:
         // до этого SceneManager ещё не готов принимать запросы
         NetworkManager.Singleton.OnServerStarted += HandleServerStarted;
         NetworkManager.Singleton.StartHost();
-        Debug.Log($"🟢 Роль HOST ({reason}) — NetworkManager поднят (с Connection Approval)");
+        Debug.Log($"🟢 Роль HOST ({reason}) — слушаю {DescribeEndpoint()} (с Connection Approval)");
+    }
+
+    /// <summary>
+    /// Перекрыть адрес и порт транспорта аргументами запуска.
+    ///
+    /// Адрес хоста нельзя зашить в сцену: у каждой катки он свой — домашняя
+    /// сеть, Tailscale, чужая квартира. Сцена задаёт значение по умолчанию,
+    /// <c>--host</c> и <c>--port</c> его перекрывают, и один и тот же билд
+    /// годится всем.
+    ///
+    /// Хосту адрес не меняем: он слушает на том, что стоит в сцене
+    /// (<c>ServerListenAddress</c>), и это должен быть <c>0.0.0.0</c>, иначе
+    /// снаружи к нему не подключиться.
+    /// </summary>
+    private void ApplyEndpointArguments()
+    {
+        UnityTransport transport = NetworkManager.Singleton.NetworkConfig.NetworkTransport as UnityTransport;
+        if (transport == null)
+        {
+            Debug.LogWarning("⚠️ Транспорт не UnityTransport — аргументы --host/--port пропущены");
+            return;
+        }
+
+        if (NetworkLaunchArguments.TryGetHostAddress(out string address))
+        {
+            transport.ConnectionData.Address = address;
+        }
+
+        if (NetworkLaunchArguments.TryGetPort(out ushort port))
+        {
+            transport.ConnectionData.Port = port;
+        }
+    }
+
+    /// <summary>Куда стучимся или что слушаем — одной строкой для лога.</summary>
+    private string DescribeEndpoint()
+    {
+        UnityTransport transport = NetworkManager.Singleton.NetworkConfig.NetworkTransport as UnityTransport;
+        return transport != null
+            ? $"{transport.ConnectionData.Address}:{transport.ConnectionData.Port}"
+            : "неизвестный транспорт";
     }
 
     private void OnDestroy()

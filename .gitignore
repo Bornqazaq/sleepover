@@ -136,3 +136,6 @@ InitTestScene*.unity*
 # Отладочные скриншоты Unity MCP — рабочий мусор, в репозиторий не нужны
 igruha/Assets/Screenshots/
 igruha/Assets/Screenshots.meta
+
+# Сборки игры — наружу раздаём архивом, в репозиторий не кладём
+Build/

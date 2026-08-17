@@ -16,7 +16,8 @@ namespace Igruha.Networking
     /// Решает, поднимать инстанс хостом или клиентом.
     ///
     /// Три источника, в порядке убывания приоритета:
-    /// 1. Аргумент запуска <c>--client</c> — сценарий с двумя билдами.
+    /// 1. Аргумент запуска <c>--client</c> — сценарий с билдами (см.
+    ///    <see cref="NetworkLaunchArguments"/>).
     /// 2. Тег Multiplayer Play Mode («Host» / «Client») — виртуальные игроки в редакторе.
     /// 3. Признак «это не главный редактор» — виртуальный игрок без тега.
     ///
@@ -28,13 +29,11 @@ namespace Igruha.Networking
         public const string HostTag = "Host";
         public const string ClientTag = "Client";
 
-        private const string ClientArgument = "--client";
-
         public static NetworkStartRole Resolve(out string reason)
         {
-            if (HasClientArgument())
+            if (NetworkLaunchArguments.HasClientFlag())
             {
-                reason = $"аргумент запуска {ClientArgument}";
+                reason = $"аргумент запуска {NetworkLaunchArguments.ClientFlag}";
                 return NetworkStartRole.Client;
             }
 
@@ -60,12 +59,6 @@ namespace Igruha.Networking
 
             reason = "главный редактор";
             return NetworkStartRole.Host;
-        }
-
-        private static bool HasClientArgument()
-        {
-            return Array.Exists(Environment.GetCommandLineArgs(),
-                argument => argument.Equals(ClientArgument, StringComparison.OrdinalIgnoreCase));
         }
 
         private static bool TryResolveByPlayModeTag(out NetworkStartRole role, out string matchedTag)
