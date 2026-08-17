@@ -69,6 +69,14 @@ namespace Igruha.Core.Interaction
                 return;
             }
 
+            // Локальное взаимодействие серверу не адресуют: у таких объектов нет
+            // NetworkObject, и мост отклонил бы намерение целиком (см. ILocalInteraction).
+            if (target is ILocalInteraction)
+            {
+                ExecuteInteraction(targetComponent.gameObject);
+                return;
+            }
+
             if (relay != null && relay.TryRelayInteract(targetComponent.gameObject))
             {
                 return;
