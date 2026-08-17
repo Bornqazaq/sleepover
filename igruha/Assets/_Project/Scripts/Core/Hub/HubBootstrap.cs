@@ -26,7 +26,11 @@ namespace Igruha.Core.Hub
         [SerializeField] private CharacterSelectScreen characterSelect;
         [SerializeField] private EmoteWheel emoteWheel;
         [SerializeField] private CharacterRoster roster;
-        [SerializeField] private float networkRosterTimeout = 15f;
+
+        [Tooltip("Сколько секунд ждать, пока сервер соберёт состав и у всех появятся аватары. " +
+                 "Считаем сроком человеческого сбора, а не техническим: в билде люди запускают " +
+                 "игру вразнобой, и 15 с хватало только на редакторский стенд")]
+        [SerializeField] private float networkRosterTimeout = 180f;
 
         private void Start()
         {
@@ -81,7 +85,7 @@ namespace Igruha.Core.Hub
                 yield break;
             }
 
-            BindLocalPlayer(players);
+            yield return BindLocalPlayer(players, networked);
         }
 
         private IEnumerator WaitForNetworkRoster()
@@ -114,15 +118,49 @@ namespace Igruha.Core.Hub
             return true;
         }
 
-        private void BindLocalPlayer(IReadOnlyList<SessionPlayer> players)
+        /// <summary>
+        /// Навести камеру, колесо эмоций и подсказку у якоря на персонажа этой машины.
+        ///
+        /// В сети берём **только своего** аватара и ждём его столько же, сколько ждали
+        /// состав. Раньше на месте ожидания стоял откат к <c>players[0]</c> — и когда
+        /// свой персонаж не успевал приехать, клиент молча получал камеру, эмоции и
+        /// взаимодействие, привязанные к аватару хоста. Со стороны это выглядит как
+        /// «камера смотрит куда-то в комнату, Tab и E не работают», и найти причину
+        /// по такому симптому почти невозможно. Лучше громко не привязаться вовсе.
+        /// </summary>
+        private IEnumerator BindLocalPlayer(IReadOnlyList<SessionPlayer> players, bool networked)
         {
-            SessionPlayer local = SessionScoreboard.Current?.LocalPlayer;
-            PlayerController avatar = local?.Avatar != null ? local.Avatar : players[0].Avatar;
-            if (avatar == null)
+            PlayerController avatar;
+
+            if (networked)
             {
-                Debug.LogError($"{name}: у аватара нет PlayerController — камере не за кого цепляться", this);
-                return;
+                float deadline = Time.realtimeSinceStartup + networkRosterTimeout;
+                while ((avatar = SessionScoreboard.Current?.LocalPlayer?.Avatar) == null
+                       && Time.realtimeSinceStartup < deadline)
+                {
+                    yield return null;
+                }
+
+                if (avatar == null)
+                {
+                    Debug.LogError($"{name}: за {networkRosterTimeout:F0} с не приехал СВОЙ персонаж — " +
+                                   "камера, колесо эмоций и взаимодействие остались непривязанными. " +
+                                   "Чужого аватара не подставляем: это выглядело бы как сломанная игра", this);
+                    yield break;
+                }
             }
+            else
+            {
+                // Без сети «свой» — первый заспавненный, остальные болванки (см. SessionManager).
+                avatar = SessionScoreboard.Current?.LocalPlayer?.Avatar ?? players[0].Avatar;
+                if (avatar == null)
+                {
+                    Debug.LogError($"{name}: у аватара нет PlayerController — камере не за кого цепляться", this);
+                    yield break;
+                }
+            }
+
+            RestoreLocalControl(avatar);
 
             if (cameraController != null)
             {
@@ -144,6 +182,32 @@ namespace Igruha.Core.Hub
             {
                 emoteWheel.BindLocalPlayer(emotes);
             }
+        }
+
+        /// <summary>
+        /// Вернуть игроку управление. Персонаж переезжает между сценами вместе со
+        /// своим состоянием, а экран результатов мини-игры ввод глушит
+        /// (<c>MinigameControllerBase.EnterResults</c>) — без этого из мини-игры
+        /// возвращаешься в хаб обездвиженным (IGR-324).
+        ///
+        /// Хаб — единственное место, где управление обязано быть включено всегда,
+        /// откуда бы в него ни пришли, поэтому чиним здесь, а не в мини-игре.
+        /// </summary>
+        private static void RestoreLocalControl(PlayerController avatar)
+        {
+            if (!avatar.TryGetComponent(out PlayerInputReader reader))
+            {
+                return;
+            }
+
+            // Болванок и чужие копии будить нельзя — им управление снято навсегда.
+            if (!reader.LocallyControlled || reader.enabled)
+            {
+                return;
+            }
+
+            reader.enabled = true;
+            Debug.Log($"🎮 [{avatar.name}] управление возвращено после мини-игры");
         }
     }
 }
