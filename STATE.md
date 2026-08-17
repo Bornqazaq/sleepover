@@ -520,6 +520,6 @@ maximum allowed limit` каждый кадр: GPU-скиннинг не влез
 
 ## 5. Известные расхождения в документации
 
-- `EPIC_2_AUDIT.md` и `EPIC_2_COMPLETION_SUMMARY.md` противоречат друг другу и Linear (Relay: аудит «не установлен», summary «Done», Linear «Backlog»). **Верить Linear и коду, не этим файлам.** Кандидаты на удаление.
+- `EPIC_2_AUDIT.md`, `EPIC_2_COMPLETION_SUMMARY.md`, `MANUAL_SETUP_AND_TEST.md` и `PREVIEW CONTENT.md` **удалены 17.08** — противоречили друг другу, Linear и коду. Единственный статус проекта — этот файл, задачи — в Linear.
 - `igruha/docs/FABLE_MASTER_PROMPT.md` ссылается на несуществующие `GDD.md`, `HANDOFF.md` и путь `docs/images/`.
 - GDD описывает хаб как комнату подростка — устарело, актуально — подвальная game room по схемам в `igruha/docs/img/`.

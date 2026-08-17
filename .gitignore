@@ -139,3 +139,13 @@ igruha/Assets/Screenshots.meta
 
 # Сборки игры — наружу раздаём архивом, в репозиторий не кладём
 Build/
+
+# Заглушки пустого Unity-проекта, если Hub случайно откроют на корне репозитория,
+# а не на igruha/. Настоящий проект — только igruha/. (17.08)
+/Assets/
+/Library/
+/Logs/
+/Temp/
+/UserSettings/
+/ProjectSettings/
+Builds/
