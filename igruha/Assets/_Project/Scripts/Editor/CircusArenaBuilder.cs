@@ -411,6 +411,27 @@ namespace Igruha.EditorTools
             var slot = new GameObject("PropSlot");
             slot.transform.SetParent(anchor, false);
             slot.transform.localPosition = Vector3.zero;
+
+            // Точка респавна — ребёнок клетки, поэтому едет вниз вместе с ней
+            // сама собой. Отдельная от точки спавна в _Spawns: ту собирает
+            // SpawnPointSet, и она обязана лежать под его объектом.
+            var respawn = new GameObject("RespawnPoint");
+            respawn.transform.SetParent(anchor, false);
+            respawn.transform.localPosition = new Vector3(0f, 0.05f, -config.CageInnerSize * 0.25f);
+            respawn.transform.localRotation = Quaternion.identity;
+
+            var rigidbody = anchorGo.AddComponent<Rigidbody>();
+            rigidbody.isKinematic = true;
+            rigidbody.useGravity = false;
+
+            anchorGo.AddComponent<RidePlatform>();
+            var station = anchorGo.AddComponent<CageStation>();
+            var serialized = new SerializedObject(station);
+            serialized.FindProperty("doorLeft").objectReferenceValue = anchor.Find("Floor/DoorLeft");
+            serialized.FindProperty("doorRight").objectReferenceValue = anchor.Find("Floor/DoorRight");
+            serialized.FindProperty("propSlot").objectReferenceValue = slot.transform;
+            serialized.FindProperty("respawnPoint").objectReferenceValue = respawn.transform;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
         /// <summary>
