@@ -21111,10 +21111,12 @@ GameObject:
   - component: {fileID: 756139778}
   - component: {fileID: 756139777}
   - component: {fileID: 756139776}
-  - component: {fileID: 756139775}
   - component: {fileID: 756139774}
   - component: {fileID: 756139779}
   - component: {fileID: 756139780}
+  - component: {fileID: 756139783}
+  - component: {fileID: 756139782}
+  - component: {fileID: 756139781}
   m_Layer: 0
   m_Name: MinigameManager
   m_TagString: Untagged
@@ -21135,29 +21137,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Minigame.MinigameBootstrap
   playerSpawner: {fileID: 1638957352}
-  minigame: {fileID: 756139775}
+  minigame: {fileID: 756139781}
   cameraController: {fileID: 1246980261}
   emoteWheel: {fileID: 1069350558}
   networkRosterTimeout: 180
   networkRosterSettleTime: 1
---- !u!114 &756139775
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 756139773}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c4a91bb9a7c26a84ba0310fa7338e7d5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Minigame.TemplateMinigame
-  definition: {fileID: 11400000, guid: fd51a5bd609e749f3a37d921b9573782, type: 2}
-  roundTimer: {fileID: 756139776}
-  tutorialScreen: {fileID: 150850385}
-  hud: {fileID: 150850380}
-  resultsDisplaySeconds: 12
-  hubSceneName: Hub
 --- !u!114 &756139776
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -21231,6 +21215,62 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Igruha.Networking::Igruha.Networking.NetworkMinigameBridge
   timeSyncRate: 10
+--- !u!114 &756139781
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 756139773}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1efe1c0ba85a94769b1f4b43c6b50890, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.Stopwatch.StopwatchMinigame
+  definition: {fileID: 11400000, guid: fd51a5bd609e749f3a37d921b9573782, type: 2}
+  roundTimer: {fileID: 756139776}
+  tutorialScreen: {fileID: 150850385}
+  hud: {fileID: 150850380}
+  resultsDisplaySeconds: 12
+  hubSceneName: Hub
+  config: {fileID: 11400000, guid: a84e46e225c09448cbd19fbbc9f20700, type: 2}
+  arenaConfig: {fileID: 11400000, guid: b04820a54f66a42f9803fc382def0bb2, type: 2}
+  stageState: {fileID: 756139783}
+  scoreboard: {fileID: 756139782}
+  cages:
+  - {fileID: 1284055382}
+  - {fileID: 1633846725}
+  - {fileID: 1066434278}
+  - {fileID: 2123646447}
+  - {fileID: 1536973912}
+  - {fileID: 498455309}
+  - {fileID: 206595857}
+  - {fileID: 974644604}
+--- !u!114 &756139782
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 756139773}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5a4fb1e0b74ab432496db29f66827498, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.Stopwatch.StopwatchScoreboard
+  board: {fileID: 1462142628}
+--- !u!114 &756139783
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 756139773}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31ab994a3f5cf4530b6c0cdd359e0081, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Minigame.MinigameStageState
 --- !u!1 &759097975
 GameObject:
   m_ObjectHideFlags: 0
@@ -48279,7 +48319,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Spawning.PlayerSpawner
   roster: {fileID: 11400000, guid: e3b6a37137cf96c419aef650157ec842, type: 2}
   spawnPoints: {fileID: 1638957353}
-  debugPlayerCount: 3
+  debugPlayerCount: 4
   defaultRole: 0
 --- !u!114 &1638957353
 MonoBehaviour:
