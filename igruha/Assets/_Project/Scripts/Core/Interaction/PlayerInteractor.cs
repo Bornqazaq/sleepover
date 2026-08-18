@@ -40,6 +40,9 @@ namespace Igruha.Core.Interaction
 
         public IInteractable CurrentInteractable { get; private set; }
 
+        /// <summary>Кого сейчас держим. Null — ничего не держим.</summary>
+        private IHoldInteractable heldTarget;
+
         private void Awake()
         {
             self = GetComponent<PlayerController>();
@@ -51,7 +54,14 @@ namespace Igruha.Core.Interaction
             // Подсветка — чисто локальная: это UI, синхронизировать её не надо.
             CurrentInteractable = FindNearest();
 
-            if (inputReader == null || !inputReader.InteractPressed)
+            if (inputReader == null)
+            {
+                return;
+            }
+
+            UpdateHold();
+
+            if (!inputReader.InteractPressed)
             {
                 return;
             }
@@ -63,7 +73,51 @@ namespace Igruha.Core.Interaction
                 return;
             }
 
+            // Удерживаемые интерактивы разовым нажатием не дёргаем: одно нажатие
+            // означало бы сразу и «сработай», и «начни держать».
+            if (CurrentInteractable is IHoldInteractable)
+            {
+                return;
+            }
+
             SendInteraction(CurrentInteractable);
+        }
+
+        /// <summary>
+        /// Начало и конец удержания. Отпускание отрабатывается всегда, даже
+        /// если игрок успел отойти или цель перестала быть доступной: иначе
+        /// объект остался бы «зажатым» навсегда.
+        /// </summary>
+        private void UpdateHold()
+        {
+            bool held = inputReader.InteractHeld;
+
+            if (heldTarget != null && !held)
+            {
+                heldTarget.HoldChanged(self, false);
+                heldTarget = null;
+                return;
+            }
+
+            if (heldTarget != null || !held)
+            {
+                return;
+            }
+
+            if (CurrentInteractable is IHoldInteractable candidate && candidate.CanInteract(self))
+            {
+                heldTarget = candidate;
+                heldTarget.HoldChanged(self, true);
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (heldTarget != null)
+            {
+                heldTarget.HoldChanged(self, false);
+                heldTarget = null;
+            }
         }
 
         /// <summary>
