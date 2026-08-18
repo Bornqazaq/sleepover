@@ -1,7 +1,11 @@
+using System.Collections.Generic;
+using TMPro;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UI;
 using Igruha.Core.Arena;
 using Igruha.Core.Spawning;
+using Igruha.Core.UI;
 using Igruha.Minigames.Circus;
 
 namespace Igruha.EditorTools
@@ -28,6 +32,20 @@ namespace Igruha.EditorTools
         private const float CageFloorThickness = 0.1f;
         private const float ChainThickness = 0.1f;
         private const float ScoreboardDepth = 0.3f;
+
+        // Табло. Единицы канваса — сантиметры (масштаб 0.01), поэтому кегль
+        // читается прямо в метрах: 30 единиц = 0.30 м высоты символа.
+        private const float BoardUnitsPerMeter = 100f;
+        private const float BoardCanvasScale = 0.01f;
+        private const float BoardTitleBand = 52f;
+        private const float BoardSubtitleBand = 40f;
+        private const float BoardTitleFont = 46f;
+        private const float BoardSubtitleFont = 34f;
+        private const float BoardRowFont = 26f;
+        private const float BoardRowHeight = 30f;
+        private const float BoardPadding = 12f;
+        private const int BoardColumns = 2;
+        private const int BoardRowCapacity = 8;
 
         private const int RimSegments = 48;
         private const int TentFloorSegments = 48;
@@ -203,16 +221,146 @@ namespace Igruha.EditorTools
             Transform board = ResetGroup(root, "Scoreboard");
             board.position = new Vector3(0f, config.ScoreboardHeight, 0f);
 
+            TMP_FontAsset font = FindFont();
+            var screens = new List<WorldScoreboardFace>(4);
             float half = config.ScoreboardFaceWidth * 0.5f;
+
             for (int i = 0; i < 4; i++)
             {
                 Vector3 dir = DirectionAt(i, 4);
+
                 Transform face = MakeBox(board, $"Face_{i + 1}", 0);
                 StripCollider(face);
                 face.localPosition = dir * half;
                 face.localRotation = Quaternion.LookRotation(dir);
                 face.localScale = new Vector3(config.ScoreboardFaceWidth, config.ScoreboardFaceHeight, ScoreboardDepth);
+
+                // Канвас — не ребёнок панели: у панели неравномерный масштаб,
+                // и текст на ней растянуло бы вместе с ней.
+                screens.Add(BuildScoreboardScreen(board, config, font, dir, i));
             }
+
+            var scoreboard = board.GetComponent<WorldScoreboard>();
+            if (scoreboard == null)
+            {
+                scoreboard = board.gameObject.AddComponent<WorldScoreboard>();
+            }
+
+            scoreboard.SetFaces(screens);
+            scoreboard.Clear();
+        }
+
+        /// <summary>
+        /// Экран одной грани: world-space канвас с заголовком, строкой задания
+        /// и строками игроков в два столбца.
+        ///
+        /// Столбца два, а не один, из-за высоты грани: 8 строк в 2.16 м дают
+        /// по 0.19 м на строку, и с дальней клетки (12 м) это уже нечитаемо.
+        /// Два столбца по четыре строки поднимают строку до 0.30 м.
+        /// </summary>
+        private static WorldScoreboardFace BuildScoreboardScreen(Transform parent, CircusArenaConfig config,
+            TMP_FontAsset font, Vector3 dir, int index)
+        {
+            float width = config.ScoreboardFaceWidth * BoardUnitsPerMeter;
+            float height = config.ScoreboardFaceHeight * BoardUnitsPerMeter;
+
+            var go = new GameObject($"Screen_{index + 1}", typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            var rect = (RectTransform)go.transform;
+            rect.localPosition = dir * (config.ScoreboardFaceWidth * 0.5f + ScoreboardDepth * 0.5f + 0.01f);
+            // Канвас читается со стороны своего -Z, поэтому наружу смотрит
+            // LookRotation(-dir), а не (dir): с (dir) текст выходит зеркальным.
+            rect.localRotation = Quaternion.LookRotation(-dir);
+            rect.localScale = Vector3.one * BoardCanvasScale;
+            rect.sizeDelta = new Vector2(width, height);
+
+            var canvas = go.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.WorldSpace;
+
+            var face = go.AddComponent<WorldScoreboardFace>();
+
+            TMP_Text title = MakeBoardText(rect, "Title", font, BoardTitleFont, TextAlignmentOptions.Center,
+                new Vector2(0f, height * 0.5f - BoardTitleBand * 0.5f), new Vector2(width - BoardPadding * 2f, BoardTitleBand));
+            TMP_Text subtitle = MakeBoardText(rect, "Subtitle", font, BoardSubtitleFont, TextAlignmentOptions.Center,
+                new Vector2(0f, height * 0.5f - BoardTitleBand - BoardSubtitleBand * 0.5f), new Vector2(width - BoardPadding * 2f, BoardSubtitleBand));
+
+            int rowsPerColumn = Mathf.CeilToInt(BoardRowCapacity / (float)BoardColumns);
+            float columnWidth = width / BoardColumns;
+            float rowsTop = height * 0.5f - BoardTitleBand - BoardSubtitleBand;
+
+            var labels = new TMP_Text[BoardRowCapacity];
+            var values = new TMP_Text[BoardRowCapacity];
+            for (int i = 0; i < BoardRowCapacity; i++)
+            {
+                int column = i / rowsPerColumn;
+                int row = i % rowsPerColumn;
+                float columnCentre = -width * 0.5f + columnWidth * (column + 0.5f);
+                float y = rowsTop - BoardRowHeight * (row + 0.5f);
+
+                labels[i] = MakeBoardText(rect, $"Row_{i + 1}_Label", font, BoardRowFont, TextAlignmentOptions.MidlineLeft,
+                    new Vector2(columnCentre - columnWidth * 0.16f, y), new Vector2(columnWidth * 0.6f, BoardRowHeight));
+                values[i] = MakeBoardText(rect, $"Row_{i + 1}_Value", font, BoardRowFont, TextAlignmentOptions.MidlineRight,
+                    new Vector2(columnCentre + columnWidth * 0.32f, y), new Vector2(columnWidth * 0.3f, BoardRowHeight));
+            }
+
+            var serialized = new SerializedObject(face);
+            serialized.FindProperty("title").objectReferenceValue = title;
+            serialized.FindProperty("subtitle").objectReferenceValue = subtitle;
+            SerializedProperty labelsProperty = serialized.FindProperty("rowLabels");
+            SerializedProperty valuesProperty = serialized.FindProperty("rowValues");
+            labelsProperty.arraySize = BoardRowCapacity;
+            valuesProperty.arraySize = BoardRowCapacity;
+            for (int i = 0; i < BoardRowCapacity; i++)
+            {
+                labelsProperty.GetArrayElementAtIndex(i).objectReferenceValue = labels[i];
+                valuesProperty.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
+            }
+
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            return face;
+        }
+
+        private static TMP_Text MakeBoardText(RectTransform parent, string name, TMP_FontAsset font,
+            float fontSize, TextAlignmentOptions alignment, Vector2 position, Vector2 size)
+        {
+            var go = new GameObject(name, typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            var rect = (RectTransform)go.transform;
+            rect.anchorMin = new Vector2(0.5f, 0.5f);
+            rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = position;
+            rect.sizeDelta = size;
+
+            var text = go.AddComponent<TextMeshProUGUI>();
+            if (font != null)
+            {
+                text.font = font;
+            }
+
+            // Автокегль вниз от заданного: длина заголовка зависит от игры
+            // («ПОДРАУНД 4 — НЕ МЕНЬШЕ» против «ИТОГИ»), и без него длинный
+            // вариант вылезает за панель. Порядок важен: присваивание fontSize
+            // после включения автокегля сбрасывает режим, и текст снова растёт.
+            text.fontSizeMin = fontSize * 0.45f;
+            text.fontSizeMax = fontSize;
+            text.enableAutoSizing = true;
+            text.alignment = alignment;
+            text.textWrappingMode = TextWrappingModes.NoWrap;
+            text.raycastTarget = false;
+            text.text = string.Empty;
+            return text;
+        }
+
+        private static TMP_FontAsset FindFont()
+        {
+            if (TMP_Settings.defaultFontAsset != null)
+            {
+                return TMP_Settings.defaultFontAsset;
+            }
+
+            TextMeshProUGUI existing = Object.FindAnyObjectByType<TextMeshProUGUI>(FindObjectsInactive.Include);
+            return existing != null ? existing.font : null;
         }
 
         private static void BuildCages(Transform root, CircusArenaConfig config, int groundLayer)
