@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 63c25776d7b644a47b0249fc9236489e, type: 3}
+  m_Name: StopwatchConfig
+  m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.Stopwatch.StopwatchConfig
+  briefingSeconds: 3
+  measureWindowSeconds: 15
+  resultsSeconds: 4
+  cageDescendSeconds: 2
+  hatchOpenSeconds: 2
+  pauseSeconds: 1
+  targetLowRange: {x: 3, y: 8}
+  targetHighRange: {x: 5, y: 10}
+  targetGrowthPerSubround: 0.8
+  targetRounding: 0.5
+  rosterRules:
+  - players: 2
+    errorLimit: 3
+    worstPerSubround: 1
+  - players: 3
+    errorLimit: 3
+    worstPerSubround: 1
+  - players: 4
+    errorLimit: 2
+    worstPerSubround: 1
+  - players: 5
+    errorLimit: 2
+    worstPerSubround: 1
+  - players: 6
+    errorLimit: 2
+    worstPerSubround: 2
+  - players: 7
+    errorLimit: 2
+    worstPerSubround: 2
+  - players: 8
+    errorLimit: 2
+    worstPerSubround: 2
+  twoPlayerTieThreshold: 0.05
+  bearSpeed: 5.5
+  bearFirstAttackDelay: 3
+  bearStrikeRadius: 1.5
+  bearKnockbackSpeed: 8
+  bearKnockdownDuration: 1.5
+  bodyDespawnDelay: 1.5
+  bearPatrolSpeed: 2.5
+  distractionFirstSubround: 3
+  distractionRampSubrounds: 4
+  tickPeriodRange: {x: 0.75, y: 1.35}
+  roarIntervalRange: {x: 6, y: 12}
+  spotlightIntervalRange: {x: 5, y: 9}
+  blockingPitScene: 0
+  neighbourButtonLights: 1
+  debugShowTimer: 0
