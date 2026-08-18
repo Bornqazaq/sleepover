@@ -1,5 +1,4 @@
 using System;
-using Unity.Netcode;
 using UnityEngine;
 
 namespace Igruha.Core.Minigame
@@ -69,26 +68,7 @@ namespace Igruha.Core.Minigame
                     return 0f;
                 }
 
-                return Mathf.Max(0f, (float)(StageEndTime - Now));
-            }
-        }
-
-        /// <summary>
-        /// Общие часы. В сетевой катке — время сервера: только оно одинаково
-        /// на всех машинах. Вне сети — обычное время сцены, чтобы сцена,
-        /// открытая напрямую из редактора, работала без изменений.
-        /// </summary>
-        private static double Now
-        {
-            get
-            {
-                NetworkManager network = NetworkManager.Singleton;
-                if (network != null && network.IsListening)
-                {
-                    return network.ServerTime.Time;
-                }
-
-                return Time.timeAsDouble;
+                return Mathf.Max(0f, (float)(StageEndTime - NetworkClock.Now));
             }
         }
 
@@ -122,7 +102,7 @@ namespace Igruha.Core.Minigame
                 return;
             }
 
-            ApplyStage(stage, Now + Mathf.Max(0f, duration), Mathf.Max(0f, duration));
+            ApplyStage(stage, NetworkClock.Now + Mathf.Max(0f, duration), Mathf.Max(0f, duration));
         }
 
         /// <summary>
@@ -137,7 +117,7 @@ namespace Igruha.Core.Minigame
                 return;
             }
 
-            StageEndTime = Now;
+            StageEndTime = NetworkClock.Now;
             RaiseElapsed();
         }
 
@@ -196,7 +176,7 @@ namespace Igruha.Core.Minigame
                 return;
             }
 
-            if (Now >= StageEndTime)
+            if (NetworkClock.Now >= StageEndTime)
             {
                 RaiseElapsed();
             }
