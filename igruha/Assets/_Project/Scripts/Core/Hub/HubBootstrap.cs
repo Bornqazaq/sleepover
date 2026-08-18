@@ -201,13 +201,29 @@ namespace Igruha.Core.Hub
             }
 
             // Болванок и чужие копии будить нельзя — им управление снято навсегда.
-            if (!reader.LocallyControlled || reader.enabled)
+            if (!reader.LocallyControlled)
             {
                 return;
             }
 
-            reader.enabled = true;
-            Debug.Log($"🎮 [{avatar.name}] управление возвращено после мини-игры");
+            // Страховка от любой роли, забытой мини-игрой: блокировку ставят
+            // и заморозка, и постамент Водящего, а снимает её тот, кто ставил.
+            // Стоит одному такому снятию не сработать — человек приезжает в хаб
+            // обездвиженным навсегда. В хабе блокировке взяться неоткуда.
+            bool wasLocked = avatar.MovementLocked;
+            avatar.MovementLocked = false;
+
+            if (!reader.enabled)
+            {
+                reader.enabled = true;
+            }
+            else if (!wasLocked)
+            {
+                return;
+            }
+
+            Debug.Log($"🎮 [{avatar.name}] управление возвращено после мини-игры" +
+                      (wasLocked ? " (снята забытая блокировка)" : string.Empty));
         }
     }
 }

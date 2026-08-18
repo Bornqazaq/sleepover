@@ -218,6 +218,16 @@ namespace Igruha.Minigames.CryingAngels
             RestoreRunnersAfterRound();
             SetBeamEnabled(false);
             ReleaseAllRunners();
+
+            // Роль Водящего снимаем здесь, а не при следующей раздаче: персонаж
+            // переезжает между сценами живым, и вместе с ним уезжали блокировка
+            // движения, иммунитет к толчкам и выключенный удар. В хабе бывший
+            // Водящий оказывался обездвиженным и неуязвимым — причём только он,
+            // остальные ходили, и на баг это было похоже меньше всего.
+            if (keeperAvatar != null)
+            {
+                ClearKeeper(keeperAvatar);
+            }
             PublishRunnerStates();
             ClearStatues();
             vignette?.Track(null);
