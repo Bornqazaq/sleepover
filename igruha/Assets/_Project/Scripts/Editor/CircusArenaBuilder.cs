@@ -52,6 +52,8 @@ namespace Igruha.EditorTools
         private const int TentWallSegments = 32;
         private const int RiggingSegments = 32;
         private const int BarsPerCageSide = 5;
+        /// <summary>Сторона клетки, смотрящая наружу арены: локальный +Z смотрит в центр, значит наружу — 180°.</summary>
+        private const int OuterWallSide = 2;
         private const int SlatsPerCageDoor = 4;
 
         /// <summary>Нахлёст сегментов кольца: встык они расходятся на округлении и оставляют щели.</summary>
@@ -504,6 +506,16 @@ namespace Igruha.EditorTools
             StripRenderer(blocker);
             blocker.localPosition = Vector3.zero;
             blocker.localScale = new Vector3(half * 2f + BarThickness * 2f, height, BarThickness);
+
+            // Внешняя стена остаётся без прутьев — только коллайдер. Игрок стоит
+            // лицом к центру арены, камера смотрит ему в спину снаружи, и прутья
+            // этой стены оказываются между камерой и игроком: один из них встаёт
+            // ровно посреди экрана. Сквозь неё игроку смотреть всё равно некуда,
+            // а клетка читается клеткой по трём остальным стенам, полу и крыше.
+            if (side == OuterWallSide)
+            {
+                return;
+            }
 
             for (int bar = 0; bar < BarsPerCageSide; bar++)
             {

@@ -5,7 +5,7 @@ using Igruha.Core.Player;
 namespace Igruha.Minigames.Stopwatch
 {
     /// <summary>
-    /// Болванка соло-прогона: жмёт кнопку в своей клетке за игрока, которым
+    /// Болванка соло-прогона: держит кнопку в своей клетке за игрока, которым
     /// никто не управляет. Нужна затем же, зачем манекены в шаблоне мини-игры —
     /// проверить правила на 2, 4 и 8 участниках, не собирая четверых людей.
     ///
@@ -64,13 +64,13 @@ namespace Igruha.Minigames.Stopwatch
             double now = NetworkClock.Now;
             if (button.State == CageButton.ButtonState.Idle && now >= pressAt)
             {
-                button.Interact(owner);
+                button.HoldChanged(owner, true);
                 return;
             }
 
             if (button.State == CageButton.ButtonState.Running && now >= stopAt)
             {
-                button.Interact(owner);
+                button.HoldChanged(owner, false);
                 armed = false;
             }
         }

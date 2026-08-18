@@ -8,8 +8,13 @@ namespace Igruha.Minigames.Stopwatch
 {
     /// <summary>
     /// Красная кнопка на тумбе — единственное действие игрока во всей игре.
-    /// Первое нажатие запускает отсчёт, второе останавливает, третье и дальше
-    /// не проходят.
+    /// Отсчёт идёт, пока кнопку **держат**: нажал и держишь — время пошло,
+    /// отпустил — встало. Отпустив однажды, в этом подраунде уже не начнёшь
+    /// заново.
+    ///
+    /// Держать, а не нажимать дважды, — потому что это физически та самая
+    /// большая красная кнопка: её продавливают и не отпускают. Заодно исчезает
+    /// кривой случай «а что если нажать третий раз».
     ///
     /// Вокруг этой кнопки собрана вся честность игры: свой результат нельзя
     /// увидеть в момент нажатия, а чужой — подсмотреть по соседней клетке.
@@ -22,15 +27,15 @@ namespace Igruha.Minigames.Stopwatch
     /// Сама кнопка ничего не ранжирует: она отдаёт наверх замер интервала,
     /// а что он значит, решают правила игры.
     /// </summary>
-    public sealed class CageButton : MonoBehaviour, IInteractable
+    public sealed class CageButton : MonoBehaviour, IHoldInteractable
     {
         public enum ButtonState
         {
             /// <summary>Отсчёт не запускали.</summary>
             Idle,
-            /// <summary>Отсчёт идёт.</summary>
+            /// <summary>Кнопку держат, отсчёт идёт.</summary>
             Running,
-            /// <summary>Отсчёт остановлен, в этом подраунде кнопка больше не работает.</summary>
+            /// <summary>Кнопку отпустили, в этом подраунде она больше не работает.</summary>
             Stopped
         }
 
@@ -78,7 +83,7 @@ namespace Igruha.Minigames.Stopwatch
         /// <summary>Успел ли хозяин закрыть отсчёт в этом подраунде.</summary>
         public bool Completed => State == ButtonState.Stopped;
 
-        public string InteractionPrompt => State == ButtonState.Idle ? "Запустить отсчёт" : "Остановить отсчёт";
+        public string InteractionPrompt => State == ButtonState.Idle ? "Держать кнопку" : "Отпустить";
 
         private void Awake()
         {
@@ -112,6 +117,16 @@ namespace Igruha.Minigames.Stopwatch
         public void CloseWindow()
         {
             WindowOpen = false;
+
+            // Кто так и не отпустил кнопку до конца окна — не завершил замер.
+            // Гасим удержание здесь, иначе позднее отпускание досчитало бы
+            // интервал уже после того, как результаты подраунда посчитаны.
+            if (State == ButtonState.Running)
+            {
+                State = ButtonState.Idle;
+                measured = 0f;
+            }
+
             ApplyColor(idleColor);
         }
 
@@ -120,18 +135,32 @@ namespace Igruha.Minigames.Stopwatch
             return WindowOpen && State != ButtonState.Stopped && player != null && player == owner;
         }
 
-        public void Interact(PlayerController player)
-        {
-            if (!CanInteract(player))
-            {
-                return;
-            }
+        /// <summary>Разового нажатия у этой кнопки нет — она удерживаемая.</summary>
+        public void Interact(PlayerController player) { }
 
-            if (State == ButtonState.Idle)
+        /// <summary>
+        /// Единственная точка входа: удержание началось или кончилось.
+        /// В фазе 3 она уйдёт за ServerRpc целиком, без переписывания правил.
+        /// </summary>
+        public void HoldChanged(PlayerController player, bool held)
+        {
+            if (held)
             {
+                if (!CanInteract(player) || State != ButtonState.Idle)
+                {
+                    return;
+                }
+
                 State = ButtonState.Running;
                 startedAt = NetworkClock.Now;
                 Started?.Invoke(this);
+                return;
+            }
+
+            // Отпускание принимаем и без CanInteract: игрок мог отойти или окно
+            // могло закрыться, но отсчёт всё равно обязан закрыться корректно.
+            if (State != ButtonState.Running || player != owner)
+            {
                 return;
             }
 
