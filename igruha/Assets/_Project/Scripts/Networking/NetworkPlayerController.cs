@@ -27,6 +27,17 @@ namespace Igruha.Networking
         private PlayerCarryAbility carryAbility;
         private ProjectileShooter shooter;
 
+        /// <summary>
+        /// Присед владельца. Состояние, а не событие, поэтому NetworkVariable, а не RPC.
+        ///
+        /// Пишет владелец: присед считает его мотор, у остальных копий мотор выключен.
+        /// Без этой репликации присед видел только сам приседающий — на чужих машинах
+        /// и **на сервере** капсула оставалась в полный рост, а по ней проверяется,
+        /// торчит ли игрок над низким укрытием («Плачущие ангелы», раздел 3.3).
+        /// </summary>
+        private readonly NetworkVariable<bool> crouched = new NetworkVariable<bool>(
+            false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+
         private void Awake()
         {
             playerController = GetComponent<PlayerController>();
@@ -53,8 +64,12 @@ namespace Igruha.Networking
                 Debug.LogWarning($"{name}: NetworkPlayerController не нашел NetworkTransform!", this);
             }
 
+            crouched.OnValueChanged += OnCrouchReplicated;
+
             if (!IsOwner)
             {
+                // Состояние могло приехать до спавна этой копии — применяем как есть.
+                ApplyRemoteCrouch(crouched.Value);
                 DisableLocalControl();
                 Debug.Log($"📡 [{name}] Это удалённый персонаж (владелец другого клиента) — синхронизация через NetworkTransform");
             }
@@ -62,6 +77,45 @@ namespace Igruha.Networking
             {
                 Debug.Log($"🎮 [{name}] Это МОЙ персонаж — ввод активен, позиция будет реплицирована");
             }
+        }
+
+        public override void OnNetworkDespawn()
+        {
+            crouched.OnValueChanged -= OnCrouchReplicated;
+            base.OnNetworkDespawn();
+        }
+
+        private void Update()
+        {
+            // Владелец публикует свой присед, остальные его только применяют.
+            if (!IsOwner || playerController == null)
+            {
+                return;
+            }
+
+            if (crouched.Value != playerController.IsCrouched)
+            {
+                crouched.Value = playerController.IsCrouched;
+            }
+        }
+
+        private void OnCrouchReplicated(bool previous, bool current)
+        {
+            if (IsOwner)
+            {
+                // У себя присед уже отыгран мотором — второй раз применять нечего.
+                return;
+            }
+
+            ApplyRemoteCrouch(current);
+        }
+
+        private void ApplyRemoteCrouch(bool value)
+        {
+            playerController?.ApplyReplicatedCrouch(value);
+
+            // Драйвер на копиях выключен, поэтому сжатие модели зовём вручную.
+            animatorDriver?.ApplyCrouchVisual();
         }
 
         /// <summary>
