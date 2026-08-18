@@ -39,6 +39,32 @@
 | Взаимодействие (E) | `IInteractable`, `PlayerInteractor` | Core/Interaction |
 | Камера под тип игры | `MinigameCameraController` + `PartyCameraRig.prefab` | Core/CameraSystems |
 | Очки по местам | `SessionManager` (`очки = число_игроков − место`) | Core/Session |
+| Колесо эмоций и танцев (Tab) | `EmoteWheel` + `PlayerEmoteAbility`, привязывает `MinigameBootstrap` | Core/UI, Core/Player |
+| Приседание с реальным сжатием капсулы, видно всем | `PlayerController.IsCrouched`, реплицируется `NetworkPlayerController` | Core/Player |
+| Свой персонаж каждому игроку | сервер выдаёт из `CharacterRoster` при одобрении подключения | Networking |
+| Возврат в хаб после результатов | `MinigameControllerBase`, через `resultsDisplaySeconds` | Core/Minigame |
+
+### Что из этого влияет на дизайн, а не только на код
+
+- **Персонажа выбирает сервер, не игрок.** В ростере 5 моделей на 8 мест: до пяти
+  участников все разные, дальше идут по кругу. Механику «выбери героя под роль»
+  в спеку не закладывать.
+- **Приседание — полноценная механика укрытия.** Капсула реально сжимается, и это
+  видит сервер, а не только сам приседающий. На прятки опираться можно.
+- **Выход из мини-игры проектировать не надо.** После экрана результатов сервер сам
+  возвращает всех в хаб.
+- **Танцы настроены только у одного персонажа из пяти** (Шланга). Строить на эмоциях
+  геймплей пока нельзя, как украшение — можно.
+
+### Правило, которое стоило отдельного дня
+
+**Любую роль или блокировку, которую мини-игра вешает на игрока, она обязана снимать
+сама в `OnRoundEnded`.** Персонаж переезжает между сценами живым — это `NetworkObject`,
+— и незакрытая роль уезжает в хаб вместе с ним. У «Ангелов» так уехала блокировка
+движения Водящего: он приезжал в хаб обездвиженным и неуязвимым, пока остальные ходили.
+
+Симптом «не работает у одного человека из всех» — почти всегда именно это, а не общий
+баг игры. Смотреть, чем этот игрок отличался: роль, персонаж, хост он или нет.
 
 ## Иерархия сцены-шаблона
 
@@ -48,7 +74,7 @@ _Spawns      SpawnPointSet + PlayerSpawner, 8 точек Default + 1 Special
 _Bounds      KillZone_Bottom под ареной
 _Traps       SpringTrap, FallingCrateTrap, TrapButton (жмётся на E)
 _Pickups     PickupCube (подбор на E, бросок ЛКМ)
-_UI          Canvas: TimerText, TutorialPanel, ResultsPanel; EventSystem
+_UI          Canvas: TimerText, TutorialPanel, ResultsPanel, EmoteWheel; EventSystem
 _Camera      Main Camera (CinemachineBrain) + PartyCameraRig
 _Lighting    Directional Light
 MinigameManager  SessionManager, RoundTimer, TemplateMinigame, MinigameBootstrap
