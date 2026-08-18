@@ -19,6 +19,13 @@ namespace Igruha.Core.Player
             motor = GetComponent<PlayerController>();
         }
 
+        /// <summary>
+        /// Текущая точка. Нужна тем, кто её временно переопределяет: мини-игра
+        /// обязана вернуть прежнюю в конце раунда, иначе персонаж уедет в хаб
+        /// с точкой респавна внутри уже выгруженной сцены.
+        /// </summary>
+        public Transform RespawnPoint => respawnPoint;
+
         public void SetRespawnPoint(Transform point) => respawnPoint = point;
 
         public void Respawn()
