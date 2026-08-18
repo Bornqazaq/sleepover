@@ -1,10 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 using Igruha.Core.CameraSystems;
 using Igruha.Core.Player;
 using Igruha.Core.Session;
 using Igruha.Core.Spawning;
+using Igruha.Core.UI;
 
 namespace Igruha.Core.Minigame
 {
@@ -29,6 +31,8 @@ namespace Igruha.Core.Minigame
         [SerializeField] private PlayerSpawner playerSpawner;
         [SerializeField] private MinigameControllerBase minigame;
         [SerializeField] private MinigameCameraController cameraController;
+        [Tooltip("Колесо эмоций сцены. Пусто — Tab в этой мини-игре работать не будет")]
+        [SerializeField] private EmoteWheel emoteWheel;
         [Tooltip("Сколько секунд ждать ростер и аватары сетевой сессии")]
         [SerializeField] private float networkRosterTimeout = 180f;
         [Tooltip("Сколько секунд состав не должен меняться, чтобы считать его собравшимся")]
@@ -80,7 +84,7 @@ namespace Igruha.Core.Minigame
                 yield break;
             }
 
-            FocusCamera(players);
+            BindLocalPlayer(players);
             minigame.StartMinigame(players);
         }
 
@@ -155,21 +159,47 @@ namespace Igruha.Core.Minigame
             return true;
         }
 
-        private void FocusCamera(IReadOnlyList<SessionPlayer> players)
+        /// <summary>
+        /// Навести камеру и колесо эмоций на персонажа этой машины.
+        ///
+        /// В сети берём только своего: откат к <c>players[0]</c> уводил камеру на
+        /// аватар хоста, и клиент оказывался зрителем чужой игры. Тот же откат уже
+        /// чинили в хабе — здесь он жил своей копией.
+        /// </summary>
+        private void BindLocalPlayer(IReadOnlyList<SessionPlayer> players)
         {
-            if (cameraController == null || minigame.Definition == null)
+            bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+            SessionPlayer local = SessionScoreboard.Current?.LocalPlayer;
+            PlayerController focus = local?.Avatar;
+
+            if (focus == null)
             {
-                return;
+                if (networked)
+                {
+                    Debug.LogError($"{name}: своего персонажа в составе нет — камера и эмоции " +
+                                   "остались непривязанными. Чужого не подставляем", this);
+                    return;
+                }
+
+                focus = players[0].Avatar;
             }
 
-            SessionPlayer local = SessionScoreboard.Current?.LocalPlayer;
-            PlayerController focus = local?.Avatar != null ? local.Avatar : players[0].Avatar;
             if (focus == null)
             {
                 return;
             }
 
-            cameraController.Apply(minigame.Definition.CameraMode, focus.transform);
+            if (cameraController != null && minigame.Definition != null)
+            {
+                cameraController.Apply(minigame.Definition.CameraMode, focus.transform);
+            }
+
+            // Без этого Tab в мини-игре не открывает колесо: панель есть, а к чьим
+            // эмоциям она привязана — неизвестно. В хабе то же делает HubBootstrap.
+            if (emoteWheel != null && focus.TryGetComponent(out PlayerEmoteAbility emotes))
+            {
+                emoteWheel.BindLocalPlayer(emotes);
+            }
         }
     }
 }
