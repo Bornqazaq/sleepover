@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: daefb85d92828405793d955661981a7b, type: 3}
+  m_Name: CircusArenaConfig
+  m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.Circus.CircusArenaConfig
+  tentDiameter: 50
+  riggingHeight: 24
+  pitRadius: 12
+  pitRimHeight: 1.5
+  pitRecess: 1.5
+  cageRingRadius: 10
+  cageAnchorCount: 8
+  cageInnerSize: 4
+  cageInnerHeight: 4
+  cageBaseHeight: 3
+  cageLevelStep: 3
+  maxLevelSteps: 3
+  cageLevelStepDuration: 2
+  scoreboardHeight: 11
+  scoreboardFaceWidth: 8
+  scoreboardFaceHeight: 3
+  minCageGap: 1.7
+  measuredJumpHeight: 1.47
