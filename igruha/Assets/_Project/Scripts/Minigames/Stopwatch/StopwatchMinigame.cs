@@ -66,6 +66,14 @@ namespace Igruha.Minigames.Stopwatch
         private readonly List<StopwatchEntry> entries = new List<StopwatchEntry>(8);
         private readonly List<int> faulted = new List<int>(8);
         private readonly List<int> eliminatedThisSubround = new List<int>(8);
+
+        /// <summary>
+        /// Ушедшие, ещё не попавшие в группу вылета. Уход может прийти в любой
+        /// момент подраунда, а группы формируются в стадии створок — до неё
+        /// ушедший ждёт здесь, иначе получил бы отдельное место вместо общего
+        /// с теми, кто выпал вместе с ним.
+        /// </summary>
+        private readonly List<int> pendingEliminations = new List<int>(4);
         private readonly EliminationRanking ranking = new EliminationRanking();
 
         // Буферы для табло: пересоздавать списки каждый подраунд незачем.
@@ -596,6 +604,17 @@ namespace Igruha.Minigames.Stopwatch
                 c.Cage?.OpenDoors(config.HatchOpenSeconds);
             }
 
+            // Ушедшие делят группу с теми, кто выпал в этом же подраунде.
+            for (int i = 0; i < pendingEliminations.Count; i++)
+            {
+                if (!eliminatedThisSubround.Contains(pendingEliminations[i]))
+                {
+                    eliminatedThisSubround.Add(pendingEliminations[i]);
+                }
+            }
+
+            pendingEliminations.Clear();
+
             if (eliminatedThisSubround.Count > 0)
             {
                 ranking.AddEliminationGroup(eliminatedThisSubround);
@@ -799,6 +818,67 @@ namespace Igruha.Minigames.Stopwatch
             // Третье и последующие нажатия отсекает сама кнопка: из состояния
             // Stopped она в этом подраунде уже не выходит.
             c.Button.ApplyHold(c.Session.Avatar, held, stamp);
+        }
+
+        /// <summary>
+        /// Участник вышел из матча. Зовёт сетевая половина, только у сервера.
+        ///
+        /// Клетка гаснет и остаётся висеть пустой на своём уровне: пустая
+        /// клетка на арене означает ровно одно — отсюда уже выбыли, и уход
+        /// читается так же, как вылет.
+        /// </summary>
+        public void HandlePlayerLeft(int playerId)
+        {
+            if (!HasAuthority)
+            {
+                return;
+            }
+
+            Contestant c = Find(playerId);
+            if (c == null)
+            {
+                return;
+            }
+
+            // Из состава раунда — иначе беглец получит место, хотя его нет
+            // в матче. Ростер сессии чистит Core, здесь свой локальный список.
+            RemovePlayer(playerId);
+
+            if (c.Alive)
+            {
+                c.Alive = false;
+                pendingEliminations.Add(playerId);
+            }
+
+            // Медведь бросает ушедшего сам: цель он выбирает среди тех,
+            // кто в яме, а ушедший из ямы вычеркнут.
+            c.InPit = false;
+
+            if (c.Button != null)
+            {
+                c.Button.Stopped -= HandleButtonStopped;
+                c.Button.HoldIntent -= HandleHoldIntent;
+                c.Button.CloseWindow();
+            }
+
+            c.Bot?.Disarm();
+            c.Cage?.ReleaseOccupant();
+
+            if (c.Elimination != null)
+            {
+                c.Elimination.BodyHidden -= HandleBodyHidden;
+            }
+
+            contestants.Remove(c);
+            PublishBoard(resultsRevealed);
+
+            // Некого больше выбивать — матч кончился. K пересчитается сам:
+            // он считается от числа живых в момент подведения итогов подраунда.
+            if (!matchOver && AliveCount < 2)
+            {
+                matchOver = true;
+                EndMinigame();
+            }
         }
 
         /// <summary>Состояние медведя пришло из сети — показать, не считая ИИ.</summary>
@@ -1039,6 +1119,15 @@ namespace Igruha.Minigames.Stopwatch
         /// </summary>
         protected override void CollectResults(MinigameResults results)
         {
+            // Ушедшие, для которых стадия створок так и не наступила: без этого
+            // они не попали бы ни в группу вылета, ни в выжившие, и в местах
+            // осталась бы дырка.
+            if (pendingEliminations.Count > 0)
+            {
+                ranking.AddEliminationGroup(pendingEliminations);
+                pendingEliminations.Clear();
+            }
+
             for (int i = 0; i < contestants.Count; i++)
             {
                 if (contestants[i].Alive)

@@ -173,6 +173,9 @@ namespace Igruha.Minigames.Stopwatch
         /// <summary>Список клеток приехал и ещё не отрисован. Только на клиенте.</summary>
         private bool cagesDirty;
 
+        /// <summary>Ушедшие, которых осталось разобрать. Почему не сразу — см. OnClientDisconnected.</summary>
+        private readonly System.Collections.Generic.List<ulong> pendingLeavers = new System.Collections.Generic.List<ulong>(4);
+
         /// <summary>Идёт сетевая катка и эта половина живая.</summary>
         public bool IsActive => IsSpawned;
 
@@ -209,6 +212,7 @@ namespace Igruha.Minigames.Stopwatch
                     stageState.StageStarted += OnServerStageStarted;
                 }
 
+                NetworkManager.OnClientDisconnectCallback += OnClientDisconnected;
                 return;
             }
 
@@ -226,9 +230,17 @@ namespace Igruha.Minigames.Stopwatch
             cages.OnListChanged -= OnCagesChanged;
             bearState.OnValueChanged -= OnBearStateChanged;
 
-            if (IsServer && stageState != null)
+            if (IsServer)
             {
-                stageState.StageStarted -= OnServerStageStarted;
+                if (stageState != null)
+                {
+                    stageState.StageStarted -= OnServerStageStarted;
+                }
+
+                if (NetworkManager != null)
+                {
+                    NetworkManager.OnClientDisconnectCallback -= OnClientDisconnected;
+                }
             }
 
             base.OnNetworkDespawn();
@@ -307,6 +319,38 @@ namespace Igruha.Minigames.Stopwatch
             }
 
             stageState.ApplyState(value.Subround, value.Stage, value.EndTime, value.Duration);
+        }
+
+        // ========== УХОД ИГРОКА ==========
+
+        /// <summary>
+        /// Разбираем уход не здесь, а на ближайшем тике — тем же приёмом, что
+        /// у «Ангелов». Этот колбэк приходит и когда выключается сам сервер,
+        /// а отличить два случая по состоянию NetworkManager нельзя. При обычном
+        /// выходе игрока тик будет, при выключении сервера тиков больше нет —
+        /// и заканчивать матч некому и незачем.
+        /// </summary>
+        private void OnClientDisconnected(ulong clientId)
+        {
+            if (IsServer)
+            {
+                pendingLeavers.Add(clientId);
+            }
+        }
+
+        private void ApplyPendingLeavers()
+        {
+            if (NetworkManager == null || NetworkManager.ShutdownInProgress || !NetworkManager.IsListening)
+            {
+                return;
+            }
+
+            for (int i = 0; i < pendingLeavers.Count; i++)
+            {
+                game?.HandlePlayerLeft((int)pendingLeavers[i]);
+            }
+
+            pendingLeavers.Clear();
         }
 
         // ========== МЕДВЕДЬ ==========
@@ -451,6 +495,11 @@ namespace Igruha.Minigames.Stopwatch
                 }
 
                 return;
+            }
+
+            if (pendingLeavers.Count > 0)
+            {
+                ApplyPendingLeavers();
             }
 
             int count = game.ContestantCount;
