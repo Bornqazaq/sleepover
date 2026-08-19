@@ -39,6 +39,15 @@ namespace Igruha.Minigames.DuckHunt
         /// <summary>За сколько ШП до лестничной комнаты болванка начинает целиться в первую ступень, а не в коридор.</summary>
         private const float StairApproachWidths = 4f;
 
+        /// <summary>С какого недобора по трассе точка маршрута считается пройденной, ШП.</summary>
+        private const float RouteReachWidths = 0.5f;
+
+        /// <summary>Радиус тела на случай, если капсулу у болванки не нашли, м.</summary>
+        private const float DefaultBodyRadius = 0.36f;
+
+        /// <summary>Насколько разводятся полосы соседних болванок по глубине коридора, ШП.</summary>
+        private const float DuckLaneSpacingWidths = 2f;
+
         /// <summary>Глубина, на которую болванка сходит с лестницы, ШП. Ближе к открытой грани, чем проём в перекрытии.</summary>
         private const float StairExitDepthWidths = 2f;
 
@@ -120,6 +129,17 @@ namespace Igruha.Minigames.DuckHunt
 
             /// <summary>Этаж, на котором болванка была в прошлый раз: по его смене сбрасывается подъём.</summary>
             public int LastFloor;
+
+            /// <summary>
+            /// Ломаная по коридору текущего этажа — по ней болванка обходит
+            /// укрытия. Состояние маршрута живёт здесь, а не пересчитывается
+            /// из геометрии каждый кадр: пересчёт и был причиной того, что
+            /// каждая правка вскрывала новый частный случай.
+            /// </summary>
+            public readonly List<Vector3> Route = new List<Vector3>(24);
+
+            /// <summary>Номер точки маршрута, к которой идём сейчас.</summary>
+            public int RouteIndex;
         }
 
         private static readonly Comparison<DuckRecord> DuckRanking = CompareDucks;
@@ -844,39 +864,42 @@ namespace Igruha.Minigames.DuckHunt
                     continue;
                 }
 
-                // Ступени подъёма — путевые точки, а не цель: останавливаться
-                // на них нельзя, иначе болванка замирает посреди лестницы.
-                Vector3 duckTarget = GetDuckTarget(duck);
-                duck.Bot.SetTarget(duckTarget, !duck.Climbing);
+                Vector3 duckTarget = GetDuckTarget(duck, out bool stopOnArrival);
+                duck.Bot.SetTarget(duckTarget, stopOnArrival);
             }
         }
 
         /// <summary>
-        /// Куда идти болванке. Пока она в коридоре — к началу лестничной
-        /// комнаты; свернув на лестницу — по ступеням одна за другой.
+        /// Куда идти болванке. По коридору — по точкам маршрута в обход
+        /// укрытий, свернув на лестницу — по ступеням одна за другой.
         ///
-        /// Без цепочки ступеней болванка встаёт под подъёмом: следующий этаж
-        /// ровно над ней, горизонтально идти некуда, и она считает, что дошла.
+        /// Останавливаться разрешено только на последней цели: и ступени, и
+        /// точки маршрута — путевые. Замерев на любой из них, болванка стоит
+        /// до конца раунда.
         /// </summary>
-        private Vector3 GetDuckTarget(DuckRecord duck)
+        private Vector3 GetDuckTarget(DuckRecord duck, out bool stopOnArrival)
         {
             Vector3 position = duck.Avatar.transform.position;
+            stopOnArrival = false;
 
             // Выше верхнего этажа болванка может быть только на крыше — там
             // цель одна, площадка финиша.
             if (finishZone != null && position.y >= arena.GetFloorBaseY(arena.FloorCount) - 0.1f)
             {
+                stopOnArrival = true;
                 return finishZone.transform.position;
             }
+
+            float stairRoomStart = config.FloorLengthWidths - config.StairRoomSizeUnits / config.CharacterWidth;
 
             // Смена этажа означает новый подъём: прошлый пройден до конца.
             if (duck.LastFloor != duck.Progress.Floor)
             {
                 duck.LastFloor = duck.Progress.Floor;
                 duck.Climbing = false;
+                BuildDuckRoute(duck, stairRoomStart);
             }
 
-            float stairRoomStart = config.FloorLengthWidths - config.StairRoomSizeUnits / config.CharacterWidth;
             if (!duck.Climbing && duck.Progress.Progress >= stairRoomStart - StairApproachWidths)
             {
                 duck.Climbing = true;
@@ -897,7 +920,78 @@ namespace Igruha.Minigames.DuckHunt
                 return arena.GetWorldPoint(next, 4f, StairExitDepthWidths);
             }
 
+            return GetRouteTarget(duck, stairRoomStart);
+        }
+
+        /// <summary>
+        /// Очередная точка ломаной по коридору. Точка считается пройденной по
+        /// прогрессу вдоль трассы, а не по расстоянию до неё: обходя укрытие,
+        /// болванка проходит мимо точки сбоку и до самой точки может не
+        /// дотянуться — а трассу при этом прошла.
+        /// </summary>
+        private Vector3 GetRouteTarget(DuckRecord duck, float stairRoomStart)
+        {
+            if (duck.Route.Count == 0)
+            {
+                BuildDuckRoute(duck, stairRoomStart);
+            }
+
+            while (duck.RouteIndex < duck.Route.Count)
+            {
+                Vector3 point = duck.Route[duck.RouteIndex];
+                float pointProgress = arena.GetProgressWidths(point, duck.Progress.Floor);
+                if (duck.Progress.Progress < pointProgress - RouteReachWidths)
+                {
+                    return point;
+                }
+
+                duck.RouteIndex++;
+            }
+
             return arena.GetWorldPoint(duck.Progress.Floor, stairRoomStart, PathDepthWidths);
+        }
+
+        /// <summary>
+        /// Построить маршрут по коридору текущего этажа болванки — от её
+        /// прогресса до входа в лестничную комнату.
+        /// </summary>
+        private void BuildDuckRoute(DuckRecord duck, float stairRoomStart)
+        {
+            duck.RouteIndex = 0;
+            DuckHuntBotRoute.Build(
+                duck.Route,
+                arena,
+                duck.Progress.Floor,
+                Mathf.Max(0f, duck.Progress.Progress),
+                stairRoomStart,
+                LayerMask.GetMask(GroundLayerName, CoverLayerName),
+                GetBotBodyRadius(duck.Avatar),
+                GetDuckLaneDepth(duck));
+        }
+
+        /// <summary>
+        /// Своя полоса коридора каждой болванке. Общая полоса на всех сводит их
+        /// в одну точку, и они упираются друг в друга насмерть: чужое тело в
+        /// помехи маршрута не входит, обходить его болванка не умеет.
+        /// </summary>
+        private float GetDuckLaneDepth(DuckRecord duck)
+        {
+            int index = ducks.IndexOf(duck);
+            if (index < 0 || ducks.Count <= 1)
+            {
+                return PathDepthWidths;
+            }
+
+            float middle = (ducks.Count - 1) * 0.5f;
+            return PathDepthWidths + (index - middle) * DuckLaneSpacingWidths;
+        }
+
+        /// <summary>Радиус тела болванки: по капсуле, а не по числу из спеки — капсулы у персонажей общие, но берём фактическую.</summary>
+        private static float GetBotBodyRadius(PlayerController avatar)
+        {
+            return avatar != null && avatar.TryGetComponent(out CapsuleCollider capsule)
+                ? capsule.radius
+                : DefaultBodyRadius;
         }
 
         private void HandleDebugRoleSwitch()
