@@ -18,6 +18,19 @@ namespace Igruha.EditorTools
     {
         private const string BasePrefabPath = "Assets/_Project/Prefabs/Player/Player.prefab";
 
+        /// <summary>
+        /// Названия секторов колеса эмоций — общие для всех восьмерых, потому что
+        /// и клипы за ними общие (PlayerAnimatorControllerBuilder.SharedDanceClips):
+        /// танцы Шланги ретаргетятся Humanoid'ом на любой скелет проекта.
+        /// Появится у персонажа свой набор танцев — ему подставляется свой массив,
+        /// остальных это не трогает.
+        /// </summary>
+        private static readonly string[] SharedEmotes =
+        {
+            "Танец 1", "Танец 2", "Танец 3", "Танец 4",
+            "Танец 5", "Танец 6", "Танец 7", "Танец 8"
+        };
+
         // Karlan живёт прямо в базовом Player.prefab (не вариант), но проходит
         // тот же расчёт роста/капсулы — см. ResizeKarlan.
         private const string KarlanIdleClipPath = "Assets/_Project/Art/Animations/Karlan@Happy Idle.fbx";
@@ -28,7 +41,6 @@ namespace Igruha.EditorTools
         private const string BossIdleClipPath = "Assets/_Project/Art/Animations/Boss@idle.fbx";
         private const string BossControllerPath = "Assets/_Project/Art/Animations/BossAnimator.controller";
         private const float BossHeightMeters = 1.85f;
-        private static readonly string[] BossEmotes = System.Array.Empty<string>();
 
         private const string ShlangaPrefabPath = "Assets/_Project/Prefabs/Player/Shlanga.prefab";
         // Визуал берётся из анимационного FBX, а не из Art/Models/Shlanga.fbx:
@@ -38,12 +50,6 @@ namespace Igruha.EditorTools
         private const string ShlangaControllerPath = "Assets/_Project/Art/Animations/ShlangaAnimator.controller";
         private const float ShlangaHeightMeters = 2.00f;
 
-        private static readonly string[] ShlangaEmotes =
-        {
-            "Танец 1", "Танец 2", "Танец 3", "Танец 4",
-            "Танец 5", "Танец 6", "Танец 7", "Танец 8"
-        };
-
         private const string FatPrefabPath = "Assets/_Project/Prefabs/Player/Fat.prefab";
         // См. комментарий у ShlangaModelPath — та же схема: визуал из анимационного FBX.
         private const string FatModelPath = "Assets/_Project/Art/Animations/Fat@Neutral Idle.fbx";
@@ -51,18 +57,12 @@ namespace Igruha.EditorTools
         private const string FatControllerPath = "Assets/_Project/Art/Animations/FatAnimator.controller";
         private const float FatHeightMeters = 1.80f;
 
-        /// <summary>Танцев у Fat нет — колесо эмоций у него просто не откроется.</summary>
-        private static readonly string[] FatEmotes = System.Array.Empty<string>();
-
         private const string MyBoyPrefabPath = "Assets/_Project/Prefabs/Player/MyBoy.prefab";
         // См. комментарий у ShlangaModelPath — та же схема: визуал из анимационного FBX.
         private const string MyBoyModelPath = "Assets/_Project/Art/Animations/MyBoy@Old Man Idle.fbx";
         private const string MyBoyIdleClipPath = MyBoyModelPath;
         private const string MyBoyControllerPath = "Assets/_Project/Art/Animations/MyBoyAnimator.controller";
         private const float MyBoyHeightMeters = 1.75f;
-
-        /// <summary>Танцев у MyBoy нет — колесо эмоций у него просто не откроется.</summary>
-        private static readonly string[] MyBoyEmotes = System.Array.Empty<string>();
 
         private const string GirlPrefabPath = "Assets/_Project/Prefabs/Player/Girl.prefab";
         // См. комментарий у ShlangaModelPath — та же схема: визуал из анимационного
@@ -72,9 +72,6 @@ namespace Igruha.EditorTools
         private const string GirlControllerPath = "Assets/_Project/Art/Animations/GirlAnimator.controller";
         private const float GirlHeightMeters = 1.70f;
 
-        /// <summary>Танцев у Girl нет — колесо эмоций у неё просто не откроется.</summary>
-        private static readonly string[] GirlEmotes = System.Array.Empty<string>();
-
         private const string MilezPrefabPath = "Assets/_Project/Prefabs/Player/Milez.prefab";
         // См. комментарий у ShlangaModelPath — та же схема: визуал из анимационного
         // FBX. У Milez, как и у Girl, отдельной модели в Art/Models нет, только клипы.
@@ -82,9 +79,6 @@ namespace Igruha.EditorTools
         private const string MilezIdleClipPath = MilezModelPath;
         private const string MilezControllerPath = "Assets/_Project/Art/Animations/MilezAnimator.controller";
         private const float MilezHeightMeters = 1.75f;
-
-        /// <summary>Танцев у Milez нет — колесо эмоций у него просто не откроется.</summary>
-        private static readonly string[] MilezEmotes = System.Array.Empty<string>();
 
         private const string AzaPrefabPath = "Assets/_Project/Prefabs/Player/Aza.prefab";
         // См. комментарий у ShlangaModelPath — та же схема: визуал из анимационного
@@ -94,9 +88,6 @@ namespace Igruha.EditorTools
         private const string AzaIdleClipPath = AzaModelPath;
         private const string AzaControllerPath = "Assets/_Project/Art/Animations/AzaAnimator.controller";
         private const float AzaHeightMeters = 1.72f;
-
-        /// <summary>Танцев у Aza нет — колесо эмоций у него просто не откроется.</summary>
-        private static readonly string[] AzaEmotes = System.Array.Empty<string>();
 
         /// <summary>
         /// Высота точки привязки камеры — доля от роста персонажа (грудь/плечи),
@@ -151,6 +142,7 @@ namespace Igruha.EditorTools
                 // со сжатием модели вместо клипа приседа. Заодно это чинит значение
                 // и всем вариантам: они наследуют его от базового префаба.
                 BindAnimatorDriver(contents, visual.GetComponent<Animator>(), visual, hasCrouchAnimation: true);
+                ApplyEmoteNames(contents, SharedEmotes);
 
                 PrefabUtility.SaveAsPrefabAsset(contents, BasePrefabPath);
                 Debug.Log($"CharacterPrefabBuilder (Karlan): рост {KarlanHeightMeters:F2} м, масштаб модели {scale:F3}.");
@@ -171,7 +163,7 @@ namespace Igruha.EditorTools
                 PlayerAnimatorControllerBuilder.BuildBossController();
             }
 
-            if (!Create("Boss", BossPrefabPath, BossModelPath, BossIdleClipPath, BossControllerPath, BossHeightMeters, BossEmotes, hasCrouchAnimation: true))
+            if (!Create("Boss", BossPrefabPath, BossModelPath, BossIdleClipPath, BossControllerPath, BossHeightMeters, SharedEmotes, hasCrouchAnimation: true))
             {
                 return;
             }
@@ -189,7 +181,7 @@ namespace Igruha.EditorTools
                 PlayerAnimatorControllerBuilder.BuildShlangaController();
             }
 
-            if (!Create("Shlanga", ShlangaPrefabPath, ShlangaModelPath, ShlangaIdleClipPath, ShlangaControllerPath, ShlangaHeightMeters, ShlangaEmotes, hasCrouchAnimation: true))
+            if (!Create("Shlanga", ShlangaPrefabPath, ShlangaModelPath, ShlangaIdleClipPath, ShlangaControllerPath, ShlangaHeightMeters, SharedEmotes, hasCrouchAnimation: true))
             {
                 return;
             }
@@ -209,7 +201,7 @@ namespace Igruha.EditorTools
                 PlayerAnimatorControllerBuilder.BuildFatController();
             }
 
-            if (!Create("Fat", FatPrefabPath, FatModelPath, FatIdleClipPath, FatControllerPath, FatHeightMeters, FatEmotes, hasCrouchAnimation: true))
+            if (!Create("Fat", FatPrefabPath, FatModelPath, FatIdleClipPath, FatControllerPath, FatHeightMeters, SharedEmotes, hasCrouchAnimation: true))
             {
                 return;
             }
@@ -228,7 +220,7 @@ namespace Igruha.EditorTools
                 PlayerAnimatorControllerBuilder.BuildMyBoyController();
             }
 
-            if (!Create("MyBoy", MyBoyPrefabPath, MyBoyModelPath, MyBoyIdleClipPath, MyBoyControllerPath, MyBoyHeightMeters, MyBoyEmotes, hasCrouchAnimation: true))
+            if (!Create("MyBoy", MyBoyPrefabPath, MyBoyModelPath, MyBoyIdleClipPath, MyBoyControllerPath, MyBoyHeightMeters, SharedEmotes, hasCrouchAnimation: true))
             {
                 return;
             }
@@ -252,7 +244,7 @@ namespace Igruha.EditorTools
                 PlayerAnimatorControllerBuilder.BuildGirlController();
             }
 
-            if (!Create("Girl", GirlPrefabPath, GirlModelPath, GirlIdleClipPath, GirlControllerPath, GirlHeightMeters, GirlEmotes, hasCrouchAnimation: true))
+            if (!Create("Girl", GirlPrefabPath, GirlModelPath, GirlIdleClipPath, GirlControllerPath, GirlHeightMeters, SharedEmotes, hasCrouchAnimation: true))
             {
                 return;
             }
@@ -274,7 +266,7 @@ namespace Igruha.EditorTools
                 PlayerAnimatorControllerBuilder.BuildMilezController();
             }
 
-            if (!Create("Milez", MilezPrefabPath, MilezModelPath, MilezIdleClipPath, MilezControllerPath, MilezHeightMeters, MilezEmotes, hasCrouchAnimation: true))
+            if (!Create("Milez", MilezPrefabPath, MilezModelPath, MilezIdleClipPath, MilezControllerPath, MilezHeightMeters, SharedEmotes, hasCrouchAnimation: true))
             {
                 return;
             }
@@ -296,7 +288,7 @@ namespace Igruha.EditorTools
                 PlayerAnimatorControllerBuilder.BuildAzaController();
             }
 
-            if (!Create("Aza", AzaPrefabPath, AzaModelPath, AzaIdleClipPath, AzaControllerPath, AzaHeightMeters, AzaEmotes, hasCrouchAnimation: true))
+            if (!Create("Aza", AzaPrefabPath, AzaModelPath, AzaIdleClipPath, AzaControllerPath, AzaHeightMeters, SharedEmotes, hasCrouchAnimation: true))
             {
                 return;
             }

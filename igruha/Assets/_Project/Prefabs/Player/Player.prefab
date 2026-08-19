@@ -348,7 +348,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Player.PlayerEmoteAbility
   inputReader: {fileID: 5853460982915592438}
-  emoteNames: []
+  emoteNames:
+  - "\u0422\u0430\u043D\u0435\u0446 1"
+  - "\u0422\u0430\u043D\u0435\u0446 2"
+  - "\u0422\u0430\u043D\u0435\u0446 3"
+  - "\u0422\u0430\u043D\u0435\u0446 4"
+  - "\u0422\u0430\u043D\u0435\u0446 5"
+  - "\u0422\u0430\u043D\u0435\u0446 6"
+  - "\u0422\u0430\u043D\u0435\u0446 7"
+  - "\u0422\u0430\u043D\u0435\u0446 8"
   pointerSensitivity: 0.012
   deadZone: 0.35
 --- !u!114 &9999999
@@ -427,7 +435,63 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f7a2b78511ed026458e1db4ebaa94b64, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Igruha.Networking::Igruha.Networking.OwnerNetworkAnimator
-  TransitionStateInfoList: []
+  TransitionStateInfoList:
+  - IsCrossFadeExit: 0
+    Layer: 0
+    OriginatingState: -1007645888
+    DestinationState: 2081823275
+    TransitionDuration: 0.15
+    TriggerNameHash: -1117975810
+    TransitionIndex: 1
+  - IsCrossFadeExit: 0
+    Layer: 0
+    OriginatingState: 1526323962
+    DestinationState: 2081823275
+    TransitionDuration: 0.15
+    TriggerNameHash: -1117975810
+    TransitionIndex: 1
+  - IsCrossFadeExit: 0
+    Layer: 0
+    OriginatingState: 771680876
+    DestinationState: 2081823275
+    TransitionDuration: 0.15
+    TriggerNameHash: -1117975810
+    TransitionIndex: 1
+  - IsCrossFadeExit: 0
+    Layer: 0
+    OriginatingState: -1281720369
+    DestinationState: 2081823275
+    TransitionDuration: 0.15
+    TriggerNameHash: -1117975810
+    TransitionIndex: 1
+  - IsCrossFadeExit: 0
+    Layer: 0
+    OriginatingState: -996323495
+    DestinationState: 2081823275
+    TransitionDuration: 0.15
+    TriggerNameHash: -1117975810
+    TransitionIndex: 1
+  - IsCrossFadeExit: 0
+    Layer: 0
+    OriginatingState: 1569988323
+    DestinationState: 2081823275
+    TransitionDuration: 0.15
+    TriggerNameHash: -1117975810
+    TransitionIndex: 1
+  - IsCrossFadeExit: 0
+    Layer: 0
+    OriginatingState: 714288757
+    DestinationState: 2081823275
+    TransitionDuration: 0.15
+    TriggerNameHash: -1117975810
+    TransitionIndex: 1
+  - IsCrossFadeExit: 0
+    Layer: 0
+    OriginatingState: -1171508252
+    DestinationState: 2081823275
+    TransitionDuration: 0.15
+    TriggerNameHash: -1117975810
+    TransitionIndex: 1
   m_Animator: {fileID: 8153474272100534532}
 --- !u!114 &6104822510058981082
 MonoBehaviour:

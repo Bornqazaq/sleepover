@@ -13,9 +13,11 @@ namespace Igruha.EditorTools
     /// (CrouchIdle — сидит на месте, CrouchWalk — идёт), иначе присед остаётся
     /// чисто физическим: капсула жмётся, а модель сжимается по высоте
     /// (CharacterAnimatorDriver).
+    /// PunchSpeedMultiplier — поправка к общей скорости удара, если конкретному
+    /// персонажу его замах не идёт по характеру. Единица — общая скорость.
     /// DanceClips опционален: клипы эмоций-насмешек для радиального меню (до восьми).
-    /// Пустой массив — персонаж без эмоций (Karlan/Boss, пока им не завезли танцы):
-    /// состояния и параметры эмоций тогда в контроллер не добавляются вовсе.
+    /// Пустой массив — персонаж без эмоций: состояния и параметры эмоций тогда
+    /// в контроллер не добавляются вовсе, и колесо по Tab у него не откроется.
     /// PlayerPrefabPath опционален: если задан и префаб существует, билдер сразу
     /// пишет в него посчитанные длительности нокдауна (PlayerController — они
     /// индивидуальны для каждого персонажа, как и сам Animator Controller).
@@ -35,6 +37,7 @@ namespace Igruha.EditorTools
         public readonly string FallForwardClip;
         public readonly string StandUpForwardClip;
         public readonly string CrouchWalkClip;
+        public readonly float PunchSpeedMultiplier;
         public readonly string[] DanceClips;
 
         public CharacterAnimationSet(
@@ -51,7 +54,8 @@ namespace Igruha.EditorTools
             string standUpForwardClip,
             string runJumpClip = null,
             string[] danceClips = null,
-            string crouchWalkClip = null)
+            string crouchWalkClip = null,
+            float punchSpeedMultiplier = 1f)
         {
             CharacterName = characterName;
             ControllerPath = controllerPath;
@@ -66,6 +70,7 @@ namespace Igruha.EditorTools
             FallForwardClip = fallForwardClip;
             StandUpForwardClip = standUpForwardClip;
             CrouchWalkClip = crouchWalkClip;
+            PunchSpeedMultiplier = punchSpeedMultiplier;
             DanceClips = danceClips ?? System.Array.Empty<string>();
         }
     }
@@ -91,8 +96,25 @@ namespace Igruha.EditorTools
         /// Если на ком-то ретаргет выйдет кривым (крайние пропорции — Шланга в два
         /// метра, широкий Fat), ему подставляется свой клип этой же строкой в его
         /// BuildXController — остальных это не трогает.
+        /// Берётся не исходник из FBX, а исправленная копия: в оригинале персонаж
+        /// крадётся, отвернув голову влево (см. SharedCrouchClipBuilder).
         /// </summary>
-        private const string SharedCrouchWalkClip = "Aza@Crouch Walk Forward.fbx";
+        private const string SharedCrouchWalkClip = "CrouchWalkForward.anim";
+
+        /// <summary>
+        /// Танцы-насмешки — один набор на всех восьмерых. Клипы авторские для
+        /// Шланги, но ретаргетятся Humanoid'ом на любой скелет проекта, ровно как
+        /// присед (см. SharedCrouchWalkClip). Держать восемь личных наборов по
+        /// восемь клипов — это 64 файла по 90 МБ в LFS ради одних и тех же
+        /// движений; переиспользуем существующие.
+        /// Захочется персонажу свой характер в танцах — ему подставляется свой
+        /// массив этой же строкой в его BuildXController, остальных не трогает.
+        /// </summary>
+        private static readonly string[] SharedDanceClips =
+        {
+            "Shlanga@dance1.fbx", "Shlanga@dance2.fbx", "Shlanga@dance3.fbx", "Shlanga@dance4.fbx",
+            "Shlanga@dance5.fbx", "Shlanga@dance6.fbx", "Shlanga@dance7.fbx", "Shlanga@dance8.fbx"
+        };
 
         private const string SpeedParameter = "Speed";
         private const string CrouchParameter = "Crouch";
@@ -134,6 +156,7 @@ namespace Igruha.EditorTools
                 standUpBackClip: "Karlan(Fbx without color)@Standing Up From Back.fbx",
                 fallForwardClip: "Karlan(Fbx without color)@Falling Forward Death.fbx",
                 standUpForwardClip: "Karlan(Fbx without color)@Stand Up From Forward.fbx",
+                danceClips: SharedDanceClips,
                 crouchWalkClip: SharedCrouchWalkClip));
         }
 
@@ -153,6 +176,7 @@ namespace Igruha.EditorTools
                 fallForwardClip: "Boss@fallForward.fbx",
                 standUpForwardClip: "Boss@standUp.fbx",
                 runJumpClip: "Boss@jumpRun.fbx",
+                danceClips: SharedDanceClips,
                 crouchWalkClip: SharedCrouchWalkClip));
         }
 
@@ -172,17 +196,7 @@ namespace Igruha.EditorTools
                 fallForwardClip: "Shlanga@fall_Forward.fbx",
                 standUpForwardClip: "Shlanga@standUpForward.fbx",
                 runJumpClip: "Shlanga@runningJump.fbx",
-                danceClips: new[]
-                {
-                    "Shlanga@dance1.fbx",
-                    "Shlanga@dance2.fbx",
-                    "Shlanga@dance3.fbx",
-                    "Shlanga@dance4.fbx",
-                    "Shlanga@dance5.fbx",
-                    "Shlanga@dance6.fbx",
-                    "Shlanga@dance7.fbx",
-                    "Shlanga@dance8.fbx"
-                },
+                danceClips: SharedDanceClips,
                 crouchWalkClip: SharedCrouchWalkClip));
         }
 
@@ -202,6 +216,7 @@ namespace Igruha.EditorTools
                 fallForwardClip: "Fat@Fall Flat.fbx",
                 standUpForwardClip: "Fat@Stand Up Forward.fbx",
                 runJumpClip: "Fat@Running Jump.fbx",
+                danceClips: SharedDanceClips,
                 crouchWalkClip: SharedCrouchWalkClip));
         }
 
@@ -221,6 +236,7 @@ namespace Igruha.EditorTools
                 fallForwardClip: "MyBoy@fall_Forward.fbx",
                 standUpForwardClip: "MyBoy@standUpForward.fbx",
                 runJumpClip: "MyBoy@Running Jump.fbx",
+                danceClips: SharedDanceClips,
                 crouchWalkClip: SharedCrouchWalkClip));
         }
 
@@ -242,6 +258,7 @@ namespace Igruha.EditorTools
                 fallForwardClip: "Girl@fallForward.fbx",
                 standUpForwardClip: "Girl@standUpForward.fbx",
                 runJumpClip: "Girl@runJump.fbx",
+                danceClips: SharedDanceClips,
                 crouchWalkClip: SharedCrouchWalkClip));
         }
 
@@ -261,6 +278,7 @@ namespace Igruha.EditorTools
                 fallForwardClip: "Milez@fallForward.fbx",
                 standUpForwardClip: "Milez@standUpForward.fbx",
                 runJumpClip: "Milez@runJump.fbx",
+                danceClips: SharedDanceClips,
                 crouchWalkClip: SharedCrouchWalkClip));
         }
 
@@ -284,7 +302,10 @@ namespace Igruha.EditorTools
                 fallForwardClip: "Aza@Fall Flat.fbx",
                 standUpForwardClip: "Aza@Stand Up.fbx",
                 runJumpClip: "Aza@Running Jump.fbx",
-                crouchWalkClip: SharedCrouchWalkClip));
+                danceClips: SharedDanceClips,
+                crouchWalkClip: SharedCrouchWalkClip,
+                // Замах Cross Punch у Aza читается вяло — ускорен на 30%.
+                punchSpeedMultiplier: 1.3f));
         }
 
         private static void Build(CharacterAnimationSet set)
@@ -298,6 +319,14 @@ namespace Igruha.EditorTools
             AnimationClip flyBack = LoadClip(set.FlyBackClip);
             AnimationClip standUpForward = LoadClip(set.StandUpForwardClip);
             AnimationClip standUpBack = LoadClip(set.StandUpBackClip);
+            // Общий клип приседа — генерируемый ассет: если его ещё нет (свежий
+            // клон репозитория), собираем на месте, а не роняем сборку контроллера.
+            if (!string.IsNullOrEmpty(set.CrouchWalkClip)
+                && AssetDatabase.LoadAssetAtPath<AnimationClip>(SharedCrouchClipBuilder.OutputClipPath) == null)
+            {
+                SharedCrouchClipBuilder.Build();
+            }
+
             AnimationClip crouchWalk = string.IsNullOrEmpty(set.CrouchWalkClip) ? null : LoadClip(set.CrouchWalkClip);
 
             bool missingRunJump = !string.IsNullOrEmpty(set.RunJumpClip) && runJump == null;
@@ -332,7 +361,7 @@ namespace Igruha.EditorTools
             AnimatorState idleState = AddState(machine, "Idle", idle, 1f, new Vector3(300f, 0f, 0f));
             AnimatorState runState = AddState(machine, "Run", run, 1f, new Vector3(300f, 120f, 0f));
             AnimatorState jumpState = AddState(machine, "Jump", jump, JumpSpeed, new Vector3(560f, 60f, 0f));
-            AnimatorState punchState = AddState(machine, "Punch", punch, PunchSpeed, new Vector3(560f, 180f, 0f));
+            AnimatorState punchState = AddState(machine, "Punch", punch, PunchSpeed * set.PunchSpeedMultiplier, new Vector3(560f, 180f, 0f));
 
             AnimatorState flyBackState = AddState(machine, "FlyBack", flyBack, KnockdownSpeed, new Vector3(560f, 300f, 0f));
             AnimatorState standUpBackState = AddState(machine, "StandUpFromBack", standUpBack, KnockdownSpeed, new Vector3(820f, 300f, 0f));
