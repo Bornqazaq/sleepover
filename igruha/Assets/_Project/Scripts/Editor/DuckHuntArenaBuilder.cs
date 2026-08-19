@@ -53,9 +53,20 @@ namespace Igruha.EditorTools
         private const float GeyserEnd = 38f;
 
         private const float DoorwayWidth = 4f;
-        /// <summary>Длина паркурной площадки, ШП. Держим короткой: всё, что не ушло в площадки, достаётся разрывам.</summary>
-        private const float PlatformLength = 1f;
+        /// <summary>Минимальная длина паркурной площадки, ШП. Короче — приземление превращается в лотерею.</summary>
+        private const float MinPlatformLength = 1f;
         private const float WallThickness = 0.5f;
+
+        /// <summary>Доля высоких укрытий (спека, 3.9): высокое прячет стоящего, низкое — только присевшего.</summary>
+        private const float HighCoverShare = 0.6f;
+        /// <summary>Сколько раз переставляем укрытие, прежде чем признать место занятым.</summary>
+        private const int CoverPlacementAttempts = 24;
+        /// <summary>Зазор вокруг укрытия, ШП: и между соседями, и до линии видимости кнопки.</summary>
+        private const float CoverClearance = 0.3f;
+        /// <summary>Полос по глубине, по которым перебираются места для укрытий. Шаг полосы больше глубины укрытия с зазором.</summary>
+        private const int CoverDepthLanes = 4;
+        /// <summary>Высота глаз стоящего, ШП. От неё считается видимость зоны эффекта с кнопки.</summary>
+        private const float EyeHeightWidths = 2.08f;
 
         /// <summary>Ширина трассы посередине коридора — от неё меряется смещение кнопки.</summary>
         private const float PathDepth = 7f;
@@ -83,7 +94,11 @@ namespace Igruha.EditorTools
         /// лестница обязана начинаться уже за этой чертой.
         /// </summary>
         private const float StairStartOffset = 2f;
-        /// <summary>Полоса, по которой идёт паркур: ближе к открытой грани, то есть на виду у Охотника.</summary>
+        /// <summary>
+        /// Полоса, по которой идёт паркур: ближе к открытой грани, то есть на
+        /// виду у Охотника. Прижимать её к самому краю нельзя — площадка
+        /// высотой до 2 ШП встаёт на пути настильного выстрела вдоль этажа.
+        /// </summary>
         private const float ParkourNearZ = 3f;
         private const float ParkourWidth = 4f;
 
@@ -106,13 +121,19 @@ namespace Igruha.EditorTools
             }
         }
 
+        /// <summary>
+        /// Число разрывов урезано против таблицы 3.9, а их размер сохранён:
+        /// 4 разрыва по 5 ШП это 20 ШП дыр в секции длиной 12. Решение
+        /// геймдизайнера от 19.08 — сложность паркура читается по длине прыжка,
+        /// а не по количеству дыр, а ужатый до 1.75 ШП разрыв перешагивается.
+        /// </summary>
         private static readonly FloorPlan[] Plans =
         {
             new FloorPlan(12, 6f, 2, 2f, false),   // 1 — ферма, намеренно лёгкий
-            new FloorPlan(10, 8f, 3, 3f, false),   // 2 — ферма, Дверь
-            new FloorPlan(8, 10f, 3, 3f, true),    // 3 — зима, Гейзер
-            new FloorPlan(6, 13f, 4, 4f, false),   // 4 — ферма, Провал
-            new FloorPlan(5, 16f, 4, 5f, true)     // 5 — зима, Дверь + Гейзер
+            new FloorPlan(10, 8f, 2, 3f, false),   // 2 — ферма, Дверь
+            new FloorPlan(8, 10f, 2, 3f, true),    // 3 — зима, Гейзер
+            new FloorPlan(6, 13f, 1, 4f, false),   // 4 — ферма, Провал
+            new FloorPlan(5, 16f, 1, 5f, true)     // 5 — зима, Дверь + Гейзер
         };
 
         private static DuckHuntConfig config;
@@ -507,26 +528,53 @@ namespace Igruha.EditorTools
         private static void BuildParkour(Transform root, int floor, float baseY, FloorPlan plan)
         {
             Transform group = ResetGroup(root, "Parkour");
-            int platforms = plan.Gaps + 1;
-            float span = ParkourEnd - ParkourStart;
-            float available = span - platforms * PlatformLength;
-            float gap = plan.Gaps > 0 ? Mathf.Min(plan.MaxGap, available / plan.Gaps) : 0f;
 
-            if (plan.Gaps > 0 && gap < plan.MaxGap - 0.01f)
+            // Секция начинается за проёмом лестницы снизу: он лежит во входной
+            // зоне этажа и заезжает в паркур. Над проёмом строить нельзя —
+            // площадка становится потолком поднимающемуся, — и раньше первая
+            // площадка каждого этажа просто пропадала, а с ней и первый разрыв.
+            float start = ParkourStart;
+            if (floor > 0)
             {
-                warnings.Add(
-                    $"этаж {floor + 1}: разрыв паркура ужат до {gap:F2} ШП вместо {plan.MaxGap:F0} по спеке — " +
-                    $"{plan.Gaps} разрывов по {plan.MaxGap:F0} ШП не помещаются в секцию длиной {span:F0} ШП");
+                GetStairHoleRange(floor - 1, out float holeXMin, out float holeXMax);
+                start = Mathf.Max(start, Mathf.Max(GetProgress(floor, holeXMin), GetProgress(floor, holeXMax)));
             }
 
-            float cursor = ParkourStart;
+            float span = ParkourEnd - start;
+
+            // Разрыв держит размер из спеки, а число разрывов подгоняется под
+            // секцию. Сложность паркура игрок читает по длине прыжка, а не по
+            // количеству дыр: ужатый до 1.75 ШП разрыв просто перешагивается,
+            // и секция перестаёт быть препятствием вообще.
+            int gaps = plan.Gaps;
+            while (gaps > 0 && (gaps + 1) * MinPlatformLength + gaps * plan.MaxGap > span)
+            {
+                gaps--;
+            }
+
+            if (gaps < plan.Gaps)
+            {
+                warnings.Add(
+                    $"этаж {floor + 1}: разрывов паркура {gaps} вместо {plan.Gaps} по спеке — " +
+                    $"{plan.Gaps} по {plan.MaxGap:F0} ШП не помещаются в секцию длиной {span:F0} ШП. " +
+                    "Размер разрыва сохранён, урезано количество");
+            }
+
+            int platforms = gaps + 1;
+            float gap = gaps > 0 ? plan.MaxGap : 0f;
+
+            // Остаток секции уходит в площадки: приземляться есть куда, а
+            // разрыв остаётся ровно тем, что задан таблицей 3.9.
+            float platformLength = (span - gaps * gap) / platforms;
+
+            float cursor = start;
             for (int i = 0; i < platforms; i++)
             {
                 // Высоты в пределах 0.5…2.0 ШП: под потолком 7 ШП с площадки
                 // в 2 ШП полный прыжок ещё проходит, не задевая макушкой.
                 float height = Mathf.Lerp(0.5f, 2f, (float)random.NextDouble());
-                GetXRange(floor, cursor, cursor + PlatformLength, out float xMin, out float xMax);
-                cursor += PlatformLength + gap;
+                GetXRange(floor, cursor, cursor + platformLength, out float xMin, out float xMax);
+                cursor += platformLength + gap;
 
                 // Над проёмом лестницы площадку не ставим — она станет потолком
                 // тому, кто по этой лестнице поднимается.
@@ -548,36 +596,208 @@ namespace Igruha.EditorTools
         private static void BuildCovers(Transform root, int floor, float baseY, FloorPlan plan)
         {
             Transform group = ResetGroup(root, "Covers");
+
+            // Укрытия кончаются там, где начинается плановый открытый пробег.
+            // «Самый длинный открытый участок» из таблицы 3.9 — параметр
+            // прогрессии, и получаться он обязан намеренно. Раньше он выходил
+            // побочным эффектом: укрытие, попавшее в зону ловушек или в проём
+            // лестницы, просто выбрасывалось — этажи теряли до трети укрытий,
+            // а голый хвост выходил одинаковым на всех пяти.
             float from = CoverStart;
-            float to = StairRoomStart - 2f;
-            float step = (to - from) / Mathf.Max(1, plan.Covers);
+            float to = Mathf.Max(from + 2f, StairRoomStart - plan.LongestOpen);
+            float step = (to - from) / plan.Covers;
+            int highCount = Mathf.RoundToInt(plan.Covers * HighCoverShare);
+
+            List<Vector4> sightLines = GetTrapSightLines(floor);
+            var placed = new List<Vector4>(plan.Covers);
 
             for (int i = 0; i < plan.Covers; i++)
             {
-                float p = from + step * (i + 0.5f) + (float)(random.NextDouble() - 0.5) * step * 0.5f;
-
-                // Зону эффекта ловушек не загораживаем: спека требует прямой
-                // видимости от кнопки до зоны, иначе нажатие — лотерея.
-                if (p > GeyserStart - 1f && p < CollapseEnd + 1f)
-                {
-                    continue;
-                }
-
-                bool high = random.NextDouble() < 0.6;
+                // Высокие раскладываем равномерно по цепочке, а не броском
+                // монеты: на пяти укрытиях монета легко оставляет этаж вообще
+                // без высоких, и стоящему игроку прятаться негде.
+                bool high = i * highCount / plan.Covers != (i + 1) * highCount / plan.Covers;
                 float height = high ? HighCoverWidths : LowCoverWidths;
-                float width = Mathf.Lerp(1.5f, 2.5f, (float)random.NextDouble());
-                float z = Mathf.Lerp(1.5f, DepthWidths - 3.5f, (float)random.NextDouble());
+                bool done = false;
 
-                GetXRange(floor, p, p + width, out float xMin, out float xMax);
-                if (OverlapsStairwell(floor, xMin, xMax, z, z + 2f))
+                for (int attempt = 0; attempt < CoverPlacementAttempts && !done; attempt++)
                 {
-                    continue;
+                    // С каждой попыткой укрытие уже и переходит на следующую
+                    // полосу глубины. Чистый случайный перебор в узкой полосе
+                    // поздних этажей выдыхается раньше, чем находит щель, а
+                    // терять укрытие нельзя — их число и есть прогрессия.
+                    float squeeze = attempt / (float)CoverPlacementAttempts;
+                    float width = Mathf.Lerp(2.5f, 1.5f, squeeze);
+                    float lane = attempt % CoverDepthLanes / (float)(CoverDepthLanes - 1);
+
+                    // Сначала укрытие ищет место в своей доле полосы — так они
+                    // раскладываются ровно. Если доля забита, отпускаем его
+                    // гулять по всей полосе: ровность важна, наличие важнее.
+                    float p = squeeze < 0.5f
+                        ? from + step * (i + (float)random.NextDouble())
+                        : Mathf.Lerp(from, to - width, (float)random.NextDouble());
+                    p = Mathf.Clamp(p, from, to - width);
+                    float z = attempt == 0
+                        ? Mathf.Lerp(1.5f, DepthWidths - 3.5f, (float)random.NextDouble())
+                        : Mathf.Lerp(1.5f, DepthWidths - 3.5f, lane);
+
+                    // Линию от кнопки до зоны эффекта не загораживаем: спека
+                    // (5.1) требует прямой видимости, иначе нажатие — лотерея.
+                    if (BlocksSightLine(sightLines, p, p + width, z, z + 2f))
+                    {
+                        continue;
+                    }
+
+                    GetXRange(floor, p, p + width, out float xMin, out float xMax);
+                    if (OverlapsStairwell(floor, xMin, xMax, z, z + 2f))
+                    {
+                        continue;
+                    }
+
+                    // Слипшиеся укрытия читаются как одна стена и съедают
+                    // проходимость этажа — держим их врозь.
+                    if (OverlapsPlaced(placed, p, p + width, z, z + 2f))
+                    {
+                        continue;
+                    }
+
+                    Box(group, $"Cover_{i + 1:00}_{(high ? "High" : "Low")}", coverLayer,
+                        high ? coverHighMaterial : coverLowMaterial,
+                        xMin, xMax, baseY, baseY + height, z, z + 2f);
+
+                    placed.Add(new Vector4(p, p + width, z, z + 2f));
+                    done = true;
                 }
 
-                Box(group, $"Cover_{i + 1:00}_{(high ? "High" : "Low")}", coverLayer,
-                    high ? coverHighMaterial : coverLowMaterial,
-                    xMin, xMax, baseY, baseY + height, z, z + 2f);
+                if (!done)
+                {
+                    warnings.Add(
+                        $"этаж {floor + 1}: укрытие {i + 1} из {plan.Covers} поставить некуда — " +
+                        $"полоса p {from:F0}…{to:F0} занята");
+                }
             }
+        }
+
+        /// <summary>
+        /// Линии «кнопка → зона эффекта» этажа в координатах трассы (p, z).
+        /// Заданы числами, а не построенными объектами: укрытия строятся
+        /// раньше ловушек, а расступиться перед линией должны именно они.
+        /// </summary>
+        private static List<Vector4> GetTrapSightLines(int floor)
+        {
+            var lines = new List<Vector4>(2);
+
+            // Линия идёт из середины постамента, а не из его угла: иначе
+            // проверочный луч стартует внутри самой кнопки и упирается в неё.
+            float buttonZ = PathDepth - ButtonOffsetFromPath + 0.5f;
+            float doorwayZ = StairFlightANearZ + DoorwayWidth * 0.5f;
+            float geyserZ = (DepthWidths - 5f) * 0.5f + 2.5f;
+            float geyserP = (GeyserStart + GeyserEnd) * 0.5f;
+
+            switch (floor)
+            {
+                case 1:
+                    lines.Add(new Vector4(ButtonProgress + 0.5f, buttonZ, DoorProgress, doorwayZ));
+                    break;
+                case 2:
+                    lines.Add(new Vector4(ButtonProgress + 0.5f, buttonZ, geyserP, geyserZ));
+                    break;
+                case 3:
+                    lines.Add(new Vector4(ButtonProgress + 0.5f, buttonZ, (CollapseStart + CollapseEnd) * 0.5f, DepthWidths * 0.5f));
+                    break;
+                case 4:
+                    lines.Add(new Vector4(ButtonProgressDoorFloor5 + 0.5f, buttonZ, DoorProgress, doorwayZ));
+                    lines.Add(new Vector4(ButtonProgressGeyserFloor5 + 0.5f, buttonZ, geyserP, geyserZ));
+                    break;
+            }
+
+            return lines;
+        }
+
+        private static bool BlocksSightLine(List<Vector4> lines, float pMin, float pMax, float zMin, float zMax)
+        {
+            for (int i = 0; i < lines.Count; i++)
+            {
+                Vector4 line = lines[i];
+                if (SegmentIntersectsRect(
+                        new Vector2(line.x, line.y), new Vector2(line.z, line.w),
+                        pMin - CoverClearance, pMax + CoverClearance,
+                        zMin - CoverClearance, zMax + CoverClearance))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool OverlapsPlaced(List<Vector4> placed, float pMin, float pMax, float zMin, float zMax)
+        {
+            for (int i = 0; i < placed.Count; i++)
+            {
+                Vector4 other = placed[i];
+                bool apart =
+                    pMax + CoverClearance < other.x || pMin - CoverClearance > other.y ||
+                    zMax + CoverClearance < other.z || zMin - CoverClearance > other.w;
+
+                if (!apart)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>Пересекает ли отрезок прямоугольник. Слэб-метод: без корней и без ветвлений по случаям.</summary>
+        private static bool SegmentIntersectsRect(Vector2 a, Vector2 b, float xMin, float xMax, float yMin, float yMax)
+        {
+            float dx = b.x - a.x;
+            float dy = b.y - a.y;
+            float t0 = 0f;
+            float t1 = 1f;
+
+            return ClipSegment(-dx, a.x - xMin, ref t0, ref t1)
+                && ClipSegment(dx, xMax - a.x, ref t0, ref t1)
+                && ClipSegment(-dy, a.y - yMin, ref t0, ref t1)
+                && ClipSegment(dy, yMax - a.y, ref t0, ref t1);
+        }
+
+        private static bool ClipSegment(float direction, float distance, ref float t0, ref float t1)
+        {
+            if (Mathf.Approximately(direction, 0f))
+            {
+                return distance >= 0f;
+            }
+
+            float t = distance / direction;
+
+            if (direction < 0f)
+            {
+                if (t > t1)
+                {
+                    return false;
+                }
+
+                if (t > t0)
+                {
+                    t0 = t;
+                }
+
+                return true;
+            }
+
+            if (t < t0)
+            {
+                return false;
+            }
+
+            if (t < t1)
+            {
+                t1 = t;
+            }
+
+            return true;
         }
 
         // ========== ЛОВУШКИ ==========
@@ -1055,6 +1275,47 @@ namespace Igruha.EditorTools
             }
 
             ValidateLineOfFire();
+            ValidateButtonSightLines();
+        }
+
+        /// <summary>
+        /// Видит ли нажимающий зону эффекта своей ловушки (спека, 5.1): без
+        /// прямой видимости нажатие — лотерея.
+        ///
+        /// У двери целимся в ПРОЁМ, а не в саму створку. Открытая створка
+        /// припаркована в толще задней стены, и луч до неё честно упирается в
+        /// стену — проверка по створке показывает перекрытие там, где его нет.
+        /// Ровно на это попался замер 19.08.
+        /// </summary>
+        private static void ValidateButtonSightLines()
+        {
+            int mask = (1 << groundLayer) | (1 << coverLayer);
+
+            for (int floor = 0; floor < config.FloorCount; floor++)
+            {
+                List<Vector4> lines = GetTrapSightLines(floor);
+                float baseY = floor * config.FloorStepWidths;
+
+                for (int i = 0; i < lines.Count; i++)
+                {
+                    Vector4 line = lines[i];
+                    Vector3 eye = ToWorld(GetX(floor, line.x), baseY + EyeHeightWidths, line.y);
+                    Vector3 target = ToWorld(GetX(floor, line.z), baseY + EyeHeightWidths * 0.5f, line.w);
+                    Vector3 direction = (target - eye).normalized;
+
+                    // Стартуем на шаг от постамента: игрок стоит рядом с
+                    // кнопкой, а не внутри неё.
+                    Vector3 origin = eye + direction * config.ToUnits(1.5f);
+                    float distance = Vector3.Distance(origin, target);
+
+                    if (Physics.Raycast(origin, direction, out RaycastHit hit, distance - 0.1f, mask, QueryTriggerInteraction.Ignore))
+                    {
+                        warnings.Add(
+                            $"этаж {floor + 1}: от кнопки на p={line.x:F0} не видно зону эффекта на p={line.z:F0} — " +
+                            $"луч упирается в «{hit.collider.name}» на {hit.distance:F2} м");
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -1142,6 +1403,10 @@ namespace Igruha.EditorTools
 
         private static float GetX(int floor, float progress) =>
             IsForward(floor) ? progress : config.FloorLengthWidths - progress;
+
+        /// <summary>Прогресс трассы по мировому X этажа — обратная к GetX.</summary>
+        private static float GetProgress(int floor, float x) =>
+            IsForward(floor) ? x : config.FloorLengthWidths - x;
 
         private static void GetXRange(int floor, float fromProgress, float toProgress, out float xMin, out float xMax)
         {
