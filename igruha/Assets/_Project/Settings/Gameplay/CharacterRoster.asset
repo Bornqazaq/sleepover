@@ -23,9 +23,9 @@ MonoBehaviour:
     prefab: {fileID: 9171410491814777834, guid: 45655be5c30e24744a28fd24b860e478, type: 3}
   - displayName: MyBoy
     prefab: {fileID: 2361314342993753982, guid: aebc713a503dc784d89e1f90c04a47b9, type: 3}
-  - displayName: ???
-    prefab: {fileID: 0}
-  - displayName: ???
-    prefab: {fileID: 0}
-  - displayName: ???
-    prefab: {fileID: 0}
+  - displayName: Girl
+    prefab: {fileID: 3535456145683482335, guid: 1e26e060c46e26246b44b5f9852fd7be, type: 3}
+  - displayName: Milez
+    prefab: {fileID: 233351943254185968, guid: 81fded5abdb32ab4a9e02273ba141e7d, type: 3}
+  - displayName: Aza
+    prefab: {fileID: 5541750567038479009, guid: eecb1616f0650ae42bfe59fc3a296b32, type: 3}

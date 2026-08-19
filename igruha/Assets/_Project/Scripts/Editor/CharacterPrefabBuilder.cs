@@ -1,4 +1,4 @@
-using UnityEditor;
+﻿using UnityEditor;
 using UnityEngine;
 using Igruha.Core.Player;
 
@@ -64,6 +64,40 @@ namespace Igruha.EditorTools
         /// <summary>Танцев у MyBoy нет — колесо эмоций у него просто не откроется.</summary>
         private static readonly string[] MyBoyEmotes = System.Array.Empty<string>();
 
+        private const string GirlPrefabPath = "Assets/_Project/Prefabs/Player/Girl.prefab";
+        // См. комментарий у ShlangaModelPath — та же схема: визуал из анимационного
+        // FBX. У Girl отдельной модели в Art/Models нет вовсе, только клипы.
+        private const string GirlModelPath = "Assets/_Project/Art/Animations/Girl@idle.fbx";
+        private const string GirlIdleClipPath = GirlModelPath;
+        private const string GirlControllerPath = "Assets/_Project/Art/Animations/GirlAnimator.controller";
+        private const float GirlHeightMeters = 1.70f;
+
+        /// <summary>Танцев у Girl нет — колесо эмоций у неё просто не откроется.</summary>
+        private static readonly string[] GirlEmotes = System.Array.Empty<string>();
+
+        private const string MilezPrefabPath = "Assets/_Project/Prefabs/Player/Milez.prefab";
+        // См. комментарий у ShlangaModelPath — та же схема: визуал из анимационного
+        // FBX. У Milez, как и у Girl, отдельной модели в Art/Models нет, только клипы.
+        private const string MilezModelPath = "Assets/_Project/Art/Animations/Milez@idle.fbx";
+        private const string MilezIdleClipPath = MilezModelPath;
+        private const string MilezControllerPath = "Assets/_Project/Art/Animations/MilezAnimator.controller";
+        private const float MilezHeightMeters = 1.75f;
+
+        /// <summary>Танцев у Milez нет — колесо эмоций у него просто не откроется.</summary>
+        private static readonly string[] MilezEmotes = System.Array.Empty<string>();
+
+        private const string AzaPrefabPath = "Assets/_Project/Prefabs/Player/Aza.prefab";
+        // См. комментарий у ShlangaModelPath — та же схема: визуал из анимационного
+        // FBX. Art/Models/Aza.fbx для префаба не годится по той же причине, что и
+        // модель Шланги: там меш без ригa, Humanoid-аватар из него не собрать.
+        private const string AzaModelPath = "Assets/_Project/Art/Animations/Aza@Happy Idle.fbx";
+        private const string AzaIdleClipPath = AzaModelPath;
+        private const string AzaControllerPath = "Assets/_Project/Art/Animations/AzaAnimator.controller";
+        private const float AzaHeightMeters = 1.72f;
+
+        /// <summary>Танцев у Aza нет — колесо эмоций у него просто не откроется.</summary>
+        private static readonly string[] AzaEmotes = System.Array.Empty<string>();
+
         /// <summary>
         /// Высота точки привязки камеры — доля от роста персонажа (грудь/плечи),
         /// не корень капсулы: при разнице в рост камера иначе кадрирует
@@ -74,15 +108,23 @@ namespace Igruha.EditorTools
 
         // --- Текстуры ---------------------------------------------------------
         // Меш приходит из анимационных FBX (Mixamo/Tripo), а они текстуру не
-        // отдают — материал остаётся серым, пока Base Map не назначен вручную.
-        // Конвенция по имени файла — Textures/{ИмяПерсонажа}.<ext> — работает для
-        // любого нового персонажа без правки кода: добавил файл, прогнал
-        // CreateX(), текстура подхватилась сама.
+        // отдают — материал остаётся серым, пока карты не назначены вручную.
+        // Поддерживаются две конвенции имён, обе работают для нового персонажа
+        // без правки кода — достаточно положить файлы и прогнать CreateX():
+        //   • полный набор PBR: base_color(Имя).<ext>, metallic_roughness(Имя).<ext>,
+        //     normal(Имя).<ext> — так экспортирует Tripo/glTF (Girl);
+        //   • одна карта: Textures/{Имя}.<ext> — старые персонажи (Fat, MyBoy).
         private const string TexturesFolder = "Assets/_Project/Art/Textures/";
         private static readonly string[] TextureExtensions = { ".jpg", ".jpeg", ".png" };
-        // Куда кладём материалы-подмены (см. RemapMaterialTexture) — по одному
+        // Куда кладём материалы-подмены (см. RemapMaterialTextures) — по одному
         // на персонажа, переиспользуется при каждой пересборке.
         private const string MaterialsFolder = "Assets/_Project/Art/Materials/";
+
+        private static readonly int BaseMapId = Shader.PropertyToID("_BaseMap");
+        private static readonly int MetallicGlossMapId = Shader.PropertyToID("_MetallicGlossMap");
+        private static readonly int BumpMapId = Shader.PropertyToID("_BumpMap");
+        private static readonly int SmoothnessId = Shader.PropertyToID("_Smoothness");
+        private static readonly int SmoothnessTextureChannelId = Shader.PropertyToID("_SmoothnessTextureChannel");
 
         [MenuItem("Igruha/Player/Resize Karlan (Base Prefab)")]
         private static void ResizeKarlan()
@@ -104,6 +146,12 @@ namespace Igruha.EditorTools
 
                 BindCameraTarget(contents, EnsureCameraTarget(contents, KarlanHeightMeters));
 
+                // Karlan собирается не через Create(), поэтому ссылки драйвера ему
+                // надо переприсвоить здесь же — иначе он единственный останется
+                // со сжатием модели вместо клипа приседа. Заодно это чинит значение
+                // и всем вариантам: они наследуют его от базового префаба.
+                BindAnimatorDriver(contents, visual.GetComponent<Animator>(), visual, hasCrouchAnimation: true);
+
                 PrefabUtility.SaveAsPrefabAsset(contents, BasePrefabPath);
                 Debug.Log($"CharacterPrefabBuilder (Karlan): рост {KarlanHeightMeters:F2} м, масштаб модели {scale:F3}.");
             }
@@ -123,7 +171,7 @@ namespace Igruha.EditorTools
                 PlayerAnimatorControllerBuilder.BuildBossController();
             }
 
-            if (!Create("Boss", BossPrefabPath, BossModelPath, BossIdleClipPath, BossControllerPath, BossHeightMeters, BossEmotes))
+            if (!Create("Boss", BossPrefabPath, BossModelPath, BossIdleClipPath, BossControllerPath, BossHeightMeters, BossEmotes, hasCrouchAnimation: true))
             {
                 return;
             }
@@ -141,7 +189,7 @@ namespace Igruha.EditorTools
                 PlayerAnimatorControllerBuilder.BuildShlangaController();
             }
 
-            if (!Create("Shlanga", ShlangaPrefabPath, ShlangaModelPath, ShlangaIdleClipPath, ShlangaControllerPath, ShlangaHeightMeters, ShlangaEmotes))
+            if (!Create("Shlanga", ShlangaPrefabPath, ShlangaModelPath, ShlangaIdleClipPath, ShlangaControllerPath, ShlangaHeightMeters, ShlangaEmotes, hasCrouchAnimation: true))
             {
                 return;
             }
@@ -161,7 +209,7 @@ namespace Igruha.EditorTools
                 PlayerAnimatorControllerBuilder.BuildFatController();
             }
 
-            if (!Create("Fat", FatPrefabPath, FatModelPath, FatIdleClipPath, FatControllerPath, FatHeightMeters, FatEmotes))
+            if (!Create("Fat", FatPrefabPath, FatModelPath, FatIdleClipPath, FatControllerPath, FatHeightMeters, FatEmotes, hasCrouchAnimation: true))
             {
                 return;
             }
@@ -180,13 +228,81 @@ namespace Igruha.EditorTools
                 PlayerAnimatorControllerBuilder.BuildMyBoyController();
             }
 
-            if (!Create("MyBoy", MyBoyPrefabPath, MyBoyModelPath, MyBoyIdleClipPath, MyBoyControllerPath, MyBoyHeightMeters, MyBoyEmotes))
+            if (!Create("MyBoy", MyBoyPrefabPath, MyBoyModelPath, MyBoyIdleClipPath, MyBoyControllerPath, MyBoyHeightMeters, MyBoyEmotes, hasCrouchAnimation: true))
             {
                 return;
             }
 
             // Второй прогон билдера — уже по существующему префабу: см. комментарий в CreateShlanga.
             PlayerAnimatorControllerBuilder.BuildMyBoyController();
+        }
+
+        [MenuItem("Igruha/Player/Create Girl Prefab")]
+        internal static void CreateGirl()
+        {
+            // Клипы Girl приехали из Mixamo как Generic: без Humanoid-рига у модели
+            // не будет Animator и префаб не собрать. Поэтому импорт настраивается
+            // здесь же — сборка персонажа остаётся одним действием, а не двумя.
+            CharacterClipImportSetup.SetupGirl();
+
+            EnsureEmoteAbilityOnBasePrefab();
+
+            if (AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(GirlControllerPath) == null)
+            {
+                PlayerAnimatorControllerBuilder.BuildGirlController();
+            }
+
+            if (!Create("Girl", GirlPrefabPath, GirlModelPath, GirlIdleClipPath, GirlControllerPath, GirlHeightMeters, GirlEmotes, hasCrouchAnimation: true))
+            {
+                return;
+            }
+
+            // Второй прогон билдера — уже по существующему префабу: см. комментарий в CreateShlanga.
+            PlayerAnimatorControllerBuilder.BuildGirlController();
+        }
+
+        [MenuItem("Igruha/Player/Create Milez Prefab")]
+        internal static void CreateMilez()
+        {
+            // Клипы приехали из Mixamo как Generic — см. комментарий в CreateGirl.
+            CharacterClipImportSetup.SetupMilez();
+
+            EnsureEmoteAbilityOnBasePrefab();
+
+            if (AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(MilezControllerPath) == null)
+            {
+                PlayerAnimatorControllerBuilder.BuildMilezController();
+            }
+
+            if (!Create("Milez", MilezPrefabPath, MilezModelPath, MilezIdleClipPath, MilezControllerPath, MilezHeightMeters, MilezEmotes, hasCrouchAnimation: true))
+            {
+                return;
+            }
+
+            // Второй прогон билдера — уже по существующему префабу: см. комментарий в CreateShlanga.
+            PlayerAnimatorControllerBuilder.BuildMilezController();
+        }
+
+        [MenuItem("Igruha/Player/Create Aza Prefab")]
+        internal static void CreateAza()
+        {
+            // Клипы приехали из Mixamo как Generic — см. комментарий в CreateGirl.
+            CharacterClipImportSetup.SetupAza();
+
+            EnsureEmoteAbilityOnBasePrefab();
+
+            if (AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(AzaControllerPath) == null)
+            {
+                PlayerAnimatorControllerBuilder.BuildAzaController();
+            }
+
+            if (!Create("Aza", AzaPrefabPath, AzaModelPath, AzaIdleClipPath, AzaControllerPath, AzaHeightMeters, AzaEmotes, hasCrouchAnimation: true))
+            {
+                return;
+            }
+
+            // Второй прогон билдера — уже по существующему префабу: см. комментарий в CreateShlanga.
+            PlayerAnimatorControllerBuilder.BuildAzaController();
         }
 
         /// <summary>
@@ -225,7 +341,8 @@ namespace Igruha.EditorTools
             string idleClipPath,
             string controllerPath,
             float targetHeightMeters,
-            string[] emoteNames)
+            string[] emoteNames,
+            bool hasCrouchAnimation = false)
         {
             GameObject basePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(BasePrefabPath);
             GameObject model = AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
@@ -261,7 +378,8 @@ namespace Igruha.EditorTools
                 animator.applyRootMotion = false;
 
                 BindCameraTarget(instance, EnsureCameraTarget(instance, targetHeightMeters));
-                BindAnimatorDriver(instance, animator, visual.transform);
+                BindAnimatorDriver(instance, animator, visual.transform, hasCrouchAnimation);
+                BindNetworkAnimator(characterName, instance, animator);
                 ApplyEmoteNames(instance, emoteNames);
 
                 PrefabUtility.SaveAsPrefabAsset(instance, prefabPath);
@@ -342,35 +460,150 @@ namespace Igruha.EditorTools
         }
 
         /// <summary>
-        /// Назначает Base Map материалам визуала, если он ещё не назначен.
-        /// Ничего не делает, если материал уже текстурирован (Boss/Shlanga
-        /// получили свою текстуру автоматически при импорте FBX — Unity сама
-        /// находит в проекте файл с именем, на которое ссылается материал внутри
-        /// FBX, и не нуждается в ручной правке), и просто предупреждает в консоль,
-        /// если подходящего файла Textures/{ИмяПерсонажа}.<ext> не нашлось —
+        /// Один набор карт персонажа. Любая из карт может отсутствовать: тогда
+        /// соответствующий слот материала просто не трогается.
+        /// </summary>
+        private readonly struct CharacterTextureSet
+        {
+            public readonly Texture2D BaseMap;
+            public readonly Texture2D MetallicSmoothness;
+            public readonly Texture2D Normal;
+
+            public CharacterTextureSet(Texture2D baseMap, Texture2D metallicSmoothness, Texture2D normal)
+            {
+                BaseMap = baseMap;
+                MetallicSmoothness = metallicSmoothness;
+                Normal = normal;
+            }
+
+            public bool HasAny => BaseMap != null || MetallicSmoothness != null || Normal != null;
+
+            /// <summary>Есть ли что-то сверх Base Map — карты, которых у персонажей старой конвенции не было.</summary>
+            public bool HasDataMaps => MetallicSmoothness != null || Normal != null;
+        }
+
+        /// <summary>
+        /// Назначает карты материалам визуала. Ничего не делает, если материал уже
+        /// текстурирован и добавить к нему нечего (Boss/Shlanga получили свою
+        /// единственную текстуру автоматически при импорте FBX — Unity сама находит
+        /// в проекте файл с именем, на которое ссылается материал внутри FBX), и
+        /// просто предупреждает в консоль, если подходящих файлов не нашлось —
         /// чтобы тонущая в общем логе серая текстура не осталась незамеченной.
         /// </summary>
         private static void ApplyCharacterTexture(string characterName, Transform visual)
         {
             SkinnedMeshRenderer[] renderers = visual.GetComponentsInChildren<SkinnedMeshRenderer>(true);
-            Texture2D texture = null;
+            CharacterTextureSet textures = default;
+            bool searched = false;
+            // Один и тот же материал может стоять на нескольких рендерерах, а каждый
+            // remap тянет за собой SaveAndReimport модели — обрабатываем по разу.
+            var processed = new System.Collections.Generic.HashSet<string>();
 
             foreach (SkinnedMeshRenderer renderer in renderers)
             {
                 Material material = renderer.sharedMaterial;
-                if (material == null || material.mainTexture != null)
+                if (material == null || !processed.Add(material.name))
                 {
                     continue;
                 }
 
-                texture = texture != null ? texture : FindCharacterTexture(characterName);
-                if (texture == null)
+                if (!searched)
                 {
-                    Debug.LogWarning($"CharacterPrefabBuilder ({characterName}): в {TexturesFolder} нет файла {characterName}.jpg/.png — материал {material.name} остаётся без Base Map.");
+                    textures = FindCharacterTextures(characterName);
+                    searched = true;
+
+                    if (!textures.HasAny)
+                    {
+                        Debug.LogWarning($"CharacterPrefabBuilder ({characterName}): в {TexturesFolder} нет ни base_color({characterName}).jpg/.png, ни {characterName}.jpg/.png — материалы остаются без карт.");
+                        return;
+                    }
+                }
+
+                // Материал уже с Base Map, а больше положить нечего: это персонаж
+                // старой конвенции — переприсваивать то же самое незачем.
+                if (material.mainTexture != null && !textures.HasDataMaps)
+                {
                     continue;
                 }
 
-                RemapMaterialTexture(characterName, material, texture);
+                RemapMaterialTextures(characterName, material, textures);
+            }
+        }
+
+        /// <summary>
+        /// Ищет карты персонажа по обеим конвенциям имён (см. TexturesFolder).
+        /// metallic_roughness не отдаётся движку как есть — сначала пересобирается
+        /// в раскладку каналов, которую ждёт URP (см. BuildMetallicSmoothnessMap).
+        /// </summary>
+        private static CharacterTextureSet FindCharacterTextures(string characterName)
+        {
+            Texture2D baseMap = FindTexture($"base_color({characterName})")
+                                ?? FindTexture(characterName);
+            Texture2D normal = FindTexture($"normal({characterName})");
+            Texture2D metallicRoughness = FindTexture($"metallic_roughness({characterName})");
+
+            Texture2D metallicSmoothness = metallicRoughness == null
+                ? null
+                : BuildMetallicSmoothnessMap(characterName, metallicRoughness);
+
+            return new CharacterTextureSet(baseMap, metallicSmoothness, normal);
+        }
+
+        /// <summary>
+        /// Пересобирает glTF-карту metallic_roughness в ту раскладку каналов,
+        /// которую читает URP Lit. Раскладки не совпадают, и это не мелочь:
+        ///   glTF: R — occlusion, G — roughness, B — metallic;
+        ///   URP:  R — metallic,  A — smoothness.
+        /// Отдать исходник напрямую нельзя — URP прочитал бы белый occlusion (R=255)
+        /// как «металл на 100%» и покрыл персонажа хромом, а гладкость взял бы
+        /// из отсутствующей у JPG альфы, то есть как сплошное зеркало.
+        /// Поэтому рядом с исходником лежит производная карта: R = metallic (из B),
+        /// A = smoothness (из 1 − roughness). Исходник при этом остаётся нетронутым.
+        /// Читаем файл напрямую, а не через GetPixels() импортированной текстуры:
+        /// импорт сжимает её в DXT и портит именно те значения, которые нужны точно.
+        /// </summary>
+        private static Texture2D BuildMetallicSmoothnessMap(string characterName, Texture2D metallicRoughness)
+        {
+            string sourcePath = AssetDatabase.GetAssetPath(metallicRoughness);
+            byte[] sourceBytes = System.IO.File.ReadAllBytes(sourcePath);
+
+            var source = new Texture2D(2, 2, TextureFormat.RGBA32, false, true);
+            try
+            {
+                if (!source.LoadImage(sourceBytes))
+                {
+                    Debug.LogError($"CharacterPrefabBuilder ({characterName}): не читается {sourcePath} — карта металличности не собрана.");
+                    return null;
+                }
+
+                Color[] pixels = source.GetPixels();
+                for (int i = 0; i < pixels.Length; i++)
+                {
+                    float metallic = pixels[i].b;
+                    float smoothness = 1f - pixels[i].g;
+                    pixels[i] = new Color(metallic, metallic, metallic, smoothness);
+                }
+
+                var repacked = new Texture2D(source.width, source.height, TextureFormat.RGBA32, false, true);
+                try
+                {
+                    repacked.SetPixels(pixels);
+                    repacked.Apply();
+
+                    // PNG, а не JPG: альфа несёт гладкость, а JPG её не хранит вовсе.
+                    string outputPath = TexturesFolder + characterName + CharacterTextureImportSetup.MetallicSmoothnessSuffix + ".png";
+                    System.IO.File.WriteAllBytes(outputPath, repacked.EncodeToPNG());
+                    AssetDatabase.ImportAsset(outputPath, ImportAssetOptions.ForceUpdate);
+                    return AssetDatabase.LoadAssetAtPath<Texture2D>(outputPath);
+                }
+                finally
+                {
+                    Object.DestroyImmediate(repacked);
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(source);
             }
         }
 
@@ -384,17 +617,17 @@ namespace Igruha.EditorTools
         /// PlayerAnimatorControllerBuilder.SyncPrefabDurations) пересобирает
         /// материалы заново и стирает любую прямую правку.
         /// Единственный официальный способ, переживающий реимпорт, — remap
-        /// ModelImporter: заводим отдельный .mat с нужным Base Map и подменяем
+        /// ModelImporter: заводим отдельный .mat с нужными картами и подменяем
         /// им embedded-материал через AddRemap. Ровно так Unity сама сохраняет
         /// текстуры Boss/Shlanga между реимпортами — та же механика, только
         /// explicit вместо auto-search по имени файла.
         /// </summary>
-        private static void RemapMaterialTexture(string characterName, Material embeddedMaterial, Texture2D texture)
+        private static void RemapMaterialTextures(string characterName, Material embeddedMaterial, CharacterTextureSet textures)
         {
             string modelPath = AssetDatabase.GetAssetPath(embeddedMaterial);
             if (AssetImporter.GetAtPath(modelPath) is not ModelImporter importer)
             {
-                Debug.LogError($"CharacterPrefabBuilder ({characterName}): {modelPath} — не ModelImporter, Base Map не назначить.");
+                Debug.LogError($"CharacterPrefabBuilder ({characterName}): {modelPath} — не ModelImporter, карты не назначить.");
                 return;
             }
 
@@ -408,7 +641,7 @@ namespace Igruha.EditorTools
             }
 
             externalMaterial.CopyPropertiesFromMaterial(embeddedMaterial);
-            externalMaterial.mainTexture = texture;
+            ApplyMapsToMaterial(externalMaterial, textures);
             EditorUtility.SetDirty(externalMaterial);
             AssetDatabase.SaveAssets();
 
@@ -417,11 +650,55 @@ namespace Igruha.EditorTools
             importer.SaveAndReimport();
         }
 
-        private static Texture2D FindCharacterTexture(string characterName)
+        /// <summary>
+        /// Раскладывает карты по слотам URP Lit. Ключевые слова включаются явно:
+        /// без них шейдер собирается в вариант без соответствующей карты, и
+        /// назначенная текстура просто не читается.
+        /// </summary>
+        private static void ApplyMapsToMaterial(Material material, CharacterTextureSet textures)
+        {
+            if (textures.BaseMap != null)
+            {
+                material.mainTexture = textures.BaseMap;
+                if (material.HasProperty(BaseMapId))
+                {
+                    material.SetTexture(BaseMapId, textures.BaseMap);
+                }
+            }
+
+            if (textures.Normal != null && material.HasProperty(BumpMapId))
+            {
+                material.SetTexture(BumpMapId, textures.Normal);
+                material.EnableKeyword("_NORMALMAP");
+            }
+
+            if (textures.MetallicSmoothness != null && material.HasProperty(MetallicGlossMapId))
+            {
+                material.SetTexture(MetallicGlossMapId, textures.MetallicSmoothness);
+                material.EnableKeyword("_METALLICSPECGLOSSMAP");
+
+                // Гладкость читаем из альфы карты металличности, а не из альфы
+                // Base Map: base_color — JPG без альфы, оттуда пришла бы сплошная
+                // единица, то есть зеркало вместо кожи и ткани.
+                material.DisableKeyword("_SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A");
+                if (material.HasProperty(SmoothnessTextureChannelId))
+                {
+                    material.SetFloat(SmoothnessTextureChannelId, 0f);
+                }
+
+                // Множитель поверх карты — карта уже несёт готовые значения.
+                if (material.HasProperty(SmoothnessId))
+                {
+                    material.SetFloat(SmoothnessId, 1f);
+                }
+            }
+        }
+
+        private static Texture2D FindTexture(string fileNameWithoutExtension)
         {
             foreach (string extension in TextureExtensions)
             {
-                var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(TexturesFolder + characterName + extension);
+                var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(TexturesFolder + fileNameWithoutExtension + extension);
                 if (texture != null)
                 {
                     return texture;
@@ -562,11 +839,37 @@ namespace Igruha.EditorTools
             return null;
         }
 
-        private static void BindAnimatorDriver(GameObject instance, Animator animator, Transform visualRoot)
+        /// <summary>
+        /// Сжатие модели по высоте — заглушка приседания для персонажа без клипа.
+        /// Тому, у кого клип есть, её надо снять: иначе присед отыгрывается дважды,
+        /// и настоящая анимация приседа ещё и сплющивается сверху.
+        /// </summary>
+        private static void BindAnimatorDriver(GameObject instance, Animator animator, Transform visualRoot, bool hasCrouchAnimation)
         {
             var serialized = new SerializedObject(instance.GetComponent<CharacterAnimatorDriver>());
             serialized.FindProperty("animator").objectReferenceValue = animator;
             serialized.FindProperty("visualRoot").objectReferenceValue = visualRoot;
+            serialized.FindProperty("squashVisualOnCrouch").boolValue = !hasCrouchAnimation;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// Сетевая репликация анимаций берёт Animator из своего поля, а не через
+        /// GetComponent: визуал базового префаба в варианте удаляется вместе со
+        /// своим Animator, и ссылка обнуляется. Без перепривязки персонаж падает
+        /// в рантайме на UnassignedReferenceException ещё до первого кадра.
+        /// </summary>
+        private static void BindNetworkAnimator(string characterName, GameObject instance, Animator animator)
+        {
+            var networkAnimator = instance.GetComponent<Igruha.Networking.OwnerNetworkAnimator>();
+            if (networkAnimator == null)
+            {
+                Debug.LogError($"CharacterPrefabBuilder ({characterName}): на префабе нет OwnerNetworkAnimator — анимации не будут реплицироваться по сети.");
+                return;
+            }
+
+            var serialized = new SerializedObject(networkAnimator);
+            serialized.FindProperty("m_Animator").objectReferenceValue = animator;
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 

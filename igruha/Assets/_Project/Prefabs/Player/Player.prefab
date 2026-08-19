@@ -279,7 +279,7 @@ MonoBehaviour:
   motor: {fileID: 2264355084158667115}
   animator: {fileID: 8153474272100534532}
   visualRoot: {fileID: 2866217297803678590}
-  squashVisualOnCrouch: 1
+  squashVisualOnCrouch: 0
 --- !u!114 &448288431574036101
 MonoBehaviour:
   m_ObjectHideFlags: 0

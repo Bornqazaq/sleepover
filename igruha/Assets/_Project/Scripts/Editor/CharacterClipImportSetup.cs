@@ -19,10 +19,16 @@ namespace Igruha.EditorTools
         {
             "idle", "run",
             "dance1", "dance2", "dance3", "dance4", "dance5", "dance6", "dance7", "dance8",
-            // У Fat и MyBoy исходники названы не по общей конвенции (idle/run) —
+            // У Fat, MyBoy и Aza исходники названы не по общей конвенции (idle/run) —
             // суффиксы буквальные.
             "Neutral Idle", "Running",
-            "Old Man Idle", "Goofy Running"
+            "Old Man Idle", "Goofy Running",
+            "Happy Idle",
+            // Ходьба в приседе крутится, пока зажат Ctrl, — тоже зацикленный клип.
+            "Crouch Walk Forward",
+            // Сравнение в HashSet регистрозависимое, а у Girl и Milez бег назван
+            // "running" со строчной — без отдельной записи он не зациклится.
+            "running"
         };
 
         [MenuItem("Igruha/Player/Setup Shlanga Import Settings")]
@@ -41,6 +47,42 @@ namespace Igruha.EditorTools
         private static void SetupMyBoy()
         {
             Setup("MyBoy");
+        }
+
+        [MenuItem("Igruha/Player/Setup Girl Import Settings")]
+        private static void SetupGirlMenu()
+        {
+            SetupGirl();
+        }
+
+        /// <summary>Точка входа для сборщика персонажа целиком (CharacterPrefabBuilder.CreateGirl).</summary>
+        internal static void SetupGirl()
+        {
+            Setup("Girl");
+        }
+
+        [MenuItem("Igruha/Player/Setup Milez Import Settings")]
+        private static void SetupMilezMenu()
+        {
+            SetupMilez();
+        }
+
+        /// <summary>Точка входа для сборщика персонажа целиком (CharacterPrefabBuilder.CreateMilez).</summary>
+        internal static void SetupMilez()
+        {
+            Setup("Milez");
+        }
+
+        [MenuItem("Igruha/Player/Setup Aza Import Settings")]
+        private static void SetupAzaMenu()
+        {
+            SetupAza();
+        }
+
+        /// <summary>Точка входа для сборщика персонажа целиком (CharacterPrefabBuilder.CreateAza).</summary>
+        internal static void SetupAza()
+        {
+            Setup("Aza");
         }
 
         /// <summary>
@@ -66,6 +108,20 @@ namespace Igruha.EditorTools
             AssetDatabase.SaveAssets();
             Debug.Log($"CharacterClipImportSetup ({characterName}): переимпортировано файлов — {processed}.");
         }
+
+        /// <summary>
+        /// Клипы, у которых корпус в исходнике развёрнут относительно корня: Mixamo
+        /// экспортирует присед с телом вполоборота, и персонаж, стоящий лицом на
+        /// 12 часов, визуально смотрит куда-то на 10. Лечится переносом поворота
+        /// корня в позу (Bake Into Pose) с отсчётом от ориентации тела: тогда
+        /// «вперёд» у модели совпадает с «вперёд» у трансформа.
+        /// Остальным клипам это не нужно — у них ориентация авторская и верная,
+        /// а лишний бейк только смазал бы её.
+        /// </summary>
+        private static readonly HashSet<string> BakeRootRotationClipSuffixes = new HashSet<string>
+        {
+            "Crouch Walk Forward"
+        };
 
         private static bool ApplyToAnimation(string path)
         {
@@ -94,6 +150,13 @@ namespace Igruha.EditorTools
             clip.name = clipName;
             clip.loopTime = shouldLoop;
             clip.keepOriginalPositionY = true;
+
+            if (BakeRootRotationClipSuffixes.Contains(clipName))
+            {
+                clip.lockRootRotation = true;
+                clip.keepOriginalOrientation = false;
+            }
+
             importer.clipAnimations = new[] { clip };
 
             importer.SaveAndReimport();
