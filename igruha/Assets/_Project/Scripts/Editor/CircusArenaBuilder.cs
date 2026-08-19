@@ -54,6 +54,8 @@ namespace Igruha.EditorTools
         private const int BarsPerCageSide = 5;
         /// <summary>Сторона клетки, смотрящая наружу арены: локальный +Z смотрит в центр, значит наружу — 180°.</summary>
         private const int OuterWallSide = 2;
+        /// <summary>Встроенный слой Unity «Ignore Raycast»: физика работает, лучи проходят насквозь.</summary>
+        private const int IgnoreRaycastLayer = 2;
         private const int SlatsPerCageDoor = 4;
 
         /// <summary>Нахлёст сегментов кольца: встык они расходятся на округлении и оставляют щели.</summary>
@@ -569,6 +571,15 @@ namespace Igruha.EditorTools
             StripRenderer(blocker);
             blocker.localPosition = Vector3.zero;
             blocker.localScale = new Vector3(half * 2f + BarThickness * 2f, height, BarThickness);
+
+            if (side == OuterWallSide)
+            {
+                // Внешняя стена уходит с пути лучей камеры: физика её держит
+                // по-прежнему (слой на столкновения не влияет), а вот
+                // деоклюдер Cinemachine видел в ней препятствие и вжимал
+                // камеру внутрь клетки — кадр упирался игроку в ноги.
+                blocker.gameObject.layer = IgnoreRaycastLayer;
+            }
 
             // Внешняя стена остаётся без прутьев — только коллайдер. Игрок стоит
             // лицом к центру арены, камера смотрит ему в спину снаружи, и прутья
