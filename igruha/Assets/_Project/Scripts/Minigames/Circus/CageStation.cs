@@ -48,6 +48,10 @@ namespace Igruha.Minigames.Circus
         private Transform previousRespawnPoint;
         private bool lockedByDescent;
 
+        /// <summary>Детектор застревания пассажира и его состояние до посадки.</summary>
+        private StuckDetector occupantStuckDetector;
+        private bool stuckDetectorWasEnabled;
+
         /// <summary>Ступеней над нижней. Ноль — последняя ступень перед вылетом.</summary>
         public int Level { get; private set; }
 
@@ -122,6 +126,8 @@ namespace Igruha.Minigames.Circus
                 previousRespawnPoint = respawner.RespawnPoint;
                 respawner.SetRespawnPoint(respawnPoint);
             }
+
+            SuspendStuckDetector(player);
         }
 
         public void SnapToLevel(int levelSteps)
@@ -297,6 +303,7 @@ namespace Igruha.Minigames.Circus
         public void ReleaseOccupant()
         {
             LockOccupant(false);
+            RestoreStuckDetector();
 
             if (occupant != null && occupant.TryGetComponent(out PlayerRespawner respawner))
             {
@@ -305,6 +312,43 @@ namespace Igruha.Minigames.Circus
 
             occupant = null;
             platform.SetPassenger(null);
+        }
+
+        /// <summary>
+        /// Снять с пассажира детектор застревания на время сидения в клетке.
+        ///
+        /// Детектор считает застреванием «ввод есть, а хода нет» — на открытой
+        /// арене это верно, там упор в геометрию и правда означает зажатого.
+        /// В клетке 2.88 м это происходит с любой стороны и означает ровно
+        /// ничего: держать игрока в тесноте — её работа. Хуже того, респавн
+        /// возвращает его в ту же клетку, откуда он снова упрётся, — рескью,
+        /// которое ничего не спасает, а по сети превращается в поток
+        /// TeleportRpc и топит клиенту очередь приёма (IGR-346).
+        /// </summary>
+        private void SuspendStuckDetector(PlayerController player)
+        {
+            RestoreStuckDetector();
+
+            if (player == null || !player.TryGetComponent(out StuckDetector detector))
+            {
+                return;
+            }
+
+            occupantStuckDetector = detector;
+            stuckDetectorWasEnabled = detector.enabled;
+            detector.enabled = false;
+        }
+
+        /// <summary>Вернуть детектор как было: персонаж переезжает между сценами живым.</summary>
+        private void RestoreStuckDetector()
+        {
+            if (occupantStuckDetector == null)
+            {
+                return;
+            }
+
+            occupantStuckDetector.enabled = stuckDetectorWasEnabled;
+            occupantStuckDetector = null;
         }
     }
 }
