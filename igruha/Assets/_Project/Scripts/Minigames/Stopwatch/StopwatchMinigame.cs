@@ -250,6 +250,7 @@ namespace Igruha.Minigames.Stopwatch
                     contestant.Button.NeighbourLightsEnabled = config.NeighbourButtonLights;
                     contestant.Button.ViewedByOwner = humanControlled;
                     contestant.Button.Stopped += HandleButtonStopped;
+                    contestant.Button.HoldIntent += HandleHoldIntent;
                     contestant.Button.CloseWindow();
 
                     // Болванка жмёт кнопку за того, кем никто не управляет.
@@ -326,6 +327,7 @@ namespace Igruha.Minigames.Stopwatch
                 if (c.Button != null)
                 {
                     c.Button.Stopped -= HandleButtonStopped;
+                    c.Button.HoldIntent -= HandleHoldIntent;
                     c.Button.CloseWindow();
                 }
 
@@ -451,7 +453,7 @@ namespace Igruha.Minigames.Stopwatch
                     continue;
                 }
 
-                contestants[i].Button.OpenWindow();
+                contestants[i].Button.OpenWindow(config.MeasureWindowSeconds);
                 if (armBots)
                 {
                     contestants[i].Bot?.Arm(currentTarget);
@@ -750,6 +752,45 @@ namespace Igruha.Minigames.Stopwatch
                     CloseMeasureWindows();
                     break;
             }
+        }
+
+        /// <summary>
+        /// Владелец кнопки нажал, а решает сервер: отправляем намерение с меткой.
+        /// Поднимается только на машине хозяина и только в сетевой катке.
+        /// </summary>
+        private void HandleHoldIntent(CageButton button, bool held, double stamp)
+        {
+            network?.SubmitHold(held, stamp);
+        }
+
+        /// <summary>
+        /// Сервер принял намерение от клиента. Метка уже проверена окном
+        /// в <see cref="StopwatchNetwork"/>; здесь проверяется право на действие:
+        /// та ли стадия, жив ли игрок, его ли это кнопка.
+        /// </summary>
+        public void ServerApplyHold(int playerId, bool held, double stamp)
+        {
+            if (!HasAuthority)
+            {
+                return;
+            }
+
+            if (stageState == null || stageState.Stage != StageMeasure)
+            {
+                Debug.LogWarning($"{name}: нажатие от игрока {playerId} отклонено — не стадия отмера", this);
+                return;
+            }
+
+            Contestant c = Find(playerId);
+            if (c == null || !c.Alive || c.Button == null)
+            {
+                Debug.LogWarning($"{name}: нажатие от игрока {playerId} отклонено — его нет в составе живых", this);
+                return;
+            }
+
+            // Третье и последующие нажатия отсекает сама кнопка: из состояния
+            // Stopped она в этом подраунде уже не выходит.
+            c.Button.ApplyHold(c.Session.Avatar, held, stamp);
         }
 
         /// <summary>Сколько участников в матче. Читает <see cref="StopwatchNetwork"/>.</summary>

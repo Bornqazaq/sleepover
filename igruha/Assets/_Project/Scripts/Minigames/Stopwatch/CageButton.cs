@@ -63,6 +63,13 @@ namespace Igruha.Minigames.Stopwatch
         /// <summary>Хозяин нажал «стоп». Второй аргумент — отмеренный интервал, с.</summary>
         public event Action<CageButton, float> Stopped;
 
+        /// <summary>
+        /// Владелец нажал или отпустил, и решать исход должен не он. Аргументы —
+        /// «держит» и метка момента на общих часах. Поднимается только на машине
+        /// хозяина кнопки в сетевой катке: у авторитета исход считается сразу.
+        /// </summary>
+        public event Action<CageButton, bool, double> HoldIntent;
+
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private static readonly int ColorId = Shader.PropertyToID("_Color");
 
@@ -70,6 +77,9 @@ namespace Igruha.Minigames.Stopwatch
         private PlayerController owner;
         private double startedAt;
         private float measured;
+
+        /// <summary>Потолок замера: длина окна отмера, с. Ставит контроллер при открытии окна.</summary>
+        private float measureCap = float.MaxValue;
 
         /// <summary>Открыта ли стадия отмера. Ставит контроллер игры.</summary>
         public bool WindowOpen { get; private set; }
@@ -121,8 +131,9 @@ namespace Igruha.Minigames.Stopwatch
         /// Открыть окно отмера: кнопка снова с нуля. Зовётся на старте стадии
         /// отмера каждого подраунда.
         /// </summary>
-        public void OpenWindow()
+        public void OpenWindow(float windowSeconds)
         {
+            measureCap = Mathf.Max(0f, windowSeconds);
             WindowOpen = true;
             NetworkLit = false;
             State = ButtonState.Idle;
@@ -162,9 +173,52 @@ namespace Igruha.Minigames.Stopwatch
 
         /// <summary>
         /// Единственная точка входа: удержание началось или кончилось.
-        /// В фазе 3 она уйдёт за ServerRpc целиком, без переписывания правил.
+        /// Зовётся на машине хозяина кнопки — там, где нажали.
+        ///
+        /// В сетевой катке отсюда уходит только **намерение с меткой времени**,
+        /// а исход считает сервер. Метку снимаем здесь, в момент нажатия:
+        /// мерить по времени прибытия RPC значило бы получить ошибку замера
+        /// размером с джиттер между двумя нажатиями, а порог ничьей на двоих —
+        /// 50 мс.
         /// </summary>
         public void HoldChanged(PlayerController player, bool held)
+        {
+            double stamp = NetworkClock.Now;
+
+            // Авторитет здесь же — считаем сразу, круг через сеть к самому себе
+            // ничего не проверил бы и только добавил шаг отправки.
+            if (WorldAuthority.HasAuthority)
+            {
+                ApplyHold(player, held, stamp);
+                return;
+            }
+
+            if (player != owner)
+            {
+                return;
+            }
+
+            // Своя лампа зажигается сразу: это единственный признак «мой отсчёт
+            // пошёл», и ждать подтверждения сервера тут нельзя. На исход эта
+            // догадка не влияет — замер придёт от сервера.
+            if (held && State == ButtonState.Idle && WindowOpen)
+            {
+                State = ButtonState.Running;
+            }
+            else if (!held && State == ButtonState.Running)
+            {
+                State = ButtonState.Stopped;
+            }
+
+            HoldIntent?.Invoke(this, held, stamp);
+        }
+
+        /// <summary>
+        /// Исход нажатия: у авторитета — из <see cref="HoldChanged"/>, в сети —
+        /// от сервера по проверенной метке клиента. Замер считается разницей
+        /// двух меток и зажимается длиной окна отмера.
+        /// </summary>
+        public void ApplyHold(PlayerController player, bool held, double stamp)
         {
             if (held)
             {
@@ -174,7 +228,7 @@ namespace Igruha.Minigames.Stopwatch
                 }
 
                 State = ButtonState.Running;
-                startedAt = NetworkClock.Now;
+                startedAt = stamp;
                 Started?.Invoke(this);
                 return;
             }
@@ -187,7 +241,7 @@ namespace Igruha.Minigames.Stopwatch
             }
 
             State = ButtonState.Stopped;
-            measured = (float)(NetworkClock.Now - startedAt);
+            measured = Mathf.Clamp((float)(stamp - startedAt), 0f, measureCap);
             Stopped?.Invoke(this, measured);
         }
 

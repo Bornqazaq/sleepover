@@ -134,6 +134,21 @@ namespace Igruha.Minigames.Stopwatch
     /// </summary>
     public sealed class StopwatchNetwork : NetworkBehaviour
     {
+        /// <summary>
+        /// На сколько метка клиента может отставать от момента прибытия, с.
+        /// Это дорога пакета плюс запас на джиттер: полсекунды покрывают
+        /// любой играбельный пинг, а всё, что старше, — уже не «долетело
+        /// с задержкой», а подделка или зависший клиент.
+        /// </summary>
+        private const double StampMaxBehind = 0.5d;
+
+        /// <summary>
+        /// На сколько метка может опережать прибытие, с. Ноль поставить нельзя:
+        /// часы NGO расходятся на единицы миллисекунд, и честная метка иногда
+        /// оказывается чуть впереди.
+        /// </summary>
+        private const double StampMaxAhead = 0.05d;
+
         private readonly NetworkVariable<StopwatchTaskState> task = new NetworkVariable<StopwatchTaskState>();
 
         private readonly NetworkVariable<StopwatchStageNetState> stage = new NetworkVariable<StopwatchStageNetState>();
@@ -277,6 +292,72 @@ namespace Igruha.Minigames.Stopwatch
             }
 
             stageState.ApplyState(value.Subround, value.Stage, value.EndTime, value.Duration);
+        }
+
+        // ========== НАЖАТИЕ ==========
+
+        /// <summary>
+        /// Владелец кнопки отправляет намерение с меткой момента нажатия.
+        /// Зовётся только на клиенте: у сервера исход считается на месте.
+        /// </summary>
+        public void SubmitHold(bool held, double stamp)
+        {
+            if (!IsSpawned || IsServer)
+            {
+                return;
+            }
+
+            SubmitHoldRpc(held, stamp);
+        }
+
+        /// <summary>
+        /// Сервер принимает намерение и метку. Отправителя берём из RpcParams,
+        /// а не из аргумента: иначе клиент нажимал бы за соседа.
+        ///
+        /// Читерство метки здесь не останавливается технически — рядом
+        /// с монитором можно положить настоящий секундомер, и сервер этого
+        /// не увидит. Окно нужно не против чита, а против пинга: замер
+        /// не должен зависеть от канала.
+        /// </summary>
+        [Rpc(SendTo.Server, RequireOwnership = false)]
+        private void SubmitHoldRpc(bool held, double stamp, RpcParams rpcParams = default)
+        {
+            if (game == null)
+            {
+                return;
+            }
+
+            int playerId = (int)rpcParams.Receive.SenderClientId;
+            double arrival = NetworkManager.ServerTime.Time;
+
+            game.ServerApplyHold(playerId, held, ValidateStamp(stamp, arrival, playerId));
+        }
+
+        /// <summary>
+        /// Метка вне окна зажимается к его границе. Отбрасывать нажатие целиком
+        /// нельзя: игрок нажал по-настоящему, и потерянное нажатие стоило бы ему
+        /// ошибки подраунда за чужую беду с каналом.
+        /// </summary>
+        private double ValidateStamp(double stamp, double arrival, int playerId)
+        {
+            double earliest = arrival - StampMaxBehind;
+            double latest = arrival + StampMaxAhead;
+
+            if (stamp < earliest)
+            {
+                Debug.LogWarning($"{name}: метка игрока {playerId} отстала на " +
+                                 $"{(arrival - stamp):F3} с — зажата к границе окна", this);
+                return earliest;
+            }
+
+            if (stamp > latest)
+            {
+                Debug.LogWarning($"{name}: метка игрока {playerId} опередила прибытие на " +
+                                 $"{(stamp - arrival):F3} с — зажата к границе окна", this);
+                return latest;
+            }
+
+            return stamp;
         }
 
         // ========== КЛЕТКИ ==========
