@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using Igruha.Core.CameraSystems;
 using Igruha.Core.Minigame;
 using Igruha.Core.Player;
 using Igruha.Core.Session;
@@ -35,6 +36,10 @@ namespace Igruha.Minigames.Stopwatch
         [SerializeField] private StopwatchScoreboard scoreboard;
         [Tooltip("Клетки арены — все восемь. Лишние гасятся по числу игроков")]
         [SerializeField] private CageStation[] cages = System.Array.Empty<CageStation>();
+        [Tooltip("Медведь в яме")]
+        [SerializeField] private PitBear bear;
+        [Tooltip("Камера наблюдателя — включается выбывшему")]
+        [SerializeField] private SpectatorCamera spectator;
 
         /// <summary>Участник матча: клетка, кнопка, ошибки, замер подраунда.</summary>
         private sealed class Contestant
@@ -49,6 +54,10 @@ namespace Igruha.Minigames.Stopwatch
             public bool FaultedThisSubround;
             public float TotalDeviation;
             public StopwatchDebugBot Bot;
+            public PlayerElimination Elimination;
+            /// <summary>Упал в яму и ещё не убит медведем.</summary>
+            public bool InPit;
+            public bool LocallyControlled;
         }
 
         private readonly List<Contestant> contestants = new List<Contestant>(8);
@@ -145,6 +154,14 @@ namespace Igruha.Minigames.Stopwatch
             matchOver = false;
 
             AssignCages();
+
+            if (bear != null)
+            {
+                bear.Configure(config.BearSpeed, config.BearPatrolSpeed, config.BearStrikeRadius,
+                    config.BearFirstAttackDelay, config.BearKnockbackSpeed, arenaConfig.PitRadius);
+                bear.Caught -= HandleBearCaught;
+                bear.Caught += HandleBearCaught;
+            }
         }
 
         /// <summary>
@@ -215,6 +232,21 @@ namespace Igruha.Minigames.Stopwatch
                     }
                 }
 
+                contestant.LocallyControlled = humanControlled;
+                if (avatar != null)
+                {
+                    // Компонент вешаем здесь, а не в префаб персонажа: префаб
+                    // общий на все мини-игры, и лишний компонент уехал бы
+                    // в те, где смерти насмерть нет вовсе.
+                    contestant.Elimination = avatar.GetComponent<PlayerElimination>();
+                    if (contestant.Elimination == null)
+                    {
+                        contestant.Elimination = avatar.gameObject.AddComponent<PlayerElimination>();
+                    }
+
+                    contestant.Elimination.BodyHidden += HandleBodyHidden;
+                }
+
                 contestants.Add(contestant);
             }
         }
@@ -259,8 +291,22 @@ namespace Igruha.Minigames.Stopwatch
 
                 c.Bot?.Disarm();
                 c.Cage?.ReleaseOccupant();
+
+                if (c.Elimination != null)
+                {
+                    c.Elimination.BodyHidden -= HandleBodyHidden;
+                    // Невидимое тело с выключенным коллайдером уехало бы в хаб
+                    // вместе с персонажем — он переезжает между сценами живым.
+                    c.Elimination.Restore();
+                }
             }
 
+            if (bear != null)
+            {
+                bear.Caught -= HandleBearCaught;
+            }
+
+            spectator?.Deactivate();
             stageState?.StopSequence();
             scoreboard?.Clear();
         }
@@ -467,6 +513,7 @@ namespace Igruha.Minigames.Stopwatch
                 }
 
                 c.Alive = false;
+                c.InPit = true;
                 eliminatedThisSubround.Add(c.Session.Id);
                 c.Cage?.OpenDoors(config.HatchOpenSeconds);
             }
@@ -477,6 +524,128 @@ namespace Igruha.Minigames.Stopwatch
             }
 
             stageState.EnterStage(StageHatch, eliminatedThisSubround.Count > 0 ? config.HatchOpenSeconds : 0f);
+        }
+
+        /// <summary>
+        /// Шаг медведя. Забег в яме идёт параллельно: следующий подраунд
+        /// стартует сразу, а погоня доигрывается внизу фоном. При восьми
+        /// игроках и двух вылетающих блокирующая сцена добавляла бы по 5–9 с
+        /// к каждому подраунду против заявленных 2,5 минут на всю игру.
+        ///
+        /// В фазе 3 этот Update уйдёт целиком за IsServer — медведя двигает
+        /// только сервер, остальные получают позицию через NetworkTransform.
+        /// </summary>
+        private void Update()
+        {
+            if (bear == null || !HasAuthority || Phase != MinigamePhase.Round)
+            {
+                return;
+            }
+
+            bear.Tick(Time.deltaTime, FindNearestInPit(), SomeoneOnLowestCage());
+        }
+
+        /// <summary>Ближайшая к медведю жертва среди упавших в яму.</summary>
+        private PlayerController FindNearestInPit()
+        {
+            PlayerController nearest = null;
+            float nearestSqr = float.MaxValue;
+            Vector3 bearPosition = bear.transform.position;
+
+            for (int i = 0; i < contestants.Count; i++)
+            {
+                Contestant c = contestants[i];
+                if (!c.InPit || c.Session.Avatar == null)
+                {
+                    continue;
+                }
+
+                if (c.Elimination != null && c.Elimination.IsEliminated)
+                {
+                    continue;
+                }
+
+                float sqr = (c.Session.Avatar.transform.position - bearPosition).sqrMagnitude;
+                if (sqr < nearestSqr)
+                {
+                    nearestSqr = sqr;
+                    nearest = c.Session.Avatar;
+                }
+            }
+
+            return nearest;
+        }
+
+        /// <summary>Есть ли кто-то на последней ступени — медведю есть кого пугать.</summary>
+        private bool SomeoneOnLowestCage()
+        {
+            for (int i = 0; i < contestants.Count; i++)
+            {
+                if (contestants[i].Alive && contestants[i].Cage != null && contestants[i].Cage.Level == 0)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Медведь достал выпавшего. Место игрока уже посчитано в момент
+        /// падения — гибель ничего не решает, она только доигрывает сцену.
+        /// </summary>
+        private void HandleBearCaught(PlayerController victim, Vector3 impulse)
+        {
+            for (int i = 0; i < contestants.Count; i++)
+            {
+                Contestant c = contestants[i];
+                if (c.Session.Avatar != victim || !c.InPit)
+                {
+                    continue;
+                }
+
+                c.InPit = false;
+                c.Elimination?.Eliminate(victim.transform.position, impulse);
+                return;
+            }
+        }
+
+        /// <summary>Тело исчезло — выбывший переходит в наблюдатели.</summary>
+        private void HandleBodyHidden(PlayerElimination elimination)
+        {
+            for (int i = 0; i < contestants.Count; i++)
+            {
+                Contestant c = contestants[i];
+                if (c.Elimination != elimination)
+                {
+                    continue;
+                }
+
+                // Камера наблюдателя одна на сцену и показывает то, что видит
+                // человек за этой машиной. Болванке она не нужна.
+                if (c.LocallyControlled && spectator != null)
+                {
+                    spectator.Activate(CollectAlivePlayers());
+                }
+
+                return;
+            }
+        }
+
+        private readonly List<SessionPlayer> aliveBuffer = new List<SessionPlayer>(8);
+
+        private IReadOnlyList<SessionPlayer> CollectAlivePlayers()
+        {
+            aliveBuffer.Clear();
+            for (int i = 0; i < contestants.Count; i++)
+            {
+                if (contestants[i].Alive)
+                {
+                    aliveBuffer.Add(contestants[i].Session);
+                }
+            }
+
+            return aliveBuffer;
         }
 
         private Contestant Find(int playerId)

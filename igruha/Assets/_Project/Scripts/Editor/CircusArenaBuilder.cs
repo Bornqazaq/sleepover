@@ -91,6 +91,7 @@ namespace Igruha.EditorTools
             BuildRigging(arenaRoot.transform, config);
             BuildScoreboard(arenaRoot.transform, config);
             BuildCages(arenaRoot.transform, config, groundLayer);
+            BuildBear(arenaRoot.transform, config);
             BuildSpawns(spawnsRoot.transform, config);
             BuildBounds(config);
 
@@ -374,6 +375,68 @@ namespace Igruha.EditorTools
                 BuildCage(cages, config, groundLayer, i);
                 BuildChain(chains, config, i);
             }
+        }
+
+        /// <summary>
+        /// Заготовка медведя: тело, голова и четыре лапы из примитивов.
+        /// Живёт под отдельным объектом Visual, и в этом весь смысл — модель
+        /// из ассет-стора кладётся туда вместо примитивов, а логика в PitBear
+        /// про внешний вид ничего не знает и правок не требует.
+        ///
+        /// Размеры взяты «на глаз от персонажа»: медведь заметно крупнее
+        /// капсулы 0.72 м, иначе в яме радиусом 8.64 он теряется.
+        /// </summary>
+        private static void BuildBear(Transform root, CircusArenaConfig config)
+        {
+            Transform bearRoot = ResetGroup(root, "PitBear");
+            bearRoot.position = new Vector3(0f, 0f, config.PitRadius * 0.55f);
+
+            var visualGo = new GameObject("Visual");
+            Transform visual = visualGo.transform;
+            visual.SetParent(bearRoot, false);
+
+            const float bodyLength = 1.9f;
+            const float bodyWidth = 1.0f;
+            const float bodyHeight = 1.0f;
+            const float legHeight = 0.6f;
+
+            Transform body = MakeBox(visual, "Body", 0);
+            StripCollider(body);
+            body.localPosition = new Vector3(0f, legHeight + bodyHeight * 0.5f, 0f);
+            body.localScale = new Vector3(bodyWidth, bodyHeight, bodyLength);
+
+            Transform head = MakeBox(visual, "Head", 0);
+            StripCollider(head);
+            head.localPosition = new Vector3(0f, legHeight + bodyHeight * 0.9f, bodyLength * 0.55f);
+            head.localScale = new Vector3(0.62f, 0.58f, 0.62f);
+
+            Transform snout = MakeBox(visual, "Snout", 0);
+            StripCollider(snout);
+            snout.localPosition = new Vector3(0f, legHeight + bodyHeight * 0.8f, bodyLength * 0.55f + 0.4f);
+            snout.localScale = new Vector3(0.3f, 0.26f, 0.3f);
+
+            for (int i = 0; i < 4; i++)
+            {
+                float x = (i % 2 == 0 ? -1f : 1f) * bodyWidth * 0.35f;
+                float z = (i < 2 ? 1f : -1f) * bodyLength * 0.32f;
+                Transform leg = MakeBox(visual, $"Leg_{i + 1}", 0);
+                StripCollider(leg);
+                leg.localPosition = new Vector3(x, legHeight * 0.5f, z);
+                leg.localScale = new Vector3(0.28f, legHeight, 0.28f);
+            }
+
+            // Коллайдер на корне, а не на визуале: модель его заменит, а физика
+            // медведя должна пережить замену.
+            var collider = bearRoot.gameObject.AddComponent<CapsuleCollider>();
+            collider.direction = 2;
+            collider.height = bodyLength + 0.6f;
+            collider.radius = bodyWidth * 0.5f;
+            collider.center = new Vector3(0f, legHeight + bodyHeight * 0.5f, 0f);
+
+            var bear = bearRoot.gameObject.AddComponent<PitBear>();
+            var serialized = new SerializedObject(bear);
+            serialized.FindProperty("visualRoot").objectReferenceValue = visual;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
         /// <summary>
