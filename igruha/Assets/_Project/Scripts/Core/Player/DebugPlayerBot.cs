@@ -143,7 +143,11 @@ namespace Igruha.Core.Player
                 return;
             }
 
-            Vector3 course = ChooseCourse(offset / distance);
+            // Дальше цели щупать нечего: за ней поворот маршрута, и помеха там
+            // не мешает дойти. Щуп на всю длину в комнате с укрытиями почти
+            // всегда во что-нибудь упирается, и болванка топчется вместо шага.
+            float range = Mathf.Min(probeDistance, Mathf.Max(distance, probeRadius));
+            Vector3 course = ChooseCourse(offset / distance, range);
             reader.DriveMove(motor.WorldToMoveInput(course));
         }
 
@@ -152,34 +156,53 @@ namespace Igruha.Core.Player
         /// наименьшим углом от прямого, начиная с той стороны, которую выбрали
         /// в прошлый раз.
         /// </summary>
-        private Vector3 ChooseCourse(Vector3 desired)
+        private Vector3 ChooseCourse(Vector3 desired, float range)
         {
-            if (IsPassable(desired))
+            if (IsPassable(desired, range, out float bestClearance))
             {
                 return desired;
             }
+
+            Vector3 roomiest = desired;
 
             for (int i = 1; i <= avoidSteps; i++)
             {
                 float angle = avoidStep * i;
 
                 Vector3 preferred = Rotate(desired, preferRight ? angle : -angle);
-                if (IsPassable(preferred))
+                if (IsPassable(preferred, range, out float preferredClearance))
                 {
                     return preferred;
                 }
 
+                if (preferredClearance > bestClearance)
+                {
+                    bestClearance = preferredClearance;
+                    roomiest = preferred;
+                }
+
                 Vector3 opposite = Rotate(desired, preferRight ? -angle : angle);
-                if (IsPassable(opposite))
+                if (IsPassable(opposite, range, out float oppositeClearance))
                 {
                     preferRight = !preferRight;
                     return opposite;
                 }
+
+                if (oppositeClearance > bestClearance)
+                {
+                    bestClearance = oppositeClearance;
+                    roomiest = opposite;
+                }
             }
 
-            // Зажаты со всех сторон: упираемся вперёд и ждём StuckDetector —
-            // это ровно тот случай, ради которого он в проекте и появился.
-            return desired;
+            // Свободного направления нет — идём туда, где до помехи дальше
+            // всего, а не упираемся в прямое.
+            //
+            // Щуп меряет 1.8 м вперёд, и в комнате с укрытиями «занято» почти
+            // всегда: помеха в полутора метрах не мешает пройти метр и свернуть.
+            // Пока болванка стояла, ждать оставалось только StuckDetector,
+            // который вытаскивает её на чекпоинт — то есть отменяет весь путь.
+            return roomiest;
         }
 
         /// <summary>
@@ -193,18 +216,20 @@ namespace Igruha.Core.Player
         /// перед которой болванка стоит, а следующую за ней — и любая лестница
         /// целиком читается как глухая стена.
         /// </summary>
-        private bool IsPassable(Vector3 direction)
+        private bool IsPassable(Vector3 direction, float range, out float clearance)
         {
             Vector3 origin = transform.position + Vector3.up * (footOffset + probeClearance + probeRadius);
-            if (!Physics.SphereCast(origin, probeRadius, direction, out RaycastHit hit, probeDistance,
+            if (!Physics.SphereCast(origin, probeRadius, direction, out RaycastHit hit, range,
                     obstacles, QueryTriggerInteraction.Ignore))
             {
+                clearance = range;
                 return true;
             }
 
             float feetY = transform.position.y + footOffset;
             if (hit.collider.bounds.max.y - feetY > stepHeight)
             {
+                clearance = hit.distance;
                 return false;
             }
 
@@ -213,6 +238,7 @@ namespace Igruha.Core.Player
                 reader.DriveJump();
             }
 
+            clearance = range;
             return true;
         }
 
