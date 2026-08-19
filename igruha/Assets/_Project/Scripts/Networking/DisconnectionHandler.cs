@@ -16,6 +16,15 @@ namespace Igruha.Networking
     {
         private NetworkManager networkManager;
 
+        /// <summary>
+        /// Эта машина как клиент действительно доходила до подключения.
+        ///
+        /// Без этого признака нельзя отличить «хост ушёл» от «хост ещё
+        /// не поднялся»: NGO поднимает <see cref="OnClientStopped"/> и на
+        /// неудачном заходе тоже.
+        /// </summary>
+        private bool wasConnectedAsClient;
+
         private void Start()
         {
             networkManager = NetworkManager.Singleton;
@@ -26,6 +35,7 @@ namespace Igruha.Networking
             }
 
             // Подписаться на события отключения
+            networkManager.OnClientConnectedCallback += OnClientConnected;
             networkManager.OnClientDisconnectCallback += OnClientDisconnect;
             networkManager.OnServerStopped += OnServerStopped;
             networkManager.OnClientStopped += OnClientStopped;
@@ -37,9 +47,22 @@ namespace Igruha.Networking
         {
             if (networkManager != null)
             {
+                networkManager.OnClientConnectedCallback -= OnClientConnected;
                 networkManager.OnClientDisconnectCallback -= OnClientDisconnect;
                 networkManager.OnServerStopped -= OnServerStopped;
                 networkManager.OnClientStopped -= OnClientStopped;
+            }
+        }
+
+        /// <summary>
+        /// Эта машина подключилась к хосту. Отмечаем только своё подключение:
+        /// на сервере этот же колбэк приходит на каждого чужого.
+        /// </summary>
+        private void OnClientConnected(ulong clientId)
+        {
+            if (!networkManager.IsServer && clientId == networkManager.LocalClientId)
+            {
+                wasConnectedAsClient = true;
             }
         }
 
@@ -122,6 +145,18 @@ namespace Igruha.Networking
                 return;
             }
 
+            // Подключения ещё не было — значит это неудачный заход, а не уход
+            // хоста. Разбирать сессию тут нельзя: AppNetworkManager повторяет
+            // заходы до connectionTimeout, и участник, запустивший игру раньше
+            // организатора, иначе навсегда остался бы в офлайновом хабе.
+            // Замерено 19.08: клиент стартовал вместе с хостом, первый заход
+            // не успел, и матч для него на этом кончился.
+            if (!wasConnectedAsClient)
+            {
+                return;
+            }
+
+            wasConnectedAsClient = false;
             Debug.LogWarning("⚠️  CLIENT STOPPED — хост больше не отвечает");
             ReturnToMainMenu("Host left the game");
         }
