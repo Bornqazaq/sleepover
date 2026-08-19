@@ -138,6 +138,10 @@ namespace Igruha.Core.Player
         private Component surfaceSource;
         private float fallSpeed;
         private bool wasGrounded = true;
+        private float launchGraceTimer;
+
+        /// <summary>Сколько секунд после импульса вверх лежачее демпфирование не включается: хватает пары шагов физики.</summary>
+        private const float LaunchGraceTime = 0.1f;
 
         /// <summary>Насколько щуп всхождения смотрит вперёд за пределы капсулы, м.</summary>
         private const float StepProbeReach = 0.12f;
@@ -212,6 +216,16 @@ namespace Igruha.Core.Player
                 // клип падения играет как надо, а модель при этом наматывает
                 // круги вокруг себя. Углового трения 0.05 на это не хватает.
                 rb.angularVelocity = Vector3.zero;
+
+                // Лежачее демпфирование — только когда персонаж и правда лежит.
+                // Оно нужно, чтобы сбитый не скользил по полу, но те же 4 против
+                // 0.05 в полёте гасят подброс: гейзер Duck Hunt терял две трети
+                // высоты, потому что его импульс сам же и включал нокдаун.
+                // Проверять одну землю мало — на старте подброса тело ещё
+                // касается пола, и первые тики съедали пятую часть высоты.
+                launchGraceTimer = Mathf.Max(0f, launchGraceTimer - Time.fixedDeltaTime);
+                bool lyingStill = IsGrounded && rb.linearVelocity.y <= 0.1f && launchGraceTimer <= 0f;
+                rb.linearDamping = lyingStill ? config.KnockdownDrag : config.LinearDamping;
 
                 knockdownTimer -= Time.fixedDeltaTime;
                 if (knockdownTimer <= 0f)
@@ -623,6 +637,15 @@ namespace Igruha.Core.Player
             }
 
             rb.AddForce(impulse, ForceMode.Impulse);
+
+            // Импульс вверх ещё не превратился в скорость: сила ждёт ближайшего
+            // шага физики. Без этой отметки нокдаун успевает выставить лежачее
+            // демпфирование ровно на тот шаг, где импульс интегрируется, и
+            // подброс теряет пятую часть высоты.
+            if (impulse.y > 0f)
+            {
+                launchGraceTimer = LaunchGraceTime;
+            }
 
             if (impulse.magnitude / rb.mass >= config.KnockdownVelocityThreshold)
             {
