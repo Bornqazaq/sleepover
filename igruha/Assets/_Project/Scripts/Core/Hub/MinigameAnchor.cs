@@ -28,8 +28,8 @@ namespace Igruha.Core.Hub
 
         public MinigameDefinition Definition => definition;
 
-        /// <summary>Готов к запуску: есть конфиг и адрес сцены для Addressables.</summary>
-        public bool IsPlayable => definition != null && !string.IsNullOrEmpty(definition.SceneAddress);
+        /// <summary>Готов к запуску: есть конфиг и имя сцены в Build Settings.</summary>
+        public bool IsPlayable => definition != null && !string.IsNullOrEmpty(definition.SceneName);
 
         public string InteractionPrompt
         {

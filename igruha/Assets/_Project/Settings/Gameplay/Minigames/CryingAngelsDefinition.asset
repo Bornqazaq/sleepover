@@ -14,7 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Minigame.MinigameDefinition
   displayName: "\u041F\u043B\u0430\u0447\u0443\u0449\u0438\u0435 \u0430\u043D\u0433\u0435\u043B\u044B"
   category: 2
-  sceneAddress: Minigames/CryingAngels
   sceneName: CryingAngels
   roundDuration: 120
   minPlayers: 3

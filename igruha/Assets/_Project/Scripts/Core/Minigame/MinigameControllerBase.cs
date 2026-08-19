@@ -1,3 +1,4 @@
+using Igruha.Core.Scenes;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -252,7 +253,13 @@ namespace Igruha.Core.Minigame
                 yield break;
             }
 
-            SceneEventProgressStatus status = network.SceneManager.LoadScene(hubSceneName, LoadSceneMode.Single);
+            if (!BuildSceneCatalog.TryResolvePath(hubSceneName, out string hubScenePath))
+            {
+                Debug.LogError($"{name}: сцены хаба '{hubSceneName}' нет в Build Settings — возвращать некуда", this);
+                yield break;
+            }
+
+            SceneEventProgressStatus status = network.SceneManager.LoadScene(hubScenePath, LoadSceneMode.Single);
             if (status != SceneEventProgressStatus.Started)
             {
                 Debug.LogError($"{name}: NGO не смог вернуть всех в '{hubSceneName}': {status}", this);

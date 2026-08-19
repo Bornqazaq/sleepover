@@ -18,7 +18,14 @@
 5. **Перецепить ссылки на `MinigameManager`.** Снять `TemplateMinigame`, повесить свой контроллер,
    назначить ему Definition / RoundTimer / TutorialScreen / RoundHud, а в `MinigameBootstrap` —
    Spawner / Minigame / CameraController.
-6. **Зарегистрировать сцену в Addressables** и прописать её адрес в поле `sceneAddress` конфига.
+6. **Добавить сцену в Build Settings** (галка включена) и вписать её имя в поле `sceneName` конфига.
+
+> **Не класть сцену в Addressables.** NGO опознаёт сцены по индексу в списке сборки, и сцена
+> без индекса отбивается на валидации ещё до отправки: по сети она просто не загрузится.
+> Addressables же вычищает из своих групп всё, что попало в Build Settings — два пути
+> взаимно исключают друг друга. Путь один: Build Settings.
+>
+> Имя в `sceneName` — короткое (`Stopwatch`), в путь его разворачивает `BuildSceneCatalog`.
 
 ## Что даёт шаблон бесплатно
 

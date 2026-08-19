@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
+using Igruha.Core.Scenes;
 using Igruha.Networking;
 
 /// <summary>
@@ -261,7 +262,13 @@ public class AppNetworkManager : MonoBehaviour
 
     private void LoadGameplayScene()
     {
-        var status = NetworkManager.Singleton.SceneManager.LoadScene(gameplaySceneName, LoadSceneMode.Single);
+        if (!BuildSceneCatalog.TryResolvePath(gameplaySceneName, out string scenePath))
+        {
+            Debug.LogError($"❌ Сцены '{gameplaySceneName}' нет в Build Settings — по сети она не загрузится");
+            return;
+        }
+
+        var status = NetworkManager.Singleton.SceneManager.LoadScene(scenePath, LoadSceneMode.Single);
         if (status != SceneEventProgressStatus.Started)
         {
             Debug.LogError($"❌ Не удалось загрузить сцену '{gameplaySceneName}': {status}");

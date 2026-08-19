@@ -14,7 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Minigame.MinigameDefinition
   displayName: "\u0421\u0435\u043A\u0443\u043D\u0434\u043E\u043C\u0435\u0440"
   category: 0
-  sceneAddress: Minigames/Stopwatch
   sceneName: Stopwatch
   roundDuration: 300
   minPlayers: 2
