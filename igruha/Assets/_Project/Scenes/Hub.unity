@@ -10430,7 +10430,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2c56c1d74e00017479a5e7ec093452c6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Hub.MinigameAnchor
-  definition: {fileID: 0}
+  definition: {fileID: 11400000, guid: fd51a5bd609e749f3a37d921b9573782, type: 2}
   anchorName: "\u0411\u0443\u0434\u0438\u043B\u044C\u043D\u0438\u043A"
 --- !u!1 &931300231
 GameObject:
