@@ -154,6 +154,32 @@ namespace Igruha.Minigames.Stopwatch
         /// </summary>
         private const double StampMaxAhead = 0.05d;
 
+        /// <summary>
+        /// Насколько присланная длительность удержания может разойтись
+        /// с тем, что сервер увидел сам, с.
+        ///
+        /// Это **предохранитель от бессмыслицы, а не защита от читера**.
+        /// Отличить подделку в полсекунды сервер не может в принципе:
+        /// его единственная мера — разность двух моментов прибытия, а её
+        /// портит джиттер ровно того же порядка. Замерено на стенде 19.08:
+        /// честное удержание 3.005 с сервер увидел как 3.798 с, потому что
+        /// отпускание опоздало на 0.9 с, — и допуск в полсекунды зажал
+        /// правильное число, испортив замер на 293 мс. Полтора секунды
+        /// пропускают любой такой всплеск и всё ещё отбивают ерунду вроде
+        /// нуля или минуты.
+        ///
+        /// Игра и не держится на этой проверке: рядом с монитором можно
+        /// положить настоящий секундомер, и сервер этого не увидит никак.
+        /// </summary>
+        private const float DurationMaxDrift = 1.5f;
+
+        /// <summary>
+        /// Момент прибытия нажатия по каждому игроку — по нему сервер меряет
+        /// удержание сам и проверяет присланную длительность.
+        /// </summary>
+        private readonly System.Collections.Generic.Dictionary<int, double> pressArrival =
+            new System.Collections.Generic.Dictionary<int, double>(8);
+
         private readonly NetworkVariable<StopwatchTaskState> task = new NetworkVariable<StopwatchTaskState>();
 
         private readonly NetworkVariable<StopwatchStageNetState> stage = new NetworkVariable<StopwatchStageNetState>();
@@ -407,14 +433,14 @@ namespace Igruha.Minigames.Stopwatch
         /// Владелец кнопки отправляет намерение с меткой момента нажатия.
         /// Зовётся только на клиенте: у сервера исход считается на месте.
         /// </summary>
-        public void SubmitHold(bool held, double stamp)
+        public void SubmitHold(bool held, double stamp, float heldSeconds)
         {
             if (!IsSpawned || IsServer)
             {
                 return;
             }
 
-            SubmitHoldRpc(held, stamp);
+            SubmitHoldRpc(held, stamp, heldSeconds);
         }
 
         /// <summary>
@@ -427,7 +453,7 @@ namespace Igruha.Minigames.Stopwatch
         /// не должен зависеть от канала.
         /// </summary>
         [Rpc(SendTo.Server, RequireOwnership = false)]
-        private void SubmitHoldRpc(bool held, double stamp, RpcParams rpcParams = default)
+        private void SubmitHoldRpc(bool held, double stamp, float heldSeconds, RpcParams rpcParams = default)
         {
             if (game == null)
             {
@@ -437,7 +463,8 @@ namespace Igruha.Minigames.Stopwatch
             int playerId = (int)rpcParams.Receive.SenderClientId;
             double arrival = NetworkManager.ServerTime.Time;
 
-            game.ServerApplyHold(playerId, held, ValidateStamp(stamp, arrival, playerId));
+            game.ServerApplyHold(playerId, held, ValidateStamp(stamp, arrival, playerId),
+                ValidateDuration(playerId, held, heldSeconds, arrival));
         }
 
         /// <summary>
@@ -465,6 +492,46 @@ namespace Igruha.Minigames.Stopwatch
             }
 
             return stamp;
+        }
+
+        /// <summary>
+        /// Проверить присланную длительность своим наблюдением.
+        ///
+        /// Сервер меряет то же удержание по своим моментам прибытия и зажимает
+        /// присланное в широкий допуск вокруг увиденного. Смысл — отбить
+        /// заведомую ерунду от сломанного или подменённого клиента; честное
+        /// число проходит нетронутым, и именно оно идёт в результат, потому
+        /// что снято монотонными часами там, где нажимали.
+        /// </summary>
+        private float ValidateDuration(int playerId, bool held, float heldSeconds, double arrival)
+        {
+            if (held)
+            {
+                pressArrival[playerId] = arrival;
+                return 0f;
+            }
+
+            if (!pressArrival.TryGetValue(playerId, out double pressedAt))
+            {
+                // Отпускание без нажатия: сервер его и так отобьёт по состоянию
+                // кнопки, мерить нечего.
+                return Mathf.Max(0f, heldSeconds);
+            }
+
+            pressArrival.Remove(playerId);
+
+            float observed = (float)(arrival - pressedAt);
+            float low = Mathf.Max(0f, observed - DurationMaxDrift);
+            float high = observed + DurationMaxDrift;
+
+            if (heldSeconds < low || heldSeconds > high)
+            {
+                Debug.LogWarning($"{name}: длительность игрока {playerId} — {heldSeconds:F3} с, " +
+                                 $"а сервер видел {observed:F3} с; зажата в допуск", this);
+                return Mathf.Clamp(heldSeconds, low, high);
+            }
+
+            return heldSeconds;
         }
 
         // ========== КЛЕТКИ ==========

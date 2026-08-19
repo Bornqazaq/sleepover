@@ -703,6 +703,7 @@ namespace Igruha.Minigames.Stopwatch
                 }
 
                 c.InPit = false;
+
                 c.Elimination?.Eliminate(victim.transform.position, impulse);
                 // Гибель решил сервер — остальные её только отыгрывают.
                 network?.AnnounceCaught(c.Session.Id, victim.transform.position, impulse);
@@ -785,9 +786,9 @@ namespace Igruha.Minigames.Stopwatch
         /// Владелец кнопки нажал, а решает сервер: отправляем намерение с меткой.
         /// Поднимается только на машине хозяина и только в сетевой катке.
         /// </summary>
-        private void HandleHoldIntent(CageButton button, bool held, double stamp)
+        private void HandleHoldIntent(CageButton button, bool held, double stamp, float heldSeconds)
         {
-            network?.SubmitHold(held, stamp);
+            network?.SubmitHold(held, stamp, heldSeconds);
         }
 
         /// <summary>
@@ -795,7 +796,7 @@ namespace Igruha.Minigames.Stopwatch
         /// в <see cref="StopwatchNetwork"/>; здесь проверяется право на действие:
         /// та ли стадия, жив ли игрок, его ли это кнопка.
         /// </summary>
-        public void ServerApplyHold(int playerId, bool held, double stamp)
+        public void ServerApplyHold(int playerId, bool held, double stamp, float heldSeconds)
         {
             if (!HasAuthority)
             {
@@ -817,7 +818,7 @@ namespace Igruha.Minigames.Stopwatch
 
             // Третье и последующие нажатия отсекает сама кнопка: из состояния
             // Stopped она в этом подраунде уже не выходит.
-            c.Button.ApplyHold(c.Session.Avatar, held, stamp);
+            c.Button.ApplyHold(c.Session.Avatar, held, stamp, heldSeconds);
         }
 
         /// <summary>
@@ -917,6 +918,7 @@ namespace Igruha.Minigames.Stopwatch
             }
 
             c.InPit = false;
+
             c.Elimination?.Eliminate(hitPoint, impulse);
         }
 
