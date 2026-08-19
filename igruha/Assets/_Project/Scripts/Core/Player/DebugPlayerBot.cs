@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Igruha.Core.Player
 {
@@ -40,6 +40,7 @@ namespace Igruha.Core.Player
         private float probeRadius;
         private float footOffset;
         private bool hasTarget;
+        private bool stopOnArrival = true;
 
         /// <summary>
         /// Сторона обхода прошлого решения. Без памяти о ней болванка на
@@ -81,11 +82,32 @@ namespace Igruha.Core.Player
         /// <summary>Какая геометрия считается препятствием. Задаёт мини-игра: слои у каждой арены свои.</summary>
         public void Configure(LayerMask obstacleLayers) => obstacles = obstacleLayers;
 
-        /// <summary>Идти к точке в мире.</summary>
-        public void SetTarget(Vector3 worldPoint)
+        /// <summary>
+        /// То же плюс порог перешагивания: препятствие ниже него берётся
+        /// прыжком, выше — обходится. Значение по умолчанию рассчитано на
+        /// ровную арену; там, где подъём собран из площадок под высоту прыжка,
+        /// болванка с ним считает каждую ступень стеной и встаёт у лестницы.
+        /// </summary>
+        public void Configure(LayerMask obstacleLayers, float maxStepHeight)
+        {
+            obstacles = obstacleLayers;
+            stepHeight = Mathf.Max(0f, maxStepHeight);
+        }
+
+        /// <summary>
+        /// Идти к точке в мире.
+        ///
+        /// <paramref name="stopOnArrival"/> различает конечную цель и путевую
+        /// точку. У конечной болванка останавливается, дойдя до неё; путевая —
+        /// лишь поворот маршрута, и останавливаться на ней нельзя. Ступени
+        /// лестницы стоят плотнее радиуса «дошёл», поэтому болванка считала себя
+        /// прибывшей на середине подъёма и замирала там до конца раунда.
+        /// </summary>
+        public void SetTarget(Vector3 worldPoint, bool stopOnArrival = true)
         {
             target = worldPoint;
             hasTarget = true;
+            this.stopOnArrival = stopOnArrival;
         }
 
         /// <summary>Забыть цель и остановиться.</summary>
@@ -115,7 +137,7 @@ namespace Igruha.Core.Player
             offset.y = 0f;
             float distance = offset.magnitude;
 
-            if (distance <= arriveRadius)
+            if (stopOnArrival && distance <= arriveRadius)
             {
                 reader.DriveMove(Vector2.zero);
                 return;
@@ -165,32 +187,33 @@ namespace Igruha.Core.Player
         /// Прыжок отсюда и заказывается: решение «перешагнуть, а не обходить»
         /// принимается там же, где меряется высота помехи.
         ///
-        /// Помеха меряется двумя щупами, а не поиском её верха сверху вниз:
-        /// луч, пущенный вниз из точки ниже верхушки укрытия, стартует внутри
-        /// коллайдера, тот его не ловит, и высокий камень читается как ровный
-        /// пол. Пара «низкий щуп задел / верхний свободен» такой ошибки не даёт.
+        /// Высота помехи берётся по её собственным габаритам, а не вторым щупом
+        /// на фиксированной высоте. Второй щуп годится, пока препятствия стоят
+        /// поодиночке на ровном полу, но на лестнице он ловит не ту ступень,
+        /// перед которой болванка стоит, а следующую за ней — и любая лестница
+        /// целиком читается как глухая стена.
         /// </summary>
         private bool IsPassable(Vector3 direction)
         {
-            if (IsBlocked(direction, stepHeight))
+            Vector3 origin = transform.position + Vector3.up * (footOffset + probeClearance + probeRadius);
+            if (!Physics.SphereCast(origin, probeRadius, direction, out RaycastHit hit, probeDistance,
+                    obstacles, QueryTriggerInteraction.Ignore))
+            {
+                return true;
+            }
+
+            float feetY = transform.position.y + footOffset;
+            if (hit.collider.bounds.max.y - feetY > stepHeight)
             {
                 return false;
             }
 
-            if (IsBlocked(direction, probeClearance) && motor.IsGrounded)
+            if (motor.IsGrounded)
             {
                 reader.DriveJump();
             }
 
             return true;
-        }
-
-        /// <summary>Щуп толщиной с персонажа на заданной высоте над ступнями.</summary>
-        private bool IsBlocked(Vector3 direction, float height)
-        {
-            Vector3 origin = transform.position + Vector3.up * (footOffset + height + probeRadius);
-            return Physics.SphereCast(origin, probeRadius, direction, out _, probeDistance,
-                obstacles, QueryTriggerInteraction.Ignore);
         }
 
         private static Vector3 Rotate(Vector3 direction, float degrees) =>

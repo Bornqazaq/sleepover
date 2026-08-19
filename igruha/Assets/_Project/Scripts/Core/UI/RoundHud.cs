@@ -21,6 +21,8 @@ namespace Igruha.Core.UI
         [SerializeField] private TMP_Text spectatorText;
         [Tooltip("Крупная строка стартового отсчёта. Не назначена — отсчёт просто не показывается")]
         [SerializeField] private TMP_Text countdownText;
+        [Tooltip("Строка состояния роли: обойма стрелка, число жизней, текущая цель. Не назначена — строка просто не показывается")]
+        [SerializeField] private TMP_Text statusText;
 
         private RoundTimer timer;
         private int lastShownSeconds = -1;
@@ -36,6 +38,7 @@ namespace Igruha.Core.UI
 
             HideSpectatorTarget();
             HideCountdown();
+            HideStatus();
         }
 
         /// <summary>
@@ -67,6 +70,30 @@ namespace Igruha.Core.UI
             if (countdownText != null)
             {
                 countdownText.gameObject.SetActive(false);
+            }
+        }
+
+        /// <summary>
+        /// Строка состояния роли: обойма стрелка, жизни, текущая цель. Звать
+        /// только на смене значения — строка собирается заново каждый вызов,
+        /// и в кадровом цикле это была бы аллокация на ровном месте.
+        /// </summary>
+        public void ShowStatus(string status)
+        {
+            if (statusText == null)
+            {
+                return;
+            }
+
+            statusText.text = status;
+            statusText.gameObject.SetActive(!string.IsNullOrEmpty(status));
+        }
+
+        public void HideStatus()
+        {
+            if (statusText != null)
+            {
+                statusText.gameObject.SetActive(false);
             }
         }
 

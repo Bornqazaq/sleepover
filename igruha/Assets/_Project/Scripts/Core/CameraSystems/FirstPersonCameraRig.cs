@@ -68,11 +68,29 @@ namespace Igruha.Core.CameraSystems
         private float desiredYaw;
         private float pitch;
         private float resolvedEyeHeight;
+        private float horizontalFieldOfView;
+        private float appliedAspect;
         private readonly List<Renderer> hiddenRenderers = new List<Renderer>(8);
 
         private void Awake()
         {
-            cam = GetComponent<CinemachineCamera>();
+            EnsureCamera();
+        }
+
+        /// <summary>
+        /// Достать камеру, не дожидаясь Awake. Настройки рига задаёт мини-игра
+        /// при раздаче ролей, а риг в этот момент ещё выключен — Awake у него
+        /// не отработал, и ссылка пустая. Компонент лежит на том же объекте,
+        /// так что это разовый GetComponent, а не поиск по сцене.
+        /// </summary>
+        private bool EnsureCamera()
+        {
+            if (cam == null)
+            {
+                cam = GetComponent<CinemachineCamera>();
+            }
+
+            return cam != null;
         }
 
         private void OnEnable()
@@ -82,6 +100,11 @@ namespace Igruha.Core.CameraSystems
             LensSettings lens = cam.Lens;
             lens.FieldOfView = fieldOfView;
             cam.Lens = lens;
+
+            // Обзор по горизонтали, если игра его задала, обязан пересчитаться
+            // заново: строкой выше поле зрения только что вернули к вертикальному.
+            appliedAspect = 0f;
+            ApplyHorizontalFieldOfView();
 
             // Риг включается уже наведённым на своего персонажа: подхватываем его
             // разворот, иначе камера стартует со случайного направления.
@@ -140,9 +163,66 @@ namespace Igruha.Core.CameraSystems
             ApplyTransform();
         }
 
+        /// <summary>
+        /// Пределы наклона взгляда под конкретную игру. Стандартные ±20° годятся
+        /// для ровной арены, но роль, которая обязана простреливать башню от
+        /// первого этажа до крыши, ими не обходится.
+        /// </summary>
+        public void SetPitchLimits(float min, float max)
+        {
+            minPitch = Mathf.Min(min, max);
+            maxPitch = Mathf.Max(min, max);
+            pitch = Mathf.Clamp(pitch, minPitch, maxPitch);
+        }
+
+        /// <summary>
+        /// Держать заданный обзор по ГОРИЗОНТАЛИ, °, независимо от соотношения
+        /// сторон экрана. Cinemachine задаёт поле зрения по вертикали, поэтому
+        /// на ультрашироком мониторе горизонтальный обзор молча вырастает —
+        /// а там, где ширина кадра и есть баланс роли (сколько арены видно
+        /// разом), это отдаёт игроку с широким экраном чужое преимущество.
+        ///
+        /// Ноль возвращает риг к обычному вертикальному полю зрения.
+        /// </summary>
+        public void SetHorizontalFieldOfView(float degrees)
+        {
+            horizontalFieldOfView = Mathf.Max(0f, degrees);
+            appliedAspect = 0f;
+            ApplyHorizontalFieldOfView();
+        }
+
+        /// <summary>
+        /// Пересчёт вертикального поля зрения под текущее соотношение сторон.
+        /// Аспект меняется при смене размера окна, поэтому проверяется каждый
+        /// кадр, а сама тригонометрия считается только когда он реально поехал.
+        /// </summary>
+        private void ApplyHorizontalFieldOfView()
+        {
+            if (horizontalFieldOfView <= 0f || !EnsureCamera())
+            {
+                return;
+            }
+
+            float aspect = cam.Lens.Aspect;
+            if (aspect <= 0f || Mathf.Approximately(aspect, appliedAspect))
+            {
+                return;
+            }
+
+            appliedAspect = aspect;
+
+            float halfHorizontal = horizontalFieldOfView * 0.5f * Mathf.Deg2Rad;
+            float vertical = 2f * Mathf.Atan(Mathf.Tan(halfHorizontal) / aspect) * Mathf.Rad2Deg;
+
+            LensSettings lens = cam.Lens;
+            lens.FieldOfView = vertical;
+            cam.Lens = lens;
+        }
+
         private void Update()
         {
             ResolveTarget();
+            ApplyHorizontalFieldOfView();
             ReadLook();
 
             // Желаемое направление копится без ограничений, а камера доезжает до него
