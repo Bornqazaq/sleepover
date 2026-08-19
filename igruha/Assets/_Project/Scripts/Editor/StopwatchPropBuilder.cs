@@ -1,6 +1,10 @@
+using System.Collections.Generic;
 using System.IO;
+using TMPro;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UI;
+using Igruha.Core.UI;
 using Igruha.Minigames.Circus;
 using Igruha.Minigames.Stopwatch;
 
@@ -20,6 +24,7 @@ namespace Igruha.EditorTools
     {
         private const string PrefabFolder = "Assets/_Project/Prefabs/Minigames/Stopwatch";
         private const string PrefabPath = PrefabFolder + "/CageButton.prefab";
+        private const string HudObjectName = "StopwatchHud";
 
         private const float PedestalHeight = 0.55f;
         private const float PedestalDiameter = 0.42f;
@@ -64,10 +69,169 @@ namespace Igruha.EditorTools
                 placed++;
             }
 
+            int faces = BuildScreenHud();
+
             var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(scene);
             UnityEditor.SceneManagement.EditorSceneManager.SaveScene(scene);
-            Debug.Log($"Реквизит «Секундомера» расставлен: кнопок {placed} из {stations.Length} клеток.");
+            Debug.Log($"Реквизит «Секундомера» расставлен: кнопок {placed} из {stations.Length} клеток, граней табло {faces} (включая экранное).");
+        }
+
+
+        // Экранное табло. Размеры в пикселях канваса.
+        private const float HudWidth = 600f;
+        private const float HudPadding = 18f;
+        private const float HudTitleHeight = 50f;
+        private const float HudSubtitleHeight = 42f;
+        private const float HudRowHeight = 40f;
+        private const int HudRowCapacity = 8;
+        private const float HudTitleFont = 34f;
+        private const float HudSubtitleFont = 29f;
+        private const float HudRowFont = 26f;
+
+        /// <summary>
+        /// Личное табло в углу экрана. Через прутья клетки мировое табло
+        /// читается плохо, а результаты — единственное, что игроку в этот
+        /// момент нужно разобрать точно.
+        ///
+        /// Своего кода не требует: это ещё одна грань <see cref="WorldScoreboard"/>.
+        /// Правила игры пишут содержимое один раз, и оно приезжает и на четыре
+        /// грани над ямой, и сюда. Мировое табло при этом остаётся —
+        /// по нему читается общая картина, по экранному свои цифры.
+        /// </summary>
+        private static int BuildScreenHud()
+        {
+            GameObject canvas = GameObject.Find("_UI/Canvas");
+            if (canvas == null)
+            {
+                Debug.LogWarning("StopwatchPropBuilder: не найден _UI/Canvas — экранное табло не построено.");
+                return 0;
+            }
+
+            Transform existing = canvas.transform.Find(HudObjectName);
+            if (existing != null)
+            {
+                Object.DestroyImmediate(existing.gameObject);
+            }
+
+            TMP_FontAsset font = FindFont();
+            float height = HudTitleHeight + HudSubtitleHeight + HudRowHeight * HudRowCapacity + HudPadding * 2f;
+
+            var rootGo = new GameObject(HudObjectName, typeof(RectTransform));
+            rootGo.transform.SetParent(canvas.transform, false);
+            var root = (RectTransform)rootGo.transform;
+            // Левый верхний угол: центр занят таймером, низ — подсказками.
+            root.anchorMin = new Vector2(0f, 1f);
+            root.anchorMax = new Vector2(0f, 1f);
+            root.pivot = new Vector2(0f, 1f);
+            root.anchoredPosition = new Vector2(28f, -28f);
+            root.sizeDelta = new Vector2(HudWidth, height);
+
+            var backdrop = rootGo.AddComponent<Image>();
+            backdrop.color = new Color(0.02f, 0.02f, 0.04f, 0.72f);
+            backdrop.raycastTarget = false;
+
+            float cursor = -HudPadding;
+            TMP_Text title = MakeHudText(root, "Title", font, HudTitleFont, TextAlignmentOptions.MidlineLeft,
+                cursor, HudTitleHeight, HudPadding, HudWidth - HudPadding * 2f);
+            title.color = new Color(1f, 0.86f, 0.45f);
+            cursor -= HudTitleHeight;
+            TMP_Text subtitle = MakeHudText(root, "Subtitle", font, HudSubtitleFont, TextAlignmentOptions.MidlineLeft,
+                cursor, HudSubtitleHeight, HudPadding, HudWidth - HudPadding * 2f);
+            cursor -= HudSubtitleHeight;
+
+            var labels = new TMP_Text[HudRowCapacity];
+            var values = new TMP_Text[HudRowCapacity];
+            for (int i = 0; i < HudRowCapacity; i++)
+            {
+                float y = cursor - HudRowHeight * i;
+                labels[i] = MakeHudText(root, $"Row_{i + 1}_Label", font, HudRowFont, TextAlignmentOptions.MidlineLeft,
+                    y, HudRowHeight, HudPadding, (HudWidth - HudPadding * 2f) * 0.6f);
+                values[i] = MakeHudText(root, $"Row_{i + 1}_Value", font, HudRowFont, TextAlignmentOptions.MidlineRight,
+                    y, HudRowHeight, HudPadding + (HudWidth - HudPadding * 2f) * 0.6f, (HudWidth - HudPadding * 2f) * 0.4f);
+                // Значение — то, ради чего игрок сюда смотрит: держим его ярче подписи.
+                labels[i].color = new Color(0.78f, 0.80f, 0.86f);
+            }
+
+            var face = rootGo.AddComponent<WorldScoreboardFace>();
+            var faceSo = new SerializedObject(face);
+            faceSo.FindProperty("title").objectReferenceValue = title;
+            faceSo.FindProperty("subtitle").objectReferenceValue = subtitle;
+            SerializedProperty labelsProperty = faceSo.FindProperty("rowLabels");
+            SerializedProperty valuesProperty = faceSo.FindProperty("rowValues");
+            labelsProperty.arraySize = HudRowCapacity;
+            valuesProperty.arraySize = HudRowCapacity;
+            for (int i = 0; i < HudRowCapacity; i++)
+            {
+                labelsProperty.GetArrayElementAtIndex(i).objectReferenceValue = labels[i];
+                valuesProperty.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
+            }
+
+            faceSo.ApplyModifiedPropertiesWithoutUndo();
+
+            return RegisterFaces(face);
+        }
+
+        /// <summary>
+        /// Собрать грани заново: четыре над ямой плюс экранная. Билдер арены
+        /// знает только про свои четыре и при пересборке затирает список,
+        /// поэтому экранную грань дописываем здесь.
+        /// </summary>
+        private static int RegisterFaces(WorldScoreboardFace hud)
+        {
+            GameObject boardGo = GameObject.Find("_Arena/Scoreboard");
+            if (boardGo == null)
+            {
+                Debug.LogWarning("StopwatchPropBuilder: не найдено _Arena/Scoreboard — пересобери арену.");
+                return 0;
+            }
+
+            var board = boardGo.GetComponent<WorldScoreboard>();
+            var faces = new List<WorldScoreboardFace>(5);
+            faces.AddRange(boardGo.GetComponentsInChildren<WorldScoreboardFace>(true));
+            faces.Add(hud);
+            board.SetFaces(faces);
+            board.Clear();
+            return faces.Count;
+        }
+
+        private static TMP_Text MakeHudText(RectTransform parent, string name, TMP_FontAsset font, float fontSize,
+            TextAlignmentOptions alignment, float top, float height, float left, float width)
+        {
+            var go = new GameObject(name, typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            var rect = (RectTransform)go.transform;
+            rect.anchorMin = new Vector2(0f, 1f);
+            rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 1f);
+            rect.anchoredPosition = new Vector2(left, top);
+            rect.sizeDelta = new Vector2(width, height);
+
+            var text = go.AddComponent<TextMeshProUGUI>();
+            if (font != null)
+            {
+                text.font = font;
+            }
+
+            text.fontSizeMin = fontSize * 0.6f;
+            text.fontSizeMax = fontSize;
+            text.enableAutoSizing = true;
+            text.alignment = alignment;
+            text.textWrappingMode = TextWrappingModes.NoWrap;
+            text.raycastTarget = false;
+            text.text = string.Empty;
+            return text;
+        }
+
+        private static TMP_FontAsset FindFont()
+        {
+            if (TMP_Settings.defaultFontAsset != null)
+            {
+                return TMP_Settings.defaultFontAsset;
+            }
+
+            TextMeshProUGUI existing = Object.FindAnyObjectByType<TextMeshProUGUI>(FindObjectsInactive.Include);
+            return existing != null ? existing.font : null;
         }
 
         private static GameObject BuildPrefab()
