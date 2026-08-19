@@ -311,8 +311,10 @@ namespace Igruha.EditorTools
                 beaconGo.transform.localPosition = new Vector3(0f, PedestalHeight + CapHeight + 0.35f, 0f);
                 var beacon = beaconGo.AddComponent<Light>();
                 beacon.type = LightType.Point;
-                beacon.range = 4.5f;
-                beacon.intensity = 4f;
+                // Свет заметный, но не заливающий: на полной яркости клетка
+                // становилась сплошным красным пятном и табло в ней тонуло.
+                beacon.range = 3.2f;
+                beacon.intensity = 1.8f;
                 beacon.enabled = false;
 
                 var button = root.AddComponent<CageButton>();

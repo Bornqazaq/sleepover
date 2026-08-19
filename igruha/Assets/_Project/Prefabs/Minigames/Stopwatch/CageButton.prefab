@@ -258,7 +258,7 @@ MonoBehaviour:
   pulseSpeed: 3
   pulseAmount: 0.3
   beacon: {fileID: 6407296766551465443}
-  beaconIntensity: 4
+  beaconIntensity: 1.8
 --- !u!1 &7851140762957036692
 GameObject:
   m_ObjectHideFlags: 0
@@ -302,8 +302,8 @@ Light:
   serializedVersion: 12
   m_Type: 2
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_Intensity: 4
-  m_Range: 4.5
+  m_Intensity: 1.8
+  m_Range: 3.2
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
   m_CookieSize2D: {x: 0.5, y: 0.5}

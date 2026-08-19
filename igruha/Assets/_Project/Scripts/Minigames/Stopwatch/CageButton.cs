@@ -54,7 +54,7 @@ namespace Igruha.Minigames.Stopwatch
         [Tooltip("Лампа в клетке. Горит, пока идёт отсчёт: саму кнопку заслоняет персонаж, а свет виден боковым зрением")]
         [SerializeField] private Light beacon;
         [Tooltip("Яркость лампы на пике пульсации")]
-        [SerializeField] private float beaconIntensity = 4f;
+        [SerializeField] private float beaconIntensity = 1.8f;
 
         /// <summary>Хозяин кнопки нажал «старт».</summary>
         public event Action<CageButton> Started;

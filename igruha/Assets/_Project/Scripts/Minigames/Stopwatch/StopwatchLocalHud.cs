@@ -58,7 +58,9 @@ namespace Igruha.Minigames.Stopwatch
                     label.text = runningText;
                     // Мигание, а не ровный свет: ровный теряется на сером фоне,
                     // а «идёт прямо сейчас» должно читаться боковым зрением.
-                    float t = 0.55f + 0.45f * Mathf.Sin(Time.time * blinkSpeed * Mathf.PI * 2f);
+                    // Дно мигания высокое: на низком строка проваливалась
+                    // в нечитаемую темноту ровно на половину периода.
+                    float t = 0.75f + 0.25f * Mathf.Sin(Time.time * blinkSpeed * Mathf.PI * 2f);
                     label.color = runningColor * t;
                     break;
                 case CageButton.ButtonState.Stopped:
