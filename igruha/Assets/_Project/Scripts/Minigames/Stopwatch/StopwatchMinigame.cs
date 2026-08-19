@@ -97,6 +97,12 @@ namespace Igruha.Minigames.Stopwatch
         /// <summary>Период тика текущего подраунда, с. Наружу — для замеров приёмки.</summary>
         public float CurrentTickPeriod => currentTickPeriod;
 
+        /// <summary>
+        /// Кнопка того игрока, которым управляет эта машина. Нужна строке
+        /// состояния: она единственный элемент интерфейса, у каждого свой.
+        /// </summary>
+        public CageButton LocalButton { get; private set; }
+
         /// <summary>Сколько игроков ещё в игре.</summary>
         public int AliveCount
         {
@@ -241,6 +247,11 @@ namespace Igruha.Minigames.Stopwatch
                 }
 
                 contestant.LocallyControlled = humanControlled;
+                if (humanControlled)
+                {
+                    LocalButton = contestant.Button;
+                }
+
                 if (avatar != null)
                 {
                     // Компонент вешаем здесь, а не в префаб персонажа: префаб
@@ -314,6 +325,7 @@ namespace Igruha.Minigames.Stopwatch
                 bear.Caught -= HandleBearCaught;
             }
 
+            LocalButton = null;
             distractions?.Stop();
             spectator?.Deactivate();
             stageState?.StopSequence();

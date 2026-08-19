@@ -25,6 +25,7 @@ namespace Igruha.EditorTools
         private const string PrefabFolder = "Assets/_Project/Prefabs/Minigames/Stopwatch";
         private const string PrefabPath = PrefabFolder + "/CageButton.prefab";
         private const string HudObjectName = "StopwatchHud";
+        private const string StatusObjectName = "StopwatchStatus";
 
         private const float PedestalHeight = 0.55f;
         private const float PedestalDiameter = 0.42f;
@@ -169,7 +170,50 @@ namespace Igruha.EditorTools
 
             faceSo.ApplyModifiedPropertiesWithoutUndo();
 
+            BuildStatusLine(canvas.transform, font, root);
             return RegisterFaces(face);
+        }
+
+        /// <summary>
+        /// Крупная строка «отсчёт идёт» под панелью. Единственный элемент
+        /// интерфейса, у каждого игрока свой: остальное — общее табло.
+        /// </summary>
+        private static void BuildStatusLine(Transform canvas, TMP_FontAsset font, RectTransform panel)
+        {
+            Transform existing = canvas.Find(StatusObjectName);
+            if (existing != null)
+            {
+                Object.DestroyImmediate(existing.gameObject);
+            }
+
+            var go = new GameObject(StatusObjectName, typeof(RectTransform));
+            go.transform.SetParent(canvas, false);
+            var rect = (RectTransform)go.transform;
+            rect.anchorMin = new Vector2(0f, 1f);
+            rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 1f);
+            rect.anchoredPosition = new Vector2(panel.anchoredPosition.x, panel.anchoredPosition.y - panel.sizeDelta.y - 14f);
+            rect.sizeDelta = new Vector2(HudWidth, 56f);
+
+            var text = go.AddComponent<TextMeshProUGUI>();
+            if (font != null)
+            {
+                text.font = font;
+            }
+
+            text.fontSizeMin = 26f;
+            text.fontSizeMax = 44f;
+            text.enableAutoSizing = true;
+            text.alignment = TextAlignmentOptions.MidlineLeft;
+            text.textWrappingMode = TextWrappingModes.NoWrap;
+            text.raycastTarget = false;
+            text.text = string.Empty;
+
+            var hud = go.AddComponent<StopwatchLocalHud>();
+            var so = new SerializedObject(hud);
+            so.FindProperty("label").objectReferenceValue = text;
+            so.FindProperty("game").objectReferenceValue = Object.FindAnyObjectByType<StopwatchMinigame>(FindObjectsInactive.Include);
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         /// <summary>
@@ -260,9 +304,21 @@ namespace Igruha.EditorTools
                 cap.transform.localScale = new Vector3(CapDiameter, CapHeight * 0.5f, CapDiameter);
                 Object.DestroyImmediate(cap.GetComponent<Collider>());
 
+                // Лампа-маяк: сама кнопка мелкая и её заслоняет спина персонажа,
+                // а залитая светом клетка читается и краем глаза.
+                var beaconGo = new GameObject("Beacon");
+                beaconGo.transform.SetParent(root.transform, false);
+                beaconGo.transform.localPosition = new Vector3(0f, PedestalHeight + CapHeight + 0.35f, 0f);
+                var beacon = beaconGo.AddComponent<Light>();
+                beacon.type = LightType.Point;
+                beacon.range = 4.5f;
+                beacon.intensity = 4f;
+                beacon.enabled = false;
+
                 var button = root.AddComponent<CageButton>();
                 var serialized = new SerializedObject(button);
                 serialized.FindProperty("lamp").objectReferenceValue = cap.GetComponent<Renderer>();
+                serialized.FindProperty("beacon").objectReferenceValue = beacon;
                 serialized.ApplyModifiedPropertiesWithoutUndo();
 
                 GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);

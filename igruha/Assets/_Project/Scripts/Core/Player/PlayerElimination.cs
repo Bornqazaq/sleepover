@@ -85,9 +85,14 @@ namespace Igruha.Core.Player
             // отдельно, через IgnoreCollision, ещё в момент смерти.
             yield return new WaitForSeconds(flightDuration + bodyHideDelay);
 
-            // Порядок важен: сначала гасим физику, потом убираем коллайдер.
-            // Наоборот тело остаётся без опоры и уходит сквозь пол в минус
-            // бесконечность — замерено, улетало на четыре километра вниз.
+            // Мотор выключается первым. Он пишет скорость в Rigidbody каждый
+            // FixedUpdate, и на замороженном теле это сыплет предупреждениями
+            // «Setting linear velocity of a kinematic body is not supported».
+            motor.enabled = false;
+
+            // Дальше порядок тоже важен: сначала гасим физику, потом убираем
+            // коллайдер. Наоборот тело остаётся без опоры и уходит сквозь пол
+            // в минус бесконечность — замерено, улетало на четыре километра вниз.
             if (body != null)
             {
                 body.linearVelocity = Vector3.zero;
@@ -149,6 +154,8 @@ namespace Igruha.Core.Player
             {
                 body.isKinematic = false;
             }
+
+            motor.enabled = true;
 
             if (ownCollider != null)
             {

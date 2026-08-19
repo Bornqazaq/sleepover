@@ -51,6 +51,10 @@ namespace Igruha.Minigames.Stopwatch
         [SerializeField] private float pulseSpeed = 3f;
         [Tooltip("Глубина пульсации, 0..1")]
         [SerializeField] private float pulseAmount = 0.3f;
+        [Tooltip("Лампа в клетке. Горит, пока идёт отсчёт: саму кнопку заслоняет персонаж, а свет виден боковым зрением")]
+        [SerializeField] private Light beacon;
+        [Tooltip("Яркость лампы на пике пульсации")]
+        [SerializeField] private float beaconIntensity = 4f;
 
         /// <summary>Хозяин кнопки нажал «старт».</summary>
         public event Action<CageButton> Started;
@@ -207,15 +211,29 @@ namespace Igruha.Minigames.Stopwatch
 
         private void ApplyColor(Color color)
         {
-            if (lamp == null)
+            if (lamp != null)
+            {
+                lamp.GetPropertyBlock(block);
+                block.SetColor(BaseColorId, color);
+                block.SetColor(ColorId, color);
+                lamp.SetPropertyBlock(block);
+            }
+
+            if (beacon == null)
             {
                 return;
             }
 
-            lamp.GetPropertyBlock(block);
-            block.SetColor(BaseColorId, color);
-            block.SetColor(ColorId, color);
-            lamp.SetPropertyBlock(block);
+            // Лампа горит ровно тогда же, когда светится кнопка, и тем же
+            // цветом. Смысл в том, что кнопку заслоняет спина персонажа,
+            // а свет в клетке виден и краем глаза.
+            bool lit = State != ButtonState.Idle && WindowOpen;
+            beacon.enabled = lit;
+            if (lit)
+            {
+                beacon.color = color;
+                beacon.intensity = beaconIntensity * Mathf.Max(color.r, Mathf.Max(color.g, color.b));
+            }
         }
     }
 }
