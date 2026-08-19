@@ -150,6 +150,22 @@ namespace Igruha.Minigames.Circus
             Caught?.Invoke(nearest, impulse.normalized * knockbackSpeed);
         }
 
+        /// <summary>
+        /// Показать состояние, решённое сервером. Клиент медведя не двигает —
+        /// позицию везёт серверный NetworkTransform, — но рёв и скорость
+        /// в аниматоре обязаны совпасть у всех, иначе на одной машине медведь
+        /// встаёт на лапы, а на другой молча идёт мимо.
+        /// </summary>
+        public void ApplyNetworkState(BearState next, float animatorSpeed)
+        {
+            SetState(next);
+            SetAnimatorSpeed(animatorSpeed);
+        }
+
+        /// <summary>Скорость для аниматора по текущему состоянию — её же реплицируем.</summary>
+        public float AnimatorSpeed =>
+            state == BearState.Chase ? chaseSpeed : (state == BearState.Patrol ? patrolSpeed : 0f);
+
         private void Patrol(float deltaTime)
         {
             float radius = Mathf.Max(1f, pitRadius - wallMargin * 2f);

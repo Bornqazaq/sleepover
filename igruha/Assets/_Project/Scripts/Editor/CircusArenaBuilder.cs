@@ -439,6 +439,14 @@ namespace Igruha.EditorTools
             var serialized = new SerializedObject(bear);
             serialized.FindProperty("visualRoot").objectReferenceValue = visual;
             serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            // Медведь — единственный на арене, кем не владеет ни один игрок:
+            // его ведёт сервер. NetworkTransform здесь обычный, серверный,
+            // а не ClientNetworkTransform — владельца-клиента у него нет.
+            // Объект сценовый, поэтому NGO заспавнит его сам при загрузке
+            // сцены, и регистрировать префаб не требуется.
+            bearRoot.gameObject.AddComponent<Unity.Netcode.NetworkObject>();
+            bearRoot.gameObject.AddComponent<Unity.Netcode.Components.NetworkTransform>();
         }
 
         /// <summary>
@@ -775,6 +783,22 @@ namespace Igruha.EditorTools
             for (int i = group.childCount - 1; i >= 0; i--)
             {
                 Object.DestroyImmediate(group.GetChild(i).gameObject);
+            }
+
+            // Компоненты на самом узле снимаем тоже. Раньше чистились только
+            // дети, а компоненты билдер добавлял заново — и каждая пересборка
+            // клала ещё один слой. На медведе так набралось по три PitBear
+            // и три CapsuleCollider: три коллайдера в одной точке — это уже
+            // не косметика, а тройной удар по игроку.
+            var components = group.GetComponents<Component>();
+            for (int i = components.Length - 1; i >= 0; i--)
+            {
+                if (components[i] is Transform)
+                {
+                    continue;
+                }
+
+                Object.DestroyImmediate(components[i]);
             }
 
             group.localPosition = Vector3.zero;

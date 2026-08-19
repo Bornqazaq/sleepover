@@ -621,6 +621,7 @@ namespace Igruha.Minigames.Stopwatch
             }
 
             bear.Tick(Time.deltaTime, FindNearestInPit(), SomeoneOnLowestCage());
+            network?.PublishBearState((byte)bear.State);
         }
 
         /// <summary>Ближайшая к медведю жертва среди упавших в яму.</summary>
@@ -684,6 +685,8 @@ namespace Igruha.Minigames.Stopwatch
 
                 c.InPit = false;
                 c.Elimination?.Eliminate(victim.transform.position, impulse);
+                // Гибель решил сервер — остальные её только отыгрывают.
+                network?.AnnounceCaught(c.Session.Id, victim.transform.position, impulse);
                 return;
             }
         }
@@ -796,6 +799,45 @@ namespace Igruha.Minigames.Stopwatch
             // Третье и последующие нажатия отсекает сама кнопка: из состояния
             // Stopped она в этом подраунде уже не выходит.
             c.Button.ApplyHold(c.Session.Avatar, held, stamp);
+        }
+
+        /// <summary>Состояние медведя пришло из сети — показать, не считая ИИ.</summary>
+        public void ApplyNetworkBearState(byte state)
+        {
+            if (HasAuthority || bear == null)
+            {
+                return;
+            }
+
+            var next = (PitBear.BearState)state;
+            bear.ApplyNetworkState(next, next == PitBear.BearState.Chase
+                ? config.BearSpeed
+                : (next == PitBear.BearState.Patrol ? config.BearPatrolSpeed : 0f));
+        }
+
+        /// <summary>
+        /// Сервер объявил, что медведь достал игрока. Отыгрываем ту же гибель
+        /// тем же импульсом: направление приезжает готовым, поэтому клип падения
+        /// выбирается одинаково у всех.
+        ///
+        /// Тело прячется и теряет коллизию на каждой машине, а вот сам
+        /// <c>NetworkObject</c> персонажа жив: он переезжает в хаб.
+        /// </summary>
+        public void ApplyNetworkCaught(int playerId, Vector3 hitPoint, Vector3 impulse)
+        {
+            if (HasAuthority)
+            {
+                return;
+            }
+
+            Contestant c = Find(playerId);
+            if (c == null)
+            {
+                return;
+            }
+
+            c.InPit = false;
+            c.Elimination?.Eliminate(hitPoint, impulse);
         }
 
         /// <summary>Сколько участников в матче. Читает <see cref="StopwatchNetwork"/>.</summary>

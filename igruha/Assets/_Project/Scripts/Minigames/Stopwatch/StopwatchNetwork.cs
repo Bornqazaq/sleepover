@@ -160,6 +160,13 @@ namespace Igruha.Minigames.Stopwatch
 
         private readonly NetworkList<CageNetState> cages = new NetworkList<CageNetState>();
 
+        /// <summary>
+        /// Состояние медведя. Позицию везёт серверный NetworkTransform, а вот
+        /// рёв и стойка на лапах — решение сервера: иначе на одной машине
+        /// медведь дразнит клетку, а на другой молча ходит кругами.
+        /// </summary>
+        private readonly NetworkVariable<byte> bearState = new NetworkVariable<byte>();
+
         private StopwatchMinigame game;
         private MinigameStageState stageState;
 
@@ -191,6 +198,7 @@ namespace Igruha.Minigames.Stopwatch
             task.OnValueChanged += OnTaskChanged;
             stage.OnValueChanged += OnStageChanged;
             cages.OnListChanged += OnCagesChanged;
+            bearState.OnValueChanged += OnBearStateChanged;
 
             if (IsServer)
             {
@@ -207,6 +215,7 @@ namespace Igruha.Minigames.Stopwatch
             // Подключились в середине раунда — догоняем то, что уже решено.
             ApplyTask();
             ApplyStage();
+            ApplyBearState();
             cagesDirty = true;
         }
 
@@ -215,6 +224,7 @@ namespace Igruha.Minigames.Stopwatch
             task.OnValueChanged -= OnTaskChanged;
             stage.OnValueChanged -= OnStageChanged;
             cages.OnListChanged -= OnCagesChanged;
+            bearState.OnValueChanged -= OnBearStateChanged;
 
             if (IsServer && stageState != null)
             {
@@ -297,6 +307,54 @@ namespace Igruha.Minigames.Stopwatch
             }
 
             stageState.ApplyState(value.Subround, value.Stage, value.EndTime, value.Duration);
+        }
+
+        // ========== МЕДВЕДЬ ==========
+
+        /// <summary>Сервер объявил, в каком состоянии медведь. Двигают его серверный ИИ и NetworkTransform.</summary>
+        public void PublishBearState(byte state)
+        {
+            if (!IsSpawned || !IsServer || bearState.Value == state)
+            {
+                return;
+            }
+
+            bearState.Value = state;
+        }
+
+        private void OnBearStateChanged(byte previous, byte current)
+        {
+            if (!IsServer)
+            {
+                ApplyBearState();
+            }
+        }
+
+        private void ApplyBearState()
+        {
+            game?.ApplyNetworkBearState(bearState.Value);
+        }
+
+        /// <summary>
+        /// Медведь достал игрока. Это событие, а не состояние, поэтому уходит
+        /// RPC: направление отлёта нужно один раз и в момент удара, держать его
+        /// в реплицируемом поле незачем.
+        /// </summary>
+        public void AnnounceCaught(int playerId, Vector3 hitPoint, Vector3 impulse)
+        {
+            if (!IsSpawned || !IsServer)
+            {
+                return;
+            }
+
+            AnnounceCaughtRpc(playerId, hitPoint, impulse);
+        }
+
+        /// <summary>Сервер уже применил гибель у себя, поэтому себе не шлём.</summary>
+        [Rpc(SendTo.NotServer)]
+        private void AnnounceCaughtRpc(int playerId, Vector3 hitPoint, Vector3 impulse)
+        {
+            game?.ApplyNetworkCaught(playerId, hitPoint, impulse);
         }
 
         // ========== НАЖАТИЕ ==========
