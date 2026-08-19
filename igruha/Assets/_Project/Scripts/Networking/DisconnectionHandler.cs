@@ -28,6 +28,7 @@ namespace Igruha.Networking
             // Подписаться на события отключения
             networkManager.OnClientDisconnectCallback += OnClientDisconnect;
             networkManager.OnServerStopped += OnServerStopped;
+            networkManager.OnClientStopped += OnClientStopped;
 
             Debug.Log("✅ DisconnectionHandler: Ready for disconnections");
         }
@@ -38,6 +39,7 @@ namespace Igruha.Networking
             {
                 networkManager.OnClientDisconnectCallback -= OnClientDisconnect;
                 networkManager.OnServerStopped -= OnServerStopped;
+                networkManager.OnClientStopped -= OnClientStopped;
             }
         }
 
@@ -90,23 +92,38 @@ namespace Igruha.Networking
         // ========== HOST DISCONNECT HANDLING (IGR-58) ==========
 
         /// <summary>
-        /// Callback: хост остановился (выходит из игры или крашится).
-        /// Вызывается на всех клиентах когда сервер прекращает работу.
+        /// Callback: на ЭТОЙ машине остановился сервер. Вопреки прежнему
+        /// комментарию, на чужие машины это событие не приходит: NGO поднимает
+        /// его только там, где сервер крутился.
         /// </summary>
         private void OnServerStopped(bool wasHost)
         {
             Debug.LogWarning($"⚠️  SERVER STOPPED (WasHost={wasHost})");
 
+            ReturnToMainMenu(wasHost ? "Host shut down" : "Server shut down");
+        }
+
+        /// <summary>
+        /// Callback: на этой машине кончилась клиентская сессия — хост вышел,
+        /// упал или порвалась связь.
+        ///
+        /// Для чистого клиента это единственный сигнал о конце матча.
+        /// Прежде обработчик ждал <see cref="OnServerStopped"/>, которого
+        /// клиенту не видать никогда, и уход хоста проходил мимо: замерено
+        /// на стенде 19.08 — хост закрылся, а клиент остался стоять в хабе
+        /// с мёртвым соединением, без единой строки в логе.
+        /// </summary>
+        private void OnClientStopped(bool wasHost)
+        {
+            // У хоста та же остановка уже разобрана в OnServerStopped:
+            // он и сервер, и клиент, и оба события приходят парой.
             if (wasHost)
             {
-                // Хост остановил сервер — все должны вернуться в меню
-                ReturnToMainMenu("Host left the game");
+                return;
             }
-            else
-            {
-                // Я был клиентом и потерял соединение с сервером
-                ReturnToMainMenu("Connection lost to host");
-            }
+
+            Debug.LogWarning("⚠️  CLIENT STOPPED — хост больше не отвечает");
+            ReturnToMainMenu("Host left the game");
         }
 
         /// <summary>
