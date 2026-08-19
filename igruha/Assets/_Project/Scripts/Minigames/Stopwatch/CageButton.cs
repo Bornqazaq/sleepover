@@ -3,6 +3,7 @@ using UnityEngine;
 using Igruha.Core.Interaction;
 using Igruha.Core.Minigame;
 using Igruha.Core.Player;
+using Igruha.Core.Session;
 
 namespace Igruha.Minigames.Stopwatch
 {
@@ -79,7 +80,22 @@ namespace Igruha.Minigames.Stopwatch
         /// <summary>Видит ли эту кнопку её хозяин. У чужих клеток — false.</summary>
         public bool ViewedByOwner { get; set; }
 
+        /// <summary>
+        /// Горит ли чужая кнопка по данным сервера. Своя зажигается сама:
+        /// хозяину круг через сеть добавил бы задержку к единственному
+        /// признаку «мой отсчёт пошёл». В соло не используется — там состояние
+        /// каждой кнопки считается на этой же машине.
+        /// </summary>
+        public bool NetworkLit { get; set; }
+
         public ButtonState State { get; private set; } = ButtonState.Idle;
+
+        /// <summary>
+        /// Признак «эта кнопка горит» для чужой клетки: в сети его приносит
+        /// сервер, в соло считает эта же машина.
+        /// </summary>
+        private bool NeighbourLit =>
+            WorldAuthority.IsNetworkSession ? NetworkLit : State != ButtonState.Idle;
 
         /// <summary>Отмеренный интервал последнего подраунда, с. До «стопа» — ноль.</summary>
         public float Measured => measured;
@@ -108,6 +124,7 @@ namespace Igruha.Minigames.Stopwatch
         public void OpenWindow()
         {
             WindowOpen = true;
+            NetworkLit = false;
             State = ButtonState.Idle;
             measured = 0f;
             startedAt = 0d;
@@ -121,6 +138,7 @@ namespace Igruha.Minigames.Stopwatch
         public void CloseWindow()
         {
             WindowOpen = false;
+            NetworkLit = false;
 
             // Кто так и не отпустил кнопку до конца окна — не завершил замер.
             // Гасим удержание здесь, иначе позднее отпускание досчитало бы
@@ -205,8 +223,10 @@ namespace Igruha.Minigames.Stopwatch
                 return;
             }
 
-            // Чужая горит ровно и не гаснет на «стоп».
-            ApplyColor(State == ButtonState.Idle ? idleColor : neighbourRunningColor);
+            // Чужая горит ровно и не гаснет на «стоп». В сетевой катке нажатие
+            // соседа на этой машине не исполняется вовсе, поэтому источник —
+            // серверное состояние, а не локальное.
+            ApplyColor(NeighbourLit ? neighbourRunningColor : idleColor);
         }
 
         private void ApplyColor(Color color)
@@ -227,7 +247,7 @@ namespace Igruha.Minigames.Stopwatch
             // Лампа горит ровно тогда же, когда светится кнопка, и тем же
             // цветом. Смысл в том, что кнопку заслоняет спина персонажа,
             // а свет в клетке виден и краем глаза.
-            bool lit = State != ButtonState.Idle && WindowOpen;
+            bool lit = (State != ButtonState.Idle || NeighbourLit) && WindowOpen;
             beacon.enabled = lit;
             if (lit)
             {

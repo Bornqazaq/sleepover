@@ -76,6 +76,15 @@ namespace Igruha.Minigames.Stopwatch
         private readonly List<bool> boardAlive = new List<bool>(8);
         private readonly List<bool> boardFaulted = new List<bool>(8);
 
+        private StopwatchNetwork network;
+
+        /// <summary>
+        /// Результаты подраунда уже показаны. Держится от стадии показа
+        /// до начала следующего подраунда: пока флага нет, замеры не уходят
+        /// в сеть вообще, а не прячутся в интерфейсе.
+        /// </summary>
+        private bool resultsRevealed;
+
         private System.Random random;
         private int startingPlayers;
         private int errorLimit;
@@ -128,6 +137,11 @@ namespace Igruha.Minigames.Stopwatch
             {
                 stageState = GetComponent<MinigameStageState>();
             }
+
+            // Сетевая половина лежит на том же объекте. Ссылку берём кодом,
+            // а не полем инспектора: арену пересобирает пункт меню, и ручную
+            // ссылку пришлось бы перецеплять после каждой пересборки.
+            network = GetComponent<StopwatchNetwork>();
         }
 
         protected override void OnEnable()
@@ -136,6 +150,7 @@ namespace Igruha.Minigames.Stopwatch
             if (stageState != null)
             {
                 stageState.StageElapsed += HandleStageElapsed;
+                stageState.StageStarted += HandleStageStarted;
             }
         }
 
@@ -145,6 +160,7 @@ namespace Igruha.Minigames.Stopwatch
             if (stageState != null)
             {
                 stageState.StageElapsed -= HandleStageElapsed;
+                stageState.StageStarted -= HandleStageStarted;
             }
         }
 
@@ -239,7 +255,12 @@ namespace Igruha.Minigames.Stopwatch
                     // Болванка жмёт кнопку за того, кем никто не управляет.
                     // Без этого соло-прогон проверяет только вылет молчунов,
                     // а рейтинг худших остаётся непроверенным.
-                    if (!humanControlled && avatar != null)
+                    //
+                    // В сети болванок быть не должно: OnPlayersReady идёт на
+                    // всех машинах, и «этой машиной не управляется» верно для
+                    // каждого чужого игрока — каждый клиент навесил бы бота
+                    // на всех остальных и жал бы за них кнопки.
+                    if (!humanControlled && avatar != null && !WorldAuthority.IsNetworkSession)
                     {
                         contestant.Bot = avatar.gameObject.AddComponent<StopwatchDebugBot>();
                         contestant.Bot.Bind(contestant.Button, avatar, Players[i].Id * 7919);
@@ -337,6 +358,7 @@ namespace Igruha.Minigames.Stopwatch
         private void BeginSubround()
         {
             subround++;
+            resultsRevealed = false;
             currentType = config.GetSubroundType(subround);
             currentTarget = PickTarget(subround);
 
@@ -355,6 +377,11 @@ namespace Igruha.Minigames.Stopwatch
 
             scoreboard?.ShowTask(subround, currentType, currentTarget);
             PublishBoard(false);
+
+            // Задание уходит в сеть до стадии: клиент должен знать тип и цель
+            // раньше, чем у него откроется окно отмера.
+            network?.PublishTask(subround, currentType, currentTarget, currentTickPeriod);
+
             stageState.BeginSubround(subround, StageBriefing, config.BriefingSeconds);
         }
 
@@ -405,6 +432,18 @@ namespace Igruha.Minigames.Stopwatch
 
         private void EnterMeasure()
         {
+            OpenMeasureWindows(true);
+            stageState.EnterStage(StageMeasure, config.MeasureWindowSeconds);
+        }
+
+        /// <summary>
+        /// Открыть окно отмера всем живым. Зовётся и у авторитета из
+        /// <see cref="EnterMeasure"/>, и на клиенте по пришедшей стадии:
+        /// без открытого окна хозяин кнопки не смог бы её нажать, а чужие
+        /// лампы не загорелись бы вовсе.
+        /// </summary>
+        private void OpenMeasureWindows(bool armBots)
+        {
             for (int i = 0; i < contestants.Count; i++)
             {
                 if (!contestants[i].Alive || contestants[i].Button == null)
@@ -413,10 +452,20 @@ namespace Igruha.Minigames.Stopwatch
                 }
 
                 contestants[i].Button.OpenWindow();
-                contestants[i].Bot?.Arm(currentTarget);
+                if (armBots)
+                {
+                    contestants[i].Bot?.Arm(currentTarget);
+                }
             }
+        }
 
-            stageState.EnterStage(StageMeasure, config.MeasureWindowSeconds);
+        /// <summary>Погасить все кнопки разом — момент чужого «стопа» так и остаётся невидимым.</summary>
+        private void CloseMeasureWindows()
+        {
+            for (int i = 0; i < contestants.Count; i++)
+            {
+                contestants[i].Button?.CloseWindow();
+            }
         }
 
         /// <summary>
@@ -475,12 +524,7 @@ namespace Igruha.Minigames.Stopwatch
                 });
             }
 
-            // Кнопки гаснут у всех одновременно — момент чужого «стопа»
-            // так и остаётся невидимым.
-            for (int i = 0; i < contestants.Count; i++)
-            {
-                contestants[i].Button?.CloseWindow();
-            }
+            CloseMeasureWindows();
 
             int alive = AliveCount;
             StopwatchRanking.SortWorstFirst(entries, currentType, currentTarget);
@@ -673,6 +717,146 @@ namespace Igruha.Minigames.Stopwatch
             }
 
             return aliveBuffer;
+        }
+
+        // ========== СЕТЬ ==========
+
+        /// <summary>
+        /// Стадия началась — и у авторитета, и на клиенте, куда её принёс
+        /// <see cref="StopwatchNetwork"/>.
+        /// </summary>
+        private void HandleStageStarted(byte started)
+        {
+            // Флаг общий для всех машин: он решает, публикуются ли замеры
+            // и показывает ли табло время.
+            if (started == StageResults)
+            {
+                resultsRevealed = true;
+            }
+
+            // У авторитета окна кнопок ставят сами Enter*-методы. Второй раз —
+            // значит переоткрыть окно и обнулить уже сделанный замер.
+            if (HasAuthority)
+            {
+                return;
+            }
+
+            switch (started)
+            {
+                case StageMeasure:
+                    OpenMeasureWindows(false);
+                    break;
+                case StageResults:
+                    CloseMeasureWindows();
+                    break;
+            }
+        }
+
+        /// <summary>Сколько участников в матче. Читает <see cref="StopwatchNetwork"/>.</summary>
+        public int ContestantCount => contestants.Count;
+
+        /// <summary>
+        /// Снимок состояния клетки для репликации.
+        ///
+        /// Замер и признак «успел» уходят наружу только после
+        /// <see cref="resultsRevealed"/>. До него в сетевом состоянии их нет
+        /// физически — это единственный способ удержать §5.1 спеки против
+        /// клиента, который читает состояние напрямую.
+        /// </summary>
+        public bool TryGetCageState(int index, out CageNetState state)
+        {
+            state = default;
+            if (index < 0 || index >= contestants.Count)
+            {
+                return false;
+            }
+
+            Contestant c = contestants[index];
+            state = new CageNetState
+            {
+                PlayerId = c.Session.Id,
+                Errors = (byte)Mathf.Clamp(c.Errors, 0, byte.MaxValue),
+                Level = (byte)(c.Cage != null ? Mathf.Clamp(c.Cage.Level, 0, byte.MaxValue) : 0),
+                Lit = c.Button != null && c.Button.WindowOpen && c.Button.State != CageButton.ButtonState.Idle,
+                Alive = c.Alive,
+                Faulted = c.FaultedThisSubround,
+                Measured = resultsRevealed ? c.Measured : 0f,
+                Completed = resultsRevealed && c.Completed
+            };
+
+            return true;
+        }
+
+        /// <summary>Задание подраунда пришло из сети. Весь рандом отыгран на сервере.</summary>
+        public void ApplyNetworkTask(int netSubround, StopwatchSubroundType type, float target, float tickPeriod)
+        {
+            if (HasAuthority)
+            {
+                return;
+            }
+
+            subround = netSubround;
+            resultsRevealed = false;
+            currentType = type;
+            currentTarget = target;
+            currentTickPeriod = tickPeriod;
+
+            for (int i = 0; i < contestants.Count; i++)
+            {
+                contestants[i].Measured = 0f;
+                contestants[i].Completed = false;
+                contestants[i].FaultedThisSubround = false;
+            }
+
+            distractions?.BeginSubround(currentTickPeriod, config.GetDistractionIntensity(subround));
+            scoreboard?.ShowTask(subround, currentType, currentTarget);
+        }
+
+        /// <summary>Состояние одной клетки пришло из сети.</summary>
+        public void ApplyNetworkCage(int playerId, int errors, int level, bool lit,
+            bool alive, bool faulted, float measured, bool completed)
+        {
+            if (HasAuthority)
+            {
+                return;
+            }
+
+            Contestant c = Find(playerId);
+            if (c == null)
+            {
+                return;
+            }
+
+            c.Errors = errors;
+            c.Alive = alive;
+            c.FaultedThisSubround = faulted;
+            c.Measured = measured;
+            c.Completed = completed;
+
+            // Чужая лампа горит по серверному состоянию: своя кнопка на этой
+            // машине зажигается сама, ей круг через сеть не нужен.
+            if (c.Button != null && !c.LocallyControlled)
+            {
+                c.Button.NetworkLit = lit;
+            }
+
+            // Пока клетка едет, высоту считает её собственная анимация —
+            // подменять её присланным уровнем значило бы дёргать пассажира.
+            if (c.Cage != null && !c.Cage.Descending && c.Cage.Level != level)
+            {
+                c.Cage.SnapToLevel(level);
+            }
+        }
+
+        /// <summary>Состояния клеток приехали целиком — перерисовать табло один раз.</summary>
+        public void ApplyNetworkCagesCommitted()
+        {
+            if (HasAuthority)
+            {
+                return;
+            }
+
+            PublishBoard(resultsRevealed);
         }
 
         private Contestant Find(int playerId)
