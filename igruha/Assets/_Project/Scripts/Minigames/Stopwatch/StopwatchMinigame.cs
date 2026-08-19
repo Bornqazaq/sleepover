@@ -553,6 +553,11 @@ namespace Igruha.Minigames.Stopwatch
 
         private void EnterDescend()
         {
+            // Момент начала стадии — общий для всех машин: от него каждая
+            // считает высоту клетки по одной формуле, поэтому расхождение
+            // не копится и не зависит от того, кто когда получил команду.
+            double startedAt = NetworkClock.Now;
+
             bool anyDescends = false;
             for (int i = 0; i < contestants.Count; i++)
             {
@@ -562,7 +567,7 @@ namespace Igruha.Minigames.Stopwatch
                     continue;
                 }
 
-                c.Cage.DescendTo(Mathf.Max(0, errorLimit - c.Errors), config.CageDescendSeconds);
+                c.Cage.DescendTo(Mathf.Max(0, errorLimit - c.Errors), config.CageDescendSeconds, startedAt);
                 anyDescends = true;
             }
 
@@ -821,6 +826,7 @@ namespace Igruha.Minigames.Stopwatch
                 Lit = c.Button != null && c.Button.WindowOpen && c.Button.State != CageButton.ButtonState.Idle,
                 Alive = c.Alive,
                 Faulted = c.FaultedThisSubround,
+                DoorsOpen = c.Cage != null && c.Cage.DoorsOpen,
                 Measured = resultsRevealed ? c.Measured : 0f,
                 Completed = resultsRevealed && c.Completed
             };
@@ -855,7 +861,7 @@ namespace Igruha.Minigames.Stopwatch
 
         /// <summary>Состояние одной клетки пришло из сети.</summary>
         public void ApplyNetworkCage(int playerId, int errors, int level, bool lit,
-            bool alive, bool faulted, float measured, bool completed)
+            bool alive, bool faulted, bool doorsOpen, float measured, bool completed)
         {
             if (HasAuthority)
             {
@@ -881,11 +887,54 @@ namespace Igruha.Minigames.Stopwatch
                 c.Button.NetworkLit = lit;
             }
 
-            // Пока клетка едет, высоту считает её собственная анимация —
-            // подменять её присланным уровнем значило бы дёргать пассажира.
-            if (c.Cage != null && !c.Cage.Descending && c.Cage.Level != level)
+            ApplyNetworkCageLevel(c, level);
+            ApplyNetworkDoors(c, doorsOpen);
+        }
+
+        /// <summary>
+        /// Высота клетки на этой машине. В стадии спуска клетка едет сама —
+        /// по той же формуле и от того же момента, что у сервера, поэтому
+        /// присланный уровень здесь означает цель хода, а не «переставить».
+        /// Вне спуска он же служит поправкой для позднего подключения.
+        /// </summary>
+        private void ApplyNetworkCageLevel(Contestant c, int level)
+        {
+            if (c.Cage == null || c.Cage.Descending || c.Cage.Level == level)
             {
-                c.Cage.SnapToLevel(level);
+                return;
+            }
+
+            if (stageState != null && stageState.Stage == StageDescend)
+            {
+                // Момент начала стадии: конец минус длительность. Считается
+                // одинаково у всех, поэтому опоздавшая машина не отстаёт,
+                // а сразу встаёт на верную высоту.
+                double startedAt = stageState.StageEndTime - stageState.StageDuration;
+                c.Cage.DescendTo(level, config.CageDescendSeconds, startedAt);
+                return;
+            }
+
+            c.Cage.SnapToLevel(level);
+        }
+
+        /// <summary>
+        /// Створки: открывает их объявление сервера, а падение дальше — обычная
+        /// гравитация на машине владельца. Сервер никого не толкает.
+        /// </summary>
+        private void ApplyNetworkDoors(Contestant c, bool doorsOpen)
+        {
+            if (c.Cage == null || c.Cage.DoorsOpen == doorsOpen)
+            {
+                return;
+            }
+
+            if (doorsOpen)
+            {
+                c.Cage.OpenDoors(config.HatchOpenSeconds);
+            }
+            else
+            {
+                c.Cage.CloseDoors();
             }
         }
 

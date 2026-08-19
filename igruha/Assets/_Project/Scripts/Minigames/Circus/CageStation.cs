@@ -147,6 +147,24 @@ namespace Igruha.Minigames.Circus
             platform.MoveTo(config.GetCageBottomHeight(Level), duration);
         }
 
+        /// <summary>
+        /// Тот же спуск, но отсчитанный от общего момента. По сети клетка обязана
+        /// быть на одной высоте у всех, а команда на разные машины приходит
+        /// не одновременно: считая от момента, а не от своего первого кадра,
+        /// опоздавшая машина сразу встаёт на верную высоту.
+        /// </summary>
+        public void DescendTo(int levelSteps, float duration, double startTime)
+        {
+            if (config == null)
+            {
+                return;
+            }
+
+            Level = Mathf.Max(0, levelSteps);
+            LockOccupant(true);
+            platform.MoveTo(config.GetCageBottomHeight(Level), duration, startTime);
+        }
+
         private void HandleArrived()
         {
             LockOccupant(false);

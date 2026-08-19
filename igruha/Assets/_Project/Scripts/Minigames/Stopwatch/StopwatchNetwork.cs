@@ -90,6 +90,9 @@ namespace Igruha.Minigames.Stopwatch
         public bool Alive;
         public bool Faulted;
 
+        /// <summary>Дно распахнуто. Объявляет сервер, падение дальше — обычная гравитация у владельца.</summary>
+        public bool DoorsOpen;
+
         /// <summary>Отмеренный интервал. Ноль вне стадии показа результатов.</summary>
         public float Measured;
 
@@ -104,6 +107,7 @@ namespace Igruha.Minigames.Stopwatch
             serializer.SerializeValue(ref Lit);
             serializer.SerializeValue(ref Alive);
             serializer.SerializeValue(ref Faulted);
+            serializer.SerializeValue(ref DoorsOpen);
             serializer.SerializeValue(ref Measured);
             serializer.SerializeValue(ref Completed);
         }
@@ -115,6 +119,7 @@ namespace Igruha.Minigames.Stopwatch
             Lit == other.Lit &&
             Alive == other.Alive &&
             Faulted == other.Faulted &&
+            DoorsOpen == other.DoorsOpen &&
             Completed == other.Completed &&
             Mathf.Approximately(Measured, other.Measured);
     }
@@ -436,7 +441,7 @@ namespace Igruha.Minigames.Stopwatch
             {
                 CageNetState state = cages[i];
                 game.ApplyNetworkCage(state.PlayerId, state.Errors, state.Level, state.Lit,
-                    state.Alive, state.Faulted, state.Measured, state.Completed);
+                    state.Alive, state.Faulted, state.DoorsOpen, state.Measured, state.Completed);
             }
 
             game.ApplyNetworkCagesCommitted();
