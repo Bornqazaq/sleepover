@@ -1,6 +1,7 @@
 using System;
 using Unity.Netcode;
 using UnityEngine;
+using Igruha.Core.Minigame;
 using Igruha.Core.Player;
 
 namespace Igruha.Core.Arena
@@ -58,6 +59,10 @@ namespace Igruha.Core.Arena
         private float scriptedTo;
         private float scriptedDuration;
         private float scriptedElapsed;
+
+        /// <summary>Момент начала хода на общих часах. Ноль — ход считается кадрами.</summary>
+        private double scriptedStartTime;
+        private bool scriptedFromClock;
 
         public DriveMode Mode
         {
@@ -131,7 +136,27 @@ namespace Igruha.Core.Arena
             scriptedTo = Mathf.Clamp(targetY, minY, maxY);
             scriptedDuration = Mathf.Max(0.01f, duration);
             scriptedElapsed = 0f;
+            scriptedFromClock = false;
             scripted = true;
+        }
+
+        /// <summary>
+        /// Тот же ход, но прогресс берётся из общих часов, а не из суммы кадров.
+        /// Нужен там, где платформа обязана быть на одной высоте у всех: каждая
+        /// машина считает по одной формуле от одного момента, поэтому расхождение
+        /// не копится и не зависит от того, кто когда получил команду. Машина,
+        /// получившая команду позже, встаёт сразу на верную высоту и едет дальше.
+        /// </summary>
+        public void MoveTo(float targetY, float duration, double startTime)
+        {
+            MoveTo(targetY, duration);
+            if (!scripted)
+            {
+                return;
+            }
+
+            scriptedStartTime = startTime;
+            scriptedFromClock = true;
         }
 
         /// <summary>Поставить платформу на отметку мгновенно — расстановка уровней на старте матча.</summary>
@@ -182,7 +207,9 @@ namespace Igruha.Core.Arena
             }
 
             scriptedElapsed += Time.fixedDeltaTime;
-            float t = Mathf.Clamp01(scriptedElapsed / scriptedDuration);
+            float t = scriptedFromClock
+                ? Mathf.Clamp01((float)(NetworkClock.Now - scriptedStartTime) / scriptedDuration)
+                : Mathf.Clamp01(scriptedElapsed / scriptedDuration);
             float y = Mathf.Lerp(scriptedFrom, scriptedTo, t);
 
             if (t >= 1f)
