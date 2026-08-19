@@ -40,6 +40,8 @@ namespace Igruha.Minigames.Stopwatch
         [SerializeField] private PitBear bear;
         [Tooltip("Камера наблюдателя — включается выбывшему")]
         [SerializeField] private SpectatorCamera spectator;
+        [Tooltip("Отвлекалки: тик, рёв, толпа, прожекторы")]
+        [SerializeField] private DistractionDirector distractions;
 
         /// <summary>Участник матча: клетка, кнопка, ошибки, замер подраунда.</summary>
         private sealed class Contestant
@@ -80,6 +82,7 @@ namespace Igruha.Minigames.Stopwatch
         private int subround;
         private StopwatchSubroundType currentType;
         private float currentTarget;
+        private float currentTickPeriod;
         private bool matchOver;
 
         /// <summary>Тип текущего подраунда. Наружу — отладочным болванкам соло-прогона.</summary>
@@ -90,6 +93,9 @@ namespace Igruha.Minigames.Stopwatch
 
         /// <summary>Номер текущего подраунда.</summary>
         public int Subround => subround;
+
+        /// <summary>Период тика текущего подраунда, с. Наружу — для замеров приёмки.</summary>
+        public float CurrentTickPeriod => currentTickPeriod;
 
         /// <summary>Сколько игроков ещё в игре.</summary>
         public int AliveCount
@@ -154,6 +160,8 @@ namespace Igruha.Minigames.Stopwatch
             matchOver = false;
 
             AssignCages();
+
+            distractions?.Configure(config.RoarIntervalRange, config.SpotlightIntervalRange, arenaConfig.PitRadius);
 
             if (bear != null)
             {
@@ -306,6 +314,7 @@ namespace Igruha.Minigames.Stopwatch
                 bear.Caught -= HandleBearCaught;
             }
 
+            distractions?.Stop();
             spectator?.Deactivate();
             stageState?.StopSequence();
             scoreboard?.Clear();
@@ -325,6 +334,12 @@ namespace Igruha.Minigames.Stopwatch
                 contestants[i].Completed = false;
                 contestants[i].FaultedThisSubround = false;
             }
+
+            // Период тика крутит авторитет, а не каждая машина: иначе игроки
+            // мерили бы время под разную подсказку, и подраунд перестал бы
+            // быть честным. В фазе 3 это же число уедет в NetworkVariable.
+            currentTickPeriod = config.GetTickPeriod((float)random.NextDouble());
+            distractions?.BeginSubround(currentTickPeriod, config.GetDistractionIntensity(subround));
 
             scoreboard?.ShowTask(subround, currentType, currentTarget);
             PublishBoard(false);

@@ -98,6 +98,8 @@ namespace Igruha.Minigames.Stopwatch
         [SerializeField] private float distractionRampSubrounds = 4f;
         [Tooltip("Период тикающего звука, с. Выбирается случайно на подраунд — и он врёт")]
         [SerializeField] private Vector2 tickPeriodRange = new Vector2(0.75f, 1.35f);
+        [Tooltip("Запретная зона вокруг ровной секунды, с. Диапазон 0.75…1.35 её накрывает, а честный тик убивает всю механику: под него игрок просто считает секунды. Ноль — зону выключить")]
+        [SerializeField] private float tickHonestDeadZone = 0.06f;
         [Tooltip("Интервал между рёвами медведя, с")]
         [SerializeField] private Vector2 roarIntervalRange = new Vector2(6f, 12f);
         [Tooltip("Интервал между пробегами луча прожектора, с")]
@@ -130,6 +132,34 @@ namespace Igruha.Minigames.Stopwatch
 
         public int DistractionFirstSubround => distractionFirstSubround;
         public Vector2 TickPeriodRange => tickPeriodRange;
+
+        /// <summary>
+        /// Период тика для подраунда. <paramref name="roll"/> — 0..1 от
+        /// серверного рандома.
+        ///
+        /// Значения вокруг ровной секунды выбрасываются: тик, совпадающий
+        /// с секундой, перестаёт врать, и подраунд превращается в устный счёт
+        /// под метроном — ровно то, против чего эта механика и придумана.
+        /// </summary>
+        public float GetTickPeriod(float roll)
+        {
+            float period = Mathf.Lerp(tickPeriodRange.x, tickPeriodRange.y, Mathf.Clamp01(roll));
+            if (tickHonestDeadZone <= 0f)
+            {
+                return period;
+            }
+
+            float distance = period - 1f;
+            if (Mathf.Abs(distance) >= tickHonestDeadZone)
+            {
+                return period;
+            }
+
+            // Отодвигаем к ближайшей границе зоны, а не пересчитываем заново:
+            // повторный бросок сместил бы распределение сильнее.
+            float pushed = distance >= 0f ? 1f + tickHonestDeadZone : 1f - tickHonestDeadZone;
+            return Mathf.Clamp(pushed, tickPeriodRange.x, tickPeriodRange.y);
+        }
         public Vector2 RoarIntervalRange => roarIntervalRange;
         public Vector2 SpotlightIntervalRange => spotlightIntervalRange;
 
