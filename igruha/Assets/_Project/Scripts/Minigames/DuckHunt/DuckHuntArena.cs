@@ -20,6 +20,10 @@ namespace Igruha.Minigames.DuckHunt
     /// </summary>
     public sealed class DuckHuntArena : MonoBehaviour
     {
+        /// <summary>Допуск на границе этажей, юниты: миллиметр, чтобы стоящий на перекрытии считался этажом выше, а не ниже.</summary>
+        private const float FloorBoundaryTolerance = 0.001f;
+
+
         [SerializeField] private DuckHuntConfig config;
         [Tooltip("Начало координат арены: угол первого этажа, где X = 0 и Z = 0 у открытой грани. Пусто — берётся сам объект арены")]
         [SerializeField] private Transform origin;
@@ -49,7 +53,13 @@ namespace Igruha.Minigames.DuckHunt
             }
 
             float localY = Origin.InverseTransformPoint(worldPosition).y;
-            int index = Mathf.FloorToInt(localY / config.FloorStepUnits);
+
+            // Допуск на границе обязателен: стоящий на перекрытии игрок лежит
+            // ровно на ней, а 11.52 / 5.76 в float даёт 1.9999999 — этаж
+            // выходил на единицу ниже. Вместе с этажом переворачивалось и
+            // направление трассы (змейка), то есть прогресс p становился
+            // зеркальным, и по нему считались места.
+            int index = Mathf.FloorToInt((localY + FloorBoundaryTolerance) / config.FloorStepUnits);
             return Mathf.Clamp(index, 0, Mathf.Max(0, config.FloorCount - 1));
         }
 
