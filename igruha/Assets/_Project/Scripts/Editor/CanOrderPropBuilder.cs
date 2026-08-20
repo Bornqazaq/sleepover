@@ -34,6 +34,11 @@ namespace Igruha.EditorTools
         /// <summary>Зазор между доской и прутьями стены, м. Впритык доска цепляется за коллайдер стены.</summary>
         private const float WallGap = 0.04f;
 
+        // Кнопка подтверждения — на торце полки, справа (спека 3.2).
+        private const float ButtonSize = 0.18f;
+        private const float ButtonLampDiameter = 0.12f;
+        private const float ButtonLampHeight = 0.05f;
+
         [MenuItem("Igruha/Minigames/Rebuild Cans Order Props")]
         private static void Rebuild()
         {
@@ -112,6 +117,52 @@ namespace Igruha.EditorTools
             return config.CageInnerSize * 0.5f - ShelfDepth * 0.5f - WallGap;
         }
 
+        /// <summary>
+        /// Кнопка подтверждения. Коллайдер только на корпусе: вместе
+        /// с доской полки это два коллайдера на клетку — выборка
+        /// <c>PlayerInteractor</c> на 16 мест это держит с запасом.
+        ///
+        /// Сама кнопка — ребёнок корня полки, поэтому
+        /// <c>GetComponentInParent</c> от её коллайдера находит именно кнопку,
+        /// а не полку: ближайший предок выигрывает.
+        /// </summary>
+        private static void BuildConfirmButton(Transform root, CanShelf shelf, float shelfLength, float z)
+        {
+            var buttonGo = new GameObject("ConfirmButton");
+            buttonGo.transform.SetParent(root, false);
+            buttonGo.transform.localPosition = new Vector3(shelfLength * 0.5f + ButtonSize * 0.5f, ShelfHeight, z);
+
+            GameObject casing = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            casing.name = "Casing";
+            casing.transform.SetParent(buttonGo.transform, false);
+            casing.transform.localScale = Vector3.one * ButtonSize;
+
+            GameObject lampGo = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            lampGo.name = "Lamp";
+            lampGo.transform.SetParent(buttonGo.transform, false);
+            lampGo.transform.localPosition = new Vector3(0f, ButtonSize * 0.5f + ButtonLampHeight * 0.5f, 0f);
+            lampGo.transform.localScale = new Vector3(ButtonLampDiameter, ButtonLampHeight * 0.5f, ButtonLampDiameter);
+            Object.DestroyImmediate(lampGo.GetComponent<Collider>());
+
+            var beaconGo = new GameObject("Beacon");
+            beaconGo.transform.SetParent(buttonGo.transform, false);
+            beaconGo.transform.localPosition = new Vector3(0f, ButtonSize * 0.5f + 0.3f, 0f);
+            var beacon = beaconGo.AddComponent<Light>();
+            beacon.type = LightType.Point;
+            // Свет заметный, но не заливающий: в клетке читаются цвета банок,
+            // и залитая светом полка стала бы одним пятном.
+            beacon.range = 2.4f;
+            beacon.intensity = 1.4f;
+            beacon.enabled = false;
+
+            var button = buttonGo.AddComponent<CanConfirmButton>();
+            var serialized = new SerializedObject(button);
+            serialized.FindProperty("lamp").objectReferenceValue = lampGo.GetComponent<Renderer>();
+            serialized.FindProperty("beacon").objectReferenceValue = beacon;
+            serialized.FindProperty("shelf").objectReferenceValue = shelf;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
         private static GameObject BuildPrefab(CircusArenaConfig config)
         {
             if (!Directory.Exists(PrefabFolder))
@@ -155,6 +206,11 @@ namespace Igruha.EditorTools
                 slotsGo.transform.localPosition = new Vector3(0f, ShelfHeight, z);
 
                 var shelf = root.AddComponent<CanShelf>();
+
+                // Кнопка подтверждения на торце полки, справа от игрока,
+                // смотрящего на полку.
+                BuildConfirmButton(root.transform, shelf, length, z);
+
                 var serialized = new SerializedObject(shelf);
                 serialized.FindProperty("slotsRoot").objectReferenceValue = slotsGo.transform;
                 // Ряд короче доски: по краям остаются поля, иначе крайние банки
