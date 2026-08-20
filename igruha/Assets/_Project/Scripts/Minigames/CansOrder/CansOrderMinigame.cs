@@ -42,6 +42,9 @@ namespace Igruha.Minigames.CansOrder
         /// <summary>Номер «круга» брифинга: он идёт до первого настоящего круга раунда.</summary>
         private const int BriefingCircle = 0;
 
+        /// <summary>Допуск на долю высоты, ниже которого клетка считается стоящей на нижней ступени.</summary>
+        private const float LowestCageEpsilon = 0.001f;
+
         [SerializeField] private CansOrderConfig config;
         [SerializeField] private CircusArenaConfig arenaConfig;
         [SerializeField] private CircusBearConfig bearConfig;
@@ -76,10 +79,22 @@ namespace Igruha.Minigames.CansOrder
             /// В фазе 3 этот же снимок приедет аргументом <c>ServerRpc</c>.
             /// </summary>
             public readonly List<int> Submitted = new List<int>(8);
+
+            /// <summary>Упал в яму и ещё не убит медведем.</summary>
+            public bool InPit;
         }
 
         private readonly List<Contestant> contestants = new List<Contestant>(8);
         private readonly EliminationRanking ranking = new EliminationRanking();
+
+        /// <summary>Группа вылета текущего раунда. Переиспользуется между раундами.</summary>
+        private readonly List<int> eliminatedThisRound = new List<int>(8);
+
+        /// <summary>Буфер под ранжирование кандидатов на вылет.</summary>
+        private readonly List<CansOrderEntry> candidates = new List<CansOrderEntry>(8);
+
+        /// <summary>Живые для камеры наблюдателя.</summary>
+        private readonly List<SessionPlayer> aliveBuffer = new List<SessionPlayer>(8);
 
         private CansOrderRoundState round;
         private bool matchOver;
@@ -212,9 +227,21 @@ namespace Igruha.Minigames.CansOrder
 
             AssignCages();
 
-            if (bear != null && bearConfig != null)
+            eliminatedThisRound.Clear();
+
+            if (bear != null)
             {
-                bearConfig.Apply(bear, arenaConfig.PitRadius);
+                if (bearConfig != null)
+                {
+                    bearConfig.Apply(bear, arenaConfig.PitRadius);
+                }
+                else
+                {
+                    Debug.LogError($"{name}: не назначен CircusBearConfig — медведь останется на своих заготовочных числах", this);
+                }
+
+                bear.Caught -= HandleBearCaught;
+                bear.Caught += HandleBearCaught;
             }
         }
 
@@ -295,6 +322,8 @@ namespace Igruha.Minigames.CansOrder
                     {
                         contestant.Elimination = avatar.gameObject.AddComponent<PlayerElimination>();
                     }
+
+                    contestant.Elimination.BodyHidden += HandleBodyHidden;
                 }
 
                 contestants.Add(contestant);
@@ -344,7 +373,19 @@ namespace Igruha.Minigames.CansOrder
                 // пока игрок её держал, она уедет в хаб вместе с ним.
                 c.Shelf?.Release();
                 c.Cage?.ReleaseOccupant();
-                c.Elimination?.Restore();
+
+                if (c.Elimination != null)
+                {
+                    c.Elimination.BodyHidden -= HandleBodyHidden;
+                    // Невидимое тело с выключенным коллайдером уехало бы в хаб
+                    // вместе с персонажем — он переезжает между сценами живым.
+                    c.Elimination.Restore();
+                }
+            }
+
+            if (bear != null)
+            {
+                bear.Caught -= HandleBearCaught;
             }
 
             spectator?.Deactivate();
@@ -593,6 +634,10 @@ namespace Igruha.Minigames.CansOrder
         /// Стадия отыграла своё. Единственная точка, которая двигает круг
         /// вперёд, — в фазе 3 она целиком уйдёт за <c>IsServer</c>.
         /// </summary>
+        /// <summary>
+        /// Стадия отыграла своё. Единственная точка, которая двигает круг
+        /// вперёд, — в фазе 3 она целиком уйдёт за <c>IsServer</c>.
+        /// </summary>
         private void HandleStageElapsed(byte stage)
         {
             if (matchOver)
@@ -614,7 +659,7 @@ namespace Igruha.Minigames.CansOrder
                 case StageReveal:
                     if (ShouldEndRound())
                     {
-                        stageState.EnterStage(StageHatch, config.HatchOpenSeconds);
+                        EnterHatch(false);
                         return;
                     }
 
@@ -622,8 +667,9 @@ namespace Igruha.Minigames.CansOrder
                     {
                         // Потолок кругов — страховка, а не правило: в нормальной
                         // игре до неё не доходит даже вдвоём (спека 6.5).
-                        Debug.LogWarning($"{name}: раунд {round.Round} упёрся в потолок {config.RoundCircleCap} кругов", this);
-                        stageState.EnterStage(StageHatch, config.HatchOpenSeconds);
+                        Debug.LogWarning($"{name}: раунд {round.Round} упёрся в потолок {config.RoundCircleCap} кругов — " +
+                                         "выбывают худшие по лучшему достигнутому счёту", this);
+                        EnterHatch(true);
                         return;
                     }
 
@@ -720,6 +766,139 @@ namespace Igruha.Minigames.CansOrder
         /// (спека 5.6).
         /// </summary>
         private bool ShouldEndRound() => NotSolvedCount <= round.Quota;
+
+        /// <summary>
+        /// Раунд кончился: разобрать, кто выбывает, и распахнуть им дно.
+        ///
+        /// Пустая клетка остаётся висеть на своей высоте до конца матча —
+        /// это единственный смысл пустой клетки на арене и кладбище,
+        /// которое никто не рисовал (спека 5.7 и 7).
+        ///
+        /// Забег в яме идёт <b>параллельно</b> следующему раунду: стадия
+        /// створок длится 2 с и ничего не ждёт, а погоня доигрывается внизу
+        /// фоном. Блокирующая сцена добавляла бы по 5–9 с к каждому раунду.
+        /// </summary>
+        private void EnterHatch(bool byCircleCap)
+        {
+            SelectEliminated(byCircleCap, eliminatedThisRound);
+
+            for (int i = 0; i < eliminatedThisRound.Count; i++)
+            {
+                Contestant c = Find(eliminatedThisRound[i]);
+                if (c == null)
+                {
+                    continue;
+                }
+
+                c.Entry.Alive = false;
+                c.Entry.Solved = false;
+                c.InPit = true;
+
+                // Банка из руки возвращается до падения: она кинематическая
+                // и прицеплена к персонажу — иначе улетит в яму вместе с ним,
+                // а потом и в хаб (спека 10.5).
+                c.Shelf?.Release();
+                c.Button?.CloseWindow();
+                c.Cage?.OpenDoors(config.HatchOpenSeconds);
+            }
+
+            if (eliminatedThisRound.Count > 0)
+            {
+                ranking.AddEliminationGroup(eliminatedThisRound);
+                Debug.Log($"🦊 Раунд {round.Round} закрыт на круге {round.Circle}: выбывают " +
+                          $"{eliminatedThisRound.Count} из {round.AliveAtStart} при квоте {round.Quota}", this);
+            }
+
+            stageState.EnterStage(StageHatch, eliminatedThisRound.Count > 0 ? config.HatchOpenSeconds : 0f);
+        }
+
+        /// <summary>
+        /// Кто выбывает (спека 5.6). Три случая, и путать их нельзя:
+        ///
+        /// 1. <b>Не собрали от 1 до квоты</b> — выбывают все не собравшие,
+        ///    даже если их меньше квоты.
+        /// 2. <b>Не собрали ноль</b> — все собрали в одном круге. Этого случая
+        ///    LDD не разбирает, а он реален: круги синхронные, и порог может
+        ///    перешагнуть сразу несколько человек. Без этого правила раунд
+        ///    закончился бы, никого не выбив, и матч не сошёлся бы.
+        ///    Выбывают худшие по потраченным попыткам, при равенстве —
+        ///    подтвердивший позже.
+        /// 3. <b>Потолок кругов</b> — худшие по лучшему достигнутому счёту,
+        ///    при равенстве — достигший позже.
+        ///
+        /// Во втором и третьем случае при <b>полном равенстве</b> на линии
+        /// отсечения выбывают все, кто на ней, даже если их больше квоты:
+        /// матч от этого только короче (LDD 14).
+        /// </summary>
+        private void SelectEliminated(bool byCircleCap, List<int> into)
+        {
+            into.Clear();
+
+            if (!byCircleCap)
+            {
+                for (int i = 0; i < contestants.Count; i++)
+                {
+                    Contestant c = contestants[i];
+                    if (c.Entry.Alive && !c.Entry.Solved)
+                    {
+                        into.Add(c.Entry.PlayerId);
+                    }
+                }
+
+                if (into.Count > 0)
+                {
+                    return;
+                }
+            }
+
+            // Либо собрали все, либо исчерпан потолок кругов: ранжируем всех живых.
+            candidates.Clear();
+            for (int i = 0; i < contestants.Count; i++)
+            {
+                if (contestants[i].Entry.Alive)
+                {
+                    candidates.Add(contestants[i].Entry);
+                }
+            }
+
+            if (candidates.Count == 0)
+            {
+                return;
+            }
+
+            if (byCircleCap)
+            {
+                CanOrderRanking.SortWorstFirstByBestMatches(candidates);
+            }
+            else
+            {
+                CanOrderRanking.SortWorstFirstBySpentAttempts(candidates);
+            }
+
+            int take = Mathf.Clamp(round.Quota, 1, candidates.Count);
+            for (int i = 0; i < take; i++)
+            {
+                into.Add(candidates[i].PlayerId);
+            }
+
+            // Полное равенство на линии отсечения: забираем всех равных.
+            // Решать чью-то судьбу по идентификатору игрока нельзя.
+            CansOrderEntry last = candidates[take - 1];
+            for (int i = take; i < candidates.Count; i++)
+            {
+                bool tied = byCircleCap
+                    ? CanOrderRanking.FullyTiedByBestMatches(last, candidates[i])
+                    : CanOrderRanking.FullyTiedByAttempts(last, candidates[i]);
+
+                if (!tied)
+                {
+                    break;
+                }
+
+                into.Add(candidates[i].PlayerId);
+            }
+        }
+
 
         /// <summary>
         /// Игрок подтвердил расстановку. Единственная точка входа намерения:
@@ -856,6 +1035,147 @@ namespace Igruha.Minigames.CansOrder
 
             return null;
         }
+
+        private Contestant Find(int playerId)
+        {
+            for (int i = 0; i < contestants.Count; i++)
+            {
+                if (contestants[i].Entry.PlayerId == playerId)
+                {
+                    return contestants[i];
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Шаг медведя. Забег в яме идёт параллельно: следующий раунд
+        /// стартует сразу, а погоня доигрывается внизу фоном.
+        ///
+        /// В фазе 3 этот <c>Update</c> уйдёт целиком за <c>IsServer</c> — медведя
+        /// двигает только сервер, остальные получают позицию через
+        /// <c>NetworkTransform</c>.
+        /// </summary>
+        private void Update()
+        {
+            if (bear == null || !HasAuthority || Phase != MinigamePhase.Round)
+            {
+                return;
+            }
+
+            bear.Tick(Time.deltaTime, FindNearestInPit(), SomeoneOnLowestCage());
+        }
+
+        /// <summary>Ближайшая к медведю жертва среди упавших в яму.</summary>
+        private PlayerController FindNearestInPit()
+        {
+            PlayerController nearest = null;
+            float nearestSqr = float.MaxValue;
+            Vector3 bearPosition = bear.transform.position;
+
+            for (int i = 0; i < contestants.Count; i++)
+            {
+                Contestant c = contestants[i];
+                if (!c.InPit || c.Session.Avatar == null)
+                {
+                    continue;
+                }
+
+                if (c.Elimination != null && c.Elimination.IsEliminated)
+                {
+                    continue;
+                }
+
+                float sqr = (c.Session.Avatar.transform.position - bearPosition).sqrMagnitude;
+                if (sqr < nearestSqr)
+                {
+                    nearestSqr = sqr;
+                    nearest = c.Session.Avatar;
+                }
+            }
+
+            return nearest;
+        }
+
+        /// <summary>
+        /// Есть ли кто-то на нижней ступени — медведю есть кого пугать.
+        ///
+        /// Считается по доле высоты, а <b>не</b> по <c>CageStation.Level</c>:
+        /// клетка здесь ездит долями, а при дробном ходе <c>Level</c>
+        /// не обновляется и врёт. У «Секундомера» этот признак взят именно
+        /// из <c>Level</c>, и повторить там было бы ошибкой.
+        /// </summary>
+        private bool SomeoneOnLowestCage()
+        {
+            for (int i = 0; i < contestants.Count; i++)
+            {
+                Contestant c = contestants[i];
+                if (c.Entry.Alive && c.Entry.HeightFraction <= LowestCageEpsilon)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Медведь достал выпавшего. Место игрока уже посчитано в момент
+        /// падения — гибель ничего не решает, она только доигрывает сцену.
+        /// </summary>
+        private void HandleBearCaught(PlayerController victim, Vector3 impulse)
+        {
+            for (int i = 0; i < contestants.Count; i++)
+            {
+                Contestant c = contestants[i];
+                if (c.Session.Avatar != victim || !c.InPit)
+                {
+                    continue;
+                }
+
+                c.InPit = false;
+                c.Elimination?.Eliminate(victim.transform.position, impulse);
+                return;
+            }
+        }
+
+        /// <summary>Тело исчезло — выбывший переходит в наблюдатели.</summary>
+        private void HandleBodyHidden(PlayerElimination elimination)
+        {
+            for (int i = 0; i < contestants.Count; i++)
+            {
+                Contestant c = contestants[i];
+                if (c.Elimination != elimination)
+                {
+                    continue;
+                }
+
+                // Камера наблюдателя одна на сцену и показывает то, что видит
+                // человек за этой машиной. Болванке она не нужна.
+                if (c.LocallyControlled && spectator != null)
+                {
+                    spectator.Activate(CollectAlivePlayers());
+                }
+
+                return;
+            }
+        }
+
+        private IReadOnlyList<SessionPlayer> CollectAlivePlayers()
+        {
+            aliveBuffer.Clear();
+            for (int i = 0; i < contestants.Count; i++)
+            {
+                if (contestants[i].Entry.Alive)
+                {
+                    aliveBuffer.Add(contestants[i].Session);
+                }
+            }
+
+            return aliveBuffer;
+        }
+
 
         /// <summary>
         /// Состояние участника для табло и отчётов.

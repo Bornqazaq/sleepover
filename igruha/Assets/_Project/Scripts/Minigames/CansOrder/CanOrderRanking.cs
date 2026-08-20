@@ -115,5 +115,25 @@ namespace Igruha.Minigames.CansOrder
 
             return a.BestCircle.CompareTo(b.BestCircle);
         }
-    }
+    
+
+        /// <summary>
+        /// Полное равенство по попыткам и времени подтверждения.
+        ///
+        /// Идентификатор игрока сюда <b>не входит</b> намеренно: в сортировке
+        /// он разводит любую ничью ради детерминированности, а вот решать
+        /// им чью-то судьбу нельзя. При полном равенстве выбывают все, кто
+        /// на линии отсечения, даже если их больше квоты (спека 5.6 и LDD 14).
+        /// </summary>
+        public static bool FullyTiedByAttempts(CansOrderEntry a, CansOrderEntry b)
+        {
+            return a.Attempts == b.Attempts && a.ConfirmTime.Equals(b.ConfirmTime);
+        }
+
+        /// <summary>Полное равенство по лучшему счёту и кругу, в котором он достигнут.</summary>
+        public static bool FullyTiedByBestMatches(CansOrderEntry a, CansOrderEntry b)
+        {
+            return a.BestMatches == b.BestMatches && a.BestCircle == b.BestCircle;
+        }
+}
 }
