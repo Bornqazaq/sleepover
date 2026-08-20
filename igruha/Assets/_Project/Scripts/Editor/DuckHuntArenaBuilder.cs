@@ -83,9 +83,87 @@ namespace Igruha.EditorTools
         /// </summary>
         private const float StairFlightANearZ = 9.5f;
         /// <summary>Полоса второго марша — в середине комнаты. Над ней и делается проём в перекрытии.</summary>
-        private const float StairFlightBFarZ = 4.5f;
-        /// <summary>Ширина марша, ШП. Она же ширина проёма в перекрытии над ним.</summary>
-        private const float StairFlightWidth = 3f;
+        private const float StairFlightBFarZ = 4f;
+        /// <summary>Ширина марша, ШП.</summary>
+        private const float StairFlightWidth = 3.5f;
+
+        /// <summary>
+        /// Запас проёма в перекрытии по обе стороны от марша, ШП.
+        /// Раньше проём был ровно шириной марша, без зазора: стоило
+        /// подниматься не по самой середине — и макушка упиралась в край
+        /// перекрытия. Это и читалось как «потолок не даёт пройти».
+        /// </summary>
+        private const float StairHoleMargin = 1f;
+
+        /// <summary>
+        /// Высота порога лаза в лестничную комнату, ШП. Прыжок берёт
+        /// 2.27 ШП, поэтому три ШП с пола не достать никак: на порог надо
+        /// забираться по блокам. В этом и смысл — пробежать к лестнице нельзя.
+        /// </summary>
+        private const float GateSillWidths = 3f;
+        /// <summary>Высота самого лаза, ШП. Персонаж 2.29 ШП — проходить надо не приседая.</summary>
+        private const float GateHeightWidths = 2.6f;
+        /// <summary>Где начинается подъём к лазу, ШП трассы.</summary>
+        private const float GateApproachStart = 32.5f;
+        /// <summary>Сторона блока подъёма, ШП. Тело 0.72 ШП в поперечнике — приземляться есть куда.</summary>
+        private const float GateBlockSize = 1.5f;
+        /// <summary>Общий конфиг персонажа — оттуда берётся настоящий порог всхождения.</summary>
+        private const string CharacterConfigPath = "Assets/_Project/Settings/Gameplay/CharacterConfig.asset";
+        /// <summary>
+        /// Глубина площадки перед первой ступенью, ШП. Без неё на марш
+        /// можно зайти только сбоку, с длинного помоста вдоль лестницы, а сбоку
+        /// каждая следующая ступень выше помоста на свою высоту плюс всё
+        /// набранное до неё: на первую 0.26 м, на вторую уже 0.51, на третью 0.77 —
+        /// то есть прыжок. Площадка даёт заход в лоб, с одной ступеньки.
+        /// </summary>
+        private const float StairLandingRunWidths = 2f;
+        /// <summary>
+        /// Высота первого блока подъёма, ШП. Заход с пола коридора обязан
+        /// быть обычным шагом: прыжок на первой же ступени читается как баг,
+        /// а не как паркур. Держим ниже порога всхождения с запасом.
+        /// </summary>
+        private const float GateFirstStepWidths = 0.5f;
+
+        /// <summary>Сторона паркурного блока, ШП.</summary>
+        private const float ParkourBlockSize = 1.5f;
+        /// <summary>Толщина паркурного блока, ШП.</summary>
+        private const float ParkourBlockThickness = 0.6f;
+        /// <summary>На сколько ШП соседние блоки расходятся по высоте. Прыжок берёт 2.27 — держим втрое меньше.</summary>
+        private const float ParkourHeightStep = 0.7f;
+        /// <summary>
+        /// Если низ блока оказывается ближе этого к полу, ШП, — сажаем блок
+        /// на пол. Висящий в восьми сантиметрах над полом блок читается как
+        /// щель и как небрежность, а кромка ловит ногу на бегу.
+        /// </summary>
+        private const float ParkourFloorSnapWidths = 0.3f;
+        /// <summary>Прогресс стартовой линии, ШП. Все Утки стоят на ней в ряд попёрек этажа.</summary>
+        private const float SpawnProgress = 2f;
+        /// <summary>Отступ крайних точек спавна от стен, ШП.</summary>
+        private const float SpawnEdgeMargin = 1.5f;
+
+        /// <summary>
+        /// Длина стартового щита вдоль трассы, ШП.
+        ///
+        /// Короткого щита у самого старта не хватает: Охотник стоит посередине
+        /// длины этажа и смотрит на старт наискосок — его луч пересекает открытую
+        /// грань не у стартовой линии, а дальше по коридору, и тем дальше, чем
+        /// глубже стоит Утка. Длина подобрана так, чтобы закрыть все восемь точек,
+        /// и проверяется лучами в <see cref="ValidateSpawnShield"/>.
+        /// </summary>
+        private const float SpawnShieldLength = 13f;
+        /// <summary>Толщина стартового щита, ШП.</summary>
+        private const float SpawnShieldThickness = 0.6f;
+        /// <summary>Высота стартового щита, ШП. Выше стоящей Утки, но Охотник перестреливает его, поднявшись на лифте.</summary>
+        private const float SpawnShieldHeight = 3f;
+
+        /// <summary>Дальность прыжка на бегу, ШП. Считано по CharacterConfig: 6.5 м/с и 0.72 с в воздухе.</summary>
+        private const float JumpRangeWidths = 6.5f;
+        /// <summary>Какую долю дальности прыжка разрешаем тратить. Остаток — запас на неточный разбег.</summary>
+        private const float JumpSafetyShare = 0.8f;
+        /// <summary>Толщина видимого ледяного настила, ШП. Чисто декоративный лист поверх перекрытия.</summary>
+        private const float IceTileWidths = 0.05f;
+
+
 
         /// <summary>
         /// На сколько ШП лестница отодвинута вглубь комнаты от её порога.
@@ -257,6 +335,11 @@ namespace Igruha.EditorTools
             BuildFloorTrap(root, floor, baseY);
             BuildCheckpoint(root, floor, baseY);
 
+            if (floor == 0)
+            {
+                BuildSpawnShield(root, baseY);
+            }
+
             if (plan.Ice)
             {
                 BuildIce(root, floor, baseY);
@@ -288,8 +371,8 @@ namespace Igruha.EditorTools
 
             bool hasHole = floor > 0;
             GetStairHoleRange(floor - 1, out float holeXMin, out float holeXMax);
-            float holeZMin = StairFlightBFarZ;
-            float holeZMax = StairFlightBFarZ + StairFlightWidth;
+            float holeZMin = StairHoleZMin;
+            float holeZMax = StairHoleZMax;
 
             // Провал стоит на четвёртом этаже: кусок пола перед выходной дверью.
             bool hasCollapse = floor == 3;
@@ -406,29 +489,129 @@ namespace Igruha.EditorTools
             Transform room = ResetGroup(root, "StairRoom");
             GetStairRoomXRange(floor, out float xMin, out float xMax);
             float ceiling = CeilingWidths;
-            float roomDepth = StairRoomDepthWidths;
 
             // Стена со стороны лифта — та самая, из-за которой комната не простреливается.
             Box(room, "Wall_TowardElevator", groundLayer, wallMaterial,
                 xMin, xMax, baseY, baseY + ceiling, -WallThickness, 0f);
 
-            // Перегородка от коридора с проёмом под дверь.
+            // Перегородка от коридора. Прохода по полу в ней нет намеренно:
+            // лаз поднят на три ШП, а прыжок берёт 2.27 — попасть внутрь
+            // можно только по блокам подъёма. Паркур перестаёт быть
+            // украшением и становится единственной дорогой на этаж выше.
             float doorX = GetX(floor, DoorProgress);
             float partitionMin = Mathf.Min(doorX, doorX + (IsForward(floor) ? -WallThickness : WallThickness));
             float partitionMax = partitionMin + WallThickness;
-            // Проём ведёт ровно на первый марш: иначе вошедший упирается в
-            // высокие ступени второго и подъёма не находит.
-            float doorwayMin = StairFlightANearZ;
-            float doorwayMax = doorwayMin + DoorwayWidth;
 
-            Box(room, "Partition_A", groundLayer, wallMaterial,
-                partitionMin, partitionMax, baseY, baseY + ceiling, 0f, doorwayMin);
-            Box(room, "Partition_B", groundLayer, wallMaterial,
-                partitionMin, partitionMax, baseY, baseY + ceiling, doorwayMax, DepthWidths);
+            // Лаз — на полосе первого марша, у глухой стены. У открытой
+            // грани Охотник простреливал бы его по касательной прямо из шахты.
+            float gateMin = StairFlightANearZ;
+            float gateMax = gateMin + DoorwayWidth;
+            float gateBottom = baseY + GateSillWidths;
+            float gateTop = gateBottom + GateHeightWidths;
 
+            Box(room, "Partition_Below", groundLayer, wallMaterial,
+                partitionMin, partitionMax, baseY, gateBottom, 0f, DepthWidths);
+            Box(room, "Partition_Above", groundLayer, wallMaterial,
+                partitionMin, partitionMax, gateTop, baseY + ceiling, 0f, DepthWidths);
+            Box(room, "Partition_SideA", groundLayer, wallMaterial,
+                partitionMin, partitionMax, gateBottom, gateTop, 0f, gateMin);
+            Box(room, "Partition_SideB", groundLayer, wallMaterial,
+                partitionMin, partitionMax, gateBottom, gateTop, gateMax, DepthWidths);
+
+            BuildGateApproach(root, floor, baseY, gateMin, gateMax);
             BuildStairPlatforms(room, floor, baseY);
-            BuildDoorTrap(root, floor, partitionMin, partitionMax, baseY, doorwayMin, doorwayMax);
+            BuildDoorTrap(root, floor, partitionMin, partitionMax, gateBottom, gateTop, gateMin, gateMax);
         }
+
+        /// <summary>
+        /// Подъём к лазу — три блока перед перегородкой, каждый на ШП
+        /// выше предыдущего. Это обязательный путь, единственный на этаж,
+        /// поэтому прыжки здесь заведомо лёгкие: ШП вверх при прыжке в 2.27
+        /// и полтора ШП попёрек при дальности 6.5. Сложность здесь не в том,
+        /// чтобы не упасть, а в том, что всё это происходит в зоне ловушек,
+        /// под выстрелом и медленнее, чем бегом.
+        ///
+        /// Блоки — столбы от пола, а не парящие плиты: на четвёртом этаже
+        /// под ними провал, и после его срабатывания дорога к лазу обязана
+        /// остаться проходимой — иначе ловушка не задерживает, а запирает этаж.
+        /// </summary>
+        private static void BuildGateApproach(Transform root, int floor, float baseY, float gateMin, float gateMax)
+        {
+            Transform group = ResetGroup(root, "GateApproach");
+
+            // Коридор кончается не на DoorProgress, а на толщину стены раньше:
+            // перегородка занимает p 39.5…40, и DoorProgress — это её внутренняя
+            // грань, уже в лестничной комнате. Строить блоки до неё значит
+            // загнать последний на полметра в толщу стены.
+            float wallFace = DoorProgress - WallThickness;
+            float span = wallFace - GateApproachStart;
+            float gap = (span - 3f * GateBlockSize) * 0.5f;
+
+            // Первый блок — обычный шаг с пола, оставшиеся два — прыжки
+            // поровну. Прыжок на первой же ступени читается как баг, не как паркур.
+            float jumpRise = (GateSillWidths - GateFirstStepWidths) * 0.5f;
+            var heights = new[]
+            {
+                GateFirstStepWidths,
+                GateFirstStepWidths + jumpRise,
+                GateSillWidths
+            };
+
+            // Сдвиг попёрек держим внутри полосы лаза: слева от неё лежит
+            // площадка гейзера. Залезать на неё нельзя — будет врезка,
+            // отступать тоже нельзя — будет щель. Ставим вплотную к границе полосы.
+            var lateral = new[] { 1.8f, 0f, 0f };
+
+            for (int i = 0; i < heights.Length; i++)
+            {
+                float p = GateApproachStart + i * (GateBlockSize + gap);
+
+                // Последний блок лежит точно под лазом и во всю его ширину:
+                // с него шаг внутрь, а не прыжок в проём.
+                bool last = i == heights.Length - 1;
+                float zSize = last ? gateMax - gateMin : GateBlockSize;
+                float zMin = Mathf.Clamp(gateMin + lateral[i], gateMin, gateMax - zSize);
+
+                GetXRange(floor, p, p + GateBlockSize, out float xMin, out float xMax);
+                Box(group, $"GateBlock_{i + 1}", groundLayer, platformMaterial,
+                    xMin, xMax, baseY, baseY + heights[i], zMin, zMin + zSize);
+            }
+
+            WarnIfTooHighToStep(floor, config.ToUnits(GateFirstStepWidths), "первый блок подъёма");
+        }
+
+        /// <summary>
+        /// Ругнуться, если подъём выше того, на что персонаж всходит шагом.
+        ///
+        /// Порог читается из общего CharacterConfig, а не держится копией
+        /// константы: копия разъезжается с настройкой молча, и проверка
+        /// начинает подтверждать то, чего нет. Заодно сравнение двух констант
+        /// компилятор считал недостижимым кодом и ругался на каждой сборке.
+        /// </summary>
+        private static void WarnIfTooHighToStep(int floor, float riseUnits, string what)
+        {
+            float stepHeight = ResolveStepHeightUnits();
+            if (stepHeight <= 0f || riseUnits <= stepHeight)
+            {
+                return;
+            }
+
+            warnings.Add($"этаж {floor + 1}: {what} {riseUnits:F2} м выше порога всхождения {stepHeight:F2} м — придётся прыгать");
+        }
+
+        /// <summary>Порог всхождения в метрах из CharacterConfig. Ноль — конфиг не найден, проверка пропускается.</summary>
+        private static float ResolveStepHeightUnits()
+        {
+            var asset = AssetDatabase.LoadAssetAtPath<ScriptableObject>(CharacterConfigPath);
+            if (asset == null)
+            {
+                return 0f;
+            }
+
+            SerializedProperty property = new SerializedObject(asset).FindProperty("stepHeight");
+            return property != null ? property.floatValue : 0f;
+        }
+
 
         /// <summary>
         /// Подъём на следующий этаж — двухмаршевая лестница с площадкой на
@@ -444,49 +627,55 @@ namespace Igruha.EditorTools
         {
             Transform stairs = ResetGroup(room, "Stairs");
 
-            const int StepsPerFlight = 8;
-            float rise = config.FloorStepWidths / (StepsPerFlight * 2);
-            float flightWidth = StairFlightWidth;
-            float landingHeight = config.FloorStepWidths * 0.5f;
+            // Один марш, а не два. Двумаршевая лестница в этой комнате
+            // невозможна в принципе: подняться надо на 8 ШП, а свободной
+            // высоты под перекрытием меньше того. Поэтому весь подъём
+            // убран в полосу под проёмом перекрытия.
+            //
+            // Помостов два, и это важно:
+            //   — длинный идёт от лаза вдоль всей комнаты до дальнего конца;
+            //   — поворотный лежит в полосе марша, прямо перед первой ступенью.
+            // Без второго на лестницу можно было зайти только сбоку, а сбоку
+            // каждая следующая ступень выше помоста на всю набранную до неё
+            // высоту: на первую 0.26 м, на вторую 0.51, на третью 0.77 — прыжок.
+            const int StepCount = 14;
 
-            // Строим в прогрессе трассы, а не в мировом X. По змейке половина
-            // этажей бежит навстречу, и лестница, заданная в мировых
-            // координатах, на них оказывается развёрнутой: вход у одного конца
-            // комнаты, первая ступень — у противоположного.
-            float pStart = StairRoomStart + StairStartOffset;
-            float pEnd = config.FloorLengthWidths - 0.5f;
-            float run = (pEnd - pStart) / StepsPerFlight;
+            float pStart = StairRoomStart;
+            float pEnd = config.FloorLengthWidths;
+            float pFlightEnd = pEnd - StairLandingRunWidths;
 
-            var steps = new List<Transform>(StepsPerFlight * 2 + 1);
+            float platformHeight = GateSillWidths;
+            float flightZMin = StairFlightBFarZ;
+            float flightZMax = StairFlightBFarZ + StairFlightWidth;
 
-            // Первый марш: от входа вглубь комнаты, вдоль глухой стены.
-            for (int i = 0; i < StepsPerFlight; i++)
-            {
-                GetXRange(floor, pStart + run * i, pStart + run * (i + 1), out float from, out float to);
-                float top = baseY + rise * (i + 1);
-                steps.Add(Box(stairs, $"FlightA_{i + 1}", groundLayer, platformMaterial,
-                    from, to, baseY, top, StairFlightANearZ, StairFlightANearZ + flightWidth).transform);
-            }
+            var steps = new List<Transform>(StepCount + 2);
 
-            // Площадка разворота — заподлицо с верхом первого марша и ровно на
-            // его последней ступени по длине. Шире её делать нельзя: площадка
-            // выше марша накрыла бы его верхнюю половину и встала бы стеной
-            // посреди собственной лестницы. По глубине она перекидывает с
-            // полосы первого марша на полосу второго.
-            float landingZMin = Mathf.Min(StairFlightANearZ, StairFlightBFarZ);
-            float landingZMax = Mathf.Max(StairFlightANearZ, StairFlightBFarZ) + flightWidth;
-            GetXRange(floor, pEnd - run, pEnd, out float landFrom, out float landTo);
+            // Длинный помост: от лаза до дальней стены, от края марша
+            // до глухой стены. По нему идут от входа к повороту.
+            GetXRange(floor, pStart, pEnd, out float platFrom, out float platTo);
             steps.Add(Box(stairs, "Landing", groundLayer, platformMaterial,
-                landFrom, landTo, baseY, baseY + landingHeight, landingZMin, landingZMax).transform);
+                platFrom, platTo, baseY, baseY + platformHeight, flightZMax, DepthWidths).transform);
 
-            // Второй марш идёт обратно и выводит ровно на уровень следующего этажа.
-            for (int i = 0; i < StepsPerFlight; i++)
+            // Поворотная площадка перед первой ступенью, заподлицо с длинным
+            // помостом и в полосе марша: развернулся — и пошёл вверх в лоб.
+            GetXRange(floor, pFlightEnd, pEnd, out float turnFrom, out float turnTo);
+            steps.Add(Box(stairs, "LandingTurn", groundLayer, platformMaterial,
+                turnFrom, turnTo, baseY, baseY + platformHeight, flightZMin, flightZMax).transform);
+
+            // Марш целиком лежит в полосе проёма: над ним нет перекрытия,
+            // и макушке упираться не во что.
+            float run = (pFlightEnd - pStart) / StepCount;
+            float rise = (config.FloorStepWidths - platformHeight) / StepCount;
+
+            for (int i = 0; i < StepCount; i++)
             {
-                GetXRange(floor, pEnd - run * (i + 1), pEnd - run * i, out float from, out float to);
-                float top = baseY + landingHeight + rise * (i + 1);
-                steps.Add(Box(stairs, $"FlightB_{i + 1}", groundLayer, platformMaterial,
-                    from, to, baseY, top, StairFlightBFarZ, StairFlightBFarZ + flightWidth).transform);
+                GetXRange(floor, pFlightEnd - run * (i + 1), pFlightEnd - run * i, out float from, out float to);
+                float top = baseY + platformHeight + rise * (i + 1);
+                steps.Add(Box(stairs, $"Step_{i + 1:00}", groundLayer, platformMaterial,
+                    from, to, baseY, top, flightZMin, flightZMax).transform);
             }
+
+            WarnIfTooHighToStep(floor, config.ToUnits(rise), "ступень марша");
 
             var ladder = stairs.gameObject.AddComponent<DuckHuntStairs>();
             var so = new SerializedObject(ladder);
@@ -531,8 +720,7 @@ namespace Igruha.EditorTools
 
             // Секция начинается за проёмом лестницы снизу: он лежит во входной
             // зоне этажа и заезжает в паркур. Над проёмом строить нельзя —
-            // площадка становится потолком поднимающемуся, — и раньше первая
-            // площадка каждого этажа просто пропадала, а с ней и первый разрыв.
+            // блок становится потолком поднимающемуся.
             float start = ParkourStart;
             if (floor > 0)
             {
@@ -540,51 +728,56 @@ namespace Igruha.EditorTools
                 start = Mathf.Max(start, Mathf.Max(GetProgress(floor, holeXMin), GetProgress(floor, holeXMax)));
             }
 
-            float span = ParkourEnd - start;
-
-            // Разрыв держит размер из спеки, а число разрывов подгоняется под
-            // секцию. Сложность паркура игрок читает по длине прыжка, а не по
-            // количеству дыр: ужатый до 1.75 ШП разрыв просто перешагивается,
-            // и секция перестаёт быть препятствием вообще.
-            int gaps = plan.Gaps;
-            while (gaps > 0 && (gaps + 1) * MinPlatformLength + gaps * plan.MaxGap > span)
-            {
-                gaps--;
-            }
-
-            if (gaps < plan.Gaps)
-            {
-                warnings.Add(
-                    $"этаж {floor + 1}: разрывов паркура {gaps} вместо {plan.Gaps} по спеке — " +
-                    $"{plan.Gaps} по {plan.MaxGap:F0} ШП не помещаются в секцию длиной {span:F0} ШП. " +
-                    "Размер разрыва сохранён, урезано количество");
-            }
-
-            int platforms = gaps + 1;
-            float gap = gaps > 0 ? plan.MaxGap : 0f;
-
-            // Остаток секции уходит в площадки: приземляться есть куда, а
-            // разрыв остаётся ровно тем, что задан таблицей 3.9.
-            float platformLength = (span - gaps * gap) / platforms;
+            // Блоки, а не длинные помосты: помост в несколько ШП пробегается
+            // насквозь и читается как ступенька.
+            //
+            // Разрывы идут ритмом «длинный — короткий — средний», а не одинаковые:
+            // ровная цепочка проходится одним заученным ритмом. Самый длинный
+            // разрыв берётся из таблицы 3.9 — это и есть прогрессия сложности по этажам.
+            float[] gapPattern = { plan.MaxGap, plan.MaxGap * 0.55f, plan.MaxGap * 0.8f };
 
             float cursor = start;
-            for (int i = 0; i < platforms; i++)
-            {
-                // Высоты в пределах 0.5…2.0 ШП: под потолком 7 ШП с площадки
-                // в 2 ШП полный прыжок ещё проходит, не задевая макушкой.
-                float height = Mathf.Lerp(0.5f, 2f, (float)random.NextDouble());
-                GetXRange(floor, cursor, cursor + platformLength, out float xMin, out float xMax);
-                cursor += platformLength + gap;
+            float height = 1f;
+            float previousZ = ParkourNearZ + (ParkourWidth - ParkourBlockSize) * 0.5f;
+            int index = 0;
 
-                // Над проёмом лестницы площадку не ставим — она станет потолком
-                // тому, кто по этой лестнице поднимается.
-                if (OverlapsStairwell(floor, xMin, xMax, ParkourNearZ, ParkourNearZ + ParkourWidth))
+            while (cursor + ParkourBlockSize <= ParkourEnd + 0.01f)
+            {
+                float gap = gapPattern[index % gapPattern.Length];
+
+                // Высота гуляет вверх-вниз: ровная лесенка проходится не глядя,
+                // а перепад заставляет целиться.
+                height = Mathf.Clamp(
+                    height + (float)(random.NextDouble() * 2f - 1f) * ParkourHeightStep,
+                    0.6f, 2.2f);
+
+                // Сдвиг попёрек — вторая ось прицеливания. Но он складывается
+                // с разрывом по теореме Пифагора, и на длинных разрывах его надо
+                // урезать, иначе суммарный прыжок выходит за дальность.
+                float budget = JumpRangeWidths * JumpSafetyShare;
+                float lateral = Mathf.Sqrt(Mathf.Max(0f, budget * budget - gap * gap));
+                float bandMin = Mathf.Max(ParkourNearZ, previousZ - lateral);
+                float bandMax = Mathf.Min(ParkourNearZ + ParkourWidth - ParkourBlockSize, previousZ + lateral);
+                float z = Mathf.Lerp(bandMin, bandMax, (float)random.NextDouble());
+
+                GetXRange(floor, cursor, cursor + ParkourBlockSize, out float xMin, out float xMax);
+                cursor += ParkourBlockSize + gap;
+                index++;
+
+                if (OverlapsStairwell(floor, xMin, xMax, z, z + ParkourBlockSize))
                 {
                     continue;
                 }
 
-                Box(group, $"Platform_{i + 1}", groundLayer, platformMaterial,
-                    xMin, xMax, baseY + height - 0.35f, baseY + height, ParkourNearZ, ParkourNearZ + ParkourWidth);
+                // Блок, чей низ почти касается пола, ставим на пол целиком:
+                // восемь сантиметров пустоты под ним — это щель и кромка под ногу.
+                float bottom = height - ParkourBlockThickness <= ParkourFloorSnapWidths
+                    ? baseY
+                    : baseY + height - ParkourBlockThickness;
+
+                Box(group, $"Block_{index:00}", groundLayer, platformMaterial,
+                    xMin, xMax, bottom, baseY + height, z, z + ParkourBlockSize);
+                previousZ = z;
             }
         }
 
@@ -826,7 +1019,7 @@ namespace Igruha.EditorTools
         /// Дверь на выходе с этажа. Захлопнувшись, она держит подбежавшего
         /// снаружи — на открытом месте под обстрелом.
         /// </summary>
-        private static void BuildDoorTrap(Transform root, int floor, float xMin, float xMax, float baseY, float zMin, float zMax)
+        private static void BuildDoorTrap(Transform root, int floor, float xMin, float xMax, float yMin, float yMax, float zMin, float zMax)
         {
             if (floor != 1 && floor != 4)
             {
@@ -835,17 +1028,21 @@ namespace Igruha.EditorTools
 
             Transform group = ResetGroup(root, "DoorTrap");
             var door = group.gameObject.AddComponent<DoorTrap>();
-            float height = CeilingWidths;
 
+            // Створка ровно по лазу: он теперь единственный проход на этаж,
+            // и закрывать всю перегородку от пола до потолка больше нечего.
             GameObject panel = Box(group, "Panel", groundLayer, trapMaterial,
-                xMin, xMax, baseY, baseY + height, zMin, zMax);
+                xMin, xMax, yMin, yMax, zMin, zMax);
 
-            // Открытая створка уезжает вбок, в толщу стены рядом с проёмом.
-            // Вниз её убирать нельзя: этаж стоит на перекрытии толщиной в один
-            // ШП, и опустившаяся на свою высоту створка оказывается в коридоре
-            // этажом ниже — перегораживая его наглухо и навсегда.
+            // Открытая створка уходит вниз на свою высоту — в глухой кусок
+            // перегородки под лазом, где её целиком видно не будет. Раньше
+            // створка уезжала вбок на ширину лаза и выставлялась на 0.36 м
+            // сквозь заднюю стену башни наружу. Вниз её раньше убирать
+            // было нельзя, потому что створка шла от пола до потолка и уходила
+            // бы в коридор этажом ниже. Теперь она ровно по лазу, а под лазом
+            // три ШП сплошной стены — прячется целиком и никуда не выходит.
             Vector3 closed = panel.transform.localPosition;
-            Vector3 open = closed + Vector3.forward * config.ToUnits(DoorwayWidth);
+            Vector3 open = closed + Vector3.down * config.ToUnits(GateHeightWidths);
 
             var so = new SerializedObject(door);
             so.FindProperty("doorBody").objectReferenceValue = panel.transform;
@@ -972,6 +1169,8 @@ namespace Igruha.EditorTools
         {
             Transform group = ResetGroup(root, "Ice");
 
+            // Скользкая зона остаётся сплошной, включая проём: вышедший
+            // с лестницы сразу оказывается на льду, а не через метр.
             var box = group.gameObject.AddComponent<BoxCollider>();
             box.isTrigger = true;
             var modifier = group.gameObject.AddComponent<SurfaceModifier>();
@@ -985,11 +1184,70 @@ namespace Igruha.EditorTools
             so.FindProperty("decelerationMultiplier").floatValue = config.IceDecelerationMultiplier;
             so.ApplyModifiedPropertiesWithoutUndo();
 
-            // Видимая плитка льда: без неё зимний этаж ничем не отличается от
-            // летнего. Коллайдер ей снимаем — опору даёт перекрытие, а лишний
-            // сплошной лист поверх всего этажа накрывал бы и проём лестницы.
-            GameObject tile = Box(group, "IceFloor", groundLayer, iceMaterial,
-                0f, config.FloorLengthWidths, baseY, baseY + 0.05f, 0f, DepthWidths);
+            BuildIceTile(group, floor, baseY);
+        }
+
+        /// <summary>
+        /// Видимая плитка льда: без неё зимний этаж ничем не отличается
+        /// от летнего. Коллайдера у неё нет — опору даёт перекрытие.
+        ///
+        /// Проём лестницы вырезается в плитке точно так же, как в перекрытии.
+        /// Снять один коллайдер было мало: сплошной лист всё равно накрывал
+        /// проём сверху, и поднимающийся с этажа ниже упирался взглядом в лёд,
+        /// читал это как забетонированный тупик — и проходил сквозь него насквозь.
+        /// Замечено на лестницах 2→3 и 4→5, то есть на обоих зимних этажах.
+        /// </summary>
+        private static void BuildIceTile(Transform group, int floor, float baseY)
+        {
+            float top = baseY + IceTileWidths;
+            float length = config.FloorLengthWidths;
+            float depth = DepthWidths;
+            int piece = 0;
+
+            bool hasHole = floor > 0;
+            GetStairHoleRange(floor - 1, out float holeXMin, out float holeXMax);
+
+            var edges = new List<float> { 0f, length };
+            if (hasHole)
+            {
+                edges.Add(Mathf.Clamp(holeXMin, 0f, length));
+                edges.Add(Mathf.Clamp(holeXMax, 0f, length));
+            }
+
+            edges.Sort();
+
+            for (int i = 0; i < edges.Count - 1; i++)
+            {
+                float from = edges[i];
+                float to = edges[i + 1];
+                if (to - from < 0.001f)
+                {
+                    continue;
+                }
+
+                float middle = (from + to) * 0.5f;
+                if (hasHole && middle > holeXMin && middle < holeXMax)
+                {
+                    AddIcePiece(group, ref piece, from, to, baseY, top, 0f, StairHoleZMin);
+                    AddIcePiece(group, ref piece, from, to, baseY, top, StairHoleZMax, depth);
+                    continue;
+                }
+
+                AddIcePiece(group, ref piece, from, to, baseY, top, 0f, depth);
+            }
+        }
+
+        /// <summary>Кусок ледяного настила. Без коллайдера: чисто видимая вещь.</summary>
+        private static void AddIcePiece(Transform group, ref int piece, float xMin, float xMax,
+            float yMin, float yMax, float zMin, float zMax)
+        {
+            if (zMax - zMin < 0.001f)
+            {
+                return;
+            }
+
+            GameObject tile = Box(group, $"IceFloor_{++piece}", groundLayer, iceMaterial,
+                xMin, xMax, yMin, yMax, zMin, zMax);
             Object.DestroyImmediate(tile.GetComponent<Collider>());
         }
 
@@ -999,7 +1257,11 @@ namespace Igruha.EditorTools
             Transform group = ResetGroup(root, "Checkpoint");
             GetStairRoomXRange(floor, out float xMin, out float xMax);
 
-            group.position = ToWorld((xMin + xMax) * 0.5f, baseY + 0.1f, StairRoomDepthWidths * 0.5f);
+            // Точка возврата — на помосте лестничной комнаты, а не на её полу:
+            // пола там больше нет — середину комнаты занимает марш, и прежняя
+            // точка оказывалась внутри ступеней. Замерено на всех пяти этажах.
+            float z = (StairPlatformZMin + StairPlatformZMax) * 0.5f;
+            group.position = ToWorld((xMin + xMax) * 0.5f, baseY + GateSillWidths + 0.1f, z);
 
             // Коллайдер первым: чекпоинт требует его как обязательный.
             var box = group.gameObject.AddComponent<BoxCollider>();
@@ -1007,6 +1269,26 @@ namespace Igruha.EditorTools
             box.size = new Vector3(config.StairRoomSizeUnits, config.ToUnits(3f), config.StairRoomSizeUnits);
             group.gameObject.AddComponent<RespawnCheckpoint>();
         }
+
+        /// <summary>
+        /// Стартовый щит — стенка вдоль открытой грани первого этажа.
+        ///
+        /// Без него Охотник стреляет по стоящей на старте куче сразу с первого
+        /// кадра: бортик у края чисто визуальный, а прозрачная стена лежит на
+        /// слое, исключённом из маски выстрела, — пулю до старта не мешает ничто.
+        ///
+        /// Щит сплошной и на слое геометрии, то есть держит именно выстрел.
+        /// Он не вечный: всего три ШП высотой, и поднявшийся на лифте Охотник
+        /// стреляет поверх него — фора даётся на старт, а не на весь этаж.
+        /// </summary>
+        private static void BuildSpawnShield(Transform root, float baseY)
+        {
+            Transform group = ResetGroup(root, "SpawnShield");
+            GetXRange(0, 0f, SpawnShieldLength, out float xMin, out float xMax);
+            Box(group, "Shield", groundLayer, wallMaterial,
+                xMin, xMax, baseY, baseY + SpawnShieldHeight, 0f, SpawnShieldThickness);
+        }
+
 
         // ========== КРЫША, ЛИФТ, ФИНИШ ==========
 
@@ -1019,8 +1301,8 @@ namespace Igruha.EditorTools
             float depth = DepthWidths;
 
             GetStairHoleRange(lastFloor, out float holeMin, out float holeMax);
-            float holeZMin = StairFlightBFarZ;
-            float holeZMax = StairFlightBFarZ + StairFlightWidth;
+            float holeZMin = StairHoleZMin;
+            float holeZMax = StairHoleZMax;
 
             // Настил с проёмом ровно над верхом лестницы: вокруг него крыша
             // сплошная, иначе вышедший на неё проваливается обратно.
@@ -1108,19 +1390,18 @@ namespace Igruha.EditorTools
             Box(platformRoot, "Rail_Front", groundLayer, wallMaterial,
                 x - half, x + half, minH, minH + 1f, z - half, z - half + 0.3f);
 
+            // Rigidbody создаётся требованием самой платформы, кинематику и
+            // интерполяцию она ставит себе в Awake — здесь только границы хода.
             var platform = platformRoot.gameObject.AddComponent<RidePlatform>();
-            var body = platformRoot.GetComponent<Rigidbody>();
-            body.isKinematic = true;
-            body.useGravity = false;
 
             var so = new SerializedObject(platform);
             so.FindProperty("speed").floatValue = config.ElevatorSpeedUnits;
-            so.FindProperty("minTravel").floatValue = 0f;
-            so.FindProperty("maxTravel").floatValue = config.ElevatorMaxHeightUnits - config.ElevatorMinHeightUnits;
-            so.FindProperty("rideZoneCenter").vector3Value = new Vector3(0f, config.ToUnits(1.6f), 0f);
-            so.FindProperty("rideZoneSize").vector3Value = new Vector3(
-                config.ElevatorPlatformSizeUnits, config.ToUnits(3.2f), config.ElevatorPlatformSizeUnits);
-            so.FindProperty("confineMargin").floatValue = config.CharacterWidth * 0.5f;
+
+            // Границы у общей платформы — мировые, а не отсчёт от старта:
+            // одна и та же отметка должна значить одно и то же и у лифта, и у
+            // клетки «Секундомера», иначе скриптовый ход по общим часам поедет.
+            so.FindProperty("minY").floatValue = config.ElevatorMinHeightUnits;
+            so.FindProperty("maxY").floatValue = config.ElevatorMaxHeightUnits;
             so.ApplyModifiedPropertiesWithoutUndo();
 
             return platform;
@@ -1144,15 +1425,16 @@ namespace Igruha.EditorTools
 
             Transform ducks = ResetGroup(spawnsRoot, "Ducks");
 
-            // Восемь точек на входе первого этажа: игроков может быть меньше,
-            // разнос по ним считает SpawnPointSet.
+            // Восемь точек одной шеренгой попёрек этажа, а не колонной вдоль трассы:
+            // стоя в колонну, передние и задние стартуют с разного расстояния до финиша.
+            // Шеренга уравнивает всех и читается как стартовая линия. Игроков может
+            // быть меньше восьми, разнос по точкам считает SpawnPointSet.
             for (int i = 0; i < 8; i++)
             {
                 var go = new GameObject($"Spawn_Duck_{i + 1}");
                 go.transform.SetParent(ducks, false);
-                float p = 1f + i % 4;
-                float z = 3f + (i / 4) * 4f;
-                go.transform.position = ToWorld(GetX(0, p), 0.2f, z);
+                float z = Mathf.Lerp(SpawnEdgeMargin, DepthWidths - SpawnEdgeMargin, i / 7f);
+                go.transform.position = ToWorld(GetX(0, SpawnProgress), 0.2f, z);
                 // Смотрят вдоль трассы — иначе на старте игрок развёрнут в стену.
                 go.transform.rotation = Quaternion.LookRotation(Vector3.right);
                 go.AddComponent<SpawnPoint>();
@@ -1276,6 +1558,7 @@ namespace Igruha.EditorTools
 
             ValidateLineOfFire();
             ValidateButtonSightLines();
+            ValidateSpawnShield(spawnsRoot);
         }
 
         /// <summary>
@@ -1300,7 +1583,13 @@ namespace Igruha.EditorTools
                 {
                     Vector4 line = lines[i];
                     Vector3 eye = ToWorld(GetX(floor, line.x), baseY + EyeHeightWidths, line.y);
-                    Vector3 target = ToWorld(GetX(floor, line.z), baseY + EyeHeightWidths * 0.5f, line.w);
+                    // Зона эффекта двери — это лаз, а он поднят на три ШП.
+                    // Метить в пол перед перегородкой бессмысленно: там теперь
+                    // глухая стена, и блоки подъёма закрывают её законно.
+                    float targetHeight = Mathf.Approximately(line.z, DoorProgress)
+                        ? GateSillWidths + GateHeightWidths * 0.5f
+                        : EyeHeightWidths * 0.5f;
+                    Vector3 target = ToWorld(GetX(floor, line.z), baseY + targetHeight, line.w);
                     Vector3 direction = (target - eye).normalized;
 
                     // Стартуем на шаг от постамента: игрок стоит рядом с
@@ -1364,6 +1653,48 @@ namespace Igruha.EditorTools
             }
         }
 
+        /// <summary>
+        /// Закрыты ли все точки спавна от Охотника в момент старта.
+        ///
+        /// Глаз берётся не из середины хода лифта, а из его нижней точки:
+        /// раунд начинается именно там, и именно оттуда Охотник стрелял бы первым
+        /// выстрелом. Маска — та же, что у выстрела, иначе проверка считала бы
+        /// помехой бортик и прозрачную стену, которые пулю не держат.
+        /// </summary>
+        private static void ValidateSpawnShield(Transform spawnsRoot)
+        {
+            int mask = config.ShotMask.value;
+            Vector3 eye = ToWorld(
+                config.FloorLengthWidths * 0.5f,
+                config.ElevatorMinHeightUnits / config.CharacterWidth + EyeHeightWidths,
+                -config.DistanceToElevatorUnits / config.CharacterWidth);
+
+            int exposed = 0;
+            var points = spawnsRoot.GetComponentsInChildren<SpawnPoint>(true);
+            for (int i = 0; i < points.Length; i++)
+            {
+                if (points[i].Role != SpawnRole.Default)
+                {
+                    continue;
+                }
+
+                Vector3 chest = points[i].transform.position + Vector3.up * config.ToUnits(EyeHeightWidths * 0.6f);
+                Vector3 direction = chest - eye;
+                if (!Physics.Raycast(eye, direction.normalized, direction.magnitude, mask, QueryTriggerInteraction.Ignore))
+                {
+                    exposed++;
+                }
+            }
+
+            if (exposed > 0)
+            {
+                warnings.Add(
+                    $"старт: {exposed} точек спавна простреливаются с лифта — " +
+                    $"удлини стартовый щит (сейчас {SpawnShieldLength:F0} ШП)");
+            }
+        }
+
+
         private static Vector3 ElevatorEye(int floor) => ToWorld(
             config.FloorLengthWidths * 0.5f,
             floor * config.FloorStepWidths + 2f,
@@ -1395,6 +1726,16 @@ namespace Igruha.EditorTools
 
         /// <summary>Длина лестничной комнаты вдоль трассы, ШП: от её начала до конца этажа.</summary>
         private static float StairRoomWidthWidths => config.FloorLengthWidths - StairRoomStart;
+        /// <summary>Ближняя граница проёма в перекрытии: полоса второго марша плюс запас.</summary>
+        private static float StairHoleZMin => StairFlightBFarZ - StairHoleMargin;
+        /// <summary>Дальняя граница проёма в перекрытии.</summary>
+        private static float StairHoleZMax => StairFlightBFarZ + StairFlightWidth + StairHoleMargin;
+        /// <summary>Ближняя граница помоста лестничной комнаты: сразу за полосой марша.</summary>
+        private static float StairPlatformZMin => StairFlightBFarZ + StairFlightWidth + 0.5f;
+        /// <summary>Дальняя граница помоста — до глухой стены.</summary>
+        private static float StairPlatformZMax => DepthWidths - 0.5f;
+
+
         private static float HighCoverWidths => config.HighCoverHeightUnits / config.CharacterWidth;
         private static float LowCoverWidths => config.LowCoverHeightUnits / config.CharacterWidth;
         private static float LedgeWidths => config.LedgeHeightUnits / config.CharacterWidth;
@@ -1436,8 +1777,8 @@ namespace Igruha.EditorTools
             }
 
             GetStairHoleRange(floor - 1, out float holeXMin, out float holeXMax);
-            float holeZMin = StairFlightBFarZ;
-            float holeZMax = StairFlightBFarZ + StairFlightWidth;
+            float holeZMin = StairHoleZMin;
+            float holeZMax = StairHoleZMax;
 
             return xMax > holeXMin && xMin < holeXMax && zMax > holeZMin && zMin < holeZMax;
         }

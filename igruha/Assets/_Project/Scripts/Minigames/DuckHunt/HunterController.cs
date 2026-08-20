@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using UnityEngine;
 using Igruha.Core.Arena;
 using Igruha.Core.CameraSystems;
@@ -74,7 +74,11 @@ namespace Igruha.Minigames.DuckHunt
             EnsureWeapon();
             ApplyCameraSettings();
 
-            elevator?.SetHeight(config != null ? config.ElevatorMinHeightUnits : 0f);
+            // Пассажир общей платформе назначается явно: она возит того, кого
+            // ей назвали, а не всех, кто оказался сверху. Для Охотника это и
+            // нужно — на лифте он один на весь раунд.
+            elevator?.SetPassenger(motor);
+            elevator?.SnapTo(config != null ? config.ElevatorMinHeightUnits : 0f);
             Active = true;
         }
 
@@ -82,7 +86,11 @@ namespace Igruha.Minigames.DuckHunt
         public void Detach()
         {
             Active = false;
-            elevator?.SetMoveAxis(0f);
+            elevator?.SetAxis(0f);
+
+            // Пассажира снимаем вместе с ролью: платформа держит ссылку на
+            // тело и продолжила бы возить его после пересдачи ролей.
+            elevator?.SetPassenger(null);
 
             if (motor != null)
             {
@@ -169,13 +177,13 @@ namespace Igruha.Minigames.DuckHunt
             }
 
             float axis = input != null && input.enabled ? input.MoveInput.y : 0f;
-            elevator.SetMoveAxis(axis);
+            elevator.SetAxis(axis);
 
             // Разброс зависит от того, едет ли платформа: стрелять на ходу
             // можно, но заметно хуже.
             if (weapon != null && config != null)
             {
-                weapon.SpreadAngle = elevator.IsMoving ? config.SpreadMoving : config.SpreadStanding;
+                weapon.SpreadAngle = elevator.Moving ? config.SpreadMoving : config.SpreadStanding;
             }
         }
 
@@ -242,7 +250,7 @@ namespace Igruha.Minigames.DuckHunt
         }
 
         /// <summary>Двигать лифт напрямую — для болванки соло-теста.</summary>
-        public void SetElevatorAxis(float axis) => elevator?.SetMoveAxis(axis);
+        public void SetElevatorAxis(float axis) => elevator?.SetAxis(axis);
 
         /// <summary>
         /// Откуда и куда уходит луч. Целимся ровно тем, что видит игрок, но

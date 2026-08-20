@@ -36,8 +36,8 @@ MonoBehaviour:
   doorClosedDuration: 5
   collapseDuration: 3
   geyserLaunchHeight: 4.5
-  iceAccelerationMultiplier: 0.3
-  iceDecelerationMultiplier: 0.2
+  iceAccelerationMultiplier: 0.45
+  iceDecelerationMultiplier: 0.3
   floorLength: 48
   floorDepth: 14
   ceilingHeight: 7

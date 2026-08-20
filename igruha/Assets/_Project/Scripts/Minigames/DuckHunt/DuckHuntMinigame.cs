@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -272,6 +272,7 @@ namespace Igruha.Minigames.DuckHunt
                 if (avatar != null && !ducks[i].Progress.Retired)
                 {
                     avatar.MovementLocked = !live;
+                    SuspendInput(avatar, !live);
                 }
             }
 
@@ -289,8 +290,28 @@ namespace Igruha.Minigames.DuckHunt
                 }
             }
 
+            // Охотнику ввод глушим тоже: без этого он на отсчёте толкает
+            // и взаимодействует, хоть и не стреляет.
+            SuspendInput(hunterAvatar, !live);
+
             SetDummyBotsRunning(live);
             RefreshHunterStatus();
+        }
+
+        /// <summary>
+        /// Заморозить ввод игрока на время стартового отсчёта.
+        ///
+        /// <c>MovementLocked</c> держит только шаги, прыжок и присед — толчок,
+        /// взаимодействие и переноска живут в отдельных способностях и про блокировку
+        /// не знают. На отсчёте управления не должно быть вообще, поэтому
+        /// глушим в корне — в самом ридере.
+        /// </summary>
+        private static void SuspendInput(PlayerController avatar, bool suspended)
+        {
+            if (avatar != null && avatar.TryGetComponent(out PlayerInputReader reader))
+            {
+                reader.SetSuspended(suspended);
+            }
         }
 
         private void SampleProgress()
@@ -399,8 +420,8 @@ namespace Igruha.Minigames.DuckHunt
             // Подписка одна на аватар за раунд: Restore не отписывает, поэтому
             // снимаем прошлую подписку перед новой — при пересдаче ролей иначе
             // накапливаются дубли и один выстрел засчитывается несколько раз.
-            elimination.Hidden -= HandleAnyDuckHidden;
-            elimination.Hidden += HandleAnyDuckHidden;
+            elimination.BodyHidden -= HandleAnyDuckHidden;
+            elimination.BodyHidden += HandleAnyDuckHidden;
 
             return record;
         }
@@ -694,17 +715,17 @@ namespace Igruha.Minigames.DuckHunt
             CheckRoundOver();
         }
 
-        /// <summary>Тело подстреленной Утки исчезло — своему игроку пора в наблюдатели.</summary>
-        private void HandleAnyDuckHidden()
+        /// <summary>
+        /// Тело подстреленной Утки исчезло — своему игроку пора в наблюдатели.
+        /// Событие приносит сам компонент, поэтому искать «у кого спрятано» по
+        /// списку больше не нужно: спрашиваем ровно того, кто позвал.
+        /// </summary>
+        private void HandleAnyDuckHidden(PlayerElimination elimination)
         {
-            for (int i = 0; i < ducks.Count; i++)
+            DuckRecord duck = FindDuckByElimination(elimination);
+            if (duck != null && IsLocal(duck.PlayerId))
             {
-                DuckRecord duck = ducks[i];
-                if (duck.Elimination != null && duck.Elimination.IsHidden && IsLocal(duck.PlayerId))
-                {
-                    spectator?.Activate(aliveDucks);
-                    return;
-                }
+                spectator?.Activate(aliveDucks);
             }
         }
 
