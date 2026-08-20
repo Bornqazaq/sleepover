@@ -109,6 +109,33 @@ namespace Igruha.Core.Player
             Release(emoteAction);
             Release(lookAction);
             Release(crouchAction);
+            ClearInput();
+        }
+
+        /// <summary>
+        /// Ввод заморожен: ридер отдаёт пустоту, что бы игрок ни жал.
+        ///
+        /// Нужен на стартовом отсчёте: «управления нет» должно значить
+        /// именно это, а не «двигаться нельзя, а толкать можно».
+        /// Перекрывать ввод в каждой способности отдельно нельзя: одна уже
+        /// забыла — <c>PlayerPushAbility</c> толкал прямо на отсчёте, — и следующая
+        /// забудет точно так же. Одна точка отказа надёжнее восьми проверок.
+        /// </summary>
+        public bool Suspended { get; private set; }
+
+        /// <summary>Заморозить или вернуть ввод. На заморозке накопленные нажатия гасятся, чтобы не выстрелить после разморозки.</summary>
+        public void SetSuspended(bool suspended)
+        {
+            Suspended = suspended;
+
+            if (suspended)
+            {
+                ClearInput();
+            }
+        }
+
+        private void ClearInput()
+        {
             MoveInput = Vector2.zero;
             LookDelta = Vector2.zero;
             JumpPressed = PushPressed = InteractPressed = EmoteHeld = false;
@@ -118,6 +145,14 @@ namespace Igruha.Core.Player
 
         private void Update()
         {
+            // Замороженный ридер не читает действия вообще: иначе зажатое
+            // на отсчёте накопится и выстрелит в первый же кадр после него.
+            if (Suspended)
+            {
+                ClearInput();
+                return;
+            }
+
             MoveInput = moveAction != null ? moveAction.action.ReadValue<Vector2>() : Vector2.zero;
             LookDelta = lookAction != null ? lookAction.action.ReadValue<Vector2>() : Vector2.zero;
             EmoteHeld = emoteAction != null && emoteAction.action.IsPressed();
