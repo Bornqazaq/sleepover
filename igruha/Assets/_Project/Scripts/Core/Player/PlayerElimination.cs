@@ -38,6 +38,12 @@ namespace Igruha.Core.Player
         private Rigidbody body;
         private readonly List<Collider> ignored = new List<Collider>(8);
         private readonly List<Renderer> visuals = new List<Renderer>(8);
+
+        /// <summary>
+        /// Каким каждый рендерер был до гибели. Без этого «показать обратно»
+        /// означало бы «включить всё подряд» — см. <see cref="SetVisible"/>.
+        /// </summary>
+        private readonly List<bool> visualsWereEnabled = new List<bool>(8);
         private Coroutine routine;
 
         public bool IsEliminated { get; private set; }
@@ -123,26 +129,34 @@ namespace Igruha.Core.Player
             Transform source = visualRoot != null ? visualRoot : transform;
             source.GetComponentsInChildren(true, visuals);
 
-            // Выключенное не нашей рукой включать нельзя. На каждом персонаже
-            // живёт старая серая капсула-заглушка с погашенным рендерером:
-            // соберём её сюда — и Restore в начале раунда зажжёт её поверх модели.
-            for (int i = visuals.Count - 1; i >= 0; i--)
+            // Запоминаем исходное состояние каждого: часть рендереров выключена
+            // намеренно и включаться обратно не должна.
+            visualsWereEnabled.Clear();
+            for (int i = 0; i < visuals.Count; i++)
             {
-                if (visuals[i] == null || !visuals[i].enabled)
-                {
-                    visuals.RemoveAt(i);
-                }
+                visualsWereEnabled.Add(visuals[i] != null && visuals[i].enabled);
             }
         }
 
+        /// <summary>
+        /// Спрятать тело или вернуть его как было.
+        ///
+        /// Возврат идёт **по исходному состоянию каждого рендерера**, а не
+        /// включением всех подряд. Разница не косметическая: у персонажа
+        /// в корне лежит серая капсула с времён каркаса, выключенная в префабе,
+        /// и «включить всё» зажигало её в хабе после каждой мини-игры —
+        /// овал поверх модели, наполовину утопленный в пол (IGR-349).
+        /// </summary>
         private void SetVisible(bool visible)
         {
             for (int i = 0; i < visuals.Count; i++)
             {
-                if (visuals[i] != null)
+                if (visuals[i] == null)
                 {
-                    visuals[i].enabled = visible;
+                    continue;
                 }
+
+                visuals[i].enabled = visible && visualsWereEnabled[i];
             }
         }
 

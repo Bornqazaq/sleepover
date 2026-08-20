@@ -38,11 +38,11 @@ namespace Igruha.Minigames.Stopwatch
 
         [Header("Подраунд — длительности стадий, с")]
         [Tooltip("Показ задания: табло объявляет тип и цель, кнопки не активны")]
-        [SerializeField] private float briefingSeconds = 3f;
+        [SerializeField] private float briefingSeconds = 4f;
         [Tooltip("Окно отмера. Кончается досрочно, как только все живые нажали «стоп»")]
         [SerializeField] private float measureWindowSeconds = 15f;
         [Tooltip("Показ результатов: все результаты выводятся одновременно")]
-        [SerializeField] private float resultsSeconds = 4f;
+        [SerializeField] private float resultsSeconds = 5f;
         [Tooltip("Опускание клеток получивших ошибку")]
         [SerializeField] private float cageDescendSeconds = 2f;
         [Tooltip("Открытие створок дна — только если кто-то исчерпал лимит")]
@@ -66,8 +66,8 @@ namespace Igruha.Minigames.Stopwatch
         {
             new RosterRule { players = 2, errorLimit = 3, worstPerSubround = 1 },
             new RosterRule { players = 3, errorLimit = 3, worstPerSubround = 1 },
-            new RosterRule { players = 4, errorLimit = 2, worstPerSubround = 1 },
-            new RosterRule { players = 5, errorLimit = 2, worstPerSubround = 1 },
+            new RosterRule { players = 4, errorLimit = 3, worstPerSubround = 1 },
+            new RosterRule { players = 5, errorLimit = 3, worstPerSubround = 1 },
             new RosterRule { players = 6, errorLimit = 2, worstPerSubround = 2 },
             new RosterRule { players = 7, errorLimit = 2, worstPerSubround = 2 },
             new RosterRule { players = 8, errorLimit = 2, worstPerSubround = 2 }
