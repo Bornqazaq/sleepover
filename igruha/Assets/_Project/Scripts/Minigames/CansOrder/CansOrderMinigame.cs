@@ -1238,6 +1238,20 @@ namespace Igruha.Minigames.CansOrder
         /// собой следует и деление места внутри группы вылета, и сдвиг
         /// следующей группы на размер предыдущей.
         /// </summary>
+        /// <summary>
+        /// Места по порядку вылета. Считает <see cref="EliminationRanking"/>
+        /// из Core: место = сколько игроков стоит выше, плюс один. Оттуда
+        /// само собой следует и деление места внутри группы вылета,
+        /// и сдвиг следующей группы на размер предыдущей, а не на единицу.
+        ///
+        /// Ранжирование по числу попыток из LDD 7.4 финальных мест не даёт
+        /// и здесь не используется: оно решает только, кого выбить при
+        /// равенстве (5.6). Разбор — спека 13, пункт 10.
+        ///
+        /// Несколько выживших даёт только жёсткий таймаут мини-игры
+        /// (600 с в <c>MinigameDefinition</c>) — тогда их разводит компаратор
+        /// по правилу 6.5, а полное равенство оставляет им общее место.
+        /// </summary>
         protected override void CollectResults(MinigameResults results)
         {
             for (int i = 0; i < contestants.Count; i++)
@@ -1248,7 +1262,24 @@ namespace Igruha.Minigames.CansOrder
                 }
             }
 
-            ranking.Build(results);
+            ranking.Build(results, CompareSurvivors);
+        }
+
+        /// <summary>
+        /// Компаратор выживших для жёсткого таймаута (спека 6.5).
+        /// При обычном финале выживший один, и <see cref="EliminationRanking"/>
+        /// сюда не заглядывает вовсе.
+        /// </summary>
+        private int CompareSurvivors(int a, int b)
+        {
+            Contestant left = Find(a);
+            Contestant right = Find(b);
+            if (left == null || right == null)
+            {
+                return 0;
+            }
+
+            return CanOrderRanking.CompareSurvivors(left.Entry, right.Entry);
         }
     }
 }
