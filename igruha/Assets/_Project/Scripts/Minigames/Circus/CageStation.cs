@@ -64,7 +64,15 @@ namespace Igruha.Minigames.Circus
         private int ignoreRaycastLayer;
         private int cameraBlockingLayer;
 
-        /// <summary>Ступеней над нижней. Ноль — последняя ступень перед вылетом.</summary>
+        /// <summary>
+        /// Ступеней над нижней. Ноль — последняя ступень перед вылетом.
+        ///
+        /// Это целочисленный путь: его ведут <see cref="DescendTo(int, float)"/>
+        /// и <see cref="SnapToLevel"/>. Непрерывный ход <see cref="MoveToFraction"/>
+        /// поле не трогает — доля 0…1 на ступени не ложится. Игра, которая
+        /// двигает клетку долей, обязана и «кто на нижней» определять долей,
+        /// а не этим полем: здесь останется значение с последнего целого хода.
+        /// </summary>
         public int Level { get; private set; }
 
         public bool DoorsOpen { get; private set; }
@@ -238,6 +246,40 @@ namespace Igruha.Minigames.Circus
             Level = Mathf.Max(0, levelSteps);
             LockOccupant(true);
             platform.MoveTo(config.GetCageBottomHeight(Level), duration, startTime);
+        }
+
+        /// <summary>
+        /// Встать на высоту по доле <paramref name="t"/>: 0 — нижняя ступень,
+        /// 1 — верхняя. Между ними линейно.
+        ///
+        /// Ступеней в конфиге всего <see cref="CircusArenaConfig.MaxLevelSteps"/>,
+        /// и «Секундомеру» их хватает: там высота означает накопленные ошибки,
+        /// а лимит ошибок 2–3. Там же, где высота означает долю справившихся,
+        /// ступени кончаются: при восьми игроках справляются шестеро, и шесть
+        /// разных высот на четыре ступени не ложатся.
+        ///
+        /// Работает в обе стороны — подъём клеток в брифинге это тот же вызов
+        /// с большей долей, отдельного метода для него нет.
+        ///
+        /// <paramref name="startTime"/> — момент начала хода на общих часах,
+        /// как у <see cref="DescendTo(int, float, double)"/>: каждая машина
+        /// считает высоту по одной формуле от одного момента, поэтому
+        /// опоздавшая сразу встаёт на верную высоту, а не догоняет.
+        ///
+        /// <see cref="Level"/> при этом не обновляется — доля на ступени
+        /// не ложится.
+        /// </summary>
+        public void MoveToFraction(float t, float duration, double startTime)
+        {
+            if (config == null)
+            {
+                return;
+            }
+
+            float bottom = config.GetCageBottomHeight(0);
+            float top = config.GetCageBottomHeight(config.MaxLevelSteps);
+            LockOccupant(true);
+            platform.MoveTo(Mathf.Lerp(bottom, top, Mathf.Clamp01(t)), duration, startTime);
         }
 
         private void HandleArrived()
