@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Igruha.Core.CameraSystems;
 using Igruha.Core.Hub;
+using Igruha.Core.Minigame;
 using Igruha.Core.Player;
 using Igruha.Core.UI;
 
@@ -12,7 +13,7 @@ namespace Igruha.EditorTools
 {
     /// <summary>
     /// Собирает круглое меню эмоций в UI активной сцены и связывает его
-    /// с HubBootstrap и ригом камеры. Пересобираемо: старый объект сносится,
+    /// с бутстрапом сцены (хаб или мини-игра) и ригом камеры. Пересобираемо: старый объект сносится,
     /// поэтому раскладку можно править константами здесь, а не мышью.
     /// </summary>
     internal static class EmoteWheelBuilder
@@ -36,7 +37,7 @@ namespace Igruha.EditorTools
             GameObject canvas = GameObject.Find(CanvasPath);
             if (canvas == null)
             {
-                Debug.LogError($"EmoteWheelBuilder: в активной сцене нет {CanvasPath} — открой Hub и повтори.");
+                Debug.LogError($"EmoteWheelBuilder: в активной сцене нет {CanvasPath} — собери сначала холст UI.");
                 return;
             }
 
@@ -152,18 +153,39 @@ namespace Igruha.EditorTools
             hint.raycastTarget = false;
         }
 
+        /// <summary>
+        /// Проставить ссылку в тот бутстрап, который есть в сцене: в хабе это
+        /// HubBootstrap, в мини-игре — MinigameBootstrap. Раньше билдер знал только
+        /// про хаб и в мини-игре молча оставлял колесо непривязанным.
+        /// Привязка теперь не обязательна — бутстрапы умеют брать EmoteWheel.Current, —
+        /// но явная ссылка читается в инспекторе и не зависит от порядка Awake.
+        /// </summary>
         private static void BindToBootstrap(EmoteWheel wheel)
         {
-            HubBootstrap bootstrap = Object.FindAnyObjectByType<HubBootstrap>();
-            if (bootstrap == null)
+            var hub = Object.FindAnyObjectByType<HubBootstrap>();
+            if (hub != null)
             {
-                Debug.LogWarning("EmoteWheelBuilder: в сцене нет HubBootstrap — колесо не к чему привязать, свяжи вручную.");
+                Assign(hub, wheel);
                 return;
             }
 
+            var minigame = Object.FindAnyObjectByType<MinigameBootstrap>();
+            if (minigame != null)
+            {
+                Assign(minigame, wheel);
+                return;
+            }
+
+            Debug.LogWarning("EmoteWheelBuilder: в сцене нет ни HubBootstrap, ни MinigameBootstrap — " +
+                             "колесо собрано, но ссылку проставить некуда.");
+        }
+
+        private static void Assign(Object bootstrap, EmoteWheel wheel)
+        {
             var serialized = new SerializedObject(bootstrap);
             serialized.FindProperty("emoteWheel").objectReferenceValue = wheel;
             serialized.ApplyModifiedPropertiesWithoutUndo();
+            Debug.Log($"EmoteWheelBuilder: колесо привязано к {bootstrap.GetType().Name}.");
         }
 
         private static GameObject CreateUIObject(string name, Transform parent)

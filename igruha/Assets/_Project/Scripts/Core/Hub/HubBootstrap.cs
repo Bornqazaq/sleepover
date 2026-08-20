@@ -178,9 +178,19 @@ namespace Igruha.Core.Hub
                 hubController.BindLocalPlayer(interactor);
             }
 
-            if (emoteWheel != null && avatar.TryGetComponent(out PlayerEmoteAbility emotes))
+            // Колесо берём из сцены, если ссылка пустая: Tab обязан работать
+            // везде, а не только там, где поле заполнили руками.
+            EmoteWheel wheel = emoteWheel != null ? emoteWheel : EmoteWheel.Current;
+
+            if (wheel == null)
             {
-                emoteWheel.BindLocalPlayer(emotes);
+                Debug.LogWarning(
+                    $"{name}: в сцене нет колеса эмоций — Tab ничего не откроет. " +
+                    "Собери его пунктом меню Igruha/UI/Build Emote Wheel", this);
+            }
+            else if (avatar.TryGetComponent(out PlayerEmoteAbility emotes))
+            {
+                wheel.BindLocalPlayer(emotes);
             }
         }
 
