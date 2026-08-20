@@ -122,6 +122,17 @@ namespace Igruha.Core.Player
             visuals.Clear();
             Transform source = visualRoot != null ? visualRoot : transform;
             source.GetComponentsInChildren(true, visuals);
+
+            // Выключенное не нашей рукой включать нельзя. На каждом персонаже
+            // живёт старая серая капсула-заглушка с погашенным рендерером:
+            // соберём её сюда — и Restore в начале раунда зажжёт её поверх модели.
+            for (int i = visuals.Count - 1; i >= 0; i--)
+            {
+                if (visuals[i] == null || !visuals[i].enabled)
+                {
+                    visuals.RemoveAt(i);
+                }
+            }
         }
 
         private void SetVisible(bool visible)
