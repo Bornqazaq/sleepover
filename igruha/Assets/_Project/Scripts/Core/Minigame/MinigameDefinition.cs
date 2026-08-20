@@ -12,9 +12,7 @@ namespace Igruha.Core.Minigame
         [Header("Общее")]
         [SerializeField] private string displayName = "Мини-игра";
         [SerializeField] private MinigameCategory category = MinigameCategory.FreeForAll;
-        [Tooltip("Addressables-ключ сцены мини-игры (одиночный запуск и редактор)")]
-        [SerializeField] private string sceneAddress = "";
-        [Tooltip("Имя сцены в Build Settings для NGO SceneManager. Пусто — берётся хвост Scene Address")]
+        [Tooltip("Имя сцены в Build Settings. Единственный ключ загрузки: по нему сцену грузит и NGO в сети, и SceneManager в одиночном запуске")]
         [SerializeField] private string sceneName = "";
 
         [Header("Раунд")]
@@ -36,8 +34,7 @@ namespace Igruha.Core.Minigame
 
         public string DisplayName => displayName;
         public MinigameCategory Category => category;
-        public string SceneAddress => sceneAddress;
-        public string SceneName => !string.IsNullOrEmpty(sceneName) ? sceneName : ExtractSceneName(sceneAddress);
+        public string SceneName => sceneName;
         public float RoundDuration => roundDuration;
         public int MinPlayers => minPlayers;
         public int MaxPlayers => maxPlayers;
@@ -45,16 +42,5 @@ namespace Igruha.Core.Minigame
         public string Objective => objective;
         public string[] ControlHints => controlHints;
         public float TutorialDuration => tutorialDuration;
-
-        private static string ExtractSceneName(string address)
-        {
-            if (string.IsNullOrEmpty(address))
-            {
-                return string.Empty;
-            }
-
-            int slash = address.LastIndexOf('/');
-            return slash >= 0 ? address.Substring(slash + 1) : address;
-        }
     }
 }

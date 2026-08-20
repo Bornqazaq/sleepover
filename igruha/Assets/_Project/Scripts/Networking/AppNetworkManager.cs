@@ -1,12 +1,18 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Unity.Netcode;
+using Unity.Netcode.Transports.UTP;
+using Igruha.Core.Scenes;
 using Igruha.Networking;
 
 /// <summary>
 /// Точка входа сети в сцене Boot: поднимает хост или клиент и,
 /// если это хост, загружает игровую сцену через NGO SceneManager
 /// (клиенты синхронизируются автоматически).
+///
+/// Роль определяет <see cref="NetworkRoleResolver"/>: аргумент запуска для
+/// билдов, тег Multiplayer Play Mode или признак виртуального игрока.
 /// </summary>
 public class AppNetworkManager : MonoBehaviour
 {
@@ -14,6 +20,20 @@ public class AppNetworkManager : MonoBehaviour
 
     [Tooltip("Табло катки: сервер спавнит его один раз, счёт живёт между мини-играми")]
     [SerializeField] private NetworkObject sessionManagerPrefab;
+
+    [Header("Подключение клиента")]
+    [Tooltip("Сколько секунд клиент ждёт хоста, прежде чем сдаться. Считаем сроком, а не числом " +
+             "попыток: на localhost закрытый порт отвечает отказом сразу, поэтому заходы сгорают " +
+             "за секунды и любое их число ничего не гарантирует")]
+    [SerializeField] private float connectionTimeout = 180f;
+
+    [Tooltip("Пауза перед следующим заходом на подключение")]
+    [SerializeField] private float retryDelay = 1f;
+
+    private int failedAttempts;
+    private float giveUpTime;
+    private bool isConnected;
+    private bool isSubscribedToClientEvents;
 
     private void Start()
     {
@@ -28,24 +48,188 @@ public class AppNetworkManager : MonoBehaviour
             return;
         }
 
-        // Режим определяется аргументом запуска: билд с --client подключается
-        // к хосту, всё остальное поднимается как хост
-        bool isClientMode = System.Array.Exists(System.Environment.GetCommandLineArgs(),
-            element => element.Equals("--client"));
+        NetworkStartRole role = NetworkRoleResolver.Resolve(out string reason);
 
-        if (isClientMode)
+        if (role == NetworkStartRole.Client)
         {
-            NetworkManager.Singleton.StartClient();
-            Debug.Log("🟢 Started as CLIENT - Connecting to Host");
+            ApplyEndpointArguments();
+            Debug.Log($"🟢 Роль CLIENT ({reason}) — подключаюсь к {DescribeEndpoint()}");
+            giveUpTime = Time.realtimeSinceStartup + connectionTimeout;
+            SubscribeToClientEvents();
+            StartClient();
             return;
         }
+
+        ApplyEndpointArguments();
 
         // Сцену грузим только после того, как сервер реально поднялся:
         // до этого SceneManager ещё не готов принимать запросы
         NetworkManager.Singleton.OnServerStarted += HandleServerStarted;
         NetworkManager.Singleton.StartHost();
-        Debug.Log("🟢 Started as HOST - NetworkManager ready (with Connection Approval)");
+        Debug.Log($"🟢 Роль HOST ({reason}) — слушаю {DescribeEndpoint()} (с Connection Approval)");
     }
+
+    /// <summary>
+    /// Перекрыть адрес и порт транспорта аргументами запуска.
+    ///
+    /// Адрес хоста нельзя зашить в сцену: у каждой катки он свой — домашняя
+    /// сеть, Tailscale, чужая квартира. Сцена задаёт значение по умолчанию,
+    /// <c>--host</c> и <c>--port</c> его перекрывают, и один и тот же билд
+    /// годится всем.
+    ///
+    /// Хосту адрес не меняем: он слушает на том, что стоит в сцене
+    /// (<c>ServerListenAddress</c>), и это должен быть <c>0.0.0.0</c>, иначе
+    /// снаружи к нему не подключиться.
+    /// </summary>
+    private void ApplyEndpointArguments()
+    {
+        UnityTransport transport = NetworkManager.Singleton.NetworkConfig.NetworkTransport as UnityTransport;
+        if (transport == null)
+        {
+            Debug.LogWarning("⚠️ Транспорт не UnityTransport — аргументы --host/--port пропущены");
+            return;
+        }
+
+        if (NetworkLaunchArguments.TryGetHostAddress(out string address))
+        {
+            transport.ConnectionData.Address = address;
+        }
+
+        if (NetworkLaunchArguments.TryGetPort(out ushort port))
+        {
+            transport.ConnectionData.Port = port;
+        }
+    }
+
+    /// <summary>Куда стучимся или что слушаем — одной строкой для лога.</summary>
+    private string DescribeEndpoint()
+    {
+        UnityTransport transport = NetworkManager.Singleton.NetworkConfig.NetworkTransport as UnityTransport;
+        return transport != null
+            ? $"{transport.ConnectionData.Address}:{transport.ConnectionData.Port}"
+            : "неизвестный транспорт";
+    }
+
+    private void OnDestroy()
+    {
+        UnsubscribeFromClientEvents();
+
+        if (NetworkManager.Singleton != null)
+        {
+            NetworkManager.Singleton.OnServerStarted -= HandleServerStarted;
+        }
+    }
+
+    // ========== КЛИЕНТ ==========
+
+    /// <summary>
+    /// Одна попытка подключения — это не одна посылка: транспорт внутри себя
+    /// повторяет запрос <c>MaxConnectAttempts</c> раз с интервалом
+    /// <c>ConnectTimeoutMS</c>, то есть сам ждёт хоста десятки секунд.
+    /// Обрывать это своим таймером нельзя: обрыв уже одобренного подключения
+    /// оставляет на сервере запись о клиенте и его персонажа в сцене.
+    /// </summary>
+    private void StartClient()
+    {
+        if (!NetworkManager.Singleton.StartClient())
+        {
+            Debug.LogError("❌ CLIENT: NetworkManager отказался стартовать — проверь транспорт в сцене Boot");
+        }
+    }
+
+    private void SubscribeToClientEvents()
+    {
+        if (isSubscribedToClientEvents)
+        {
+            return;
+        }
+
+        NetworkManager.Singleton.OnClientConnectedCallback += HandleClientConnected;
+        NetworkManager.Singleton.OnClientDisconnectCallback += HandleClientDisconnected;
+        isSubscribedToClientEvents = true;
+    }
+
+    private void UnsubscribeFromClientEvents()
+    {
+        if (!isSubscribedToClientEvents || NetworkManager.Singleton == null)
+        {
+            return;
+        }
+
+        NetworkManager.Singleton.OnClientConnectedCallback -= HandleClientConnected;
+        NetworkManager.Singleton.OnClientDisconnectCallback -= HandleClientDisconnected;
+        isSubscribedToClientEvents = false;
+    }
+
+    private void HandleClientConnected(ulong clientId)
+    {
+        if (clientId != NetworkManager.Singleton.LocalClientId)
+        {
+            return;
+        }
+
+        isConnected = true;
+        Debug.Log($"✅ CLIENT: подключился к хосту (заходов: {failedAttempts + 1})");
+        UnsubscribeFromClientEvents();
+    }
+
+    /// <summary>
+    /// На клиенте этот колбэк приходит и когда подключиться не удалось,
+    /// и когда соединение разорвалось после успешного входа. Второй случай —
+    /// не наше дело, его разбирает <see cref="DisconnectionHandler"/>.
+    /// </summary>
+    private void HandleClientDisconnected(ulong clientId)
+    {
+        if (isConnected)
+        {
+            return;
+        }
+
+        string reason = NetworkManager.Singleton.DisconnectReason;
+        if (!string.IsNullOrEmpty(reason))
+        {
+            // Сервер ответил и отказал — повторять бессмысленно, причина не пройдёт и в следующий раз
+            Debug.LogError($"❌ CLIENT: хост отклонил подключение — «{reason}»");
+            UnsubscribeFromClientEvents();
+            return;
+        }
+
+        failedAttempts++;
+        if (Time.realtimeSinceStartup >= giveUpTime)
+        {
+            Debug.LogError($"❌ CLIENT: хост не отозвался за {connectionTimeout:F0} сек ({failedAttempts} заходов) — сеть не запущена");
+            UnsubscribeFromClientEvents();
+            return;
+        }
+
+        // Шумит только каждый десятый заход: на localhost отказ приходит мгновенно,
+        // и построчный лог за три минуты ожидания забил бы консоль.
+        if (failedAttempts % 10 == 1)
+        {
+            float left = giveUpTime - Time.realtimeSinceStartup;
+            Debug.Log($"⏳ CLIENT: хост ещё не поднялся (заход {failedAttempts}), жду ещё {left:F0} сек");
+        }
+        StartCoroutine(RestartClientAfterShutdown());
+    }
+
+    private IEnumerator RestartClientAfterShutdown()
+    {
+        NetworkManager networkManager = NetworkManager.Singleton;
+
+        while (networkManager.ShutdownInProgress)
+        {
+            yield return null;
+        }
+
+        yield return new WaitForSecondsRealtime(retryDelay);
+
+        if (!isConnected)
+        {
+            StartClient();
+        }
+    }
+
+    // ========== ХОСТ ==========
 
     private void HandleServerStarted()
     {
@@ -78,7 +262,13 @@ public class AppNetworkManager : MonoBehaviour
 
     private void LoadGameplayScene()
     {
-        var status = NetworkManager.Singleton.SceneManager.LoadScene(gameplaySceneName, LoadSceneMode.Single);
+        if (!BuildSceneCatalog.TryResolvePath(gameplaySceneName, out string scenePath))
+        {
+            Debug.LogError($"❌ Сцены '{gameplaySceneName}' нет в Build Settings — по сети она не загрузится");
+            return;
+        }
+
+        var status = NetworkManager.Singleton.SceneManager.LoadScene(scenePath, LoadSceneMode.Single);
         if (status != SceneEventProgressStatus.Started)
         {
             Debug.LogError($"❌ Не удалось загрузить сцену '{gameplaySceneName}': {status}");

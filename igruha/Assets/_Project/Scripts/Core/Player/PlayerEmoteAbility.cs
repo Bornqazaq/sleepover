@@ -78,7 +78,11 @@ namespace Igruha.Core.Player
                 return;
             }
 
-            bool wantsWheel = inputReader.EmoteHeld && HasEmotes && !motor.IsKnockedDown;
+            // Заблокированный не танцует: в «Ангелах» замороженный обязан стоять
+            // статуей, и пляшущая статуя ломает всю затею. Нокдаун глушит по той же
+            // причине — персонаж в этот момент не управляется.
+            bool wantsWheel = inputReader.EmoteHeld && HasEmotes
+                              && !motor.IsKnockedDown && !motor.MovementLocked;
 
             if (wantsWheel && !IsWheelOpen)
             {

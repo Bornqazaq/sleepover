@@ -4,6 +4,7 @@ using UnityEngine.InputSystem;
 using TMPro;
 using Igruha.Core.Interaction;
 using Igruha.Core.Minigame;
+using Igruha.Core.Player;
 
 namespace Igruha.Core.Hub
 {
@@ -85,9 +86,18 @@ namespace Igruha.Core.Hub
             }
         }
 
-        private void OnAnchorActivated(MinigameAnchor anchor)
+        private void OnAnchorActivated(MinigameAnchor anchor, PlayerController player)
         {
             if (pendingAnchor != null)
+            {
+                return;
+            }
+
+            // Взаимодействие исполняет сервер, поэтому сюда прилетают и чужие нажатия.
+            // Окно подтверждения — сугубо местный UI: открываем его только на нажатие
+            // хозяина этой машины, иначе хосту вылезала бы панель, когда кнопку жмёт
+            // кто-то другой, а сам нажавший не видел бы ничего.
+            if (!IsLocalPlayer(player))
             {
                 return;
             }
@@ -114,6 +124,20 @@ namespace Igruha.Core.Hub
             {
                 confirmPanel.SetActive(true);
             }
+        }
+
+        /// <summary>
+        /// Персонаж этой машины. До привязки (HubBootstrap ещё не отдал игрока)
+        /// считаем нажатие своим: одиночные сцены хаба живут без сети и без привязки.
+        /// </summary>
+        private bool IsLocalPlayer(PlayerController player)
+        {
+            if (interactor == null)
+            {
+                return true;
+            }
+
+            return player != null && player.gameObject == interactor.gameObject;
         }
 
         private void UpdateConfirmation()

@@ -14,8 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Minigame.MinigameDefinition
   displayName: Duck Hunt
   category: 2
-  sceneAddress: Minigames/DuckHunt
-  sceneName: 
+  sceneName: DuckHunt
   roundDuration: 300
   minPlayers: 2
   maxPlayers: 8

@@ -101,6 +101,41 @@ namespace Igruha.Minigames.CryingAngels
         }
 
         /// <summary>
+        /// Поставить состояние, решённое сервером. Клиент засветку не считает
+        /// вовсе: он узнаёт результат и применяет его у себя — блокировку
+        /// движения владельцу (двигается он всё равно сам, через
+        /// ClientNetworkTransform) и стоп-кадр всем.
+        ///
+        /// Тело метода намеренно повторяет то, что делают <see cref="SetFrozen"/>
+        /// и окаменение, но без правил: правила — работа сервера, здесь только
+        /// применение результата.
+        /// </summary>
+        public void ApplyNetworkState(Phase phase, int freezePose, float freezePoseTime, float petrifyProgress)
+        {
+            // Поза ставится до смены состояния: стоп-кадр читает её в обработчике
+            // Changed, и переставленная следом поза до него уже не доедет.
+            FreezePose = freezePose;
+            FreezePoseTime = freezePoseTime;
+
+            // Счётчик кладём в то же поле, из которого его считает сервер, а не
+            // в отдельное «сетевое»: тогда PetrifyProgress, виньетка и цвет луча
+            // считаются у всех одной формулой, и вторая ветка не заводится.
+            if (config != null)
+            {
+                petrifyTimer = Mathf.Clamp01(petrifyProgress) * config.PetrifyThreshold;
+            }
+
+            if (Current == phase)
+            {
+                return;
+            }
+
+            Current = phase;
+            motor.MovementLocked = phase != Phase.Free;
+            Changed?.Invoke(Current);
+        }
+
+        /// <summary>
         /// Случайная нелепая поза. На каркасе это стоп-кадр анимации в
         /// произвольной точке клипа — отдельных клипов поз ещё нет, их
         /// завозит арт-фаза, а механику надо щупать уже сейчас.

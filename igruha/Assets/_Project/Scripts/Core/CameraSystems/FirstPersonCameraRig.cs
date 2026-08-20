@@ -61,6 +61,14 @@ namespace Igruha.Core.CameraSystems
         /// <summary>Наклон взгляда. Чисто визуальный: на игровые проверки не влияет.</summary>
         public float Pitch => pitch;
 
+        /// <summary>
+        /// Куда игрок просит смотреть — до потолка скорости. Именно это значение
+        /// уходит на сервер в асимметричных играх, где направление взгляда решает
+        /// исход: подрезанный <see cref="Yaw"/> слать нельзя, иначе клэмп считается
+        /// дважды (у клиента и у сервера) и разворот отстаёт вдвое.
+        /// </summary>
+        public float DesiredYaw => desiredYaw;
+
         private CinemachineCamera cam;
         private Transform trackedTarget;
         private PlayerController trackedBody;

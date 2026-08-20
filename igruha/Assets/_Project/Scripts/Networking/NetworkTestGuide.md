@@ -1,160 +1,131 @@
-# Network Test Guide — Host + Client Локальное Соединение
+# Как гонять сетевой тест
 
-## Сценарий A: Editor Localhost (быстрый прототип)
+Основной способ — **Multiplayer Play Mode**: два инстанса прямо в редакторе,
+без сборки билдов. Сценарий уже настроен, отдельной подготовки не требует.
 
-### Что проверяем
-- ✅ HOST запускается и выводит "Started as HOST"
-- ✅ CLIENT подключается к HOST
-- ✅ Оба видят друг друга в NetworkManager.ConnectedClientIds
-- ✅ Player.prefab спавнится для обоих
-- ✅ Движения синхронизируются (когда реализуем IGR-51)
+## Быстрый тест (Multiplayer Play Mode)
 
-### Как запустить
+1. Убедиться, что в выпадашке рядом с Play выбран сценарий **Host + Client**
+   (он же `Assets/Settings/PlayMode/Host + Client.asset`). Список сценариев —
+   **Window → Play Mode → Configurations**.
+2. Нажать **Play**.
+3. Поднимаются два инстанса:
+   * **Main Editor** — хост. Стартует сервер, спавнит табло катки, грузит игровую
+     сцену через `NGO SceneManager` (сцена задаётся в `AppNetworkManager.gameplaySceneName`).
+   * **Player 2** — виртуальный игрок, клиент. Отдельный процесс редактора,
+     своё окно Game.
+4. Оба окна открываются на сцене `Boot` — она прописана в сценарии как стартовая,
+   поэтому неважно, какая сцена была открыта до Play.
 
-#### На машине с 2+ ядрами:
-1. **Окно 1 (HOST):**
-   - Unity Editor → Scenes/Boot.unity
-   - Play (Ctrl+P)
-   - Ожидание: Console → "🟢 Started as HOST - NetworkManager ready"
+Окно виртуального игрока: **Window → Multiplayer → Play Mode Status**.
 
-2. **Окно 2 (CLIENT):**
-   - Unity Editor → Scenes/Boot.unity
-   - Play (Ctrl+P)
-   - Код в AppNetworkManager.cs будет запущен как CLIENT (второе окно)
-   - Ожидание: Console → "Connected to Host" (когда реализуем client code)
+### Кто хост, кто клиент
 
-#### На машине с 1 ядром:
-- Использовать ParrelSync или игровой build вместо второго окна редактора
+Роль выбирает `NetworkRoleResolver`, по трём источникам в порядке приоритета:
 
-### Текущий статус (на момент IGR-49)
-```csharp
-// AppNetworkManager.cs сейчас:
-if (!NetworkManager.Singleton.IsClient && !NetworkManager.Singleton.IsServer)
-{
-    NetworkManager.Singleton.StartHost();  // HOST mode
-    Debug.Log("🟢 Started as HOST");
-}
+| Источник | Когда работает | Результат |
+| -- | -- | -- |
+| Аргумент запуска `--client` | билды | клиент |
+| Тег Play Mode `Host` / `Client` | редактор, если тег применён к инстансу | по тегу |
+| `CurrentPlayer.IsMainEditor` | редактор всегда | главный редактор — хост, любой виртуальный игрок — клиент |
 
-// TODO: ClientMode для второго инстанса
-```
+Третий пункт — рабочая лошадка: он не требует настройки и сам делает клиентами
+всех виртуальных игроков, сколько бы их ни добавили (MPPM тянет до четырёх).
+Теги в сценарии проставлены, но применяются они только через окно
+**Play Mode Scenarios**, поэтому полагаться надо на третий пункт.
 
-### Что добавить для полного теста
-```csharp
-// AppNetworkManager.cs (расширить):
-private bool isHost = true;  // or read from launch args
+### Порядок запуска значения не имеет
 
-private void Start()
-{
-    if (isHost)
-        NetworkManager.Singleton.StartHost();
-    else
-        NetworkManager.Singleton.StartClient();  // localhost по умолчанию
-}
-```
+Виртуальный игрок часто входит в play-режим **раньше** главного редактора —
+хосту нужен домен-релоуд и загрузка сцены. Клиент это переживает: транспорт
+сам держит `MaxConnectAttempts` попыток по `ConnectTimeoutMS` (сейчас 60 × 1 сек),
+то есть ждёт хоста около минуты. `AppNetworkManager` вмешивается только после
+того, как NGO сам признал попытку неудачной, и делает ещё `connectionAttempts`
+заходов.
 
----
+**Обрывать подключение своим таймером нельзя.** Уже одобренное подключение,
+убитое на полпути, оставляет на сервере запись о клиенте и его персонажа в сцене —
+получается лишний игрок-призрак. Проверено 15.08 (IGR-275).
 
-## Сценарий B: Build Test (реальный bilд)
+### Логи клиента
 
-### Создание двух конфигураций Build
+У виртуального игрока своя консоль. Два способа читать её:
 
-#### HostBuild:
-```
-1. File → Build Settings
-2. Scenes: Assets/_Project/Scenes/Boot.unity
-3. Platform: Windows (Standalone)
-4. Build folder: Build/Host
-5. Build
-6. В Build/Host/sleepover.exe добавить launcher script или аргумент --server
-```
+* В сценарии у инстанса включён **Stream Logs To Main Editor** — строки клиента
+  приходят в консоль главного редактора.
+* Файл на диске: `Library/VP/<id>/Logs/Editor.log`.
 
-#### ClientBuild:
-```
-1. Аналогично HostBuild, но folder: Build/Client
-2. Аргумент: --client
-```
+## Сценарий на 3–4 игрока
 
-### Как запустить оба build'а
+MPPM тянет до четырёх инстансов редактора (главный + три виртуальных).
+Добавляются в **Window → Play Mode → Configurations** → сценарий **Host + Client** →
+кнопка добавления инстанса. Каждый новый виртуальный игрок автоматически
+станет клиентом — по `IsMainEditor`, настраивать ничего не надо.
+
+## Запасной способ: два билда
+
+Нужен, когда проверяется что-то, чего в редакторе не воспроизвести
+(производительность, поведение вне редактора).
+
 ```bash
-# Terminal 1 (Host)
-./Build/Host/sleepover.exe --server
-
-# Terminal 2 (Client)  
-./Build/Client/sleepover.exe --client localhost 7777
+./Build/sleepover.app/Contents/MacOS/sleepover              # хост
+./Build/sleepover.app/Contents/MacOS/sleepover --client     # клиент
 ```
 
-### Expected Output
+Адрес и порт — в `UnityTransport` на объекте `NetworkManager` сцены `Boot`
+(сейчас `127.0.0.1:7777`).
 
-**HOST Console:**
-```
-🟢 Started as HOST - NetworkManager ready
-✅ NetworkManager.IsHost: true
-✅ Player spawned (NetworkObject ID: 1)
-```
+## Если клиент не подключается
 
-**CLIENT Console:**
-```
-✅ Connecting to localhost:7777...
-✅ Connected to HOST
-✅ Player spawned (NetworkObject ID: 2)
-```
+| Симптом в консоли клиента | Причина |
+| -- | -- |
+| `хост не отозвался (заход N из M)` | хост ещё не поднялся или упал |
+| `хост отклонил подключение — «Protocol version mismatch»` | у инстансов разный `PROTOCOL_VERSION` в `ConnectionApprovalManager` |
+| `хост отклонил подключение — «Server is full»` | больше `MAX_PLAYERS` |
+| `NetworkManager отказался стартовать` | не настроен транспорт в сцене `Boot` |
 
-**Оба видят друг друга:**
-```
-NetworkManager.ConnectedClientIds: [0, 1]
-```
+## Что проверять в каждом сетевом тикете
 
----
+1. Пройти сценарий целиком на host + client.
+2. Сверить у обоих: фаза, таймер, счёт, кто где, итоговые места.
+3. Проверить, что клиент не может сделать чужое действие или действие вне своих условий.
+4. Дисконнекты: обычный игрок вышел, игрок с уникальной ролью вышел, хост вышел.
+5. Консоль **обоих** инстансов чистая.
 
-## Отладка
+## Если клиент не подключается, а в консоли хоста `NetworkConfig mismatch`
 
-### Если CLIENT не подключается
-```csharp
-// Check Console для:
-- "Connection timeout"
-- "Connection refused"
-- Network transport errors
+Симптом: клиент бесконечно перезаходит, у хоста на каждый заход
+`[Netcode] NetworkConfig mismatch` и `CLIENT DISCONNECTED` с новым id.
 
-// Решение:
-1. Убедиться что HOST запущен первым
-2. Убедиться что PORT 7777 открыт
-3. Firewall может блокировать — добавить исключение
+Причина: список сетевых префабов посчитался по-разному у главного редактора
+и у виртуального игрока. Хеш каждого префаба лежит в поле `GlobalObjectIdHash`
+внутри самого `.prefab`, и сравнивается именно он.
+
+### Как проверить, в этом ли дело
+
+```bash
+grep -n "GlobalObjectIdHash" Assets/_Project/Prefabs/<...>.prefab
 ```
 
-### Если Player не спавнится
-```csharp
-// Check:
-- DefaultNetworkPrefabs.asset содержит Player.prefab ✅ (IGR-50)
-- NetworkManager.PlayerPrefab указана ✅ (IGR-48)
-- Console нет ошибок "Cannot find prefab"
-```
+`GlobalObjectIdHash: 0` — префаб сломан: **NGO не сможет его заспавнить**,
+и клиенты будут отваливаться. Так получается, если `NetworkObject` добавили
+скриптом: поле заполняет `OnValidate`, а он при таком добавлении не отрабатывает.
 
-### Network Logs
-```csharp
-// Включить подробное логирование:
-NetworkManager.NetworkConfig.EnableNetworkLogs = true;  // ✅ уже enabled
+### Как чинить правильно
 
-// Console покажет:
-- Все RPC вызовы
-- Все NetworkVariable changes
-- Все спавны объектов
-```
+Хеш считается из `GlobalObjectId` **конкретного объекта**, поэтому его нельзя
+считать на временной копии: `PrefabUtility.LoadPrefabContents` даёт другой
+объект и, соответственно, другое число. Нужно дёрнуть `OnValidate` на самом
+ассете (`AssetDatabase.LoadAssetAtPath`) и сохранить его.
 
----
+Проще всего — руками: открыть префаб в редакторе, снять и заново добавить
+`NetworkObject`, сохранить. Затем сверить, что число в файле совпадает с тем,
+что видит рантайм (`NetworkManager.NetworkConfig.Prefabs.Prefabs[i].SourcePrefabGlobalObjectIdHash`).
 
-## Definition of Done для IGR-49
-- [ ] Запустить Host — видно "Started as HOST"
-- [ ] Запустить Client (второе окно/build) — видно "Connected"
-- [ ] Оба инстанса видят друг друга в ConnectedClientIds
-- [ ] Player.prefab спавнится для обоих (проверить в Scene Hierarchy)
-- [ ] Console обоих чист от Network errors
-- [ ] Написана документация по запуску (этот файл)
+### Если число совпадает, а mismatch остался
 
----
-
-## Когда будет полная синхронизация (IGR-51+)
-```csharp
-// После IGR-51 (Movement sync):
-// В HOST окне нажать W/A/S/D
-// → CLIENT окно видит движение в реальном времени
-```
+Главный редактор держит собственную копию ассета в памяти и может не подхватить
+изменение файла. Помогает **полный перезапуск Unity**, после которого клона надо
+пересоздать заново (Play Mode Status → удалить виртуального игрока, либо
+`VirtualProjectsApi.Delete`). Пересоздание клона без перезапуска редактора
+не помогает: расходится сторона редактора, а не клона.

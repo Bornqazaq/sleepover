@@ -1,17 +1,23 @@
+using Igruha.Core.Scenes;
 using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.AddressableAssets;
-using UnityEngine.ResourceManagement.AsyncOperations;
-using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
 
 namespace Igruha.Core.Minigame
 {
     /// <summary>
     /// Загрузка сцены мини-игры. В сетевой катке грузит только сервер через
-    /// NGO SceneManager — клиенты подтягиваются сами. Без сети остаётся
-    /// Addressables, чтобы сцену можно было открыть напрямую из редактора.
+    /// NGO SceneManager — клиенты подтягиваются сами. Без сети тот же путь,
+    /// но обычным SceneManager, чтобы сцену можно было открыть из редактора.
     /// </summary>
+    /// <remarks>
+    /// Ключ загрузки один — имя сцены из Build Settings. Addressables здесь
+    /// применить нельзя: NGO опознаёт сцены по индексу в списке сборки
+    /// (<c>NetworkSceneManager.GenerateScenesInBuild</c>), и сцена без индекса
+    /// отбивается на валидации ещё до отправки события. Addressables же
+    /// вычищает из своих групп всё, что попало в список сборки, — два пути
+    /// взаимно исключают друг друга, поэтому остался один.
+    /// </remarks>
     public sealed class MinigameLoader : MonoBehaviour
     {
         public bool IsLoading { get; private set; }
@@ -26,6 +32,12 @@ namespace Igruha.Core.Minigame
             if (definition == null)
             {
                 Debug.LogError($"{name}: у мини-игры нет определения — загружать нечего.", this);
+                return;
+            }
+
+            if (string.IsNullOrEmpty(definition.SceneName))
+            {
+                Debug.LogError($"{name}: у мини-игры '{definition.DisplayName}' не задано имя сцены.", this);
                 return;
             }
 
@@ -48,14 +60,14 @@ namespace Igruha.Core.Minigame
             }
 
             string sceneName = definition.SceneName;
-            if (string.IsNullOrEmpty(sceneName))
+            if (!BuildSceneCatalog.TryResolvePath(sceneName, out string scenePath))
             {
-                Debug.LogError($"{name}: у мини-игры не задано имя сцены для сети.", this);
+                Debug.LogError($"{name}: сцены '{sceneName}' нет в Build Settings — по сети она не загрузится.", this);
                 return;
             }
 
             IsLoading = true;
-            SceneEventProgressStatus status = network.SceneManager.LoadScene(sceneName, LoadSceneMode.Single);
+            SceneEventProgressStatus status = network.SceneManager.LoadScene(scenePath, LoadSceneMode.Single);
             if (status != SceneEventProgressStatus.Started)
             {
                 IsLoading = false;
@@ -69,26 +81,23 @@ namespace Igruha.Core.Minigame
 
         private void LoadLocal(MinigameDefinition definition)
         {
-            if (string.IsNullOrEmpty(definition.SceneAddress))
+            string sceneName = definition.SceneName;
+
+            IsLoading = true;
+            AsyncOperation operation = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Single);
+            if (operation == null)
             {
-                Debug.LogError($"{name}: у мини-игры не задан Scene Address — загружать нечего.", this);
+                IsLoading = false;
+                Debug.LogError($"{name}: сцены '{sceneName}' нет в Build Settings — загружать нечего.", this);
                 return;
             }
 
-            IsLoading = true;
-            AsyncOperationHandle<SceneInstance> handle =
-                Addressables.LoadSceneAsync(definition.SceneAddress, LoadSceneMode.Single);
-            handle.Completed += OnSceneLoaded;
+            operation.completed += OnSceneLoaded;
         }
 
-        private void OnSceneLoaded(AsyncOperationHandle<SceneInstance> handle)
+        private void OnSceneLoaded(AsyncOperation operation)
         {
             IsLoading = false;
-
-            if (handle.Status != AsyncOperationStatus.Succeeded)
-            {
-                Debug.LogError($"{name}: не удалось загрузить сцену мини-игры: {handle.OperationException}", this);
-            }
         }
     }
 }

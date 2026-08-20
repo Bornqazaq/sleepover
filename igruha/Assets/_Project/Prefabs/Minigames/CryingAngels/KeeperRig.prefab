@@ -232,7 +232,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Vision.VisionCone
   origin: {fileID: 0}
   coneAngle: 35
-  range: 21.6
+  range: 28.2
   blockers:
     serializedVersion: 2
     m_Bits: 256

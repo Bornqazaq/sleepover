@@ -16,6 +16,15 @@ namespace Igruha.Networking
     {
         private NetworkManager networkManager;
 
+        /// <summary>
+        /// Эта машина как клиент действительно доходила до подключения.
+        ///
+        /// Без этого признака нельзя отличить «хост ушёл» от «хост ещё
+        /// не поднялся»: NGO поднимает <see cref="OnClientStopped"/> и на
+        /// неудачном заходе тоже.
+        /// </summary>
+        private bool wasConnectedAsClient;
+
         private void Start()
         {
             networkManager = NetworkManager.Singleton;
@@ -26,8 +35,10 @@ namespace Igruha.Networking
             }
 
             // Подписаться на события отключения
+            networkManager.OnClientConnectedCallback += OnClientConnected;
             networkManager.OnClientDisconnectCallback += OnClientDisconnect;
             networkManager.OnServerStopped += OnServerStopped;
+            networkManager.OnClientStopped += OnClientStopped;
 
             Debug.Log("✅ DisconnectionHandler: Ready for disconnections");
         }
@@ -36,8 +47,22 @@ namespace Igruha.Networking
         {
             if (networkManager != null)
             {
+                networkManager.OnClientConnectedCallback -= OnClientConnected;
                 networkManager.OnClientDisconnectCallback -= OnClientDisconnect;
                 networkManager.OnServerStopped -= OnServerStopped;
+                networkManager.OnClientStopped -= OnClientStopped;
+            }
+        }
+
+        /// <summary>
+        /// Эта машина подключилась к хосту. Отмечаем только своё подключение:
+        /// на сервере этот же колбэк приходит на каждого чужого.
+        /// </summary>
+        private void OnClientConnected(ulong clientId)
+        {
+            if (!networkManager.IsServer && clientId == networkManager.LocalClientId)
+            {
+                wasConnectedAsClient = true;
             }
         }
 
@@ -52,11 +77,24 @@ namespace Igruha.Networking
             if (!networkManager.IsServer)
                 return;
 
+            // Выключение сервера рассылает этот колбэк на каждого подключённого.
+            // Это не уход игрока, а конец сессии: SpawnManager уже разобран,
+            // и обращение к нему падает в NullReference. Выход хоста разбирает
+            // OnServerStopped, ему тут делать нечего.
+            //
+            // Признак именно IsListening: выход из play-режима зовёт
+            // ShutdownInternal напрямую, минуя Shutdown(), поэтому
+            // ShutdownInProgress на этом колбэке ещё false (замерено 15.08).
+            if (!networkManager.IsListening || networkManager.ShutdownInProgress)
+                return;
+
             Debug.LogWarning($"🚪 CLIENT DISCONNECTED: ClientId={clientId}");
 
             // NGO сам despawn'ит PlayerObject отключившегося клиента,
             // здесь только логируем факт для отладки
-            var playerObject = networkManager.SpawnManager.GetPlayerNetworkObject(clientId);
+            var playerObject = networkManager.SpawnManager != null
+                ? networkManager.SpawnManager.GetPlayerNetworkObject(clientId)
+                : null;
             if (playerObject != null)
             {
                 Debug.Log($"   └─ Player object for ClientId={clientId} will be despawned by NGO");
@@ -77,23 +115,50 @@ namespace Igruha.Networking
         // ========== HOST DISCONNECT HANDLING (IGR-58) ==========
 
         /// <summary>
-        /// Callback: хост остановился (выходит из игры или крашится).
-        /// Вызывается на всех клиентах когда сервер прекращает работу.
+        /// Callback: на ЭТОЙ машине остановился сервер. Вопреки прежнему
+        /// комментарию, на чужие машины это событие не приходит: NGO поднимает
+        /// его только там, где сервер крутился.
         /// </summary>
         private void OnServerStopped(bool wasHost)
         {
             Debug.LogWarning($"⚠️  SERVER STOPPED (WasHost={wasHost})");
 
+            ReturnToMainMenu(wasHost ? "Host shut down" : "Server shut down");
+        }
+
+        /// <summary>
+        /// Callback: на этой машине кончилась клиентская сессия — хост вышел,
+        /// упал или порвалась связь.
+        ///
+        /// Для чистого клиента это единственный сигнал о конце матча.
+        /// Прежде обработчик ждал <see cref="OnServerStopped"/>, которого
+        /// клиенту не видать никогда, и уход хоста проходил мимо: замерено
+        /// на стенде 19.08 — хост закрылся, а клиент остался стоять в хабе
+        /// с мёртвым соединением, без единой строки в логе.
+        /// </summary>
+        private void OnClientStopped(bool wasHost)
+        {
+            // У хоста та же остановка уже разобрана в OnServerStopped:
+            // он и сервер, и клиент, и оба события приходят парой.
             if (wasHost)
             {
-                // Хост остановил сервер — все должны вернуться в меню
-                ReturnToMainMenu("Host left the game");
+                return;
             }
-            else
+
+            // Подключения ещё не было — значит это неудачный заход, а не уход
+            // хоста. Разбирать сессию тут нельзя: AppNetworkManager повторяет
+            // заходы до connectionTimeout, и участник, запустивший игру раньше
+            // организатора, иначе навсегда остался бы в офлайновом хабе.
+            // Замерено 19.08: клиент стартовал вместе с хостом, первый заход
+            // не успел, и матч для него на этом кончился.
+            if (!wasConnectedAsClient)
             {
-                // Я был клиентом и потерял соединение с сервером
-                ReturnToMainMenu("Connection lost to host");
+                return;
             }
+
+            wasConnectedAsClient = false;
+            Debug.LogWarning("⚠️  CLIENT STOPPED — хост больше не отвечает");
+            ReturnToMainMenu("Host left the game");
         }
 
         /// <summary>

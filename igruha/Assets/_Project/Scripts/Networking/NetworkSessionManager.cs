@@ -53,6 +53,9 @@ namespace Igruha.Networking
         /// <summary>Кто уже был в особой роли. Живёт на сервере всю катку и переживает смену сцен.</summary>
         private readonly SpecialRoleHistory specialRoles = new SpecialRoleHistory();
 
+        /// <summary>Ушедшие, которых осталось вычеркнуть. Разбирается на ближайшем тике — см. OnClientDisconnected.</summary>
+        private readonly List<ulong> pendingRemovals = new List<ulong>(8);
+
         public event Action ScoresChanged;
 
         public IReadOnlyList<SessionPlayer> Players => mirror;
@@ -96,10 +99,17 @@ namespace Igruha.Networking
 
         private void Update()
         {
-            if (IsSpawned)
+            if (!IsSpawned)
             {
-                ResolveAvatars();
+                return;
             }
+
+            if (IsServer)
+            {
+                ApplyPendingRemovals();
+            }
+
+            ResolveAvatars();
         }
 
         // ========== РОСТЕР (сервер) ==========
@@ -129,15 +139,47 @@ namespace Igruha.Networking
                 return;
             }
 
-            int index = IndexOf((int)clientId);
-            if (index >= 0)
+            // Ростер не трогаем прямо здесь. Этот же колбэк приходит и когда
+            // выключается сам сервер: NGO к тому моменту уже разобрал часть себя,
+            // и запись в NetworkList падает в NullReference.
+            //
+            // Отличить два случая по состоянию NetworkManager нельзя — замерено
+            // 15.08, на обоих ShutdownInProgress=False, IsListening=True,
+            // SpawnManager и SceneManager живые. Поэтому вычёркиваем на ближайшем
+            // тике: при обычном выходе игрока тик будет, при выключении сервера
+            // тиков больше нет и вычёркивать уже нечего и некому.
+            pendingRemovals.Add(clientId);
+        }
+
+        /// <summary>Сервер: вычеркнуть тех, кто вышел, — на живом кадре, а не в колбэке дисконнекта.</summary>
+        private void ApplyPendingRemovals()
+        {
+            if (pendingRemovals.Count == 0)
             {
-                roster.RemoveAt(index);
+                return;
             }
 
-            // Ушедший вычищается из истории вместе с ростером, иначе он вечно
-            // числится «уже побывавшим» и сдвигает выбор следующих ролей.
-            specialRoles.Forget((int)clientId);
+            if (NetworkManager == null || NetworkManager.ShutdownInProgress || !NetworkManager.IsListening)
+            {
+                return;
+            }
+
+            for (int i = 0; i < pendingRemovals.Count; i++)
+            {
+                int clientId = (int)pendingRemovals[i];
+
+                int index = IndexOf(clientId);
+                if (index >= 0)
+                {
+                    roster.RemoveAt(index);
+                }
+
+                // Ушедший вычищается из истории вместе с ростером, иначе он вечно
+                // числится «уже побывавшим» и сдвигает выбор следующих ролей.
+                specialRoles.Forget(clientId);
+            }
+
+            pendingRemovals.Clear();
         }
 
         private void AddToRoster(ulong clientId)

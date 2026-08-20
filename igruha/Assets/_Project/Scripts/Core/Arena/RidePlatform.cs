@@ -1,212 +1,248 @@
-using System.Collections.Generic;
+using System;
+using Unity.Netcode;
 using UnityEngine;
+using Igruha.Core.Minigame;
 using Igruha.Core.Player;
 
 namespace Igruha.Core.Arena
 {
     /// <summary>
-    /// Вертикальная платформа, которая везёт пассажира: лифт Охотника в Duck Hunt,
-    /// подъёмник или транспорт в любой другой игре.
+    /// Вертикальная платформа с пассажиром. Два режима, одновременно работает
+    /// ровно один:
     ///
-    /// Платформа не читает ввод сама — ось приходит снаружи через <see cref="SetMoveAxis"/>.
-    /// Это единственная точка, меняющая её состояние: в сетевой фазе вызов уходит
-    /// за ServerRpc, высота становится NetworkVariable и применяется через
-    /// <see cref="SetHeight"/>, а логика движения ниже не меняется.
+    /// — <see cref="DriveMode.InputAxis"/>: едет туда, куда просит пассажир
+    ///   (лифт Охотника в Duck Hunt);
+    /// — <see cref="DriveMode.Scripted"/>: едет туда, куда сказали правила игры,
+    ///   и пассажир на это не влияет (клетка «Секундомера»).
     ///
-    /// Пассажир возится явной дельтой, а не трением о площадку. Персонаж проекта —
-    /// динамический Rigidbody, которому <see cref="PlayerController"/> каждый физический
-    /// тик перезаписывает горизонтальную скорость и оставляет вертикальную. На подъёме
-    /// его бы дотолкала сама площадка, а вот на спуске он отставал бы от неё и ехал
-    /// серией мелких падений — заметная тряска там, где человек целится.
+    /// <b>Пассажира несёт та машина, которой он принадлежит.</b> Авторитет над
+    /// позицией персонажа у владельца (ClientNetworkTransform), и сервер чужого
+    /// игрока сдвинуть не может — это ограничение IGR-297. Обойти его удаётся
+    /// потому, что сама платформа движется детерминированно: одна и та же
+    /// начальная точка, цель и длительность дают одинаковый путь на всех
+    /// машинах, поэтому расхождения не возникает и синхронизировать пассажира
+    /// отдельно не нужно.
+    ///
+    /// Не отвечает за то, чтобы с платформы нельзя было сойти: борта и крышу
+    /// строит то, что платформу использует (у клетки это прутья и крыша).
     /// </summary>
     [RequireComponent(typeof(Rigidbody))]
     public sealed class RidePlatform : MonoBehaviour
     {
-        /// <summary>Пассажиров на платформе всегда единицы, но коллайдеров у каждого может быть несколько.</summary>
-        private const int MaxOverlapResults = 16;
-
-        [Header("Ход")]
-        [Tooltip("Скорость подъёма и спуска, м/с. Там, где платформа задаёт позицию стрелка, это главный рычаг баланса — держать в конфиге игры, а не подбирать здесь")]
-        [SerializeField] private float speed = 3.25f;
-        [Tooltip("Нижняя граница хода — смещение от той высоты, на которой платформа стоит в сцене, м. Отрицательное опускает её ниже стартовой точки")]
-        [SerializeField] private float minTravel = -1.44f;
-        [Tooltip("Верхняя граница хода — смещение от стартовой высоты, м")]
-        [SerializeField] private float maxTravel = 33.12f;
-
-        [Header("Пассажиры")]
-        [Tooltip("Центр зоны, внутри которой пассажир едет вместе с платформой. Локальные координаты относительно платформы")]
-        [SerializeField] private Vector3 rideZoneCenter = new Vector3(0f, 1.2f, 0f);
-        [Tooltip("Размер зоны пассажиров. Должна накрывать всю площадку и быть выше самого высокого персонажа")]
-        [SerializeField] private Vector3 rideZoneSize = new Vector3(2.88f, 2.4f, 2.88f);
-        [Tooltip("Слои, на которых лежат тела пассажиров")]
-        [SerializeField] private LayerMask passengerLayers = ~0;
-        [Tooltip("Удерживать пассажира в границах площадки. Снимать только там, где сойти на ходу — часть задумки")]
-        [SerializeField] private bool confinePassengers = true;
-        [Tooltip("Отступ от края площадки, на котором держится пассажир, м. Обычно радиус его капсулы — иначе он висит половиной тела за краем")]
-        [SerializeField] private float confineMargin = 0.36f;
-
-        private readonly List<Rigidbody> passengers = new List<Rigidbody>(4);
-        private readonly Collider[] overlapResults = new Collider[MaxOverlapResults];
-
-        private Rigidbody rb;
-        private float startY;
-        private float moveAxis;
-
-        /// <summary>Текущее смещение от стартовой высоты, м. Это и есть состояние, которое поедет в NetworkVariable.</summary>
-        public float Height { get; private set; }
-
-        /// <summary>Платформа стоит в крайней нижней точке хода.</summary>
-        public bool AtBottom => Height <= minTravel + Mathf.Epsilon;
-
-        /// <summary>Платформа стоит в крайней верхней точке хода.</summary>
-        public bool AtTop => Height >= maxTravel - Mathf.Epsilon;
-
-        /// <summary>Платформа реально едет в этом тике. Стрелковым ролям нужен для повышенного разброса в движении.</summary>
-        public bool IsMoving { get; private set; }
-
-        private void Awake()
+        public enum DriveMode
         {
-            rb = GetComponent<Rigidbody>();
-            rb.isKinematic = true;
-            rb.interpolation = RigidbodyInterpolation.Interpolate;
-            startY = rb.position.y;
+            /// <summary>Едет по оси ввода пассажира.</summary>
+            InputAxis,
+            /// <summary>Едет по команде правил игры, ввод игнорируется.</summary>
+            Scripted
+        }
 
-            if (minTravel > maxTravel)
+        [SerializeField] private DriveMode mode = DriveMode.InputAxis;
+        [Tooltip("Скорость хода в режиме оси ввода, м/с")]
+        [SerializeField] private float speed = 3f;
+        [Tooltip("Нижняя граница хода по мировому Y")]
+        [SerializeField] private float minY;
+        [Tooltip("Верхняя граница хода по мировому Y")]
+        [SerializeField] private float maxY = 10f;
+
+        /// <summary>Платформа доехала до заданной отметки в скриптовом режиме.</summary>
+        public event Action Arrived;
+
+        private Rigidbody body;
+        private PlayerController passenger;
+        private Rigidbody passengerBody;
+        private NetworkObject passengerNetwork;
+
+        private float axis;
+        private bool scripted;
+        private float scriptedFrom;
+        private float scriptedTo;
+        private float scriptedDuration;
+        private float scriptedElapsed;
+
+        /// <summary>Момент начала хода на общих часах. Ноль — ход считается кадрами.</summary>
+        private double scriptedStartTime;
+        private bool scriptedFromClock;
+
+        public DriveMode Mode
+        {
+            get => mode;
+            set
             {
-                Debug.LogError($"{name}: нижняя граница хода {minTravel} выше верхней {maxTravel} — платформа не сдвинется.", this);
+                mode = value;
+                axis = 0f;
+                scripted = false;
             }
         }
 
-        /// <summary>
-        /// Задать ось движения: −1 вниз, +1 вверх, 0 стоять. Единственная точка
-        /// входа для управления платформой — в сетевой фазе её зовёт сервер,
-        /// получив ввод владельца через ServerRpc.
-        /// </summary>
-        public void SetMoveAxis(float axis) => moveAxis = Mathf.Clamp(axis, -1f, 1f);
+        /// <summary>Едет ли платформа прямо сейчас.</summary>
+        public bool Moving => mode == DriveMode.Scripted ? scripted : !Mathf.Approximately(axis, 0f);
+
+        public float CurrentY => body != null ? body.position.y : transform.position.y;
+
+        private void Awake()
+        {
+            body = GetComponent<Rigidbody>();
+            body.isKinematic = true;
+            body.useGravity = false;
+            // Без интерполяции платформа дёргается: она движется шагами
+            // FixedUpdate, а кадры рисуются чаще.
+            body.interpolation = RigidbodyInterpolation.Interpolate;
+        }
+
+        /// <summary>Границы хода. Клетка задаёт их по своим уровням.</summary>
+        public void SetLimits(float lower, float upper)
+        {
+            minY = Mathf.Min(lower, upper);
+            maxY = Mathf.Max(lower, upper);
+        }
 
         /// <summary>
-        /// Поставить платформу на заданную высоту немедленно. Нужен клиенту
-        /// сетевой фазы (применить реплицированную высоту) и мини-игре при
-        /// старте раунда — вернуть лифт в исходную точку.
+        /// Кого везём. Пассажир один: и лифт Охотника, и клетка рассчитаны
+        /// ровно на одного.
         /// </summary>
-        public void SetHeight(float height)
+        public void SetPassenger(PlayerController player)
         {
-            Height = Mathf.Clamp(height, minTravel, maxTravel);
-            rb.position = new Vector3(rb.position.x, startY + Height, rb.position.z);
+            passenger = player;
+            passengerBody = player != null ? player.GetComponent<Rigidbody>() : null;
+            passengerNetwork = player != null ? player.GetComponent<NetworkObject>() : null;
+        }
+
+        /// <summary>Ось ввода −1…1. В скриптовом режиме игнорируется.</summary>
+        public void SetAxis(float value)
+        {
+            if (mode != DriveMode.InputAxis)
+            {
+                return;
+            }
+
+            axis = Mathf.Clamp(value, -1f, 1f);
+        }
+
+        /// <summary>
+        /// Доехать до отметки за заданное время. Повторный вызов посреди хода
+        /// перебивает предыдущий: клетка может получить вторую ошибку, не успев
+        /// доехать по первой.
+        /// </summary>
+        public void MoveTo(float targetY, float duration)
+        {
+            if (mode != DriveMode.Scripted)
+            {
+                Debug.LogWarning($"{name}: MoveTo в режиме оси ввода — переключи Mode на Scripted", this);
+                return;
+            }
+
+            scriptedFrom = CurrentY;
+            scriptedTo = Mathf.Clamp(targetY, minY, maxY);
+            scriptedDuration = Mathf.Max(0.01f, duration);
+            scriptedElapsed = 0f;
+            scriptedFromClock = false;
+            scripted = true;
+        }
+
+        /// <summary>
+        /// Тот же ход, но прогресс берётся из общих часов, а не из суммы кадров.
+        /// Нужен там, где платформа обязана быть на одной высоте у всех: каждая
+        /// машина считает по одной формуле от одного момента, поэтому расхождение
+        /// не копится и не зависит от того, кто когда получил команду. Машина,
+        /// получившая команду позже, встаёт сразу на верную высоту и едет дальше.
+        /// </summary>
+        public void MoveTo(float targetY, float duration, double startTime)
+        {
+            MoveTo(targetY, duration);
+            if (!scripted)
+            {
+                return;
+            }
+
+            scriptedStartTime = startTime;
+            scriptedFromClock = true;
+        }
+
+        /// <summary>Поставить платформу на отметку мгновенно — расстановка уровней на старте матча.</summary>
+        public void SnapTo(float y)
+        {
+            scripted = false;
+            Vector3 position = transform.position;
+            position.y = Mathf.Clamp(y, minY, maxY);
+            transform.position = position;
+
+            if (body != null)
+            {
+                body.position = position;
+            }
         }
 
         private void FixedUpdate()
         {
-            CollectPassengers();
-
-            float target = Mathf.Clamp(Height + moveAxis * speed * Time.fixedDeltaTime, minTravel, maxTravel);
-            float delta = target - Height;
-            IsMoving = !Mathf.Approximately(delta, 0f);
-
-            if (IsMoving)
+            float currentY = CurrentY;
+            float nextY = mode == DriveMode.Scripted ? StepScripted() : StepAxis(currentY);
+            float delta = nextY - currentY;
+            if (Mathf.Approximately(delta, 0f))
             {
-                Height = target;
-                rb.MovePosition(new Vector3(rb.position.x, startY + Height, rb.position.z));
-                CarryPassengers(delta);
+                return;
             }
 
-            if (confinePassengers)
+            Vector3 position = body.position;
+            position.y = nextY;
+            body.MovePosition(position);
+            CarryPassenger(delta);
+        }
+
+        private float StepAxis(float currentY)
+        {
+            if (Mathf.Approximately(axis, 0f))
             {
-                ConfinePassengers();
+                return currentY;
             }
+
+            return Mathf.Clamp(currentY + axis * speed * Time.fixedDeltaTime, minY, maxY);
+        }
+
+        private float StepScripted()
+        {
+            if (!scripted)
+            {
+                return CurrentY;
+            }
+
+            scriptedElapsed += Time.fixedDeltaTime;
+            float t = scriptedFromClock
+                ? Mathf.Clamp01((float)(NetworkClock.Now - scriptedStartTime) / scriptedDuration)
+                : Mathf.Clamp01(scriptedElapsed / scriptedDuration);
+            float y = Mathf.Lerp(scriptedFrom, scriptedTo, t);
+
+            if (t >= 1f)
+            {
+                // Доводим ровно до отметки: накопленная ошибка Lerp по шагам
+                // FixedUpdate иначе оставляет клетку в паре миллиметров от уровня,
+                // и за несколько ступеней это становится видно.
+                y = scriptedTo;
+                scripted = false;
+                Arrived?.Invoke();
+            }
+
+            return y;
         }
 
         /// <summary>
-        /// Кто едет прямо сейчас. Опрос объёма вместо OnTrigger-событий: он
-        /// не зависит от порядка событий физики и сам подхватывает пассажира,
-        /// которого телепортировали на площадку (спавн, респавн, старт раунда).
+        /// Сдвинуть пассажира вместе с платформой — но только на его машине.
+        /// На чужой машине его позицией распоряжается её владелец, и попытка
+        /// подвинуть его отсюда даст рывок и откат.
         /// </summary>
-        private void CollectPassengers()
+        private void CarryPassenger(float deltaY)
         {
-            passengers.Clear();
-
-            int count = Physics.OverlapBoxNonAlloc(
-                transform.TransformPoint(rideZoneCenter),
-                rideZoneSize * 0.5f,
-                overlapResults,
-                transform.rotation,
-                passengerLayers,
-                QueryTriggerInteraction.Ignore);
-
-            for (int i = 0; i < count; i++)
+            if (passengerBody == null)
             {
-                PlayerController passenger = overlapResults[i].GetComponentInParent<PlayerController>();
-                if (passenger == null)
-                {
-                    continue;
-                }
-
-                // У персонажа несколько коллайдеров — тело найдётся столько же раз.
-                Rigidbody body = passenger.GetComponent<Rigidbody>();
-                if (body != null && !passengers.Contains(body))
-                {
-                    passengers.Add(body);
-                }
+                return;
             }
-        }
 
-        private void CarryPassengers(float delta)
-        {
-            Vector3 shift = new Vector3(0f, delta, 0f);
-            for (int i = 0; i < passengers.Count; i++)
+            if (passengerNetwork != null && passengerNetwork.IsSpawned && !passengerNetwork.IsOwner)
             {
-                passengers[i].MovePosition(passengers[i].position + shift);
+                return;
             }
-        }
 
-        /// <summary>
-        /// Не дать пассажиру уйти с площадки. Геометрией это не закрыть до конца:
-        /// бортики можно перепрыгнуть, а роль, привязанная к платформе на весь
-        /// раунд, обязана оставаться на ней при любом вводе.
-        /// </summary>
-        private void ConfinePassengers()
-        {
-            Vector3 center = transform.TransformPoint(rideZoneCenter);
-            float halfX = Mathf.Max(0f, rideZoneSize.x * 0.5f - confineMargin);
-            float halfZ = Mathf.Max(0f, rideZoneSize.z * 0.5f - confineMargin);
-
-            for (int i = 0; i < passengers.Count; i++)
-            {
-                Rigidbody body = passengers[i];
-                Vector3 position = body.position;
-                float clampedX = Mathf.Clamp(position.x, center.x - halfX, center.x + halfX);
-                float clampedZ = Mathf.Clamp(position.z, center.z - halfZ, center.z + halfZ);
-
-                if (Mathf.Approximately(clampedX, position.x) && Mathf.Approximately(clampedZ, position.z))
-                {
-                    continue;
-                }
-
-                body.position = new Vector3(clampedX, position.y, clampedZ);
-
-                // Скорость гасим вместе с позицией: иначе пассажир каждый тик
-                // упирается в невидимую границу, продолжая копить импульс.
-                Vector3 velocity = body.linearVelocity;
-                body.linearVelocity = new Vector3(0f, velocity.y, 0f);
-            }
-        }
-
-        private void OnDrawGizmosSelected()
-        {
-            Gizmos.matrix = transform.localToWorldMatrix;
-            Gizmos.color = new Color(0.3f, 0.8f, 1f, 0.35f);
-            Gizmos.DrawWireCube(rideZoneCenter, rideZoneSize);
-
-            // Ход рисуется от стартовой точки: в редакторе это та высота, на
-            // которой платформа лежит в сцене, в игре — та же самая.
-            Gizmos.matrix = Matrix4x4.identity;
-            Gizmos.color = Color.yellow;
-            float baseY = Application.isPlaying ? startY : transform.position.y;
-            Vector3 bottom = new Vector3(transform.position.x, baseY + minTravel, transform.position.z);
-            Vector3 top = new Vector3(transform.position.x, baseY + maxTravel, transform.position.z);
-            Gizmos.DrawLine(bottom, top);
-            Gizmos.DrawWireSphere(bottom, 0.2f);
-            Gizmos.DrawWireSphere(top, 0.2f);
+            passengerBody.MovePosition(passengerBody.position + Vector3.up * deltaY);
         }
     }
 }

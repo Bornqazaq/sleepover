@@ -42,6 +42,13 @@ namespace Igruha.Core.Player
         public bool CrouchHeld { get; private set; }
 
         /// <summary>
+        /// Кнопка взаимодействия зажата. Отдельно от <see cref="InteractPressed"/>:
+        /// есть интерактивы, которые живут всё удержание, а не срабатывают
+        /// разово — кнопка отсчёта в «Секундомере» тикает, пока её держат.
+        /// </summary>
+        public bool InteractHeld { get; private set; }
+
+        /// <summary>
         /// Ложь у персонажей, которыми эта машина не управляет: чужие сетевые
         /// копии и манекены локального теста. Такой ридер нельзя включать снова —
         /// иначе локальные нажатия дёргают сразу всех.
@@ -106,6 +113,7 @@ namespace Igruha.Core.Player
             LookDelta = Vector2.zero;
             JumpPressed = PushPressed = InteractPressed = EmoteHeld = false;
             CrouchHeld = false;
+            InteractHeld = false;
         }
 
         private void Update()
@@ -117,6 +125,7 @@ namespace Igruha.Core.Player
             PushPressed |= WasPressed(pushAction);
             InteractPressed |= WasPressed(interactAction);
             CrouchHeld = crouchAction != null && crouchAction.action.IsPressed();
+            InteractHeld = interactAction != null && interactAction.action.IsPressed();
         }
 
         /// <summary>Сбросить одноразовые нажатия — вызывается потребителем после обработки.</summary>

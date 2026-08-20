@@ -1,6 +1,9 @@
 using Unity.Netcode;
 using Unity.Netcode.Components;
 using UnityEngine;
+using Igruha.Core.Combat;
+using Igruha.Core.Interaction;
+using Igruha.Core.Items;
 using Igruha.Core.Player;
 
 namespace Igruha.Networking
@@ -12,13 +15,28 @@ namespace Igruha.Networking
     /// - Толчки идут через сервер: он валидирует запрос и назначает силу
     /// - Применяет толчок владелец цели, иначе результат будет перетёрт
     /// - Воздействия мира (ловушки, зоны смерти) решает сервер, применяет владелец
+    /// - Взаимодействие с объектами: клиент шлёт намерение, сервер проверяет и исполняет
     /// </summary>
-    public sealed class NetworkPlayerController : NetworkBehaviour, IPushRelay, IWorldEffectRelay
+    public sealed class NetworkPlayerController : NetworkBehaviour, IPushRelay, IWorldEffectRelay, IInteractionRelay, ICombatRelay
     {
         private PlayerController playerController;
         private NetworkTransform networkTransform;
         private CharacterAnimatorDriver animatorDriver;
         private PlayerInputReader inputReader;
+        private PlayerInteractor interactor;
+        private PlayerCarryAbility carryAbility;
+        private ProjectileShooter shooter;
+
+        /// <summary>
+        /// Присед владельца. Состояние, а не событие, поэтому NetworkVariable, а не RPC.
+        ///
+        /// Пишет владелец: присед считает его мотор, у остальных копий мотор выключен.
+        /// Без этой репликации присед видел только сам приседающий — на чужих машинах
+        /// и **на сервере** капсула оставалась в полный рост, а по ней проверяется,
+        /// торчит ли игрок над низким укрытием («Плачущие ангелы», раздел 3.3).
+        /// </summary>
+        private readonly NetworkVariable<bool> crouched = new NetworkVariable<bool>(
+            false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
 
         private void Awake()
         {
@@ -26,6 +44,9 @@ namespace Igruha.Networking
             networkTransform = GetComponent<NetworkTransform>();
             animatorDriver = GetComponent<CharacterAnimatorDriver>();
             inputReader = GetComponent<PlayerInputReader>();
+            interactor = GetComponent<PlayerInteractor>();
+            carryAbility = GetComponent<PlayerCarryAbility>();
+            shooter = GetComponentInChildren<ProjectileShooter>(true);
         }
 
         public override void OnNetworkSpawn()
@@ -43,8 +64,12 @@ namespace Igruha.Networking
                 Debug.LogWarning($"{name}: NetworkPlayerController не нашел NetworkTransform!", this);
             }
 
+            crouched.OnValueChanged += OnCrouchReplicated;
+
             if (!IsOwner)
             {
+                // Состояние могло приехать до спавна этой копии — применяем как есть.
+                ApplyRemoteCrouch(crouched.Value);
                 DisableLocalControl();
                 Debug.Log($"📡 [{name}] Это удалённый персонаж (владелец другого клиента) — синхронизация через NetworkTransform");
             }
@@ -52,6 +77,45 @@ namespace Igruha.Networking
             {
                 Debug.Log($"🎮 [{name}] Это МОЙ персонаж — ввод активен, позиция будет реплицирована");
             }
+        }
+
+        public override void OnNetworkDespawn()
+        {
+            crouched.OnValueChanged -= OnCrouchReplicated;
+            base.OnNetworkDespawn();
+        }
+
+        private void Update()
+        {
+            // Владелец публикует свой присед, остальные его только применяют.
+            if (!IsOwner || playerController == null)
+            {
+                return;
+            }
+
+            if (crouched.Value != playerController.IsCrouched)
+            {
+                crouched.Value = playerController.IsCrouched;
+            }
+        }
+
+        private void OnCrouchReplicated(bool previous, bool current)
+        {
+            if (IsOwner)
+            {
+                // У себя присед уже отыгран мотором — второй раз применять нечего.
+                return;
+            }
+
+            ApplyRemoteCrouch(current);
+        }
+
+        private void ApplyRemoteCrouch(bool value)
+        {
+            playerController?.ApplyReplicatedCrouch(value);
+
+            // Драйвер на копиях выключен, поэтому сжатие модели зовём вручную.
+            animatorDriver?.ApplyCrouchVisual();
         }
 
         /// <summary>
@@ -251,6 +315,133 @@ namespace Igruha.Networking
             }
 
             Debug.Log($"♻️ [{name}] Респавн: перенесён в {position}");
+        }
+
+        // ========== ВЗАИМОДЕЙСТВИЕ С ОБЪЕКТАМИ (кнопки, двери, предметы) ==========
+
+        /// <summary>
+        /// Владелец отправляет серверу намерение «взаимодействую с этим».
+        /// Ничего не исполняет сам: исход решает сервер.
+        /// </summary>
+        public bool TryRelayInteract(GameObject target)
+        {
+            if (!IsSpawned)
+            {
+                // Сети нет — пусть Core выполнит взаимодействие локально.
+                return false;
+            }
+
+            if (!IsOwner || target == null)
+            {
+                // Чужая копия персонажа: намерение уже отправит её владелец.
+                return true;
+            }
+
+            var targetObject = target.GetComponentInParent<NetworkObject>();
+            if (targetObject == null || !targetObject.IsSpawned)
+            {
+                // Адресовать объект по сети нечем. Локально выполнить тоже нельзя:
+                // у остальных состояние тогда разъедется — поэтому просто отказ.
+                Debug.LogWarning($"⛔ [{name}] Взаимодействие с '{target.name}' невозможно: " +
+                                 "у объекта нет заспавненного NetworkObject", this);
+                return true;
+            }
+
+            RequestInteractRpc(new NetworkObjectReference(targetObject));
+            return true;
+        }
+
+        /// <summary>
+        /// Сервер: получить намерение и передать его в единственную точку исполнения.
+        /// Дистанцию и доступность цели проверяет <see cref="PlayerInteractor.ExecuteInteraction"/> —
+        /// проверки живут рядом с правилами, а не размазаны по сетевому слою.
+        /// </summary>
+        [Rpc(SendTo.Server, RequireOwnership = true)]
+        private void RequestInteractRpc(NetworkObjectReference targetReference)
+        {
+            if (!targetReference.TryGet(out NetworkObject targetObject))
+            {
+                return;
+            }
+
+            if (interactor == null)
+            {
+                Debug.LogWarning($"{name}: пришло намерение взаимодействия, но PlayerInteractor не найден", this);
+                return;
+            }
+
+            interactor.ExecuteInteraction(targetObject.gameObject);
+        }
+
+        /// <summary>
+        /// Владелец отправляет серверу намерение расстаться с предметом.
+        /// Сам ничего не бросает: предмет — общий объект, его судьбу решает сервер.
+        /// </summary>
+        public bool TryRelayThrow(bool withImpulse)
+        {
+            if (!IsSpawned)
+            {
+                return false;
+            }
+
+            if (!IsOwner)
+            {
+                return true;
+            }
+
+            RequestThrowRpc(withImpulse);
+            return true;
+        }
+
+        [Rpc(SendTo.Server, RequireOwnership = true)]
+        private void RequestThrowRpc(bool withImpulse)
+        {
+            if (carryAbility == null)
+            {
+                return;
+            }
+
+            carryAbility.ServerThrow(withImpulse);
+        }
+
+        // ========== СТРЕЛЬБА ==========
+
+        /// <summary>
+        /// Владелец отправляет серверу намерение выстрелить.
+        /// Снаряд спавнит сервер — клиент не создаёт его у себя даже на кадр.
+        /// </summary>
+        public bool TryRelayFire(Vector3 direction)
+        {
+            if (!IsSpawned)
+            {
+                return false;
+            }
+
+            if (!IsOwner)
+            {
+                return true;
+            }
+
+            RequestFireRpc(direction);
+            return true;
+        }
+
+        [Rpc(SendTo.Server, RequireOwnership = true)]
+        private void RequestFireRpc(Vector3 direction)
+        {
+            if (shooter == null)
+            {
+                return;
+            }
+
+            // Направление клиента принимаем, но нормализуем и проверяем на мусор:
+            // всё остальное — скорострел, точка вылета, скорость — считает сервер.
+            if (float.IsNaN(direction.x) || float.IsNaN(direction.y) || float.IsNaN(direction.z))
+            {
+                return;
+            }
+
+            shooter.ServerFire(direction);
         }
     }
 }

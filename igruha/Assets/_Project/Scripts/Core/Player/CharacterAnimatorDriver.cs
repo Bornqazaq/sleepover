@@ -106,6 +106,14 @@ namespace Igruha.Core.Player
         /// по гизмо коллайдера, и на плейтесте механику невозможно оценить глазами.
         /// В арт-фазе флаг снимается, и приседание отыгрывает настоящий клип.
         /// </summary>
+        /// <summary>
+        /// Пересчитать сжатие модели под текущую капсулу. Публичный вход нужен
+        /// чужим копиям: у них этот компонент выключен (иначе он затирал бы
+        /// параметры, пришедшие через NetworkAnimator), но присед показать надо —
+        /// зовёт NetworkPlayerController, получив состояние по сети.
+        /// </summary>
+        public void ApplyCrouchVisual() => UpdateCrouchSquash();
+
         private void UpdateCrouchSquash()
         {
             if (!squashVisualOnCrouch || visualRoot == null || capsule == null || standingHeight <= 0f)

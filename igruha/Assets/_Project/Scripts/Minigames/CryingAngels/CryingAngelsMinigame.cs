@@ -87,12 +87,15 @@ namespace Igruha.Minigames.CryingAngels
 
         private readonly List<RunnerRecord> runners = new List<RunnerRecord>(8);
         private readonly List<int> placementOrder = new List<int>(8);
+        /// <summary>Буфер под состав Бегущих для сети: переиспользуется, чтобы не аллоцировать на раздаче ролей.</summary>
+        private readonly List<int> runnerIds = new List<int>(8);
         // Списки под VisionCone.Evaluate: переиспользуются, чтобы не аллоцировать в FixedUpdate.
         private readonly List<Collider> runnerBodies = new List<Collider>(8);
         private readonly List<PetrifiedStatue> statues = new List<PetrifiedStatue>(8);
         private readonly Dictionary<Collider, RunnerRecord> runnerByBody = new Dictionary<Collider, RunnerRecord>(8);
         private VisionCone keeperVision;
 
+        private CryingAngelsNetwork network;
         private PlayerController keeperAvatar;
         private AngelKeeper keeper;
         private KeeperTouchZone touchZone;
@@ -101,6 +104,8 @@ namespace Igruha.Minigames.CryingAngels
         private float countdownRemaining;
         private float roundElapsed;
         private int touchCounter;
+        /// <summary>Про сбившийся состав луча ругаемся один раз за раунд, а не каждый физический такт.</summary>
+        private bool beamMismatchReported;
 
         /// <summary>Фонарь Водящего горит: отсчёт кончился, раунд идёт. Гейт для KeeperBeam (14.4).</summary>
         public bool BeamEnabled { get; private set; }
@@ -134,6 +139,18 @@ namespace Igruha.Minigames.CryingAngels
             }
         }
 
+        protected override void Awake()
+        {
+            base.Awake();
+
+            // Сетевой половины может не быть вовсе: сцену открывают напрямую
+            // для соло-теста, и тогда правила работают как обычный MonoBehaviour.
+            network = GetComponent<CryingAngelsNetwork>();
+        }
+
+        /// <summary>Идёт сетевая катка и сетевая половина живая.</summary>
+        private bool Networked => network != null && network.IsActive;
+
         protected override void OnPlayersReady()
         {
             CacheArenaCenter();
@@ -144,16 +161,74 @@ namespace Igruha.Minigames.CryingAngels
         {
             roundElapsed = 0f;
             countdownRemaining = config != null ? config.StartCountdown : 0f;
+            beamMismatchReported = false;
+            ResetRunnersForRound();
             SetBeamEnabled(false);
             SetDummyBotsRunning(true);
+        }
+
+        /// <summary>
+        /// Вернуть Бегущих в исходное состояние раунда.
+        ///
+        /// Без этого второй раунд подряд ломается: дошедший до постамента
+        /// вычеркнут из целей луча и помечен дошедшим, а раздача ролей —
+        /// единственное место, где записи собирались заново, — на новый раунд
+        /// не зовётся. В итоге луч физически видит игрока, но не считает его
+        /// целью: ни заморозки, ни счётчика. Замерено 16.08 на host + client.
+        ///
+        /// Начало раунда обязано быть самодостаточным: этого ждёт и rematch
+        /// из EPIC 4, и любой возврат в ту же сцену.
+        /// </summary>
+        private void ResetRunnersForRound()
+        {
+            touchCounter = 0;
+
+            for (int i = 0; i < runners.Count; i++)
+            {
+                RunnerRecord runner = runners[i];
+                runner.Touched = false;
+                runner.TouchTime = 0f;
+                runner.TouchOrder = 0;
+                runner.BestRadius = float.MaxValue;
+                runner.BestRadiusTime = 0f;
+                runner.State?.ResetState();
+
+                if (runner.Avatar != null && !runner.Avatar.gameObject.activeSelf)
+                {
+                    runner.Avatar.gameObject.SetActive(true);
+                }
+            }
+
+            // Списки конуса собираются из тех же записей — их надо пересобрать
+            // после возврата снятых, иначе цели так и останутся вычеркнутыми.
+            RebindVision();
+            BindVignette();
+
+            if (spectator != null && spectator.IsActive)
+            {
+                spectator.Deactivate();
+            }
+
+            PublishRunnerStates();
         }
 
         protected override void OnRoundEnded()
         {
             SetDummyBotsRunning(false);
-            RestoreTouchedRunners();
+            RestoreRunnersAfterRound();
             SetBeamEnabled(false);
             ReleaseAllRunners();
+
+            // Роль Водящего снимаем здесь, а не при следующей раздаче: персонаж
+            // переезжает между сценами живым, и вместе с ним уезжали блокировка
+            // движения, иммунитет к толчкам и выключенный удар. В хабе бывший
+            // Водящий оказывался обездвиженным и неуязвимым — причём только он,
+            // остальные ходили, и на баг это было похоже меньше всего.
+            if (keeperAvatar != null)
+            {
+                ClearKeeper(keeperAvatar);
+            }
+            PublishRunnerStates();
             ClearStatues();
             vignette?.Track(null);
             Hud?.HideCountdown();
@@ -171,17 +246,35 @@ namespace Igruha.Minigames.CryingAngels
 
         private void FixedUpdate()
         {
-            // Отсчёт и прогресс — исход раунда, поэтому считает только авторитет.
-            if (!RoundActive || !HasAuthority)
+            if (!RoundActive)
             {
                 return;
             }
 
-            roundElapsed += Time.fixedDeltaTime;
-            TickCountdown();
+            float deltaTime = Time.fixedDeltaTime;
+
+            // Отсчёт крутится у всех: это надпись на экране. Ждать её из сети
+            // значило бы показывать клиенту застывшую тройку — а вот сам момент,
+            // когда загорается фонарь, объявляет сервер (см. TickCountdown).
+            TickCountdown(deltaTime);
+
+            // Луч доводится до желаемого прямо перед расчётом засветки: конус и
+            // решение по нему обязаны быть одного такта, иначе на разворотах
+            // теряется до двух градусов — на границе конуса это уже разница
+            // между «поймал» и «не поймал».
+            network?.ServerTickBeamYaw(deltaTime, KeeperTurnSpeed);
+
+            // Прогресс и исход считает только авторитет.
+            if (!HasAuthority)
+            {
+                return;
+            }
+
+            roundElapsed += deltaTime;
             TrackRunnerProgress();
             EvaluateBeam();
             EvaluateTouches();
+            PublishRunnerStates();
         }
 
         /// <summary>
@@ -227,18 +320,25 @@ namespace Igruha.Minigames.CryingAngels
         /// Бегущие расходятся — не горит только фонарь. Так у них есть фора,
         /// а Водящий не смотрит в пустой зал.
         /// </summary>
-        private void TickCountdown()
+        private void TickCountdown(float deltaTime)
         {
             if (countdownRemaining <= 0f)
             {
                 return;
             }
 
-            countdownRemaining -= Time.fixedDeltaTime;
-            if (countdownRemaining <= 0f)
+            countdownRemaining -= deltaTime;
+            if (countdownRemaining > 0f)
             {
-                countdownRemaining = 0f;
-                Hud?.HideCountdown();
+                return;
+            }
+
+            countdownRemaining = 0f;
+            Hud?.HideCountdown();
+
+            // Фонарь — исход раунда: клиент дожидается сети, а не зажигает свой.
+            if (HasAuthority)
+            {
                 SetBeamEnabled(true);
             }
         }
@@ -249,7 +349,7 @@ namespace Igruha.Minigames.CryingAngels
         /// </summary>
         private void EvaluateBeam()
         {
-            if (!BeamEnabled || keeperVision == null)
+            if (!BeamEnabled || !EnsureBeamTargets())
             {
                 return;
             }
@@ -296,7 +396,81 @@ namespace Igruha.Minigames.CryingAngels
             keeper.SetBeamColor(Color.Lerp(config.BeamColorIdle, config.BeamColorPetrifying, progress));
         }
 
+        /// <summary>Решение авторитета: фонарь загорелся или погас.</summary>
         private void SetBeamEnabled(bool enabled)
+        {
+            ApplyBeamEnabled(enabled);
+            network?.PublishBeam(enabled);
+        }
+
+        /// <summary>
+        /// Сколько Бегущих луч обязан держать целями прямо сейчас: все, кто
+        /// ещё в раунде и у кого есть тело.
+        /// </summary>
+        private int CountBeamTargets()
+        {
+            int expected = 0;
+            for (int i = 0; i < runners.Count; i++)
+            {
+                RunnerRecord runner = runners[i];
+                if (!runner.Touched && runner.Body != null)
+                {
+                    expected++;
+                }
+            }
+
+            return expected;
+        }
+
+        /// <summary>
+        /// Сверить цели луча с составом и починить, если разошлись. Ложь —
+        /// светить нечем: конуса нет, считать засветку не по чему.
+        ///
+        /// Проверка живёт в такте луча, а не в одной точке на зажигании фонаря.
+        /// Список тел и конус собираются только в <see cref="RebindVision"/>,
+        /// то есть на раздаче ролей и на старте раунда, а между ними никто не
+        /// проверял, что они всё ещё описывают тот же состав. Раунд с
+        /// разошедшимся списком проходит вхолостую и молча: игрок стоит в луче,
+        /// целью не считается, ни заморозки, ни счётчика, ни строчки в консоли.
+        /// Ровно так выглядела жалоба с плейтеста 16.08 — «иду к свету и ничего».
+        ///
+        /// Стоит это перебора по Бегущим (их не больше семи) и сравнения двух
+        /// чисел — дешевле, чем раунд, который игрок считает сломанной игрой.
+        /// Ругаемся один раз за раунд: чинит проверка молча, а причину надо
+        /// видеть в консоли.
+        /// </summary>
+        private bool EnsureBeamTargets()
+        {
+            int expected = CountBeamTargets();
+            if (runnerBodies.Count == expected && keeperVision != null)
+            {
+                return true;
+            }
+
+            if (!beamMismatchReported)
+            {
+                beamMismatchReported = true;
+                Debug.LogWarning($"🕯️ Плачущие ангелы: луч сбился с состава — целей {runnerBodies.Count} " +
+                                 $"при {expected} Бегущих, конус {(keeperVision != null ? "есть" : "ПОТЕРЯН")}. " +
+                                 "Пересобираю: без этого раунд прошёл бы без заморозок", this);
+            }
+
+            RebindVision();
+
+            if (keeperVision != null)
+            {
+                return true;
+            }
+
+            // Конус пересборкой не вернуть: он живёт на риге Водящего, а его
+            // в раунде нет. Такой раунд обязан был закончиться в DropKeeper.
+            return false;
+        }
+
+        /// <summary>Фонарь переключил сервер — применяем у себя.</summary>
+        public void ApplyNetworkBeam(bool enabled) => ApplyBeamEnabled(enabled);
+
+        private void ApplyBeamEnabled(bool enabled)
         {
             if (BeamEnabled == enabled)
             {
@@ -431,12 +605,296 @@ namespace Igruha.Minigames.CryingAngels
                 SessionScoreboard.Current?.MarkSpecialRole(keeperPlayerId, KeeperRoleKey);
             }
 
+            // Расклад уходит в сеть до настройки луча: направление, с которого
+            // луч стартует, задаётся здесь же.
+            PublishRoles();
+
+            // Одна строка в консоль на каждую раздачу: по ней с плейтеста видно,
+            // собрался ли состав и досталась ли роль. Без неё «у меня не
+            // работает» приходится воспроизводить вслепую.
+            //
+            // Про отсутствие Водящего предупреждает только авторитет. У клиента
+            // первая раздача идёт всегда до того, как расклад приедет из сети,
+            // то есть «Водящего нет» там — норма, а не поломка: предупреждение
+            // в его консоли сбивало бы с толку ровно в том разборе, ради
+            // которого эти строки и заведены.
+            if (keeperPlayerId != SpecialRoleHistory.NoPlayer)
+            {
+                Debug.Log($"🕯️ Плачущие ангелы: Водящий — игрок {keeperPlayerId}, Бегущих {runners.Count}, " +
+                          $"потолок поворота {KeeperTurnSpeed:F0}°/с");
+            }
+            else if (HasAuthority)
+            {
+                Debug.LogWarning($"🕯️ Плачущие ангелы: Водящего НЕТ (участников {Players.Count}). " +
+                                 "Фонарь не загорится: роль раздаётся с двух участников", this);
+            }
+
             RebindVision();
             BindVignette();
             SetDummyBotsRunning(RoundActive);
             keeper?.ApplyTurnSpeed(firstPersonRig, KeeperTurnSpeed);
             keeper?.SetBeamVisible(BeamEnabled);
+            network?.ConfigureKeeper(keeper, IsLocal(keeperPlayerId), firstPersonRig);
             ApplyRoleCamera();
+        }
+
+        /// <summary>
+        /// Сервер объявляет расклад раунда: кому выпала роль и кто в списке
+        /// Бегущих. У остальных машин этот же расклад приезжает репликацией и
+        /// вызывает пересдачу через <see cref="ApplyNetworkKeeper"/>.
+        /// </summary>
+        private void PublishRoles()
+        {
+            if (!Networked || !HasAuthority)
+            {
+                return;
+            }
+
+            PublishRunnerRoster();
+
+            // Луч стартует оттуда, куда развёрнуто тело: иначе он на первом
+            // кадре смотрит в нулевой азимут и ползёт к игроку с потолком
+            // скорости — до двух секунд светит мимо.
+            float startYaw = keeperAvatar != null ? keeperAvatar.transform.eulerAngles.y : 0f;
+            network.PublishKeeper(keeperPlayerId, startYaw);
+        }
+
+        /// <summary>
+        /// Отдать в сеть только состав Бегущих. Отдельно от <see cref="PublishRoles"/>
+        /// потому, что тот заодно перезадаёт стартовое направление луча: при
+        /// уходе одного из Бегущих это дёрнуло бы фонарь Водящего на ровном месте.
+        /// </summary>
+        private void PublishRunnerRoster()
+        {
+            if (!Networked || !HasAuthority)
+            {
+                return;
+            }
+
+            runnerIds.Clear();
+            for (int i = 0; i < runners.Count; i++)
+            {
+                runnerIds.Add(runners[i].PlayerId);
+            }
+
+            network.ServerSyncRoster(runnerIds);
+        }
+
+        // ========== ПРИЁМ СЕТЕВОГО СОСТОЯНИЯ ==========
+
+        /// <summary>
+        /// Роль приехала с сервера. Пересдаём расклад целиком: раздача ролей
+        /// идемпотентна, ровно ей же пользуется отладочная пересдача по клавише.
+        /// </summary>
+        public void ApplyNetworkKeeper()
+        {
+            if (Players.Count == 0)
+            {
+                return;
+            }
+
+            AssignRoles();
+        }
+
+        /// <summary>Состояние Бегущего решено сервером — применяем у себя.</summary>
+        public void ApplyNetworkRunnerState(
+            int playerId,
+            RunnerState.Phase phase,
+            int freezePose,
+            float freezePoseTime,
+            float petrifyProgress,
+            bool finished)
+        {
+            RunnerRecord runner = FindRunner(playerId);
+            if (runner == null)
+            {
+                return;
+            }
+
+            RunnerState.Phase before = runner.State != null ? runner.State.Current : RunnerState.Phase.Free;
+            runner.State?.ApplyNetworkState(phase, freezePose, freezePoseTime, petrifyProgress);
+
+            // Статую ставит каждая машина у себя по тому же переходу состояния:
+            // это укрытие, а не эффект, и на клиентах оно обязано быть.
+            if (before != RunnerState.Phase.Petrified && phase == RunnerState.Phase.Petrified)
+            {
+                TrySpawnStatue(runner);
+            }
+
+            if (finished && !runner.Touched)
+            {
+                runner.Touched = true;
+
+                // Снимать дошедшего с арены имеет смысл только внутри раунда.
+                // Если флаг приехал уже к результатам, аватар обязан остаться:
+                // конец раунда только что вернул туда всех.
+                if (RoundActive)
+                {
+                    ApplyRunnerRetired(runner);
+                }
+            }
+            else if (!finished && runner.Touched)
+            {
+                // Сервер пересдал расклад: дошедший снова в игре. Без обратного
+                // хода его аватар остался бы снятым весь следующий раунд.
+                runner.Touched = false;
+                ApplyRunnerReturned(runner);
+            }
+        }
+
+        /// <summary>
+        /// Состав Бегущих приехал с сервера: убрать тех, кого в нём больше нет.
+        /// Ушедший иначе остался бы в списке с уничтоженным аватаром и попал бы
+        /// в сортировку мест.
+        /// </summary>
+        public void ApplyNetworkRunnerRoster(IReadOnlyList<int> playerIds)
+        {
+            for (int i = runners.Count - 1; i >= 0; i--)
+            {
+                bool present = false;
+                for (int j = 0; j < playerIds.Count; j++)
+                {
+                    if (playerIds[j] == runners[i].PlayerId)
+                    {
+                        present = true;
+                        break;
+                    }
+                }
+
+                if (!present)
+                {
+                    DropRunner(i);
+                }
+            }
+        }
+
+        // ========== УХОД ИГРОКА ==========
+
+        /// <summary>
+        /// Игрок вышел из матча. Зовёт сетевой слой на ближайшем тике после
+        /// дисконнекта — только у сервера.
+        ///
+        /// Правило спеки (раздел 10.2): уход Водящего заканчивает раунд сразу,
+        /// потому что светить больше некому и оставшиеся 90 секунд Бегущие
+        /// просто шли бы к пустому постаменту. Уход Бегущего раунд не трогает.
+        /// </summary>
+        public void HandlePlayerLeft(int playerId)
+        {
+            if (!HasAuthority)
+            {
+                return;
+            }
+
+            bool wasKeeper = playerId == keeperPlayerId;
+
+            RemoveRunner(playerId);
+            RemoveStatuesOf(playerId);
+
+            // Из состава раунда — иначе ушедший получит место в результатах.
+            RemovePlayer(playerId);
+
+            if (wasKeeper)
+            {
+                DropKeeper();
+                PublishRunnerRoster();
+                EndMinigame();
+                return;
+            }
+
+            PublishRunnerRoster();
+
+            // Последний Бегущий вышел — светить не в кого, дожидаться нечего.
+            if (RoundActive && runners.Count == 0)
+            {
+                EndMinigame();
+            }
+        }
+
+        /// <summary>Водящего в раунде больше нет: гасим фонарь и снимаем роль с учёта.</summary>
+        private void DropKeeper()
+        {
+            SetBeamEnabled(false);
+
+            keeperPlayerId = SpecialRoleHistory.NoPlayer;
+            keeperAvatar = null;
+            keeper = null;
+            touchZone = null;
+
+            // Конус жил на аватаре ушедшего: пересобираем привязку, иначе
+            // остаёмся подписанными на события уничтоженного объекта.
+            RebindVision();
+
+            // Роль обязана уехать в сеть отдельно: иначе у клиентов Водящим
+            // до конца раунда числится тот, кого в матче уже нет.
+            network?.PublishKeeper(SpecialRoleHistory.NoPlayer, 0f);
+            network?.ConfigureKeeper(null, false, firstPersonRig);
+        }
+
+        private void RemoveRunner(int playerId)
+        {
+            for (int i = 0; i < runners.Count; i++)
+            {
+                if (runners[i].PlayerId == playerId)
+                {
+                    DropRunner(i);
+                    return;
+                }
+            }
+        }
+
+        private void DropRunner(int index)
+        {
+            RunnerRecord runner = runners[index];
+            if (runner.Body != null)
+            {
+                runnerBodies.Remove(runner.Body);
+                runnerByBody.Remove(runner.Body);
+            }
+
+            runners.RemoveAt(index);
+        }
+
+        /// <summary>Статуи ушедшего снимаются вместе с ним: укрытие от того, кого в матче нет, — подарок остальным.</summary>
+        private void RemoveStatuesOf(int playerId)
+        {
+            for (int i = statues.Count - 1; i >= 0; i--)
+            {
+                PetrifiedStatue statue = statues[i];
+                if (statue == null || statue.OwnerId == playerId)
+                {
+                    statue?.Remove();
+                    statues.RemoveAt(i);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Отдать в сеть состояния Бегущих. В сеть уходит только изменившееся,
+        /// поэтому вызов в каждом такте ничего не стоит, пока на арене тихо.
+        /// </summary>
+        private void PublishRunnerStates()
+        {
+            if (!Networked || !HasAuthority)
+            {
+                return;
+            }
+
+            for (int i = 0; i < runners.Count; i++)
+            {
+                RunnerRecord runner = runners[i];
+                if (runner.State == null)
+                {
+                    continue;
+                }
+
+                network.ServerSyncRunner(
+                    runner.PlayerId,
+                    runner.State.Current,
+                    runner.State.FreezePose,
+                    runner.State.FreezePoseTime,
+                    runner.State.PetrifyProgress,
+                    runner.Touched);
+            }
         }
 
         private RunnerRecord CreateRunner(int playerId, PlayerController avatar)
@@ -447,13 +905,18 @@ namespace Igruha.Minigames.CryingAngels
                 state = avatar.gameObject.AddComponent<RunnerState>();
             }
 
+            // Роль могла уходить в Водящие и вернуться — компоненты в этом
+            // случае погашены, а не сняты (см. ClearRunnerLeftovers).
+            state.enabled = true;
             state.Configure(config);
             state.ResetState();
 
-            if (avatar.GetComponent<FreezePoseDriver>() == null)
+            if (!avatar.TryGetComponent(out FreezePoseDriver poseDriver))
             {
-                avatar.gameObject.AddComponent<FreezePoseDriver>();
+                poseDriver = avatar.gameObject.AddComponent<FreezePoseDriver>();
             }
+
+            poseDriver.enabled = true;
 
             return new RunnerRecord
             {
@@ -541,7 +1004,11 @@ namespace Igruha.Minigames.CryingAngels
             for (int i = 0; i < runners.Count; i++)
             {
                 RunnerRecord runner = runners[i];
-                if (runner.Body == null)
+
+                // Дошедшего в цели не возвращаем: он уже снят с арены. Иначе
+                // пересборка посреди раунда воскрешала бы его как цель, и
+                // сверка состава расходилась бы на каждом такте.
+                if (runner.Touched || runner.Body == null)
                 {
                     continue;
                 }
@@ -604,6 +1071,7 @@ namespace Igruha.Minigames.CryingAngels
             }
 
             component.Attach(keeperRigPrefab);
+            ClearRunnerLeftovers(avatar);
             SetupKeeperBot(avatar, component);
 
             // Зона касания висит на самом Водящем, а не на постаменте: трогают
@@ -616,6 +1084,32 @@ namespace Igruha.Minigames.CryingAngels
 
             touchZone.Configure(config != null ? config.TouchRadius : 0f);
             return component;
+        }
+
+        /// <summary>
+        /// Снять с Водящего следы роли Бегущего. В сетевой катке роль приезжает
+        /// вторым заходом: на первой раздаче клиент ещё не знает Водящего и
+        /// заводит Бегущего каждому, включая будущего Водящего. Оставленный
+        /// <see cref="FreezePoseDriver"/> держал бы на нём стоп-кадр анимации.
+        ///
+        /// Компоненты гасим, а не удаляем: <see cref="Destroy"/> откладывается
+        /// до конца кадра, а <see cref="FreezePoseDriver"/> требует
+        /// <see cref="RunnerState"/> — Unity откажется снимать состояние, пока
+        /// на объекте висит зависящий от него драйвер, и напишет об этом
+        /// в консоль. Пересдача роли обратно в Бегущие включает их снова.
+        /// </summary>
+        private static void ClearRunnerLeftovers(PlayerController avatar)
+        {
+            if (avatar.TryGetComponent(out FreezePoseDriver poseDriver))
+            {
+                poseDriver.enabled = false;
+            }
+
+            if (avatar.TryGetComponent(out RunnerState leftover))
+            {
+                leftover.ResetState();
+                leftover.enabled = false;
+            }
         }
 
         private static void ClearKeeper(PlayerController avatar)
@@ -689,7 +1183,7 @@ namespace Igruha.Minigames.CryingAngels
                 return;
             }
 
-            PetrifiedStatue statue = PetrifiedStatue.Create(capsule, LayerMask.NameToLayer(CoverLayerName), transform);
+            PetrifiedStatue statue = PetrifiedStatue.Create(capsule, LayerMask.NameToLayer(CoverLayerName), transform, runner.PlayerId);
             if (statue != null)
             {
                 statues.Add(statue);
@@ -760,21 +1254,33 @@ namespace Igruha.Minigames.CryingAngels
             ISessionScoreboard scoreboard = SessionScoreboard.Current;
             if (scoreboard == null || !scoreboard.HasAuthority)
             {
-                // Клиент роль не выбирает — придёт из сети. До этого момента
-                // ростер уже одинаков, поэтому берём первого детерминированно.
-                return 0;
+                // Клиент роль не выбирает — она приезжает из сети. Пока не
+                // приехала, Водящего нет вовсе: назначить наугад значило бы
+                // обездвижить не того игрока и повесить ему на голову фонарь.
+                return IndexOfPlayer(network != null ? network.KeeperPlayerId : SpecialRoleHistory.NoPlayer);
             }
 
             int pickedId = scoreboard.PickSpecialRole(KeeperRoleKey);
+            int picked = IndexOfPlayer(pickedId);
+            return picked >= 0 ? picked : 0;
+        }
+
+        private int IndexOfPlayer(int playerId)
+        {
+            if (playerId == SpecialRoleHistory.NoPlayer)
+            {
+                return -1;
+            }
+
             for (int i = 0; i < Players.Count; i++)
             {
-                if (Players[i].Id == pickedId)
+                if (Players[i].Id == playerId)
                 {
                     return i;
                 }
             }
 
-            return 0;
+            return -1;
         }
 
         private void MoveTo(PlayerController avatar, SpawnPoint point)
@@ -863,6 +1369,16 @@ namespace Igruha.Minigames.CryingAngels
                 runnerByBody.Remove(runner.Body);
             }
 
+            ApplyRunnerRetired(runner);
+        }
+
+        /// <summary>
+        /// Видимая половина ухода — она обязана отработать на каждой машине,
+        /// поэтому вынесена из серверного учёта: у авторитета её зовёт
+        /// <see cref="RetireRunner"/>, у остальных — приехавший флаг «дошёл».
+        /// </summary>
+        private void ApplyRunnerRetired(RunnerRecord runner)
+        {
             // Аватар снимается до передачи камеры наблюдателю, а не после:
             // наблюдатель выбирает первую живую цель в момент включения, и на
             // ещё живом своём теле он выберет самого игрока — тот на кадр
@@ -881,6 +1397,27 @@ namespace Igruha.Minigames.CryingAngels
             }
         }
 
+        /// <summary>Обратный ход к <see cref="ApplyRunnerRetired"/>: игрок снова в раунде.</summary>
+        private void ApplyRunnerReturned(RunnerRecord runner)
+        {
+            if (runner.Avatar != null && !runner.Avatar.gameObject.activeSelf)
+            {
+                runner.Avatar.gameObject.SetActive(true);
+            }
+
+            if (!IsLocal(runner.PlayerId))
+            {
+                return;
+            }
+
+            if (spectator != null && spectator.IsActive)
+            {
+                spectator.Deactivate();
+            }
+
+            vignette?.Track(runner.State);
+        }
+
         private static bool IsLocal(int playerId)
         {
             SessionPlayer local = SessionScoreboard.Current?.LocalPlayer;
@@ -888,18 +1425,28 @@ namespace Igruha.Minigames.CryingAngels
         }
 
         /// <summary>
-        /// К экрану результатов дошедшие возвращаются на арену: их сняли только
+        /// К экрану результатов снятые возвращаются на арену: их убрали только
         /// на время раунда, а на итогах в зале обязаны стоять все.
+        ///
+        /// Возвращаются все записи, а не только помеченные дошедшими: у клиента
+        /// флаг «дошёл» и фаза раунда приезжают разными сообщениями, и порядок
+        /// их прихода ничем не задан. Когда фаза обгоняла флаг, клиент
+        /// заканчивал раунд, ещё ничего не восстановив, а следом прятал аватар —
+        /// и на экране результатов свой Бегущий пропадал с арены, хотя у
+        /// остальных он там стоял. Замерено 16.08 на host + client.
         ///
         /// Наблюдение при этом не выключается: выход из него вернул бы игроку
         /// управление, а на результатах все стоят на месте по правилам шаблона.
+        ///
+        /// Флаг «дошёл» здесь не трогаем: по нему сразу после этого считаются
+        /// места (<see cref="CollectResults"/>), а чистит его начало раунда.
         /// </summary>
-        private void RestoreTouchedRunners()
+        private void RestoreRunnersAfterRound()
         {
             for (int i = 0; i < runners.Count; i++)
             {
                 RunnerRecord runner = runners[i];
-                if (runner.Touched && runner.Avatar != null)
+                if (runner.Avatar != null && !runner.Avatar.gameObject.activeSelf)
                 {
                     runner.Avatar.gameObject.SetActive(true);
                 }

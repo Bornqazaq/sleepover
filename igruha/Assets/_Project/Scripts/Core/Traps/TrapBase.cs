@@ -1,11 +1,16 @@
 using System;
 using UnityEngine;
+using Igruha.Core.Session;
 
 namespace Igruha.Core.Traps
 {
     /// <summary>
-    /// База ловушки: Activate — публичная точка входа (позже server-authoritative),
-    /// кулдаун общий. Конкретные ловушки реализуют OnActivated.
+    /// База ловушки: Activate — публичная точка входа, кулдаун общий.
+    /// Конкретные ловушки реализуют OnActivated.
+    ///
+    /// Срабатывание — исход раунда, поэтому решает его только сервер.
+    /// Намерение игрока доезжает сюда через серверное взаимодействие
+    /// (PlayerInteractor → сервер → TrapActivationButton.Interact).
     /// </summary>
     public abstract class TrapBase : MonoBehaviour
     {
@@ -21,6 +26,11 @@ namespace Igruha.Core.Traps
 
         private float cooldownTimer;
 
+        /// <summary>
+        /// На клиенте всегда true: кулдаун тикает только у авторитета, и клиент
+        /// про него не знает. Это подсказка для UI, а не решение — отказ по
+        /// кулдауну выносит сервер в <see cref="Activate"/>.
+        /// </summary>
         public bool IsReady => cooldownTimer <= 0f;
 
         /// <summary>Сколько осталось до готовности, с. Ноль — готова.</summary>
@@ -28,7 +38,11 @@ namespace Igruha.Core.Traps
 
         protected virtual void Update()
         {
-            if (cooldownTimer <= 0f)
+            // Обе проверки обязательны. Авторитет — потому что кулдаун тикает
+            // только у сервера. Нулевой таймер — потому что иначе строка ниже
+            // каждый кадр объявляет ловушку снова готовой, и кнопка мигает
+            // событием ReadyChanged бесконечно.
+            if (!WorldAuthority.HasAuthority || cooldownTimer <= 0f)
             {
                 return;
             }
@@ -42,6 +56,14 @@ namespace Igruha.Core.Traps
 
         public void Activate()
         {
+            // Клиент сюда попасть может — например, своим локальным нажатием
+            // до того, как намерение уйдёт на сервер. Молча выходим: сработает
+            // серверная копия, и её результат приедет всем.
+            if (!WorldAuthority.HasAuthority)
+            {
+                return;
+            }
+
             if (!IsReady)
             {
                 return;

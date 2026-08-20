@@ -1,6 +1,10 @@
+using Igruha.Core.Scenes;
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using Igruha.Core.Player;
 using Igruha.Core.Session;
 using Igruha.Core.UI;
@@ -22,6 +26,12 @@ namespace Igruha.Core.Minigame
         [SerializeField] private RoundTimer roundTimer;
         [SerializeField] private TutorialScreen tutorialScreen;
         [SerializeField] private RoundHud hud;
+
+        [Header("Возврат в хаб")]
+        [Tooltip("Сколько секунд показывать места, прежде чем всех вернёт в хаб")]
+        [SerializeField] private float resultsDisplaySeconds = 12f;
+        [Tooltip("Имя сцены хаба в Build Settings")]
+        [SerializeField] private string hubSceneName = "Hub";
 
         private readonly MinigameResults results = new MinigameResults();
         private readonly List<SessionPlayer> playerList = new List<SessionPlayer>(8);
@@ -83,6 +93,30 @@ namespace Igruha.Core.Minigame
             }
 
             GoToPhase(tutorialScreen != null ? MinigamePhase.Tutorial : MinigamePhase.Round);
+        }
+
+        /// <summary>
+        /// Участник вышел из матча: убрать его из состава раунда.
+        ///
+        /// Состав копируется на старте мини-игры и дальше живёт своей жизнью,
+        /// поэтому чистки ростера сессии мало: оставшийся в списке беглец
+        /// получит место в результатах, хотя его в матче уже нет. Зовёт правило
+        /// конкретной игры — только у авторитета, он один знает про уход.
+        /// </summary>
+        protected bool RemovePlayer(int playerId)
+        {
+            for (int i = 0; i < playerList.Count; i++)
+            {
+                if (playerList[i].Id != playerId)
+                {
+                    continue;
+                }
+
+                playerList.RemoveAt(i);
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>Завершение раунда: по таймеру или досрочно правилами игры.</summary>
@@ -181,6 +215,58 @@ namespace Igruha.Core.Minigame
             SessionScoreboard.Current?.ReportResults(results);
             bridge?.PublishResults(results);
             ShowResults(results);
+
+            StartCoroutine(ReturnToHubAfterResults());
+        }
+
+        /// <summary>
+        /// Показали места — и обратно в хаб, откуда можно взять следующую игру.
+        /// Возврат объявляет только сервер: смену сцены он рассылает через NGO,
+        /// клиенты переезжают сами. Иначе катка упиралась бы в экран результатов
+        /// и продолжить можно было бы только перезапуском всей игры.
+        /// </summary>
+        private IEnumerator ReturnToHubAfterResults()
+        {
+            yield return new WaitForSeconds(resultsDisplaySeconds);
+
+            if (!HasAuthority)
+            {
+                yield break;
+            }
+
+            if (string.IsNullOrEmpty(hubSceneName))
+            {
+                Debug.LogError($"{name}: не задано имя сцены хаба — возвращаться некуда", this);
+                yield break;
+            }
+
+            NetworkManager network = NetworkManager.Singleton;
+            if (network == null || !network.IsListening)
+            {
+                // Сцена открыта напрямую из редактора — грузим сами.
+                SceneManager.LoadScene(hubSceneName);
+                yield break;
+            }
+
+            if (!network.IsServer)
+            {
+                yield break;
+            }
+
+            if (!BuildSceneCatalog.TryResolvePath(hubSceneName, out string hubScenePath))
+            {
+                Debug.LogError($"{name}: сцены хаба '{hubSceneName}' нет в Build Settings — возвращать некуда", this);
+                yield break;
+            }
+
+            SceneEventProgressStatus status = network.SceneManager.LoadScene(hubScenePath, LoadSceneMode.Single);
+            if (status != SceneEventProgressStatus.Started)
+            {
+                Debug.LogError($"{name}: NGO не смог вернуть всех в '{hubSceneName}': {status}", this);
+                yield break;
+            }
+
+            Debug.Log($"🏠 HOST: раунд закрыт, возвращаю всех в '{hubSceneName}'");
         }
 
         private void HandleTimerFinished() => EndMinigame();

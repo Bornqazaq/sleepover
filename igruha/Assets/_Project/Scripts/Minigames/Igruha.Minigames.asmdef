@@ -4,6 +4,8 @@
     "references": [
         "Igruha.Core",
         "Igruha.Networking",
+        "Unity.Collections",
+        "Unity.Netcode.Runtime",
         "Unity.InputSystem",
         "Unity.Cinemachine",
         "Unity.TextMeshPro"

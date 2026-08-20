@@ -14,17 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
   m_GroupName: Default Local Group
   m_GUID: 43d6a639b12b8924586118c5a6195601
-  m_SerializeEntries:
-  - m_GUID: 6ad1b7ed7c5b4ee6bcc839eec9dd973f
-    m_Address: Minigames/CryingAngels
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: a36a8ae5cf011234aa1464373c035416
-    m_Address: Minigames/DuckHunt
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
+  m_SerializeEntries: []
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: ed20f21b0fa84834db98a44f1d1a5d82, type: 2}
   m_SchemaSet:

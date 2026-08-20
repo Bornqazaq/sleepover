@@ -1,1 +1,6 @@
 .vsconfig
+
+# Пустая Assets/Resources/ и её .meta появляются заново после каждой сборки.
+# Проект грузит ассеты через Addressables (CLAUDE.md 2), класть туда нечего.
+/[Aa]ssets/Resources/
+/[Aa]ssets/Resources.meta

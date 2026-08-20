@@ -29,14 +29,19 @@ namespace Igruha.Core.Player
 
         private PlayerController motor;
         private PlayerInputReader inputReader;
-        private Rigidbody body;
         private float stuckTimer;
+
+        /// <summary>
+        /// Где тело было в конце прошлого физического такта. По нему считается
+        /// пройденный путь — единственная величина, которой можно верить, см.
+        /// <see cref="IsPushingIntoGeometry"/>.
+        /// </summary>
+        private Vector3 lastPosition;
 
         private void Awake()
         {
             motor = GetComponent<PlayerController>();
             inputReader = GetComponent<PlayerInputReader>();
-            body = GetComponent<Rigidbody>();
 
             if (respawner == null)
             {
@@ -47,6 +52,7 @@ namespace Igruha.Core.Player
         private void OnEnable()
         {
             stuckTimer = 0f;
+            lastPosition = transform.position;
             motor.Teleported += ResetTimer;
         }
 
@@ -55,11 +61,18 @@ namespace Igruha.Core.Player
             motor.Teleported -= ResetTimer;
         }
 
-        private void ResetTimer() => stuckTimer = 0f;
+        private void ResetTimer()
+        {
+            stuckTimer = 0f;
+            lastPosition = transform.position;
+        }
 
         private void FixedUpdate()
         {
-            if (!IsPushingIntoGeometry())
+            bool pushing = IsPushingIntoGeometry();
+            lastPosition = transform.position;
+
+            if (!pushing)
             {
                 stuckTimer = 0f;
                 return;
@@ -90,8 +103,22 @@ namespace Igruha.Core.Player
                 return false;
             }
 
-            Vector3 velocity = body.linearVelocity;
-            float horizontalSpeed = new Vector2(velocity.x, velocity.z).magnitude;
+            // Меряем пройденный путь, а не скорость из Rigidbody.
+            //
+            // PlayerController в своём FixedUpdate ЗАПИСЫВАЕТ в linearVelocity
+            // желаемую скорость, а порядок выполнения между ним и детектором
+            // ничем не задан. Когда контроллер отрабатывает первым, детектор
+            // читает скорость, которую тот только что заказал (полный ход
+            // в стену), хотя решатель столкновений её тут же гасит и тело
+            // стоит намертво. Условие «стою» не выполнялось никогда, таймер
+            // обнулялся каждый такт, и авто-респаун не срабатывал вообще.
+            // Замерено 17.08: скорость тела 0.00 м/с, упор 24.6 с, stuckTimer 0.
+            //
+            // Пройденный путь от порядка выполнения не зависит: он про то,
+            // что реально произошло, а не про то, что кто-то попросил.
+            Vector3 travelled = transform.position - lastPosition;
+            travelled.y = 0f;
+            float horizontalSpeed = travelled.magnitude / Mathf.Max(Time.fixedDeltaTime, Mathf.Epsilon);
             return horizontalSpeed <= stuckSpeedThreshold;
         }
 
