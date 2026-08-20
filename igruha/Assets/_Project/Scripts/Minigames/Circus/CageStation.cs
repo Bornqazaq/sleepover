@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using Igruha.Core.Arena;
 using Igruha.Core.Player;
@@ -33,6 +34,8 @@ namespace Igruha.Minigames.Circus
         [SerializeField] private float doorOpenAngle = 110f;
         [Tooltip("С какого угла створки перестают держать игрока. Раньше — он съезжает по наклонной и его подбрасывает")]
         [SerializeField] private float doorReleaseAngle = 25f;
+        [Tooltip("На какой слой возвращать спрятанную от камеры стену, когда клетка опустела")]
+        [SerializeField] private string cameraBlockingLayerName = "Ground";
 
         /// <summary>Клетка приехала на заданный уровень.</summary>
         public event Action<CageStation> Arrived;
@@ -52,6 +55,15 @@ namespace Igruha.Minigames.Circus
         private StuckDetector occupantStuckDetector;
         private bool stuckDetectorWasEnabled;
 
+        /// <summary>
+        /// Коллайдеры, спрятанные от камеры на слое Ignore Raycast. Собираются
+        /// при старте — см. <see cref="SetCameraBlocking"/>.
+        /// </summary>
+        private readonly List<Collider> cameraHiddenColliders = new List<Collider>(4);
+
+        private int ignoreRaycastLayer;
+        private int cameraBlockingLayer;
+
         /// <summary>Ступеней над нижней. Ноль — последняя ступень перед вылетом.</summary>
         public int Level { get; private set; }
 
@@ -70,6 +82,7 @@ namespace Igruha.Minigames.Circus
             platform.Mode = RidePlatform.DriveMode.Scripted;
             platform.Arrived += HandleArrived;
             CacheDoorColliders();
+            CacheCameraHiddenColliders();
         }
 
         private void OnDestroy()
@@ -77,6 +90,62 @@ namespace Igruha.Minigames.Circus
             if (platform != null)
             {
                 platform.Arrived -= HandleArrived;
+            }
+        }
+
+        /// <summary>
+        /// Запомнить коллайдеры, которые сцена спрятала от камеры.
+        ///
+        /// Внешняя стена клетки лежит на Ignore Raycast намеренно: деоклюдер
+        /// камеры видел в ней препятствие и вжимал камеру пассажиру в ноги.
+        /// </summary>
+        private void CacheCameraHiddenColliders()
+        {
+            ignoreRaycastLayer = LayerMask.NameToLayer("Ignore Raycast");
+            cameraBlockingLayer = LayerMask.NameToLayer(cameraBlockingLayerName);
+
+            cameraHiddenColliders.Clear();
+            if (cameraBlockingLayer < 0)
+            {
+                Debug.LogError($"{name}: слоя '{cameraBlockingLayerName}' нет в проекте — " +
+                               "стена клетки останется невидимой для камеры", this);
+                return;
+            }
+
+            foreach (Collider c in GetComponentsInChildren<Collider>(true))
+            {
+                if (c.gameObject.layer == ignoreRaycastLayer)
+                {
+                    cameraHiddenColliders.Add(c);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Вернуть спрятанные коллайдеры камере или спрятать снова.
+        ///
+        /// Прятать их нужно, только пока в клетке кто-то сидит. Как только дно
+        /// распахнулось и пассажир полетел вниз, спрятанная стена превращается
+        /// в проблему: камера едет за падающим снаружи клетки, стена оказывается
+        /// ровно между ней и игроком, а деоклюдер её не видит и обойти не может.
+        /// Замерено 20.08: в стадии открытия дна между камерой и игроком стоял
+        /// Collider внешней стены, а сама камера была исправна — держала
+        /// дистанцию 3.17 и ни во что не упиралась.
+        /// </summary>
+        private void SetCameraBlocking(bool blocking)
+        {
+            if (cameraBlockingLayer < 0)
+            {
+                return;
+            }
+
+            int layer = blocking ? cameraBlockingLayer : ignoreRaycastLayer;
+            for (int i = 0; i < cameraHiddenColliders.Count; i++)
+            {
+                if (cameraHiddenColliders[i] != null)
+                {
+                    cameraHiddenColliders[i].gameObject.layer = layer;
+                }
             }
         }
 
@@ -189,6 +258,10 @@ namespace Igruha.Minigames.Circus
                 return;
             }
 
+            // Пассажир уходит вниз — прятать от камеры больше нечего, а вот
+            // мешает спрятанное сильно: см. SetCameraBlocking.
+            SetCameraBlocking(true);
+
             DoorsOpen = true;
             if (doorRoutine != null)
             {
@@ -200,6 +273,9 @@ namespace Igruha.Minigames.Circus
 
         public void CloseDoors()
         {
+            // Клетка снова целая и в ней снова сидят — прячем стену от камеры.
+            SetCameraBlocking(false);
+
             if (doorRoutine != null)
             {
                 StopCoroutine(doorRoutine);
