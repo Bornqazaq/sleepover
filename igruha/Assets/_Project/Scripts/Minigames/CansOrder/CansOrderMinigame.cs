@@ -63,6 +63,17 @@ namespace Igruha.Minigames.CansOrder
             public PlayerElimination Elimination;
             public bool LocallyControlled;
             public CansOrderEntry Entry;
+
+            /// <summary>
+            /// Снимок расстановки на момент подтверждения.
+            ///
+            /// Снимать его обязательно именно тогда, а не в конце круга:
+            /// кнопка после нажатия гаснет, а полка остаётся живой до конца
+            /// окна, и игрок может переставить банки уже после подтверждения.
+            /// Счёт по поздней расстановке был бы счётом не того, что он отправил.
+            /// В фазе 3 этот же снимок приедет аргументом <c>ServerRpc</c>.
+            /// </summary>
+            public readonly List<int> Submitted = new List<int>(8);
         }
 
         private readonly List<Contestant> contestants = new List<Contestant>(8);
@@ -70,6 +81,39 @@ namespace Igruha.Minigames.CansOrder
 
         private CansOrderRoundState round;
         private bool matchOver;
+
+        /// <summary>
+        /// Скрытая расстановка раунда — одна на всех и её никогда не показывают.
+        ///
+        /// Лежит только здесь и в фазе 3 не реплицируется ни при каких
+        /// условиях: это и есть ответ, и клиент, читающий сетевое
+        /// состояние напрямую, не должен найти его там физически (спека 10.1).
+        /// </summary>
+        private readonly List<int> solution = new List<int>(8);
+
+        /// <summary>Буфер под перетасовку. Переиспользуется, чтобы не аллоцировать каждый раунд.</summary>
+        private readonly List<int> shuffleBuffer = new List<int>(8);
+
+        /// <summary>Позиции, уже встретившиеся в присланной расстановке — проверка на перестановку.</summary>
+        private readonly HashSet<int> validationSeen = new HashSet<int>();
+
+        /// <summary>
+        /// Рандом только серверный. В соло это та же машина, в фазе 3
+        /// генерация уйдёт за <c>IsServer</c> без переписывания правил.
+        /// </summary>
+        private System.Random random;
+
+        /// <summary>
+        /// Результаты круга уже объявлены. Держится от начала стадии
+        /// показа до начала следующего круга.
+        ///
+        /// Пока флага нет, совпадения не выходят из контроллера вообще,
+        /// а не прячутся в интерфейсе. В фазе 3 это единственный способ
+        /// удержать честность против клиента, который читает сетевое
+        /// состояние напрямую (спека 10.1). Тот же приём, что
+        /// у <c>StopwatchMinigame.TryGetCageState</c>.
+        /// </summary>
+        private bool resultsRevealed;
 
         /// <summary>Состояние раунда. Наружу — табло и отладочным болванкам соло-прогона.</summary>
         public CansOrderRoundState Round => round;
@@ -157,6 +201,12 @@ namespace Igruha.Minigames.CansOrder
             ranking.Clear();
             matchOver = false;
             round = default;
+            solution.Clear();
+
+            // Сид берётся у авторитета и в фазе 3 останется там же: весь
+            // рандом игры — скрытая расстановка и стартовые полки — считается
+            // только сервером (igruha/CLAUDE.md, раздел 3.1).
+            random = new System.Random(System.Environment.TickCount);
 
             AssignCages();
 
@@ -306,6 +356,12 @@ namespace Igruha.Minigames.CansOrder
         /// и объявить задание. Накопления между раундами нет — высота снова
         /// читается как «положение в этом раунде» (спека 5.5).
         /// </summary>
+        /// <summary>
+        /// Начать раунд: пересчитать состав, сгенерировать скрытую
+        /// расстановку, раздать полки и поднять клетки выживших наверх.
+        /// Накопления между раундами нет — высота снова читается
+        /// как «положение в этом раунде» (спека 5.5).
+        /// </summary>
         private void BeginRound()
         {
             int alive = AliveCount;
@@ -316,6 +372,8 @@ namespace Igruha.Minigames.CansOrder
             round.CanCount = config.GetCanCount(alive);
             round.Quota = config.GetEliminationQuota(alive);
             round.SolvedCount = 0;
+
+            GenerateSolution(round.CanCount);
 
             for (int i = 0; i < contestants.Count; i++)
             {
@@ -333,9 +391,25 @@ namespace Igruha.Minigames.CansOrder
                 c.Entry.BestMatches = -1;
                 c.Entry.BestCircle = 0;
                 c.Entry.HeightFraction = 1f;
+                c.Submitted.Clear();
 
                 c.Button?.ResetForRound();
-                c.Shelf?.Build(config, round.CanCount);
+
+                if (c.Shelf == null)
+                {
+                    continue;
+                }
+
+                c.Shelf.Build(config, round.CanCount);
+                // Стартовая расстановка — своя у каждого. Одинаковая дала бы
+                // за первый круг один отклик на всех вместо восьми (спека 8.2).
+                Shuffle(round.CanCount);
+                c.Shelf.SetArrangement(shuffleBuffer);
+            }
+
+            if (config.DebugRevealSolution)
+            {
+                Debug.Log($"🔑 [ОТЛАДКА] Скрытая расстановка раунда {round.Round}: [{string.Join(",", solution)}]", this);
             }
 
             RaiseCagesForBriefing();
@@ -359,6 +433,7 @@ namespace Igruha.Minigames.CansOrder
         private void BeginCircle()
         {
             round.Circle++;
+            resultsRevealed = false;
 
             for (int i = 0; i < contestants.Count; i++)
             {
@@ -366,6 +441,19 @@ namespace Igruha.Minigames.CansOrder
                 c.Entry.Confirmed = false;
                 c.Entry.Matches = 0;
                 c.Entry.SolvedThisCircle = false;
+                c.Submitted.Clear();
+
+                // Полка хранит прошлую расстановку между кругами: в новом круге
+                // игрок двигает только то, что решил изменить. Это единственная
+                // разрешённая «запись» в игре — она физическая и на виду (спека 4).
+                // Флаг плейтеста выключает это, если окажется слишком лёгким.
+                if (config.ShelfKeepsArrangement || c.Shelf == null || !c.Entry.Alive || c.Entry.Solved)
+                {
+                    continue;
+                }
+
+                Shuffle(round.CanCount);
+                c.Shelf.SetArrangement(shuffleBuffer);
             }
 
             stageState.BeginSubround(round.Circle, StagePlacement, config.PlacementWindowSeconds);
@@ -408,8 +496,20 @@ namespace Igruha.Minigames.CansOrder
         /// принесёт сетевая половина, — поэтому окна полок открываются здесь,
         /// а не в точке перехода: без этого у клиента полка не ожила бы.
         /// </summary>
+        /// <summary>
+        /// Стадия началась. Зовётся и у авторитета, и на клиенте, куда стадию
+        /// принесёт сетевая половина, — поэтому окна полок открываются здесь,
+        /// а не в точке перехода: без этого у клиента полка не ожила бы.
+        /// </summary>
         private void HandleStageStarted(byte stage)
         {
+            // Флаг общий для всех машин: он решает, выходят ли совпадения
+            // из контроллера вообще.
+            if (stage == StageReveal)
+            {
+                resultsRevealed = true;
+            }
+
             switch (stage)
             {
                 case StagePlacement:
@@ -490,6 +590,17 @@ namespace Igruha.Minigames.CansOrder
         /// ноль это полноценная информация, он вычёркивает все позиции сразу,
         /// и фальшивый ноль отравил бы общий котёл (спека 5.4).
         /// </summary>
+        /// <summary>
+        /// Разобрать круг: потратить попытки и посчитать совпадения
+        /// по снятым в момент подтверждения расстановкам.
+        ///
+        /// Попытка тратится и у того, кто ничего не подтвердил, — отсидеться
+        /// нельзя. Но ноль совпадений ему при этом <b>не приписывается</b>:
+        /// ноль — это полноценная информация, он вычёркивает все позиции
+        /// сразу, и фальшивый ноль отравил бы общий котёл, ради которого
+        /// и выбран этот вариант игры (спека 5.4 и 13, пункт 3).
+        /// Состояние такого игрока — отдельное: <c>Confirmed == false</c>.
+        /// </summary>
         private void ResolveCircle()
         {
             for (int i = 0; i < contestants.Count; i++)
@@ -500,7 +611,41 @@ namespace Igruha.Minigames.CansOrder
                     continue;
                 }
 
+                // Круг, прожитый тем, кто ещё не собрал, — это и есть попытка.
                 c.Entry.Attempts++;
+
+                if (!c.Entry.Confirmed)
+                {
+                    // Ничего не считаем и ничего не трогаем: ни совпадений,
+                    // ни лучшего счёта. На табло у него будет «НЕ ПОДТВЕРДИЛ».
+                    continue;
+                }
+
+                int matches = CountMatches(c.Submitted);
+                c.Entry.Matches = matches;
+
+                if (matches > c.Entry.BestMatches)
+                {
+                    c.Entry.BestMatches = matches;
+                    c.Entry.BestCircle = round.Circle;
+                }
+
+                if (matches != round.CanCount)
+                {
+                    continue;
+                }
+
+                c.Entry.Solved = true;
+                c.Entry.SolvedThisCircle = true;
+                round.SolvedCount++;
+
+                // Полка гаснет, клетка замирает на той высоте, где он собрал,
+                // и игрок сидит и смотрит. Это и есть его награда (спека 5.2).
+                c.Button?.MarkSolved();
+                if (c.Shelf != null)
+                {
+                    c.Shelf.Active = false;
+                }
             }
         }
 
@@ -511,6 +656,11 @@ namespace Igruha.Minigames.CansOrder
         /// </summary>
         private bool ShouldEndRound() => NotSolvedCount <= round.Quota;
 
+        /// <summary>
+        /// Игрок подтвердил расстановку. Единственная точка входа намерения:
+        /// в фазе 3 оно приедет сюда же, но из <c>ServerRpc</c>, и правила
+        /// не изменятся.
+        /// </summary>
         /// <summary>
         /// Игрок подтвердил расстановку. Единственная точка входа намерения:
         /// в фазе 3 оно приедет сюда же, но из <c>ServerRpc</c>, и правила
@@ -529,10 +679,105 @@ namespace Igruha.Minigames.CansOrder
                 return;
             }
 
+            if (c.Shelf == null || !c.Shelf.TryGetArrangement(c.Submitted))
+            {
+                Debug.LogWarning($"{name}: игрок {c.Entry.PlayerId} подтвердил неполную расстановку — отказ", this);
+                return;
+            }
+
+            if (!IsPermutation(c.Submitted, round.CanCount))
+            {
+                // Практически недостижимо: механика обмена не даёт собрать
+                // невалидную расстановку. Проверка стоит как предохранитель
+                // от подделанного пакета в фазе 3 (спека 10.3, правило 3).
+                Debug.LogWarning($"{name}: от игрока {c.Entry.PlayerId} пришла не перестановка " +
+                                 $"[{string.Join(",", c.Submitted)}] при {round.CanCount} банках — отказ", this);
+                c.Submitted.Clear();
+                return;
+            }
+
             c.Entry.Confirmed = true;
             c.Entry.ConfirmTime = NetworkClock.Now;
             button.MarkAccepted();
+
+            if (config.ShowOwnMatchesImmediately)
+            {
+                // ОТЛАДОЧНЫЙ режим и ничто иное: он ломает честность игры,
+                // показывая результат раньше общего показа.
+                Debug.Log($"🔑 [ОТЛАДКА] игрок {c.Entry.PlayerId} подтвердил [{string.Join(",", c.Submitted)}] — " +
+                          $"совпадений {CountMatches(c.Submitted)} из {round.CanCount}", this);
+            }
         }
+
+        /// <summary>
+        /// Сколько банок стоит на своих местах. Единственный отклик игры —
+        /// число, без указания, какие именно.
+        /// </summary>
+        private int CountMatches(List<int> arrangement)
+        {
+            int matches = 0;
+            int count = Mathf.Min(arrangement.Count, solution.Count);
+            for (int i = 0; i < count; i++)
+            {
+                if (arrangement[i] == solution[i])
+                {
+                    matches++;
+                }
+            }
+
+            return matches;
+        }
+
+        /// <summary>Скрытая расстановка раунда: случайная перестановка, одна на всех.</summary>
+        private void GenerateSolution(int canCount)
+        {
+            Shuffle(canCount);
+            solution.Clear();
+            for (int i = 0; i < shuffleBuffer.Count; i++)
+            {
+                solution.Add(shuffleBuffer[i]);
+            }
+        }
+
+        /// <summary>Перетасовка Фишера—Йетса в <see cref="shuffleBuffer"/>. Рандом только серверный.</summary>
+        private void Shuffle(int canCount)
+        {
+            shuffleBuffer.Clear();
+            for (int i = 0; i < canCount; i++)
+            {
+                shuffleBuffer.Add(i);
+            }
+
+            for (int i = shuffleBuffer.Count - 1; i > 0; i--)
+            {
+                int j = random.Next(i + 1);
+                int swap = shuffleBuffer[i];
+                shuffleBuffer[i] = shuffleBuffer[j];
+                shuffleBuffer[j] = swap;
+            }
+        }
+
+        /// <summary>Присланное — перестановка ровно N различных банок палитры раунда.</summary>
+        private bool IsPermutation(List<int> arrangement, int canCount)
+        {
+            if (arrangement.Count != canCount)
+            {
+                return false;
+            }
+
+            validationSeen.Clear();
+            for (int i = 0; i < arrangement.Count; i++)
+            {
+                int id = arrangement[i];
+                if (id < 0 || id >= canCount || !validationSeen.Add(id))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
 
         private Contestant FindByAvatar(PlayerController avatar)
         {
@@ -546,6 +791,61 @@ namespace Igruha.Minigames.CansOrder
 
             return null;
         }
+
+        /// <summary>
+        /// Состояние участника для табло и отчётов.
+        ///
+        /// <b>Совпадения отдаются только в стадии показа.</b> До неё они
+        /// не прячутся в интерфейсе, а не покидают контроллер вовсе:
+        /// своё число совпадений игрок узнаёт вместе со всеми и ни секундой
+        /// раньше (спека 4).
+        /// </summary>
+        public bool TryGetEntry(int index, out CansOrderEntry entry, out string displayName)
+        {
+            if (index < 0 || index >= contestants.Count)
+            {
+                entry = default;
+                displayName = string.Empty;
+                return false;
+            }
+
+            Contestant c = contestants[index];
+            entry = c.Entry;
+            displayName = c.Session.DisplayName;
+
+            if (!resultsRevealed)
+            {
+                entry.Matches = 0;
+                entry.Confirmed = false;
+                entry.SolvedThisCircle = false;
+            }
+
+            return true;
+        }
+
+        /// <summary>Расстановка, которую участник подтвердил в этом круге. До стадии показа не отдаётся.</summary>
+        public bool TryGetSubmitted(int index, List<int> into)
+        {
+            if (into == null || index < 0 || index >= contestants.Count || !resultsRevealed)
+            {
+                return false;
+            }
+
+            Contestant c = contestants[index];
+            if (!c.Entry.Confirmed)
+            {
+                return false;
+            }
+
+            into.Clear();
+            for (int i = 0; i < c.Submitted.Count; i++)
+            {
+                into.Add(c.Submitted[i]);
+            }
+
+            return true;
+        }
+
 
         /// <summary>
         /// Места по порядку вылета. Считает <see cref="EliminationRanking"/>
