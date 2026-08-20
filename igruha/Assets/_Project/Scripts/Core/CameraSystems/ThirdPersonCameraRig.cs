@@ -12,6 +12,7 @@ namespace Igruha.Core.CameraSystems
     /// персонаж крутит камеру» и управление уезжает.
     /// </summary>
     [RequireComponent(typeof(CinemachineOrbitalFollow))]
+    [RequireComponent(typeof(CinemachineDeoccluder))]
     public sealed class ThirdPersonCameraRig : MonoBehaviour
     {
         [SerializeField] private InputActionReference lookAction;
@@ -33,6 +34,14 @@ namespace Igruha.Core.CameraSystems
         [Header("Курсор")]
         [Tooltip("Захватывать курсор в центре экрана, как в 3rd-person играх (Esc освобождает)")]
         [SerializeField] private bool lockCursor = true;
+
+        [Header("Формат камеры — орбита от третьего лица, как в GTA 5. Не менять")]
+        [Tooltip("Слои сплошной геометрии: Ground, Cover, PlayerBarrier. Default сюда не входит намеренно — там триггеры чекпоинтов и ловушек и сами персонажи")]
+        [SerializeField] private LayerMask occluders;
+        [Tooltip("Насколько близко камера подходит к персонажу, когда её прижало к стене")]
+        [SerializeField] private float minDistanceFromTarget = 0.25f;
+        [Tooltip("Радиус пробника камеры — на столько она держится от геометрии")]
+        [SerializeField] private float probeRadius = 0.28f;
 
         /// <summary>
         /// Захват курсора телепортирует его в центр экрана, и следом приходит
@@ -94,6 +103,40 @@ namespace Igruha.Core.CameraSystems
         private void Awake()
         {
             orbit = GetComponent<CinemachineOrbitalFollow>();
+            EnforceFormat();
+        }
+
+        /// <summary>
+        /// Приводит Cinemachine к формату проекта: камера не заходит за геометрию,
+        /// а упёршись в стену подтягивается к персонажу вплоть до затылка — так же,
+        /// как в GTA 5.
+        ///
+        /// Значения живут здесь, а не только в компонентах Cinemachine, и
+        /// переписываются на старте намеренно: настройки Cinemachine лежат в YAML
+        /// префаба, а YAML не переживает слияние веток — чужая правка выигрывает
+        /// молча, и камера начинает проходить сквозь стены. Код переживает.
+        /// </summary>
+        private void EnforceFormat()
+        {
+            if (!TryGetComponent(out CinemachineDeoccluder deoccluder))
+            {
+                Debug.LogError($"{name}: на риге нет CinemachineDeoccluder — камера будет проходить сквозь стены", this);
+                return;
+            }
+
+            deoccluder.CollideAgainst = occluders;
+            deoccluder.MinimumDistanceFromTarget = minDistanceFromTarget;
+
+            CinemachineDeoccluder.ObstacleAvoidance avoidance = deoccluder.AvoidObstacles;
+            avoidance.Enabled = true;
+            avoidance.Strategy = CinemachineDeoccluder.ObstacleAvoidance.ResolutionStrategy.PullCameraForward;
+            avoidance.CameraRadius = probeRadius;
+            // Ноль — «тянуть, сколько нужно». Любой предел оставляет камеру в стене
+            // ровно тогда, когда персонаж прижался к этой стене вплотную.
+            avoidance.DistanceLimit = 0f;
+            // Ждать перед реакцией нельзя: за время ожидания стена уже в кадре.
+            avoidance.MinimumOcclusionTime = 0f;
+            deoccluder.AvoidObstacles = avoidance;
         }
 
         private void OnEnable()

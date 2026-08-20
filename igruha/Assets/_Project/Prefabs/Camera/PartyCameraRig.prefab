@@ -127,7 +127,7 @@ MonoBehaviour:
   TransparentLayers:
     serializedVersion: 2
     m_Bits: 0
-  MinimumDistanceFromTarget: 1.5
+  MinimumDistanceFromTarget: 0.25
   AvoidObstacles:
     Enabled: 1
     DistanceLimit: 0
@@ -231,3 +231,8 @@ MonoBehaviour:
   minPitch: -12
   maxPitch: 55
   lockCursor: 1
+  occluders:
+    serializedVersion: 2
+    m_Bits: 832
+  minDistanceFromTarget: 0.25
+  probeRadius: 0.28
