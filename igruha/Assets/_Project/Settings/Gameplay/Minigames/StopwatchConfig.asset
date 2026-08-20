@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 63c25776d7b644a47b0249fc9236489e, type: 3}
   m_Name: StopwatchConfig
   m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.Stopwatch.StopwatchConfig
-  briefingSeconds: 3
+  briefingSeconds: 4
   measureWindowSeconds: 15
-  resultsSeconds: 4
+  resultsSeconds: 5
   cageDescendSeconds: 2
   hatchOpenSeconds: 2
   pauseSeconds: 1
@@ -30,10 +30,10 @@ MonoBehaviour:
     errorLimit: 3
     worstPerSubround: 1
   - players: 4
-    errorLimit: 2
+    errorLimit: 3
     worstPerSubround: 1
   - players: 5
-    errorLimit: 2
+    errorLimit: 3
     worstPerSubround: 1
   - players: 6
     errorLimit: 2
