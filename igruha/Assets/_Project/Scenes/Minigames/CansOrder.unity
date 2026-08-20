@@ -20962,6 +20962,7 @@ GameObject:
   - component: {fileID: 756139780}
   - component: {fileID: 756139782}
   - component: {fileID: 756139781}
+  - component: {fileID: 756139783}
   m_Layer: 0
   m_Name: MinigameManager
   m_TagString: Untagged
@@ -21082,6 +21083,7 @@ MonoBehaviour:
   arenaConfig: {fileID: 11400000, guid: b04820a54f66a42f9803fc382def0bb2, type: 2}
   bearConfig: {fileID: 11400000, guid: 3bcee46a5edb246a794224550ce62285, type: 2}
   stageState: {fileID: 756139782}
+  scoreboard: {fileID: 756139783}
   cages:
   - {fileID: 1728101996}
   - {fileID: 1854349772}
@@ -21105,6 +21107,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 31ab994a3f5cf4530b6c0cdd359e0081, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Minigame.MinigameStageState
+--- !u!114 &756139783
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 756139773}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f3452b88c7e5c4282ab6950280e0d0b8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.CansOrder.CanOrderBoard
+  board: {fileID: 454038919}
+  config: {fileID: 11400000, guid: f4cba469c87e343939c9b54a4dfac6f7, type: 2}
 --- !u!1 &759290853
 GameObject:
   m_ObjectHideFlags: 0

@@ -53,10 +53,10 @@ MonoBehaviour:
     symbol: "\u25A0"
   - displayName: "\u0417\u0432\u0435\u0437\u0434\u0430"
     color: {r: 0.25, g: 0.72, b: 0.32, a: 1}
-    symbol: "\u2605"
+    symbol: '*'
   - displayName: "\u041A\u0440\u0435\u0441\u0442"
     color: {r: 0.75, g: 0.35, b: 0.85, a: 1}
-    symbol: "\u2716"
+    symbol: "\xD7"
   roundCircleCap: 12
   boardTopRows: 3
   shelfKeepsArrangement: 1

@@ -46,6 +46,8 @@ namespace Igruha.Minigames.CansOrder
         [SerializeField] private CircusArenaConfig arenaConfig;
         [SerializeField] private CircusBearConfig bearConfig;
         [SerializeField] private MinigameStageState stageState;
+        [Tooltip("Табло над ямой — единственный источник информации в игре")]
+        [SerializeField] private CanOrderBoard scoreboard;
         [Tooltip("Клетки арены — все восемь. Лишние гасятся по числу игроков")]
         [SerializeField] private CageStation[] cages = System.Array.Empty<CageStation>();
         [Tooltip("Медведь в яме")]
@@ -347,6 +349,7 @@ namespace Igruha.Minigames.CansOrder
 
             spectator?.Deactivate();
             stageState?.StopSequence();
+            scoreboard?.Clear();
         }
 
         // ========== РАУНД И КРУГИ ==========
@@ -412,6 +415,7 @@ namespace Igruha.Minigames.CansOrder
                 Debug.Log($"🔑 [ОТЛАДКА] Скрытая расстановка раунда {round.Round}: [{string.Join(",", solution)}]", this);
             }
 
+            scoreboard?.ShowTask(round.Round, round.CanCount);
             RaiseCagesForBriefing();
             stageState.BeginSubround(BriefingCircle, StageBriefing, config.BriefingSeconds);
         }
@@ -508,6 +512,9 @@ namespace Igruha.Minigames.CansOrder
             if (stage == StageReveal)
             {
                 resultsRevealed = true;
+                // Строго после флага: до него контроллер не отдаёт
+                // совпадения даже табло, и оно нарисовало бы нули.
+                scoreboard?.ShowResults(this);
             }
 
             switch (stage)

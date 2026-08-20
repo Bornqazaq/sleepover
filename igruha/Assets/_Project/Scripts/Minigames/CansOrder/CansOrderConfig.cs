@@ -92,14 +92,14 @@ namespace Igruha.Minigames.CansOrder
         };
 
         [Header("Палитра банок (8.2)")]
-        [Tooltip("Пять пар «цвет + символ». Строк должно быть не меньше, чем банок в самом большом задании")]
+        [Tooltip("Пять пар «цвет + символ». Строк должно быть не меньше, чем банок в самом большом задании. Символ обязан быть в шрифте табло: отсутствующий TMP рисует квадратиком, и две банки становятся неразличимыми")]
         [SerializeField] private CanKind[] palette =
         {
-            new CanKind { displayName = "Круг",       color = new Color(0.85f, 0.20f, 0.20f), symbol = "●" },
+            new CanKind { displayName = "Круг",        color = new Color(0.85f, 0.20f, 0.20f), symbol = "●" },
             new CanKind { displayName = "Треугольник", color = new Color(0.20f, 0.45f, 0.90f), symbol = "▲" },
-            new CanKind { displayName = "Квадрат",    color = new Color(0.95f, 0.78f, 0.15f), symbol = "■" },
-            new CanKind { displayName = "Звезда",     color = new Color(0.25f, 0.72f, 0.32f), symbol = "★" },
-            new CanKind { displayName = "Крест",      color = new Color(0.75f, 0.35f, 0.85f), symbol = "✖" }
+            new CanKind { displayName = "Квадрат",     color = new Color(0.95f, 0.78f, 0.15f), symbol = "■" },
+            new CanKind { displayName = "Звезда",      color = new Color(0.25f, 0.72f, 0.32f), symbol = "*" },
+            new CanKind { displayName = "Крест",       color = new Color(0.75f, 0.35f, 0.85f), symbol = "×" }
         };
 
         [Header("Страховки от бесконечного матча (6.5, 8.3)")]
