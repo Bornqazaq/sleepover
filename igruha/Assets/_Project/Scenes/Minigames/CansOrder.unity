@@ -20957,10 +20957,11 @@ GameObject:
   - component: {fileID: 756139778}
   - component: {fileID: 756139777}
   - component: {fileID: 756139776}
-  - component: {fileID: 756139775}
   - component: {fileID: 756139774}
   - component: {fileID: 756139779}
   - component: {fileID: 756139780}
+  - component: {fileID: 756139782}
+  - component: {fileID: 756139781}
   m_Layer: 0
   m_Name: MinigameManager
   m_TagString: Untagged
@@ -20981,29 +20982,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Minigame.MinigameBootstrap
   playerSpawner: {fileID: 1638957352}
-  minigame: {fileID: 756139775}
+  minigame: {fileID: 756139781}
   cameraController: {fileID: 1246980261}
   emoteWheel: {fileID: 1069350558}
   networkRosterTimeout: 180
   networkRosterSettleTime: 1
---- !u!114 &756139775
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 756139773}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c4a91bb9a7c26a84ba0310fa7338e7d5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Minigame.TemplateMinigame
-  definition: {fileID: 11400000, guid: 7516ae2631bb2324191038908e5d18b3, type: 2}
-  roundTimer: {fileID: 756139776}
-  tutorialScreen: {fileID: 150850385}
-  hud: {fileID: 150850380}
-  resultsDisplaySeconds: 12
-  hubSceneName: Hub
 --- !u!114 &756139776
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -21077,6 +21060,51 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Igruha.Networking::Igruha.Networking.NetworkMinigameBridge
   timeSyncRate: 10
+--- !u!114 &756139781
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 756139773}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 352eb04ff4762498ea0fd9508ed7560a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.CansOrder.CansOrderMinigame
+  definition: {fileID: 11400000, guid: 334d5894e34be40c8a2cc73f5346f18f, type: 2}
+  roundTimer: {fileID: 756139776}
+  tutorialScreen: {fileID: 150850385}
+  hud: {fileID: 150850380}
+  resultsDisplaySeconds: 12
+  hubSceneName: Hub
+  config: {fileID: 11400000, guid: f4cba469c87e343939c9b54a4dfac6f7, type: 2}
+  arenaConfig: {fileID: 11400000, guid: b04820a54f66a42f9803fc382def0bb2, type: 2}
+  bearConfig: {fileID: 11400000, guid: 3bcee46a5edb246a794224550ce62285, type: 2}
+  stageState: {fileID: 756139782}
+  cages:
+  - {fileID: 1728101996}
+  - {fileID: 1854349772}
+  - {fileID: 624012103}
+  - {fileID: 441807808}
+  - {fileID: 683840418}
+  - {fileID: 2117190462}
+  - {fileID: 1756190498}
+  - {fileID: 1795376558}
+  bear: {fileID: 2146969365}
+  spectator: {fileID: 1246980263}
+--- !u!114 &756139782
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 756139773}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31ab994a3f5cf4530b6c0cdd359e0081, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Minigame.MinigameStageState
 --- !u!1 &759290853
 GameObject:
   m_ObjectHideFlags: 0
