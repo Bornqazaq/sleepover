@@ -57,6 +57,12 @@ namespace Igruha.Minigames.CansOrder
         [SerializeField] private PitBear bear;
         [Tooltip("Камера наблюдателя — включается выбывшему")]
         [SerializeField] private SpectatorCamera spectator;
+        [Tooltip("Конфетти и вспышка над клеткой собравшего. Ставит CanOrderPropBuilder")]
+        [SerializeField] private GameObject solvedFanfarePrefab;
+        [Tooltip("На сколько метров над дном клетки бьёт фанфара")]
+        [SerializeField] private float fanfareHeight = 2.4f;
+        [Tooltip("Через сколько секунд убрать отыгравшую фанфару")]
+        [SerializeField] private float fanfareLifetime = 3.5f;
 
         /// <summary>Участник матча: сессия, клетка, полка, кнопка и его состояние за круг.</summary>
         private sealed class Contestant
@@ -757,8 +763,31 @@ namespace Igruha.Minigames.CansOrder
                 {
                     c.Shelf.Active = false;
                 }
+
+                SpawnFanfare(c);
             }
         }
+
+        /// <summary>
+        /// Конфетти над клеткой собравшего.
+        ///
+        /// Это не украшение, а читаемость момента: в ту же секунду все
+        /// остальные клетки уезжают вниз разом, а эта остаётся висеть.
+        /// Без акцента рывок читается как тихое движение геометрии,
+        /// а игрок в этот момент смотрит на свою полку.
+        /// </summary>
+        private void SpawnFanfare(Contestant contestant)
+        {
+            if (solvedFanfarePrefab == null || contestant.Cage == null)
+            {
+                return;
+            }
+
+            Vector3 at = contestant.Cage.transform.position + Vector3.up * fanfareHeight;
+            GameObject instance = Instantiate(solvedFanfarePrefab, at, Quaternion.identity);
+            Destroy(instance, fanfareLifetime);
+        }
+
 
         /// <summary>
         /// Раунд заканчивается, как только не собравших осталось не больше

@@ -1,6 +1,8 @@
 using System.IO;
+using TMPro;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UI;
 using Igruha.Minigames.CansOrder;
 using Igruha.Minigames.Circus;
 
@@ -94,8 +96,26 @@ namespace Igruha.EditorTools
                 placed++;
             }
 
+            bool hud = BuildStageHud();
+            GameObject fanfare = BuildFanfarePrefab();
+
+            // Фанфара цепляется к контроллеру здесь же: перецеплять
+            // руками после каждой пересборки — верный способ забыть.
+            var game = Object.FindAnyObjectByType<CansOrderMinigame>(FindObjectsInactive.Include);
+            if (game != null && fanfare != null)
+            {
+                var gameSo = new SerializedObject(game);
+                gameSo.FindProperty("solvedFanfarePrefab").objectReferenceValue = fanfare;
+                gameSo.ApplyModifiedPropertiesWithoutUndo();
+            }
+
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(scene);
             UnityEditor.SceneManagement.EditorSceneManager.SaveScene(scene);
+
+            if (!hud)
+            {
+                Debug.LogWarning("CanOrderPropBuilder: полоса стадии не построена — не найден _UI/Canvas.");
+            }
 
             float length = ShelfLengthBodyWidths * CircusArenaConfig.MetersPerBodyWidth;
             Debug.Log($"Реквизит «Порядка банок» расставлен: полок {placed} из {stations.Length} клеток. " +
@@ -116,6 +136,180 @@ namespace Igruha.EditorTools
         {
             return config.CageInnerSize * 0.5f - ShelfDepth * 0.5f - WallGap;
         }
+
+        private const string HudObjectName = "CansOrderStageHud";
+        private const float HudWidth = 620f;
+        private const float HudHeight = 34f;
+        private const float HudLabelHeight = 44f;
+
+        /// <summary>
+        /// Полоса остатка стадии внизу экрана — единственный элемент
+        /// экранного интерфейса этой игры.
+        ///
+        /// Счёта на экране нет намеренно: напряжение читается по высоте
+        /// клеток и по табло над ямой. Внизу, а не вверху — вверху
+        /// игрок смотрит на табло, и панель туда лезть не должна.
+        /// </summary>
+        private static bool BuildStageHud()
+        {
+            GameObject canvas = GameObject.Find("_UI/Canvas");
+            if (canvas == null)
+            {
+                return false;
+            }
+
+            Transform existing = canvas.transform.Find(HudObjectName);
+            if (existing != null)
+            {
+                Object.DestroyImmediate(existing.gameObject);
+            }
+
+            var rootGo = new GameObject(HudObjectName, typeof(RectTransform));
+            rootGo.transform.SetParent(canvas.transform, false);
+            var root = (RectTransform)rootGo.transform;
+            root.anchorMin = new Vector2(0.5f, 0f);
+            root.anchorMax = new Vector2(0.5f, 0f);
+            root.pivot = new Vector2(0.5f, 0f);
+            root.anchoredPosition = new Vector2(0f, 96f);
+            root.sizeDelta = new Vector2(HudWidth, HudHeight + HudLabelHeight);
+
+            TMP_FontAsset font = TMP_Settings.defaultFontAsset;
+
+            var labelGo = new GameObject("Label", typeof(RectTransform));
+            labelGo.transform.SetParent(root, false);
+            var labelRect = (RectTransform)labelGo.transform;
+            labelRect.anchorMin = new Vector2(0f, 1f);
+            labelRect.anchorMax = new Vector2(1f, 1f);
+            labelRect.pivot = new Vector2(0.5f, 1f);
+            labelRect.offsetMin = new Vector2(0f, -HudLabelHeight);
+            labelRect.offsetMax = Vector2.zero;
+            var label = labelGo.AddComponent<TextMeshProUGUI>();
+            if (font != null)
+            {
+                label.font = font;
+            }
+
+            label.fontSizeMin = 20f;
+            label.fontSizeMax = 34f;
+            label.enableAutoSizing = true;
+            label.alignment = TextAlignmentOptions.Center;
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            label.raycastTarget = false;
+            label.color = new Color(0.92f, 0.92f, 0.96f);
+
+            var backdropGo = new GameObject("BarBackdrop", typeof(RectTransform));
+            backdropGo.transform.SetParent(root, false);
+            var backdropRect = (RectTransform)backdropGo.transform;
+            backdropRect.anchorMin = Vector2.zero;
+            backdropRect.anchorMax = new Vector2(1f, 0f);
+            backdropRect.pivot = new Vector2(0.5f, 0f);
+            backdropRect.sizeDelta = new Vector2(0f, HudHeight);
+            var backdrop = backdropGo.AddComponent<Image>();
+            backdrop.color = new Color(0.05f, 0.05f, 0.08f, 0.7f);
+            backdrop.raycastTarget = false;
+
+            var barGo = new GameObject("Bar", typeof(RectTransform));
+            barGo.transform.SetParent(backdropRect, false);
+            var barRect = (RectTransform)barGo.transform;
+            barRect.anchorMin = Vector2.zero;
+            barRect.anchorMax = Vector2.one;
+            barRect.offsetMin = new Vector2(3f, 3f);
+            barRect.offsetMax = new Vector2(-3f, -3f);
+            var bar = barGo.AddComponent<Image>();
+            bar.raycastTarget = false;
+            bar.type = Image.Type.Filled;
+            bar.fillMethod = Image.FillMethod.Horizontal;
+            bar.fillOrigin = (int)Image.OriginHorizontal.Left;
+            bar.fillAmount = 1f;
+
+            var hud = rootGo.AddComponent<CansOrderLocalHud>();
+            var serialized = new SerializedObject(hud);
+            serialized.FindProperty("label").objectReferenceValue = label;
+            serialized.FindProperty("bar").objectReferenceValue = bar;
+            serialized.FindProperty("stageState").objectReferenceValue =
+                Object.FindAnyObjectByType<Igruha.Core.Minigame.MinigameStageState>(FindObjectsInactive.Include);
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            return true;
+        }
+
+        private const string FanfarePath = PrefabFolder + "/SolvedFanfare.prefab";
+
+        /// <summary>
+        /// Фанфара собравшему: конфетти над его клеткой и вспышка.
+        ///
+        /// Момент важный: его клетка остаётся висеть, а все остальные
+        /// в эту же секунду уезжают вниз. Без акцента это просто тихое
+        /// движение геометрии.
+        ///
+        /// Системные партиклы и точечный свет — заготовка каркаса;
+        /// финальный VFX и звук приезжают на арт-фазе (9.22, 9.23).
+        /// </summary>
+        private static GameObject BuildFanfarePrefab()
+        {
+            var root = new GameObject("SolvedFanfare");
+            try
+            {
+                var ps = root.AddComponent<ParticleSystem>();
+                var main = ps.main;
+                main.duration = 1.2f;
+                main.loop = false;
+                main.startLifetime = 2.2f;
+                main.startSpeed = 4.5f;
+                main.startSize = 0.09f;
+                main.gravityModifier = 0.9f;
+                main.maxParticles = 120;
+                main.stopAction = ParticleSystemStopAction.None;
+
+                var emission = ps.emission;
+                emission.rateOverTime = 0f;
+                emission.SetBurst(0, new ParticleSystem.Burst(0f, 90));
+
+                var shape = ps.shape;
+                shape.shapeType = ParticleSystemShapeType.Cone;
+                shape.angle = 32f;
+                shape.radius = 0.25f;
+                shape.rotation = new Vector3(-90f, 0f, 0f);
+
+                // Конфетти разноцветные: однотонный всплеск с такого
+                // расстояния читается как дым, а не как праздник.
+                var colorModule = ps.colorOverLifetime;
+                colorModule.enabled = true;
+                var gradient = new Gradient();
+                gradient.SetKeys(
+                    new[]
+                    {
+                        new GradientColorKey(new Color(1f, 0.85f, 0.25f), 0f),
+                        new GradientColorKey(new Color(0.35f, 0.8f, 1f), 0.5f),
+                        new GradientColorKey(new Color(1f, 0.4f, 0.7f), 1f)
+                    },
+                    new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(1f, 0.7f), new GradientAlphaKey(0f, 1f) });
+                colorModule.color = new ParticleSystem.MinMaxGradient(gradient);
+
+                var rotation = ps.rotationOverLifetime;
+                rotation.enabled = true;
+                rotation.z = new ParticleSystem.MinMaxCurve(-6f, 6f);
+
+                var renderer = root.GetComponent<ParticleSystemRenderer>();
+                renderer.renderMode = ParticleSystemRenderMode.Billboard;
+                renderer.sharedMaterial = AssetDatabase.GetBuiltinExtraResource<Material>("Default-Particle.mat");
+
+                var flashGo = new GameObject("Flash");
+                flashGo.transform.SetParent(root.transform, false);
+                var flash = flashGo.AddComponent<Light>();
+                flash.type = LightType.Point;
+                flash.color = new Color(1f, 0.9f, 0.5f);
+                flash.range = 5f;
+                flash.intensity = 3.2f;
+
+                return PrefabUtility.SaveAsPrefabAsset(root, FanfarePath);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+
 
         /// <summary>
         /// Кнопка подтверждения. Коллайдер только на корпусе: вместе

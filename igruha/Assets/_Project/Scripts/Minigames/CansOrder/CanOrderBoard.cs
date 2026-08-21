@@ -32,6 +32,8 @@ namespace Igruha.Minigames.CansOrder
 
         [SerializeField] private WorldScoreboard board;
         [SerializeField] private CansOrderConfig config;
+        [Tooltip("Цвет счёта у того, кому остался один шаг до победы")]
+        [SerializeField] private Color oneStepAwayColor = new Color(1f, 0.72f, 0.2f);
 
         private readonly List<CansOrderEntry> ordered = new List<CansOrderEntry>(8);
         private readonly List<string> names = new List<string>(8);
@@ -59,6 +61,11 @@ namespace Igruha.Minigames.CansOrder
         /// не отдаёт совпадения раньше этой стадии — прятать их здесь
         /// не требуется и было бы ненадёжно.
         /// </summary>
+        /// <summary>
+        /// Показ результатов круга. Данные берутся у контроллера, и он сам
+        /// не отдаёт совпадения раньше этой стадии — прятать их здесь
+        /// не требуется и было бы ненадёжно.
+        /// </summary>
         public void ShowResults(CansOrderMinigame game)
         {
             if (board == null || config == null || game == null)
@@ -73,14 +80,21 @@ namespace Igruha.Minigames.CansOrder
 
             int shownArrangements = 0;
             int capacity = board.RowCapacity;
+            // Шаг до победы: тот самый момент, когда вся катка бросается
+            // списывать. Он обязан бросаться в глаза.
+            //
+            // Порог — <b>N − 2</b>, а не N − 1, и это не опечатка. Расстановка —
+            // это перестановка, а у перестановки не может быть ровно N − 1
+            // совпадений: если четыре банки из пяти стоят на местах, пятой
+            // больше некуда деться. Подсветка на N − 1 не сработала бы никогда.
+            // Настоящий шаг до победы — один обмен местами, то есть N − 2.
+            int oneStepAway = game.Round.CanCount - 2;
 
             for (int i = 0; i < ordered.Count && i < capacity; i++)
             {
                 CansOrderEntry entry = ordered[i];
                 string label = names[i];
 
-                // Полную расстановку получают только первые несколько и только
-                // среди тех, кто не собрал: расстановка собравшего — это ответ.
                 bool showArrangement = shownArrangements < config.BoardTopRows
                                        && entry.Confirmed
                                        && !entry.Solved
@@ -89,10 +103,23 @@ namespace Igruha.Minigames.CansOrder
                 if (showArrangement)
                 {
                     label = names[i] + "  " + Render(submitted);
+                    // Первая строка с расстановкой — лидер круга, и взгляд
+                    // должен идти на неё первой.
+                    if (shownArrangements == 0)
+                    {
+                        label = "<b>" + label + "</b>";
+                    }
+
                     shownArrangements++;
                 }
 
-                board.AddRow(label, ValueFor(entry));
+                string value = ValueFor(entry);
+                if (entry.Confirmed && !entry.Solved && oneStepAway > 0 && entry.Matches == oneStepAway)
+                {
+                    value = "<color=#" + ColorUtility.ToHtmlStringRGB(oneStepAwayColor) + "><b>" + value + "</b></color>";
+                }
+
+                board.AddRow(label, value);
             }
 
             board.EndRows();
