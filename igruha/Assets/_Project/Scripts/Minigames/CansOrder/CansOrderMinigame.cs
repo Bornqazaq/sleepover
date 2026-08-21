@@ -64,6 +64,11 @@ namespace Igruha.Minigames.CansOrder
         [Tooltip("Через сколько секунд убрать отыгравшую фанфару")]
         [SerializeField] private float fanfareLifetime = 3.5f;
 
+        [Header("Соло-прогон")]
+        [Tooltip("С какой вероятностью болванка выставляет верную расстановку за круг. На живых игроков не влияет")]
+        [Range(0f, 1f)]
+        [SerializeField] private float botSolveChance = 0.28f;
+
         /// <summary>Участник матча: сессия, клетка, полка, кнопка и его состояние за круг.</summary>
         private sealed class Contestant
         {
@@ -88,6 +93,7 @@ namespace Igruha.Minigames.CansOrder
 
             /// <summary>Упал в яму и ещё не убит медведем.</summary>
             public bool InPit;
+            public CansOrderDebugBot Bot;
         }
 
         private readonly List<Contestant> contestants = new List<Contestant>(8);
@@ -318,6 +324,17 @@ namespace Igruha.Minigames.CansOrder
                     contestant.Button.Confirmed += HandleConfirmed;
                 }
 
+                // Болванка играет за того, кем никто не управляет. В сети их быть
+                // не должно: OnPlayersReady идёт на всех машинах, и каждый клиент
+                // навесил бы бота на всех остальных и подтверждал бы за них.
+                if (!contestant.LocallyControlled && avatar != null && !WorldAuthority.IsNetworkSession
+                    && contestant.Shelf != null && contestant.Button != null)
+                {
+                    contestant.Bot = avatar.gameObject.AddComponent<CansOrderDebugBot>();
+                    contestant.Bot.Bind(this, contestant.Shelf, contestant.Button, avatar,
+                        Players[i].Id * 7919 + 13, botSolveChance);
+                }
+
                 if (avatar != null)
                 {
                     // Компонент вешаем здесь, а не в префаб персонажа: префаб
@@ -377,6 +394,7 @@ namespace Igruha.Minigames.CansOrder
 
                 // Банка кинематическая и прицеплена к руке: если матч кончился,
                 // пока игрок её держал, она уедет в хаб вместе с ним.
+                c.Bot?.Disarm();
                 c.Shelf?.Release();
                 c.Cage?.ReleaseOccupant();
 
@@ -826,6 +844,7 @@ namespace Igruha.Minigames.CansOrder
                 // Банка из руки возвращается до падения: она кинематическая
                 // и прицеплена к персонажу — иначе улетит в яму вместе с ним,
                 // а потом и в хаб (спека 10.5).
+                c.Bot?.Disarm();
                 c.Shelf?.Release();
                 c.Button?.CloseWindow();
                 c.Cage?.OpenDoors(config.HatchOpenSeconds);
@@ -1259,6 +1278,46 @@ namespace Igruha.Minigames.CansOrder
 
             return true;
         }
+
+        /// <summary>Окно выставления из конфига. Читают болванки соло-прогона.</summary>
+        public float PlacementWindowSeconds => config != null ? config.PlacementWindowSeconds : 1f;
+
+        /// <summary>
+        /// Расстановка для болванки соло-прогона: либо верная,
+        /// либо случайная.
+        ///
+        /// <b>Это единственная точка во всём коде, где скрытая расстановка
+        /// покидает контроллер</b>, и она закрыта дважды: работает только
+        /// у авторитета и только вне сетевой катки. В сети болванок нет
+        /// вообще, и этот метод там ничего не отдаёт.
+        /// </summary>
+        public bool TryGetBotArrangement(bool wantSolution, List<int> into)
+        {
+            if (into == null || !HasAuthority || WorldAuthority.IsNetworkSession || solution.Count == 0)
+            {
+                return false;
+            }
+
+            into.Clear();
+            if (wantSolution)
+            {
+                for (int i = 0; i < solution.Count; i++)
+                {
+                    into.Add(solution[i]);
+                }
+
+                return true;
+            }
+
+            Shuffle(round.CanCount);
+            for (int i = 0; i < shuffleBuffer.Count; i++)
+            {
+                into.Add(shuffleBuffer[i]);
+            }
+
+            return true;
+        }
+
 
 
         /// <summary>
