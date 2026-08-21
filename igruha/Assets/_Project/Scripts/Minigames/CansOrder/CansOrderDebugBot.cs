@@ -34,8 +34,15 @@ namespace Igruha.Minigames.CansOrder
 
         private readonly List<int> arrangement = new List<int>(8);
 
-        /// <summary>Круг, в котором болванка уже отработала. Дважды за круг не подтверждает.</summary>
+        /// <summary>
+        /// Круг, в котором болванка уже отработала. Дважды за круг не подтверждает.
+        ///
+        /// Хранится <b>вместе с номером раунда</b>: нумерация кругов начинается
+        /// заново каждый раунд, и без раунда болванка молча пропускала бы круг
+        /// с тем же номером, в котором отработала в прошлый раз.
+        /// </summary>
         private int actedCircle = -1;
+        private int actedRound = -1;
 
         /// <summary>Через сколько секунд после открытия окна нажать. Разброс — чтобы времена подтверждения различались.</summary>
         private float delay;
@@ -75,7 +82,7 @@ namespace Igruha.Minigames.CansOrder
 
             if (!armed)
             {
-                if (actedCircle == game.Round.Circle)
+                if (actedRound == game.Round.Round && actedCircle == game.Round.Circle)
                 {
                     return;
                 }
@@ -97,6 +104,7 @@ namespace Igruha.Minigames.CansOrder
 
             armed = false;
             actedCircle = game.Round.Circle;
+            actedRound = game.Round.Round;
             Submit();
         }
 
