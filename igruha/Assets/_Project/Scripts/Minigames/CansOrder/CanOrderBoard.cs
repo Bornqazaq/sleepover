@@ -133,7 +133,12 @@ namespace Igruha.Minigames.CansOrder
         /// </summary>
         private static string ValueFor(CansOrderEntry entry)
         {
-            if (entry.SolvedThisCircle)
+            // «СОБРАЛ» держится до конца раунда, а не один круг. В следующем
+            // круге BeginCircle гасит SolvedThisCircle и Confirmed всем подряд,
+            // и собравший проваливался в «НЕ ПОДТВЕРДИЛ» — подпись, которую
+            // спека 5.3 отдаёт только не уложившимся в окно. Собравший в окне
+            // не участвует вовсе: его полка погашена, кнопка закрыта.
+            if (entry.Solved)
             {
                 return LabelSolved;
             }
@@ -175,7 +180,14 @@ namespace Igruha.Minigames.CansOrder
 
             for (int i = 0; i < game.ContestantCount; i++)
             {
-                if (game.TryGetEntry(i, out CansOrderEntry entry, out string displayName))
+                // Выбывшие в прошлых раундах на табло не попадают. Иначе они
+                // занимают строки и получают «НЕ ПОДТВЕРДИЛ» — а это не «он
+                // отсиделся», это состояние живого участника круга. К концу
+                // матча половина табло состояла бы из покойников.
+                //
+                // Выбывающих ЭТОГО круга правило не задевает: створки
+                // открываются после стадии показа, и здесь они ещё живы.
+                if (game.TryGetEntry(i, out CansOrderEntry entry, out string displayName) && entry.Alive)
                 {
                     ordered.Add(entry);
                     names.Add(displayName);
