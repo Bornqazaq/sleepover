@@ -4777,6 +4777,7 @@ MonoBehaviour:
   spectatorPanel: {fileID: 1324044314}
   spectatorText: {fileID: 1002941266}
   countdownText: {fileID: 0}
+  statusText: {fileID: 0}
 --- !u!224 &150850381
 RectTransform:
   m_ObjectHideFlags: 0
@@ -15885,12 +15886,12 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
+  m_fontSize: 34
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -21494,9 +21495,14 @@ MonoBehaviour:
   - {fileID: 1795376558}
   bear: {fileID: 2146969365}
   spectator: {fileID: 1246980263}
+  cameraController: {fileID: 1246980261}
+  shelfCameraRig: {fileID: 1976093882}
+  shelfCameraDistance: 1.2
+  shelfCameraHeight: 0.5
   solvedFanfarePrefab: {fileID: 2206208220941782423, guid: ee2c3fb650cc947c38214a2e73d7eb2f, type: 3}
   fanfareHeight: 2.4
   fanfareLifetime: 3.5
+  botSolveChance: 0.28
 --- !u!114 &756139782
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -34315,7 +34321,7 @@ MonoBehaviour:
   thirdPersonRig: {fileID: 149147459}
   firstPersonRig: {fileID: 101299625}
   topDownRig: {fileID: 0}
-  fixedRig: {fileID: 0}
+  fixedRig: {fileID: 1976093881}
 --- !u!4 &1246980262
 Transform:
   m_ObjectHideFlags: 0
@@ -34332,6 +34338,7 @@ Transform:
   - {fileID: 1753238431}
   - {fileID: 149147460}
   - {fileID: 101299626}
+  - {fileID: 1976093882}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1246980263
@@ -53853,6 +53860,81 @@ Transform:
   - {fileID: 2121078233}
   - {fileID: 1176437947}
   m_Father: {fileID: 1728101995}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1976093880
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1976093882}
+  - component: {fileID: 1976093881}
+  m_Layer: 0
+  m_Name: ShelfCameraRig
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!114 &1976093881
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1976093880}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9dfa5b682dcd46bda6128250e975f58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineCamera
+  Priority:
+    Enabled: 0
+    m_Value: 0
+  OutputChannel: 1
+  StandbyUpdate: 2
+  m_StreamingVersion: 0
+  m_LegacyPriority: 0
+  Target:
+    TrackingTarget: {fileID: 0}
+    LookAtTarget: {fileID: 0}
+    CustomLookAtTarget: 0
+  Lens:
+    FieldOfView: 65
+    OrthographicSize: 10
+    NearClipPlane: 0.1
+    FarClipPlane: 5000
+    Dutch: 0
+    ModeOverride: 0
+    PhysicalProperties:
+      GateFit: 2
+      SensorSize: {x: 21.946, y: 16.002}
+      LensShift: {x: 0, y: 0}
+      FocusDistance: 10
+      Iso: 200
+      ShutterSpeed: 0.005
+      Aperture: 16
+      BladeCount: 5
+      Curvature: {x: 2, y: 11}
+      BarrelClipping: 0.25
+      Anamorphism: 0
+  BlendHint: 0
+--- !u!4 &1976093882
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1976093880}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1246980262}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1977162065
 GameObject:

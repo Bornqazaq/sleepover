@@ -10,17 +10,32 @@ namespace Igruha.Minigames.CansOrder
     /// Полка с банками — единственное физическое действие игрока во всей игре.
     /// Всё остальное правила надстраивают поверх него.
     ///
-    /// Три действия, все на E, и какое именно сработает — решает слот, на который
-    /// игрок смотрит:
-    /// — слот занят, руки пусты   → взять банку, слот пустеет;
-    /// — слот пуст, в руке банка  → поставить, рука освобождается;
-    /// — слот занят, в руке банка → поменять местами.
+    /// <b>Схема — обмен курсором, а не перенос банки в руке.</b> По ряду ходит
+    /// подсветка, первое нажатие E отмечает банку, второе на другой — меняет их
+    /// местами. Банки в руке не существует как состояния вообще.
     ///
-    /// Отсюда следует свойство, на которое опирается вся дальнейшая логика:
-    /// <b>на полке всегда корректная перестановка всех банок, минус не более
-    /// одной в руке.</b> Невалидной расстановки не существует, поэтому серверу
-    /// в 9.8 нечего проверять, кроме самого факта перестановки, и «подтвердить»
-    /// никогда не отваливается по правилам.
+    /// Так сделано после плейтеста 21.08, где прежняя схема оказалась
+    /// неиграбельной, и по трём отдельным причинам сразу:
+    /// — слот выбирался положением тела, то есть попадать надо было телом
+    ///   с точностью ±24 см (слоты идут через 47 см) под таймером в 10 с;
+    /// — какой слот на прицеле, <b>не показывалось ничем</b>: поле было,
+    ///   подсветки не было, и выбор шёл вслепую;
+    /// — взял не ту банку — сначала верни, потом бери другую, то есть цена
+    ///   ошибки два лишних нажатия там, где их и так не хватало.
+    /// Обмен снимает все три: промахнуться некуда, видно всё, а ошибка стоит
+    /// одного нажатия по другой банке.
+    ///
+    /// <b>Курсор ездит от мыши, а не от A/D.</b> Клавиши движения потребовали бы
+    /// заблокировать ходьбу, а <c>PlayerEmoteAbility</c> не открывает колесо при
+    /// <c>MovementLocked</c> — Tab молча умер бы на 10 секунд из каждых 16.
+    /// Колесо насмешек в замороженном списке ровно из-за такой истории
+    /// (STATE, раздел 2c), второй раз наступать не будем. Мышь в окне
+    /// выставления ничем не занята: камера в этой стадии стоит на полке.
+    ///
+    /// Отсюда инвариант, который стал строже прежнего: <b>на полке всегда
+    /// корректная перестановка всех банок</b>, в любой момент времени, без
+    /// оговорки «минус одна в руке». Неполной расстановки больше не бывает,
+    /// поэтому подтвердить нельзя не вовремя, а не «нельзя с банкой в руке».
     ///
     /// <b>Полка — <see cref="ILocalInteraction"/> намеренно.</b> Что стоит на полке
     /// у соседа, разобрать с другой клетки невозможно, значит чужая полка не несёт
@@ -30,9 +45,13 @@ namespace Igruha.Minigames.CansOrder
     /// </summary>
     public sealed class CanShelf : MonoBehaviour, IInteractable, ILocalInteraction
     {
-        private const string PromptTake = "Взять банку";
-        private const string PromptPlace = "Поставить банку";
+        private const string PromptMark = "Выбрать банку";
         private const string PromptSwap = "Поменять местами";
+        private const string PromptUnmark = "Отменить выбор";
+        private const string PromptConfirm = "Подтвердить расстановку";
+
+        /// <summary>Курсор ни на чём — полка не строилась или закрыта.</summary>
+        private const int NoCell = -1;
 
         [Header("Геометрия")]
         [Tooltip("Точка, от которой раскладываются слоты: верх доски полки. Слоты идут вдоль её локальной оси X")]
@@ -44,15 +63,13 @@ namespace Igruha.Minigames.CansOrder
         [Tooltip("Высота банки, м")]
         [SerializeField] private float canHeight = 0.24f;
 
-        [Header("Рука")]
-        [Tooltip("Куда прицепляется взятая банка — смещение от корня персонажа, м. Правее и выше центра, чтобы её было видно перед собой")]
-        [SerializeField] private Vector3 handOffset = new Vector3(0.3f, 1.05f, 0.4f);
-
-        [Header("Прицеливание")]
-        [Tooltip("На сколько метров перед собой игрок «указывает», выбирая слот. Слоты идут через ~0.4 м, и слот выбирается тем, куда игрок смотрит и где стоит")]
+        [Header("Курсор")]
+        [Tooltip("Сколько мышь должна пройти, чтобы курсор перескочил на соседнюю банку. Меньше — резче")]
+        [SerializeField] private float mouseStepPixels = 60f;
+        [Tooltip("На сколько метров перед собой игрок «указывает». Задаёт только СТАРТОВЫЙ слот курсора, когда окно открывается")]
         [SerializeField] private float slotPickReach = 0.55f;
 
-        /// <summary>Расстановка на полке изменилась: взяли, поставили или поменяли местами.</summary>
+        /// <summary>Расстановка на полке изменилась: банки поменялись местами.</summary>
         public event Action<CanShelf> ArrangementChanged;
 
         private readonly List<Transform> slots = new List<Transform>(8);
@@ -60,23 +77,94 @@ namespace Igruha.Minigames.CansOrder
         private readonly List<Can> cans = new List<Can>(8);
 
         private PlayerController owner;
-        private Can held;
-        private string prompt = PromptTake;
-        private int aimedSlot = -1;
+        private PlayerInputReader reader;
+        private CanConfirmButton button;
+
+        private bool active = true;
+        private int cursorCell = NoCell;
+        private int markedSlot = NoCell;
+        private float cursorAccum;
 
         /// <summary>
         /// Открыто ли окно выставления. Вне его полка не отзывается: круг уже
         /// разобран, и переставлять банки поздно.
         /// </summary>
-        public bool Active { get; set; } = true;
+        public bool Active
+        {
+            get => active;
+            set
+            {
+                if (active == value)
+                {
+                    return;
+                }
+
+                active = value;
+
+                if (active)
+                {
+                    // Курсор встаёт туда, где игрок стоит: он и так подошёл
+                    // к нужному краю полки, и первое нажатие достаётся даром.
+                    cursorCell = NearestSlotToOwner();
+                    markedSlot = NoCell;
+                    cursorAccum = 0f;
+                }
+                else
+                {
+                    cursorCell = NoCell;
+                    markedSlot = NoCell;
+                }
+
+                RefreshHighlights();
+            }
+        }
 
         /// <summary>Сколько слотов на полке. Равно числу банок в задании.</summary>
         public int SlotCount => slots.Count;
 
-        /// <summary>В руке банка. Пока это так, подтверждать расстановку нельзя — она неполная.</summary>
-        public bool HandBusy => held != null;
+        /// <summary>
+        /// Доска полки — та точка, вокруг которой стоят слоты. Корень самой
+        /// полки для прицела не годится: он сидит в центре клетки, метром
+        /// с лишним позади доски и почти на метр ниже её.
+        /// </summary>
+        public Transform Board => slotsRoot;
 
-        public string InteractionPrompt => prompt;
+        /// <summary>
+        /// Полка держит ввод: курсор жив, и нажатие E принадлежит ей, даже
+        /// когда игрок стоит вплотную к кнопке. Иначе <c>PlayerInteractor</c>
+        /// выбирал бы между двумя интерактивами по расстоянию, и E делал бы
+        /// то одно, то другое при неподвижном курсоре.
+        /// </summary>
+        public bool OwnsInput => active && owner != null && slots.Count > 0;
+
+        /// <summary>Индекс ячейки «подтвердить» — сразу за последней банкой.</summary>
+        private int ConfirmCell => slots.Count;
+
+        /// <summary>Последняя ячейка ряда: с кнопкой или без неё.</summary>
+        private int LastCell => button != null ? ConfirmCell : slots.Count - 1;
+
+        public string InteractionPrompt
+        {
+            get
+            {
+                if (cursorCell == NoCell)
+                {
+                    return PromptMark;
+                }
+
+                if (cursorCell == ConfirmCell)
+                {
+                    return PromptConfirm;
+                }
+
+                if (markedSlot == NoCell)
+                {
+                    return PromptMark;
+                }
+
+                return markedSlot == cursorCell ? PromptUnmark : PromptSwap;
+            }
+        }
 
         /// <summary>
         /// Построить полку под задание из <paramref name="canCount"/> банок.
@@ -112,78 +200,112 @@ namespace Igruha.Minigames.CansOrder
         }
 
         /// <summary>Кому эта полка принадлежит. Чужую полку тронуть нельзя.</summary>
-        public void SetOwner(PlayerController player) => owner = player;
+        public void SetOwner(PlayerController player)
+        {
+            owner = player;
+            // Ридер нужен только ради мыши, и только у того, кем управляют
+            // с этой машины: у болванок и чужих игроков курсора нет вовсе.
+            reader = player != null ? player.GetComponent<PlayerInputReader>() : null;
+        }
+
+        /// <summary>
+        /// Кнопка подтверждения этой же клетки. Она становится последней
+        /// ячейкой того же ряда, и до неё не надо идти ногами: ряд читается
+        /// как «пять банок и кнопка», курсор доезжает до неё за пару движений.
+        /// </summary>
+        public void SetButton(CanConfirmButton ownerButton) => button = ownerButton;
 
         public bool CanInteract(PlayerController player)
         {
-            if (!Active || player == null || player != owner || slots.Count == 0)
-            {
-                return false;
-            }
-
-            aimedSlot = ResolveSlot(player);
-            if (aimedSlot < 0)
-            {
-                return false;
-            }
-
-            bool slotBusy = occupants[aimedSlot] != null;
-
-            if (held == null)
-            {
-                // Пустой слот пустыми руками — делать нечего, и подсказку
-                // показывать не за что.
-                if (!slotBusy)
-                {
-                    return false;
-                }
-
-                prompt = PromptTake;
-                return true;
-            }
-
-            prompt = slotBusy ? PromptSwap : PromptPlace;
-            return true;
+            return active && player != null && player == owner && slots.Count > 0;
         }
 
         public void Interact(PlayerController player)
         {
-            // Слот уже выбран в CanInteract — PlayerInteractor всегда зовёт её
-            // перед Interact, и на своей же машине, тем же кадром.
             if (!CanInteract(player))
             {
                 return;
             }
 
-            int slot = aimedSlot;
-            Can standing = occupants[slot];
-
-            if (held == null)
+            if (cursorCell == NoCell)
             {
-                TakeToHand(standing);
-                RaiseChanged();
+                cursorCell = NearestSlotToOwner();
+                RefreshHighlights();
                 return;
             }
 
-            // Обмен и постановка — один и тот же путь: та, что стояла, уходит
-            // в руку, та, что в руке, встаёт в слот. Когда слот пуст, «та, что
-            // стояла» — просто ничто, и рука освобождается.
-            Can incoming = held;
-            held = null;
-            occupants[slot] = null;
-
-            if (standing != null)
+            if (cursorCell == ConfirmCell)
             {
-                TakeToHand(standing);
+                // Подтверждение остаётся за кнопкой: у неё вся проверка окна
+                // и единственное событие, на которое подписан контроллер.
+                // Полка только доносит до неё нажатие.
+                button?.Interact(player);
+                return;
             }
 
-            PlaceInSlot(incoming, slot);
+            if (markedSlot == NoCell)
+            {
+                markedSlot = cursorCell;
+                RefreshHighlights();
+                return;
+            }
+
+            if (markedSlot == cursorCell)
+            {
+                markedSlot = NoCell;
+                RefreshHighlights();
+                return;
+            }
+
+            Swap(markedSlot, cursorCell);
+            markedSlot = NoCell;
+            RefreshHighlights();
             RaiseChanged();
         }
 
         /// <summary>
-        /// Текущая расстановка по слотам. Возвращает <c>false</c>, если банка
-        /// в руке: расстановка неполная, и подтверждать её нечем.
+        /// Курсор от мыши. Идёт в <c>Update</c>, а не в обработчике ввода:
+        /// <c>LookDelta</c> копится ридером за кадр, и читать его надо там же,
+        /// где живёт остальной визуал.
+        /// </summary>
+        private void Update()
+        {
+            if (!active || reader == null || !reader.LocallyControlled || slots.Count == 0)
+            {
+                return;
+            }
+
+            if (cursorCell == NoCell)
+            {
+                cursorCell = NearestSlotToOwner();
+                RefreshHighlights();
+            }
+
+            cursorAccum += reader.LookDelta.x;
+
+            float step = Mathf.Max(1f, mouseStepPixels);
+            while (Mathf.Abs(cursorAccum) >= step)
+            {
+                int direction = cursorAccum > 0f ? 1 : -1;
+                cursorAccum -= direction * step;
+
+                int next = Mathf.Clamp(cursorCell + direction, 0, LastCell);
+                if (next == cursorCell)
+                {
+                    // Упёрлись в край ряда: гасим остаток, иначе поведённая
+                    // в сторону мышь копит долг и курсор потом прыгает.
+                    cursorAccum = 0f;
+                    break;
+                }
+
+                cursorCell = next;
+                RefreshHighlights();
+            }
+        }
+
+        /// <summary>
+        /// Текущая расстановка по слотам. Отказывает только если полки нет:
+        /// неполной расстановки в этой схеме не существует.
         /// </summary>
         public bool TryGetArrangement(List<int> into)
         {
@@ -193,7 +315,7 @@ namespace Igruha.Minigames.CansOrder
             }
 
             into.Clear();
-            if (held != null || slots.Count == 0)
+            if (slots.Count == 0)
             {
                 return false;
             }
@@ -226,8 +348,6 @@ namespace Igruha.Minigames.CansOrder
                 return;
             }
 
-            ReturnHeldCan();
-
             for (int i = 0; i < occupants.Count; i++)
             {
                 occupants[i] = null;
@@ -245,76 +365,43 @@ namespace Igruha.Minigames.CansOrder
                 PlaceInSlot(can, i);
             }
 
+            // Отметку сбрасываем: она указывала на слот, а под ним теперь
+            // другая банка, и обмен получился бы не тот, который выбирали.
+            markedSlot = NoCell;
+            RefreshHighlights();
             RaiseChanged();
         }
 
         /// <summary>
-        /// Вернуть банку из руки в свободный слот и отцепить от игрока.
+        /// Снять полку с игрока: курсор погашен, владельца больше нет.
         ///
-        /// Зовётся в конце раунда, и это не косметика: банка кинематическая
-        /// и прицеплена к персонажу, а персонаж переезжает между сценами живым —
-        /// незакрытая рука уедет в хаб вместе с ним (спека 10.5).
+        /// Зовётся в конце раунда, и это не косметика: персонаж переезжает
+        /// между сценами живым, и незакрытое состояние уедет в хаб вместе
+        /// с ним (спека 10.5). Банка при этом никуда не цепляется — в этой
+        /// схеме она физически не может оказаться вне слота.
         /// </summary>
-        public void ReturnHeldCan()
-        {
-            if (held == null)
-            {
-                return;
-            }
-
-            Can can = held;
-            held = null;
-
-            for (int i = 0; i < occupants.Count; i++)
-            {
-                if (occupants[i] == null)
-                {
-                    PlaceInSlot(can, i);
-                    RaiseChanged();
-                    return;
-                }
-            }
-
-            // Свободного слота нет — такого при корректной перестановке
-            // не бывает, но бросать банку прицепленной к игроку нельзя.
-            can.transform.SetParent(slotsRoot, false);
-            can.transform.localPosition = Vector3.up * canHeight;
-            can.SlotIndex = -1;
-            Debug.LogWarning($"{name}: свободного слота под банку из руки не нашлось — положена на полку без слота", this);
-        }
-
-        /// <summary>Снять полку с игрока: и рука пуста, и владельца больше нет.</summary>
         public void Release()
         {
-            ReturnHeldCan();
             Active = false;
             owner = null;
+            reader = null;
         }
 
-        /// <summary>
-        /// Взять банку в руку. Слот, из которого она вышла, пустеет.
-        /// Банка цепляется к персонажу, а не остаётся в мире: выпустить её
-        /// нельзя вообще никак, и держать её больше негде.
-        /// </summary>
-        private void TakeToHand(Can can)
+        /// <summary>Поменять местами содержимое двух слотов.</summary>
+        private void Swap(int a, int b)
         {
-            if (can == null)
+            Can first = occupants[a];
+            Can second = occupants[b];
+
+            if (first != null)
             {
-                return;
+                PlaceInSlot(first, b);
             }
 
-            if (can.SlotIndex >= 0 && can.SlotIndex < occupants.Count)
+            if (second != null)
             {
-                occupants[can.SlotIndex] = null;
+                PlaceInSlot(second, a);
             }
-
-            can.SlotIndex = -1;
-            held = can;
-
-            Transform hand = owner != null ? owner.transform : slotsRoot;
-            can.transform.SetParent(hand, false);
-            can.transform.localPosition = owner != null ? handOffset : Vector3.up * canHeight;
-            can.transform.localRotation = Quaternion.identity;
         }
 
         private void PlaceInSlot(Can can, int slotIndex)
@@ -327,14 +414,48 @@ namespace Igruha.Minigames.CansOrder
         }
 
         /// <summary>
-        /// Слот, на который игрок указывает: ближайший к точке перед ним.
-        /// Учитывается и где он стоит, и куда смотрит, — вдоль полки слоты идут
-        /// через ~0.4 м, и шага вбок хватает, чтобы выбрать соседний.
+        /// Развесить подсветку заново. Одной точкой, а не правкой соседних
+        /// банок при каждом сдвиге: состояний три, и любое рассогласование
+        /// оставляет на полке две поднятые банки без причины.
         /// </summary>
-        private int ResolveSlot(PlayerController player)
+        private void RefreshHighlights()
         {
-            Vector3 aim = player.transform.position + player.Facing * slotPickReach;
-            int best = -1;
+            for (int i = 0; i < occupants.Count; i++)
+            {
+                if (occupants[i] == null)
+                {
+                    continue;
+                }
+
+                Can.Highlight state = i == markedSlot
+                    ? Can.Highlight.Marked
+                    : i == cursorCell ? Can.Highlight.Cursor : Can.Highlight.None;
+
+                occupants[i].SetHighlight(state);
+            }
+
+            button?.SetCursorHighlight(active && cursorCell == ConfirmCell);
+        }
+
+        /// <summary>
+        /// Слот, ближайший к точке перед игроком. Нужен ровно один раз —
+        /// когда открывается окно и курсор надо куда-то поставить. Дальше
+        /// курсор живёт от мыши и от положения тела не зависит.
+        /// </summary>
+        private int NearestSlotToOwner()
+        {
+            if (slots.Count == 0)
+            {
+                return NoCell;
+            }
+
+            if (owner == null)
+            {
+                return 0;
+            }
+
+            Vector3 aim = owner.transform.position + owner.Facing * slotPickReach;
+            int best = 0;
             float bestSqr = float.MaxValue;
 
             for (int i = 0; i < slots.Count; i++)
@@ -429,7 +550,8 @@ namespace Igruha.Minigames.CansOrder
             cans.Clear();
             slots.Clear();
             occupants.Clear();
-            held = null;
+            cursorCell = NoCell;
+            markedSlot = NoCell;
         }
 
         private void RaiseChanged() => ArrangementChanged?.Invoke(this);

@@ -29,15 +29,79 @@ namespace Igruha.Minigames.CansOrder
 
         public Color Color { get; private set; }
 
-        /// <summary>Слот, в котором банка стоит. −1 — банка в руке.</summary>
+        /// <summary>Слот, в котором банка стоит.</summary>
         public int SlotIndex { get; set; } = -1;
 
-        /// <summary>Банка в руке, а не на полке.</summary>
-        public bool InHand => SlotIndex < 0;
+        /// <summary>
+        /// Как банка выделена сейчас. Единственная обратная связь выбора:
+        /// без неё игрок не знает, какую банку тронет, и промахивается
+        /// вслепую — на плейтесте 21.08 это оказалось главной причиной
+        /// неудобства, а не сама схема управления.
+        /// </summary>
+        public enum Highlight
+        {
+            /// <summary>Стоит в ряду как все.</summary>
+            None,
+
+            /// <summary>На неё наведён курсор — нажатие сработает по ней.</summary>
+            Cursor,
+
+            /// <summary>Отмечена под обмен: следующая выбранная встанет на её место.</summary>
+            Marked
+        }
+
+        /// <summary>На сколько банка приподнимается под курсором, м.</summary>
+        private const float CursorLift = 0.05f;
+
+        /// <summary>На сколько приподнимается отмеченная. Заметно выше курсора: два состояния нельзя путать.</summary>
+        private const float MarkedLift = 0.14f;
+
+        /// <summary>Насколько подсветка высветляет цвет банки, 0…1.</summary>
+        private const float CursorTint = 0.35f;
+        private const float MarkedTint = 0.6f;
+
+        private Highlight highlight = Highlight.None;
 
         private void Awake()
         {
             visual = GetComponentInChildren<Renderer>();
+        }
+
+        /// <summary>
+        /// Выделить банку. Подъём плюс высветление, а не обводка: на серых
+        /// заготовках фазы 2 обводки нет, а поднятая банка читается с любого
+        /// ракурса и переживёт замену модели на арт-фазе.
+        /// </summary>
+        public void SetHighlight(Highlight state)
+        {
+            if (highlight == state)
+            {
+                return;
+            }
+
+            highlight = state;
+            transform.localPosition = Vector3.up * LiftFor(state);
+            ApplyColor(TintFor(state));
+        }
+
+        private static float LiftFor(Highlight state)
+        {
+            switch (state)
+            {
+                case Highlight.Cursor: return CursorLift;
+                case Highlight.Marked: return MarkedLift;
+                default: return 0f;
+            }
+        }
+
+        private Color TintFor(Highlight state)
+        {
+            switch (state)
+            {
+                case Highlight.Cursor: return Color.Lerp(Color, UnityEngine.Color.white, CursorTint);
+                case Highlight.Marked: return Color.Lerp(Color, UnityEngine.Color.white, MarkedTint);
+                default: return Color;
+            }
         }
 
         /// <summary>
@@ -52,7 +116,13 @@ namespace Igruha.Minigames.CansOrder
             Symbol = kind.symbol;
             Color = kind.color;
             name = $"Can_{canId}_{kind.displayName}";
+            highlight = Highlight.None;
 
+            ApplyColor(kind.color);
+        }
+
+        private void ApplyColor(Color color)
+        {
             if (visual == null)
             {
                 visual = GetComponentInChildren<Renderer>();
@@ -65,8 +135,8 @@ namespace Igruha.Minigames.CansOrder
 
             block ??= new MaterialPropertyBlock();
             visual.GetPropertyBlock(block);
-            block.SetColor(BaseColorId, kind.color);
-            block.SetColor(LegacyColorId, kind.color);
+            block.SetColor(BaseColorId, color);
+            block.SetColor(LegacyColorId, color);
             visual.SetPropertyBlock(block);
         }
 

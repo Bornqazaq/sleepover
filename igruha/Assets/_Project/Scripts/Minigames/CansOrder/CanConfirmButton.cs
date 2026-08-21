@@ -26,13 +26,12 @@ namespace Igruha.Minigames.CansOrder
     public sealed class CanConfirmButton : MonoBehaviour, IInteractable
     {
         private const string PromptConfirm = "Подтвердить расстановку";
-        private const string PromptHandBusy = "Сначала поставь банку";
 
         [Tooltip("Колпак лампы. Единственная обратная связь: погашен или «принято»")]
         [SerializeField] private Renderer lamp;
         [Tooltip("Маячок над кнопкой. Сама кнопка мелкая, и её заслоняет спина персонажа")]
         [SerializeField] private Light beacon;
-        [Tooltip("Полка этого же игрока: по ней кнопка знает, занята ли рука")]
+        [Tooltip("Полка этого же игрока: пока у неё жив курсор, нажатие принадлежит ей")]
         [SerializeField] private CanShelf shelf;
 
         [Header("Цвета лампы")]
@@ -50,6 +49,7 @@ namespace Igruha.Minigames.CansOrder
         private PlayerController owner;
         private MaterialPropertyBlock block;
         private string prompt = PromptConfirm;
+        private bool cursorHighlight;
 
         /// <summary>Идёт ли окно выставления.</summary>
         public bool WindowOpen { get; private set; }
@@ -139,26 +139,47 @@ namespace Igruha.Minigames.CansOrder
                 return false;
             }
 
-            // С банкой в руке кнопка остаётся доступной для подсказки, но
-            // не срабатывает: молча проигнорированное нажатие игрок принял бы
-            // за поломку, а подтверждать неполную расстановку нельзя.
-            prompt = shelf != null && shelf.HandBusy ? PromptHandBusy : PromptConfirm;
+            // Пока у полки жив курсор, нажатие принадлежит ей: кнопка —
+            // последняя ячейка её же ряда, и до неё не надо идти ногами.
+            // Иначе PlayerInteractor выбирал бы между двумя интерактивами
+            // по расстоянию, и E делал бы то одно, то другое при неподвижном
+            // курсоре. Полка сама донесёт нажатие сюда, когда курсор на кнопке.
+            if (shelf != null && shelf.OwnsInput)
+            {
+                return false;
+            }
+
+            prompt = PromptConfirm;
             return true;
         }
 
         public void Interact(PlayerController player)
         {
-            if (!CanInteract(player))
-            {
-                return;
-            }
-
-            if (shelf != null && shelf.HandBusy)
+            // CanInteract здесь не годится: он отказывает, пока полка держит
+            // ввод, а зовёт нас в этом случае как раз она. Проверяем то, что
+            // действительно решает, — окно, владельца и состояние круга.
+            if (player == null || player != owner || Solved || !WindowOpen || Accepted)
             {
                 return;
             }
 
             Confirmed?.Invoke(this, player);
+        }
+
+        /// <summary>
+        /// Курсор полки стоит на кнопке. Лампа подсвечивается, чтобы ячейка
+        /// «подтвердить» читалась тем же способом, что и банки, — иначе конец
+        /// ряда выглядит как пустое место.
+        /// </summary>
+        public void SetCursorHighlight(bool underCursor)
+        {
+            if (cursorHighlight == underCursor)
+            {
+                return;
+            }
+
+            cursorHighlight = underCursor;
+            ApplyLamp(Accepted);
         }
 
         /// <summary>
@@ -168,6 +189,14 @@ namespace Igruha.Minigames.CansOrder
         private void ApplyLamp(bool accepted)
         {
             Color color = accepted ? acceptedColor : idleColor;
+
+            // Курсор на кнопке высветляет лампу тем же приёмом, что и банку.
+            // Принятую не трогаем: её цвет — это ответ игры, и подмешивать
+            // в него состояние курсора нельзя.
+            if (cursorHighlight && !accepted)
+            {
+                color = Color.Lerp(color, Color.white, CursorTint);
+            }
 
             if (lamp != null)
             {
@@ -185,6 +214,9 @@ namespace Igruha.Minigames.CansOrder
                 beacon.enabled = accepted;
             }
         }
+
+        /// <summary>Насколько курсор высветляет лампу. То же число, что у банки, — состояния должны читаться одинаково.</summary>
+        private const float CursorTint = 0.35f;
 
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private static readonly int LegacyColorId = Shader.PropertyToID("_Color");

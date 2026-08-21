@@ -57,6 +57,14 @@ namespace Igruha.Minigames.CansOrder
         [SerializeField] private PitBear bear;
         [Tooltip("Камера наблюдателя — включается выбывшему")]
         [SerializeField] private SpectatorCamera spectator;
+        [Tooltip("Переключатель ригов. Нужен, чтобы в окне выставления встать на полку")]
+        [SerializeField] private MinigameCameraController cameraController;
+        [Tooltip("Трансформ fixed-рига (_Camera/ShelfCameraRig). Мини-игра ставит его сама: рига без Body и Aim Cinemachine не двигает")]
+        [SerializeField] private Transform shelfCameraRig;
+        [Tooltip("С какого расстояния камера смотрит на полку в окне выставления, м. Игрок стоит в 1.9 м от доски, и камера обязана быть заметно ближе — иначе она встаёт ему в затылок")]
+        [SerializeField] private float shelfCameraDistance = 1.2f;
+        [Tooltip("На сколько камера поднята над доской полки, м")]
+        [SerializeField] private float shelfCameraHeight = 0.5f;
         [Tooltip("Конфетти и вспышка над клеткой собравшего. Ставит CanOrderPropBuilder")]
         [SerializeField] private GameObject solvedFanfarePrefab;
         [Tooltip("На сколько метров над дном клетки бьёт фанфара")]
@@ -322,6 +330,10 @@ namespace Igruha.Minigames.CansOrder
                     contestant.Button.SetShelf(contestant.Shelf);
                     contestant.Button.ResetForRound();
                     contestant.Button.Confirmed += HandleConfirmed;
+
+                    // Кнопка становится последней ячейкой ряда полки: курсор
+                    // доезжает до неё, и подтверждать можно не сходя с места.
+                    contestant.Shelf?.SetButton(contestant.Button);
                 }
 
                 // Болванка играет за того, кем никто не управляет. В сети их быть
@@ -644,14 +656,91 @@ namespace Igruha.Minigames.CansOrder
             {
                 case StagePlacement:
                     SetPlacementWindow(true);
+                    ApplyShelfCamera(true);
                     break;
                 case StageReveal:
                 case StageHatch:
                 case StagePause:
                 case StageBriefing:
                     SetPlacementWindow(false);
+                    ApplyShelfCamera(false);
                     break;
             }
+        }
+
+        /// <summary>
+        /// Камера на время окна выставления встаёт перед полкой и смотрит
+        /// на неё, в показе результатов возвращается на обычную орбиту.
+        ///
+        /// Это единственное разрешённое исключение из замороженной камеры
+        /// (igruha/CLAUDE.md, раздел 0): положение под конкретную мини-игру
+        /// через <see cref="MinigameCameraController"/>, сам риг и его
+        /// настройки не трогаются.
+        ///
+        /// Зачем: в окне выставления игрок работает с полкой в полуметре
+        /// перед собой, а орбитальная камера в этот момент показывает его
+        /// собственную спину крупным планом — полка и кнопка оказываются
+        /// за ней. Плюс мышь в этой стадии освобождается и ведёт курсор
+        /// по ряду банок, а не крутит камеру.
+        ///
+        /// Выбывшему и наблюдателю камеру не трогаем: у них своя.
+        /// </summary>
+        private void ApplyShelfCamera(bool toShelf)
+        {
+            if (cameraController == null || spectator == null || spectator.IsActive)
+            {
+                return;
+            }
+
+            Contestant local = FindLocal();
+            if (local == null || local.Session?.Avatar == null)
+            {
+                return;
+            }
+
+            if (!toShelf || local.Shelf == null || !local.Entry.Alive || local.Entry.Solved)
+            {
+                cameraController.Apply(CameraMode.ThirdPerson, local.Session.Avatar.transform);
+                return;
+            }
+
+            Transform board = local.Shelf.Board;
+            if (board == null)
+            {
+                cameraController.Apply(CameraMode.ThirdPerson, local.Session.Avatar.transform);
+                return;
+            }
+
+            if (shelfCameraRig == null)
+            {
+                cameraController.Apply(CameraMode.ThirdPerson, local.Session.Avatar.transform);
+                return;
+            }
+
+            // Двигаем сам риг, а не отдельный якорь: у fixed-рига нет ни Body,
+            // ни Aim, и Cinemachine его не возит — TrackingTarget такому ригу
+            // ничего не задаёт. Камера едет ровно туда, куда поставим.
+            //
+            // Доска смотрит внутрь клетки, игрок стоит перед ней — значит
+            // камера уходит против её forward и приподнимается над рядом,
+            // чтобы банки читались сверху, а не с торца.
+            shelfCameraRig.position = board.position - board.forward * shelfCameraDistance + Vector3.up * shelfCameraHeight;
+            shelfCameraRig.rotation = Quaternion.LookRotation(board.position - shelfCameraRig.position, Vector3.up);
+
+            cameraController.Apply(CameraMode.Fixed, shelfCameraRig);
+        }
+
+        private Contestant FindLocal()
+        {
+            for (int i = 0; i < contestants.Count; i++)
+            {
+                if (contestants[i].LocallyControlled)
+                {
+                    return contestants[i];
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
