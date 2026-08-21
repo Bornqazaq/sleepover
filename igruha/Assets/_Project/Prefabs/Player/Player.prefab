@@ -178,7 +178,7 @@ CapsuleCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6047239826789173574}
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 13400000, guid: 0122b86f7551914409e6e4fc4d844d95, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -279,7 +279,7 @@ MonoBehaviour:
   motor: {fileID: 2264355084158667115}
   animator: {fileID: 8153474272100534532}
   visualRoot: {fileID: 2866217297803678590}
-  squashVisualOnCrouch: 1
+  squashVisualOnCrouch: 0
 --- !u!114 &448288431574036101
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -348,7 +348,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Player.PlayerEmoteAbility
   inputReader: {fileID: 5853460982915592438}
-  emoteNames: []
+  emoteNames:
+  - "\u0422\u0430\u043D\u0435\u0446 1"
+  - "\u0422\u0430\u043D\u0435\u0446 2"
+  - "\u0422\u0430\u043D\u0435\u0446 3"
+  - "\u0422\u0430\u043D\u0435\u0446 4"
+  - "\u0422\u0430\u043D\u0435\u0446 5"
+  - "\u0422\u0430\u043D\u0435\u0446 6"
+  - "\u0422\u0430\u043D\u0435\u0446 7"
+  - "\u0422\u0430\u043D\u0435\u0446 8"
   pointerSensitivity: 0.012
   deadZone: 0.35
 --- !u!114 &9999999
@@ -427,7 +435,63 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f7a2b78511ed026458e1db4ebaa94b64, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Igruha.Networking::Igruha.Networking.OwnerNetworkAnimator
-  TransitionStateInfoList: []
+  TransitionStateInfoList:
+  - IsCrossFadeExit: 0
+    Layer: 0
+    OriginatingState: -1007645888
+    DestinationState: 2081823275
+    TransitionDuration: 0.15
+    TriggerNameHash: -1117975810
+    TransitionIndex: 1
+  - IsCrossFadeExit: 0
+    Layer: 0
+    OriginatingState: 1526323962
+    DestinationState: 2081823275
+    TransitionDuration: 0.15
+    TriggerNameHash: -1117975810
+    TransitionIndex: 1
+  - IsCrossFadeExit: 0
+    Layer: 0
+    OriginatingState: 771680876
+    DestinationState: 2081823275
+    TransitionDuration: 0.15
+    TriggerNameHash: -1117975810
+    TransitionIndex: 1
+  - IsCrossFadeExit: 0
+    Layer: 0
+    OriginatingState: -1281720369
+    DestinationState: 2081823275
+    TransitionDuration: 0.15
+    TriggerNameHash: -1117975810
+    TransitionIndex: 1
+  - IsCrossFadeExit: 0
+    Layer: 0
+    OriginatingState: -996323495
+    DestinationState: 2081823275
+    TransitionDuration: 0.15
+    TriggerNameHash: -1117975810
+    TransitionIndex: 1
+  - IsCrossFadeExit: 0
+    Layer: 0
+    OriginatingState: 1569988323
+    DestinationState: 2081823275
+    TransitionDuration: 0.15
+    TriggerNameHash: -1117975810
+    TransitionIndex: 1
+  - IsCrossFadeExit: 0
+    Layer: 0
+    OriginatingState: 714288757
+    DestinationState: 2081823275
+    TransitionDuration: 0.15
+    TriggerNameHash: -1117975810
+    TransitionIndex: 1
+  - IsCrossFadeExit: 0
+    Layer: 0
+    OriginatingState: -1171508252
+    DestinationState: 2081823275
+    TransitionDuration: 0.15
+    TriggerNameHash: -1117975810
+    TransitionIndex: 1
   m_Animator: {fileID: 8153474272100534532}
 --- !u!114 &6104822510058981082
 MonoBehaviour:

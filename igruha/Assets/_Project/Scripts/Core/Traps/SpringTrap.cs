@@ -19,6 +19,14 @@ namespace Igruha.Core.Traps
 
         private readonly List<PlayerController> occupants = new List<PlayerController>(8);
 
+        /// <summary>
+        /// Задать силу подброса извне. Нужно играм, где настраивается высота
+        /// полёта, а не импульс: высоту приходится пересчитывать в импульс через
+        /// гравитацию и массу тела, и делать это в инспекторе руками — верный
+        /// способ разъехаться со спекой при первой же правке физики.
+        /// </summary>
+        public void SetLaunchForce(float force) => launchForce = Mathf.Max(0f, force);
+
         private void OnTriggerEnter(Collider other)
         {
             PlayerController player = other.GetComponentInParent<PlayerController>();

@@ -23,13 +23,32 @@ namespace Igruha.Core.UI
         [Tooltip("Риг камеры: пока колесо открыто, мышь водит курсор, а не камеру")]
         [SerializeField] private ThirdPersonCameraRig cameraRig;
 
+        /// <summary>
+        /// Колесо текущей сцены. Записывается само, чтобы насмешки
+        /// работали в любой сцене, а не только там, где не забыли протащить
+        /// ссылку через инспектор. Именно так потерялись танцы в Duck Hunt:
+        /// колесо в сцене было не собрано, а поле в бутстрапе осталось пустым —
+        /// и Tab молча ничего не делал. Тот же приём, что у SessionScoreboard.Current.
+        /// </summary>
+        public static EmoteWheel Current { get; private set; }
+
         private PlayerEmoteAbility ability;
 
         private void Awake()
         {
+            Current = this;
+
             if (panel != null)
             {
                 panel.SetActive(false);
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (Current == this)
+            {
+                Current = null;
             }
         }
 

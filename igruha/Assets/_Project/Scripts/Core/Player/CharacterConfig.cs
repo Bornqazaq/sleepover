@@ -52,6 +52,12 @@ namespace Igruha.Core.Player
         [SerializeField] private float jumpBufferTime = 0.1f;
         [Tooltip("Длина спер-каста проверки земли ниже капсулы, м")]
         [SerializeField] private float groundCheckDistance = 0.2f;
+        [Tooltip("Высота, на которую персонаж всходит шагом, м. Ступени ниже неё берутся автоматически, выше — только прыжком. Ноль отключает всхождение")]
+        [SerializeField] private float stepHeight = 0.42f;
+
+        [Header("Жёсткое приземление")]
+        [Tooltip("Скорость падения, с которой персонаж падает при приземлении, м/с. Обычный прыжок приземляется примерно на 9.8, поэтому значение ниже 12 роняет после каждого прыжка. Ноль — не падать от приземления никогда")]
+        [SerializeField] private float hardLandingSpeed = 18f;
 
         [Header("Тело (Rigidbody)")]
         [Tooltip("Масса. Влияет на обмен импульсами при толчках")]
@@ -106,6 +112,8 @@ namespace Igruha.Core.Player
         public float CoyoteTime => coyoteTime;
         public float JumpBufferTime => jumpBufferTime;
         public float GroundCheckDistance => groundCheckDistance;
+        public float StepHeight => stepHeight;
+        public float HardLandingSpeed => hardLandingSpeed;
 
         public float Mass => mass;
         public float LinearDamping => linearDamping;

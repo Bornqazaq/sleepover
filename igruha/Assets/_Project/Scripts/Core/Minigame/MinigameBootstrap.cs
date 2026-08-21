@@ -194,11 +194,34 @@ namespace Igruha.Core.Minigame
                 cameraController.Apply(minigame.Definition.CameraMode, focus.transform);
             }
 
-            // Без этого Tab в мини-игре не открывает колесо: панель есть, а к чьим
-            // эмоциям она привязана — неизвестно. В хабе то же делает HubBootstrap.
-            if (emoteWheel != null && focus.TryGetComponent(out PlayerEmoteAbility emotes))
+            BindEmoteWheel(focus);
+        }
+
+        /// <summary>
+        /// Привязать колесо насмешек к локальному игроку. Без этого Tab жмётся,
+        /// но колесо не знает, чьи эмоции показывать.
+        ///
+        /// Ссылка из инспектора — не единственный путь намеренно. Насмешки
+        /// обязаны работать в каждой мини-игре, а не только там, где поле
+        /// заполнили руками: в Duck Hunt его не заполнили, и танцы там молча
+        /// не работали. Поэтому пустая ссылка — не ошибка, а отсутствие колеса
+        /// в сцене — ошибка, и она говорит о себе вслух.
+        /// </summary>
+        private void BindEmoteWheel(PlayerController focus)
+        {
+            EmoteWheel wheel = emoteWheel != null ? emoteWheel : EmoteWheel.Current;
+
+            if (wheel == null)
             {
-                emoteWheel.BindLocalPlayer(emotes);
+                Debug.LogWarning(
+                    $"{name}: в сцене нет колеса эмоций — Tab ничего не откроет. " +
+                    "Собери его пунктом меню Igruha/UI/Build Emote Wheel", this);
+                return;
+            }
+
+            if (focus.TryGetComponent(out PlayerEmoteAbility emotes))
+            {
+                wheel.BindLocalPlayer(emotes);
             }
         }
     }

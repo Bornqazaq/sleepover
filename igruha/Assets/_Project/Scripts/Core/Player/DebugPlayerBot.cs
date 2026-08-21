@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Igruha.Core.Player
 {
@@ -40,6 +40,7 @@ namespace Igruha.Core.Player
         private float probeRadius;
         private float footOffset;
         private bool hasTarget;
+        private bool stopOnArrival = true;
 
         /// <summary>
         /// Сторона обхода прошлого решения. Без памяти о ней болванка на
@@ -81,11 +82,32 @@ namespace Igruha.Core.Player
         /// <summary>Какая геометрия считается препятствием. Задаёт мини-игра: слои у каждой арены свои.</summary>
         public void Configure(LayerMask obstacleLayers) => obstacles = obstacleLayers;
 
-        /// <summary>Идти к точке в мире.</summary>
-        public void SetTarget(Vector3 worldPoint)
+        /// <summary>
+        /// То же плюс порог перешагивания: препятствие ниже него берётся
+        /// прыжком, выше — обходится. Значение по умолчанию рассчитано на
+        /// ровную арену; там, где подъём собран из площадок под высоту прыжка,
+        /// болванка с ним считает каждую ступень стеной и встаёт у лестницы.
+        /// </summary>
+        public void Configure(LayerMask obstacleLayers, float maxStepHeight)
+        {
+            obstacles = obstacleLayers;
+            stepHeight = Mathf.Max(0f, maxStepHeight);
+        }
+
+        /// <summary>
+        /// Идти к точке в мире.
+        ///
+        /// <paramref name="stopOnArrival"/> различает конечную цель и путевую
+        /// точку. У конечной болванка останавливается, дойдя до неё; путевая —
+        /// лишь поворот маршрута, и останавливаться на ней нельзя. Ступени
+        /// лестницы стоят плотнее радиуса «дошёл», поэтому болванка считала себя
+        /// прибывшей на середине подъёма и замирала там до конца раунда.
+        /// </summary>
+        public void SetTarget(Vector3 worldPoint, bool stopOnArrival = true)
         {
             target = worldPoint;
             hasTarget = true;
+            this.stopOnArrival = stopOnArrival;
         }
 
         /// <summary>Забыть цель и остановиться.</summary>
@@ -115,13 +137,17 @@ namespace Igruha.Core.Player
             offset.y = 0f;
             float distance = offset.magnitude;
 
-            if (distance <= arriveRadius)
+            if (stopOnArrival && distance <= arriveRadius)
             {
                 reader.DriveMove(Vector2.zero);
                 return;
             }
 
-            Vector3 course = ChooseCourse(offset / distance);
+            // Дальше цели щупать нечего: за ней поворот маршрута, и помеха там
+            // не мешает дойти. Щуп на всю длину в комнате с укрытиями почти
+            // всегда во что-нибудь упирается, и болванка топчется вместо шага.
+            float range = Mathf.Min(probeDistance, Mathf.Max(distance, probeRadius));
+            Vector3 course = ChooseCourse(offset / distance, range);
             reader.DriveMove(motor.WorldToMoveInput(course));
         }
 
@@ -130,34 +156,53 @@ namespace Igruha.Core.Player
         /// наименьшим углом от прямого, начиная с той стороны, которую выбрали
         /// в прошлый раз.
         /// </summary>
-        private Vector3 ChooseCourse(Vector3 desired)
+        private Vector3 ChooseCourse(Vector3 desired, float range)
         {
-            if (IsPassable(desired))
+            if (IsPassable(desired, range, out float bestClearance))
             {
                 return desired;
             }
+
+            Vector3 roomiest = desired;
 
             for (int i = 1; i <= avoidSteps; i++)
             {
                 float angle = avoidStep * i;
 
                 Vector3 preferred = Rotate(desired, preferRight ? angle : -angle);
-                if (IsPassable(preferred))
+                if (IsPassable(preferred, range, out float preferredClearance))
                 {
                     return preferred;
                 }
 
+                if (preferredClearance > bestClearance)
+                {
+                    bestClearance = preferredClearance;
+                    roomiest = preferred;
+                }
+
                 Vector3 opposite = Rotate(desired, preferRight ? -angle : angle);
-                if (IsPassable(opposite))
+                if (IsPassable(opposite, range, out float oppositeClearance))
                 {
                     preferRight = !preferRight;
                     return opposite;
                 }
+
+                if (oppositeClearance > bestClearance)
+                {
+                    bestClearance = oppositeClearance;
+                    roomiest = opposite;
+                }
             }
 
-            // Зажаты со всех сторон: упираемся вперёд и ждём StuckDetector —
-            // это ровно тот случай, ради которого он в проекте и появился.
-            return desired;
+            // Свободного направления нет — идём туда, где до помехи дальше
+            // всего, а не упираемся в прямое.
+            //
+            // Щуп меряет 1.8 м вперёд, и в комнате с укрытиями «занято» почти
+            // всегда: помеха в полутора метрах не мешает пройти метр и свернуть.
+            // Пока болванка стояла, ждать оставалось только StuckDetector,
+            // который вытаскивает её на чекпоинт — то есть отменяет весь путь.
+            return roomiest;
         }
 
         /// <summary>
@@ -165,32 +210,36 @@ namespace Igruha.Core.Player
         /// Прыжок отсюда и заказывается: решение «перешагнуть, а не обходить»
         /// принимается там же, где меряется высота помехи.
         ///
-        /// Помеха меряется двумя щупами, а не поиском её верха сверху вниз:
-        /// луч, пущенный вниз из точки ниже верхушки укрытия, стартует внутри
-        /// коллайдера, тот его не ловит, и высокий камень читается как ровный
-        /// пол. Пара «низкий щуп задел / верхний свободен» такой ошибки не даёт.
+        /// Высота помехи берётся по её собственным габаритам, а не вторым щупом
+        /// на фиксированной высоте. Второй щуп годится, пока препятствия стоят
+        /// поодиночке на ровном полу, но на лестнице он ловит не ту ступень,
+        /// перед которой болванка стоит, а следующую за ней — и любая лестница
+        /// целиком читается как глухая стена.
         /// </summary>
-        private bool IsPassable(Vector3 direction)
+        private bool IsPassable(Vector3 direction, float range, out float clearance)
         {
-            if (IsBlocked(direction, stepHeight))
+            Vector3 origin = transform.position + Vector3.up * (footOffset + probeClearance + probeRadius);
+            if (!Physics.SphereCast(origin, probeRadius, direction, out RaycastHit hit, range,
+                    obstacles, QueryTriggerInteraction.Ignore))
             {
+                clearance = range;
+                return true;
+            }
+
+            float feetY = transform.position.y + footOffset;
+            if (hit.collider.bounds.max.y - feetY > stepHeight)
+            {
+                clearance = hit.distance;
                 return false;
             }
 
-            if (IsBlocked(direction, probeClearance) && motor.IsGrounded)
+            if (motor.IsGrounded)
             {
                 reader.DriveJump();
             }
 
+            clearance = range;
             return true;
-        }
-
-        /// <summary>Щуп толщиной с персонажа на заданной высоте над ступнями.</summary>
-        private bool IsBlocked(Vector3 direction, float height)
-        {
-            Vector3 origin = transform.position + Vector3.up * (footOffset + height + probeRadius);
-            return Physics.SphereCast(origin, probeRadius, direction, out _, probeDistance,
-                obstacles, QueryTriggerInteraction.Ignore);
         }
 
         private static Vector3 Rotate(Vector3 direction, float degrees) =>

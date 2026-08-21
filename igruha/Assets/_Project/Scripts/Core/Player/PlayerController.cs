@@ -95,6 +95,17 @@ namespace Igruha.Core.Player
         public float NormalizedSpeed { get; private set; }
 
         /// <summary>
+        /// Множитель разгона от поверхности под ногами. Единица — обычный пол.
+        /// Скорость персонажа задаётся напрямую через linearVelocity, поэтому
+        /// трение физматериала на горизонтальное движение не влияет вообще —
+        /// лёд, грязь и масло делаются только этими двумя множителями.
+        /// </summary>
+        public float AccelerationMultiplier { get; private set; } = 1f;
+
+        /// <summary>Множитель торможения от поверхности. Он и даёт скольжение: на льду тормозить дольше, чем разгоняться.</summary>
+        public float DecelerationMultiplier { get; private set; } = 1f;
+
+        /// <summary>
         /// Направление взгляда по авторитетному повороту Rigidbody.
         /// Transform отстаёт от физики на кадр после MoveRotation/TeleportTo,
         /// а по этому направлению решается, в лицо прилетело или в спину.
@@ -124,6 +135,19 @@ namespace Igruha.Core.Player
         private float crouchBlend;
         private bool movementLocked;
         private bool facingOverridden;
+        private Component surfaceSource;
+        private float fallSpeed;
+        private bool wasGrounded = true;
+        private float launchGraceTimer;
+
+        /// <summary>Сколько секунд после импульса вверх лежачее демпфирование не включается: хватает пары шагов физики.</summary>
+        private const float LaunchGraceTime = 0.1f;
+
+        /// <summary>Насколько щуп всхождения смотрит вперёд за пределы капсулы, м.</summary>
+        private const float StepProbeReach = 0.12f;
+
+        /// <summary>Зазор щупов всхождения от пола и от верха ступени, м.</summary>
+        private const float StepProbeClearance = 0.05f;
 
         private void Awake()
         {
@@ -178,6 +202,7 @@ namespace Igruha.Core.Player
             }
 
             IsGrounded = CheckGrounded();
+            TrackLanding();
             UpdateTimers();
             ApplyExtraGravity();
             UpdateCrouch();
@@ -185,6 +210,23 @@ namespace Igruha.Core.Player
 
             if (IsKnockedDown)
             {
+                // Вращение гасим каждый тик, а не только на входе в нокдаун.
+                // Поворот по Y у тела свободен (заморожены только X и Z), и
+                // любой контакт лежащего тела с геометрией раскручивает его:
+                // клип падения играет как надо, а модель при этом наматывает
+                // круги вокруг себя. Углового трения 0.05 на это не хватает.
+                rb.angularVelocity = Vector3.zero;
+
+                // Лежачее демпфирование — только когда персонаж и правда лежит.
+                // Оно нужно, чтобы сбитый не скользил по полу, но те же 4 против
+                // 0.05 в полёте гасят подброс: гейзер Duck Hunt терял две трети
+                // высоты, потому что его импульс сам же и включал нокдаун.
+                // Проверять одну землю мало — на старте подброса тело ещё
+                // касается пола, и первые тики съедали пятую часть высоты.
+                launchGraceTimer = Mathf.Max(0f, launchGraceTimer - Time.fixedDeltaTime);
+                bool lyingStill = IsGrounded && rb.linearVelocity.y <= 0.1f && launchGraceTimer <= 0f;
+                rb.linearDamping = lyingStill ? config.KnockdownDrag : config.LinearDamping;
+
                 knockdownTimer -= Time.fixedDeltaTime;
                 if (knockdownTimer <= 0f)
                 {
@@ -211,7 +253,9 @@ namespace Igruha.Core.Player
             }
 
             ReadJumpInput();
-            ApplyLocomotion(ReadMoveInput());
+            Vector2 moveInput = ReadMoveInput();
+            ApplyLocomotion(moveInput);
+            TryStepUp(ToCameraRelative(moveInput));
             TryJump();
         }
 
@@ -290,6 +334,35 @@ namespace Igruha.Core.Player
         /// решение в сетевой фазе, логика ниже от источника не зависит.
         /// </summary>
         public void SetCrouched(bool crouched) => crouchRequested = crouched;
+
+        /// <summary>
+        /// Встать на поверхность, меняющую управление (лёд, грязь, масло).
+        /// Источник запоминается, чтобы вложенные и перекрывающиеся зоны не
+        /// сбрасывали друг друга: вошёл во вторую, не выйдя из первой — правит
+        /// вторая, и выход из первой уже ничего не трогает.
+        ///
+        /// По сети не гоняется: множитель детерминирован и одинаков на всех
+        /// машинах, потому что зависит только от того, где стоит персонаж.
+        /// </summary>
+        public void ApplySurface(Component source, float accelerationMultiplier, float decelerationMultiplier)
+        {
+            surfaceSource = source;
+            AccelerationMultiplier = Mathf.Max(0f, accelerationMultiplier);
+            DecelerationMultiplier = Mathf.Max(0f, decelerationMultiplier);
+        }
+
+        /// <summary>Сойти с поверхности. Сбрасывает множители, только если их ставил этот же источник.</summary>
+        public void ClearSurface(Component source)
+        {
+            if (surfaceSource != source)
+            {
+                return;
+            }
+
+            surfaceSource = null;
+            AccelerationMultiplier = 1f;
+            DecelerationMultiplier = 1f;
+        }
 
         private void UpdateCrouch()
         {
@@ -428,7 +501,9 @@ namespace Igruha.Core.Player
             Vector3 currentHorizontal = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
 
             bool accelerating = desiredVelocity.sqrMagnitude > 0.01f;
-            float rate = accelerating ? config.Acceleration : config.Deceleration;
+            float rate = accelerating
+                ? config.Acceleration * AccelerationMultiplier
+                : config.Deceleration * DecelerationMultiplier;
             if (!IsGrounded)
             {
                 rate *= config.AirControl;
@@ -604,6 +679,15 @@ namespace Igruha.Core.Player
 
             rb.AddForce(impulse, ForceMode.Impulse);
 
+            // Импульс вверх ещё не превратился в скорость: сила ждёт ближайшего
+            // шага физики. Без этой отметки нокдаун успевает выставить лежачее
+            // демпфирование ровно на тот шаг, где импульс интегрируется, и
+            // подброс теряет пятую часть высоты.
+            if (impulse.y > 0f)
+            {
+                launchGraceTimer = LaunchGraceTime;
+            }
+
             if (impulse.magnitude / rb.mass >= config.KnockdownVelocityThreshold)
             {
                 Knockdown(knockdownType);
@@ -627,6 +711,11 @@ namespace Igruha.Core.Player
 
             // Пока лежит — гасим скольжение, иначе подъём проигрывается «на ходу».
             rb.linearDamping = config.KnockdownDrag;
+
+            // И вращение: тело валится от импульса, а закрутить его может любой
+            // косой контакт по дороге.
+            rb.angularVelocity = Vector3.zero;
+
             KnockdownStarted?.Invoke(type);
         }
 
@@ -661,6 +750,11 @@ namespace Igruha.Core.Player
             rb.rotation = rotation;
             targetRotation = rotation;
 
+            // Накопленную скорость падения сбрасываем вместе с телом: иначе
+            // респавн посреди падения роняет персонажа сразу после переноса.
+            fallSpeed = 0f;
+            wasGrounded = true;
+
             if (wasKnockedDown)
             {
                 KnockdownEnded?.Invoke();
@@ -669,28 +763,96 @@ namespace Igruha.Core.Player
             Teleported?.Invoke();
         }
 
-        private void OnCollisionEnter(Collision collision)
+        /// <summary>
+        /// Падение от приземления — только по скорости падения, и только по ней.
+        ///
+        /// Раньше это решалось в OnCollisionEnter по импульсу столкновения, и
+        /// оттуда росли сразу четыре беды: персонаж падал, приземлившись после
+        /// обычного прыжка; падал, задев другого игрока; падал, подойдя вплотную
+        /// к стене; и падал на каждой ступеньке лестницы, отчего подняться по
+        /// ней было нельзя вовсе. Импульс столкновения не различает удар,
+        /// приземление и касание стены — все три для физики одно и то же.
+        ///
+        /// Теперь роняет только настоящий удар (через ApplyPush/ApplyImpulse) и
+        /// падение с высоты. Порог берётся с запасом над обычным прыжком.
+        /// </summary>
+        private void TrackLanding()
         {
-            if (config == null || IsKnockedDown)
+            if (!IsGrounded)
+            {
+                fallSpeed = Mathf.Max(fallSpeed, -rb.linearVelocity.y);
+                wasGrounded = false;
+                return;
+            }
+
+            if (!wasGrounded)
+            {
+                wasGrounded = true;
+
+                if (config.HardLandingSpeed > 0f && fallSpeed >= config.HardLandingSpeed)
+                {
+                    Knockdown(KnockdownType.FallForward);
+                }
+            }
+
+            fallSpeed = 0f;
+        }
+
+        /// <summary>
+        /// Всхождение на низкую ступень. Без него капсула упирается в любой
+        /// уступ и лестница проходится только прыжками — а прыжок на ступеньку
+        /// это ещё и приземление, то есть риск упасть на каждой ступени.
+        ///
+        /// Два щупа: низкий ловит препятствие, верхний проверяет, что над ним
+        /// свободно. Искать верх уступа лучом сверху вниз из точки ниже его
+        /// верхушки нельзя — луч стартует внутри коллайдера, тот его не ловит,
+        /// и стена читается как ровный пол.
+        /// </summary>
+        private void TryStepUp(Vector3 desiredDirection)
+        {
+            if (config.StepHeight <= 0f || !IsGrounded || IsKnockedDown)
             {
                 return;
             }
 
-            float deltaV = collision.impulse.magnitude / rb.mass;
-            Vector3 impulseDirection = collision.impulse / Mathf.Max(collision.impulse.magnitude, 0.0001f);
-            Vector3 horizontal = new Vector3(impulseDirection.x, 0f, impulseDirection.z);
-            float horizontalDeltaV = deltaV * horizontal.magnitude;
-
-            // Боковой удар валит с порога; вертикальный (жёсткое приземление) — с двойного,
-            // чтобы обычные прыжки не роняли персонажа.
-            if (horizontalDeltaV >= config.KnockdownVelocityThreshold ||
-                deltaV >= config.KnockdownVelocityThreshold * 2f)
+            Vector3 direction = new Vector3(desiredDirection.x, 0f, desiredDirection.z);
+            if (direction.sqrMagnitude < 0.0001f)
             {
-                KnockdownType type = Vector3.Dot(horizontal.normalized, Facing) < 0f
-                    ? KnockdownType.FlyBack
-                    : KnockdownType.FallForward;
-                Knockdown(type);
+                return;
             }
+
+            direction.Normalize();
+
+            float feetY = rb.position.y + capsule.center.y - capsule.height * 0.5f;
+            float reach = capsule.radius + StepProbeReach;
+
+            Vector3 low = new Vector3(rb.position.x, feetY + StepProbeClearance, rb.position.z);
+            if (!Physics.Raycast(low, direction, reach, groundLayer, QueryTriggerInteraction.Ignore))
+            {
+                return;
+            }
+
+            Vector3 high = new Vector3(rb.position.x, feetY + config.StepHeight + StepProbeClearance, rb.position.z);
+            if (Physics.Raycast(high, direction, reach, groundLayer, QueryTriggerInteraction.Ignore))
+            {
+                // На высоте ступени тоже занято — это стена, а не уступ.
+                return;
+            }
+
+            Vector3 above = high + direction * reach;
+            if (!Physics.Raycast(above, Vector3.down, out RaycastHit surface,
+                    config.StepHeight + StepProbeClearance, groundLayer, QueryTriggerInteraction.Ignore))
+            {
+                return;
+            }
+
+            float rise = surface.point.y - feetY;
+            if (rise <= StepProbeClearance || rise > config.StepHeight)
+            {
+                return;
+            }
+
+            rb.position += Vector3.up * (rise + StepProbeClearance);
         }
     }
 }

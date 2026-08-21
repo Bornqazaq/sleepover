@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e49e3e140abb09d42a635974e1f985ce, type: 3}
+  m_Name: DuckHuntConfig
+  m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.DuckHunt.DuckHuntConfig
+  characterWidth: 0.72
+  startCountdown: 3
+  floorCount: 5
+  elevatorSpeed: 4.5
+  elevatorMinHeight: -2
+  elevatorMaxHeight: 46
+  fireDelay: 2
+  magazineSize: 5
+  reloadDuration: 4
+  spreadStanding: 1.5
+  spreadMoving: 3
+  shotRange: 60
+  shotMask:
+    serializedVersion: 2
+    m_Bits: 321
+  deathImpulse: 18
+  deathImpulseLift: 0.4
+  horizontalFieldOfView: 90
+  cameraPitchLimit: 55
+  cameraTurnSpeed: 720
+  buttonCooldown: 10
+  doorClosedDuration: 5
+  collapseDuration: 3
+  geyserLaunchHeight: 4.5
+  iceAccelerationMultiplier: 0.45
+  iceDecelerationMultiplier: 0.3
+  floorLength: 48
+  floorDepth: 14
+  ceilingHeight: 7
+  slabThickness: 1
+  distanceToElevator: 16
+  stairRoomSize: 8
+  elevatorPlatformSize: 4
+  highCoverHeight: 2.5
+  lowCoverHeight: 1.3
+  ledgeHeight: 1
