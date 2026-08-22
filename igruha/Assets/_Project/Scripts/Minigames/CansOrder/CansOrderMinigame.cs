@@ -57,6 +57,8 @@ namespace Igruha.Minigames.CansOrder
         [SerializeField] private PitBear bear;
         [Tooltip("Камера наблюдателя — включается выбывшему")]
         [SerializeField] private SpectatorCamera spectator;
+        [Tooltip("Экранные подсказки: остаток стадии и что сейчас сделает E")]
+        [SerializeField] private CansOrderLocalHud localHud;
         [Tooltip("Переключатель ригов. Нужен, чтобы в окне выставления встать на полку")]
         [SerializeField] private MinigameCameraController cameraController;
         [Tooltip("Трансформ fixed-рига (_Camera/ShelfCameraRig). Мини-игра ставит его сама: рига без Body и Aim Cinemachine не двигает")]
@@ -76,6 +78,39 @@ namespace Igruha.Minigames.CansOrder
         [Tooltip("С какой вероятностью болванка выставляет верную расстановку за круг. На живых игроков не влияет")]
         [Range(0f, 1f)]
         [SerializeField] private float botSolveChance = 0.28f;
+
+        /// <summary>Кому мы сами заблокировали ноги на время окна: снимаем ровно свою блокировку.</summary>
+        private readonly List<PlayerController> movementLockedByShelf = new List<PlayerController>(8);
+
+        /// <summary>Рендереры своего персонажа, погашенные на время окна. Возвращаем ровно те, что гасили.</summary>
+        private readonly List<Renderer> hiddenLocalRenderers = new List<Renderer>(16);
+
+        /// <summary>Буфер под выборку рендереров: без него каждый круг плодил бы массив.</summary>
+        private readonly List<Renderer> rendererBuffer = new List<Renderer>(16);
+
+        /// <summary>Буфер своей карточки результата. Поле, а не локальная переменная: строка пересобирается каждый круг.</summary>
+        private readonly System.Text.StringBuilder revealText = new System.Text.StringBuilder(160);
+
+        /// <summary>Буфер подсказки про прошлый круг. Отдельный от карточки: строки живут в разных стадиях.</summary>
+        private readonly System.Text.StringBuilder lastCircleText = new System.Text.StringBuilder(160);
+
+        /// <summary>
+        /// Что локальный игрок отправил в прошлом круге и сколько совпало.
+        ///
+        /// <b>Ровно один круг назад, и это дизайнерское решение, а не экономия.</b>
+        /// Полный журнал попыток превратил бы игру в «Мастермайнд с блокнотом»:
+        /// имея все свои расстановки со счётом, скрытую находишь логикой за пару
+        /// кругов, и память как механика умирает вместе со списыванием с табло
+        /// (решение 18.4 LDD — «заметок нет»). Один прошлый круг снимает только
+        /// тупую фрустрацию «забыл, что ставил пятнадцать секунд назад»:
+        /// круги с первого по позапрошлый всё равно держишь в голове сам.
+        /// Решение геймдизайнера 22.08.
+        /// </summary>
+        private readonly List<int> lastCircleArrangement = new List<int>(8);
+        private int lastCircleMatches;
+        private int lastCircleRound = -1;
+        private int lastCircleNumber = -1;
+        private bool lastCircleConfirmed;
 
         /// <summary>Участник матча: сессия, клетка, полка, кнопка и его состояние за круг.</summary>
         private sealed class Contestant
@@ -318,6 +353,16 @@ namespace Igruha.Minigames.CansOrder
                                                && avatar.TryGetComponent(out PlayerInputReader reader)
                                                && reader.LocallyControlled;
 
+                // Подсказке про E нужна полка того игрока, которым управляют
+                // с этой машины. Здесь единственное место, где она уже известна:
+                // клетки раздаются после загрузки сцены, и HUD сам себя
+                // связать не может.
+                if (contestant.LocallyControlled && localHud != null)
+                {
+                    localHud.BindLocalShelf(contestant.Shelf);
+                    localHud.BindRules(this);
+                }
+
                 if (contestant.Shelf != null)
                 {
                     contestant.Shelf.SetOwner(avatar);
@@ -394,6 +439,8 @@ namespace Igruha.Minigames.CansOrder
             // Всё, что мини-игра навесила на игрока, она обязана снять сама:
             // персонаж переезжает между сценами живым, и незакрытая роль
             // уезжает в хаб вместе с ним (спека 10.5).
+            SetShelfMovementLock(false);
+            HideLocalAvatar(false);
             for (int i = 0; i < contestants.Count; i++)
             {
                 Contestant c = contestants[i];
@@ -594,6 +641,249 @@ namespace Igruha.Minigames.CansOrder
         }
 
         /// <summary>
+        /// Заблокировать ноги на время окна выставления.
+        ///
+        /// На плейтесте 22.08: «на фоне всё равно модель ходит, и кнопки на неё
+        /// работают». В окне выставления камера стоит на полке, ходить некуда
+        /// и незачем, а WASD уводил персонажа из кадра — со стороны это
+        /// выглядело просто сломанным.
+        ///
+        /// <b>Цена решения:</b> <c>PlayerEmoteAbility</c> не открывает колесо
+        /// насмешек при <c>MovementLocked</c>, то есть Tab не работает те
+        /// секунды, что открыто окно. В брифинге, показе результатов и на
+        /// падении он работает как раньше. Это осознанный размен, а не
+        /// недосмотр: именно из-за него на IGR-370 курсор посадили на мышь,
+        /// а не на A/D.
+        ///
+        /// Снимаем ровно свою блокировку и строго до <see cref="DescendCages"/>:
+        /// клетка на спуске ставит свою, и затирать её нельзя.
+        /// </summary>
+        private void SetShelfMovementLock(bool locked)
+        {
+            if (!locked)
+            {
+                for (int i = 0; i < movementLockedByShelf.Count; i++)
+                {
+                    if (movementLockedByShelf[i] != null)
+                    {
+                        movementLockedByShelf[i].MovementLocked = false;
+                    }
+                }
+
+                movementLockedByShelf.Clear();
+                return;
+            }
+
+            for (int i = 0; i < contestants.Count; i++)
+            {
+                Contestant c = contestants[i];
+                PlayerController avatar = c.Session != null ? c.Session.Avatar : null;
+                if (avatar == null || !c.Entry.Alive || c.Entry.Solved)
+                {
+                    continue;
+                }
+
+                avatar.MovementLocked = true;
+                movementLockedByShelf.Add(avatar);
+            }
+        }
+
+        /// <summary>
+        /// Запомнить, что локальный игрок отправил в этом круге и что получил.
+        /// Зовётся в стадии показа — там же, где совпадения впервые выходят
+        /// из контроллера, и ни секундой раньше.
+        /// </summary>
+        private void CaptureLocalCircle()
+        {
+            Contestant local = FindLocal();
+            if (local == null)
+            {
+                lastCircleRound = -1;
+                return;
+            }
+
+            lastCircleRound = round.Round;
+            lastCircleNumber = round.Circle;
+            lastCircleConfirmed = local.Entry.Confirmed;
+            lastCircleMatches = local.Entry.Matches;
+
+            lastCircleArrangement.Clear();
+            for (int i = 0; i < local.Submitted.Count; i++)
+            {
+                lastCircleArrangement.Add(local.Submitted[i]);
+            }
+        }
+
+        /// <summary>
+        /// Подсказка «прошлый круг» для окна выставления. Пустая строка — либо
+        /// круг первый в раунде, либо раунд сменился и прошлое обнулилось:
+        /// скрытая расстановка в новом раунде другая, и старые числа врали бы.
+        /// </summary>
+        public string BuildLastCircleText()
+        {
+            if (config == null || lastCircleRound != round.Round || lastCircleNumber < 0)
+            {
+                return string.Empty;
+            }
+
+            if (!lastCircleConfirmed)
+            {
+                return "<size=22>ПРОШЛЫЙ КРУГ</size>\n<size=26>не подтвердил</size>";
+            }
+
+            lastCircleText.Clear();
+            lastCircleText.Append("<size=22>ПРОШЛЫЙ КРУГ</size>\n<size=38>");
+            for (int i = 0; i < lastCircleArrangement.Count; i++)
+            {
+                CansOrderConfig.CanKind kind = config.GetCanKind(lastCircleArrangement[i]);
+                lastCircleText.Append("<color=#").Append(ColorUtility.ToHtmlStringRGB(kind.color)).Append('>')
+                    .Append(kind.symbol).Append("</color> ");
+            }
+
+            lastCircleText.Append("</size>\n<size=28>совпало ").Append(lastCircleMatches).Append("</size>");
+            return lastCircleText.ToString();
+        }
+
+        /// <summary>
+        /// Чем занят локальный игрок, когда его полка молчит посреди окна
+        /// выставления. Пустая строка — молчать не о чем.
+        ///
+        /// Молчащая полка без объяснения читается как поломка: игрок жмёт,
+        /// а ничего не происходит.
+        /// </summary>
+        public string LocalWaitHint()
+        {
+            Contestant local = FindLocal();
+            if (local == null || !local.Entry.Alive)
+            {
+                return string.Empty;
+            }
+
+            if (local.Entry.Solved)
+            {
+                return "ТЫ СОБРАЛ РАССТАНОВКУ — остаёшься наверху";
+            }
+
+            return local.Entry.Confirmed
+                ? "РАССТАНОВКА ПРИНЯТА — ждём остальных"
+                : string.Empty;
+        }
+
+        /// <summary>
+        /// Спрятать своего персонажа на время окна выставления.
+        ///
+        /// Камера стоит в 1.4 м перед доской, игрок — примерно там же, и его
+        /// собственная голова временами закрывает половину ряда (плейтест
+        /// 22.08). Двигать камеру дальше нельзя: ряд с кнопкой перестаёт
+        /// помещаться в кадр.
+        ///
+        /// Гасим только рендереры и только у своего персонажа: коллайдер,
+        /// физика и всё остальное на месте, чужие видят его как обычно.
+        /// Возвращаем ровно те, что гасили сами, — <c>PlayerElimination</c>
+        /// хранит своё состояние рендереров и восстанавливает точно, и затирать
+        /// его нельзя.
+        /// </summary>
+        private void HideLocalAvatar(bool hide)
+        {
+            if (!hide)
+            {
+                for (int i = 0; i < hiddenLocalRenderers.Count; i++)
+                {
+                    if (hiddenLocalRenderers[i] != null)
+                    {
+                        hiddenLocalRenderers[i].enabled = true;
+                    }
+                }
+
+                hiddenLocalRenderers.Clear();
+                return;
+            }
+
+            if (hiddenLocalRenderers.Count > 0)
+            {
+                return;
+            }
+
+            Contestant local = FindLocal();
+            if (local == null || !local.Entry.Alive || local.Entry.Solved)
+            {
+                return;
+            }
+
+            PlayerController avatar = local.Session != null ? local.Session.Avatar : null;
+            if (avatar == null)
+            {
+                return;
+            }
+
+            avatar.GetComponentsInChildren(true, rendererBuffer);
+            for (int i = 0; i < rendererBuffer.Count; i++)
+            {
+                Renderer r = rendererBuffer[i];
+                if (r == null || !r.enabled)
+                {
+                    continue;
+                }
+
+                r.enabled = false;
+                hiddenLocalRenderers.Add(r);
+            }
+        }
+
+        /// <summary>
+        /// Своя карточка результата для экрана: что игрок отправил и сколько
+        /// совпало. Пустая строка — показывать нечего.
+        ///
+        /// Считает контроллер, а не интерфейс: до стадии показа совпадения
+        /// не покидают его вовсе, и <see cref="resultsRevealed"/> здесь тот же
+        /// замок, что у табло.
+        /// </summary>
+        public string BuildLocalRevealText()
+        {
+            if (!resultsRevealed || config == null)
+            {
+                return string.Empty;
+            }
+
+            Contestant local = FindLocal();
+            if (local == null || !local.Entry.Alive)
+            {
+                return string.Empty;
+            }
+
+            if (local.Entry.Solved && !local.Entry.SolvedThisCircle)
+            {
+                return "<size=40>ТЫ УЖЕ СОБРАЛ — сидишь наверху</size>";
+            }
+
+            if (!local.Entry.Confirmed)
+            {
+                return "<size=40>НЕ ПОДТВЕРДИЛ</size>\n<size=28>круг всё равно потрачен</size>";
+            }
+
+            revealText.Clear();
+            revealText.Append("<size=28>ТВОЯ РАССТАНОВКА</size>\n<size=54>");
+            for (int i = 0; i < local.Submitted.Count; i++)
+            {
+                CansOrderConfig.CanKind kind = config.GetCanKind(local.Submitted[i]);
+                revealText.Append("<color=#").Append(ColorUtility.ToHtmlStringRGB(kind.color)).Append('>')
+                    .Append(kind.symbol).Append("</color>  ");
+            }
+
+            revealText.Append("</size>\n");
+
+            if (local.Entry.SolvedThisCircle)
+            {
+                revealText.Append("<size=46><b>СОБРАЛ ВСЮ РАССТАНОВКУ</b></size>");
+                return revealText.ToString();
+            }
+
+            revealText.Append("<size=46><b>СОВПАЛО ").Append(local.Entry.Matches)
+                .Append(" из ").Append(local.Submitted.Count).Append("</b></size>");
+            return revealText.ToString();
+        }
+
+        /// <summary>
         /// Открыть или закрыть окно выставления. Собравшему окно не открывается:
         /// его полка гаснет, клетка замирает, и он смотрит — это и есть награда.
         /// </summary>
@@ -637,11 +927,22 @@ namespace Igruha.Minigames.CansOrder
         /// </summary>
         private void HandleStageStarted(byte stage)
         {
+            // Свою блокировку ног снимаем первым делом — строго до DescendCages:
+            // на спуске клетка ставит собственную, и порядок здесь не косметика.
+            SetShelfMovementLock(false);
+            HideLocalAvatar(false);
+            if (stage == StagePlacement)
+            {
+                SetShelfMovementLock(true);
+                HideLocalAvatar(true);
+            }
+
             // Флаг общий для всех машин: он решает, выходят ли совпадения
             // из контроллера вообще.
             if (stage == StageReveal)
             {
                 resultsRevealed = true;
+                CaptureLocalCircle();
                 // Строго после флага: до него контроллер не отдаёт
                 // совпадения даже табло, и оно нарисовало бы нули.
                 scoreboard?.ShowResults(this);
@@ -1080,6 +1381,16 @@ namespace Igruha.Minigames.CansOrder
             c.Entry.Confirmed = true;
             c.Entry.ConfirmTime = NetworkClock.Now;
             button.MarkAccepted();
+
+            // Полка замирает сразу после подтверждения.
+            //
+            // Раньше она жила до конца окна, и это врало: банки двигались,
+            // а считался снимок, снятый в момент нажатия. На плейтесте 22.08
+            // это прочиталось именно так — «меняю, а оно не считается».
+            // Снимок по-прежнему берётся при подтверждении (в фазе 3 он уедет
+            // аргументом ServerRpc), но теперь после него на полке ровно то,
+            // что отправлено.
+            c.Shelf.Active = false;
 
             if (config.ShowOwnMatchesImmediately)
             {

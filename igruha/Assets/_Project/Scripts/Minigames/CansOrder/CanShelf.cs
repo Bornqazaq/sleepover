@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using Igruha.Core.Interaction;
 using Igruha.Core.Player;
 
@@ -43,6 +44,17 @@ namespace Igruha.Minigames.CansOrder
     /// локально и без задержки; по сети за круг уходит один пакет — подтверждённая
     /// расстановка, и отправляет её кнопка, а не полка.
     /// </summary>
+    /// <remarks>
+    /// <b>Порядок выполнения важен и потому задан явно.</b> Полка забирает
+    /// нажатие E у ридера сама, а <c>PlayerInteractor</c> гасит это же нажатие
+    /// безусловно — даже когда ему нечего активировать (у него радиус 1.8 м,
+    /// а доска стоит в 1.94 м). При обычном, то есть неопределённом, порядке
+    /// апдейтов полка получала бы нажатие через раз: кто первым дошёл до флага,
+    /// тот его и снял. Отрицательный порядок ставит полку заведомо раньше.
+    /// Вне окна выставления она ввод не трогает вовсе, поэтому на остальные
+    /// интерактивы в сцене это не влияет.
+    /// </remarks>
+    [DefaultExecutionOrder(-100)]
     public sealed class CanShelf : MonoBehaviour, IInteractable, ILocalInteraction
     {
         private const string PromptMark = "Выбрать банку";
@@ -65,9 +77,26 @@ namespace Igruha.Minigames.CansOrder
 
         [Header("Курсор")]
         [Tooltip("Сколько мышь должна пройти, чтобы курсор перескочил на соседнюю банку. Меньше — резче")]
-        [SerializeField] private float mouseStepPixels = 60f;
+        [SerializeField] private float mouseStepPixels = 45f;
+        [Tooltip("Пауза между шагами курсора, пока стрелка зажата, с")]
+        [SerializeField] private float keyRepeatSeconds = 0.16f;
         [Tooltip("На сколько метров перед собой игрок «указывает». Задаёт только СТАРТОВЫЙ слот курсора, когда окно открывается")]
         [SerializeField] private float slotPickReach = 0.55f;
+
+        /// <summary>Толщина диска-метки (масштаб цилиндра — реальная высота вдвое больше).</summary>
+        private const float MarkerThickness = 0.004f;
+
+        /// <summary>На сколько метка приподнята над доской, чтобы не тонуть в ней, м.</summary>
+        private const float MarkerLift = 0.012f;
+
+        /// <summary>Во сколько раз метка шире банки.</summary>
+        private const float MarkerWidthFactor = 1.9f;
+
+        private static readonly Color MarkerColor = new Color(1f, 0.92f, 0.35f);
+
+        /// <summary>URP красится через _BaseColor, встроенный шейдер — через _Color. Ставим оба, как и банке.</summary>
+        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+        private static readonly int LegacyColorId = Shader.PropertyToID("_Color");
 
         /// <summary>Расстановка на полке изменилась: банки поменялись местами.</summary>
         public event Action<CanShelf> ArrangementChanged;
@@ -84,6 +113,8 @@ namespace Igruha.Minigames.CansOrder
         private int cursorCell = NoCell;
         private int markedSlot = NoCell;
         private float cursorAccum;
+        private float keyHoldTimer;
+        private Transform cursorMarker;
 
         /// <summary>
         /// Открыто ли окно выставления. Вне его полка не отзывается: круг уже
@@ -196,6 +227,8 @@ namespace Igruha.Minigames.CansOrder
                 PlaceInSlot(can, i);
             }
 
+            cursorMarker = BuildCursorMarker();
+
             RaiseChanged();
         }
 
@@ -227,6 +260,25 @@ namespace Igruha.Minigames.CansOrder
                 return;
             }
 
+            Apply();
+        }
+
+        /// <summary>
+        /// Нажатие по ячейке под курсором: отметить, поменять местами, снять
+        /// отметку или подтвердить. Отдельно от <see cref="Interact"/>, потому
+        /// что в окне выставления полка берёт E сама, а не через
+        /// <c>PlayerInteractor</c> — см. <see cref="TakeInteractPress"/>.
+        /// </summary>
+        private void Apply()
+        {
+            // Замок стоит здесь, а не только у входов: полка замирает в момент
+            // подтверждения, и «замерла» должно значить именно это, чей бы
+            // вызов ни пришёл.
+            if (!active)
+            {
+                return;
+            }
+
             if (cursorCell == NoCell)
             {
                 cursorCell = NearestSlotToOwner();
@@ -239,7 +291,7 @@ namespace Igruha.Minigames.CansOrder
                 // Подтверждение остаётся за кнопкой: у неё вся проверка окна
                 // и единственное событие, на которое подписан контроллер.
                 // Полка только доносит до неё нажатие.
-                button?.Interact(player);
+                button?.Interact(owner);
                 return;
             }
 
@@ -264,9 +316,9 @@ namespace Igruha.Minigames.CansOrder
         }
 
         /// <summary>
-        /// Курсор от мыши. Идёт в <c>Update</c>, а не в обработчике ввода:
-        /// <c>LookDelta</c> копится ридером за кадр, и читать его надо там же,
-        /// где живёт остальной визуал.
+        /// Курсор от мыши и от стрелок. Идёт в <c>Update</c>, а не в обработчике
+        /// ввода: <c>LookDelta</c> копится ридером за кадр, и читать его надо
+        /// там же, где живёт остальной визуал.
         /// </summary>
         private void Update()
         {
@@ -281,7 +333,18 @@ namespace Igruha.Minigames.CansOrder
                 RefreshHighlights();
             }
 
-            cursorAccum += reader.LookDelta.x;
+            HoldMouse();
+            SwallowPush();
+            TakeClick();
+            TakeInteractPress();
+            TakeConfirmKey();
+
+            if (StepFromArrows())
+            {
+                return;
+            }
+
+            cursorAccum += ReadMouseStep();
 
             float step = Mathf.Max(1f, mouseStepPixels);
             while (Mathf.Abs(cursorAccum) >= step)
@@ -289,18 +352,217 @@ namespace Igruha.Minigames.CansOrder
                 int direction = cursorAccum > 0f ? 1 : -1;
                 cursorAccum -= direction * step;
 
-                int next = Mathf.Clamp(cursorCell + direction, 0, LastCell);
-                if (next == cursorCell)
+                if (!MoveCursor(direction))
                 {
                     // Упёрлись в край ряда: гасим остаток, иначе поведённая
                     // в сторону мышь копит долг и курсор потом прыгает.
                     cursorAccum = 0f;
                     break;
                 }
-
-                cursorCell = next;
-                RefreshHighlights();
             }
+        }
+
+        /// <summary>
+        /// Клик левой кнопкой — то же, что E: отметить, поменять местами,
+        /// снять отметку, подтвердить на ячейке кнопки.
+        ///
+        /// Мышь в этой стадии и так ведёт подсветку, и рука уже на ней —
+        /// тянуться к E ради каждого обмена неудобно (плейтест 22.08).
+        /// E остаётся: он ничему не мешает и нужен геймпаду.
+        ///
+        /// Читаем кнопку с устройства, а не действие: в раскладке
+        /// <c>&lt;Mouse&gt;/leftButton</c> и <c>&lt;Keyboard&gt;/enter</c> сидят
+        /// на одном действии <c>Attack</c> (толчок), а нам эти две кнопки нужны
+        /// разными — клик выбирает банку, Enter подтверждает. Раскладка
+        /// заморожена, разводим на уровне устройств.
+        /// </summary>
+        private void TakeClick()
+        {
+            Mouse mouse = Mouse.current;
+            if (mouse == null || !mouse.leftButton.wasPressedThisFrame)
+            {
+                return;
+            }
+
+            Apply();
+        }
+
+        /// <summary>
+        /// Съесть накопленный толчок, пока открыто окно.
+        ///
+        /// ЛКМ и Enter — это же действие <c>Attack</c>, то есть импульс-толчок.
+        /// В клетке толкать некого, но нажатие копится в ридере и выстрелило бы
+        /// анимацией на ровном месте, а после окна — ещё и в чужую спину.
+        /// Гасим здесь, а не в способности: способность общая на все мини-игры.
+        /// </summary>
+        private void SwallowPush()
+        {
+            if (reader.PushPressed)
+            {
+                reader.ConsumePush();
+            }
+        }
+
+        /// <summary>
+        /// Смещение мыши за кадр — прямо с устройства, а не через
+        /// <c>PlayerInputReader.LookDelta</c>.
+        ///
+        /// Причина замерена 22.08: в окне выставления действие <c>Look</c>
+        /// стоит <b>выключенным</b> (<c>enabled=False</c>), и ридер честно
+        /// отдаёт нули. Гасит его сама камера: <c>ThirdPersonCameraRig.OnDisable</c>
+        /// зовёт <c>lookAction.action.Disable()</c> в обход счётчика ссылок
+        /// <c>PlayerInputReader</c>, а риг в этой стадии выключается ради
+        /// фикс-камеры на полке. То есть подсветку нечем было вести вообще:
+        /// курсор стоял на месте, что бы игрок ни делал мышью.
+        ///
+        /// Чинить это в риге нельзя — камера заморожена (igruha/CLAUDE.md,
+        /// раздел 0), а <c>PlayerInputReader</c> — общий Core. Мышь здесь
+        /// читается так же, как стрелки: напрямую с устройства, без действий
+        /// и без правок в общем коде.
+        /// </summary>
+        private static float ReadMouseStep()
+        {
+            Mouse mouse = Mouse.current;
+            return mouse != null ? mouse.delta.ReadValue().x : 0f;
+        }
+
+        /// <summary>
+        /// Подтверждение с клавиши, не доводя курсор до конца ряда.
+        ///
+        /// На плейтесте 22.08: «пока наводишься на кнопку — теряешь время
+        /// и не успеваешь». Дорога до ячейки кнопки стоит секунд из тех же,
+        /// в которые надо ещё и думать.
+        ///
+        /// Клавишу читаем с устройства: в раскладке Enter сидит на действии
+        /// <c>Attack</c> вместе с ЛКМ, а нам они нужны разными — клик выбирает
+        /// банку, Enter подтверждает. Сам толчок в окне глушится
+        /// (см. <see cref="SwallowPush"/>). Ячейка кнопки в конце ряда
+        /// остаётся: она нужна геймпаду.
+        /// </summary>
+        private void TakeConfirmKey()
+        {
+            Keyboard keyboard = Keyboard.current;
+            if (keyboard == null || button == null)
+            {
+                return;
+            }
+
+            if (!keyboard.enterKey.wasPressedThisFrame && !keyboard.numpadEnterKey.wasPressedThisFrame)
+            {
+                return;
+            }
+
+            button.Interact(owner);
+        }
+
+        /// <summary>
+        /// Забрать нажатие E у ридера напрямую, не спрашивая
+        /// <c>PlayerInteractor</c>.
+        ///
+        /// Иначе полка недостижима с того самого места, куда игра ставит
+        /// игрока: доска стоит в 1.94 м от него, а радиус поиска интерактивов
+        /// — 1.8 м. То есть на старте круга E не делал ровно ничего, и это
+        /// вылезло на плейтесте 22.08 вместе с застрявшим курсором.
+        ///
+        /// Подгонять радиус или спавн нельзя: радиус общий на все мини-игры,
+        /// а спавн держит дистанцию, на которой камера не встаёт в затылок.
+        /// Да и по смыслу дистанция здесь лишняя — курсор уже выбрал ячейку,
+        /// ходить ногами в окне выставления не нужно вовсе (спека 4).
+        ///
+        /// Двойного срабатывания не будет: нажатие снимается
+        /// <c>ConsumeInteract</c>, и если игрок стоит вплотную и первым успел
+        /// <c>PlayerInteractor</c>, сюда придёт уже пустой флаг — и наоборот.
+        /// </summary>
+        private void TakeInteractPress()
+        {
+            if (!reader.InteractPressed)
+            {
+                return;
+            }
+
+            reader.ConsumeInteract();
+            Apply();
+        }
+
+        /// <summary>
+        /// Держать мышь захваченной, пока открыто окно выставления.
+        ///
+        /// Без этого схема не работает вообще, и это стоило целого плейтеста
+        /// 22.08. Полка водит подсветку дельтой мыши, а камера в окне уходит
+        /// на фикс-риг: <c>MinigameCameraController</c> при переключении гасит
+        /// GameObject орбитального рига, а тот в <c>OnDisable</c> отпускает
+        /// курсор. Указатель становится обычным системным, упирается в край
+        /// экрана, дельта перестаёт приходить — и подсветка встаёт колом.
+        /// Наружу это выглядит как «первое E поднимает банку, а дальше ничего»:
+        /// второе нажатие бьёт по той же банке и просто снимает отметку.
+        ///
+        /// Ставим каждый кадр, а не один раз на открытии: риги включаются
+        /// и выключаются по стадиям, и порядок «кто последний тронул курсор»
+        /// не гарантирован. Замороженную камеру при этом не трогаем — полка
+        /// держит курсор ровно те секунды, что открыто её окно.
+        /// </summary>
+        private static void HoldMouse()
+        {
+            if (Cursor.lockState == CursorLockMode.Locked)
+            {
+                return;
+            }
+
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
+
+        /// <summary>
+        /// Стрелки влево-вправо как второй способ вести курсор. Клавиатуру
+        /// читаем напрямую, а не через действие: раскладка заморожена, новых
+        /// биндов в неё не добавляем, а стрелки в игре ничем не заняты.
+        /// WASD взять нельзя — они ходят ногами, а блокировать ходьбу ради
+        /// полки значит убить колесо насмешек на Tab (STATE, 2c).
+        /// </summary>
+        private bool StepFromArrows()
+        {
+            Keyboard keyboard = Keyboard.current;
+            if (keyboard == null)
+            {
+                return false;
+            }
+
+            bool left = keyboard.leftArrowKey.isPressed;
+            bool right = keyboard.rightArrowKey.isPressed;
+            if (left == right)
+            {
+                keyHoldTimer = 0f;
+                return false;
+            }
+
+            if (keyboard.leftArrowKey.wasPressedThisFrame || keyboard.rightArrowKey.wasPressedThisFrame)
+            {
+                keyHoldTimer = 0f;
+            }
+
+            if (keyHoldTimer > 0f)
+            {
+                keyHoldTimer -= Time.deltaTime;
+                return true;
+            }
+
+            keyHoldTimer = Mathf.Max(0.05f, keyRepeatSeconds);
+            MoveCursor(right ? 1 : -1);
+            return true;
+        }
+
+        /// <summary>Сдвинуть курсор на соседнюю ячейку. False — упёрлись в край ряда.</summary>
+        private bool MoveCursor(int direction)
+        {
+            int next = Mathf.Clamp(cursorCell + direction, 0, LastCell);
+            if (next == cursorCell)
+            {
+                return false;
+            }
+
+            cursorCell = next;
+            RefreshHighlights();
+            return true;
         }
 
         /// <summary>
@@ -435,6 +697,81 @@ namespace Igruha.Minigames.CansOrder
             }
 
             button?.SetCursorHighlight(active && cursorCell == ConfirmCell);
+            MoveCursorMarker();
+        }
+
+        /// <summary>
+        /// Переставить метку под ячейку курсора.
+        ///
+        /// Одного подъёма банки мало: на плейтесте 22.08 это читалось как
+        /// «поднялась банка и всё» — приподнятая банка не говорит, что именно
+        /// её сейчас тронет E, особенно когда рядом стоит отмеченная. Плоский
+        /// диск под ячейкой однозначен, работает и на ячейке кнопки, и переживёт
+        /// замену серых заготовок на модели в арт-фазе.
+        /// </summary>
+        private void MoveCursorMarker()
+        {
+            if (cursorMarker == null)
+            {
+                return;
+            }
+
+            if (!active || cursorCell == NoCell)
+            {
+                cursorMarker.gameObject.SetActive(false);
+                return;
+            }
+
+            if (cursorCell == ConfirmCell)
+            {
+                if (button == null)
+                {
+                    cursorMarker.gameObject.SetActive(false);
+                    return;
+                }
+
+                cursorMarker.position = button.transform.position + Vector3.up * MarkerLift;
+            }
+            else
+            {
+                Vector3 slotLocal = slots[cursorCell].localPosition;
+                cursorMarker.localPosition = new Vector3(slotLocal.x, MarkerLift, slotLocal.z);
+            }
+
+            cursorMarker.gameObject.SetActive(true);
+        }
+
+        /// <summary>
+        /// Диск-метка под ячейкой курсора. Строится вместе с рядом: число банок
+        /// берётся из конфига и от круга к кругу может быть разным.
+        /// </summary>
+        private Transform BuildCursorMarker()
+        {
+            GameObject marker = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            marker.name = "CursorMarker";
+            marker.transform.SetParent(slotsRoot, false);
+            marker.transform.localScale =
+                new Vector3(canDiameter * MarkerWidthFactor, MarkerThickness, canDiameter * MarkerWidthFactor);
+
+            // Коллайдер гасим и сносим по той же причине, что и у банки: выборка
+            // PlayerInteractor держит 16 коллайдеров, и лишний вытеснил бы кнопку.
+            Collider markerCollider = marker.GetComponent<Collider>();
+            if (markerCollider != null)
+            {
+                markerCollider.enabled = false;
+                Destroy(markerCollider);
+            }
+
+            if (marker.TryGetComponent(out Renderer markerRenderer))
+            {
+                var block = new MaterialPropertyBlock();
+                block.SetColor(BaseColorId, MarkerColor);
+                block.SetColor(LegacyColorId, MarkerColor);
+                markerRenderer.SetPropertyBlock(block);
+            }
+
+            marker.SetActive(false);
+            return marker.transform;
         }
 
         /// <summary>
@@ -545,6 +882,12 @@ namespace Igruha.Minigames.CansOrder
                 {
                     Destroy(slots[i].gameObject);
                 }
+            }
+
+            if (cursorMarker != null)
+            {
+                Destroy(cursorMarker.gameObject);
+                cursorMarker = null;
             }
 
             cans.Clear();

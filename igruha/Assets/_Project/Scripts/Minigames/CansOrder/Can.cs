@@ -50,15 +50,19 @@ namespace Igruha.Minigames.CansOrder
             Marked
         }
 
-        /// <summary>На сколько банка приподнимается под курсором, м.</summary>
-        private const float CursorLift = 0.05f;
+        /// <summary>
+        /// На сколько банка приподнимается под курсором, м. Подняли с 5 см
+        /// после плейтеста 22.08: на пастельных заготовках сантиметры
+        /// не читались, и выбор снова шёл вслепую.
+        /// </summary>
+        private const float CursorLift = 0.09f;
 
         /// <summary>На сколько приподнимается отмеченная. Заметно выше курсора: два состояния нельзя путать.</summary>
-        private const float MarkedLift = 0.14f;
+        private const float MarkedLift = 0.22f;
 
         /// <summary>Насколько подсветка высветляет цвет банки, 0…1.</summary>
-        private const float CursorTint = 0.35f;
-        private const float MarkedTint = 0.6f;
+        private const float CursorTint = 0.5f;
+        private const float MarkedTint = 0.8f;
 
         private Highlight highlight = Highlight.None;
 
