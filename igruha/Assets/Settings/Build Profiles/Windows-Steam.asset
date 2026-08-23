@@ -18,12 +18,22 @@ MonoBehaviour:
   m_PlatformId: 4e3c793746204150860bf175a9a41a05
   m_PlatformBuildProfile:
     rid: 2784939928058855424
-  m_OverrideGlobalSceneList: 1
+  m_OverrideGlobalSceneList: 0
   m_Scenes:
   - m_enabled: 1
     m_path: Assets/_Project/Scenes/Boot.unity
   - m_enabled: 1
+    m_path: Assets/_Project/Scenes/Sandbox.unity
+  - m_enabled: 1
     m_path: Assets/_Project/Scenes/Hub.unity
+  - m_enabled: 1
+    m_path: Assets/_Project/Scenes/Minigames/DuckHunt.unity
+  - m_enabled: 1
+    m_path: Assets/_Project/Scenes/Minigames/CryingAngels.unity
+  - m_enabled: 1
+    m_path: Assets/_Project/Scenes/Minigames/Stopwatch.unity
+  - m_enabled: 1
+    m_path: Assets/_Project/Scenes/Minigames/CansOrder.unity
   m_HasScriptingDefines: 0
   m_ScriptingDefines: []
   m_PlayerSettingsYaml:
