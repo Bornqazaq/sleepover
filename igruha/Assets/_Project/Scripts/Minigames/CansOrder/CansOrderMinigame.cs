@@ -543,6 +543,12 @@ namespace Igruha.Minigames.CansOrder
             }
 
             spectator?.Deactivate();
+
+            // Строго ПОСЛЕ наблюдателя: Deactivate() возвращает камеру туда,
+            // где она была на момент его включения, — а это вполне мог быть
+            // риг полки. Вернём кадр своему персонажу последним словом.
+            RestoreCameraToLocalAvatar();
+
             stageState?.StopSequence();
             scoreboard?.Clear();
         }
@@ -1172,6 +1178,34 @@ namespace Igruha.Minigames.CansOrder
             cameraController.Apply(CameraMode.Fixed, shelfCameraRig);
         }
 
+        /// <summary>
+        /// Вернуть камеру своему персонажу перед выходом из мини-игры.
+        ///
+        /// Без этого камера уезжает в хаб в режиме <see cref="CameraMode.Fixed"/>,
+        /// нацеленная на <c>shelfCameraRig</c> — объект ЭТОЙ сцены, который
+        /// умирает вместе с ней. Цель становится null, и кадр висит там, где
+        /// риг стоял в последний момент, пока хаб не выставит свой: игрок
+        /// видит рывок на входе в лобби (IGR-375).
+        ///
+        /// Замороженного не касается: меняется не риг и не его настройки,
+        /// а только то, на что смотрит <see cref="MinigameCameraController"/>.
+        /// </summary>
+        private void RestoreCameraToLocalAvatar()
+        {
+            if (cameraController == null)
+            {
+                return;
+            }
+
+            Contestant local = FindLocal();
+            if (local?.Session?.Avatar == null)
+            {
+                return;
+            }
+
+            cameraController.Apply(CameraMode.ThirdPerson, local.Session.Avatar.transform);
+        }
+
         private Contestant FindLocal()
         {
             for (int i = 0; i < contestants.Count; i++)
@@ -1676,7 +1710,56 @@ namespace Igruha.Minigames.CansOrder
                           $"совпадений {CountMatches(c.Submitted)} из {round.CanCount}", this);
             }
 
+            // Все, кому ещё было что подтверждать, подтвердили — дальше окно
+            // тикает впустую, и люди просто сидят и смотрят на таймер каждый
+            // круг (IGR-373). Закрываем стадию досрочно.
+            //
+            // Стадию проверяем явно: пакет мог прийти в допуске 0.3 с ПОСЛЕ
+            // дедлайна, когда показ результатов уже идёт, — и тогда EndStageNow
+            // обрубил бы не окно выставления, а показ.
+            //
+            // Решает только сервер: EndStageNow сам уходит по !HasAuthority,
+            // но мы и так под ним — вся эта функция серверная.
+            if (stageState != null && stageState.Stage == StagePlacement && AllAliveConfirmed())
+            {
+                stageState.EndStageNow();
+            }
+
             return true;
+        }
+
+        /// <summary>
+        /// Подтвердили ли уже все, от кого этого вообще ждут.
+        ///
+        /// Считаются только живые и ещё не собравшие: выбывший подтверждать
+        /// не может, отвалившегося по сети в составе уже нет, а собравший
+        /// выведен из круга — его полка больше не оживает, и ждать его
+        /// значило бы не дождаться никогда.
+        ///
+        /// Пустой знаменатель даёт <c>false</c>: если ждать вообще некого,
+        /// круг закрывает свой обычный ход, а не эта проверка.
+        /// </summary>
+        private bool AllAliveConfirmed()
+        {
+            bool anyoneExpected = false;
+
+            for (int i = 0; i < contestants.Count; i++)
+            {
+                Contestant other = contestants[i];
+                if (!other.Entry.Alive || other.Entry.Solved)
+                {
+                    continue;
+                }
+
+                anyoneExpected = true;
+
+                if (!other.Entry.Confirmed)
+                {
+                    return false;
+                }
+            }
+
+            return anyoneExpected;
         }
 
         /// <summary>Запомнить границы окна выставления: по ним сервер проверяет метку подтверждения.</summary>
@@ -1807,6 +1890,20 @@ namespace Igruha.Minigames.CansOrder
         /// </summary>
         private void Update()
         {
+            // Наблюдатель держит список живых ПО ССЫЛКЕ и перечитывает его
+            // каждый кадр — так написано в его собственном контракте. Отдать
+            // снимок нельзя: он устаревает на первой же смерти, дальше цель
+            // перестаёт быть watchable, обход не находит в снимке никого
+            // живого и уходит в «живых не осталось» — камера замирает
+            // на последней позиции посреди раунда (IGR-374).
+            //
+            // Обновляем ДО проверки авторитета: выбывает человек на своей
+            // машине, а не на сервере, и наблюдатель нужен каждому.
+            if (spectator != null && spectator.IsActive)
+            {
+                CollectAlivePlayers();
+            }
+
             if (bear == null || !HasAuthority || Phase != MinigamePhase.Round)
             {
                 return;
