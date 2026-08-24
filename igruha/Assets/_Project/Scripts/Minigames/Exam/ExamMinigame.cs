@@ -66,8 +66,27 @@ namespace Igruha.Minigames.Exam
 
         private readonly List<ExamDebugBot> bots = new List<ExamDebugBot>(8);
 
+        /// <summary>Сетевая половина. Пусто — сцену открыли напрямую, играем локально.</summary>
+        private ExamNetwork network;
+
+        /// <summary>Вопрос, присланный Ведущим-клиентом и ждущий конца фазы печати.</summary>
+        private string pendingQuestion;
+        private string pendingOptionA;
+        private string pendingOptionB;
+        private ExamSide pendingCorrect;
+        private bool pendingReady;
+
+        /// <summary>Свой вопрос уже отправлен серверу в этом круге — второй раз не шлём.</summary>
+        private bool questionSent;
+
+        /// <summary>Сколько строк состава разобрано из приехавшего списка.</summary>
+        private int networkEntryCursor;
+
         private double matchStartedAt;
         private bool matchOver;
+
+        /// <summary>Сколько участников знает контроллер. Нужно сетевой половине.</summary>
+        public int ContestantCount => entries.Count;
 
         private void OnEnableSubscribe()
         {
@@ -89,6 +108,12 @@ namespace Igruha.Minigames.Exam
 
             stageState.StageStarted -= HandleStageStarted;
             stageState.StageElapsed -= HandleStageElapsed;
+        }
+
+        protected override void Awake()
+        {
+            base.Awake();
+            network = GetComponent<ExamNetwork>();
         }
 
         protected override void OnEnable()
@@ -254,6 +279,9 @@ namespace Igruha.Minigames.Exam
             optionAText = string.Empty;
             optionBText = string.Empty;
 
+            pendingReady = false;
+            questionSent = false;
+
             for (int i = 0; i < entries.Count; i++)
             {
                 ExamEntry e = entries[i];
@@ -261,7 +289,35 @@ namespace Igruha.Minigames.Exam
                 entries[i] = e;
             }
 
+            PublishMatch();
+            PublishEntries();
+
             stageState.BeginSubround(match.QuestionNumber, StageTyping, config.TypingSeconds);
+        }
+
+        /// <summary>Разослать положение матча. Пусто вне сети — играем локально.</summary>
+        private void PublishMatch() => network?.PublishMatch(match.QuestionNumber, match.TotalQuestions,
+            match.QuestionValue, match.HostPlayerId, match.QuestionPosted);
+
+        /// <summary>
+        /// Разослать состав. Сторона в строках публикуется только после
+        /// фиксации: до неё клиенту знать, кто куда встал, неоткуда — кроме
+        /// собственных глаз, и это правильно.
+        /// </summary>
+        private void PublishEntries()
+        {
+            if (network == null)
+            {
+                return;
+            }
+
+            network.BeginPublishEntries();
+            for (int i = 0; i < entries.Count; i++)
+            {
+                ExamEntry e = entries[i];
+                network.PublishEntry(e.PlayerId, e.Score, e.LonelyHits, e.CorrectAnswers,
+                    e.LastScoredAt, e.Side, e.Present);
+            }
         }
 
         /// <summary>
@@ -335,6 +391,23 @@ namespace Igruha.Minigames.Exam
                 case StageReveal:
                     questionInput?.Close();
                     RestoreHostCamera();
+
+                    // Текст уходит клиентам ровно в этот момент и ни секундой
+                    // раньше: в фазе печати его нет ни у кого, кроме Ведущего
+                    // и сервера (спека 10.3).
+                    if (HasAuthority)
+                    {
+                        PublishMatch();
+                        if (match.QuestionPosted)
+                        {
+                            network?.AnnounceQuestion(questionText, optionAText, optionBText);
+                        }
+                        else
+                        {
+                            network?.AnnounceSkipped();
+                        }
+                    }
+
                     if (match.QuestionPosted)
                     {
                         board?.ShowQuestion(match.QuestionNumber, match.TotalQuestions,
@@ -354,6 +427,12 @@ namespace Igruha.Minigames.Exam
                         CaptureSides();
                         ScoreQuestion();
                         OpenWrongPlatform();
+
+                        // Публикуем результат и объявляем, какая платформа
+                        // раскрылась. Это И ЕСТЬ публикация ответа: отдельного
+                        // пакета с верным вариантом не существует.
+                        PublishEntries();
+                        network?.AnnounceHatch(correctSide == ExamSide.A ? ExamSide.B : ExamSide.A);
                     }
 
                     if (match.QuestionPosted)
@@ -476,6 +555,15 @@ namespace Igruha.Minigames.Exam
                 return;
             }
 
+            // Ведущий-клиент прислал вопрос заранее — он уже проверен
+            // в ServerApplyQuestion, здесь его только применяем.
+            if (pendingReady)
+            {
+                ApplyQuestion(pendingQuestion, pendingOptionA, pendingOptionB, pendingCorrect);
+                pendingReady = false;
+                return;
+            }
+
             Contestant host = FindEntryPlayer(match.HostPlayerId);
 
             if (host.IsLocal && questionInput != null && questionInput.HasQuestion)
@@ -515,12 +603,256 @@ namespace Igruha.Minigames.Exam
 
         private void HandleDoneRequested()
         {
-            // Досрочное закрытие фазы печати. Решает сервер: EndStageNow сам
-            // уходит по !HasAuthority, но лишний вызов ни к чему.
-            if (HasAuthority && stageState != null && stageState.Stage == StageTyping)
+            if (stageState == null || stageState.Stage != StageTyping)
+            {
+                return;
+            }
+
+            if (HasAuthority)
             {
                 CollectQuestionFromHost();
                 stageState.EndStageNow();
+                return;
+            }
+
+            // У клиента «Готово» — это просьба к серверу, а не решение.
+            // Вопрос уходит вместе с ней: иначе сервер закрыл бы фазу раньше,
+            // чем получил текст.
+            if (questionInput != null && questionInput.HasQuestion)
+            {
+                questionSent = true;
+                network?.SubmitQuestion(questionInput.Question, questionInput.OptionA,
+                    questionInput.OptionB, questionInput.CorrectSide);
+            }
+
+            network?.RequestDone();
+        }
+
+        // ========== ПРИЁМ НА СЕРВЕРЕ ==========
+
+        /// <summary>
+        /// Вопрос пришёл от Ведущего-клиента. Единственная точка приёма:
+        /// сервер не верит ничему и проверяет всё сам.
+        /// </summary>
+        public void ServerApplyQuestion(int senderId, string question, string optionA, string optionB,
+            ExamSide correct)
+        {
+            if (!HasAuthority)
+            {
+                return;
+            }
+
+            // 1. Роль. Прислать вопрос может только тот, кто сейчас за кафедрой.
+            if (senderId != match.HostPlayerId)
+            {
+                Debug.LogWarning($"{name}: вопрос от игрока {senderId}, а ведёт {match.HostPlayerId} — отказ", this);
+                return;
+            }
+
+            // 2. Стадия. Принимаем только в фазе печати. Это не формальность:
+            //    правило 5.5 требует, чтобы верный вариант был зафиксирован
+            //    ДО того, как класс увидит вопрос. Приняв отметку в фазе выбора,
+            //    мы дали бы Ведущему топить лично неприятных людей, и игра
+            //    сломалась бы тихо — снаружи это выглядит как невезение.
+            if (stageState == null || stageState.Stage != StageTyping)
+            {
+                Debug.LogWarning($"{name}: вопрос от игрока {senderId} пришёл вне фазы печати " +
+                                 $"(стадия {stageState?.Stage}) — отказ", this);
+                return;
+            }
+
+            // 3. Содержимое. Пустой вопрос — то же, что не напечатанный.
+            if (string.IsNullOrWhiteSpace(question) ||
+                string.IsNullOrWhiteSpace(optionA) ||
+                string.IsNullOrWhiteSpace(optionB))
+            {
+                return;
+            }
+
+            // 4. Вариант. Ровно А или Б, либо «не отмечен».
+            if (correct != ExamSide.A && correct != ExamSide.B && correct != ExamSide.None)
+            {
+                Debug.LogWarning($"{name}: от игрока {senderId} пришёл вариант {correct} — отказ", this);
+                return;
+            }
+
+            // Длины режет сервер, а не доверяет клиенту: пакет мог прийти
+            // и не от нашего интерфейса.
+            pendingQuestion = Truncate(question, config.QuestionMaxLength);
+            pendingOptionA = Truncate(optionA, config.OptionMaxLength);
+            pendingOptionB = Truncate(optionB, config.OptionMaxLength);
+            pendingCorrect = correct;
+            pendingReady = true;
+        }
+
+        /// <summary>Ведущий просит закрыть фазу печати досрочно.</summary>
+        public void ServerRequestDone(int senderId)
+        {
+            if (!HasAuthority || senderId != match.HostPlayerId)
+            {
+                return;
+            }
+
+            if (stageState != null && stageState.Stage == StageTyping)
+            {
+                CollectQuestionFromHost();
+                stageState.EndStageNow();
+            }
+        }
+
+        /// <summary>
+        /// Игрок ушёл. Судьба вопроса зависит от того, успел ли Ведущий его
+        /// опубликовать: до показа вопрос пропадает вместе с ним, после —
+        /// доигрывается штатно, потому что ответ уже лежит на сервере
+        /// и участие Ведущего больше не требуется (спека 10.4).
+        /// </summary>
+        public void ServerHandleDisconnect(int playerId)
+        {
+            if (!HasAuthority)
+            {
+                return;
+            }
+
+            int index = IndexOf(playerId);
+            if (index >= 0)
+            {
+                ExamEntry e = entries[index];
+                e.Present = false;
+                e.Side = ExamSide.None;
+                entries[index] = e;
+            }
+
+            RemovePlayer(playerId);
+            PublishEntries();
+
+            if (playerId != match.HostPlayerId)
+            {
+                return;
+            }
+
+            if (!match.QuestionPosted && stageState != null && stageState.Stage == StageTyping)
+            {
+                Debug.Log($"📚 [Экзамен] Ведущий {playerId} ушёл в фазе печати — вопрос пропущен", this);
+                stageState.EndStageNow();
+            }
+            else
+            {
+                Debug.Log($"📚 [Экзамен] Ведущий {playerId} ушёл после показа — вопрос доигрывается", this);
+            }
+        }
+
+        // ========== ПРИЁМ НА КЛИЕНТЕ ==========
+
+        /// <summary>Положение матча приехало от сервера.</summary>
+        public void ApplyNetworkMatch(int questionNumber, int totalQuestions, int questionValue,
+            int hostPlayerId, bool questionPosted)
+        {
+            if (HasAuthority)
+            {
+                return;
+            }
+
+            bool hostChanged = match.HostPlayerId != hostPlayerId;
+
+            match.QuestionNumber = questionNumber;
+            match.TotalQuestions = totalQuestions;
+            match.QuestionValue = questionValue;
+            match.HostPlayerId = hostPlayerId;
+            match.QuestionPosted = questionPosted;
+
+            // Панель ввода открывается у того, кто стал Ведущим, — на его
+            // машине и только на ней.
+            if (hostChanged)
+            {
+                OpenTypingForHost();
+            }
+
+            UpdateHud();
+        }
+
+        /// <summary>Текст вопроса приехал — значит наступила стадия показа.</summary>
+        public void ApplyNetworkQuestion(string question, string optionA, string optionB)
+        {
+            if (HasAuthority)
+            {
+                return;
+            }
+
+            questionText = question;
+            optionAText = optionA;
+            optionBText = optionB;
+            match.QuestionPosted = true;
+
+            board?.ShowQuestion(match.QuestionNumber, match.TotalQuestions, match.QuestionValue,
+                questionText, optionAText, optionBText);
+        }
+
+        /// <summary>Вопрос не состоялся.</summary>
+        public void ApplyNetworkSkipped()
+        {
+            if (HasAuthority)
+            {
+                return;
+            }
+
+            match.QuestionPosted = false;
+            board?.ShowSkipped(match.QuestionNumber, match.TotalQuestions);
+        }
+
+        /// <summary>
+        /// Сервер объявил, какая платформа раскрывается. Верный вариант
+        /// клиент выводит отсюда — отдельного пакета с ответом нет.
+        /// </summary>
+        public void ApplyNetworkHatch(ExamSide wrongSide)
+        {
+            if (HasAuthority)
+            {
+                return;
+            }
+
+            correctSide = wrongSide == ExamSide.A ? ExamSide.B : ExamSide.A;
+            ExamAnswerPlatform wrong = wrongSide == ExamSide.A ? platformA : platformB;
+            wrong?.OpenDoors(config.HatchOpenSeconds);
+            board?.HighlightCorrect(correctSide);
+        }
+
+        /// <summary>Начало разбора приехавшего состава.</summary>
+        public void ApplyNetworkEntriesBegin() => networkEntryCursor = 0;
+
+        /// <summary>Строка участника приехала от сервера.</summary>
+        public void ApplyNetworkEntry(int playerId, int score, int lonelyHits, int correctAnswers,
+            double lastScoredAt, ExamSide side, bool present)
+        {
+            if (HasAuthority)
+            {
+                return;
+            }
+
+            int index = IndexOf(playerId);
+            if (index < 0)
+            {
+                entries.Add(new ExamEntry { PlayerId = playerId });
+                index = entries.Count - 1;
+            }
+
+            ExamEntry e = entries[index];
+            e.Score = score;
+            e.LonelyHits = lonelyHits;
+            e.CorrectAnswers = correctAnswers;
+            e.LastScoredAt = lastScoredAt;
+            e.Side = side;
+            e.Present = present;
+            entries[index] = e;
+
+            networkEntryCursor++;
+        }
+
+        /// <summary>Состав разобран.</summary>
+        public void ApplyNetworkEntriesEnd()
+        {
+            if (!HasAuthority)
+            {
+                UpdateHud();
             }
         }
 
@@ -748,11 +1080,34 @@ namespace Igruha.Minigames.Exam
 
         private void Update()
         {
-            if (questionInput != null && questionInput.IsOpen && stageState != null)
+            if (questionInput == null || !questionInput.IsOpen || stageState == null)
             {
-                questionInput.SetCountdown(stageState.StageRemaining);
+                return;
+            }
+
+            questionInput.SetCountdown(stageState.StageRemaining);
+
+            // Ведущий-клиент отправляет вопрос сам, не дожидаясь кнопки:
+            // сервер закроет фазу по своим часам, и не успевший пакет означал
+            // бы несостоявшийся вопрос у человека, который всё напечатал.
+            // Шлём заранее, один раз за круг.
+            if (!HasAuthority && !questionSent &&
+                stageState.Stage == StageTyping &&
+                stageState.StageRemaining <= QuestionSendLeadSeconds &&
+                questionInput.HasQuestion)
+            {
+                questionSent = true;
+                network?.SubmitQuestion(questionInput.Question, questionInput.OptionA,
+                    questionInput.OptionB, questionInput.CorrectSide);
             }
         }
+
+        /// <summary>
+        /// За сколько до конца фазы печати клиент отсылает свой вопрос.
+        /// Полторы секунды — с запасом на пинг: пакет должен успеть дойти
+        /// до того, как сервер закроет стадию.
+        /// </summary>
+        private const float QuestionSendLeadSeconds = 1.5f;
 
         private struct Contestant
         {
