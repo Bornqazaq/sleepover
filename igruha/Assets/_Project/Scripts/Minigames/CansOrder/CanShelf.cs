@@ -742,6 +742,44 @@ namespace Igruha.Minigames.CansOrder
         }
 
         /// <summary>
+        /// Материал под всё, что полка лепит из примитивов в рантайме.
+        ///
+        /// <b>Без него билд рисует банки фиолетовыми.</b> <c>CreatePrimitive</c>
+        /// вешает встроенный <c>Default-Material</c>, а его шейдер — не из URP:
+        /// в редакторе он есть всегда, в сборку не попадает, и на его месте
+        /// оказывается заглушка «шейдер потерян». Арена и клетки этим не болеют —
+        /// они собраны из настоящих ассетов, и их шейдеры уезжают в билд вместе
+        /// с материалами.
+        ///
+        /// Один общий экземпляр на все полки: цвет всё равно задаётся
+        /// через <see cref="MaterialPropertyBlock"/>, копии материала
+        /// множили бы вызовы отрисовки на ровном месте.
+        /// </summary>
+        private static Material blockoutMaterial;
+
+        private static Material BlockoutMaterial
+        {
+            get
+            {
+                if (blockoutMaterial != null)
+                {
+                    return blockoutMaterial;
+                }
+
+                Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+                if (shader == null)
+                {
+                    Debug.LogError("CanShelf: шейдер 'Universal Render Pipeline/Lit' не найден — " +
+                                   "банки и метка курсора будут нарисованы заглушкой");
+                    return null;
+                }
+
+                blockoutMaterial = new Material(shader) { name = "CansOrder Blockout (runtime)" };
+                return blockoutMaterial;
+            }
+        }
+
+        /// <summary>
         /// Диск-метка под ячейкой курсора. Строится вместе с рядом: число банок
         /// берётся из конфига и от круга к кругу может быть разным.
         /// </summary>
@@ -764,6 +802,7 @@ namespace Igruha.Minigames.CansOrder
 
             if (marker.TryGetComponent(out Renderer markerRenderer))
             {
+                markerRenderer.sharedMaterial = BlockoutMaterial;
                 var block = new MaterialPropertyBlock();
                 block.SetColor(BaseColorId, MarkerColor);
                 block.SetColor(LegacyColorId, MarkerColor);
@@ -849,6 +888,11 @@ namespace Igruha.Minigames.CansOrder
             visual.name = "Visual";
             visual.transform.SetParent(root.transform, false);
             visual.transform.localScale = new Vector3(canDiameter, canHeight * 0.5f, canDiameter);
+
+            if (visual.TryGetComponent(out Renderer visualRenderer))
+            {
+                visualRenderer.sharedMaterial = BlockoutMaterial;
+            }
 
             // Коллайдер примитива сначала гасится и только потом удаляется:
             // Destroy отложен до конца кадра, и без выключения банки один кадр
