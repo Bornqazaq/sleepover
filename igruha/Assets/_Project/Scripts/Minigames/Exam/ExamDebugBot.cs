@@ -89,6 +89,15 @@ namespace Igruha.Minigames.Exam
                 return;
             }
 
+            // Под блокировкой и в нокдауне болванка просто отпускает «вперёд».
+            // Держать ввод нельзя: детектор застревания принял бы это
+            // за настоящее застревание.
+            if (avatar.MovementLocked || avatar.IsKnockedDown)
+            {
+                reader.DriveMove(Vector2.zero);
+                return;
+            }
+
             Vector3 delta = target.position - avatar.transform.position;
             delta.y = 0f;
 
@@ -98,10 +107,11 @@ namespace Igruha.Minigames.Exam
                 return;
             }
 
-            // Ввод болванки — в мировых осях: контроллер сам развернёт его
-            // относительно камеры, как и у живого игрока.
-            Vector3 dir = delta.normalized;
-            reader.DriveMove(new Vector2(dir.x, dir.z));
+            // Ввод персонажа трактуется ОТНОСИТЕЛЬНО КАМЕРЫ, поэтому мировое
+            // направление надо перевести: без пересчёта болванка идёт боком,
+            // как только у неё появляется своя камера. Для этого в Core и есть
+            // WorldToMoveInput.
+            reader.DriveMove(avatar.WorldToMoveInput(delta.normalized));
         }
     }
 }

@@ -231,6 +231,12 @@ namespace Igruha.Minigames.Exam
                 return;
             }
 
+            // Прежний Ведущий обязан вернуться в класс ДО того, как за кафедру
+            // встанет следующий. Иначе он остаётся заблокированным на возвышении
+            // и выпадает из игры навсегда: роль, которую игра навесила, она же
+            // и снимает (MinigameTemplate_HOWTO).
+            ReleasePreviousHost();
+
             int hostId = TakeNextHost();
             if (hostId < 0)
             {
@@ -256,6 +262,42 @@ namespace Igruha.Minigames.Exam
             }
 
             stageState.BeginSubround(match.QuestionNumber, StageTyping, config.TypingSeconds);
+        }
+
+        /// <summary>
+        /// Вернуть отведшего в класс: снять блокировку движения и поставить
+        /// в зону возврата. Спека 4.6: смена Ведущего мгновенная, предыдущий
+        /// уходит вниз без прохода через зал.
+        /// </summary>
+        private void ReleasePreviousHost()
+        {
+            if (match.HostPlayerId < 0)
+            {
+                return;
+            }
+
+            SessionPlayer previous = FindPlayer(match.HostPlayerId);
+            if (previous?.Avatar == null)
+            {
+                return;
+            }
+
+            previous.Avatar.MovementLocked = false;
+
+            if (HasAuthority && returnZone != null)
+            {
+                // Разводим по ширине зоны, чтобы бывшие Ведущие не слипались
+                // в одной точке и не расталкивали друг друга физикой.
+                float offset = (match.QuestionNumber % 5 - 2) * 1.6f;
+                Vector3 spot = returnZone.position + returnZone.right * offset;
+                previous.Avatar.TeleportTo(spot, Quaternion.identity);
+            }
+
+            if (previous == SessionScoreboard.Current?.LocalPlayer)
+            {
+                questionInput?.Close();
+                RestoreHostCamera();
+            }
         }
 
         /// <summary>
