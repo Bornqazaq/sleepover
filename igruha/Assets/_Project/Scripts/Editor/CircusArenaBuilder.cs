@@ -500,10 +500,18 @@ namespace Igruha.EditorTools
             rigidbody.useGravity = false;
 
             anchorGo.AddComponent<RidePlatform>();
+            // Пол на створках — общий компонент Core: та же механика служит
+            // платформам «Экзамена». Клетка про его устройство не знает,
+            // она только говорит «открой» и «закрой».
+            var hatch = anchorGo.AddComponent<HingedFloorHatch>();
+            var hatchSerialized = new SerializedObject(hatch);
+            hatchSerialized.FindProperty("doorLeft").objectReferenceValue = anchor.Find("Floor/DoorLeft");
+            hatchSerialized.FindProperty("doorRight").objectReferenceValue = anchor.Find("Floor/DoorRight");
+            hatchSerialized.ApplyModifiedPropertiesWithoutUndo();
+
             var station = anchorGo.AddComponent<CageStation>();
             var serialized = new SerializedObject(station);
-            serialized.FindProperty("doorLeft").objectReferenceValue = anchor.Find("Floor/DoorLeft");
-            serialized.FindProperty("doorRight").objectReferenceValue = anchor.Find("Floor/DoorRight");
+            serialized.FindProperty("hatch").objectReferenceValue = hatch;
             serialized.FindProperty("propSlot").objectReferenceValue = slot.transform;
             serialized.FindProperty("respawnPoint").objectReferenceValue = respawn.transform;
             serialized.ApplyModifiedPropertiesWithoutUndo();
