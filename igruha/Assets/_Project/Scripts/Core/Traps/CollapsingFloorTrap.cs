@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using Igruha.Core.Session;
 
 namespace Igruha.Core.Traps
 {
@@ -12,8 +13,9 @@ namespace Igruha.Core.Traps
     /// Та же конструкция стоит в плане «Камер-ловушек» (провал пола, обрушение потолка).
     ///
     /// Состояние — один флаг, меняется только через <see cref="SetOpen"/>:
-    /// в сетевой фазе он становится NetworkVariable, а метод — тем, что
-    /// применяет реплицированное состояние.
+    /// в сетевой катке его реплицирует мини-игра, а метод — то, чем присланное
+    /// состояние применяется. Опору убирает каждая машина у себя: падает игрок
+    /// на своей, и пол под ним должен пропасть именно там.
     /// </summary>
     public sealed class CollapsingFloorTrap : TrapBase
     {
@@ -35,11 +37,15 @@ namespace Igruha.Core.Traps
         /// <summary>Участок сейчас провален.</summary>
         public bool IsOpen { get; private set; }
 
+        public override bool IsSprung => IsOpen;
+
+        public override void ApplySprung(bool sprung) => SetOpen(sprung);
+
         protected override void OnActivated() => SetOpen(true);
 
         /// <summary>
         /// Убрать или вернуть опору. Единственная точка смены состояния —
-        /// сюда же придёт решение сервера в сетевой фазе.
+        /// сюда же придёт решение сервера в сетевой катке.
         /// </summary>
         public void SetOpen(bool open)
         {
@@ -58,7 +64,10 @@ namespace Igruha.Core.Traps
         {
             base.Update();
 
-            if (!IsOpen)
+            // Возвращает пол тот же, кто его убрал: на клиенте отсчёт не идёт,
+            // иначе опора вернулась бы у него раньше серверной — и падающий
+            // встал бы на пол, которого на сервере ещё нет.
+            if (!IsOpen || !WorldAuthority.HasAuthority)
             {
                 return;
             }

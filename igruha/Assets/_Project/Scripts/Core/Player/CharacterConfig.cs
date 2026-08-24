@@ -54,6 +54,11 @@ namespace Igruha.Core.Player
         [SerializeField] private float groundCheckDistance = 0.2f;
         [Tooltip("Высота, на которую персонаж всходит шагом, м. Ступени ниже неё берутся автоматически, выше — только прыжком. Ноль отключает всхождение")]
         [SerializeField] private float stepHeight = 0.42f;
+        [Tooltip("Предельный угол опоры, °. Круче — уже не пол, а склон: на такой поверхности персонаж не удерживается")]
+        [Range(20f, 80f)]
+        [SerializeField] private float maxSlopeAngle = 50f;
+        [Tooltip("На сколько персонажа притягивает к опоре при спуске, м. Ноль — капсула срывается с каждой ступени, и лестница идёт чередой мелких падений")]
+        [SerializeField] private float groundSnapDistance = 0.35f;
 
         [Header("Жёсткое приземление")]
         [Tooltip("Скорость падения, с которой персонаж падает при приземлении, м/с. Обычный прыжок приземляется примерно на 9.8, поэтому значение ниже 12 роняет после каждого прыжка. Ноль — не падать от приземления никогда")]
@@ -69,8 +74,8 @@ namespace Igruha.Core.Player
         [Header("Удар (Cross Punch) и импульс-толчок")]
         [Tooltip("Сила удара, импульс (кг·м/с)")]
         [SerializeField] private float pushForce = 14f;
-        [Tooltip("Радиус поражения удара, м")]
-        [SerializeField] private float pushRadius = 1.6f;
+        [Tooltip("Радиус выборки кандидатов удара, м. Досягаемость задаёт не он, а punchReach: здесь только широкий поиск, и значение обязано быть не меньше досягаемости плюс два радиуса капсулы")]
+        [SerializeField] private float pushRadius = 1.2f;
         [Tooltip("Доля силы, уходящая вверх (подбрасывание)")]
         [Range(0f, 1f)]
         [SerializeField] private float pushUpward = 0.35f;
@@ -79,6 +84,8 @@ namespace Igruha.Core.Player
         [Tooltip("Угол фронтального сектора удара, °")]
         [Range(30f, 360f)]
         [SerializeField] private float pushArcAngle = 140f;
+        [Tooltip("Досягаемость удара, м: зазор между телами, при котором кулак достаёт. Меряется от поверхности капсулы до поверхности капсулы, а не между корнями — корень стоит в ступнях, и от него любое число врёт")]
+        [SerializeField] private float punchReach = 0.4f;
         [Tooltip("Задержка от начала анимации удара до момента контакта, с — под замах Cross Punch")]
         [SerializeField] private float punchImpactDelay = 0.25f;
         [Tooltip("Множитель силы при ударе в лицо: отлёт назад должен быть заметно мощнее подсечки со спины")]
@@ -113,6 +120,8 @@ namespace Igruha.Core.Player
         public float JumpBufferTime => jumpBufferTime;
         public float GroundCheckDistance => groundCheckDistance;
         public float StepHeight => stepHeight;
+        public float MaxSlopeAngle => maxSlopeAngle;
+        public float GroundSnapDistance => groundSnapDistance;
         public float HardLandingSpeed => hardLandingSpeed;
 
         public float Mass => mass;
@@ -124,6 +133,7 @@ namespace Igruha.Core.Player
         public float PushUpward => pushUpward;
         public float PushCooldown => pushCooldown;
         public float PushArcAngle => pushArcAngle;
+        public float PunchReach => punchReach;
         public float PunchImpactDelay => punchImpactDelay;
         public float FaceHitForceMultiplier => faceHitForceMultiplier;
 

@@ -63,6 +63,11 @@ namespace Igruha.Core.Minigame
             {
                 roundTimer.Finished += HandleTimerFinished;
             }
+
+            if (hud != null)
+            {
+                hud.RestartRequested += HandleRestartRequested;
+            }
         }
 
         protected virtual void OnDisable()
@@ -70,6 +75,11 @@ namespace Igruha.Core.Minigame
             if (roundTimer != null)
             {
                 roundTimer.Finished -= HandleTimerFinished;
+            }
+
+            if (hud != null)
+            {
+                hud.RestartRequested -= HandleRestartRequested;
             }
         }
 
@@ -317,7 +327,56 @@ namespace Igruha.Core.Minigame
         private void ShowResults(MinigameResults finalResults)
         {
             ResultsReported?.Invoke(finalResults);
+
+            // Переигрывать вправе только тот, кто объявляет фазы: в сетевой
+            // катке сцену перезагружает сервер, клиент за собой её утащить
+            // не может.
+            hud?.SetRestartAvailable(HasAuthority);
             hud?.ShowResults(finalResults, playerList);
+        }
+
+        /// <summary>
+        /// Переиграть тот же раунд: перезагрузить свою же сцену. Заведомо грубо
+        /// и намеренно — это отладочный путь на время разработки, а не рематч
+        /// катки (тот живёт в EPIC 4 вместе с очками и тай-брейком).
+        ///
+        /// В сетевой катке сцену объявляет сервер через NGO, клиенты
+        /// переезжают сами — тем же путём, что и возврат в хаб.
+        /// </summary>
+        private void HandleRestartRequested()
+        {
+            if (!HasAuthority)
+            {
+                return;
+            }
+
+            StopAllCoroutines();
+
+            string sceneName = gameObject.scene.name;
+            NetworkManager network = NetworkManager.Singleton;
+
+            if (network == null || !network.IsListening)
+            {
+                SceneManager.LoadScene(sceneName);
+                return;
+            }
+
+            if (!network.IsServer)
+            {
+                return;
+            }
+
+            if (!BuildSceneCatalog.TryResolvePath(sceneName, out string scenePath))
+            {
+                Debug.LogError($"{name}: сцены '{sceneName}' нет в Build Settings — переигрывать нечего", this);
+                return;
+            }
+
+            SceneEventProgressStatus status = network.SceneManager.LoadScene(scenePath, LoadSceneMode.Single);
+            if (status != SceneEventProgressStatus.Started)
+            {
+                Debug.LogError($"{name}: NGO не смог перезапустить '{sceneName}': {status}", this);
+            }
         }
 
         private void SetPlayersControlEnabled(bool enabled)

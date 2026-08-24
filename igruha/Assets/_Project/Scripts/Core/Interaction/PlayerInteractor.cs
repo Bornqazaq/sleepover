@@ -23,9 +23,12 @@ namespace Igruha.Core.Interaction
         /// в клетке «Секундомера» уже собирает семь коллайдеров (три стены,
         /// две створки пола, своя капсула, кнопка), и любой восьмой рядом
         /// вытеснял бы кнопку из выборки — взаимодействие молча переставало
-        /// бы работать. Массив создаётся один раз, запас ничего не стоит.
+        /// бы работать. Шестнадцати не хватает у лаза Duck Hunt: там сходятся
+        /// шесть кусков перегородки, створка двери, помост, блок подъёма,
+        /// перекрытие и два рычага. Массив создаётся один раз, запас ничего
+        /// не стоит.
         /// </summary>
-        private const int MaxCandidates = 16;
+        private const int MaxCandidates = 24;
 
         /// <summary>
         /// Запас на задержку: у сервера позиция игрока отстаёт от машины владельца,
@@ -188,11 +191,37 @@ namespace Igruha.Core.Interaction
             return target ?? targetObject.GetComponentInChildren<IInteractable>();
         }
 
+        /// <summary>
+        /// Дотягивается ли игрок до цели. Меряем до коллайдера, а не до корня
+        /// объекта: у интерактивов, собранных билдером арены, корень остаётся
+        /// в начале координат, а сама кнопка стоит за тридцать метров от него.
+        /// Проверка по корню отбивала любое честное нажатие — кнопки ловушек
+        /// не срабатывали вообще, хотя подсказка над ними горела.
+        ///
+        /// Аллокация на поиске коллайдеров допустима: метод зовётся на нажатии,
+        /// а не каждый кадр.
+        /// </summary>
         private bool IsWithinReach(GameObject targetObject)
         {
             float maxDistance = interactRadius * ServerReachTolerance;
-            return (targetObject.transform.position - transform.position).sqrMagnitude
-                   <= maxDistance * maxDistance;
+            float maxSqr = maxDistance * maxDistance;
+            Vector3 origin = transform.position;
+
+            Collider[] colliders = targetObject.GetComponentsInChildren<Collider>();
+            if (colliders.Length == 0)
+            {
+                return (targetObject.transform.position - origin).sqrMagnitude <= maxSqr;
+            }
+
+            for (int i = 0; i < colliders.Length; i++)
+            {
+                if ((colliders[i].ClosestPoint(origin) - origin).sqrMagnitude <= maxSqr)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private IInteractable FindNearest()

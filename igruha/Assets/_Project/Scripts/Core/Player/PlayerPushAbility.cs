@@ -20,6 +20,7 @@ namespace Igruha.Core.Player
         public event Action PunchStarted;
 
         private PlayerController self;
+        private CapsuleCollider body;
         private Igruha.Core.Items.PlayerCarryAbility carryAbility;
         private IPushRelay pushRelay;
         private readonly Collider[] overlapResults = new Collider[MaxTargets];
@@ -30,6 +31,7 @@ namespace Igruha.Core.Player
         private void Awake()
         {
             self = GetComponent<PlayerController>();
+            body = GetComponent<CapsuleCollider>();
             carryAbility = GetComponent<Igruha.Core.Items.PlayerCarryAbility>();
             pushRelay = GetComponent<IPushRelay>();
         }
@@ -86,6 +88,51 @@ namespace Igruha.Core.Player
             }
         }
 
+        /// <summary>
+        /// Зазор между телами, м. Обе капсулы вертикальные — вращение по X и Z
+        /// у персонажа заперто, — поэтому расстояние между ними считается
+        /// точно: по горизонтали между осями, по вертикали между отрезками.
+        /// Отсюда же берётся и честная проверка по высоте: стоящий этажом выше
+        /// перестаёт быть целью сам собой, без отдельного условия.
+        ///
+        /// Не капсула — считаем по ближайшей точке коллайдера: это запасной
+        /// путь для целей, собранных не из капсулы.
+        /// </summary>
+        private float BodyGap(Collider targetCollider)
+        {
+            if (body == null || targetCollider is not CapsuleCollider targetCapsule)
+            {
+                return Vector3.Distance(targetCollider.ClosestPoint(transform.position), transform.position);
+            }
+
+            Bounds mine = body.bounds;
+            Bounds theirs = targetCapsule.bounds;
+
+            float myRadius = mine.extents.x;
+            float theirRadius = theirs.extents.x;
+
+            float horizontal = new Vector2(theirs.center.x - mine.center.x, theirs.center.z - mine.center.z).magnitude;
+
+            // Отрезок оси капсулы: от центра вверх и вниз на половину высоты
+            // минус радиус. У приземистой капсулы отрезок вырождается в точку.
+            float myHalf = Mathf.Max(0f, mine.extents.y - myRadius);
+            float theirHalf = Mathf.Max(0f, theirs.extents.y - theirRadius);
+            float vertical = Mathf.Max(0f,
+                Mathf.Abs(theirs.center.y - mine.center.y) - myHalf - theirHalf);
+
+            float axisDistance = Mathf.Sqrt(horizontal * horizontal + vertical * vertical);
+            return axisDistance - myRadius - theirRadius;
+        }
+
+        /// <summary>
+        /// Кого достаёт удар.
+        ///
+        /// Сфера здесь — только широкая выборка кандидатов, а не досягаемость.
+        /// Досягаемость меряется зазором между телами: раньше её задавал радиус
+        /// сферы от корня персонажа, а корень стоит в ступнях — до соседа
+        /// «доставало» через полтора метра пустоты и вдобавок через этаж вверх,
+        /// потому что сфере всё равно, на какой высоте цель.
+        /// </summary>
         private void PushTargetsInArc()
         {
             CharacterConfig config = self.Config;
@@ -111,6 +158,11 @@ namespace Igruha.Core.Player
 
                 if (toTarget.sqrMagnitude >= 0.0001f &&
                     Vector3.Angle(transform.forward, toTarget) > halfArc)
+                {
+                    continue;
+                }
+
+                if (BodyGap(overlapResults[i]) > config.PunchReach)
                 {
                     continue;
                 }

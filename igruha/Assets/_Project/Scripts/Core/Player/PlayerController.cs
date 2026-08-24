@@ -139,6 +139,10 @@ namespace Igruha.Core.Player
         private float fallSpeed;
         private bool wasGrounded = true;
         private float launchGraceTimer;
+        private Vector3 groundNormal = Vector3.up;
+        private bool standingOnGround;
+        private float snapSuppressTimer;
+        private bool interpolationSuppressed;
 
         /// <summary>Сколько секунд после импульса вверх лежачее демпфирование не включается: хватает пары шагов физики.</summary>
         private const float LaunchGraceTime = 0.1f;
@@ -149,6 +153,21 @@ namespace Igruha.Core.Player
         /// <summary>Зазор щупов всхождения от пола и от верха ступени, м.</summary>
         private const float StepProbeClearance = 0.05f;
 
+        /// <summary>
+        /// На сколько капсула может не доставать до уступа и всё ещё считаться
+        /// упёршейся в него, м. Без этого допуска персонаж всходил на ступень
+        /// за десяток сантиметров до неё: щуп видел препятствие вперёд на
+        /// радиус плюс вылет, тело подскакивало в воздух перед ступенью и тут
+        /// же падало обратно. Это и читалось как «на лестнице колбасит».
+        /// </summary>
+        private const float StepContactTolerance = 0.06f;
+
+        /// <summary>Сколько секунд после прыжка притяжение к опоре не работает: иначе прыжок гасится в первом же такте.</summary>
+        private const float SnapSuppressAfterJump = 0.15f;
+
+        /// <summary>Просадка, ниже которой персонаж считается уже стоящим на опоре и притягивать его некуда, м.</summary>
+        private const float GroundSettleTolerance = 0.005f;
+
         private void Awake()
         {
             rb = GetComponent<Rigidbody>();
@@ -158,6 +177,13 @@ namespace Igruha.Core.Player
             standingHeight = Mathf.Max(capsule.height, capsule.radius * 2f);
             standingCenter = capsule.center;
             rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
+
+            // Физика идёт с шагом 50 Гц, кадры — чаще, и без интерполяции
+            // персонаж дрожит на месте, а на лестнице дрожь складывается с
+            // всхождением и притяжением, которые двигают тело напрямую.
+            // Ставим кодом, а не в восьми префабах: значение одно на всех,
+            // и разъезжаться ему незачем.
+            rb.interpolation = RigidbodyInterpolation.Interpolate;
             ApplyBodyConfig();
 
             if (cameraTransform == null && Camera.main != null)
@@ -201,7 +227,27 @@ namespace Igruha.Core.Player
                 return;
             }
 
+            if (interpolationSuppressed)
+            {
+                interpolationSuppressed = false;
+                rb.interpolation = RigidbodyInterpolation.Interpolate;
+            }
+
+            snapSuppressTimer = Mathf.Max(0f, snapSuppressTimer - Time.fixedDeltaTime);
+
             IsGrounded = CheckGrounded();
+
+            // Притяжение считается до всего остального: сорвавшийся со ступени
+            // должен снова стать стоящим ещё до того, как это увидят прыжок,
+            // всхождение и учёт падения. Проверка идёт и у стоящего: опора
+            // засчитывается в 18 см под ступнями, и без притяжения персонаж
+            // так и висел бы над ней, удерживаемый на месте.
+            if (TrySnapToGround())
+            {
+                IsGrounded = true;
+            }
+
+            UpdateGroundHold();
             TrackLanding();
             UpdateTimers();
             ApplyExtraGravity();
@@ -510,7 +556,23 @@ namespace Igruha.Core.Player
             }
 
             Vector3 newHorizontal = Vector3.MoveTowards(currentHorizontal, desiredVelocity, rate * Time.fixedDeltaTime);
-            rb.linearVelocity = new Vector3(newHorizontal.x, rb.linearVelocity.y, newHorizontal.z);
+
+            // На опоре скорость задаётся целиком, вместе с вертикалью, и вдоль
+            // самой опоры.
+            //
+            // Иначе гравитация каждый такт добавляет вниз, контакт превращает
+            // это в движение вбок, и персонаж съезжает по ровному с виду полу:
+            // трения у капсулы нет намеренно — скорость задаёт контроллер, и
+            // трение мешало бы ему. Особенно заметно на лестнице, где капсула
+            // шире проступи и стоит на носах ступеней: там сползание было
+            // постоянным.
+            //
+            // Вверх летящего это не трогает: у прыгнувшего и подброшенного
+            // гейзером скорость по Y положительная, и ветка не его.
+            rb.linearVelocity = standingOnGround
+                ? Vector3.ProjectOnPlane(newHorizontal, groundNormal)
+                : new Vector3(newHorizontal.x, rb.linearVelocity.y, newHorizontal.z);
+
             NormalizedSpeed = config.MaxSpeed > 0f ? newHorizontal.magnitude / config.MaxSpeed : 0f;
 
             if (accelerating)
@@ -600,12 +662,27 @@ namespace Igruha.Core.Player
 
             jumpBufferTimer = 0f;
             coyoteTimer = 0f;
+            snapSuppressTimer = SnapSuppressAfterJump;
             rb.linearVelocity = new Vector3(rb.linearVelocity.x, config.JumpSpeed, rb.linearVelocity.z);
             Jumped?.Invoke();
         }
 
+        /// <summary>
+        /// Утяжелённая гравитация — только в полёте.
+        ///
+        /// На земле она чистый вред: множитель падения втрое (29.4 вместо 9.81)
+        /// на любом косом контакте — кромке ступени, скосе укрытия — становится
+        /// боковым ускорением до 20 м/с², а торможение персонажа те же 20. Трения
+        /// у капсулы нет намеренно (скорость задаёт контроллер), и удержать
+        /// стоящего оказывалось нечем: он сползал по ровному с виду полу.
+        /// </summary>
         private void ApplyExtraGravity()
         {
+            if (IsGrounded && rb.linearVelocity.y <= 0f)
+            {
+                return;
+            }
+
             float multiplier = rb.linearVelocity.y > 0f ? config.RiseGravityMultiplier : config.FallGravityMultiplier;
             if (multiplier > 1f)
             {
@@ -613,11 +690,141 @@ namespace Igruha.Core.Player
             }
         }
 
+        /// <summary>
+        /// Стоит ли персонаж на опоре — и на какой именно.
+        ///
+        /// Нормаль нужна не для красоты: по ней отличается пол от склона, а
+        /// без этого различия притяжение к опоре приклеивало бы персонажа к
+        /// отвесной стене. Триггеры отсекаются явно: <c>queriesHitTriggers</c>
+        /// в проекте включён, и зона чекпоинта под ногами читалась бы как пол.
+        /// </summary>
         private bool CheckGrounded()
         {
             Vector3 origin = capsule.bounds.center;
             float castDistance = capsule.bounds.extents.y - capsule.radius + config.GroundCheckDistance;
-            return Physics.SphereCast(origin, capsule.radius * 0.95f, Vector3.down, out _, castDistance, groundLayer);
+
+            if (!Physics.SphereCast(origin, capsule.radius * 0.95f, Vector3.down, out RaycastHit hit,
+                    castDistance, groundLayer, QueryTriggerInteraction.Ignore))
+            {
+                groundNormal = Vector3.up;
+                return false;
+            }
+
+            groundNormal = ResolveSurfaceNormal(hit.normal, castDistance);
+            return true;
+        }
+
+        /// <summary>
+        /// На чём персонаж стоит на самом деле.
+        ///
+        /// Сфера проверки цепляется за кромки: на лестнице она садится на нос
+        /// ступени и отдаёт нормаль под 56°, хотя проступь под ногами ровная —
+        /// и удержание на опоре, глядя на такую нормаль, отказывается работать
+        /// ровно там, где нужнее всего. Луч по оси капсулы отвечает на вопрос
+        /// честно. Промахнулся — персонаж и правда висит на самом краю, тогда
+        /// остаётся нормаль сферы.
+        /// </summary>
+        private Vector3 ResolveSurfaceNormal(Vector3 sphereNormal, float castDistance)
+        {
+            return Physics.Raycast(capsule.bounds.center, Vector3.down, out RaycastHit straight,
+                castDistance + capsule.radius, groundLayer, QueryTriggerInteraction.Ignore)
+                ? straight.normal
+                : sphereNormal;
+        }
+
+        /// <summary>Угол опоры под ногами, °. Без опоры — ноль.</summary>
+        public float GroundAngle => Vector3.Angle(groundNormal, Vector3.up);
+
+        /// <summary>Персонаж стоит на пригодной опоре и не летит вверх.</summary>
+        public bool IsStandingOnGround => standingOnGround;
+
+        /// <summary>
+        /// Держать ли персонажа на опоре — и, если да, снять с него гравитацию.
+        ///
+        /// Обнулять скорость каждый такт мало: гравитация успевает разогнать
+        /// тело внутри самого такта, солвер выталкивает капсулу из кромки вбок,
+        /// и персонаж уезжает по семь миллиметров за шаг — метр за три секунды.
+        /// Замерено на лестнице Duck Hunt, где капсула шире проступи и стоит на
+        /// носах ступеней. Убирать нечего, кроме самой причины: у стоящего
+        /// гравитации нет вовсе, и сползать ему не от чего. Трением это не
+        /// лечится — капсула фрикционлесс намеренно, скорость задаёт контроллер.
+        ///
+        /// Как только опора пропала, стала слишком крутой или персонажа понесло
+        /// вверх, гравитация возвращается тем же тактом.
+        /// </summary>
+        private void UpdateGroundHold()
+        {
+            standingOnGround = IsGrounded
+                               && !IsKnockedDown
+                               && rb.linearVelocity.y <= 0.01f
+                               && GroundAngle <= config.MaxSlopeAngle;
+
+            rb.useGravity = !standingOnGround;
+        }
+
+        /// <summary>Выключенному контроллеру гравитацию возвращаем: иначе тело зависнет в воздухе навсегда.</summary>
+        private void OnDisable()
+        {
+            standingOnGround = false;
+            if (rb != null)
+            {
+                rb.useGravity = true;
+            }
+        }
+
+        /// <summary>
+        /// Притянуть к опоре при спуске.
+        ///
+        /// Без этого лестница ломается дважды. Сходя со ступени, капсула
+        /// уходит в свободное падение: земля под ней опускается разом на всю
+        /// высоту ступени, <c>IsGrounded</c> мигает, и спуск превращается в
+        /// череду мелких падений с потерей управления в каждом. А поднимаясь,
+        /// капсула садится скруглённым низом на кромку ступени — нормаль там
+        /// косая, трения у персонажа нет намеренно, и тело съезжает вниз. И то
+        /// и другое лечится одним: не давать оторваться от опоры, если она
+        /// рядом и по ней можно ходить.
+        ///
+        /// Прыжок и подброс не трогаются: вверх летящего не притягивает
+        /// проверка скорости, а сразу после прыжка — ещё и таймер.
+        /// </summary>
+        private bool TrySnapToGround()
+        {
+            if (!wasGrounded || IsKnockedDown || snapSuppressTimer > 0f || rb.linearVelocity.y > 0.01f)
+            {
+                return false;
+            }
+
+            float snap = config.GroundSnapDistance;
+            if (snap <= 0f)
+            {
+                return false;
+            }
+
+            Vector3 origin = capsule.bounds.center;
+            float castDistance = capsule.bounds.extents.y - capsule.radius + snap;
+
+            if (!Physics.SphereCast(origin, capsule.radius * 0.95f, Vector3.down, out RaycastHit hit,
+                    castDistance, groundLayer, QueryTriggerInteraction.Ignore))
+            {
+                return false;
+            }
+
+            if (Vector3.Angle(ResolveSurfaceNormal(hit.normal, castDistance), Vector3.up) > config.MaxSlopeAngle)
+            {
+                return false;
+            }
+
+            float feetY = rb.position.y + capsule.center.y - capsule.height * 0.5f;
+            float drop = feetY - hit.point.y;
+            if (drop <= GroundSettleTolerance)
+            {
+                return false;
+            }
+
+            rb.position += Vector3.down * drop;
+            rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+            groundNormal = hit.normal;
+            return true;
         }
 
         /// <summary>
@@ -746,6 +953,13 @@ namespace Igruha.Core.Player
 
             rb.linearVelocity = Vector3.zero;
             rb.angularVelocity = Vector3.zero;
+
+            // Интерполяция сглаживает движение между тактами физики, и перенос
+            // она сгладила бы тоже: респавн выглядел бы полётом через всю арену.
+            // Гасим на один такт, обратно включает FixedUpdate.
+            rb.interpolation = RigidbodyInterpolation.None;
+            interpolationSuppressed = true;
+
             rb.position = position;
             rb.rotation = rotation;
             targetRotation = rotation;
@@ -827,7 +1041,15 @@ namespace Igruha.Core.Player
             float reach = capsule.radius + StepProbeReach;
 
             Vector3 low = new Vector3(rb.position.x, feetY + StepProbeClearance, rb.position.z);
-            if (!Physics.Raycast(low, direction, reach, groundLayer, QueryTriggerInteraction.Ignore))
+            if (!Physics.Raycast(low, direction, out RaycastHit obstacle, reach, groundLayer, QueryTriggerInteraction.Ignore))
+            {
+                return;
+            }
+
+            // В уступ надо упереться, а не увидеть его издали. Щуп смотрит
+            // вперёд дальше края капсулы, и без этой проверки персонаж
+            // взлетал на высоту ступени, ещё не дойдя до неё.
+            if (obstacle.distance > capsule.radius + StepContactTolerance)
             {
                 return;
             }

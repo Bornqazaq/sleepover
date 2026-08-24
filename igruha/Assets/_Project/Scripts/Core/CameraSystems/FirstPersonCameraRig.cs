@@ -47,6 +47,8 @@ namespace Igruha.Core.CameraSystems
         [SerializeField] private float eyeDropFromTop = 0.15f;
         [Tooltip("Прятать собственную модель: иначе камера стоит внутри головы и видно изнанку текстур")]
         [SerializeField] private bool hideOwnModel = true;
+        [Tooltip("Сдвиг камеры от глаза, м: X вбок, Y вверх (минус — вниз), Z назад. Ноль — камера ровно в глазу. Опускание нужно роли с оружием в руках: от макушки собственные кисти на полсотни градусов ниже оси взгляда и в кадр не попадают ни при каком поле зрения")]
+        [SerializeField] private Vector3 shoulderOffset;
         [Tooltip("Поле зрения, °. Вместе с потолком скорости снижает риск укачивания")]
         [Range(40f, 110f)]
         [SerializeField] private float fieldOfView = 75f;
@@ -54,6 +56,15 @@ namespace Igruha.Core.CameraSystems
         [Header("Курсор")]
         [Tooltip("Захватывать курсор в центре экрана (Esc освобождает)")]
         [SerializeField] private bool lockCursor = true;
+
+        /// <summary>
+        /// Где на самом деле глаз — без отвода камеры назад. По нему считается
+        /// выстрел: отодвинув камеру, луч пришлось бы пускать сквозь собственное
+        /// тело, и первым же попаданием стала бы своя капсула.
+        /// </summary>
+        public Vector3 EyePosition => trackedTarget != null
+            ? trackedTarget.position + Vector3.up * resolvedEyeHeight
+            : transform.position;
 
         /// <summary>Куда камера смотрит сейчас — уже с учётом потолка скорости.</summary>
         public float Yaw => yaw;
@@ -79,6 +90,16 @@ namespace Igruha.Core.CameraSystems
         private float horizontalFieldOfView;
         private float appliedAspect;
         private readonly List<Renderer> hiddenRenderers = new List<Renderer>(8);
+
+        /// <summary>
+        /// Голова того, чьими глазами смотрим, и её исходный масштаб. Прячется
+        /// отдельно от остального тела: камера стоит внутри черепа, и в кадр
+        /// лезет его изнанка — ровно та причина, по которой модель раньше
+        /// гасили целиком. Схлопнутая кость уносит с собой и всё, что на ней
+        /// висит: волосы, уши, шапку.
+        /// </summary>
+        private Transform headBone;
+        private Vector3 headBoneScale = Vector3.one;
 
         private void Awake()
         {
@@ -136,6 +157,7 @@ namespace Igruha.Core.CameraSystems
         {
             lookAction?.action.Disable();
             RestoreOwnModel();
+            RestoreHeadBone();
 
             // Сбрасываем цель, иначе при следующем включении ResolveTarget решит,
             // что она не менялась, и модель останется видимой.
@@ -281,6 +303,24 @@ namespace Igruha.Core.CameraSystems
             pitch = Mathf.Clamp(pitch + pitchDelta, minPitch, maxPitch);
         }
 
+        /// <summary>
+        /// Отвести камеру назад от глаза. Ноль — честное первое лицо, и так
+        /// живут все остальные роли проекта. Больше нуля просит роль с оружием
+        /// в руках: из глаза собственные кисти не видны — они в двадцати
+        /// сантиметрах от камеры и на полметра ниже, то есть вне пирамиды
+        /// обзора при любом разумном FOV. На выстрел это не влияет, он
+        /// по-прежнему считается от <see cref="EyePosition"/>.
+        /// </summary>
+        public void SetShoulderOffset(Vector3 offset)
+        {
+            shoulderOffset = offset;
+            ApplyHeadVisibility();
+            ApplyTransform();
+        }
+
+        /// <summary>Камера отведена от глаза — обзор перестал быть строго от первого лица.</summary>
+        public bool IsShoulderView => shoulderOffset.sqrMagnitude > 0f;
+
         private void ApplyTransform()
         {
             if (trackedTarget != null)
@@ -289,6 +329,19 @@ namespace Igruha.Core.CameraSystems
             }
 
             transform.rotation = Quaternion.Euler(pitch, yaw, 0f);
+
+            if (!IsShoulderView)
+            {
+                return;
+            }
+
+            // Вбок и назад считаются от взгляда, а не от осей мира, иначе камера
+            // уезжает не туда на любом повороте. А вот высота — строго по мировой
+            // вертикали: «опустить глаз» обязано значить одну и ту же высоту и
+            // когда Охотник смотрит прямо, и когда задирает ствол на крышу.
+            transform.position += Vector3.up * shoulderOffset.y
+                                + transform.right * shoulderOffset.x
+                                - transform.forward * shoulderOffset.z;
         }
 
         /// <summary>
@@ -305,11 +358,14 @@ namespace Igruha.Core.CameraSystems
             }
 
             RestoreOwnModel();
+            RestoreHeadBone();
 
             trackedTarget = target;
             trackedBody = target != null ? target.GetComponent<PlayerController>() : null;
             resolvedEyeHeight = ResolveEyeHeight(target);
             HideOwnModel(target);
+
+            ApplyHeadVisibility();
         }
 
         /// <summary>
@@ -327,6 +383,105 @@ namespace Igruha.Core.CameraSystems
 
             float top = capsule.center.y + capsule.height * 0.5f;
             return Mathf.Max(top - eyeDropFromTop, capsule.radius);
+        }
+
+        /// <summary>
+        /// Показывать ли собственную модель от первого лица.
+        ///
+        /// По умолчанию она спрятана: камера стоит внутри головы, и в кадр
+        /// лезет изнанка текстур. Но роли, у которой в руках оружие, модель
+        /// нужна — без неё не видно ни рук, ни ствола, и вся анимация выстрела
+        /// играет мимо игрока. Просит её сама роль, на время роли: остальным
+        /// поведение рига не меняется.
+        ///
+        /// Применяется сразу, а не с ближайшей сменой цели: роль выдаётся
+        /// посреди раунда, когда камера уже смотрит куда надо.
+        /// </summary>
+        public void SetOwnModelVisible(bool visible)
+        {
+            // Повтор того же требования пропускаем, и это не оптимизация.
+            // HideOwnModel пропускает уже погашенные рендереры, вычёркивая их
+            // из списка спрятанных, — значит второй «спрятать» подряд оставляет
+            // список пустым, и следующий «показать» не возвращает ничего.
+            // Роль выдаётся и снимается по нескольку раз за раунд (отсчёт,
+            // пересдача), так что в это упираешься сразу.
+            if (hideOwnModel == !visible)
+            {
+                return;
+            }
+
+            hideOwnModel = !visible;
+
+            if (visible)
+            {
+                RestoreOwnModel();
+                ApplyHeadVisibility();
+                return;
+            }
+
+            RestoreHeadBone();
+            HideOwnModel(trackedTarget);
+        }
+
+        /// <summary>
+        /// Голову прячем, когда тело видно, а камера не отведена назад. Опущенная
+        /// или сдвинутая вбок камера всё ещё стоит внутри персонажа, и голова лезет
+        /// в кадр сверху. А вот отодвинутой назад камере схлопнутая голова только
+        /// вредит: вместо затылка игрок видит культю шеи.
+        /// </summary>
+        private void ApplyHeadVisibility()
+        {
+            if (!hideOwnModel && shoulderOffset.z <= 0f)
+            {
+                HideHeadBone(trackedTarget);
+                return;
+            }
+
+            RestoreHeadBone();
+        }
+
+        /// <summary>
+        /// Схлопнуть кость головы. Способ грубый, но единственный доступный:
+        /// тело персонажа — один скиннед-меш, отдельного рендерера у головы нет,
+        /// и погасить её иначе нечем. Отодвигать камеру вперёд, за лицо, хуже:
+        /// точка выстрела уезжает от глаза, а сама камера начинает протыкать
+        /// стены там, где тело ещё не касается их.
+        /// </summary>
+        private void HideHeadBone(Transform target)
+        {
+            RestoreHeadBone();
+
+            if (target == null)
+            {
+                return;
+            }
+
+            Animator body = target.GetComponentInChildren<Animator>();
+            if (body == null || !body.isHuman)
+            {
+                return;
+            }
+
+            Transform head = body.GetBoneTransform(HumanBodyBones.Head);
+            if (head == null)
+            {
+                return;
+            }
+
+            headBone = head;
+            headBoneScale = head.localScale;
+            head.localScale = Vector3.zero;
+        }
+
+        private void RestoreHeadBone()
+        {
+            if (headBone == null)
+            {
+                return;
+            }
+
+            headBone.localScale = headBoneScale;
+            headBone = null;
         }
 
         /// <summary>
