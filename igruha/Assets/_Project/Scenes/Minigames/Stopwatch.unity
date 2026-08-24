@@ -4798,6 +4798,7 @@ MonoBehaviour:
   spectatorPanel: {fileID: 1324044314}
   spectatorText: {fileID: 1002941266}
   countdownText: {fileID: 0}
+  statusText: {fileID: 0}
 --- !u!224 &150850381
 RectTransform:
   m_ObjectHideFlags: 0
@@ -6731,6 +6732,7 @@ GameObject:
   - component: {fileID: 196379941}
   - component: {fileID: 196379940}
   - component: {fileID: 196379939}
+  - component: {fileID: 196379942}
   m_Layer: 0
   m_Name: Cage_06
   m_TagString: Untagged
@@ -6773,12 +6775,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: add8d44fd57754ae0a8e719494166709, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.Circus.CageStation
-  doorLeft: {fileID: 1112330161}
-  doorRight: {fileID: 1640944718}
   propSlot: {fileID: 523125168}
   respawnPoint: {fileID: 575339354}
-  doorOpenAngle: 110
-  doorReleaseAngle: 25
+  hatch: {fileID: 196379942}
+  cameraBlockingLayerName: Ground
 --- !u!114 &196379940
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6822,6 +6822,22 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &196379942
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 196379937}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5faa3479c23ff4be9a0cc7eea71d182f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Arena.HingedFloorHatch
+  doorLeft: {fileID: 1112330161}
+  doorRight: {fileID: 1640944718}
+  doorOpenAngle: 110
+  doorReleaseAngle: 25
 --- !u!1 &201431133
 GameObject:
   m_ObjectHideFlags: 0
@@ -18531,6 +18547,7 @@ GameObject:
   - component: {fileID: 609739719}
   - component: {fileID: 609739718}
   - component: {fileID: 609739717}
+  - component: {fileID: 609739720}
   m_Layer: 0
   m_Name: Cage_01
   m_TagString: Untagged
@@ -18573,12 +18590,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: add8d44fd57754ae0a8e719494166709, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.Circus.CageStation
-  doorLeft: {fileID: 800716437}
-  doorRight: {fileID: 1446602969}
   propSlot: {fileID: 453871418}
   respawnPoint: {fileID: 1358271558}
-  doorOpenAngle: 110
-  doorReleaseAngle: 25
+  hatch: {fileID: 609739720}
+  cameraBlockingLayerName: Ground
 --- !u!114 &609739718
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -18622,6 +18637,22 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &609739720
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 609739715}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5faa3479c23ff4be9a0cc7eea71d182f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Arena.HingedFloorHatch
+  doorLeft: {fileID: 800716437}
+  doorRight: {fileID: 1446602969}
+  doorOpenAngle: 110
+  doorReleaseAngle: 25
 --- !u!1 &623276186
 GameObject:
   m_ObjectHideFlags: 0
@@ -19774,6 +19805,7 @@ GameObject:
   - component: {fileID: 670373296}
   - component: {fileID: 670373295}
   - component: {fileID: 670373294}
+  - component: {fileID: 670373297}
   m_Layer: 0
   m_Name: Cage_07
   m_TagString: Untagged
@@ -19816,12 +19848,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: add8d44fd57754ae0a8e719494166709, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.Circus.CageStation
-  doorLeft: {fileID: 551794505}
-  doorRight: {fileID: 294007385}
   propSlot: {fileID: 267298879}
   respawnPoint: {fileID: 1478805164}
-  doorOpenAngle: 110
-  doorReleaseAngle: 25
+  hatch: {fileID: 670373297}
+  cameraBlockingLayerName: Ground
 --- !u!114 &670373295
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -19865,6 +19895,22 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &670373297
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 670373292}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5faa3479c23ff4be9a0cc7eea71d182f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Arena.HingedFloorHatch
+  doorLeft: {fileID: 551794505}
+  doorRight: {fileID: 294007385}
+  doorOpenAngle: 110
+  doorReleaseAngle: 25
 --- !u!1 &670760887
 GameObject:
   m_ObjectHideFlags: 0
@@ -21716,6 +21762,7 @@ GameObject:
   - component: {fileID: 751913545}
   - component: {fileID: 751913544}
   - component: {fileID: 751913543}
+  - component: {fileID: 751913546}
   m_Layer: 0
   m_Name: Cage_02
   m_TagString: Untagged
@@ -21758,12 +21805,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: add8d44fd57754ae0a8e719494166709, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.Circus.CageStation
-  doorLeft: {fileID: 1692789449}
-  doorRight: {fileID: 1567632337}
   propSlot: {fileID: 1134806527}
   respawnPoint: {fileID: 1111002273}
-  doorOpenAngle: 110
-  doorReleaseAngle: 25
+  hatch: {fileID: 751913546}
+  cameraBlockingLayerName: Ground
 --- !u!114 &751913544
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -21807,6 +21852,22 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &751913546
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 751913541}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5faa3479c23ff4be9a0cc7eea71d182f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Arena.HingedFloorHatch
+  doorLeft: {fileID: 1692789449}
+  doorRight: {fileID: 1567632337}
+  doorOpenAngle: 110
+  doorReleaseAngle: 25
 --- !u!1 &752781239
 GameObject:
   m_ObjectHideFlags: 0
@@ -33933,6 +33994,7 @@ GameObject:
   - component: {fileID: 1169803919}
   - component: {fileID: 1169803918}
   - component: {fileID: 1169803917}
+  - component: {fileID: 1169803920}
   m_Layer: 0
   m_Name: Cage_05
   m_TagString: Untagged
@@ -33975,12 +34037,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: add8d44fd57754ae0a8e719494166709, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.Circus.CageStation
-  doorLeft: {fileID: 1728097213}
-  doorRight: {fileID: 837871772}
   propSlot: {fileID: 34988012}
   respawnPoint: {fileID: 645969349}
-  doorOpenAngle: 110
-  doorReleaseAngle: 25
+  hatch: {fileID: 1169803920}
+  cameraBlockingLayerName: Ground
 --- !u!114 &1169803918
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -34024,6 +34084,22 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &1169803920
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1169803915}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5faa3479c23ff4be9a0cc7eea71d182f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Arena.HingedFloorHatch
+  doorLeft: {fileID: 1728097213}
+  doorRight: {fileID: 837871772}
+  doorOpenAngle: 110
+  doorReleaseAngle: 25
 --- !u!1 &1172144796
 GameObject:
   m_ObjectHideFlags: 0
@@ -41779,6 +41855,7 @@ GameObject:
   - component: {fileID: 1447067993}
   - component: {fileID: 1447067992}
   - component: {fileID: 1447067991}
+  - component: {fileID: 1447067994}
   m_Layer: 0
   m_Name: Cage_04
   m_TagString: Untagged
@@ -41821,12 +41898,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: add8d44fd57754ae0a8e719494166709, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.Circus.CageStation
-  doorLeft: {fileID: 336453487}
-  doorRight: {fileID: 1320832938}
   propSlot: {fileID: 2059166192}
   respawnPoint: {fileID: 411264009}
-  doorOpenAngle: 110
-  doorReleaseAngle: 25
+  hatch: {fileID: 1447067994}
+  cameraBlockingLayerName: Ground
 --- !u!114 &1447067992
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -41870,6 +41945,22 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &1447067994
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1447067989}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5faa3479c23ff4be9a0cc7eea71d182f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Arena.HingedFloorHatch
+  doorLeft: {fileID: 336453487}
+  doorRight: {fileID: 1320832938}
+  doorOpenAngle: 110
+  doorReleaseAngle: 25
 --- !u!1 &1447850528
 GameObject:
   m_ObjectHideFlags: 0
@@ -47726,6 +47817,7 @@ GameObject:
   - component: {fileID: 1662403358}
   - component: {fileID: 1662403357}
   - component: {fileID: 1662403356}
+  - component: {fileID: 1662403359}
   m_Layer: 0
   m_Name: Cage_08
   m_TagString: Untagged
@@ -47768,12 +47860,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: add8d44fd57754ae0a8e719494166709, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.Circus.CageStation
-  doorLeft: {fileID: 572436586}
-  doorRight: {fileID: 1547704808}
   propSlot: {fileID: 55504952}
   respawnPoint: {fileID: 1499695191}
-  doorOpenAngle: 110
-  doorReleaseAngle: 25
+  hatch: {fileID: 1662403359}
+  cameraBlockingLayerName: Ground
 --- !u!114 &1662403357
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -47817,6 +47907,22 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &1662403359
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1662403354}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5faa3479c23ff4be9a0cc7eea71d182f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Arena.HingedFloorHatch
+  doorLeft: {fileID: 572436586}
+  doorRight: {fileID: 1547704808}
+  doorOpenAngle: 110
+  doorReleaseAngle: 25
 --- !u!1 &1664389244
 GameObject:
   m_ObjectHideFlags: 0
@@ -59401,6 +59507,7 @@ GameObject:
   - component: {fileID: 2059605680}
   - component: {fileID: 2059605679}
   - component: {fileID: 2059605678}
+  - component: {fileID: 2059605681}
   m_Layer: 0
   m_Name: Cage_03
   m_TagString: Untagged
@@ -59443,12 +59550,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: add8d44fd57754ae0a8e719494166709, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.Circus.CageStation
-  doorLeft: {fileID: 667208643}
-  doorRight: {fileID: 1489848902}
   propSlot: {fileID: 2015951853}
   respawnPoint: {fileID: 44348026}
-  doorOpenAngle: 110
-  doorReleaseAngle: 25
+  hatch: {fileID: 2059605681}
+  cameraBlockingLayerName: Ground
 --- !u!114 &2059605679
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -59492,6 +59597,22 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &2059605681
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2059605676}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5faa3479c23ff4be9a0cc7eea71d182f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Arena.HingedFloorHatch
+  doorLeft: {fileID: 667208643}
+  doorRight: {fileID: 1489848902}
+  doorOpenAngle: 110
+  doorReleaseAngle: 25
 --- !u!1 &2065706071
 GameObject:
   m_ObjectHideFlags: 0
