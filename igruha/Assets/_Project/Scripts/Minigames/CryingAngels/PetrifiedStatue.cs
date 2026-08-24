@@ -37,6 +37,16 @@ namespace Igruha.Minigames.CryingAngels
             go.layer = coverLayer;
             go.transform.SetParent(parent, false);
 
+            // Без этого статуя в СБОРКЕ фиолетовая. CreatePrimitive вешает
+            // встроенный Default-Material, его шейдер не из URP: в редакторе
+            // он есть всегда, в билд не попадает, и на его месте оказывается
+            // заглушка «шейдер потерян». Поймано на живом прогоне 24.08
+            // у «Порядка банок» — здесь ровно та же мина.
+            if (go.TryGetComponent(out Renderer renderer))
+            {
+                renderer.sharedMaterial = StatueMaterial;
+            }
+
             float height = source.height;
             float width = source.radius * 2f;
             go.transform.position = source.transform.position + Vector3.up * (height * 0.5f);
@@ -46,6 +56,39 @@ namespace Igruha.Minigames.CryingAngels
             PetrifiedStatue statue = go.AddComponent<PetrifiedStatue>();
             statue.OwnerId = ownerId;
             return statue;
+        }
+
+        /// <summary>
+        /// Материал статуи. Один общий на все статуи раунда — они одинаковые,
+        /// и копии материала множили бы вызовы отрисовки.
+        ///
+        /// ⚠️ Такой же статический материал заведён в <c>CanShelf</c>: две
+        /// мини-игры лепят примитивы в рантайме и обе спотыкались об одно.
+        /// Общее место этому — утилита в <c>Core</c>, но Core закрыт пунктом
+        /// DoD эпика «Порядка банок», поэтому пока по экземпляру на игру.
+        /// </summary>
+        private static Material statueMaterial;
+
+        private static Material StatueMaterial
+        {
+            get
+            {
+                if (statueMaterial != null)
+                {
+                    return statueMaterial;
+                }
+
+                Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+                if (shader == null)
+                {
+                    Debug.LogError("PetrifiedStatue: шейдер 'Universal Render Pipeline/Lit' не найден — " +
+                                   "статуи будут нарисованы заглушкой");
+                    return null;
+                }
+
+                statueMaterial = new Material(shader) { name = "PetrifiedStatue (runtime)" };
+                return statueMaterial;
+            }
         }
 
         /// <summary>Раунд кончился — арену надо вернуть в исходный вид.</summary>
