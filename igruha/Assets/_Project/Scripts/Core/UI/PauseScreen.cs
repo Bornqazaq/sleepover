@@ -4,6 +4,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using Unity.Netcode;
+using Igruha.Core.Minigame;
 
 namespace Igruha.Core.UI
 {
@@ -157,14 +158,22 @@ namespace Igruha.Core.UI
         }
 
         /// <summary>
-        /// Выйти из матча: порвать сессию и уехать в хаб.
+        /// «Выход» значит разное в мини-игре и в хабе.
         ///
-        /// Возврат в хаб отсюда не грузим намеренно. На <c>Shutdown</c> NGO
-        /// поднимает <c>OnServerStopped</c> у хоста и <c>OnClientStopped</c>
-        /// у клиента, а их разбирает <c>DisconnectionHandler</c> — он и
-        /// уводит машину в хаб, попутно уничтожая NetworkManager. Сделай мы
-        /// то же самое здесь, сцена грузилась бы дважды, а второй
-        /// NetworkManager пережил бы первый.
+        /// <b>В мини-игре — выход из раунда, не из катки.</b> Связь с хостом
+        /// остаётся: игрок выбывает, уходит в наблюдатели и вместе со всеми
+        /// возвращается в хаб, когда раунд доигран. Рвать соединение здесь
+        /// нельзя — он оказался бы в своём личном офлайновом хабе, а хаб
+        /// у команды один.
+        ///
+        /// <b>В хабе — выход из сессии.</b> Раунда нет, выходить не из чего,
+        /// и кнопка делает то, чего от неё ждут: отключает.
+        ///
+        /// Возврат в хаб после отключения отсюда не грузим. На <c>Shutdown</c>
+        /// NGO поднимает <c>OnServerStopped</c> у хоста и <c>OnClientStopped</c>
+        /// у клиента, а их разбирает <c>DisconnectionHandler</c> — он и уводит
+        /// машину в хаб, попутно уничтожая NetworkManager. Сделай мы то же
+        /// самое здесь, сцена грузилась бы дважды.
         ///
         /// Паузу снимаем до выхода: иначе в новую сцену уедет остановленное
         /// время и заглушенный ввод.
@@ -172,6 +181,14 @@ namespace Igruha.Core.UI
         public void Exit()
         {
             Resume();
+
+            MinigameControllerBase minigame = MinigameControllerBase.Current;
+            if (minigame != null && minigame.CanLeaveRound)
+            {
+                Debug.Log("🚪 Пауза: выход из раунда — остаюсь в катке наблюдателем");
+                minigame.LeaveRound();
+                return;
+            }
 
             NetworkManager network = NetworkManager.Singleton;
             if (network != null && (network.IsClient || network.IsServer))

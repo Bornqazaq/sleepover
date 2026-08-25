@@ -24,6 +24,13 @@ namespace Igruha.Core.Minigame
         void PublishPhase(MinigamePhase phase);
 
         void PublishResults(MinigameResults results);
+
+        /// <summary>
+        /// Отправить серверу намерение выйти из раунда. Кто именно вышел,
+        /// сервер берёт из отправителя — верить номеру из сообщения нельзя,
+        /// иначе одним нажатием можно было бы выбить чужого.
+        /// </summary>
+        void RequestLeaveRound();
     }
 
     /// <summary>
@@ -43,5 +50,11 @@ namespace Igruha.Core.Minigame
 
         /// <summary>Показать время, присланное сервером.</summary>
         void ApplyRoundTime(float remaining, float duration);
+
+        /// <summary>
+        /// Участник сам вышел из раунда, оставшись в катке. Приходит только на
+        /// сервер и разбирается теми же правилами, что и уход по дисконнекту.
+        /// </summary>
+        void ApplyLeaveRound(int playerId);
     }
 }

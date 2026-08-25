@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
+using Igruha.Core.Minigame;
 using Igruha.Core.Player;
 using Igruha.Core.Session;
 
@@ -70,6 +71,8 @@ namespace Igruha.Networking
         public bool HasChosen => IsSpawned && IndexOfClient(NetworkManager.LocalClientId) >= 0;
 
         public float SecondsLeft => Mathf.Max(0f, localDeadline - Time.realtimeSinceStartup);
+
+        public bool HasCharacter(int playerId) => IndexOfClient((ulong)playerId) >= 0;
 
         public bool IsTaken(int characterIndex)
         {
@@ -164,6 +167,16 @@ namespace Igruha.Networking
 
         private void StartWaiting(ulong clientId)
         {
+            // Матч уже идёт: подключившийся в середине не игрок, а зритель.
+            // Тела ему не даём и срока не заводим — выберет персонажа в хабе,
+            // когда раунд доиграют и все туда вернутся. Иначе он появился бы
+            // посреди чужой гонки, не имея в ней ни места, ни роли.
+            if (MinigameControllerBase.Current != null)
+            {
+                Debug.Log($"👀 Клиент {clientId} подключился посреди матча — досматривает со стороны");
+                return;
+            }
+
             if (!deadlines.ContainsKey(clientId))
             {
                 deadlines[clientId] = Time.realtimeSinceStartup + chooseSeconds * UnreadyGrace;

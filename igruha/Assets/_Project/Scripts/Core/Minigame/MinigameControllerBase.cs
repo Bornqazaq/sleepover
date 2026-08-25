@@ -51,6 +51,17 @@ namespace Igruha.Core.Minigame
         public MinigameDefinition Definition => definition;
         public event Action<MinigameResults> ResultsReported;
 
+        /// <summary>
+        /// Мини-игра текущей сцены. Пусто — сцена без мини-игры, то есть хаб.
+        /// По этому и различает свои две роли кнопка «Выход» на паузе: из
+        /// раунда или из сессии.
+        ///
+        /// Через статическую ссылку, а не поле в инспекторе, намеренно: поле
+        /// пришлось бы заполнять в каждой сцене, а забытая ссылка молчит —
+        /// на этом уже терялось колесо эмоций в Duck Hunt.
+        /// </summary>
+        public static MinigameControllerBase Current { get; private set; }
+
         public MinigamePhase Phase => phase;
 
         protected IReadOnlyList<SessionPlayer> Players => playerList;
@@ -69,6 +80,8 @@ namespace Igruha.Core.Minigame
 
         protected virtual void OnEnable()
         {
+            Current = this;
+
             if (roundTimer != null)
             {
                 roundTimer.Finished += HandleTimerFinished;
@@ -82,6 +95,11 @@ namespace Igruha.Core.Minigame
 
         protected virtual void OnDisable()
         {
+            if (Current == this)
+            {
+                Current = null;
+            }
+
             if (roundTimer != null)
             {
                 roundTimer.Finished -= HandleTimerFinished;
@@ -140,6 +158,67 @@ namespace Igruha.Core.Minigame
 
             return false;
         }
+
+        /// <summary>
+        /// Идёт раунд (или обучалка перед ним) — из него есть куда выходить.
+        /// </summary>
+        public bool CanLeaveRound => phase == MinigamePhase.Round || phase == MinigamePhase.Tutorial;
+
+        /// <summary>
+        /// Локальный игрок выходит из раунда, оставаясь в катке. Дальше он
+        /// смотрит за остальными и вместе со всеми уезжает в хаб.
+        ///
+        /// Само правило выхода — дело конкретной игры и решается на сервере:
+        /// здесь только отправка намерения.
+        /// </summary>
+        public void LeaveRound()
+        {
+            if (!CanLeaveRound)
+            {
+                return;
+            }
+
+            if (bridge != null && bridge.IsNetworkSession)
+            {
+                bridge.RequestLeaveRound();
+                return;
+            }
+
+            // Сцена открыта напрямую: сервера нет, решаем на месте.
+            SessionPlayer local = SessionScoreboard.Current?.LocalPlayer;
+            if (local != null)
+            {
+                ApplyLeaveRound(local.Id);
+            }
+        }
+
+        /// <summary>Намерение доехало до сервера — разбираем правилами игры.</summary>
+        public void ApplyLeaveRound(int playerId)
+        {
+            if (!HasAuthority || !CanLeaveRound)
+            {
+                return;
+            }
+
+            OnPlayerLeftRound(playerId);
+        }
+
+        /// <summary>
+        /// Правило игры: что делать с тем, кто вышел из раунда сам. Зовётся
+        /// только у авторитета. По умолчанию — ничего: играм без выбывания
+        /// выход из раунда смысла не добавляет.
+        /// </summary>
+        protected virtual void OnPlayerLeftRound(int playerId) { }
+
+        /// <summary>
+        /// Эта машина досматривает матч со стороны: игрок подключился, когда
+        /// раунд уже шёл, и тела у него нет. Правило игры решает, за кем
+        /// смотреть; по умолчанию — ни за кем, камера остаётся как есть.
+        ///
+        /// Чисто клиентское представление: на состояние раунда зритель не
+        /// влияет и в результатах не участвует.
+        /// </summary>
+        public virtual void BeginViewing() { }
 
         /// <summary>Завершение раунда: по таймеру или досрочно правилами игры.</summary>
         public void EndMinigame()

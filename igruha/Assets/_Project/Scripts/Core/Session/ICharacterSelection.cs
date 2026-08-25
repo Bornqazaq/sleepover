@@ -20,6 +20,12 @@ namespace Igruha.Core.Session
         /// <summary>Персонажа уже забрал кто-то другой.</summary>
         bool IsTaken(int characterIndex);
 
+        /// <summary>
+        /// У этого участника персонаж закреплён. Тем, у кого нет, тела не
+        /// дают: они подключились посреди матча и досматривают его со стороны.
+        /// </summary>
+        bool HasCharacter(int playerId);
+
         /// <summary>Эта машина свой выбор уже сделала — сама или по истечении срока.</summary>
         bool HasChosen { get; }
 

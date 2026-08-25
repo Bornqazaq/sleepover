@@ -103,6 +103,30 @@ namespace Igruha.Networking
             phase.Value = newPhase;
         }
 
+        /// <summary>
+        /// Игрок нажал «Выход» посреди раунда. Намерение уходит на сервер, а
+        /// решает он: правила выхода — те же, что при дисконнекте, и считать
+        /// их вправе только авторитет.
+        ///
+        /// Отправителя берём из <c>RpcParams</c>, а не из сообщения: номер в
+        /// сообщении клиент подделал бы и выбил из раунда чужого.
+        /// </summary>
+        public void RequestLeaveRound()
+        {
+            if (!IsSpawned)
+            {
+                return;
+            }
+
+            LeaveRoundRpc();
+        }
+
+        [Rpc(SendTo.Server)]
+        private void LeaveRoundRpc(RpcParams rpcParams = default)
+        {
+            target?.ApplyLeaveRound((int)rpcParams.Receive.SenderClientId);
+        }
+
         public void PublishResults(MinigameResults results)
         {
             if (!IsSpawned || !IsServer)

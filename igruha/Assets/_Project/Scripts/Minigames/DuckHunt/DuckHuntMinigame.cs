@@ -1205,6 +1205,67 @@ namespace Igruha.Minigames.DuckHunt
         }
 
         /// <summary>
+        /// Подключился посреди матча: тела нет, смотрим за теми, кто играет.
+        /// Тот же наблюдатель, что и у выбывших, — отдельного режима не надо.
+        /// </summary>
+        public override void BeginViewing() => ActivateSpectator();
+
+        /// <summary>
+        /// Игрок сам вышел из раунда, но остался в катке (кнопка «Выход» на
+        /// паузе). От дисконнекта отличается одним: тело никуда не делось.
+        ///
+        /// Поэтому Утка не «забывается», а погибает на своей точке — обычной
+        /// смертью, с отлётом тела и местом среди погибших. Так вышедший
+        /// попадает в наблюдатели тем же путём, что и подстреленный, и ждёт
+        /// остальных до конца раунда.
+        ///
+        /// Охотник закрывает раунд, как и при дисконнекте: стрелять больше
+        /// некому.
+        /// </summary>
+        protected override void OnPlayerLeftRound(int playerId)
+        {
+            if (playerId != SpecialRoleHistory.NoPlayer && playerId == hunterPlayerId)
+            {
+                HandleHunterLeft();
+                return;
+            }
+
+            DuckRecord duck = FindDuckById(playerId);
+            if (duck == null || duck.Left || duck.Progress == null || duck.Progress.Retired)
+            {
+                return;
+            }
+
+            duck.Progress.Sample(arena);
+            duck.Progress.MarkDead(roundElapsed);
+            duck.Frozen = DuckOutcome.From(duck.Progress);
+
+            duck.Bot?.Stop();
+            RemoveFromAlive(duck.PlayerId);
+
+            Debug.Log($"🦆 Duck Hunt: Утка {playerId} вышла из раунда — зачтена погибшей " +
+                      $"на этаже {duck.Frozen.Floor}, живых осталось {aliveDucks.Count}");
+
+            if (duck.Elimination != null && duck.Avatar != null && !duck.Elimination.IsEliminated)
+            {
+                Vector3 impulse = FallbackDeathImpulse(duck.Avatar);
+                Vector3 point = duck.Avatar.transform.position;
+                duck.Elimination.Eliminate(point, impulse);
+
+                // Остальным нужна сторона отлёта: состояние приедет само, а по
+                // нему выбирается клип падения.
+                network?.AnnounceDuckDeath(duck.PlayerId, point, impulse);
+            }
+
+            if (IsLocal(duck.PlayerId))
+            {
+                ActivateSpectator();
+            }
+
+            CheckRoundOver();
+        }
+
+        /// <summary>
         /// Охотник вышел. Раунд закрывается сразу же, а место ему выдаётся
         /// последнее — за это отвечает <see cref="hunterLeft"/> в
         /// <see cref="CollectResults"/>.

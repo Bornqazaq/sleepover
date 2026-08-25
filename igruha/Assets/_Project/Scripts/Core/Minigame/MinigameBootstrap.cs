@@ -147,8 +147,18 @@ namespace Igruha.Core.Minigame
                 return false;
             }
 
+            ICharacterSelection selection = CharacterSelection.Current;
+
             for (int i = 0; i < players.Count; i++)
             {
+                // Подключившийся посреди матча тела не получит вовсе — он
+                // зритель до возвращения в хаб. Ждать его аватар значит ждать
+                // до самого таймаута и держать раунд у всех остальных.
+                if (selection != null && !selection.HasCharacter(players[i].Id))
+                {
+                    continue;
+                }
+
                 if (players[i].Avatar == null)
                 {
                     return false;
@@ -176,8 +186,11 @@ namespace Igruha.Core.Minigame
             {
                 if (networked)
                 {
-                    Debug.LogError($"{name}: своего персонажа в составе нет — камера и эмоции " +
-                                   "остались непривязанными. Чужого не подставляем", this);
+                    // Тела нет — значит, подключился посреди матча. Это не
+                    // ошибка: персонажа он выберет в хабе, а пока смотрит за
+                    // остальными. Чужой аватар всё равно не подставляем.
+                    Debug.Log($"{name}: 👀 своего персонажа в составе нет — досматриваю матч со стороны");
+                    minigame.BeginViewing();
                     return;
                 }
 
