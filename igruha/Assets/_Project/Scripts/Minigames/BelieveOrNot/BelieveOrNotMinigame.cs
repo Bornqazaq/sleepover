@@ -79,6 +79,43 @@ namespace Igruha.Minigames.BelieveOrNot
         /// <summary>Номер кона, который уже разрешён. Защита от второго разрешения того же кона.</summary>
         private int resolvedRound;
 
+        /// <summary>За эту машину играет болванка автопрогона (аргумент <c>--bot</c>).</summary>
+        private bool autoplay;
+
+        /// <summary>
+        /// Когда болванка-Решающий нажмёт кнопку. Ноль — решать сейчас не ей.
+        /// Момент по общим часам, а не таймер: уговоры закрываются по серверным
+        /// часам, и локальный отсчёт разъехался бы с ними на пинг.
+        /// </summary>
+        private double autoplayDecisionAt;
+
+        /// <summary>Когда болванка скажет следующую реплику. Ноль — она не за столом.</summary>
+        private double autoplayPhraseAt;
+
+        /// <summary>
+        /// Когда болванка отправила реплику в последний раз.
+        ///
+        /// Сторожит по <b>факту отправки</b>, а не по расписанию, и в этом
+        /// весь смысл: расписание переставляется при каждом повторном
+        /// применении стадии, и переставленное вперёд оно разрешало вторую
+        /// реплику раньше серверного кулдауна. Отказ при этом законный —
+        /// но ловит он стенд, а не игру, и засоряет лог, по которому потом
+        /// разбирают прогон.
+        /// </summary>
+        private double autoplayLastPhraseAt;
+
+        /// <summary>
+        /// Кон, на который болванке уже назначены реплика и решение.
+        ///
+        /// Нужен потому, что стадия у клиента применяется не один раз за кон:
+        /// состояние приезжает тремя каналами, и любой из них поднимает
+        /// перерисовку. Без этой отметки каждое повторное применение сдвигало
+        /// бы реплику на пару секунд вперёд заново — болванка стучалась бы
+        /// в серверный кулдаун и засоряла лог отказами, которые ловит стенд,
+        /// а не игра.
+        /// </summary>
+        private int autoplayRound;
+
         public BelieveOrNotConfig Config => config;
 
         /// <summary>Кто сейчас за столом Знающим. Читают отладочные болванки и сетевой слой.</summary>
@@ -146,6 +183,8 @@ namespace Igruha.Minigames.BelieveOrNot
 
         protected override void OnPlayersReady()
         {
+            EngageAutoplay();
+
             entries.Clear();
             teamA.Clear();
             teamB.Clear();
@@ -217,6 +256,7 @@ namespace Igruha.Minigames.BelieveOrNot
                 revealRoutine = null;
             }
 
+            LogFinalTable();
             peekView?.Close();
             decisionPanel?.Close();
             phrasePanel?.Close();
@@ -238,6 +278,34 @@ namespace Igruha.Minigames.BelieveOrNot
             // обязана уехать в хаб на собственном персонаже.
             RestoreLocalCamera();
             stageState?.StopSequence();
+        }
+
+        /// <summary>
+        /// Выписать состав с победами в лог — на <b>каждой</b> машине.
+        ///
+        /// Строка мест выше пишется только у авторитета, и по ней не увидеть
+        /// главного: сошёлся ли счёт у клиентов с серверным. Стенд из восьми
+        /// процессов проверяется сличением восьми логов между собой — иначе
+        /// разъехавшееся состояние не поймать вовсе, у каждой машины своя
+        /// картинка, и обе выглядят правдоподобно.
+        /// </summary>
+        private void LogFinalTable()
+        {
+            var table = new System.Text.StringBuilder(256);
+            table.Append("📊 [Верю/не верю] итог у ");
+            table.Append(HasAuthority ? "хоста" : $"клиента id={LocalPlayerId}");
+            table.Append($" (A:B {match.TeamAWins}:{match.TeamBWins}):");
+
+            for (int i = 0; i < entries.Count; i++)
+            {
+                BelieveEntry e = entries[i];
+                table.Append(" | id=").Append(e.PlayerId)
+                     .Append(" побед=").Append(e.RoundsWon)
+                     .Append(" вслепую=").Append(e.DeciderWins)
+                     .Append(" сидел=").Append(e.RoundsSeated);
+            }
+
+            Debug.Log(table.ToString(), this);
         }
 
         protected override void CollectResults(MinigameResults results)
@@ -888,6 +956,7 @@ namespace Igruha.Minigames.BelieveOrNot
             }
 
             peekView?.Close();
+            ScheduleAutoplay();
 
             int localSeat = SeatOf(LocalPlayerId);
             if (localSeat < 0)
@@ -904,6 +973,129 @@ namespace Igruha.Minigames.BelieveOrNot
             if (LocalPlayerId == match.DeciderPlayerId)
             {
                 decisionPanel?.Open();
+            }
+        }
+
+        // ========== БОЛВАНКА АВТОПРОГОНА ==========
+
+        /// <summary>
+        /// Отдать эту машину болванке, если так велел аргумент запуска.
+        ///
+        /// Нужна затем, что кон «Верю / не верю» кончается <b>решением</b>,
+        /// а решение — это нажатие. Восемь неподвижных клиентов досидели бы
+        /// каждый кон до конца таймера: ни один обмен коробками не состоялся
+        /// бы, ни одна реплика не ушла бы по сети, и стенд отчитался бы
+        /// зелёным, не проверив ровно то, ради чего он собран.
+        ///
+        /// Болванка идёт человеческим путём: <see cref="SubmitDecision"/> и
+        /// <see cref="SubmitPhrase"/> — те же методы, что дёргают панели.
+        /// Короткого пути в обход серверных проверок нет намеренно.
+        ///
+        /// В одиночном прогоне болванок вешает <see cref="BelieveDebugBot"/>
+        /// на манекенов — здесь только сетевой случай, где персонаж у каждой
+        /// машины свой.
+        /// </summary>
+        private void EngageAutoplay()
+        {
+            autoplay = LaunchArguments.BotEnabled && WorldAuthority.IsNetworkSession;
+            autoplayDecisionAt = 0d;
+            autoplayPhraseAt = 0d;
+            autoplayRound = 0;
+            autoplayLastPhraseAt = 0d;
+
+            if (autoplay)
+            {
+                Debug.Log($"{name}: 🤖 автопрогон: за игрока {LocalPlayerId} решает болванка", this);
+            }
+        }
+
+        /// <summary>
+        /// Назначить болванке моменты реплики и решения на этот кон.
+        ///
+        /// Решение — не раньше <see cref="AutoplayMinDecisionSeconds"/>: кон,
+        /// закрытый на первой секунде уговоров, не проверяет ни реплики,
+        /// ни кулдаун, ни таймер — то есть почти ничего.
+        /// </summary>
+        private void ScheduleAutoplay()
+        {
+            // Номер кона у клиента появляется не мгновенно: состояние матча
+            // едет своим каналом. Спланировать на нулевом коне значит
+            // спланировать ещё раз, когда приедет настоящий номер, — и вторая
+            // реплика уйдёт слишком быстро после первой, прямо в серверный
+            // кулдаун. Отказ при этом законный, но ловит он стенд, а не игру.
+            if (!autoplay || match.RoundNumber <= 0 || autoplayRound == match.RoundNumber)
+            {
+                return;
+            }
+
+            autoplayRound = match.RoundNumber;
+            autoplayDecisionAt = 0d;
+            autoplayPhraseAt = 0d;
+
+            // Зритель молчит: реплики — привилегия сидящих, и сервер отобьёт
+            // их у любого другого. Слать заведомо отказные пакеты значит
+            // проверять стенд, а не игру.
+            if (SeatOf(LocalPlayerId) < 0)
+            {
+                return;
+            }
+
+            double now = NetworkClock.Now;
+            autoplayPhraseAt = now + Random.Range(1f, 3f);
+
+            if (LocalPlayerId != match.DeciderPlayerId)
+            {
+                return;
+            }
+
+            float window = Mathf.Max(AutoplayMinDecisionSeconds, config.PersuasionSeconds * AutoplayDecisionFraction);
+            autoplayDecisionAt = now + Random.Range(AutoplayMinDecisionSeconds, window);
+        }
+
+        /// <summary>Не решать раньше этой секунды уговоров.</summary>
+        private const float AutoplayMinDecisionSeconds = 5f;
+
+        /// <summary>Доля фазы уговоров, до которой болванка обязательно решит.</summary>
+        private const float AutoplayDecisionFraction = 0.8f;
+
+        /// <summary>Пауза болванки сверх серверного кулдауна реплик.</summary>
+        private const float AutoplayPhrasePause = 2f;
+
+        /// <summary>
+        /// Шаг болванки. Зовётся из <c>Update</c> и только в уговорах: в любой
+        /// другой стадии и решение, и реплика получили бы законный отказ
+        /// сервера, и стенд ловил бы собственные ошибки вместо игровых.
+        /// </summary>
+        private void DriveAutoplay()
+        {
+            if (Stage != BelieveStage.Persuasion)
+            {
+                return;
+            }
+
+            double now = NetworkClock.Now;
+
+            bool phraseDue = autoplayPhraseAt > 0d
+                             && now >= autoplayPhraseAt
+                             && now >= autoplayLastPhraseAt + config.PhraseCooldown + AutoplayPhrasePause
+                             && SeatOf(LocalPlayerId) >= 0;
+
+            if (phraseDue)
+            {
+                QuickPhraseSet set = SetFor(LocalPlayerId);
+                if (set != null && set.Count > 0)
+                {
+                    SubmitPhrase(Random.Range(0, set.Count));
+                }
+
+                autoplayLastPhraseAt = now;
+                autoplayPhraseAt = now + config.PhraseCooldown + AutoplayPhrasePause;
+            }
+
+            if (autoplayDecisionAt > 0d && now >= autoplayDecisionAt)
+            {
+                autoplayDecisionAt = 0d;
+                SubmitDecision(Random.value < 0.5f ? Decision.Keep : Decision.Swap);
             }
         }
 
@@ -1125,6 +1317,11 @@ namespace Igruha.Minigames.BelieveOrNot
             if (decisionPanel != null && decisionPanel.IsOpen)
             {
                 decisionPanel.SetCountdown(remaining);
+            }
+
+            if (autoplay)
+            {
+                DriveAutoplay();
             }
         }
 

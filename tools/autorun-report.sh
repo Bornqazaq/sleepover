@@ -30,22 +30,25 @@ for log in "$LOGS"/*.log; do
 done
 echo
 
-echo "═══ Состав и порядок Ведущих (у хоста)"
-grep -h -E 'матч на|порядок Ведущих|автопрогон [0-9]+/' "$LOGS/host.log" 2>/dev/null || echo "  нет"
+echo "═══ Состав и роли (у хоста)"
+grep -h -E 'матч на|порядок Ведущих|автопрогон [0-9]+/|«Верю / не верю»:' "$LOGS/host.log" 2>/dev/null || echo "  нет"
 echo
 
-echo "═══ Вопросы (у хоста)"
-grep -h -E '\[Экзамен\] вопрос [0-9]+/' "$LOGS/host.log" 2>/dev/null || echo "  нет"
+echo "═══ Ход матча (у хоста)"
+grep -h -E '\[Экзамен\] вопрос [0-9]+/|🎴 кон [0-9]+' "$LOGS/host.log" 2>/dev/null || echo "  нет"
 echo
 
-echo "═══ Награда Ведущему за раскол (у хоста)"
-grep -h 'за раскол' "$LOGS/host.log" 2>/dev/null || echo "  нет"
+echo "═══ Начисления (у хоста)"
+grep -h -E 'за раскол|🎴 места:' "$LOGS/host.log" 2>/dev/null || echo "  нет"
 echo
 
-echo "═══ Сколько раз кто вёл (у хоста)"
-# Только строки входа в вопрос: строка подсчёта очков называет того же
-# Ведущего второй раз, и без фильтра каждый ход считался бы за два.
-grep -h 'начат вопрос' "$LOGS/host.log" 2>/dev/null | grep -oh 'ведёт id=[0-9-]*' | sort | uniq -c || echo "  нет"
+echo "═══ Кто сколько раз в особой роли (у хоста)"
+# Только строки входа в ход: строка подсчёта называет того же игрока
+# второй раз, и без фильтра каждый ход считался бы за два.
+{
+    grep -h 'начат вопрос' "$LOGS/host.log" 2>/dev/null | grep -oh 'ведёт id=[0-9-]*'
+    grep -h '🎴 кон [0-9]*:' "$LOGS/host.log" 2>/dev/null | grep -oh 'Знающий [^,]*'
+} | sort | uniq -c || echo "  нет"
 echo
 
 echo "═══ Конец матча"
@@ -56,7 +59,7 @@ echo "═══ Итоговые таблицы: совпадают ли маш�
 tables="$(mktemp)"
 for log in "$LOGS"/*.log; do
     name="$(basename "$log" .log)"
-    line=$(grep -h '📊 \[Экзамен\] итог' "$log" 2>/dev/null | tail -1 || true)
+    line=$(grep -h '📊 .* итог у' "$log" 2>/dev/null | tail -1 || true)
     if [[ -z "$line" ]]; then
         printf '  %-12s ТАБЛИЦЫ НЕТ\n' "$name"
         continue
@@ -83,4 +86,4 @@ grep -c -h "Загружена сцена\|Hub" /dev/null 2>/dev/null || true
 echo
 
 echo "═══ Дисконнекты"
-grep -h -E 'ушёл в фазе|ушёл после показа|меньше двух игроков|Disconnect' "$LOGS"/*.log 2>/dev/null | sort -u || echo "  нет"
+grep -h -E 'ушёл в фазе|ушёл после показа|ушёл в стадии|ушёл после решения|меньше двух игроков|играть не с кем' "$LOGS"/*.log 2>/dev/null | grep -v '^ *at ' | sort -u || echo "  нет"
