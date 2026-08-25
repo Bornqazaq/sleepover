@@ -94,10 +94,21 @@ namespace Igruha.Minigames.BelieveOrNot
         /// </summary>
         public int TotalRounds;
 
-        /// <summary>Кто сейчас Знающий.</summary>
+        /// <summary>
+        /// Кто занимает первое место за столом. Само по себе место ничего
+        /// не значит, но по нему клиент понимает, чья коробка где стоит
+        /// и куда ставить камеру, — а значит, оно обязано быть одинаковым
+        /// на всех машинах.
+        /// </summary>
+        public int Seat0PlayerId;
+
+        /// <summary>Кто занимает второе место за столом.</summary>
+        public int Seat1PlayerId;
+
+        /// <summary>Кто сейчас Знающий. Всегда один из двух сидящих.</summary>
         public int KnowerPlayerId;
 
-        /// <summary>Кто сейчас Решающий.</summary>
+        /// <summary>Кто сейчас Решающий. Второй из двух сидящих.</summary>
         public int DeciderPlayerId;
 
         /// <summary>Сколько конов выиграла команда A. При 2–3 игроках не используется.</summary>

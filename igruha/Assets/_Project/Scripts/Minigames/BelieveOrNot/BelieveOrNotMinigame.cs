@@ -58,7 +58,6 @@ namespace Igruha.Minigames.BelieveOrNot
         private readonly List<SessionPlayer> teamA = new List<SessionPlayer>(4);
         private readonly List<SessionPlayer> teamB = new List<SessionPlayer>(4);
         private readonly List<SessionPlayer> pair = new List<SessionPlayer>(2);
-        private readonly int[] seatedIds = { SpecialRoleHistory.NoPlayer, SpecialRoleHistory.NoPlayer };
         private readonly double[] nextPhraseAt = new double[BelieveTable.SeatCount];
 
         private BelieveMatchState match;
@@ -88,6 +87,9 @@ namespace Igruha.Minigames.BelieveOrNot
 
         /// <summary>Текущая стадия кона. <c>MinigameStageState.NoStage</c> — кон не идёт.</summary>
         public byte Stage => stageState != null ? stageState.Stage : MinigameStageState.NoStage;
+
+        /// <summary>Состав, который клиент уже разобрал. Состояние вполне может приехать раньше ростера.</summary>
+        public int EntryCount => entries.Count;
 
         protected override void Awake()
         {
@@ -261,7 +263,7 @@ namespace Igruha.Minigames.BelieveOrNot
 
             // Состав кона в лог: по нему сверяется ротация на приёмке фазы.
             // Что в коробках — не пишем: лог читают и в сетевом прогоне.
-            Debug.Log($"🎴 кон {roundNumber}: за столом {NameOf(seatedIds[0])} и {NameOf(seatedIds[1])}, " +
+            Debug.Log($"🎴 кон {roundNumber}: за столом {NameOf(SeatedId(0))} и {NameOf(SeatedId(1))}, " +
                       $"знает {NameOf(match.KnowerPlayerId)}");
 
             stageState.BeginSubround(roundNumber, BelieveStage.Seating, config.SeatingSeconds);
@@ -308,8 +310,8 @@ namespace Igruha.Minigames.BelieveOrNot
                 return false;
             }
 
-            seatedIds[0] = first.Id;
-            seatedIds[1] = second.Id;
+            match.Seat0PlayerId = first.Id;
+            match.Seat1PlayerId = second.Id;
 
             pair.Clear();
             pair.Add(first);
@@ -383,11 +385,11 @@ namespace Igruha.Minigames.BelieveOrNot
                 ? BelieveTable.SeatCount - 1 - winningSeat
                 : winningSeat;
 
-            int winnerId = seatedIds[winnerSeat];
+            int winnerId = SeatedId(winnerSeat);
             bool deciderWon = winnerId == match.DeciderPlayerId;
 
-            MarkSeated(seatedIds[0]);
-            MarkSeated(seatedIds[1]);
+            MarkSeated(SeatedId(0));
+            MarkSeated(SeatedId(1));
             AwardRound(winnerId, deciderWon);
 
             Debug.Log($"🎴 кон {match.RoundNumber}/{match.TotalRounds}: " +
@@ -654,14 +656,14 @@ namespace Igruha.Minigames.BelieveOrNot
                     continue;
                 }
 
-                bool seated = Players[i].Id == seatedIds[0] || Players[i].Id == seatedIds[1];
+                bool seated = Players[i].Id == SeatedId(0) || Players[i].Id == SeatedId(1);
                 avatar.MovementLocked = seated;
                 avatar.ImpulseImmune = seated;
             }
 
             for (int seat = 0; seat < BelieveTable.SeatCount; seat++)
             {
-                PlayerController avatar = FindPlayer(seatedIds[seat])?.Avatar;
+                PlayerController avatar = FindPlayer(SeatedId(seat))?.Avatar;
                 Transform anchor = table.GetSeatAnchor(seat);
                 if (avatar == null || anchor == null)
                 {
@@ -961,6 +963,13 @@ namespace Igruha.Minigames.BelieveOrNot
         private QuickPhraseSet SetFor(int playerId) =>
             playerId == match.KnowerPlayerId ? knowerPhrases : deciderPhrases;
 
+        /// <summary>
+        /// Кто сидит на этом месте. Хранится в состоянии матча, а не отдельным
+        /// полем: клиенту оно нужно ровно так же, как серверу — по нему он
+        /// понимает, чья коробка где стоит и куда ставить камеру.
+        /// </summary>
+        private int SeatedId(int seat) => seat == 0 ? match.Seat0PlayerId : match.Seat1PlayerId;
+
         private int SeatOf(int playerId)
         {
             if (playerId == SpecialRoleHistory.NoPlayer)
@@ -970,7 +979,7 @@ namespace Igruha.Minigames.BelieveOrNot
 
             for (int seat = 0; seat < BelieveTable.SeatCount; seat++)
             {
-                if (seatedIds[seat] == playerId)
+                if (SeatedId(seat) == playerId)
                 {
                     return seat;
                 }
