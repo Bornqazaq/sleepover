@@ -634,6 +634,7 @@ namespace Igruha.EditorTools
             var canvas = Object.FindFirstObjectByType<Canvas>(FindObjectsInactive.Include);
 
             Transform uiRoot = canvas != null ? canvas.transform : null;
+            EnsureHudStatusLine(hud, uiRoot);
             BelievePeekView peek = BuildPeekView(uiRoot);
             BelieveDecisionPanel decision = BuildDecisionPanel(uiRoot);
             QuickPhrasePanel phrases = BuildPhrasePanel(uiRoot);
@@ -676,6 +677,47 @@ namespace Igruha.EditorTools
                 tableSo.FindProperty("fixedCameraRig").objectReferenceValue = fixedRig;
                 tableSo.ApplyModifiedPropertiesWithoutUndo();
             }
+        }
+
+        /// <summary>
+        /// Дать HUD строку статуса, если её нет.
+        ///
+        /// В шаблоне сцены поле <c>statusText</c> не заполнено, а
+        /// <c>RoundHud.ShowStatus</c> молча ничего не делает с пустой ссылкой.
+        /// Из-за этого строка «Кон N/M · счёт · знает · решает» не выводилась
+        /// вообще ни разу — обнаружено чтением поля в плей-моде 25.08, глазами
+        /// такое не поймать: пустое место выглядит как отсутствие текста.
+        /// </summary>
+        private static void EnsureHudStatusLine(RoundHud hud, Transform uiRoot)
+        {
+            if (hud == null || uiRoot == null)
+            {
+                return;
+            }
+
+            var so = new SerializedObject(hud);
+            SerializedProperty property = so.FindProperty("statusText");
+            if (property == null || property.objectReferenceValue != null)
+            {
+                return;
+            }
+
+            Transform existing = uiRoot.Find("StatusLine");
+            if (existing != null)
+            {
+                Object.DestroyImmediate(existing.gameObject);
+            }
+
+            TMP_Text status = CreateText(uiRoot, "StatusLine", string.Empty, 22f, TextAlignmentOptions.Center);
+            var rect = (RectTransform)status.transform;
+            rect.anchorMin = new Vector2(0.5f, 1f);
+            rect.anchorMax = new Vector2(0.5f, 1f);
+            rect.pivot = new Vector2(0.5f, 1f);
+            rect.sizeDelta = new Vector2(1100f, 34f);
+            rect.anchoredPosition = new Vector2(0f, -14f);
+
+            property.objectReferenceValue = status;
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         /// <summary>
