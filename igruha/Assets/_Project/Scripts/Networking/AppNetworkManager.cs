@@ -35,6 +35,27 @@ public class AppNetworkManager : MonoBehaviour
     private bool isConnected;
     private bool isSubscribedToClientEvents;
 
+    /// <summary>Кадров в секунду у headless-инстанса: физике и сети хватает, ядро не жжётся.</summary>
+    private const int HeadlessFrameRate = 60;
+
+    /// <summary>
+    /// Ограничить частоту кадров инстансу, который ничего не рисует.
+    ///
+    /// Без рисования Unity крутит цикл настолько быстро, насколько может, и
+    /// один такой процесс съедает ядро целиком. На стенде из восьми процессов
+    /// это значит, что машина меряет саму себя: клиенты отбирают время у хоста,
+    /// таймеры плывут, и найденное «расхождение» оказывается перегрузкой
+    /// стенда, а не багом игры.
+    /// </summary>
+    private void Awake()
+    {
+        if (Application.isBatchMode)
+        {
+            Application.targetFrameRate = HeadlessFrameRate;
+            Debug.Log($"🖥️ headless-инстанс: частота кадров ограничена {HeadlessFrameRate}");
+        }
+    }
+
     private void Start()
     {
         if (NetworkManager.Singleton == null)
