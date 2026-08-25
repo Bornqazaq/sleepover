@@ -38,6 +38,16 @@ namespace Igruha.Core.Minigame
         private IMinigameNetworkBridge bridge;
         private MinigamePhase phase = MinigamePhase.Idle;
 
+        /// <summary>
+        /// Состав раунда получен — <see cref="StartMinigame"/> отработал.
+        /// До этого применять сетевую фазу нельзя, см. <see cref="ApplyPhase"/>.
+        /// </summary>
+        private bool playersReady;
+
+        /// <summary>Фаза, приехавшая из сети раньше состава. Ждёт <see cref="StartMinigame"/>.</summary>
+        private MinigamePhase pendingPhase;
+        private bool hasPendingPhase;
+
         public MinigameDefinition Definition => definition;
         public event Action<MinigameResults> ResultsReported;
 
@@ -93,12 +103,14 @@ namespace Igruha.Core.Minigame
 
             hud?.Bind(roundTimer);
             SetPlayersControlEnabled(false);
+            playersReady = true;
             OnPlayersReady();
 
             // Фазы объявляет авторитет. Клиент уже готов (ростер и роли есть),
             // но ждёт команды из сети, иначе его раунд пойдёт в своём времени.
             if (!HasAuthority)
             {
+                ApplyPendingPhase();
                 return;
             }
 
@@ -153,9 +165,31 @@ namespace Igruha.Core.Minigame
             bridge?.PublishPhase(next);
         }
 
-        /// <summary>Применить фазу: у авторитета — из GoToPhase, у клиента — из сети.</summary>
+        /// <summary>
+        /// Применить фазу: у авторитета — из GoToPhase, у клиента — из сети.
+        ///
+        /// Фаза может приехать раньше состава, и это норма: клиент грузит сцену
+        /// и ждёт, пока соберётся ростер, а сервер к этому времени уже объявил
+        /// раунд. Применить её сейчас — значит войти в раунд с пустым списком
+        /// участников, а пришедший следом <see cref="StartMinigame"/> выключит
+        /// всем управление, и включать его будет уже некому: <c>ApplyPhase</c>
+        /// на ту же фазу второй раз не сработает. Ровно так у клиентов и
+        /// отнимался ввод целиком — замерено 25.08 на host + 3 client, в логе
+        /// «раунд начат (клиент), участников 0».
+        ///
+        /// Поэтому придерживаем фазу до состава. Приехало несколько — держим
+        /// последнюю: подключившемуся к середине важно текущее положение дел,
+        /// а не путь, которым к нему пришли.
+        /// </summary>
         public void ApplyPhase(MinigamePhase next)
         {
+            if (!playersReady)
+            {
+                pendingPhase = next;
+                hasPendingPhase = true;
+                return;
+            }
+
             if (phase == next)
             {
                 return;
@@ -180,6 +214,19 @@ namespace Igruha.Core.Minigame
                     EnterResults();
                     break;
             }
+        }
+
+        /// <summary>Состав пришёл — применить фазу, которую держали до него.</summary>
+        private void ApplyPendingPhase()
+        {
+            if (!hasPendingPhase)
+            {
+                return;
+            }
+
+            hasPendingPhase = false;
+            Debug.Log($"🎬 {name}: состав собран ({playerList.Count}) — применяю отложенную фазу {pendingPhase}");
+            ApplyPhase(pendingPhase);
         }
 
         private void EnterTutorial()
