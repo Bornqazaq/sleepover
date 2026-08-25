@@ -395,9 +395,13 @@ namespace Igruha.Minigames.DuckHunt
             // Не назначь мы момент здесь — клиент отпустил бы Уток в башню
             // по своему отсчёту, и первые секунды гонки шли бы у него
             // раньше, чем сервер начал их считать.
+            // Клиент перечитывает свисток из сети, а не обнуляет его. Его раунд
+            // начинается позже сетевого — сначала должен собраться состав, — и
+            // сервер к этому моменту вполне мог свисток уже объявить. Обнули мы
+            // его здесь, Утки ждали бы события, которое прошло.
             liveTime = HasAuthority
                 ? NetworkClock.Now + (config != null ? config.StartCountdown : 0f)
-                : NotAnnounced;
+                : Networked ? network.LiveTime : NotAnnounced;
             waitingForWhistleLogged = false;
 
             Debug.Log($"🦆 Duck Hunt: раунд начат ({(HasAuthority ? "АВТОРИТЕТ" : "клиент")}), " +

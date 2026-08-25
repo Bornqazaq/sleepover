@@ -161,6 +161,14 @@ namespace Igruha.Minigames.DuckHunt
         /// <summary>Кому выпала роль. <see cref="SpecialRoleHistory.NoPlayer"/> — ещё не выбрана.</summary>
         public int HunterPlayerId => IsSpawned ? hunterPlayerId.Value : SpecialRoleHistory.NoPlayer;
 
+        /// <summary>
+        /// Момент свистка, объявленный сервером. Нужен на старте раунда: у
+        /// клиента раунд начинается позже сетевого — он ждёт, пока соберётся
+        /// состав, — и свисток вполне может быть объявлен раньше. Не перечитай
+        /// его начало раунда, отсчёт ждал бы события, которое уже прошло.
+        /// </summary>
+        public double LiveTime => IsSpawned ? liveTime.Value : DuckHuntMinigame.NotAnnounced;
+
         /// <summary>Аватаром Охотника управляет эта машина — значит её ввод и есть ввод роли.</summary>
         private bool LocalOwnsHunter => hunterBody != null && hunterBody.IsSpawned && hunterBody.IsOwner;
 
