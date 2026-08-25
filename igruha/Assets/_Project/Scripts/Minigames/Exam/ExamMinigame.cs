@@ -89,6 +89,15 @@ namespace Igruha.Minigames.Exam
         /// <summary>Свой вопрос уже отправлен серверу в этом круге — второй раз не шлём.</summary>
         private bool questionSent;
 
+        /// <summary>
+        /// Вопрос этого круга уже снят с Ведущего. Второй сбор не просто лишний:
+        /// «Готово» закрывает стадию досрочно, а закрытие стадии тут же зовёт
+        /// сбор ещё раз — и у Ведущего-клиента отложенный вопрос к этому моменту
+        /// уже применён и погашен, так что второй проход объявлял бы вопрос
+        /// несостоявшимся сразу после того, как он состоялся.
+        /// </summary>
+        private bool questionCollected;
+
         /// <summary>Сколько строк состава разобрано из приехавшего списка.</summary>
         private int networkEntryCursor;
 
@@ -193,10 +202,29 @@ namespace Igruha.Minigames.Exam
                 HostPlayerId = -1
             };
 
-            matchStartedAt = NetworkClock.Now;
             matchOver = false;
 
             Debug.Log($"📚 [Экзамен] матч на {Players.Count} игроков: {match.TotalQuestions} вопросов", this);
+        }
+
+        /// <summary>
+        /// Первый вопрос начинается вместе с раундом, а не на готовности состава.
+        ///
+        /// Раньше он стартовал прямо из <see cref="OnPlayersReady"/> — то есть
+        /// поверх обучалки и при ещё выключенном управлении. Первому Ведущему
+        /// доставалось не тридцать секунд на печать, а сколько останется после
+        /// заставки, и панель открывалась ему под ней. Хуже того, панель
+        /// запоминала «ввод был выключен» и после закрытия отбирала управление
+        /// до конца матча.
+        /// </summary>
+        protected override void OnRoundStarted()
+        {
+            if (!HasAuthority || matchOver)
+            {
+                return;
+            }
+
+            matchStartedAt = NetworkClock.Now;
             BeginQuestion();
         }
 
@@ -354,6 +382,7 @@ namespace Igruha.Minigames.Exam
 
             pendingReady = false;
             questionSent = false;
+            questionCollected = false;
 
             for (int i = 0; i < entries.Count; i++)
             {
@@ -364,6 +393,12 @@ namespace Igruha.Minigames.Exam
 
             PublishMatch();
             PublishEntries();
+
+            // Строка на входе в вопрос, а не только на подсчёте очков:
+            // несостоявшийся вопрос до подсчёта не доходит, и без неё
+            // ротацию по логу не сверить — часть ходов просто не видна.
+            Debug.Log($"📚 [Экзамен] начат вопрос {match.QuestionNumber}/{match.TotalQuestions} " +
+                      $"цена {match.QuestionValue} ведёт id={match.HostPlayerId} — печать", this);
 
             stageState.BeginSubround(match.QuestionNumber, StageTyping, config.TypingSeconds);
         }
@@ -636,10 +671,12 @@ namespace Igruha.Minigames.Exam
         /// </summary>
         private void CollectQuestionFromHost()
         {
-            if (!HasAuthority)
+            if (!HasAuthority || questionCollected)
             {
                 return;
             }
+
+            questionCollected = true;
 
             // Ведущий-клиент прислал вопрос заранее — он уже проверен
             // в ServerApplyQuestion, здесь его только применяем.
@@ -821,9 +858,19 @@ namespace Igruha.Minigames.Exam
                 Debug.Log($"📚 [Экзамен] Ведущий {playerId} ушёл в фазе печати — вопрос пропущен", this);
                 stageState.EndStageNow();
             }
-            else
+            else if (match.QuestionPosted)
             {
                 Debug.Log($"📚 [Экзамен] Ведущий {playerId} ушёл после показа — вопрос доигрывается", this);
+            }
+            else
+            {
+                // Третий случай, и он не редкий: NGO замечает пропажу клиента
+                // не сразу, и к моменту колбэка фаза печати уже кончилась сама,
+                // объявив вопрос несостоявшимся. Доигрывать тут нечего, и
+                // говорить «доигрывается» — врать в единственном месте,
+                // по которому потом разбирают прогон.
+                Debug.Log($"📚 [Экзамен] Ведущий {playerId} ушёл; вопрос к этому моменту " +
+                          "уже был объявлен несостоявшимся", this);
             }
         }
 
@@ -1287,7 +1334,16 @@ namespace Igruha.Minigames.Exam
 
             if (player?.Avatar != null && player.Avatar.TryGetComponent(out PlayerInputReader reader))
             {
-                isLocal = reader.LocallyControlled && reader.enabled;
+                // «Мой» — значит принадлежит этой машине, и только. Раньше
+                // сюда входило ещё и reader.enabled, и это ломало игру целиком:
+                // панель Ведущего на время печати сама гасит ридер, чтобы WASD
+                // не водил персонажа вместо набора текста, — а сервер после
+                // этого переставал считать Ведущего своим и не забирал у него
+                // напечатанное. Ни один вопрос, введённый руками, не мог
+                // состояться в принципе. Не всплыло потому, что соло-прогон
+                // ходил манекенами (у них заготовка), а сетевая приёмка
+                // крафтила пакеты прямо в точку приёма, минуя панель.
+                isLocal = reader.LocallyControlled;
 
                 // Болванка — это манекен ОДИНОЧНОГО прогона. В сетевой сессии
                 // манекенов не бывает: там у каждой копии есть владелец, а
