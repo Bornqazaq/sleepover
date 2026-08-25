@@ -627,6 +627,14 @@ namespace Igruha.EditorTools
             BelieveDebugBot bot = manager.GetComponent<BelieveDebugBot>()
                                   ?? manager.AddComponent<BelieveDebugBot>();
 
+            // Сетевая половина живёт на том же объекте, что и правила: рядом
+            // с ней уже стоят NetworkObject и NetworkMinigameBridge из шаблона
+            // сцены, а сама она находит контроллер и машину стадий сама.
+            if (manager.GetComponent<BelieveOrNotNetwork>() == null)
+            {
+                manager.AddComponent<BelieveOrNotNetwork>();
+            }
+
             var hud = Object.FindFirstObjectByType<RoundHud>(FindObjectsInactive.Include);
             var tutorial = Object.FindFirstObjectByType<TutorialScreen>(FindObjectsInactive.Include);
             var timer = Object.FindFirstObjectByType<RoundTimer>(FindObjectsInactive.Include);

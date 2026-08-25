@@ -9289,6 +9289,7 @@ GameObject:
   - component: {fileID: 756139783}
   - component: {fileID: 756139782}
   - component: {fileID: 756139781}
+  - component: {fileID: 756139784}
   m_Layer: 0
   m_Name: MinigameManager
   m_TagString: Untagged
@@ -9446,6 +9447,18 @@ MonoBehaviour:
   phrasePanel: {fileID: 362671831}
   knowerPhrases: {fileID: 11400000, guid: d26b477c15f18a94aa23e0a9cf6a67e9, type: 2}
   deciderPhrases: {fileID: 11400000, guid: 6daca708c7be0864ab28e8ceded1e23f, type: 2}
+--- !u!114 &756139784
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 756139773}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 90cd578bd8b1ab248aedf88cab2d6ceb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.BelieveOrNot.BelieveOrNotNetwork
 --- !u!1 &786065885
 GameObject:
   m_ObjectHideFlags: 0

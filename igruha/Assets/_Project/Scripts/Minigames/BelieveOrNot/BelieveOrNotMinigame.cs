@@ -15,15 +15,16 @@ namespace Igruha.Minigames.BelieveOrNot
     ///
     /// <b>Скрытая информация — главное свойство этого класса.</b> Что лежит
     /// в какой коробке, знает только поле <see cref="winningSeat"/>, и оно
-    /// не покидает авторитета. Клиенты в фазе 3 узнают исход из того, какая
-    /// крышка открылась, а Знающий получает свою карточку адресно, ровно
+    /// не покидает авторитета. Клиенты узнают исход из того, какая крышка
+    /// открылась, а Знающий получает свою карточку адресным <c>Rpc</c>, ровно
     /// в <see cref="ApplyPeek"/>. Отдельного канала «галочка в левой коробке»
     /// не существует вовсе (спека 10.3).
     ///
     /// Всё, что меняет важное состояние, собрано в трёх точках входа:
     /// <see cref="HandleDecision"/>, <see cref="HandlePhrase"/> и
-    /// <see cref="HandlePlayerLeft"/>. В фазе 3 они уйдут за <c>IsServer</c>
-    /// и <c>ServerRpc</c> без переписывания логики.
+    /// <see cref="HandlePlayerLeft"/>. Все три начинаются с проверки
+    /// авторитета, и клиентские намерения приходят в них же — через
+    /// <see cref="BelieveOrNotNetwork"/>, с теми же проверками.
     /// </summary>
     public sealed class BelieveOrNotMinigame : MinigameControllerBase
     {
@@ -62,6 +63,7 @@ namespace Igruha.Minigames.BelieveOrNot
 
         private BelieveMatchState match;
         private Coroutine revealRoutine;
+        private BelieveOrNotNetwork network;
 
         /// <summary>Сцена собрана и состав разобран: без этого кон начинать нечем.</summary>
         private bool ready;
@@ -91,9 +93,18 @@ namespace Igruha.Minigames.BelieveOrNot
         /// <summary>Состав, который клиент уже разобрал. Состояние вполне может приехать раньше ростера.</summary>
         public int EntryCount => entries.Count;
 
+        /// <summary>
+        /// Сколько участников в ростере. Читает сетевой слой: до
+        /// <c>StartMinigame</c> ростера нет вовсе, и разобранное в этот момент
+        /// сетевое состояние пришлось бы разбирать заново.
+        /// </summary>
+        public int RosterCount => Players.Count;
+
         protected override void Awake()
         {
             base.Awake();
+
+            network = GetComponent<BelieveOrNotNetwork>();
 
             if (decisionPanel != null)
             {
@@ -161,8 +172,20 @@ namespace Igruha.Minigames.BelieveOrNot
 
             match = default;
             match.TotalRounds = config.GetRoundCount(Players.Count);
+
+            // Места именно NoPlayer, а не нули: ноль — законный идентификатор
+            // клиента (это хост), и на нулях он считал бы себя сидящим
+            // ещё до первого кона.
+            match.Seat0PlayerId = SpecialRoleHistory.NoPlayer;
+            match.Seat1PlayerId = SpecialRoleHistory.NoPlayer;
+            match.KnowerPlayerId = SpecialRoleHistory.NoPlayer;
+            match.DeciderPlayerId = SpecialRoleHistory.NoPlayer;
+
             resolvedRound = 0;
             ready = true;
+
+            PublishMatch();
+            PublishEntries();
         }
 
         protected override void OnRoundStarted()
@@ -266,6 +289,12 @@ namespace Igruha.Minigames.BelieveOrNot
             Debug.Log($"🎴 кон {roundNumber}: за столом {NameOf(SeatedId(0))} и {NameOf(SeatedId(1))}, " +
                       $"знает {NameOf(match.KnowerPlayerId)}");
 
+            // Состав кона объявляется ДО стадии: клиент рисует рассадку и
+            // камеру по местам за столом, и стадия, приехавшая первой,
+            // поставила бы камеру прошлого кона.
+            PublishMatch();
+            PublishEntries();
+
             stageState.BeginSubround(roundNumber, BelieveStage.Seating, config.SeatingSeconds);
         }
 
@@ -329,10 +358,22 @@ namespace Igruha.Minigames.BelieveOrNot
             switch (finished)
             {
                 case BelieveStage.Seating:
+                    if (RoundInterrupted)
+                    {
+                        GoToReveal();
+                        break;
+                    }
+
                     stageState.EnterStage(BelieveStage.Peek, config.PeekSeconds);
                     break;
 
                 case BelieveStage.Peek:
+                    if (RoundInterrupted)
+                    {
+                        GoToReveal();
+                        break;
+                    }
+
                     stageState.EnterStage(BelieveStage.Persuasion, config.PersuasionSeconds);
                     break;
 
@@ -343,8 +384,7 @@ namespace Igruha.Minigames.BelieveOrNot
                         match.Decision = Decision.Keep;
                     }
 
-                    ResolveRound();
-                    stageState.EnterStage(BelieveStage.Reveal, config.RevealSeconds);
+                    GoToReveal();
                     break;
 
                 case BelieveStage.Reveal:
@@ -362,6 +402,23 @@ namespace Igruha.Minigames.BelieveOrNot
                     BeginRound(match.RoundNumber + 1);
                     break;
             }
+        }
+
+        /// <summary>
+        /// Кон оборвался, не дойдя до конца уговоров: либо Решающий ушёл
+        /// и ему засчитано «Оставить», либо ушёл Знающий и кон отменён.
+        ///
+        /// Отдельный признак, а не проверка по месту, потому что оборваться
+        /// кон может на любой стадии до раскрытия, и досиживать после этого
+        /// сорок секунд пустых уговоров нечего (спека 10.4).
+        /// </summary>
+        private bool RoundInterrupted => match.Cancelled || match.Decision != Decision.None;
+
+        /// <summary>Закрыть кон: посчитать исход и открыть крышки.</summary>
+        private void GoToReveal()
+        {
+            ResolveRound();
+            stageState.EnterStage(BelieveStage.Reveal, config.RevealSeconds);
         }
 
         /// <summary>
@@ -395,6 +452,9 @@ namespace Igruha.Minigames.BelieveOrNot
             Debug.Log($"🎴 кон {match.RoundNumber}/{match.TotalRounds}: " +
                       $"{(match.Decision == Decision.Swap ? "поменял" : "оставил")} — " +
                       $"выиграл {NameOf(winnerId)} ({(deciderWon ? "Решающий" : "Знающий")})");
+
+            PublishMatch();
+            PublishEntries();
         }
 
         private void AwardRound(int winnerId, bool deciderWon)
@@ -441,8 +501,9 @@ namespace Igruha.Minigames.BelieveOrNot
         // ========== ТОЧКИ ВХОДА ДЛЯ ДЕЙСТВИЙ ИГРОКА ==========
 
         /// <summary>
-        /// Решение Решающего. <b>Единственная точка, где решение принимается</b> —
-        /// в фазе 3 сюда придёт <c>ServerRpc</c>, и проверки останутся теми же.
+        /// Решение Решающего. <b>Единственная точка, где решение принимается</b>:
+        /// сюда приходит и нажатие хоста, и <c>Rpc</c> клиента, и проверки
+        /// для обоих одни и те же.
         ///
         /// Отказ логируется с причиной, но отправителю не сообщает ничего,
         /// чего он знать не должен.
@@ -466,15 +527,18 @@ namespace Igruha.Minigames.BelieveOrNot
                 return;
             }
 
-            if (Stage != BelieveStage.Persuasion)
-            {
-                Debug.LogWarning($"{name}: 🎴 решение отклонено — сейчас не фаза уговоров", this);
-                return;
-            }
-
+            // Повтор проверяется раньше стадии намеренно: первое же решение
+            // закрывает уговоры, и второе иначе получало бы отказ с чужой
+            // причиной — «не фаза уговоров» вместо «уже решено».
             if (match.Decision != Decision.None)
             {
                 Debug.LogWarning($"{name}: 🎴 решение отклонено — в этом коне уже решено", this);
+                return;
+            }
+
+            if (Stage != BelieveStage.Persuasion)
+            {
+                Debug.LogWarning($"{name}: 🎴 решение отклонено — сейчас не фаза уговоров", this);
                 return;
             }
 
@@ -522,7 +586,11 @@ namespace Igruha.Minigames.BelieveOrNot
             }
 
             nextPhraseAt[seat] = NetworkClock.Now + config.PhraseCooldown;
+
+            // Пузырь показывают все машины: реплика — событие, а не состояние,
+            // и переспрашивать её потом незачем.
             ApplyPhrase(playerId, phraseIndex);
+            network?.AnnouncePhrase(playerId, phraseIndex);
         }
 
         /// <summary>
@@ -540,6 +608,10 @@ namespace Igruha.Minigames.BelieveOrNot
                 return;
             }
 
+            // Имя снимается до удаления из состава: после RemovePlayer искать
+            // его уже негде, и в логе дисконнекта осталось бы прочерк.
+            string leaver = NameOf(playerId);
+
             int index = IndexOf(playerId);
             if (index >= 0)
             {
@@ -553,28 +625,47 @@ namespace Igruha.Minigames.BelieveOrNot
             teamA.RemoveAll(p => p.Id == playerId);
             teamB.RemoveAll(p => p.Id == playerId);
 
-            if (!stageState.Running)
+            if (stageState.Running)
             {
-                return;
+                // Стадии до раскрытия — те, в которых решения ещё нет. Рассадка
+                // входит сюда наравне с показом и уговорами: три секунды тоже
+                // время, и ушедший в них Знающий не должен получить очко.
+                bool beforeDecision = Stage == BelieveStage.Seating
+                                      || Stage == BelieveStage.Peek
+                                      || Stage == BelieveStage.Persuasion;
+
+                if (playerId == match.DeciderPlayerId && beforeDecision)
+                {
+                    Debug.Log($"🎴 Решающий {leaver} ушёл в стадии {Stage} — засчитано «Оставить», " +
+                              $"кон {match.RoundNumber} разрешается сам");
+                    match.Decision = Decision.Keep;
+                    stageState.EndStageNow();
+                }
+                else if (playerId == match.KnowerPlayerId && beforeDecision)
+                {
+                    Debug.Log($"🎴 Знающий {leaver} ушёл в стадии {Stage} — кон {match.RoundNumber} отменён, очко никому");
+                    match.Cancelled = true;
+                    stageState.EndStageNow();
+                }
+                else if (playerId == match.KnowerPlayerId || playerId == match.DeciderPlayerId)
+                {
+                    // Знающий, ушедший ПОСЛЕ решения, ничего не отменяет: исход
+                    // уже посчитан на сервере и от него больше не зависит. Без
+                    // этой строки выдёргивание кабеля было бы способом отменить
+                    // собственный проигрыш (спека 10.4).
+                    Debug.Log($"🎴 сидевший {leaver} ушёл после решения — " +
+                              $"кон {match.RoundNumber} доигрывается");
+                }
+                else
+                {
+                    Debug.Log($"🎴 зритель {leaver} ушёл — на кон {match.RoundNumber} не влияет");
+                }
             }
 
-            bool decisionPending = Stage == BelieveStage.Peek || Stage == BelieveStage.Persuasion;
-
-            if (playerId == match.DeciderPlayerId && decisionPending)
-            {
-                Debug.Log($"🎴 Решающий ушёл — засчитано «Оставить», кон {match.RoundNumber} разрешается сам");
-                match.Decision = Decision.Keep;
-                stageState.EndStageNow();
-            }
-            else if (playerId == match.KnowerPlayerId && decisionPending)
-            {
-                Debug.Log($"🎴 Знающий ушёл до решения — кон {match.RoundNumber} отменён, очко никому");
-                match.Cancelled = true;
-                stageState.EndStageNow();
-            }
-
-            // Знающий, ушедший ПОСЛЕ решения, ничего не отменяет: исход уже
-            // посчитан на сервере и от него больше не зависит.
+            // Состав ушедшего уже помечен отсутствующим: место ему считается
+            // по накопленному на момент выхода, а не обнуляется.
+            PublishMatch();
+            PublishEntries();
 
             if (CountPresent() < MinPlayers || !CanFormRound())
             {
@@ -583,11 +674,39 @@ namespace Igruha.Minigames.BelieveOrNot
             }
         }
 
-        /// <summary>Локальное намерение Решающего. В фазе 3 отсюда уйдёт <c>ServerRpc</c>.</summary>
-        private void SubmitDecision(Decision decision) => HandleDecision(LocalPlayerId, decision);
+        /// <summary>
+        /// Локальное намерение Решающего. У авторитета оно сразу попадает
+        /// в точку приёма, у клиента уезжает серверу <c>Rpc</c> — и приходит
+        /// в ту же самую точку приёма, с теми же проверками.
+        /// </summary>
+        private void SubmitDecision(Decision decision)
+        {
+            if (HasAuthority)
+            {
+                HandleDecision(LocalPlayerId, decision);
+                return;
+            }
+
+            network?.SubmitDecision(decision);
+        }
 
         /// <summary>Локальное намерение сидящего сказать реплику.</summary>
-        private void SubmitPhrase(int phraseIndex) => HandlePhrase(LocalPlayerId, phraseIndex);
+        private void SubmitPhrase(int phraseIndex)
+        {
+            if (HasAuthority)
+            {
+                HandlePhrase(LocalPlayerId, phraseIndex);
+                return;
+            }
+
+            network?.SubmitPhrase(phraseIndex);
+        }
+
+        /// <summary>Разослать положение матча. Пусто вне сети — играем локально.</summary>
+        private void PublishMatch() => network?.PublishMatch(match);
+
+        /// <summary>Разослать состав: команды, победы и метки тайбрейка.</summary>
+        private void PublishEntries() => network?.PublishEntries(entries);
 
         // ========== ПРИМЕНЕНИЕ СОСТОЯНИЯ (общее для авторитета и клиента) ==========
 
@@ -630,23 +749,36 @@ namespace Igruha.Minigames.BelieveOrNot
             phrasePanel?.Close();
             table.HideBubbles();
 
+            // Блокировку и иммунитет ставит каждая машина себе сама, по
+            // реплицированному составу кона: движение считает владелец
+            // персонажа, и выставленный только на сервере флаг не остановил
+            // бы клиента — он продолжил бы ходить у себя.
+            ApplySeatLocks();
+
             if (HasAuthority)
             {
                 SeatAvatars();
-                PrepareBoxes();
             }
 
+            PrepareBoxes();
             ApplySeatCamera();
         }
 
         /// <summary>
-        /// Перенести двоих за стол, обездвижить и защитить от толчков.
+        /// Обездвижить сидящих и защитить их от толчков. Зовётся на всех
+        /// машинах.
         ///
         /// Иммунитет — это и есть требование «сидящих нельзя толкать»: он уже
         /// написан в Core, и <c>PlayerPushAbility</c> отсекает иммунного ещё
         /// на стороне бьющего, чтобы по сети не летел заведомо пустой толчок.
+        ///
+        /// <b>Почему не только на сервере.</b> Движение персонажа считает его
+        /// владелец, и флаг, выставленный на серверной копии клиентского
+        /// аватара, у самого клиента ничего не остановит: он продолжит ходить
+        /// у себя, а сервер будет возвращать его на место — ровно тот класс
+        /// багов, что не воспроизводится на одной машине.
         /// </summary>
-        private void SeatAvatars()
+        private void ApplySeatLocks()
         {
             for (int i = 0; i < Players.Count; i++)
             {
@@ -656,11 +788,23 @@ namespace Igruha.Minigames.BelieveOrNot
                     continue;
                 }
 
+                // Проход по всему составу, а не по двоим: так же снимается
+                // блокировка с пары прошлого кона — отдельного «расседания»
+                // не нужно, и забыть его негде.
                 bool seated = Players[i].Id == SeatedId(0) || Players[i].Id == SeatedId(1);
                 avatar.MovementLocked = seated;
                 avatar.ImpulseImmune = seated;
             }
+        }
 
+        /// <summary>
+        /// Перенести двоих на их места. Только авторитет: телепорт в сети —
+        /// поручение владельцу через <c>RequestTeleport</c>, и отданное
+        /// каждой машиной по отдельности оно превратилось бы в драку за
+        /// позицию.
+        /// </summary>
+        private void SeatAvatars()
+        {
             for (int seat = 0; seat < BelieveTable.SeatCount; seat++)
             {
                 PlayerController avatar = FindPlayer(SeatedId(seat))?.Avatar;
@@ -676,16 +820,27 @@ namespace Igruha.Minigames.BelieveOrNot
         }
 
         /// <summary>
-        /// Разложить карточки по коробкам. Рандом серверный, и результат
-        /// наружу не уходит: коробки на клиентах получают
-        /// <see cref="BelieveCard.Unknown"/> и остаются закрытыми.
+        /// Вернуть коробки в исходное: крышки закрыты, карточки спрятаны,
+        /// обмен прошлого кона отыгран назад. Зовётся на всех машинах — иначе
+        /// у клиента коробки так и остались бы стоять раскрытыми там, куда
+        /// их отнёс прошлый обмен.
+        ///
+        /// Рандом серверный, и результат наружу не уходит: у клиента в коробки
+        /// кладётся <see cref="BelieveCard.Unknown"/>, и содержимое он узнает
+        /// не раньше, чем откроются крышки (спека 10.3).
         /// </summary>
         private void PrepareBoxes()
         {
             for (int seat = 0; seat < BelieveTable.SeatCount; seat++)
             {
+                BelieveCard card = BelieveCard.Unknown;
+                if (HasAuthority)
+                {
+                    card = seat == winningSeat ? BelieveCard.Win : BelieveCard.Lose;
+                }
+
                 BelieveBox box = table.GetBox(seat);
-                box?.Prepare(seat == winningSeat ? BelieveCard.Win : BelieveCard.Lose,
+                box?.Prepare(card,
                     seat == 0 ? BoxSlot.Seat0 : BoxSlot.Seat1,
                     table.GetBoxPosition(seat));
             }
@@ -699,17 +854,23 @@ namespace Igruha.Minigames.BelieveOrNot
                 table.GetBox(knowerSeat)?.OpenPeekCrack(config.LidPeekAngle, config.LidOpenSeconds);
             }
 
-            if (!HasAuthority)
+            if (!HasAuthority || knowerSeat < 0)
             {
                 return;
             }
 
-            // Карточка уходит ровно одному. В фазе 3 здесь будет адресный Rpc,
-            // а точка приёма (ApplyPeek) останется той же.
+            // Карточка уходит ровно одному, и решает это сервер. Знающему-хосту
+            // показываем на месте, Знающему-клиенту — адресным Rpc; точка
+            // приёма (ApplyPeek) в обоих случаях одна и та же.
+            BelieveCard card = knowerSeat == winningSeat ? BelieveCard.Win : BelieveCard.Lose;
+
             if (match.KnowerPlayerId == LocalPlayerId)
             {
-                ApplyPeek(knowerSeat == winningSeat ? BelieveCard.Win : BelieveCard.Lose);
+                ApplyPeek(card);
+                return;
             }
+
+            network?.SendPeek(match.KnowerPlayerId, card);
         }
 
         /// <summary>
@@ -777,32 +938,43 @@ namespace Igruha.Minigames.BelieveOrNot
             }
 
             // Карточки объявляются в тот момент, когда их и так все увидят.
-            ApplyReveal(
-                winningSeat == 0 ? BelieveCard.Win : BelieveCard.Lose,
-                winningSeat == 1 ? BelieveCard.Win : BelieveCard.Lose);
+            BelieveCard seat0Card = winningSeat == 0 ? BelieveCard.Win : BelieveCard.Lose;
+            BelieveCard seat1Card = winningSeat == 1 ? BelieveCard.Win : BelieveCard.Lose;
+
+            ApplyReveal(match.Decision, seat0Card, seat1Card);
+            network?.AnnounceReveal(match.Decision, seat0Card, seat1Card);
         }
 
         /// <summary>
         /// Обмен коробок (если меняли) и одновременное раскрытие обеих крышек.
-        /// Карточки приходят параметрами: в фазе 3 это будет <c>Rpc</c>,
-        /// и клиент узнает содержимое ровно тогда же, когда его увидит зал.
+        ///
+        /// Карточки приходят параметрами, а не берутся из полей: у клиента
+        /// этих полей нет вовсе — содержимое коробок не покидает сервер
+        /// до раскрытия, и клиент узнаёт его ровно тогда же, когда его
+        /// увидит зал.
+        ///
+        /// <b>Решение — тоже параметр, и это не формальность.</b> Оно едет
+        /// одним пакетом с карточками, потому что порядок доставки разных
+        /// каналов не гарантирован: прочитанное из реплицированного состояния,
+        /// оно опоздало бы на кадр, коробки поменялись бы местами уже после
+        /// открытия крышек, и анимация обмена показала бы исход задом наперёд.
         /// </summary>
-        public void ApplyReveal(BelieveCard seat0Card, BelieveCard seat1Card)
+        public void ApplyReveal(Decision decision, BelieveCard seat0Card, BelieveCard seat1Card)
         {
             if (revealRoutine != null)
             {
                 StopCoroutine(revealRoutine);
             }
 
-            revealRoutine = StartCoroutine(RevealRoutine(seat0Card, seat1Card));
+            revealRoutine = StartCoroutine(RevealRoutine(decision, seat0Card, seat1Card));
         }
 
-        private IEnumerator RevealRoutine(BelieveCard seat0Card, BelieveCard seat1Card)
+        private IEnumerator RevealRoutine(Decision decision, BelieveCard seat0Card, BelieveCard seat1Card)
         {
             BelieveBox atSeat0 = table.GetBox(0);
             BelieveBox atSeat1 = table.GetBox(1);
 
-            if (match.Decision == Decision.Swap && atSeat0 != null && atSeat1 != null)
+            if (decision == Decision.Swap && atSeat0 != null && atSeat1 != null)
             {
                 atSeat0.MoveToSlot(BoxSlot.Seat1, table.GetBoxPosition(1), config.BoxSwapSeconds, config.BoxSwapArcHeight);
                 atSeat1.MoveToSlot(BoxSlot.Seat0, table.GetBoxPosition(0), config.BoxSwapSeconds, config.BoxSwapArcHeight);
@@ -953,6 +1125,72 @@ namespace Igruha.Minigames.BelieveOrNot
             if (decisionPanel != null && decisionPanel.IsOpen)
             {
                 decisionPanel.SetCountdown(remaining);
+            }
+        }
+
+        // ========== ПРИЁМ СЕТЕВОГО СОСТОЯНИЯ ==========
+
+        /// <summary>
+        /// Положение матча приехало от сервера. Клиент берёт его целиком
+        /// и ничего не досчитывает: состав кона, роли и счёт — решение
+        /// сервера, а не результат местного вывода.
+        /// </summary>
+        public void ApplyNetworkMatch(in BelieveMatchNetState state)
+        {
+            if (HasAuthority)
+            {
+                return;
+            }
+
+            match.RoundNumber = state.RoundNumber;
+            match.TotalRounds = state.TotalRounds;
+            match.Seat0PlayerId = state.Seat0PlayerId;
+            match.Seat1PlayerId = state.Seat1PlayerId;
+            match.KnowerPlayerId = state.KnowerPlayerId;
+            match.DeciderPlayerId = state.DeciderPlayerId;
+            match.TeamAWins = state.TeamAWins;
+            match.TeamBWins = state.TeamBWins;
+            match.Resolved = state.Resolved;
+            match.Cancelled = state.Cancelled;
+
+            UpdateHud();
+        }
+
+        /// <summary>
+        /// Строка участника приехала от сервера. Строки не удаляются никогда:
+        /// вышедший остаётся в составе с <c>Present = false</c>, потому что
+        /// место ему всё равно считается.
+        /// </summary>
+        public void ApplyNetworkEntry(in BelieveEntryNetState state)
+        {
+            if (HasAuthority)
+            {
+                return;
+            }
+
+            int index = IndexOf(state.PlayerId);
+            if (index < 0)
+            {
+                entries.Add(new BelieveEntry { PlayerId = state.PlayerId });
+                index = entries.Count - 1;
+            }
+
+            BelieveEntry entry = entries[index];
+            entry.Team = (TeamId)state.Team;
+            entry.RoundsWon = state.RoundsWon;
+            entry.DeciderWins = state.DeciderWins;
+            entry.RoundsSeated = state.RoundsSeated;
+            entry.LastWonAt = state.LastWonAt;
+            entry.Present = state.Present;
+            entries[index] = entry;
+        }
+
+        /// <summary>Состав разобран целиком — можно перерисовать строку статуса.</summary>
+        public void ApplyNetworkEntriesEnd()
+        {
+            if (!HasAuthority)
+            {
+                UpdateHud();
             }
         }
 
@@ -1111,6 +1349,20 @@ namespace Igruha.Minigames.BelieveOrNot
 
         private int LocalPlayerId => SessionScoreboard.Current?.LocalPlayer?.Id ?? SpecialRoleHistory.NoPlayer;
 
-        private string NameOf(int playerId) => FindPlayer(playerId)?.DisplayName ?? "—";
+        /// <summary>
+        /// Имя для лога. Вышедшего в ростере уже нет, но место ему считается,
+        /// и в строке мест он обязан быть узнаваем: прочерк вместо имени
+        /// превращал итоговую строку — единственный способ сверить дележи —
+        /// в нечитаемую. Запасное имя то же, что показывает <c>RoundHud</c>.
+        /// </summary>
+        private string NameOf(int playerId)
+        {
+            if (playerId == SpecialRoleHistory.NoPlayer)
+            {
+                return "—";
+            }
+
+            return FindPlayer(playerId)?.DisplayName ?? $"Игрок {playerId + 1}";
+        }
     }
 }
