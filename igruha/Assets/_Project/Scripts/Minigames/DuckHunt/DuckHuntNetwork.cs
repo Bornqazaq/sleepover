@@ -128,6 +128,9 @@ namespace Igruha.Minigames.DuckHunt
         /// <summary>Когда каждой Утке можно снова слать прогресс, по playerId.</summary>
         private readonly Dictionary<int, float> nextProgressSync = new Dictionary<int, float>(8);
 
+        /// <summary>Ушедшие, которых осталось разобрать. Почему не сразу — см. OnClientDisconnected.</summary>
+        private readonly List<ulong> pendingLeavers = new List<ulong>(4);
+
         private DuckHuntMinigame game;
 
         private float nextElevatorSync;
@@ -184,6 +187,7 @@ namespace Igruha.Minigames.DuckHunt
 
             if (IsServer)
             {
+                NetworkManager.OnClientDisconnectCallback += OnClientDisconnected;
                 return;
             }
 
@@ -207,6 +211,11 @@ namespace Igruha.Minigames.DuckHunt
             hunterReloadEndsAt.OnValueChanged -= OnReloadChanged;
             trapMask.OnValueChanged -= OnTrapMaskChanged;
             duckStates.OnListChanged -= OnDuckStatesChanged;
+
+            if (IsServer && NetworkManager != null)
+            {
+                NetworkManager.OnClientDisconnectCallback -= OnClientDisconnected;
+            }
 
             if (!IsServer)
             {
@@ -558,11 +567,54 @@ namespace Igruha.Minigames.DuckHunt
                 return;
             }
 
+            // Ушедших разбираем первыми: дальше по кадру публикуется состояние,
+            // и уход должен успеть в него попасть тем же тиком.
+            ApplyPendingLeavers();
+
             PublishRole();
             PublishElevator();
             PublishWeapon();
             PublishTraps();
             PublishDucks();
+        }
+
+        // ========== УХОД ИГРОКА ==========
+
+        /// <summary>
+        /// Разбираем уход не здесь, а на ближайшем тике — тем же приёмом, что
+        /// и <see cref="Igruha.Networking.NetworkSessionManager"/>. Этот колбэк
+        /// приходит и когда выключается сам сервер, а отличить два случая по
+        /// состоянию NetworkManager нельзя (замерено 15.08: на обоих
+        /// IsListening=True, ShutdownInProgress=False). При обычном выходе
+        /// игрока тик будет, при выключении сервера тиков больше нет — и
+        /// заканчивать раунд некому и незачем.
+        /// </summary>
+        private void OnClientDisconnected(ulong clientId)
+        {
+            if (IsServer)
+            {
+                pendingLeavers.Add(clientId);
+            }
+        }
+
+        private void ApplyPendingLeavers()
+        {
+            if (pendingLeavers.Count == 0)
+            {
+                return;
+            }
+
+            if (NetworkManager == null || NetworkManager.ShutdownInProgress || !NetworkManager.IsListening)
+            {
+                return;
+            }
+
+            for (int i = 0; i < pendingLeavers.Count; i++)
+            {
+                game.HandlePlayerLeft((int)pendingLeavers[i]);
+            }
+
+            pendingLeavers.Clear();
         }
 
         private void PublishRole()
