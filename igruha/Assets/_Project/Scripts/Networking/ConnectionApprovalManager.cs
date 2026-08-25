@@ -176,10 +176,39 @@ namespace Igruha.Networking
                 return;
             }
 
+            // Префаб обязан быть в списке сетевых. Незарегистрированный NGO
+            // не создаст ни у кого: подключившийся остаётся БЕЗ ПЕРСОНАЖА,
+            // а сервер на каждом кадре пытается доодобрить его заново и сыплет
+            // «An item with the same key has already been added».
+            //
+            // Так и было: в ростере восемь персонажей, а в DefaultNetworkPrefabs
+            // лежали пять. Шестой, седьмой и восьмой участники катки оказывались
+            // зрителями без тела. На двоих и на четверых это не воспроизводится
+            // вообще — потому и дожило до прогона восьмерых.
+            //
+            // Список чиним данными, но проверку оставляем здесь: следующий
+            // добавленный персонаж иначе повторит ровно это, и снова молча.
+            if (!IsRegisteredNetworkPrefab(networkObject.PrefabIdHash))
+            {
+                Debug.LogError(
+                    $"❌ Префаб персонажа '{characters[chosen].DisplayName}' не зарегистрирован в " +
+                    "DefaultNetworkPrefabs — выдаю префаб по умолчанию. Добавь его в список, " +
+                    "иначе часть игроков останется без персонажа");
+                return;
+            }
+
             assignedCharacters[clientId] = chosen;
             response.PlayerPrefabHash = networkObject.PrefabIdHash;
 
             Debug.Log($"🎭 Client {clientId} получает персонажа '{characters[chosen].DisplayName}'");
+        }
+
+        /// <summary>Префаб есть в списке сетевых префабов — NGO сможет его создать.</summary>
+        private static bool IsRegisteredNetworkPrefab(uint prefabIdHash)
+        {
+            NetworkManager network = NetworkManager.Singleton;
+            return network != null && network.NetworkConfig != null && network.NetworkConfig.Prefabs != null &&
+                   network.NetworkConfig.Prefabs.NetworkPrefabOverrideLinks.ContainsKey(prefabIdHash);
         }
 
         private bool IsTaken(int characterIndex)
