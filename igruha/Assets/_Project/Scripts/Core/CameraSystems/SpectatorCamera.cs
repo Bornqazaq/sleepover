@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using Igruha.Core.Minigame;
 using Igruha.Core.Player;
@@ -13,8 +14,18 @@ namespace Igruha.Core.CameraSystems
     /// как игрок закончил свой — без спектатора он смотрит в пустоту.
     ///
     /// Компонент не знает правил игры: кто выбыл и кто ещё в деле, решает
-    /// мини-игра и отдаёт сюда список живых. Список берётся по ссылке —
+    /// мини-игра и отдаёт сюда список целей. Список берётся по ссылке —
     /// мини-игра его обновляет, а камера сама уходит с пропавшей цели.
+    ///
+    /// Первая цель выбирается случайно, а не по порядку списка: иначе все
+    /// выбывшие смотрят за одним и тем же человеком — первым в ростере.
+    /// Случайность тут чисто зрительская и считается локально: на исход
+    /// раунда она не влияет, поэтому серверу её решать незачем.
+    ///
+    /// Листается мышью: ЛКМ — следующий, ПКМ — предыдущий. Читаем устройство
+    /// напрямую, тем же приёмом, что и Esc в <see cref="PauseScreen"/>, —
+    /// это не игровое действие, и заводить под него привязку в общем ассете
+    /// управления не нужно.
     /// </summary>
     public sealed class SpectatorCamera : MonoBehaviour
     {
@@ -46,7 +57,8 @@ namespace Igruha.Core.CameraSystems
                 return;
             }
 
-            if (!IsActive)
+            bool wasActive = IsActive;
+            if (!wasActive)
             {
                 restoreMode = cameraController.CurrentMode;
                 restoreTarget = cameraController.CurrentTarget;
@@ -59,7 +71,14 @@ namespace Igruha.Core.CameraSystems
             previousAction?.action.Enable();
 
             SetLocalControlEnabled(false);
-            Advance(1);
+
+            // Повторный вызов только обновляет список целей. Цель не
+            // перевыбираем: мини-игра зовёт Activate и на смерть, и следом на
+            // исчезновение тела, и камера прыгала бы на случайного дважды.
+            if (!wasActive)
+            {
+                PickRandomTarget();
+            }
         }
 
         /// <summary>Вернуть камеру своему персонажу.</summary>
@@ -100,14 +119,68 @@ namespace Igruha.Core.CameraSystems
                 return;
             }
 
-            if (WasPressed(nextAction))
+            if (WasPressed(nextAction) || WasMousePressed(true))
             {
                 Advance(1);
             }
-            else if (WasPressed(previousAction))
+            else if (WasPressed(previousAction) || WasMousePressed(false))
             {
                 Advance(-1);
             }
+        }
+
+        /// <summary>
+        /// Первая цель — случайный живой, а не первый по списку. Обход от
+        /// случайной точки, а не один бросок: выпасть может уже выбывший, и
+        /// тогда камера осталась бы вовсе без цели.
+        /// </summary>
+        private void PickRandomTarget()
+        {
+            int count = alive != null ? alive.Count : 0;
+            if (count == 0)
+            {
+                SetTarget(null);
+                return;
+            }
+
+            int offset = Random.Range(0, count);
+            for (int i = 0; i < count; i++)
+            {
+                SessionPlayer candidate = alive[(offset + i) % count];
+                if (IsWatchable(candidate))
+                {
+                    SetTarget(candidate);
+                    return;
+                }
+            }
+
+            SetTarget(null);
+        }
+
+        /// <summary>
+        /// ЛКМ — следующий, ПКМ — предыдущий.
+        ///
+        /// Клик по интерфейсу не листает: на экране паузы кнопка «Продолжить»
+        /// жмётся той же левой, и без этой проверки один клик и нажимал бы
+        /// кнопку, и уводил камеру на другого игрока.
+        /// </summary>
+        private static bool WasMousePressed(bool next)
+        {
+            Mouse mouse = Mouse.current;
+            if (mouse == null)
+            {
+                return false;
+            }
+
+            EventSystem events = EventSystem.current;
+            if (events != null && events.IsPointerOverGameObject())
+            {
+                return false;
+            }
+
+            return next
+                ? mouse.leftButton.wasPressedThisFrame
+                : mouse.rightButton.wasPressedThisFrame;
         }
 
         /// <summary>Перейти к следующей живой цели по кругу в заданную сторону.</summary>

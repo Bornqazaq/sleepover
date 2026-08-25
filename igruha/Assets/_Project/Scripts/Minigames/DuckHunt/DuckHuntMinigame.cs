@@ -240,6 +240,15 @@ namespace Igruha.Minigames.DuckHunt
 
         private readonly List<DuckRecord> ducks = new List<DuckRecord>(8);
         private readonly List<SessionPlayer> aliveDucks = new List<SessionPlayer>(8);
+
+        /// <summary>
+        /// За кем может смотреть выбывший: живые Утки плюс Охотник. Отдельный
+        /// список, а не <see cref="aliveDucks"/>, потому что Охотник в живых
+        /// Утках не числится и не должен — по нему считаются места. Камера
+        /// держит его по ссылке и перечитывает каждый кадр, поэтому список
+        /// переписывается на месте, а не пересоздаётся.
+        /// </summary>
+        private readonly List<SessionPlayer> spectatorTargets = new List<SessionPlayer>(9);
         private readonly List<int> placementOrder = new List<int>(8);
 
         private HunterController hunter;
@@ -631,6 +640,7 @@ namespace Igruha.Minigames.DuckHunt
                 aliveDucks.Add(player);
             }
 
+            RefreshSpectatorTargets();
             PlaceDucksAtStart();
             ApplyGeyserForce();
 
@@ -987,6 +997,14 @@ namespace Igruha.Minigames.DuckHunt
             RemoveFromAlive(duck.PlayerId);
             victim.Eliminate(hitPoint, impulse);
 
+            // В наблюдатели — сразу, не дожидаясь, пока тело долетит и
+            // исчезнет: до этого проходит около секунды, и всё это время
+            // выбывший смотрит в никуда.
+            if (IsLocal(duck.PlayerId))
+            {
+                ActivateSpectator();
+            }
+
             // Прогресс и выбывание приедут состоянием сами, а вот сторона
             // отлёта нужна ровно в этот миг: по ней выбирается клип падения.
             network?.AnnounceDuckDeath(duck.PlayerId, hitPoint, impulse);
@@ -1021,7 +1039,7 @@ namespace Igruha.Minigames.DuckHunt
 
             if (IsLocal(duck.PlayerId))
             {
-                spectator?.Activate(aliveDucks);
+                ActivateSpectator();
             }
 
             CheckRoundOver();
@@ -1037,7 +1055,7 @@ namespace Igruha.Minigames.DuckHunt
             DuckRecord duck = FindDuckByElimination(elimination);
             if (duck != null && IsLocal(duck.PlayerId))
             {
-                spectator?.Activate(aliveDucks);
+                ActivateSpectator();
             }
         }
 
@@ -1065,9 +1083,52 @@ namespace Igruha.Minigames.DuckHunt
                 if (aliveDucks[i].Id == playerId)
                 {
                     aliveDucks.RemoveAt(i);
+                    break;
+                }
+            }
+
+            RefreshSpectatorTargets();
+        }
+
+        // ========== НАБЛЮДАТЕЛЬ ==========
+
+        /// <summary>
+        /// Пересобрать список того, за кем можно смотреть: живые Утки и
+        /// Охотник. Зовётся на каждое изменение состава, а не каждый кадр —
+        /// целей не больше девяти, но кадровый цикл на них тратить незачем.
+        /// </summary>
+        private void RefreshSpectatorTargets()
+        {
+            spectatorTargets.Clear();
+            for (int i = 0; i < aliveDucks.Count; i++)
+            {
+                spectatorTargets.Add(aliveDucks[i]);
+            }
+
+            if (hunterPlayerId == SpecialRoleHistory.NoPlayer)
+            {
+                return;
+            }
+
+            for (int i = 0; i < Players.Count; i++)
+            {
+                if (Players[i].Id == hunterPlayerId)
+                {
+                    spectatorTargets.Add(Players[i]);
                     return;
                 }
             }
+        }
+
+        /// <summary>
+        /// Уйти в наблюдатели. Зовётся в тот же миг, когда игрок выбыл: своего
+        /// падения он не увидит, зато и не будет секунду смотреть в пустоту.
+        /// Повторные вызовы список обновляют, но цель не перевыбирают.
+        /// </summary>
+        private void ActivateSpectator()
+        {
+            RefreshSpectatorTargets();
+            spectator?.Activate(spectatorTargets);
         }
 
         /// <summary>
@@ -1895,17 +1956,22 @@ namespace Igruha.Minigames.DuckHunt
 
                 if (IsLocal(duck.PlayerId))
                 {
-                    spectator?.Activate(aliveDucks);
+                    ActivateSpectator();
                 }
 
                 return;
             }
 
-            // Наблюдателя своему игроку включит BodyHidden — тот же путь, что
-            // и у авторитета: тело сначала должно долететь и исчезнуть.
             if (duck.Elimination != null && !duck.Elimination.IsEliminated && duck.Avatar != null)
             {
                 duck.Elimination.Eliminate(duck.Avatar.transform.position, FallbackDeathImpulse(duck.Avatar));
+            }
+
+            // В наблюдатели — сразу, тем же правилом, что и у авторитета:
+            // ждать, пока тело долетит и исчезнет, выбывший не должен.
+            if (IsLocal(duck.PlayerId))
+            {
+                ActivateSpectator();
             }
         }
 
@@ -1963,6 +2029,7 @@ namespace Igruha.Minigames.DuckHunt
                 if (Players[i].Id == playerId)
                 {
                     aliveDucks.Add(Players[i]);
+                    RefreshSpectatorTargets();
                     return;
                 }
             }
