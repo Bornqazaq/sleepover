@@ -31,18 +31,18 @@ MonoBehaviour:
   ceilingHeight: 7
   tableDiameter: 4
   tableHeight: 1
-  seatDistance: 2.5
-  barrierRadius: 1.9
+  seatDistance: 2.8
+  barrierRadius: 1.6
   barrierHeight: 1.5
   spectatorZoneRadius: 10
   spawnRingRadius: 6
   boxSize: 0.8
   boxOffset: 1
   lampHeight: 3.5
-  seatCameraBack: 1
-  seatCameraHeight: 2.2
-  seatLookHeight: 1.35
-  seatCameraFov: 34
+  seatCameraBack: 0.5
+  seatCameraHeight: 2.6
+  seatLookHeight: 1.1
+  seatCameraFov: 42
   lampSpotAngle: 110
   lampIntensity: 25
   lampColor: {r: 1, g: 0.85, b: 0.65, a: 1}

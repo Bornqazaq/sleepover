@@ -61,10 +61,10 @@ namespace Igruha.Minigames.BelieveOrNot
         [Tooltip("Высота столешницы над полом")]
         [SerializeField] private float tableHeight = 1f;
         [Tooltip("Точка посадки: расстояние от центра стола")]
-        [SerializeField] private float seatDistance = 2.5f;
+        [SerializeField] private float seatDistance = 2.8f;
         [Tooltip("Невидимая крышка НАД столом: закрывает объём, в который иначе можно запрыгнуть. " +
                  "Меньше стола, чтобы не задевать сидящих. Держит тело, пропускает камеру — слой Ignore Raycast")]
-        [SerializeField] private float barrierRadius = 1.9f;
+        [SerializeField] private float barrierRadius = 1.6f;
         [SerializeField] private float barrierHeight = 1.5f;
         [Tooltip("Свободная зона зрителей: радиус от центра стола, внутри него ничего не стоит")]
         [SerializeField] private float spectatorZoneRadius = 10f;
@@ -77,15 +77,15 @@ namespace Igruha.Minigames.BelieveOrNot
 
         [Header("Камера сидящего")]
         [Tooltip("На сколько риг отнесён назад от своей точки посадки, ШП")]
-        [SerializeField] private float seatCameraBack = 1f;
+        [SerializeField] private float seatCameraBack = 0.5f;
         [Tooltip("Высота рига над полом, метры. Выше головы сидящего намеренно: " +
                  "с уровня глаз собственный затылок закрывает весь кадр")]
-        [SerializeField] private float seatCameraHeight = 2.2f;
+        [SerializeField] private float seatCameraHeight = 2.6f;
         [Tooltip("Куда смотрит камера: точка над центром стола, метры. По ней в кадр попадают " +
                  "и обе коробки, и лицо оппонента, а свой затылок остаётся за нижней границей")]
-        [SerializeField] private float seatLookHeight = 1.35f;
+        [SerializeField] private float seatLookHeight = 1.1f;
         [Tooltip("Угол обзора. Подобран так, чтобы свой затылок был вне кадра, а лицо оппонента читалось")]
-        [SerializeField] private float seatCameraFov = 34f;
+        [SerializeField] private float seatCameraFov = 42f;
 
         [Header("Свет")]
         [Tooltip("Угол конуса лампы над столом")]

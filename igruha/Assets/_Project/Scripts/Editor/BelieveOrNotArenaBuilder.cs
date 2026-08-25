@@ -245,9 +245,14 @@ namespace Igruha.EditorTools
             // У примитива-цилиндра капсульный коллайдер: столешница получилась
             // бы куполом. Меняем на коробку — она плоская сверху, и коробки
             // на ней стоят там, где поставлены.
+            //
+            // Коробка вписана в круг, а не описана вокруг него: квадрат по
+            // диаметру торчал бы углами на 2.04 м при видимом радиусе 1.44 —
+            // то есть невидимо доставал бы до сидящих.
             Object.DestroyImmediate(top.GetComponent<Collider>());
             var box = top.AddComponent<BoxCollider>();
-            box.size = new Vector3(1f, 1f, 1f);
+            float inscribed = 1f / Mathf.Sqrt(2f);
+            box.size = new Vector3(inscribed, 1f, inscribed);
 
             SetLayer(top, "Ground");
 
@@ -255,12 +260,16 @@ namespace Igruha.EditorTools
             {
                 Vector3 direction = SeatDirection(seat);
 
-                // Стул стоит за спиной, а не под сидящим: капсула персонажа
-                // радиусом 0.36 м, и стул ближе просто выталкивает его с места.
+                // Стул стоит за спиной и БЕЗ коллайдера. В блокауте он чистая
+                // декорация, а как физическое тело — источник бага: сидящего,
+                // сдвинутого столом хотя бы на сантиметр, стул подхватывает,
+                // и персонаж оказывается стоящим на нём. Замерено 25.08:
+                // Знающий стоял на Chair_1 на высоте 0.54 м вместо посадки.
                 GameObject chair = CreateBox(table.transform, $"Chair_{seat}",
                     new Vector3(0.55f, config.TableHeight * 0.75f, 0.55f),
                     direction * (config.SeatDistance + 0.7f) + Vector3.up * config.TableHeight * 0.375f,
                     new Color(0.18f, 0.08f, 0.09f));
+                Object.DestroyImmediate(chair.GetComponent<Collider>());
                 SetLayer(chair, "Ground");
             }
 

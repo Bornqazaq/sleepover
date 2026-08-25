@@ -892,12 +892,56 @@ namespace Igruha.Minigames.BelieveOrNot
                            $"знает {NameOf(match.KnowerPlayerId)}   •   решает {NameOf(match.DeciderPlayerId)}");
         }
 
+        /// <summary>
+        /// Насколько сидящему позволено отъехать от своего места, прежде чем
+        /// его вернут. Пять сантиметров — это шум физики, а не смещение.
+        /// </summary>
+        private const float SeatDriftTolerance = 0.05f;
+
+        /// <summary>
+        /// Держать сидящих на их местах.
+        ///
+        /// <c>ImpulseImmune</c> гасит толчки и импульсы, но не обычное
+        /// столкновение: зритель, вбежавший в сидящего, просто расталкивает
+        /// его телом. Замерено 25.08 — сидящих сносило на 0.2–0.4 м, и кадр
+        /// уезжал вместе с ними, потому что камера стоит на месте, а
+        /// персонаж нет.
+        ///
+        /// Возврат, а не заморозка Rigidbody, выбран намеренно: забытая
+        /// заморозка уехала бы в хаб вместе с персонажем и он остался бы
+        /// неподвижным навсегда. Забытый возврат не делает ничего.
+        /// </summary>
+        private void PinSeatedPlayers()
+        {
+            if (!HasAuthority || table == null)
+            {
+                return;
+            }
+
+            for (int seat = 0; seat < BelieveTable.SeatCount; seat++)
+            {
+                PlayerController avatar = FindPlayer(SeatedId(seat))?.Avatar;
+                Transform anchor = table.GetSeatAnchor(seat);
+                if (avatar == null || anchor == null || !avatar.MovementLocked)
+                {
+                    continue;
+                }
+
+                if (Vector3.Distance(avatar.transform.position, anchor.position) > SeatDriftTolerance)
+                {
+                    avatar.RequestTeleport(anchor.position, anchor.rotation);
+                }
+            }
+        }
+
         private void Update()
         {
             if (stageState == null || !stageState.Running)
             {
                 return;
             }
+
+            PinSeatedPlayers();
 
             float remaining = stageState.StageRemaining;
 
