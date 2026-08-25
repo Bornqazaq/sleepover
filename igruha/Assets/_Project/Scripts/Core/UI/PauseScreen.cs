@@ -1,15 +1,16 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using Unity.Netcode;
 
 namespace Igruha.Core.UI
 {
     /// <summary>
-    /// Пауза по Esc. Из функционала — только «Продолжить»: это заглушка на
-    /// время разработки, а настоящее меню паузы с настройками и выходом
-    /// живёт в EPIC 6 и появится вместе с главным меню.
+    /// Пауза по Esc. Из функционала — «Продолжить» и «Выход»: это заглушка на
+    /// время разработки, а настоящее меню паузы с настройками живёт в EPIC 6
+    /// и появится вместе с главным меню.
     ///
     /// <b>Время останавливается только вне сети.</b> В сетевой катке
     /// <c>Time.timeScale = 0</c> остановил бы только одну машину: сервер
@@ -31,8 +32,12 @@ namespace Igruha.Core.UI
     public sealed class PauseScreen : MonoBehaviour
     {
         [SerializeField] private GameObject panel;
-        [Tooltip("Кнопка «Продолжить». Больше на экране паузы ничего нет намеренно")]
+        [Tooltip("Кнопка «Продолжить»")]
         [SerializeField] private Button resumeButton;
+        [Tooltip("Кнопка «Выход»: рвёт сессию и возвращает эту машину в хаб. Пусто — кнопки на экране нет")]
+        [SerializeField] private Button exitButton;
+        [Tooltip("Куда уходить, когда сети нет вовсе — сцена открыта напрямую")]
+        [SerializeField] private string hubSceneName = "Hub";
         [Tooltip("Ассет управления. Не назначен — ввод на паузе останется живым, и персонаж продолжит бегать под меню")]
         [SerializeField] private InputActionAsset controls;
         [Tooltip("Карта игровых действий, которую гасит пауза. Карта интерфейса остаётся включённой — ей щёлкают по кнопке")]
@@ -61,6 +66,11 @@ namespace Igruha.Core.UI
             {
                 resumeButton.onClick.AddListener(Resume);
             }
+
+            if (exitButton != null)
+            {
+                exitButton.onClick.AddListener(Exit);
+            }
         }
 
         private void OnDestroy()
@@ -68,6 +78,11 @@ namespace Igruha.Core.UI
             if (resumeButton != null)
             {
                 resumeButton.onClick.RemoveListener(Resume);
+            }
+
+            if (exitButton != null)
+            {
+                exitButton.onClick.RemoveListener(Exit);
             }
 
             // Уходя со сцены, время обязаны вернуть: иначе следующая сцена
@@ -139,6 +154,42 @@ namespace Igruha.Core.UI
                 Cursor.lockState = CursorLockMode.Locked;
                 Cursor.visible = false;
             }
+        }
+
+        /// <summary>
+        /// Выйти из матча: порвать сессию и уехать в хаб.
+        ///
+        /// Возврат в хаб отсюда не грузим намеренно. На <c>Shutdown</c> NGO
+        /// поднимает <c>OnServerStopped</c> у хоста и <c>OnClientStopped</c>
+        /// у клиента, а их разбирает <c>DisconnectionHandler</c> — он и
+        /// уводит машину в хаб, попутно уничтожая NetworkManager. Сделай мы
+        /// то же самое здесь, сцена грузилась бы дважды, а второй
+        /// NetworkManager пережил бы первый.
+        ///
+        /// Паузу снимаем до выхода: иначе в новую сцену уедет остановленное
+        /// время и заглушенный ввод.
+        /// </summary>
+        public void Exit()
+        {
+            Resume();
+
+            NetworkManager network = NetworkManager.Singleton;
+            if (network != null && (network.IsClient || network.IsServer))
+            {
+                Debug.Log($"🚪 Пауза: выход из сессии ({(network.IsHost ? "хост" : "клиент")})");
+                network.Shutdown();
+                return;
+            }
+
+            // Сети нет вовсе — сцена открыта напрямую. Рвать нечего, но кнопка
+            // обязана что-то делать, иначе в соло-тесте она мертва.
+            if (SceneManager.GetActiveScene().name == hubSceneName)
+            {
+                Debug.Log("🚪 Пауза: сети нет и мы уже в хабе — выходить некуда");
+                return;
+            }
+
+            SceneManager.LoadScene(hubSceneName);
         }
 
         /// <summary>
