@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Unity.Cinemachine;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -35,6 +36,10 @@ namespace Igruha.Core.CameraSystems
         [SerializeField] private InputActionReference previousAction;
         [Tooltip("Каким ригом смотрим за живыми")]
         [SerializeField] private CameraMode spectatorMode = CameraMode.ThirdPerson;
+        [Tooltip("Риг 3rd-person: наблюдателю он глушится, а поворот ведётся от тела того, за кем смотрим")]
+        [SerializeField] private ThirdPersonCameraRig cameraRig;
+        [Tooltip("Наклон камеры наблюдателя. Свой угол наблюдаемого по сети не ходит, поэтому берём постоянный")]
+        [SerializeField] private float spectatorPitch = 12f;
 
         public bool IsActive { get; private set; }
 
@@ -44,6 +49,7 @@ namespace Igruha.Core.CameraSystems
         private IReadOnlyList<SessionPlayer> alive;
         private CameraMode restoreMode;
         private Transform restoreTarget;
+        private CinemachineOrbitalFollow orbit;
 
         /// <summary>
         /// Уйти в наблюдатели. Список живых берётся по ссылке и перечитывается
@@ -70,6 +76,17 @@ namespace Igruha.Core.CameraSystems
             nextAction?.action.Enable();
             previousAction?.action.Enable();
 
+            // Наблюдатель камеру не крутит: он смотрит чужими глазами, и своя
+            // мышь тут только увела бы кадр от того, что делает игрок.
+            if (cameraRig != null)
+            {
+                cameraRig.SetLookSuspended(true);
+                if (orbit == null)
+                {
+                    orbit = cameraRig.GetComponent<CinemachineOrbitalFollow>();
+                }
+            }
+
             SetLocalControlEnabled(false);
 
             // Повторный вызов только обновляет список целей. Цель не
@@ -95,6 +112,9 @@ namespace Igruha.Core.CameraSystems
 
             nextAction?.action.Disable();
             previousAction?.action.Disable();
+
+            // Своя камера возвращается игроку вместе с управлением.
+            cameraRig?.SetLookSuspended(false);
 
             hud?.HideSpectatorTarget();
             SetLocalControlEnabled(true);
@@ -127,6 +147,36 @@ namespace Igruha.Core.CameraSystems
             {
                 Advance(-1);
             }
+        }
+
+        /// <summary>
+        /// Вести камеру за взглядом того, за кем смотрим: это трансляция, а не
+        /// свободный обзор. Азимут берём с тела — оно поворачивается туда же,
+        /// куда смотрит игрок, и по сети ходит через NetworkTransform.
+        ///
+        /// Наклон берём постоянный: свой угол наблюдаемого не реплицируется
+        /// (спека Duck Hunt, 10.1 — взгляд уходит только вместе с выстрелом),
+        /// и взять его неоткуда.
+        ///
+        /// В LateUpdate, после того как тело за этот кадр уже переместилось:
+        /// иначе камера отставала бы от цели ровно на кадр и картинка дрожала.
+        /// </summary>
+        private void LateUpdate()
+        {
+            if (!IsActive || orbit == null || !IsWatchable(Target))
+            {
+                return;
+            }
+
+            float yaw = Target.Avatar.transform.eulerAngles.y;
+
+            InputAxis horizontal = orbit.HorizontalAxis;
+            horizontal.Value = Mathf.Repeat(yaw + 180f, 360f) - 180f;
+            orbit.HorizontalAxis = horizontal;
+
+            InputAxis vertical = orbit.VerticalAxis;
+            vertical.Value = spectatorPitch;
+            orbit.VerticalAxis = vertical;
         }
 
         /// <summary>
