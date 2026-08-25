@@ -1912,6 +1912,13 @@ namespace Igruha.Minigames.DuckHunt
         public void ReleaseNetworkElevator() => elevator?.ReleaseNetworkHeight();
 
         /// <summary>Обойма и перезарядка, решённые сервером.</summary>
+        /// <summary>
+        /// Прицел Охотника, посчитанный на его машине. Нужен только показу:
+        /// по нему наблюдатель смотрит его глазами, а выстрел несёт своё
+        /// направление отдельно.
+        /// </summary>
+        public void ApplyNetworkHunterAim(float yaw, float pitch) => hunter?.ApplyNetworkAim(yaw, pitch);
+
         public void ApplyNetworkHunterWeapon(int ammo, double reloadEndsAt)
         {
             if (hunter != null && hunter.Weapon != null)

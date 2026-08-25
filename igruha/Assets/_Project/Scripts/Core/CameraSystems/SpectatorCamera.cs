@@ -38,8 +38,10 @@ namespace Igruha.Core.CameraSystems
         [SerializeField] private CameraMode spectatorMode = CameraMode.ThirdPerson;
         [Tooltip("Риг 3rd-person: наблюдателю он глушится, а поворот ведётся от тела того, за кем смотрим")]
         [SerializeField] private ThirdPersonCameraRig cameraRig;
-        [Tooltip("Наклон камеры наблюдателя. Свой угол наблюдаемого по сети не ходит, поэтому берём постоянный")]
+        [Tooltip("Наклон камеры наблюдателя за обычным игроком: своей точки обзора у него нет")]
         [SerializeField] private float spectatorPitch = 12f;
+        [Tooltip("Риг первого лица: им транслируется взгляд роли, у которой обзор не совпадает с телом (Охотник)")]
+        [SerializeField] private FirstPersonCameraRig firstPersonRig;
 
         public bool IsActive { get; private set; }
 
@@ -50,6 +52,9 @@ namespace Igruha.Core.CameraSystems
         private CameraMode restoreMode;
         private Transform restoreTarget;
         private CinemachineOrbitalFollow orbit;
+
+        /// <summary>Своя точка обзора цели. Пусто — смотрим за ней как за обычным игроком.</summary>
+        private ISpectatorView targetView;
 
         /// <summary>
         /// Уйти в наблюдатели. Список живых берётся по ссылке и перечитывается
@@ -109,6 +114,7 @@ namespace Igruha.Core.CameraSystems
             IsActive = false;
             alive = null;
             Target = null;
+            ReleaseTargetView();
 
             nextAction?.action.Disable();
             previousAction?.action.Disable();
@@ -151,19 +157,31 @@ namespace Igruha.Core.CameraSystems
 
         /// <summary>
         /// Вести камеру за взглядом того, за кем смотрим: это трансляция, а не
-        /// свободный обзор. Азимут берём с тела — оно поворачивается туда же,
-        /// куда смотрит игрок, и по сети ходит через NetworkTransform.
+        /// свободный обзор.
         ///
-        /// Наклон берём постоянный: свой угол наблюдаемого не реплицируется
-        /// (спека Duck Hunt, 10.1 — взгляд уходит только вместе с выстрелом),
-        /// и взять его неоткуда.
+        /// У роли со своей точкой обзора (<see cref="ISpectatorView"/> — сейчас
+        /// это Охотник в первом лице) берём её углы: смотреть за стрелком
+        /// из-за спины не то же самое, что видеть его прицел. У обычного
+        /// игрока такой точки нет, и азимут берётся с тела — оно повёрнуто
+        /// туда же, куда он смотрит, и по сети ходит через NetworkTransform.
         ///
         /// В LateUpdate, после того как тело за этот кадр уже переместилось:
         /// иначе камера отставала бы от цели ровно на кадр и картинка дрожала.
         /// </summary>
         private void LateUpdate()
         {
-            if (!IsActive || orbit == null || !IsWatchable(Target))
+            if (!IsActive || !IsWatchable(Target))
+            {
+                return;
+            }
+
+            if (targetView != null && targetView.TryGetView(out CameraMode _, out float viewYaw, out float viewPitch))
+            {
+                firstPersonRig?.SetView(viewYaw, viewPitch);
+                return;
+            }
+
+            if (orbit == null)
             {
                 return;
             }
@@ -271,6 +289,7 @@ namespace Igruha.Core.CameraSystems
             }
 
             Target = player;
+            ReleaseTargetView();
 
             if (player == null)
             {
@@ -279,8 +298,43 @@ namespace Igruha.Core.CameraSystems
                 return;
             }
 
-            cameraController.Apply(spectatorMode, player.Avatar.transform);
+            // У роли может быть своя точка обзора — тогда смотрим ей, а не
+            // общим ригом за спиной.
+            targetView = player.Avatar.GetComponent<ISpectatorView>();
+            CameraMode mode = spectatorMode;
+
+            if (targetView != null && targetView.TryGetView(out CameraMode viewMode, out _, out _))
+            {
+                mode = viewMode;
+                if (mode == CameraMode.FirstPerson && firstPersonRig != null)
+                {
+                    // Риг обязан замолчать до того, как станет видимым: иначе
+                    // первый же кадр он отрисует по своему последнему углу.
+                    firstPersonRig.SetViewDrivenExternally(true);
+                }
+            }
+            else
+            {
+                targetView = null;
+            }
+
+            cameraController.Apply(mode, player.Avatar.transform);
             hud?.ShowSpectatorTarget(player.DisplayName);
+        }
+
+        /// <summary>
+        /// Отпустить чужую точку обзора: риг первого лица должен вернуться к
+        /// своему вводу, иначе следующий его хозяин не сможет повернуть голову.
+        /// </summary>
+        private void ReleaseTargetView()
+        {
+            if (targetView == null)
+            {
+                return;
+            }
+
+            targetView = null;
+            firstPersonRig?.SetViewDrivenExternally(false);
         }
 
         private int IndexOf(SessionPlayer player)

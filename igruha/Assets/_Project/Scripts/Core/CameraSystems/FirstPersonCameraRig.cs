@@ -86,6 +86,7 @@ namespace Igruha.Core.CameraSystems
         private float yaw;
         private float desiredYaw;
         private float pitch;
+        private bool viewDrivenExternally;
         private float resolvedEyeHeight;
         private float horizontalFieldOfView;
         private float appliedAspect;
@@ -194,6 +195,28 @@ namespace Igruha.Core.CameraSystems
         }
 
         /// <summary>
+        /// Обзор задаётся снаружи, а не мышью этой машины. Так наблюдатель
+        /// смотрит чужими глазами: свой ввод в этом режиме молчит, иначе он
+        /// уводил бы кадр с чужого прицела, а доводка до желаемого угла
+        /// тянула бы камеру обратно к последнему локальному направлению.
+        ///
+        /// Тело в этом режиме не поворачиваем: оно чужое и живёт под
+        /// NetworkTransform.
+        /// </summary>
+        public void SetViewDrivenExternally(bool driven) => viewDrivenExternally = driven;
+
+        /// <summary>
+        /// Поставить обзор целиком — и азимут, и наклон. Для трансляции
+        /// чужого взгляда: у наблюдаемого важны оба угла, одного yaw мало.
+        /// </summary>
+        public void SetView(float newYaw, float newPitch)
+        {
+            yaw = desiredYaw = newYaw;
+            pitch = Mathf.Clamp(newPitch, minPitch, maxPitch);
+            ApplyTransform();
+        }
+
+        /// <summary>
         /// Пределы наклона взгляда под конкретную игру. Стандартные ±20° годятся
         /// для ровной арены, но роль, которая обязана простреливать башню от
         /// первого этажа до крыши, ими не обходится.
@@ -253,6 +276,14 @@ namespace Igruha.Core.CameraSystems
         {
             ResolveTarget();
             ApplyHorizontalFieldOfView();
+
+            // Углы придут снаружи — своим вводом их не трогаем, тело чужое.
+            if (viewDrivenExternally)
+            {
+                ApplyTransform();
+                return;
+            }
+
             ReadLook();
 
             // Желаемое направление копится без ограничений, а камера доезжает до него

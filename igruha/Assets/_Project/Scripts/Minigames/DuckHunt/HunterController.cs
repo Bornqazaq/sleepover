@@ -3,6 +3,7 @@ using UnityEngine;
 using Igruha.Core.Arena;
 using Igruha.Core.CameraSystems;
 using Igruha.Core.Combat;
+using Igruha.Core.Minigame;
 using Igruha.Core.Player;
 
 namespace Igruha.Minigames.DuckHunt
@@ -24,7 +25,7 @@ namespace Igruha.Minigames.DuckHunt
     /// после раздачи ролей.
     /// </summary>
     [RequireComponent(typeof(PlayerController))]
-    public sealed class HunterController : MonoBehaviour
+    public sealed class HunterController : MonoBehaviour, ISpectatorView
     {
         /// <summary>Запасная высота глаза, м — только если у тела нет капсулы.</summary>
         private const float DefaultEyeHeight = 1.5f;
@@ -70,6 +71,52 @@ namespace Igruha.Minigames.DuckHunt
 
         /// <summary>Роль активна: ввод читается, выстрел разрешён.</summary>
         public bool Active { get; private set; }
+
+        /// <summary>Риг первого лица этой роли — сетевая половина шлёт с него прицел.</summary>
+        public FirstPersonCameraRig Rig => cameraRig;
+
+        /// <summary>
+        /// Прицелом правит эта машина: она хозяин роли. У остальных углы
+        /// приезжают с сервера и лежат в <see cref="networkYaw"/>.
+        /// </summary>
+        public bool AimIsLocal { get; private set; }
+
+        /// <summary>Присланный сервером прицел: азимут и наклон.</summary>
+        private float networkYaw;
+        private float networkPitch;
+
+        /// <summary>Кто правит прицелом. Ставит сетевая половина после каждой выдачи роли.</summary>
+        public void SetAimLocal(bool local) => AimIsLocal = local;
+
+        /// <summary>Прицел, посчитанный сервером. Нужен только для показа: выстрел несёт своё направление.</summary>
+        public void ApplyNetworkAim(float yaw, float pitch)
+        {
+            networkYaw = yaw;
+            networkPitch = pitch;
+        }
+
+        /// <summary>
+        /// Что видит Охотник. Наблюдателю отдаём первое лицо: смотреть за
+        /// стрелком из-за спины — не то же самое, что видеть его прицел.
+        ///
+        /// У хозяина роли углы берём с рига живьём, у остальных — присланные:
+        /// на чужой машине риг этой роли не крутится вовсе.
+        /// </summary>
+        public bool TryGetView(out CameraMode mode, out float yaw, out float pitch)
+        {
+            mode = CameraMode.FirstPerson;
+
+            if (AimIsLocal && cameraRig != null)
+            {
+                yaw = cameraRig.Yaw;
+                pitch = cameraRig.Pitch;
+                return true;
+            }
+
+            yaw = networkYaw;
+            pitch = networkPitch;
+            return true;
+        }
 
         private void Awake()
         {

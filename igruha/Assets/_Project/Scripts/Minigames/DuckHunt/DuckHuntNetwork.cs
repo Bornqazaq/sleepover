@@ -123,6 +123,30 @@ namespace Igruha.Minigames.DuckHunt
         /// <summary>Какие ловушки сработаны — по биту на ловушку в порядке массива мини-игры.</summary>
         private readonly NetworkVariable<uint> trapMask = new NetworkVariable<uint>();
 
+        /// <summary>
+        /// Куда смотрит Охотник: x — азимут, y — наклон.
+        ///
+        /// Спека, 10.1, взгляд Охотника постоянно не реплицировала намеренно —
+        /// на исход он не влияет, направление уходит вместе с выстрелом. Но
+        /// наблюдателю нужен именно взгляд: смотреть за стрелком из-за спины
+        /// не то же самое, что видеть его прицел. Поэтому угол всё же ходит,
+        /// но дёшево: два числа с выдержкой и только пока роль занята.
+        /// </summary>
+        private readonly NetworkVariable<Vector2> hunterAim = new NetworkVariable<Vector2>();
+
+        /// <summary>Сколько раз в секунду хозяин роли шлёт прицел.</summary>
+        private const float AimSyncRate = 20f;
+
+        /// <summary>Насколько должен сдвинуться угол, чтобы его вообще слать, °.</summary>
+        private const float AimEpsilon = 0.35f;
+
+        private float nextAimSend;
+        private Vector2 lastSentAim;
+        private bool aimSent;
+
+        /// <summary>Роль Охотника на этой машине — с неё читается прицел у хозяина.</summary>
+        private HunterController hunterRole;
+
         private readonly NetworkList<DuckNetState> duckStates = new NetworkList<DuckNetState>();
 
         /// <summary>Когда каждой Утке можно снова слать прогресс, по playerId.</summary>
@@ -191,6 +215,7 @@ namespace Igruha.Minigames.DuckHunt
             hunterAmmo.OnValueChanged += OnAmmoChanged;
             hunterReloadEndsAt.OnValueChanged += OnReloadChanged;
             trapMask.OnValueChanged += OnTrapMaskChanged;
+            hunterAim.OnValueChanged += OnHunterAimChanged;
             duckStates.OnListChanged += OnDuckStatesChanged;
 
             if (IsServer)
@@ -206,6 +231,7 @@ namespace Igruha.Minigames.DuckHunt
             ApplyLiveTime();
             ApplyWeapon();
             ApplyTraps();
+            ApplyAim();
             ApplyHunter();
             ducksDirty = true;
         }
@@ -218,6 +244,7 @@ namespace Igruha.Minigames.DuckHunt
             hunterAmmo.OnValueChanged -= OnAmmoChanged;
             hunterReloadEndsAt.OnValueChanged -= OnReloadChanged;
             trapMask.OnValueChanged -= OnTrapMaskChanged;
+            hunterAim.OnValueChanged -= OnHunterAimChanged;
             duckStates.OnListChanged -= OnDuckStatesChanged;
 
             if (IsServer && NetworkManager != null)
@@ -251,12 +278,19 @@ namespace Igruha.Minigames.DuckHunt
         public void ConfigureHunter(HunterController role, bool isLocal)
         {
             axisSent = false;
+            aimSent = false;
+            hunterRole = role;
             hunterBody = role != null ? role.GetComponent<NetworkObject>() : null;
 
             if (role == null)
             {
                 return;
             }
+
+            // Кто правит прицелом: у хозяина роли углы живые, у остальных
+            // приезжают с сервера. Без этого чужая копия показывала бы
+            // наблюдателю свой собственный, никем не тронутый риг.
+            role.SetAimLocal(isLocal);
 
             // Релей ставится всем машинам сетевой катки — что с намерением
             // делать, он решает сам по каждому виду отдельно (см. методы ниже).
@@ -522,6 +556,77 @@ namespace Igruha.Minigames.DuckHunt
 
         private void ApplyTraps() => game?.ApplyNetworkTrapMask(trapMask.Value);
 
+        // ========== ПРИЦЕЛ ОХОТНИКА ==========
+
+        private void OnHunterAimChanged(Vector2 previous, Vector2 current)
+        {
+            if (!IsServer)
+            {
+                ApplyAim();
+            }
+        }
+
+        private void ApplyAim() => game?.ApplyNetworkHunterAim(hunterAim.Value.x, hunterAim.Value.y);
+
+        /// <summary>
+        /// Отдать прицел остальным. Зовётся на машине хозяина роли: только у
+        /// неё риг первого лица действительно крутится.
+        ///
+        /// Шлём с выдержкой и только на заметный сдвиг — угол меняется каждым
+        /// движением мыши, и слать его кадр в кадр значит гнать поток ради
+        /// картинки у наблюдателей. Двадцати раз в секунду хватает: между
+        /// отметками камера доводится сама.
+        /// </summary>
+        private void PublishAim()
+        {
+            if (hunterRole == null || !hunterRole.AimIsLocal || hunterRole.Rig == null)
+            {
+                return;
+            }
+
+            var aim = new Vector2(hunterRole.Rig.Yaw, hunterRole.Rig.Pitch);
+
+            if (aimSent &&
+                Mathf.Abs(Mathf.DeltaAngle(aim.x, lastSentAim.x)) < AimEpsilon &&
+                Mathf.Abs(aim.y - lastSentAim.y) < AimEpsilon)
+            {
+                return;
+            }
+
+            if (Time.time < nextAimSend)
+            {
+                return;
+            }
+
+            nextAimSend = Time.time + 1f / AimSyncRate;
+            lastSentAim = aim;
+            aimSent = true;
+
+            if (IsServer)
+            {
+                hunterAim.Value = aim;
+                return;
+            }
+
+            SubmitAimRpc(aim);
+        }
+
+        /// <summary>
+        /// Прицел от хозяина роли. Не проверяем: на исход он не влияет —
+        /// попадание сервер считает сам, по направлению из самого выстрела.
+        /// Это картинка для наблюдателей, и подделать ей нечего.
+        /// </summary>
+        [Rpc(SendTo.Server)]
+        private void SubmitAimRpc(Vector2 aim, RpcParams rpcParams = default)
+        {
+            if (hunterPlayerId.Value != (int)rpcParams.Receive.SenderClientId)
+            {
+                return;
+            }
+
+            hunterAim.Value = aim;
+        }
+
         // ========== УТКИ ==========
 
         private void OnDuckStatesChanged(NetworkListEvent<DuckNetState> changeEvent)
@@ -561,6 +666,10 @@ namespace Igruha.Minigames.DuckHunt
             {
                 return;
             }
+
+            // Прицел шлёт хозяин роли — им может быть и клиент, и хост,
+            // поэтому до серверной развилки.
+            PublishAim();
 
             if (!IsServer)
             {
