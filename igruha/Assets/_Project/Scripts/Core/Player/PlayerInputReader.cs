@@ -63,6 +63,33 @@ namespace Igruha.Core.Player
         }
 
         /// <summary>
+        /// Ввод подаёт болванка автопрогона, а не клавиатура и не геймпад.
+        ///
+        /// Нужен затем, что в стенде из восьми процессов персонаж у каждой
+        /// машины <b>свой</b>, то есть локально управляемый, — а
+        /// <see cref="DriveMove"/> локально управляемым запрещён, и не зря:
+        /// два источника ввода на одном персонаже дают гонку, которую потом
+        /// не найти. Автопилот не добавляет второй источник, а <b>заменяет</b>
+        /// первый: пока он взведён, <c>Update</c> действия не читает вовсе.
+        ///
+        /// Взводится только по аргументу запуска <c>--bot</c> и обратно
+        /// не снимается: болванка живёт до конца процесса.
+        /// </summary>
+        public bool Autopilot { get; private set; }
+
+        /// <summary>Отдать ввод болванке автопрогона. Обратного хода нет.</summary>
+        public void EngageAutopilot()
+        {
+            if (Autopilot)
+            {
+                return;
+            }
+
+            Autopilot = true;
+            ClearInput();
+        }
+
+        /// <summary>
         /// Подать ввод движения извне — болванке соло-теста или скриптовой
         /// сцене. Разрешено только копиям без локального управления: своему
         /// персонажу значение всё равно затрёт <c>Update</c>, а два источника
@@ -70,7 +97,7 @@ namespace Igruha.Core.Player
         /// </summary>
         public void DriveMove(Vector2 move)
         {
-            if (LocallyControlled)
+            if (LocallyControlled && !Autopilot)
             {
                 return;
             }
@@ -81,7 +108,7 @@ namespace Igruha.Core.Player
         /// <summary>Прыжок извне. Гасится потребителем через <see cref="ConsumeJump"/>, как обычное нажатие.</summary>
         public void DriveJump()
         {
-            if (LocallyControlled)
+            if (LocallyControlled && !Autopilot)
             {
                 return;
             }
@@ -150,6 +177,14 @@ namespace Igruha.Core.Player
             if (Suspended)
             {
                 ClearInput();
+                return;
+            }
+
+            // Под автопилотом действия не читаются вообще: иначе пустое
+            // значение клавиатуры затирало бы то, что подала болванка,
+            // в тот же кадр.
+            if (Autopilot)
+            {
                 return;
             }
 
