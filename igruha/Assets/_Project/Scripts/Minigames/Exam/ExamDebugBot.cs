@@ -21,10 +21,13 @@ namespace Igruha.Minigames.Exam
         [SerializeField] private float arriveDistance = 1.2f;
         [Tooltip("Шанс передумать и перебежать на другую платформу в нагнетании")]
         [SerializeField] private float changeMindChance = 0.35f;
+        [Tooltip("На сколько метров вокруг центра платформы болванки разводятся, чтобы не толкаться в одной точке")]
+        [SerializeField] private float spreadRadius = 2.5f;
 
         private PlayerController avatar;
         private PlayerInputReader reader;
         private Transform target;
+        private Vector3 spread;
         private bool decidedThisQuestion;
         private bool mindChanged;
 
@@ -52,6 +55,18 @@ namespace Igruha.Minigames.Exam
 
             decidedThisQuestion = true;
             target = Random.value < 0.5f ? platformA : platformB;
+            TakeSpread();
+        }
+
+        /// <summary>
+        /// Своя точка на площадке. Без неё все болванки идут в один и тот же
+        /// центр платформы, упираются друг в друга физикой и часть из них
+        /// выдавливает за край — раскол получается не тот, который выбрали.
+        /// </summary>
+        private void TakeSpread()
+        {
+            Vector2 offset = Random.insideUnitCircle * spreadRadius;
+            spread = new Vector3(offset.x, 0f, offset.y);
         }
 
         /// <summary>
@@ -67,6 +82,7 @@ namespace Igruha.Minigames.Exam
 
             mindChanged = true;
             target = target == platformA ? platformB : platformA;
+            TakeSpread();
         }
 
         /// <summary>Перестать идти: вопрос кончился.</summary>
@@ -98,7 +114,7 @@ namespace Igruha.Minigames.Exam
                 return;
             }
 
-            Vector3 delta = target.position - avatar.transform.position;
+            Vector3 delta = target.position + spread - avatar.transform.position;
             delta.y = 0f;
 
             if (delta.sqrMagnitude <= arriveDistance * arriveDistance)

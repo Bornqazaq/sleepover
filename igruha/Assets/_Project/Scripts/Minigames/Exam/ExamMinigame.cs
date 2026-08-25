@@ -66,6 +66,16 @@ namespace Igruha.Minigames.Exam
 
         private readonly List<ExamDebugBot> bots = new List<ExamDebugBot>(8);
 
+        /// <summary>За эту машину играет болванка автопрогона (аргумент <c>--bot</c>).</summary>
+        private bool autoplay;
+
+        /// <summary>
+        /// Когда болванка-Ведущий нажмёт «Готово». Ноль — сейчас ведёт не она.
+        /// Момент по общим часам, а не таймер: печать закрывается по серверным
+        /// часам, и локальный отсчёт разъехался бы с ней на пинг.
+        /// </summary>
+        private double autoplayDoneAt;
+
         /// <summary>Сетевая половина. Пусто — сцену открыли напрямую, играем локально.</summary>
         private ExamNetwork network;
 
@@ -159,6 +169,13 @@ namespace Igruha.Minigames.Exam
                 });
             }
 
+            // Болванка автопрогона живёт на КАЖДОЙ машине: персонаж у клиента
+            // свой, и водить его серверу нечем. Поэтому вешается до проверки
+            // авторитета, а манекены одиночного прогона — после, они бывают
+            // только там, где сети нет вовсе.
+            bots.Clear();
+            AttachAutoplay();
+
             if (!HasAuthority)
             {
                 return;
@@ -202,6 +219,18 @@ namespace Igruha.Minigames.Exam
             }
 
             rotationCursor = 0;
+
+            // Порядок Ведущих в лог: на восьмерых проверяется, что каждый
+            // отведёт ровно один раз, а по логу это единственный способ
+            // сверить назначенное с состоявшимся.
+            var order = new System.Text.StringBuilder(64);
+            for (int i = 0; i < rotation.Count; i++)
+            {
+                if (i > 0) order.Append(" → ");
+                order.Append("id=").Append(rotation[i]);
+            }
+
+            Debug.Log($"📚 [Экзамен] порядок Ведущих: {order}", this);
         }
 
         /// <summary>
@@ -211,8 +240,6 @@ namespace Igruha.Minigames.Exam
         /// </summary>
         private void AttachBots()
         {
-            bots.Clear();
-
             if (WorldAuthority.IsNetworkSession)
             {
                 return;
@@ -233,6 +260,52 @@ namespace Igruha.Minigames.Exam
 
                 bots.Add(bot);
             }
+        }
+
+        /// <summary>
+        /// Повесить болванку автопрогона на СВОЙ аватар и отдать ей ввод.
+        ///
+        /// Нужна затем, что в «Экзамене» ответ выбирается ногами: неподвижные
+        /// клиенты соберутся в зоне возврата, все восемь окажутся вне платформ,
+        /// и ни раскол, ни цена по третям, ни бонус за одиночество не
+        /// проверятся вовсе — стенд отчитается зелёным, ничего не проверив.
+        ///
+        /// Только по аргументу <c>--bot</c> и только в сетевой сессии:
+        /// в одиночном прогоне ходят манекены, у них своя ветка.
+        /// </summary>
+        private void AttachAutoplay()
+        {
+            autoplay = false;
+            autoplayDoneAt = 0d;
+
+            if (!LaunchArguments.BotEnabled || !WorldAuthority.IsNetworkSession)
+            {
+                return;
+            }
+
+            PlayerController avatar = SessionScoreboard.Current?.LocalPlayer?.Avatar;
+            if (avatar == null)
+            {
+                Debug.LogWarning($"{name}: 🤖 автопрогон: своего персонажа нет — водить некого", this);
+                return;
+            }
+
+            if (!avatar.TryGetComponent(out PlayerInputReader reader))
+            {
+                Debug.LogWarning($"{name}: 🤖 автопрогон: у персонажа нет ридера ввода", this);
+                return;
+            }
+
+            reader.EngageAutopilot();
+
+            if (!avatar.TryGetComponent(out ExamDebugBot bot))
+            {
+                bot = avatar.gameObject.AddComponent<ExamDebugBot>();
+            }
+
+            bots.Add(bot);
+            autoplay = true;
+            Debug.Log($"{name}: 🤖 автопрогон: за '{avatar.name}' играет болванка", this);
         }
 
         // ========== ВОПРОС ==========
@@ -339,6 +412,7 @@ namespace Igruha.Minigames.Exam
             }
 
             previous.Avatar.MovementLocked = false;
+            autoplayDoneAt = 0d;
 
             if (HasAuthority && returnZone != null)
             {
@@ -542,6 +616,18 @@ namespace Igruha.Minigames.Exam
 
             questionInput?.Open(config, presets, host.Player.Avatar);
             ApplyPodiumCamera();
+
+            if (!autoplay || questionInput == null)
+            {
+                return;
+            }
+
+            // Болванке печатать нечем, но дальше она идёт человеческим путём:
+            // заготовка в поля, отметка варианта, «Готово» → ServerRpc →
+            // серверные проверки. Короткого пути в обход них нет намеренно —
+            // именно этот путь живой человек ещё ни разу не проходил.
+            questionInput.FillWithPreset(Random.value < 0.5f ? ExamSide.A : ExamSide.B);
+            autoplayDoneAt = NetworkClock.Now + Random.Range(AutoplayTypeMinSeconds, AutoplayTypeMaxSeconds);
         }
 
         /// <summary>
@@ -754,6 +840,20 @@ namespace Igruha.Minigames.Exam
 
             bool hostChanged = match.HostPlayerId != hostPlayerId;
 
+            // Прежнего Ведущего надо отпустить и на клиенте, до перезаписи
+            // состояния — ReleasePreviousHost читает СТАРЫЙ HostPlayerId.
+            //
+            // Блокировку движения вешает OpenTypingForHost на каждой машине,
+            // а снимал её только сервер, у себя. У клиента, побывавшего за
+            // кафедрой, свой персонаж оставался обездвиженным до конца матча:
+            // человек досматривал игру стоя. На приёмке 24.08 это не всплыло —
+            // проверяли состояние после матча, а в хабе блокировку снимает
+            // HubBootstrap.RestoreLocalControl.
+            if (hostChanged)
+            {
+                ReleasePreviousHost();
+            }
+
             match.QuestionNumber = questionNumber;
             match.TotalQuestions = totalQuestions;
             match.QuestionValue = questionValue;
@@ -912,6 +1012,12 @@ namespace Igruha.Minigames.Exam
 
             double now = NetworkClock.Now;
 
+            // Строка на вопрос: по ней очки пересчитываются вручную из одного
+            // лога, без догадок о том, кто где стоял.
+            Debug.Log($"📚 [Экзамен] вопрос {match.QuestionNumber}/{match.TotalQuestions} " +
+                      $"цена {match.QuestionValue} ведёт id={match.HostPlayerId}: " +
+                      $"А={onA} Б={onB} верно={correctSide} угадали={correctCount}", this);
+
             for (int i = 0; i < entries.Count; i++)
             {
                 ExamEntry e = entries[i];
@@ -973,6 +1079,9 @@ namespace Igruha.Minigames.Exam
                 reward = config.GetHostReward(Mathf.Abs(onA - onB), match.QuestionValue);
             }
 
+            Debug.Log($"📚 [Экзамен] Ведущему id={match.HostPlayerId} за раскол {reward} ОЭ " +
+                      $"(разница {Mathf.Abs(onA - onB)}, учеников {students})", this);
+
             if (reward <= 0)
             {
                 return;
@@ -1030,10 +1139,46 @@ namespace Igruha.Minigames.Exam
             platformA?.CloseDoors();
             platformB?.CloseDoors();
 
+            LogFinalTable();
+
             // Строго последним: камера должна уехать в хаб на своём аватаре,
             // а не на риге кафедры — тот умрёт вместе со сценой.
             RestoreHostCamera();
             stageState?.StopSequence();
+        }
+
+        /// <summary>
+        /// Выписать итоговую таблицу в лог — на <b>каждой</b> машине, а не
+        /// только у сервера.
+        ///
+        /// Стенд из восьми процессов проверяется сличением восьми Player.log
+        /// между собой: разъехавшийся счёт у хоста и клиента иначе не поймать
+        /// вовсе — у каждого своя картинка, и обе выглядят правдоподобно.
+        /// </summary>
+        private void LogFinalTable()
+        {
+            var table = new System.Text.StringBuilder(256);
+            table.Append("📊 [Экзамен] итог у ");
+            table.Append(HasAuthority
+                ? "хоста"
+                : $"клиента id={SessionScoreboard.Current?.LocalPlayer?.Id}");
+            table.Append(':');
+
+            for (int i = 0; i < entries.Count; i++)
+            {
+                ExamEntry e = entries[i];
+                table.Append(" | id=").Append(e.PlayerId)
+                     .Append(" ОЭ=").Append(e.Score)
+                     .Append(" один=").Append(e.LonelyHits)
+                     .Append(" верных=").Append(e.CorrectAnswers);
+
+                if (!e.Present)
+                {
+                    table.Append(" ВЫШЕЛ");
+                }
+            }
+
+            Debug.Log(table.ToString(), this);
         }
 
         // ========== КАМЕРА, HUD, МЕЛОЧИ ==========
@@ -1087,6 +1232,14 @@ namespace Igruha.Minigames.Exam
 
             questionInput.SetCountdown(stageState.StageRemaining);
 
+            // Болванка «допечатала» — жмём «Готово» её руками.
+            if (autoplayDoneAt > 0d && NetworkClock.Now >= autoplayDoneAt)
+            {
+                autoplayDoneAt = 0d;
+                HandleDoneRequested();
+                return;
+            }
+
             // Ведущий-клиент отправляет вопрос сам, не дожидаясь кнопки:
             // сервер закроет фазу по своим часам, и не успевший пакет означал
             // бы несостоявшийся вопрос у человека, который всё напечатал.
@@ -1109,6 +1262,16 @@ namespace Igruha.Minigames.Exam
         /// </summary>
         private const float QuestionSendLeadSeconds = 1.5f;
 
+        /// <summary>
+        /// Сколько болванка «печатает», прежде чем нажать «Готово». Не ноль
+        /// потому, что мгновенное «Готово» закрывало бы фазу печати раньше,
+        /// чем клиенты успевают применить смену Ведущего, — стенд проверял бы
+        /// не игру, а гонку. Разброс — чтобы восемь процессов не жали кнопку
+        /// в один и тот же кадр.
+        /// </summary>
+        private const float AutoplayTypeMinSeconds = 4f;
+        private const float AutoplayTypeMaxSeconds = 9f;
+
         private struct Contestant
         {
             public SessionPlayer Player;
@@ -1125,7 +1288,18 @@ namespace Igruha.Minigames.Exam
             if (player?.Avatar != null && player.Avatar.TryGetComponent(out PlayerInputReader reader))
             {
                 isLocal = reader.LocallyControlled && reader.enabled;
-                isBot = !reader.LocallyControlled;
+
+                // Болванка — это манекен ОДИНОЧНОГО прогона. В сетевой сессии
+                // манекенов не бывает: там у каждой копии есть владелец, а
+                // «управляется не мной» — это про чужую машину, а не про бота.
+                //
+                // Без второй половины условия сервер считал болванкой любого
+                // клиента и, если тот не прислал вопрос, подставлял за него
+                // заготовку со случайным верным вариантом. Человек, который
+                // ничего не напечатал, получал вопрос от своего имени и
+                // награду за раскол по нему — вместо «вопрос не состоялся»,
+                // как требует спека 5.4.
+                isBot = !reader.LocallyControlled && !WorldAuthority.IsNetworkSession;
             }
 
             return new Contestant { Player = player, IsLocal = isLocal, IsBot = isBot };

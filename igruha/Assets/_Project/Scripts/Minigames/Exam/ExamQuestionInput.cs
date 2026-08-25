@@ -92,6 +92,17 @@ namespace Igruha.Minigames.Exam
         /// </summary>
         public void Open(ExamConfig examConfig, ExamQuestionPresets questionPresets, PlayerController host)
         {
+            // Открыть уже открытую панель нельзя, и это не придирка к стилю.
+            // У клиента фаза печати приходит дважды — сменой Ведущего в
+            // состоянии матча и сменой стадии, — и второй Open запоминал бы
+            // «ввод был выключен» вместо «ввод был включён»: он сам его и
+            // выключил секундой раньше. После закрытия панели человек
+            // оставался без управления до конца матча.
+            if (IsOpen)
+            {
+                return;
+            }
+
             config = examConfig;
             presets = questionPresets;
 
@@ -202,6 +213,32 @@ namespace Igruha.Minigames.Exam
         /// восемьдесят символов за тридцать секунд стиком не набрать.
         /// Верный вариант заготовка не приносит — его всё равно отмечать самому.
         /// </summary>
+        /// <summary>
+        /// Заполнить панель заготовкой и отметить вариант — за болванку
+        /// автопрогона. Печатать ей нечем, а Ведущим на стенде из восьми
+        /// процессов побывает каждый: без этого семь вопросов из восьми
+        /// не состоялись бы и проверять было бы нечего.
+        ///
+        /// Дальше болванка идёт тем же путём, что человек: «Готово», ServerRpc,
+        /// серверные проверки. Короткого пути в обход них нет намеренно.
+        /// </summary>
+        public void FillWithPreset(ExamSide correct)
+        {
+            if (!IsOpen)
+            {
+                return;
+            }
+
+            TakeNextPreset();
+
+            CorrectSide = correct;
+            if (correctAToggle != null) correctAToggle.SetIsOnWithoutNotify(correct == ExamSide.A);
+            if (correctBToggle != null) correctBToggle.SetIsOnWithoutNotify(correct == ExamSide.B);
+        }
+
+        /// <summary>Нажать «Готово» за болванку — то же событие, что даёт кнопка.</summary>
+        public void RequestDone() => DoneRequested?.Invoke();
+
         private void TakeNextPreset()
         {
             if (presets == null || presets.Count == 0)
