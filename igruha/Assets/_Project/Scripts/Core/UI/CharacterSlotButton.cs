@@ -9,15 +9,25 @@ namespace Igruha.Core.UI
     /// Один слот экрана выбора персонажа. Заглушка (без префаба в ростере)
     /// автоматически становится некликабельной — отдельного скрипта под
     /// заглушки не нужно, слот сам решает по данным CharacterDefinition.
+    ///
+    /// Занятый чужим игроком слот гаснет так же, как заглушка, но подписывается
+    /// иначе: игрок должен видеть разницу между «персонаж не готов» и
+    /// «персонажа уже взяли».
     /// </summary>
     [RequireComponent(typeof(Button))]
     public sealed class CharacterSlotButton : MonoBehaviour
     {
         [SerializeField] private TMP_Text label;
+        [Tooltip("Цвет надписи занятого слота")]
+        [SerializeField] private Color takenColor = new Color(0.55f, 0.55f, 0.55f, 1f);
 
         private Button button;
         private CharacterDefinition character;
         private CharacterSelectScreen screen;
+        private int index = -1;
+        private bool available;
+        private Color defaultColor;
+        private bool defaultColorCached;
 
         private void Awake()
         {
@@ -25,26 +35,62 @@ namespace Igruha.Core.UI
             button.onClick.AddListener(HandleClick);
         }
 
-        public void Bind(CharacterDefinition definition, CharacterSelectScreen owner)
+        private void OnDestroy()
         {
-            character = definition;
-            screen = owner;
-            button.interactable = definition != null && definition.IsAvailable;
-
-            if (label != null)
+            if (button != null)
             {
-                label.text = definition != null ? definition.DisplayName : "???";
+                button.onClick.RemoveListener(HandleClick);
             }
         }
 
-        private void HandleClick()
+        public void Bind(int rosterIndex, CharacterDefinition definition, bool taken, CharacterSelectScreen owner)
         {
-            if (character == null || !character.IsAvailable)
+            index = rosterIndex;
+            character = definition;
+            screen = owner;
+            available = definition != null && definition.IsAvailable && !taken;
+
+            button.interactable = available;
+
+            if (label == null)
             {
                 return;
             }
 
-            screen.OnSlotChosen(character);
+            if (!defaultColorCached)
+            {
+                defaultColor = label.color;
+                defaultColorCached = true;
+            }
+
+            if (definition == null)
+            {
+                label.text = "???";
+                label.color = takenColor;
+                return;
+            }
+
+            label.text = taken ? $"{definition.DisplayName} — занят" : definition.DisplayName;
+            label.color = taken ? takenColor : defaultColor;
+        }
+
+        /// <summary>
+        /// Погасить или вернуть кнопку, не трогая подпись: намерение уже
+        /// отправлено и ждём ответа сервера.
+        /// </summary>
+        public void SetInteractable(bool interactable)
+        {
+            button.interactable = interactable && available;
+        }
+
+        private void HandleClick()
+        {
+            if (!available || screen == null)
+            {
+                return;
+            }
+
+            screen.OnSlotChosen(index);
         }
     }
 }
