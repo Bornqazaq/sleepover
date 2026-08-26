@@ -143,6 +143,54 @@ namespace Igruha.Minigames.MemoryRun
         public float StepZ(int step) => ChainStartZ + step * StepPitch + PlateSize * 0.5f;
 
         /// <summary>
+        /// На какой плите стоит точка. Возвращает false, если точка не над
+        /// плитой вовсе — над пропастью, стартовой зоной или площадкой выхода.
+        ///
+        /// Существует затем, чтобы <b>сервер определял приземление сам</b>, по
+        /// позиции, а не со слов клиента. Плиты стоят регулярной сеткой из этих
+        /// же чисел, поэтому обратный пересчёт точен и не требует ни триггеров,
+        /// ни тридцати лишних коллайдеров в сцене.
+        /// </summary>
+        public bool TryGetCell(Vector3 worldPosition, out int step, out int lane)
+        {
+            step = -1;
+            lane = -1;
+
+            float half = PlateSize * 0.5f;
+
+            float laneRaw = worldPosition.x / LanePitch + (LaneCount - 1) * 0.5f;
+            int laneIndex = Mathf.RoundToInt(laneRaw);
+            if (laneIndex < 0 || laneIndex >= LaneCount)
+            {
+                return false;
+            }
+
+            if (Mathf.Abs(worldPosition.x - LaneX(laneIndex)) > half)
+            {
+                return false;
+            }
+
+            float stepRaw = (worldPosition.z - ChainStartZ - PlateSize * 0.5f) / StepPitch;
+            int stepIndex = Mathf.RoundToInt(stepRaw);
+            if (stepIndex < 0 || stepIndex >= Steps)
+            {
+                return false;
+            }
+
+            if (Mathf.Abs(worldPosition.z - StepZ(stepIndex)) > half)
+            {
+                return false;
+            }
+
+            step = stepIndex;
+            lane = laneIndex;
+            return true;
+        }
+
+        /// <summary>Точка над центром плиты — куда ставить персонажа и что показывать маркеру.</summary>
+        public Vector3 CellCenter(int step, int lane) => new Vector3(LaneX(lane), 0f, StepZ(step));
+
+        /// <summary>
         /// Самый длинный прыжок, который маршрут вообще может потребовать, —
         /// диагональ центр ↔ край от края плиты до края следующей.
         ///
