@@ -52,6 +52,16 @@ namespace Igruha.Minigames.MemoryRun
         /// </summary>
         private const float FallThreshold = -2f;
 
+        /// <summary>
+        /// На сколько метров от настила игрок ещё считается стоящим на нём.
+        ///
+        /// Заменяет проверку земли у мотора, которой у сервера нет для чужих
+        /// аватаров. Полметра прыжка выше этой полосы, а спуск на плиту при
+        /// пятидесяти шагах физики проходит её за три-четыре кадра — так что
+        /// приземление ловится, а пролёт над плитой мимо цели — нет.
+        /// </summary>
+        private const float SurfaceTolerance = 0.3f;
+
         /// <summary>Страховка от зацикливания, если у всех подряд не оказалось аватара.</summary>
         private const int MaxTurnSkips = 16;
 
@@ -101,6 +111,16 @@ namespace Igruha.Minigames.MemoryRun
 
         /// <summary>Когда нарушителя в последний раз возвращали за барьер.</summary>
         private readonly Dictionary<int, double> gatePushedAt = new Dictionary<int, double>(8);
+
+        /// <summary>
+        /// Имена участников на момент старта раунда.
+        ///
+        /// Ушедшего из состава вычёркивают, а место он получает — спека 10.2
+        /// требует, чтобы он сохранял достигнутое. Без запомненного имени
+        /// итоговая строка называла бы его «?», и разобрать таблицу прогона
+        /// было бы нельзя.
+        /// </summary>
+        private readonly Dictionary<int, string> displayNames = new Dictionary<int, string>(8);
 
         /// <summary>
         /// Плита оказалась безопасной. <b>Утечкой не является:</b> это видели
@@ -207,6 +227,18 @@ namespace Igruha.Minigames.MemoryRun
             network = GetComponent<MemoryRunNetwork>();
         }
 
+        protected override void OnEnable()
+        {
+            base.OnEnable();
+            ResultsReported += LogResults;
+        }
+
+        protected override void OnDisable()
+        {
+            ResultsReported -= LogResults;
+            base.OnDisable();
+        }
+
         protected override void OnPlayersReady()
         {
             if (config == null)
@@ -217,12 +249,14 @@ namespace Igruha.Minigames.MemoryRun
 
             playerIds.Clear();
             gatePushedAt.Clear();
+            displayNames.Clear();
             returning.Clear();
             turnNumber = 0;
 
             for (int i = 0; i < Players.Count; i++)
             {
                 playerIds.Add(Players[i].Id);
+                displayNames[Players[i].Id] = Players[i].DisplayName;
 
                 // Заводим все ключи заранее: словарь потом только читается
                 // и переписывается, то есть в раунде не аллоцирует.
@@ -326,7 +360,20 @@ namespace Igruha.Minigames.MemoryRun
                 return;
             }
 
-            if (!walker.IsGrounded)
+            // 🔴 Не IsGrounded, и это стоило первого же сетевого прогона.
+            //
+            // Проверку земли считает мотор персонажа, а мотор на чужих копиях
+            // выключен — в том числе на сервере, у аватара любого клиента
+            // (NetworkPlayerController.DisableLocalControl). Значит у сервера
+            // IsGrounded клиента ЛОЖЕН всегда, и сервер не заметил бы ни одного
+            // его приземления и ни одного прихода к двери. На стенде это
+            // выглядело так: клиент своим ходом дошёл до выходной площадки
+            // и стоял на ней, пока не истёк таймер, — «дальний шаг 0».
+            //
+            // По позиции это решается без мотора и одинаково для всех: верхняя
+            // грань плиты и настил площадки лежат на одной отметке, и стоящий
+            // держится у неё, а летящий — нет.
+            if (Mathf.Abs(position.y - config.PlateSurfaceY) > SurfaceTolerance)
             {
                 return;
             }
@@ -539,11 +586,28 @@ namespace Igruha.Minigames.MemoryRun
 
             if (IsRoundOver())
             {
-                EndMinigame();
+                StartCoroutine(EndAfterProgressPublished());
                 return;
             }
 
             BeginTurn();
+        }
+
+        /// <summary>
+        /// Закрыть раунд <b>следующим кадром</b> после последней публикации
+        /// прогресса.
+        ///
+        /// Места едут отдельным <c>Rpc</c>, прогресс — списком состояния, и
+        /// порядок доставки разных каналов не гарантирован. Закрой раунд тем же
+        /// кадром — и <c>Rpc</c> обгоняет список: на восьми процессах это дало
+        /// таблицу, где места у всех совпали, а счётчик смертей одного игрока
+        /// у клиентов отставал на единицу. Кадр форы разводит их по порядку,
+        /// и стоит он ничего: раунд и так заканчивается экраном результатов.
+        /// </summary>
+        private IEnumerator EndAfterProgressPublished()
+        {
+            yield return null;
+            EndMinigame();
         }
 
         private void HandleWalkerUnstuck() => FinishTurn(TurnEnd.Unstuck);
@@ -681,15 +745,28 @@ namespace Igruha.Minigames.MemoryRun
         protected override void CollectResults(MinigameResults results)
         {
             ranking.Fill(results, state.Records, queue);
+        }
 
+        /// <summary>
+        /// Итоговая таблица в лог — <b>на каждой машине</b>, ту самую, которую
+        /// эта машина показывает.
+        ///
+        /// Пишется по событию шаблона, а не из <see cref="CollectResults"/>:
+        /// места считает сервер, и лог из подсчёта был бы только у него. Чтобы
+        /// приёмка могла сверить восемь таблиц построчно, а не «на глаз»,
+        /// каждая машина обязана назвать свою.
+        ///
+        /// Прогон при этом читается из консоли целиком, без единого обращения
+        /// в play-режим — а любое обращение ставит редактор на паузу и
+        /// останавливает саму игру.
+        /// </summary>
+        private void LogResults(MinigameResults results)
+        {
             if (!logTurns)
             {
                 return;
             }
 
-            // Итоговая таблица в лог. Нужна приёмке: прогон читается из консоли
-            // целиком, без единого обращения в play-режим — а любое обращение
-            // ставит редактор на паузу и останавливает саму игру.
             var report = new System.Text.StringBuilder("[Рейс] итог: ");
             for (int i = 0; i < results.Entries.Count; i++)
             {
@@ -728,7 +805,9 @@ namespace Igruha.Minigames.MemoryRun
                 }
             }
 
-            return "?";
+            // Ушедшего в составе уже нет, а место ему причитается по лучшему
+            // результату (спека 10.2). Имя берём из того, что запомнили на старте.
+            return displayNames.TryGetValue(playerId, out string remembered) ? remembered : "?";
         }
 
         /// <summary>

@@ -59,6 +59,22 @@ namespace Igruha.Minigames.MemoryRun
         /// <summary>Ниже этой доли газа не опускаемся: иначе разбега не хватает даже на своей плите.</summary>
         private const float MinThrottle = 0.4f;
 
+        /// <summary>
+        /// Нижняя доля газа для прыжка С ПЛИТЫ НА ПЛИТУ — почти полный.
+        ///
+        /// Экономить газ здесь нечего, а недолёт смертелен. Прыжок вперёд —
+        /// 1.44 м, до центра целевой плиты 2.88, и при <c>MinThrottle</c> 0.4
+        /// расчёт давал ровно нужную дальность без запаса: болванка садилась
+        /// в 34 см от края плиты — восемьдесят ходов подряд, замерено 26.08
+        /// на восьми процессах. Промах в другую сторону не стоит ничего:
+        /// плита 2.88 м в глубину, перелёт до следующего ряда невозможен.
+        ///
+        /// Прыжок со СТАРТОВОЙ зоны сюда не попадает: он идёт вниз, дальность
+        /// у него больше, и на полном газу болванка перелетала первый ряд
+        /// целиком. Там остаётся <see cref="MinThrottle"/>.
+        /// </summary>
+        private const float PlateJumpMinThrottle = 0.9f;
+
         /// <summary>На сколько метров вглубь выходной площадки целиться последним прыжком.</summary>
         private const float ExitAimDepth = 1.5f;
 
@@ -70,6 +86,13 @@ namespace Igruha.Minigames.MemoryRun
 
         /// <summary>На сколько не доходить до края плиты — своей при отталкивании и чужой при прицеливании.</summary>
         private const float EdgeInset = 0.35f;
+
+        /// <summary>
+        /// На сколько метров от настила зритель считает, что идущий на плите
+        /// стоит, а не пролетает над ней. То же число, по которому решает
+        /// сервер: расходись они, болванка запоминала бы не то, что произошло.
+        /// </summary>
+        private const float SeenSurfaceTolerance = 0.3f;
 
         [SerializeField] private MemoryRunMinigame game;
         [SerializeField] private MemoryRunConfig config;
@@ -86,6 +109,9 @@ namespace Igruha.Minigames.MemoryRun
         private bool runUpDone;
         private int plannedLane = -1;
         private bool networkNoticed;
+
+        /// <summary>Автопилот своему персонажу уже отдан — искать его больше не надо.</summary>
+        private bool autopilotEngaged;
         private PlayerController lastWalker;
 
         /// <summary>Курс, с которым оттолкнулись. В полёте держим только его.</summary>
@@ -133,6 +159,7 @@ namespace Igruha.Minigames.MemoryRun
 
             game.SafePlateProved += OnSafeProved;
             game.MinePlateProved += OnMineProved;
+            game.MineDetonated += OnDetonationSeen;
         }
 
         private void OnDisable()
@@ -144,6 +171,7 @@ namespace Igruha.Minigames.MemoryRun
 
             game.SafePlateProved -= OnSafeProved;
             game.MinePlateProved -= OnMineProved;
+            game.MineDetonated -= OnDetonationSeen;
         }
 
         private void Update()
@@ -200,6 +228,10 @@ namespace Igruha.Minigames.MemoryRun
                 return;
             }
 
+            // Смотрим за идущим всегда, даже когда ведём не его: так болванка
+            // учится тем же способом, что и живой зритель, — глядя на арену.
+            WatchWalker(walker);
+
             PlayerInputReader reader = walker.GetComponent<PlayerInputReader>();
             if (reader == null || !IsDriveable(reader))
             {
@@ -245,12 +277,28 @@ namespace Igruha.Minigames.MemoryRun
         /// </summary>
         private void EngageLocalAutopilot()
         {
+            // Поиск по сцене — операция не для каждого кадра, а взводить
+            // автопилот надо ровно один раз. Пока своего персонажа ещё нет
+            // (он доезжает сетью), пробуем снова; как только взвели — больше
+            // не ищем никогда.
+            if (autopilotEngaged)
+            {
+                return;
+            }
+
             foreach (var reader in UnityEngine.Object.FindObjectsByType<PlayerInputReader>(FindObjectsSortMode.None))
             {
-                if (reader.LocallyControlled && !reader.Autopilot)
+                if (!reader.LocallyControlled)
+                {
+                    continue;
+                }
+
+                if (!reader.Autopilot)
                 {
                     reader.EngageAutopilot();
                 }
+
+                autopilotEngaged = true;
             }
         }
 
@@ -420,7 +468,8 @@ namespace Igruha.Minigames.MemoryRun
                 needed -= config.StartZoneLift * DropReachBonus;
             }
 
-            float throttle = Mathf.Clamp(needed / measuredReach, MinThrottle, 1f);
+            float floor = onPlate ? PlateJumpMinThrottle : MinThrottle;
+            float throttle = Mathf.Clamp(needed / measuredReach, floor, 1f);
 
             if (atEdge)
             {
@@ -499,6 +548,73 @@ namespace Igruha.Minigames.MemoryRun
         private static bool Reachable(int fromLane, int toLane) =>
             fromLane < 0 || Mathf.Abs(toLane - fromLane) <= 1;
 
+        /// <summary>
+        /// Смотреть за идущим — единственный способ болванки учиться в сетевой
+        /// катке.
+        ///
+        /// События <see cref="MemoryRunMinigame.SafePlateProved"/> живут только
+        /// у сервера: «эта плита безопасна» наружу не уезжает и уезжать не
+        /// должно. Значит на машине клиента болванка знала бы ровно ничего и
+        /// ходила бы наугад весь раунд — стенд на восьмерых превращался бы
+        /// в восемь слепых, где до двери не доходит никто.
+        ///
+        /// Смотрит она то же, что и живой зритель: где стоит идущий и рвануло
+        /// ли под ним. Ничего сверх реплицированного здесь не читается —
+        /// позицию везёт <c>NetworkTransform</c>, взрыв приезжает событием.
+        /// </summary>
+        private void WatchWalker(PlayerController walker)
+        {
+            if (walker == null || provedSafe == null)
+            {
+                return;
+            }
+
+            Vector3 position = walker.transform.position;
+
+            // Стоит, а не пролетает: та же полоса высоты, по которой считает
+            // приземление сервер.
+            if (Mathf.Abs(position.y - config.PlateSurfaceY) > SeenSurfaceTolerance)
+            {
+                return;
+            }
+
+            if (!config.TryGetCell(position, out int step, out int lane))
+            {
+                return;
+            }
+
+            // ⚠️ Уже известную мину «безопасной» не переписывать. Детонация
+            // мгновенная, но наблюдение идёт в Update, а разбирается взрыв
+            // в FixedUpdate и на клиентах — вовсе отдельным событием: кадр,
+            // в котором идущий стоит на мине ещё целым, существует. Пометь
+            // по нему плиту чистой и не сними отметку — и болванка будет
+            // уверенно ходить в эту мину до конца раунда.
+            //
+            // Ровно это и случилось на первом прогоне с наблюдением:
+            // 79 ходов подряд, все восемь, все на нулевом шаге, все — Mine.
+            if (provedMine[step, lane])
+            {
+                return;
+            }
+
+            provedSafe[step, lane] = true;
+        }
+
+        /// <summary>
+        /// Под кем-то рвануло — и это видел весь зал. Единственное, что
+        /// про маршрут вообще приезжает по сети, и приезжает точкой в мире,
+        /// а не номером шага.
+        /// </summary>
+        private void OnDetonationSeen(Vector3 center)
+        {
+            if (provedMine == null || !config.TryGetCell(center, out int step, out int lane))
+            {
+                return;
+            }
+
+            OnMineProved(step, lane);
+        }
+
         private void OnSafeProved(int step, int lane)
         {
             if (step >= 0 && step < config.Steps)
@@ -509,12 +625,19 @@ namespace Igruha.Minigames.MemoryRun
 
         private void OnMineProved(int step, int lane)
         {
-            if (step >= 0 && step < config.Steps)
+            if (step < 0 || step >= config.Steps)
             {
-                provedMine[step, lane] = true;
-                plannedStep = -1;
-                runUpDone = false;
+                return;
             }
+
+            provedMine[step, lane] = true;
+
+            // Снимаем отметку «чистая», если наблюдение успело её поставить
+            // кадром раньше взрыва. Взрыв — сильнее наблюдения: он и есть ответ.
+            provedSafe[step, lane] = false;
+
+            plannedStep = -1;
+            runUpDone = false;
         }
     }
 }

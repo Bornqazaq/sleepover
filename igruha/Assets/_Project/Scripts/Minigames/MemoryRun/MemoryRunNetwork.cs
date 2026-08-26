@@ -325,7 +325,33 @@ namespace Igruha.Minigames.MemoryRun
 
         private void OnOrderChanged(NetworkListEvent<int> change) => orderDirty = true;
 
-        private void OnProgressChanged(NetworkListEvent<MemoryRunProgressNetState> change) => progressDirty = true;
+        /// <summary>
+        /// Прогресс разбирается <b>сразу</b>, а не отложенно в <c>LateUpdate</c>.
+        ///
+        /// Итоговые места приезжают отдельным <c>Rpc</c> и применяются в тот же
+        /// кадр, но раньше отложенного разбора: на восьми процессах это дало
+        /// таблицу, где места у всех совпали, а счётчик смертей у одного игрока
+        /// отставал на единицу — клиенты показывали 9 там, где сервер считал 10.
+        /// Порядок доставки разных каналов не гарантирован, и отложить разбор
+        /// значит показать состояние на кадр назад ровно в тот момент, когда
+        /// его читают.
+        /// </summary>
+        private void OnProgressChanged(NetworkListEvent<MemoryRunProgressNetState> change) => ApplyProgress();
+
+        private void ApplyProgress()
+        {
+            progressDirty = false;
+
+            if (IsServer || game == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < progress.Count; i++)
+            {
+                game.ApplyNetworkProgress(ToProgress(progress[i]));
+            }
+        }
 
         private void LateUpdate()
         {
@@ -360,13 +386,12 @@ namespace Igruha.Minigames.MemoryRun
                 game.ApplyNetworkTurnOrder(orderBuffer);
             }
 
+            // Остаётся ради одного случая: состояние приехало раньше ростера,
+            // и разбирать его было некуда. Обычный приезд разбирается сразу,
+            // в OnProgressChanged.
             if (progressDirty)
             {
-                progressDirty = false;
-                for (int i = 0; i < progress.Count; i++)
-                {
-                    game.ApplyNetworkProgress(ToProgress(progress[i]));
-                }
+                ApplyProgress();
             }
 
             if (turnDirty)
