@@ -5006,6 +5006,7 @@ GameObject:
   - component: {fileID: 756139780}
   - component: {fileID: 756139781}
   - component: {fileID: 756139782}
+  - component: {fileID: 756139783}
   m_Layer: 0
   m_Name: MinigameManager
   m_TagString: Untagged
@@ -5142,6 +5143,20 @@ MonoBehaviour:
   config: {fileID: 11400000, guid: c750d1f85c0e08f4eb0f993595d6f8d5, type: 2}
   logJumps: 0
   autopilotLocalPlayer: 1
+--- !u!114 &756139783
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 756139773}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0c30ed7709fdc47438730104c2ed1c27, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.MemoryRun.MemoryRunLocalHud
+  game: {fileID: 756139781}
+  hud: {fileID: 150850380}
 --- !u!1 &764699238
 GameObject:
   m_ObjectHideFlags: 0
@@ -10664,7 +10679,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d79a48ae087930a4e82624b416bc31e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Arena.KillZone
-  mode: 1
+  mode: 0
   onPlayerEntered:
     m_PersistentCalls:
       m_Calls: []
@@ -11533,7 +11548,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Spawning.PlayerSpawner
   roster: {fileID: 11400000, guid: e3b6a37137cf96c419aef650157ec842, type: 2}
   spawnPoints: {fileID: 1638957353}
-  debugPlayerCount: 8
+  debugPlayerCount: 4
   defaultRole: 0
 --- !u!114 &1638957353
 MonoBehaviour:

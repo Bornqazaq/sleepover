@@ -36,7 +36,10 @@ namespace Igruha.Minigames.MemoryRun
             Mine,
             Fell,
             TimedOut,
-            Reached
+            Reached,
+
+            /// <summary>Персонажа вытащил <c>StuckDetector</c>. Смерть за это не засчитывается.</summary>
+            Unstuck
         }
 
         /// <summary>
@@ -77,7 +80,33 @@ namespace Igruha.Minigames.MemoryRun
         /// <summary>Кто сейчас идёт. Общеизвестно — над ним горит метка.</summary>
         public PlayerController CurrentWalker => walker;
 
+        /// <summary>Чей ход. <see cref="TurnQueue.NoPlayer"/>, когда ходить некому.</summary>
+        public int CurrentWalkerId => walkerId;
+
+        /// <summary>Порядок ходов целиком — интерфейсу показать, кто следующий.</summary>
+        public IReadOnlyList<int> TurnOrder => queue.Order;
+
+        /// <summary>Сколько секунд осталось у идущего. Ноль, пока идёт объявление хода.</summary>
+        public float TurnSecondsLeft =>
+            turnArmed ? Mathf.Max(0f, (float)(turnDeadline - NetworkClock.Now)) : 0f;
+
+        /// <summary>Идёт ли отсчёт хода. False — играет двухсекундное объявление.</summary>
+        public bool TurnArmed => turnArmed;
+
+        /// <summary>Лимит попыток из конфига — интерфейсу для строки «3 / 10».</summary>
+        public int DeathLimit => config != null ? config.DeathLimit : 0;
+
+        /// <summary>Сколько раз погиб игрок. Своё показывает HUD, чужое не показывает никто.</summary>
+        public int DeathsOf(int playerId) => state.DeathsOf(playerId);
+
+        /// <summary>Имя участника по идентификатору.</summary>
+        public string DisplayNameOf(int playerId) => NameOf(playerId);
+
+        /// <summary>Персонаж участника. Нужен интерфейсу, чтобы понять, кто из них — эта машина.</summary>
+        public PlayerController AvatarOf(int playerId) => FindAvatar(playerId);
+
         private PlayerController walker;
+        private StuckDetector stuckDetector;
         private int walkerId = TurnQueue.NoPlayer;
         private double announceDeadline;
         private double turnDeadline;
@@ -85,7 +114,6 @@ namespace Igruha.Minigames.MemoryRun
         private bool turnClosing;
         private int lastStep = -1;
         private int lastLane = -1;
-        private int shownSeconds = -1;
 
         protected override void OnPlayersReady()
         {
@@ -169,7 +197,6 @@ namespace Igruha.Minigames.MemoryRun
                 return;
             }
 
-            ShowTurnStatus((int)(turnDeadline - now) + 1);
         }
 
         private void FixedUpdate()
@@ -269,6 +296,12 @@ namespace Igruha.Minigames.MemoryRun
             PlayerController finished = walker;
             int finishedId = walkerId;
 
+            if (stuckDetector != null)
+            {
+                stuckDetector.PlayerUnstuck -= HandleWalkerUnstuck;
+                stuckDetector = null;
+            }
+
             if (logTurns)
             {
                 state.TryGet(finishedId, out MemoryRunProgress before);
@@ -287,6 +320,12 @@ namespace Igruha.Minigames.MemoryRun
             {
                 state.RegisterFinish(finishedId, NetworkClock.Now);
                 queue.Retire(finishedId);
+            }
+            else if (reason == TurnEnd.Unstuck)
+            {
+                // Застревание — не провал игрока. Прогресс не теряется (он и так
+                // рекорд), смерть не засчитывается, ход просто уходит дальше.
+                queue.Advance();
             }
             else
             {
@@ -320,6 +359,8 @@ namespace Igruha.Minigames.MemoryRun
 
             BeginTurn();
         }
+
+        private void HandleWalkerUnstuck() => FinishTurn(TurnEnd.Unstuck);
 
         /// <summary>
         /// Начало хода: барьер открыт, метка зажглась, две секунды на то, чтобы
@@ -355,14 +396,20 @@ namespace Igruha.Minigames.MemoryRun
 
             lastStep = -1;
             lastLane = -1;
-            shownSeconds = -1;
             turnArmed = false;
             announceDeadline = NetworkClock.Now + config.TurnAnnounceSeconds;
 
             gate?.OpenFor(walker);
             activeMarker?.SetTarget(walker.transform);
 
-            Hud?.ShowStatus($"Ход: {NameOf(walkerId)}");
+            // Страховка от застревания: без неё зажатый геометрией игрок
+            // просто досиживает свой ход до таймера и получает смерть ни за что.
+            stuckDetector = walker.GetComponent<StuckDetector>();
+            if (stuckDetector != null)
+            {
+                stuckDetector.PlayerUnstuck += HandleWalkerUnstuck;
+            }
+
         }
 
         /// <summary>
@@ -417,6 +464,28 @@ namespace Igruha.Minigames.MemoryRun
         protected override void CollectResults(MinigameResults results)
         {
             ranking.Fill(results, state.Records, queue);
+
+            if (!logTurns)
+            {
+                return;
+            }
+
+            // Итоговая таблица в лог. Нужна приёмке: прогон читается из консоли
+            // целиком, без единого обращения в play-режим — а любое обращение
+            // ставит редактор на паузу и останавливает саму игру.
+            var report = new System.Text.StringBuilder("[Рейс] итог: ");
+            for (int i = 0; i < results.Entries.Count; i++)
+            {
+                MinigameResults.PlayerResult entry = results.Entries[i];
+                state.TryGet(entry.PlayerId, out MemoryRunProgress p);
+                report.Append(entry.Place).Append(". ").Append(NameOf(entry.PlayerId))
+                      .Append(" — шаг ").Append(p.BestStep)
+                      .Append(", смертей ").Append(p.Deaths)
+                      .Append(p.Finished ? ", дошёл #" + p.ArrivalOrder : "")
+                      .Append("; ");
+            }
+
+            Debug.Log(report.ToString());
         }
 
         private PlayerController FindAvatar(int playerId)
@@ -443,22 +512,6 @@ namespace Igruha.Minigames.MemoryRun
             }
 
             return "?";
-        }
-
-        /// <summary>
-        /// Строка статуса пересобирается только при смене секунды: собирать её
-        /// каждый кадр значит аллоцировать строку шестьдесят раз в секунду
-        /// на ровном месте.
-        /// </summary>
-        private void ShowTurnStatus(int secondsLeft)
-        {
-            if (secondsLeft == shownSeconds)
-            {
-                return;
-            }
-
-            shownSeconds = secondsLeft;
-            Hud?.ShowStatus($"Ход: {NameOf(walkerId)} — {secondsLeft} с");
         }
 
         /// <summary>
