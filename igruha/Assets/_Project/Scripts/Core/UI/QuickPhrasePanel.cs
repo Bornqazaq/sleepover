@@ -61,7 +61,14 @@ namespace Igruha.Core.UI
 
         private void Awake()
         {
-            SetRootActive(false);
+            // Прячемся только если панель не открывают прямо сейчас.
+            // У панели, выключенной в сцене, Awake впервые срабатывает ровно
+            // в момент её включения из Open() — и без этой проверки она
+            // гасила сама себя: флаг «открыта» стоял, а объекта на экране нет.
+            if (!IsOpen)
+            {
+                SetRootActive(false);
+            }
         }
 
         /// <summary>
@@ -108,8 +115,8 @@ namespace Igruha.Core.UI
             }
 
             ApplyCooldownTint(true);
-            SetRootActive(true);
             IsOpen = true;
+            SetRootActive(true);
         }
 
         /// <summary>

@@ -27,6 +27,9 @@ namespace Igruha.Minigames.Exam
         private const byte StageChoice = 3;
         private const byte StageTension = 4;
         private const byte StageHatch = 5;
+
+        /// <summary>Ниже этой высоты игрок считается провалившимся в яму.</summary>
+        private const float FallenBelowHeight = -1f;
         private const byte StageRespawn = 6;
 
         [Header("Конфиг и контент")]
@@ -466,6 +469,37 @@ namespace Igruha.Minigames.Exam
         }
 
         /// <summary>
+        /// Поднять провалившихся из ямы в зону возврата (спека 5.8).
+        ///
+        /// Другого выхода из ямы нет: <c>KillZone</c> лежит ниже её дна и
+        /// упавшего не ловит, а лестниц и лифтов в игре нет по дизайну.
+        /// До 26.08 это не всплывало вовсе — пол зала шёл сплошной плитой
+        /// под платформами, и провалиться было физически некуда.
+        /// </summary>
+        private void ReturnFallenPlayers()
+        {
+            if (!HasAuthority || returnZone == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < Players.Count; i++)
+            {
+                PlayerController avatar = Players[i].Avatar;
+                if (avatar == null || avatar.transform.position.y > FallenBelowHeight)
+                {
+                    continue;
+                }
+
+                // Разводим по ширине зоны той же арифметикой, что и бывших
+                // Ведущих: иначе поднятые встают в одну точку и расталкивают
+                // друг друга физикой.
+                float offset = (i % 5 - 2) * 1.6f;
+                avatar.TeleportTo(returnZone.position + returnZone.right * offset, Quaternion.identity);
+            }
+        }
+
+        /// <summary>
         /// Следующий Ведущий по кругу. Если очередь дошла до игрока, которого
         /// уже нет, ход переходит следующему живому, а общее число вопросов
         /// НЕ меняется: кто-то поведёт дважды, и это честнее, чем укорачивать
@@ -569,6 +603,7 @@ namespace Igruha.Minigames.Exam
                 case StageRespawn:
                     platformA?.CloseDoors();
                     platformB?.CloseDoors();
+                    ReturnFallenPlayers();
                     for (int i = 0; i < bots.Count; i++)
                     {
                         bots[i].Halt();
