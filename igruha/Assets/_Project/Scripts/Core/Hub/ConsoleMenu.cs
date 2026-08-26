@@ -73,6 +73,9 @@ namespace Igruha.Core.Hub
         private CameraMode restoreMode;
         private Transform restoreTarget;
 
+        /// <summary>Ввод отобран нами. Держим отдельно, чтобы вернуть ровно то, что забрали.</summary>
+        private bool controlSuppressed;
+
         private void Awake()
         {
             Active = this;
@@ -89,11 +92,13 @@ namespace Igruha.Core.Hub
 
         private void OnDestroy()
         {
-            // Сцена меняется вместе с запуском игры: управление и камеру
-            // нужно вернуть людям до того, как этот объект исчезнет.
-            if (IsOpen)
+            // Сцена меняется вместе с запуском игры, а аватар её переживает:
+            // он сетевой и живёт дольше хаба. Не вернув ему ввод здесь, мы
+            // высадили бы игрока в мини-игру обездвиженным — и починить это
+            // там было бы уже некому.
+            if (controlSuppressed)
             {
-                SetLocalControlEnabled(true);
+                SuppressControl(false);
             }
 
             if (Active == this)
@@ -181,6 +186,19 @@ namespace Igruha.Core.Hub
 
         private void Update()
         {
+            // Заморозку держим каждый кадр, а не только в момент включения.
+            // Персонаж мог ещё не появиться, когда экран зажёгся: у клиента,
+            // догружающего хаб, аватар приезжает позже сетевого состояния, и
+            // единственная попытка заморозить прошла бы вхолостую.
+            if (IsOpen)
+            {
+                SuppressControl(true);
+            }
+            else if (controlSuppressed)
+            {
+                SuppressControl(false);
+            }
+
             if (!IsOpen || !HasAuthority)
             {
                 return;
@@ -347,7 +365,7 @@ namespace Igruha.Core.Hub
             }
 
             ApplyCamera(open);
-            SetLocalControlEnabled(!open);
+            SuppressControl(open);
             Refresh();
         }
 
@@ -396,6 +414,19 @@ namespace Igruha.Core.Hub
             if (restoreTarget != null)
             {
                 cameraController.Apply(restoreMode, restoreTarget);
+                return;
+            }
+
+            // Возвращать не к чему: экран зажёгся раньше, чем камера этой
+            // машины успела найти своего героя. Без страховки игрок остался бы
+            // смотреть в выключенный телевизор.
+            Transform own = SessionScoreboard.Current?.LocalPlayer?.Avatar != null
+                ? SessionScoreboard.Current.LocalPlayer.Avatar.transform
+                : null;
+
+            if (own != null)
+            {
+                cameraController.Apply(CameraMode.ThirdPerson, own);
             }
         }
 
@@ -403,19 +434,29 @@ namespace Igruha.Core.Hub
         /// Ввод у всех замирает на время меню — иначе половина комнаты убежит
         /// от телевизора и выбор увидят не все. Ридер, у которого управление
         /// отобрано навсегда (чужая сетевая копия), не будим.
+        ///
+        /// Флаг ведём отдельно от <see cref="IsOpen"/>: вернуть ввод надо
+        /// ровно тому, у кого мы его забрали, и ровно один раз — даже если к
+        /// этому моменту экран уже погас другим путём.
         /// </summary>
-        private static void SetLocalControlEnabled(bool enabled)
+        private void SuppressControl(bool suppress)
         {
             SessionPlayer local = SessionScoreboard.Current?.LocalPlayer;
             if (local?.Avatar == null || !local.Avatar.TryGetComponent(out PlayerInputReader reader))
             {
+                // Персонажа ещё нет. Отпускать нечего, а запрет останется
+                // висеть и доедет до аватара, когда тот появится.
+                controlSuppressed = suppress && controlSuppressed;
                 return;
             }
 
-            if (reader.LocallyControlled)
+            if (!reader.LocallyControlled)
             {
-                reader.enabled = enabled;
+                return;
             }
+
+            reader.enabled = !suppress;
+            controlSuppressed = suppress;
         }
 
         /// <summary>
