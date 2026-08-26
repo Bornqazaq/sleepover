@@ -111,6 +111,13 @@ function Get-UnityPids {
     return $pids
 }
 
+# Только сам редактор, без Hub. `start` обязан смотреть именно сюда: Hub висит
+# в трее почти всегда, и проверка по Get-UnityPids считала редактор запущенным,
+# когда его не было вовсе, — автозапуск молча не срабатывал.
+function Get-EditorPids {
+    return @(Get-Process -Name 'Unity' -ErrorAction SilentlyContinue | ForEach-Object { $_.Id })
+}
+
 # $Pids empty or $null means "every process" - used by -All, so that a Windows
 # Update prompt or a crash box blocking the desktop is visible too, not just
 # Unity's own dialogs.
@@ -355,7 +362,7 @@ switch ($Action) {
     }
 
     'start' {
-        if (Get-UnityPids) { 'Unity is already running.'; break }
+        if (Get-EditorPids) { 'Unity is already running.'; break }
         $verFile = Join-Path $ProjectPath 'ProjectSettings\ProjectVersion.txt'
         if (-not (Test-Path $verFile)) { throw "ProjectVersion.txt not found under $ProjectPath" }
         $ver = (Select-String -Path $verFile -Pattern '^m_EditorVersion:\s*(\S+)').Matches[0].Groups[1].Value
@@ -372,7 +379,7 @@ switch ($Action) {
     }
 
     'stop' {
-        $pids = Get-UnityPids
+        $pids = Get-EditorPids
         if (-not $pids.Count) { 'Unity is not running.'; break }
         foreach ($p in $pids) { Stop-Process -Id $p -Force -ErrorAction SilentlyContinue }
         "stopped pids: $($pids -join ', ')"
