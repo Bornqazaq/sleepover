@@ -64,6 +64,10 @@ if (-not ('UG.Native' -as [type])) {
 [DllImport("user32.dll")] public static extern IntPtr SendMessageTimeout(IntPtr h, uint msg, IntPtr wp, IntPtr lp, uint flags, uint ms, out IntPtr res);
 [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr h, uint msg, IntPtr wp, IntPtr lp);
 [DllImport("user32.dll")] public static extern IntPtr SendMessage(IntPtr h, uint msg, IntPtr wp, IntPtr lp);
+// WM_GETTEXT needs a buffer in lParam, and StringBuilder does NOT implicitly
+// convert to IntPtr - passing it to the overload above threw at every call,
+// which took `dialogs` and `read` down entirely. Separate Unicode declaration.
+[DllImport("user32.dll", CharSet=CharSet.Unicode, EntryPoint="SendMessageW")] public static extern IntPtr SendMessageText(IntPtr h, uint msg, IntPtr wp, System.Text.StringBuilder lp);
 [DllImport("user32.dll")] public static extern int GetDlgCtrlID(IntPtr h);
 [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr h, IntPtr hdc, uint flags);
 public delegate bool EnumWindowsProc(IntPtr h, IntPtr p);
@@ -85,7 +89,7 @@ function Get-Text([IntPtr] $h) {
         $len = [UG.Native]::SendMessage($h, $WM_GETTEXTLENGTH, [IntPtr]::Zero, [IntPtr]::Zero)
         if ([int]$len -gt 0) {
             $sb2 = New-Object System.Text.StringBuilder ([int]$len + 2)
-            [void][UG.Native]::SendMessage($h, $WM_GETTEXT, [IntPtr]$sb2.Capacity, $sb2)
+            [void][UG.Native]::SendMessageText($h, $WM_GETTEXT, [IntPtr]$sb2.Capacity, $sb2)
             $t = $sb2.ToString()
         }
     }
