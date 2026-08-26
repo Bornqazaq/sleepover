@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 650fdfd99c2002f49aa01c3d8e9a29d4, type: 3}
+  m_Name: MinigameCatalog
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Minigame.MinigameCatalog
+  games:
+  - {fileID: 11400000, guid: 2b97e29082d037d49ab5c91ee7352e5c, type: 2}
+  - {fileID: 11400000, guid: 110aafff3be2840cdaf9f7f0d3a912a0, type: 2}
+  - {fileID: 11400000, guid: fd51a5bd609e749f3a37d921b9573782, type: 2}
+  - {fileID: 11400000, guid: 334d5894e34be40c8a2cc73f5346f18f, type: 2}
+  - {fileID: 11400000, guid: 4062d177f707e42138fd1beaf71acf6b, type: 2}
+  - {fileID: 11400000, guid: 987ee41289bf1e649862d5d2343f1acc, type: 2}

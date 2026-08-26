@@ -1,25 +1,27 @@
 using System.Collections;
 using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using TMPro;
 using Igruha.Core.Interaction;
 using Igruha.Core.Minigame;
-using Igruha.Core.Player;
 using Igruha.Core.Session;
 
 namespace Igruha.Core.Hub
 {
     /// <summary>
-    /// UI-логика хаба: подсказка у якоря, окно подтверждения и запуск мини-игры.
-    /// MVP-переход без кинематографичной камеры (ROADMAP 5.6 — позже).
+    /// UI-логика хаба: подсказка взаимодействия и автопрогон.
+    ///
+    /// Выбор игры сюда больше не входит — он целиком на экране приставки
+    /// (<see cref="ConsoleMenu"/>). Раньше здесь жило окно подтверждения у
+    /// якоря: подошёл к предмету, нажал E, подтвердил Enter. Предметы-якори
+    /// отменены, вход один — телевизор, и подтверждение теперь часть самого
+    /// экрана, а не отдельная панель поверх хаба.
     /// </summary>
     public sealed class HubController : MonoBehaviour
     {
         [SerializeField] private MinigameLoader loader;
+        [SerializeField] private MinigameCatalog catalog;
         [SerializeField] private TMP_Text promptText;
-        [SerializeField] private GameObject confirmPanel;
-        [SerializeField] private TMP_Text confirmText;
 
         [Header("Автопрогон")]
         [Tooltip("Сколько секунд ждать состав перед автозапуском по --autostart")]
@@ -28,9 +30,6 @@ namespace Igruha.Core.Hub
         [SerializeField] private float autostartSettleSeconds = 3f;
 
         private PlayerInteractor interactor;
-        private MinigameAnchor[] anchors;
-        private MinigameAnchor pendingAnchor;
-        private bool confirmOpenedThisFrame;
 
         /// <summary>
         /// Сколько игр очередь автопрогона уже отдала. Статическое, потому что
@@ -40,35 +39,8 @@ namespace Igruha.Core.Hub
         /// </summary>
         private static int autostartCursor;
 
-        private void Awake()
-        {
-            anchors = FindObjectsByType<MinigameAnchor>(FindObjectsSortMode.None);
-            for (int i = 0; i < anchors.Length; i++)
-            {
-                anchors[i].Activated += OnAnchorActivated;
-            }
-
-            if (confirmPanel != null)
-            {
-                confirmPanel.SetActive(false);
-            }
-        }
-
-        private void OnDestroy()
-        {
-            if (anchors == null)
-            {
-                return;
-            }
-
-            for (int i = 0; i < anchors.Length; i++)
-            {
-                if (anchors[i] != null)
-                {
-                    anchors[i].Activated -= OnAnchorActivated;
-                }
-            }
-        }
+        /// <summary>Как часто писать в лог, сколько народу уже собралось.</summary>
+        private const float AutostartReportSeconds = 10f;
 
         /// <summary>Связать с персонажем локального игрока (вызывает HubBootstrap после спавна).</summary>
         public void BindLocalPlayer(PlayerInteractor localInteractor)
@@ -85,14 +57,14 @@ namespace Igruha.Core.Hub
         }
 
         /// <summary>
-        /// Взять игру из очереди <c>--autostart</c> и запустить её самому,
-        /// не дожидаясь, пока живой человек подойдёт к якорю и нажмёт E.
+        /// Взять игру из очереди <c>--autostart</c> и запустить её самому, не
+        /// дожидаясь, пока человек подойдёт к телевизору и включит приставку.
         ///
-        /// Нужно ради стенда из восьми процессов: нажать E может только
+        /// Нужно ради стенда из восьми процессов: нажать кнопку может только
         /// человек, а проверять надо в том числе то, что человеку не показать —
         /// ротацию на восьмерых, деление очков, дисконнекты. Путь при этом
-        /// остаётся настоящим: та же <see cref="MinigameLoader"/>, что и
-        /// у якоря, — минуется только подтверждение в UI.
+        /// остаётся настоящим: та же <see cref="MinigameLoader"/>, что и у
+        /// приставки, — минуется только экран выбора.
         /// </summary>
         private IEnumerator Autostart(string[] queue)
         {
@@ -107,16 +79,16 @@ namespace Igruha.Core.Hub
 
             if (autostartCursor >= queue.Length)
             {
-                Debug.Log($"{name}: 🤖 очередь автопрогона кончилась — остаёмся в хабе");
+                Debug.Log($"{name}: очередь автопрогона кончилась — остаёмся в хабе");
                 yield break;
             }
 
             string wanted = queue[autostartCursor];
-            MinigameAnchor anchor = FindAnchor(wanted);
-            if (anchor == null)
+            MinigameDefinition game = FindGame(wanted);
+            if (game == null)
             {
-                Debug.LogError($"{name}: 🤖 автопрогон не нашёл в хабе якорь для '{wanted}' — " +
-                               "проверь имя сцены в MinigameDefinition", this);
+                Debug.LogError($"{name}: автопрогон не нашёл в каталоге игру со сценой '{wanted}' — " +
+                               "проверь MinigameCatalog и имя сцены в MinigameDefinition", this);
                 yield break;
             }
 
@@ -129,8 +101,8 @@ namespace Igruha.Core.Hub
 
             autostartCursor++;
             int joined = SessionScoreboard.Current != null ? SessionScoreboard.Current.Players.Count : 0;
-            Debug.Log($"{name}: 🤖 автопрогон {autostartCursor}/{queue.Length}: запускаю '{wanted}' на {joined} игроков");
-            StartMinigame(anchor);
+            Debug.Log($"{name}: автопрогон {autostartCursor}/{queue.Length}: запускаю '{wanted}' на {joined} игроков");
+            loader?.Load(game);
         }
 
         /// <summary>Дождаться, пока в составе наберётся нужное число участников и у всех появятся персонажи.</summary>
@@ -152,18 +124,15 @@ namespace Igruha.Core.Hub
                 if (Time.realtimeSinceStartup >= nextReport)
                 {
                     nextReport = Time.realtimeSinceStartup + AutostartReportSeconds;
-                    Debug.Log($"{name}: 🤖 жду состав для '{wanted}': {count}/{required}");
+                    Debug.Log($"{name}: жду состав для '{wanted}': {count}/{required}");
                 }
 
                 yield return null;
             }
 
-            Debug.LogWarning($"{name}: 🤖 состав не собрался за {autostartRosterTimeout:F0} с — " +
+            Debug.LogWarning($"{name}: состав не собрался за {autostartRosterTimeout:F0} с — " +
                              "стартую с тем, что есть");
         }
-
-        /// <summary>Как часто писать в лог, сколько народу уже собралось.</summary>
-        private const float AutostartReportSeconds = 10f;
 
         private static bool AllHaveAvatars(ISessionScoreboard scoreboard)
         {
@@ -183,39 +152,27 @@ namespace Igruha.Core.Hub
             return true;
         }
 
-        /// <summary>Якорь по имени сцены мини-игры — так же, как её зовут в Build Settings.</summary>
-        private MinigameAnchor FindAnchor(string sceneName)
+        /// <summary>Игра по имени сцены — так же, как её зовут в Build Settings.</summary>
+        private MinigameDefinition FindGame(string sceneName)
         {
-            if (anchors == null)
+            if (catalog == null)
             {
                 return null;
             }
 
-            for (int i = 0; i < anchors.Length; i++)
-            {
-                MinigameAnchor candidate = anchors[i];
-                if (candidate != null && candidate.IsPlayable &&
-                    string.Equals(candidate.Definition.SceneName, sceneName,
-                        System.StringComparison.OrdinalIgnoreCase))
-                {
-                    return candidate;
-                }
-            }
-
-            return null;
+            int index = catalog.IndexOfScene(sceneName);
+            return catalog.IsPlayable(index) ? catalog.Get(index) : null;
         }
 
         private void Update()
         {
-            if (pendingAnchor != null)
-            {
-                UpdateConfirmation();
-                return;
-            }
-
             UpdatePrompt();
         }
 
+        /// <summary>
+        /// Подсказка взаимодействия. Пока включена приставка, её не показываем:
+        /// экран занимает весь кадр, а персонаж всё равно заморожен.
+        /// </summary>
         private void UpdatePrompt()
         {
             if (promptText == null)
@@ -223,121 +180,13 @@ namespace Igruha.Core.Hub
                 return;
             }
 
-            IInteractable target = interactor != null ? interactor.CurrentInteractable : null;
+            bool menuOpen = ConsoleMenu.Active != null && ConsoleMenu.Active.IsOpen;
+            IInteractable target = !menuOpen && interactor != null ? interactor.CurrentInteractable : null;
             string text = target != null ? target.InteractionPrompt : string.Empty;
+
             if (promptText.text != text)
             {
                 promptText.text = text;
-            }
-        }
-
-        private void OnAnchorActivated(MinigameAnchor anchor, PlayerController player)
-        {
-            if (pendingAnchor != null)
-            {
-                return;
-            }
-
-            // Взаимодействие исполняет сервер, поэтому сюда прилетают и чужие нажатия.
-            // Окно подтверждения — сугубо местный UI: открываем его только на нажатие
-            // хозяина этой машины, иначе хосту вылезала бы панель, когда кнопку жмёт
-            // кто-то другой, а сам нажавший не видел бы ничего.
-            if (!IsLocalPlayer(player))
-            {
-                return;
-            }
-
-            if (!anchor.IsPlayable)
-            {
-                if (promptText != null)
-                {
-                    promptText.text = $"{anchor.InteractionPrompt} (игра ещё не готова)";
-                }
-
-                return;
-            }
-
-            pendingAnchor = anchor;
-            confirmOpenedThisFrame = true;
-
-            if (confirmText != null)
-            {
-                confirmText.text = $"Запустить «{anchor.Definition.DisplayName}»?\n\nEnter — да     Esc — отмена";
-            }
-
-            if (confirmPanel != null)
-            {
-                confirmPanel.SetActive(true);
-            }
-        }
-
-        /// <summary>
-        /// Персонаж этой машины. До привязки (HubBootstrap ещё не отдал игрока)
-        /// считаем нажатие своим: одиночные сцены хаба живут без сети и без привязки.
-        /// </summary>
-        private bool IsLocalPlayer(PlayerController player)
-        {
-            if (interactor == null)
-            {
-                return true;
-            }
-
-            return player != null && player.gameObject == interactor.gameObject;
-        }
-
-        private void UpdateConfirmation()
-        {
-            // Кадр открытия пропускаем: та же кнопка не должна сразу подтвердить.
-            if (confirmOpenedThisFrame)
-            {
-                confirmOpenedThisFrame = false;
-                return;
-            }
-
-            Keyboard keyboard = Keyboard.current;
-            bool confirmed = keyboard != null &&
-                (keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame);
-            bool cancelled = keyboard != null && keyboard.escapeKey.wasPressedThisFrame;
-
-            Gamepad gamepad = Gamepad.current;
-            if (gamepad != null)
-            {
-                confirmed |= gamepad.buttonSouth.wasPressedThisFrame;
-                cancelled |= gamepad.buttonEast.wasPressedThisFrame;
-            }
-
-            if (confirmed)
-            {
-                MinigameAnchor anchor = pendingAnchor;
-                CloseConfirmation();
-                StartMinigame(anchor);
-                return;
-            }
-
-            if (cancelled)
-            {
-                CloseConfirmation();
-            }
-        }
-
-        private void StartMinigame(MinigameAnchor anchor)
-        {
-            NetworkManager network = NetworkManager.Singleton;
-            if (network != null && network.IsListening && !network.IsServer)
-            {
-                Debug.Log($"{name}: мини-игру запускает только хост");
-                return;
-            }
-
-            loader?.Load(anchor.Definition);
-        }
-
-        private void CloseConfirmation()
-        {
-            pendingAnchor = null;
-            if (confirmPanel != null)
-            {
-                confirmPanel.SetActive(false);
             }
         }
     }
