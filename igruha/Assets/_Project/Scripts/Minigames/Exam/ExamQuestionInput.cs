@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using Igruha.Core.Player;
+using Igruha.Core.UI;
 
 namespace Igruha.Minigames.Exam
 {
@@ -44,6 +45,7 @@ namespace Igruha.Minigames.Exam
         private bool inputWasEnabled;
         private int presetCursor;
         private string lastHint;
+        private readonly PanelCursor cursor = new PanelCursor();
 
         private const string HintNeedQuestion = "Впиши вопрос. Tab — следующее поле, «Взять готовый» — подставит заготовку.";
         private const string HintNeedOptions = "Нужны оба варианта: без них вопрос не состоится и ход сгорит.";
@@ -137,6 +139,10 @@ namespace Igruha.Minigames.Exam
 
             lastHint = null;
 
+            // Курсор — панели: камера держит его захваченным и невидимым,
+            // и без этого мышью не попасть ни в поле, ни в тумблер.
+            cursor.Release();
+
             SuppressPlayerControls(host);
             SetRootActive(true);
             IsOpen = true;
@@ -164,6 +170,7 @@ namespace Igruha.Minigames.Exam
 
             SetRootActive(false);
             RestorePlayerControls();
+            cursor.Restore();
         }
 
         private void Update()

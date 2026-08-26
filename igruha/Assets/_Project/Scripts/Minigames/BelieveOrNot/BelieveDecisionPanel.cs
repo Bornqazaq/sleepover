@@ -3,6 +3,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using Igruha.Core.UI;
 
 namespace Igruha.Minigames.BelieveOrNot
 {
@@ -31,8 +32,7 @@ namespace Igruha.Minigames.BelieveOrNot
 
         public bool IsOpen { get; private set; }
 
-        private CursorLockMode restoreLockMode;
-        private bool restoreCursorVisible;
+        private readonly PanelCursor cursor = new PanelCursor();
 
         private void Awake()
         {
@@ -58,10 +58,7 @@ namespace Igruha.Minigames.BelieveOrNot
                 hintText.text = "← оставить    •    поменять →";
             }
 
-            restoreLockMode = Cursor.lockState;
-            restoreCursorVisible = Cursor.visible;
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
+            cursor.Release();
 
             SetRootActive(true);
             IsOpen = true;
@@ -90,8 +87,7 @@ namespace Igruha.Minigames.BelieveOrNot
             IsOpen = false;
             SetRootActive(false);
 
-            Cursor.lockState = restoreLockMode;
-            Cursor.visible = restoreCursorVisible;
+            cursor.Restore();
         }
 
         private void Update()

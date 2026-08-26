@@ -26,6 +26,21 @@ namespace Igruha.EditorTools
         /// <summary>Мировой размер одного юнита холста доски: 1 юнит = 1 см.</summary>
         private const float BoardUnitScale = 0.01f;
 
+        /// <summary>Насколько камера Ведущего поднята над кафедрой, в метрах.</summary>
+        private const float PodiumCameraLift = 2.08f;
+
+        /// <summary>Насколько камера Ведущего отставлена от кафедры в зал, в метрах.</summary>
+        private const float PodiumCameraDistance = 4.56f;
+
+        /// <summary>Сдвиг камеры Ведущего вбок — ракурс в три четверти, в метрах.</summary>
+        private const float PodiumCameraSide = 4.5f;
+
+        /// <summary>Наклон камеры Ведущего вниз, в градусах.</summary>
+        private const float PodiumCameraPitch = 9f;
+
+        /// <summary>Доворот камеры Ведущего на кафедру, в градусах.</summary>
+        private const float PodiumCameraYaw = -45f;
+
         /// <summary>Яркость ламп класса.</summary>
         private const float LampIntensity = 4f;
 
@@ -373,10 +388,16 @@ namespace Igruha.EditorTools
             stand.transform.position = new Vector3(0f, config.PodiumHeight, z);
             stand.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
 
+            // Точка, в которую садится камера Ведущего на время печати.
+            // Смотрит НА кафедру, а не с неё: с разворотом на 180° она стояла
+            // перед Ведущим спиной к нему, и в кадре не было ни его, ни доски —
+            // только пустой класс. Наклон подобран так, чтобы в кадр попадал
+            // человек за кафедрой на фоне доски.
             var rig = new GameObject("PodiumCameraRig");
             rig.transform.SetParent(parent, false);
-            rig.transform.position = new Vector3(0f, config.PodiumHeight + 1.8f, z - 3.2f);
-            rig.transform.rotation = Quaternion.Euler(12f, 180f, 0f);
+            rig.transform.position = new Vector3(PodiumCameraSide, config.PodiumHeight + PodiumCameraLift,
+                z - PodiumCameraDistance);
+            rig.transform.rotation = Quaternion.Euler(PodiumCameraPitch, PodiumCameraYaw, 0f);
         }
 
         /// <summary>
