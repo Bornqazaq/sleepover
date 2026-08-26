@@ -149,3 +149,8 @@ Build/
 /UserSettings/
 /ProjectSettings/
 Builds/
+
+# Локальные права Claude Code. REMOTE_SETUP.md обещал, что файл игнорируется,
+# но правила для него не было вовсе — одно `git add -A`, и личные права
+# уезжают второму разработчику. Найдено 26.08 при подъёме второй машины.
+.claude/settings.local.json
