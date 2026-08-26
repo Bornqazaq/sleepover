@@ -101,10 +101,22 @@ namespace Igruha.Minigames.DuckHunt
         ///
         /// У хозяина роли углы берём с рига живьём, у остальных — присланные:
         /// на чужой машине риг этой роли не крутится вовсе.
+        ///
+        /// Роль снята — точки обзора нет. Компонент при этом остаётся на
+        /// аватаре (<see cref="Detach"/> его не удаляет), и без этой проверки
+        /// бывший Охотник, ставший Уткой, показывал бы наблюдателю первое лицо
+        /// по углам прошлого раунда.
         /// </summary>
         public bool TryGetView(out CameraMode mode, out float yaw, out float pitch)
         {
             mode = CameraMode.FirstPerson;
+            yaw = 0f;
+            pitch = 0f;
+
+            if (!Active)
+            {
+                return false;
+            }
 
             if (AimIsLocal && cameraRig != null)
             {
