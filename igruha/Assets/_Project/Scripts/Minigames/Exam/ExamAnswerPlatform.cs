@@ -20,6 +20,8 @@ namespace Igruha.Minigames.Exam
         [SerializeField] private Vector2 size = new Vector2(8.64f, 7.2f);
         [Tooltip("На сколько метров над полом платформы игрок ещё считается стоящим на ней")]
         [SerializeField] private float standingHeight = 4f;
+        [Tooltip("Буква варианта на полу площадки — прячется, пока створки раскрыты")]
+        [SerializeField] private GameObject letter;
 
         private HingedFloorHatch hatch;
 
@@ -38,11 +40,26 @@ namespace Igruha.Minigames.Exam
                 return;
             }
 
+            // Буква лежит на полу площадки, а не на самих створках: с раскрытым
+            // дном она осталась бы висеть в воздухе над ямой.
+            if (letter != null)
+            {
+                letter.SetActive(false);
+            }
+
             hatch.OpenDoors(duration);
         }
 
         /// <summary>Вернуть пол на место к следующему вопросу.</summary>
-        public void CloseDoors() => hatch?.CloseDoors();
+        public void CloseDoors()
+        {
+            hatch?.CloseDoors();
+
+            if (letter != null)
+            {
+                letter.SetActive(true);
+            }
+        }
 
         /// <summary>
         /// Стоит ли точка на этой платформе.

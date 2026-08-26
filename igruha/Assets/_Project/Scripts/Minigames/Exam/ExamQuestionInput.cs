@@ -43,6 +43,12 @@ namespace Igruha.Minigames.Exam
         private bool emoteWasEnabled;
         private bool inputWasEnabled;
         private int presetCursor;
+        private string lastHint;
+
+        private const string HintNeedQuestion = "Впиши вопрос. Tab — следующее поле, «Взять готовый» — подставит заготовку.";
+        private const string HintNeedOptions = "Нужны оба варианта: без них вопрос не состоится и ход сгорит.";
+        private const string HintNeedCorrect = "Отметь верный вариант — иначе его выберет случай. Никто не увидит.";
+        private const string HintReady = "Вопрос готов. Жми «Готово» или дождись таймера.";
 
         private void Awake()
         {
@@ -129,10 +135,7 @@ namespace Igruha.Minigames.Exam
             if (correctAToggle != null) correctAToggle.SetIsOnWithoutNotify(false);
             if (correctBToggle != null) correctBToggle.SetIsOnWithoutNotify(false);
 
-            if (hintText != null)
-            {
-                hintText.text = "Напечатай вопрос и два варианта. Отметь верный — его никто не увидит.";
-            }
+            lastHint = null;
 
             SuppressPlayerControls(host);
             SetRootActive(true);
@@ -153,6 +156,12 @@ namespace Igruha.Minigames.Exam
             }
 
             IsOpen = false;
+
+            if (countdownText != null)
+            {
+                countdownText.text = string.Empty;
+            }
+
             SetRootActive(false);
             RestorePlayerControls();
         }
@@ -164,10 +173,7 @@ namespace Igruha.Minigames.Exam
                 return;
             }
 
-            if (countdownText != null)
-            {
-                countdownText.text = string.Empty;
-            }
+            UpdateHint();
 
             // Tab ходит по трём полям. Бинд колеса эмоций при этом не тронут —
             // само колесо на время печати выключено, поэтому конфликта нет
@@ -176,6 +182,49 @@ namespace Igruha.Minigames.Exam
             {
                 FocusNextField();
             }
+        }
+
+        /// <summary>
+        /// Подсказать, чего вопросу не хватает прямо сейчас.
+        ///
+        /// Незаполненное поле стоит Ведущему всего хода: вопрос без варианта Б
+        /// не состоится вовсе (спека 5.7), и человек узнаёт об этом уже после
+        /// таймера. На ручном прогоне 26.08 так сгорели оба хода подряд.
+        ///
+        /// Текст — готовые константы, а не сборка на лету: это Update.
+        /// </summary>
+        private void UpdateHint()
+        {
+            if (hintText == null)
+            {
+                return;
+            }
+
+            string hint;
+            if (string.IsNullOrWhiteSpace(Question))
+            {
+                hint = HintNeedQuestion;
+            }
+            else if (string.IsNullOrWhiteSpace(OptionA) || string.IsNullOrWhiteSpace(OptionB))
+            {
+                hint = HintNeedOptions;
+            }
+            else if (CorrectSide == ExamSide.None)
+            {
+                hint = HintNeedCorrect;
+            }
+            else
+            {
+                hint = HintReady;
+            }
+
+            if (ReferenceEquals(hint, lastHint))
+            {
+                return;
+            }
+
+            lastHint = hint;
+            hintText.text = hint;
         }
 
         /// <summary>Показать, сколько осталось до конца фазы печати.</summary>
