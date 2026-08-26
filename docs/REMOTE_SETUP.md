@@ -333,6 +333,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\remote\unity-guard.ps1
 ... -File tools\remote\remote-sessions.ps1 -Sessions pc-1,pc-2
 ```
 
+**Первый запуск после входа в аккаунт требует одного Enter.** Claude Code
+показывает баннер `Login successful. Press Enter to continue…` и ждёт. Сессия
+при этом живёт, процесс есть, но Remote Control не стартует и на телефоне
+устройство не появляется. Скрипт этого не видит и рапортует `OK - anchors live`
+(см. раздел 11). Разово это лечится нажатием Enter — в том числе удалённо,
+через `unity-guard.ps1`, см. ниже.
+
 ---
 
 ## 10. Что делать, когда Unity встал
@@ -378,6 +385,35 @@ UTF-8 с BOM — сохранять так же.
 Get-CimInstance Win32_Process -Filter "Name='claude.exe'" |
   Where-Object { $_.CommandLine -like '*--remote-control*' }
 ```
+
+**Но и таблица процессов даёт ложное «живой».** 26.08 якорь из автозагрузки час
+простоял на баннере `Login successful. Press Enter to continue…`: процесс с
+`--remote-control` в таблице был, `remote-sessions.ps1` отрапортовал
+`OK - anchors live`, а Remote Control не запускался и устройства на телефоне не
+было. Процесс подтверждает только запуск, но не то, что сессия дошла до рабочего
+состояния. Достоверная проверка одна — **посмотреть на окно**:
+
+```powershell
+# hwnd консоли якоря
+Get-Process -Id <pid> | Select-Object Id, MainWindowTitle,
+    @{n='Hwnd';e={$_.MainWindowHandle}}
+# снять картинку и прочитать её глазами (или глазами агента)
+... -File tools\remote\unity-guard.ps1 shot -Hwnd <hwnd> -Out anchor.png
+```
+
+Рабочий якорь пишет `/remote-control is active` и держит `/rc active` в правом
+нижнем углу; заголовок окна к этому моменту меняется с `claude` на `Claude Code`.
+
+**`unity-guard.ps1` работает не только с Unity.** Он оперирует любым окном по
+hwnd, и `shot` с `key` одинаково применимы к консоли якорной сессии. Именно так
+26.08 удалённо нажали тот самый Enter, не подходя к машине:
+
+```powershell
+... -File tools\remote\unity-guard.ps1 key -Hwnd <hwnd> -Key Enter
+```
+
+Это и есть готовый ответ на вопрос «а что если якорь встал на вопросе, которого
+я не вижу»: снять скриншот, прочитать, отправить клавишу.
 
 **`powershell -File` передаёт `a,b,c` одной строкой,** а не массивом. Скрипты,
 принимающие списки, разбивают их сами.
