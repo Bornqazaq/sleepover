@@ -332,6 +332,18 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\remote\unity-guard.ps1
 4. Битый импорт, странные ошибки компиляции → закрыть Unity,
    `unity-clean.ps1 -What Library`, запустить снова. Первый импорт долгий.
 5. Если сессия не подхватила поднятый мост — создать новую с телефона.
+6. Мост не поднимается, а в логе `Local HTTP server did not become reachable` →
+   смотреть `igruha/Library/MCPForUnity/Logs/server-launch-<порт>.log`, там
+   настоящая причина одной строкой. Разбор частого случая — в разделе 11.
+
+**Unity, запущенный от администратора, чинится только через Hub.** Редактор сам
+показывает системный диалог «Unity is running as administrator» с кнопкой
+«Restart Unity as a standard user» — но если elevated сам Unity Hub, кнопка
+уходит в цикл: Hub снова поднимает редактор с повышением, диалог возвращается.
+Лечится выходом из Hub целиком (значок в трее → Quit) и обычным запуском без
+«Запуск от имени администратора». Проверять `RUNASADMIN` в
+`HKCU:\...\AppCompatFlags\Layers` смысла обычно нет — чаще Hub просто подняли
+руками, флага там не будет.
 
 ---
 
@@ -371,6 +383,30 @@ Get-CimInstance Win32_Process -Filter "Name='claude.exe'" |
 `Bash`» была ошибкой: широкое правило `Bash` снимает блок с `powercfg`, но на
 автозагрузку и на запись прав не влияет вовсе. Это не обходится и обходить не
 нужно — человек делает это один раз.
+
+**`uvx` падает с `os error 6` («Неверный дескриптор»), когда его запускает
+Unity.** Так выглядит первый старт моста: в консоли редактора
+`Local HTTP server did not become reachable`, а в
+`Library/MCPForUnity/Logs/server-launch-8080.log` ровно одна строка про
+дескриптор. Виноват не Unity: GUI-процесс порождает `uvx` без валидных
+stdout/stderr, и uv умирает на первой же записи прогресса установки — то есть
+именно тогда, когда пакет надо скачивать («first run may take a minute while
+dependencies install»). Лечится прогревом пакета из обычной консоли, после
+которого скачивать нечего:
+
+```powershell
+uvx --from "mcpforunityserver==10.1.0" mcp-for-unity --help
+```
+
+Версию брать из строки запуска, которую редактор печатает в лог рядом с ошибкой.
+
+**`unity-guard.ps1 dialogs` и `read` падали на любом окне** — объявление
+`SendMessage` принимало `lParam` как `IntPtr`, а `WM_GETTEXT` требует буфер, и
+`StringBuilder` в `IntPtr` не преобразуется. Ошибка вылезала не при разборе, а
+при каждом вызове, то есть чтение диалогов не работало вовсе. Починено 26.08
+отдельным объявлением `SendMessageText` (`SendMessageW`, `CharSet.Unicode`).
+Если правишь P/Invoke в этом скрипте — проверяй именно на живом диалоге, пустой
+вывод здесь неотличим от «окно без кнопок».
 
 **npm-установка Claude Code не кладёт `claude.exe` в `PATH`.** В корне npm
 появляются только шимы `claude.cmd` и `claude.ps1`, а настоящий бинарник лежит в
