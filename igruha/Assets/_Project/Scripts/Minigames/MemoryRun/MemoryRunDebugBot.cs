@@ -51,6 +51,9 @@ namespace Igruha.Minigames.MemoryRun
         /// <summary>Ниже этой доли газа не опускаемся: иначе разбега не хватает даже на своей плите.</summary>
         private const float MinThrottle = 0.4f;
 
+        /// <summary>На сколько метров вглубь выходной площадки целиться последним прыжком.</summary>
+        private const float ExitAimDepth = 1.5f;
+
         /// <summary>Во сколько раз перепад высоты добавляет дальности прыжку вниз.</summary>
         private const float DropReachBonus = 1.4f;
 
@@ -193,28 +196,55 @@ namespace Igruha.Minigames.MemoryRun
             }
 
             Vector3 position = walker.transform.position;
+
+            // 🔴 Полёт разбирается ПЕРВЫМ, до всякой логики про плиты.
+            //
+            // Здесь была причина всех недолётов, и она не физическая. Ниже стоял
+            // ранний выход «не на плите и уже за началом цепочки — значит на
+            // выходной площадке, идти некуда», который обнулял ввод. Над
+            // пропастью между плитами оба условия истинны — и болванке гасили
+            // управление ровно в полёте. Без ввода персонаж не летит, а тормозит
+            // (торможение 20 м/с² даже в воздухе), и прыжок в три метра
+            // превращался в сход с края на сорок сантиметров.
+            //
+            // Выглядело это как «болванка не умеет прыгать», и шесть версий
+            // подряд я чинил прицел, разгон и газ — всё то, что работало.
+            if (!walker.IsGrounded)
+            {
+                inFlight = true;
+
+                // Курс в воздухе не меняем: управление в полёте не добавляет
+                // скорость, а разворачивает уже имеющуюся. Куда лететь, решают
+                // ноги на разгоне.
+                reader.DriveMove(walker.WorldToMoveInput(airCourse));
+                return;
+            }
+
             bool onPlate = config.TryGetCell(position, out int step, out int lane);
 
             int targetStep = onPlate ? step + 1 : 0;
-            if (!onPlate && position.z > config.ChainStartZ)
+            if (position.z >= config.ExitPadZ)
             {
-                // Уже за цепочкой — значит на выходной площадке, идти больше некуда.
+                // Дошёл до выходной площадки — идти больше некуда.
                 reader.DriveMove(Vector2.zero);
                 return;
             }
 
-            if (targetStep >= config.Steps)
-            {
-                // Последний ряд пройден: остаётся дойти до двери.
-                DriveTowards(walker, reader, new Vector3(0f, position.y, config.ExitPadZ + 1.5f), false);
-                return;
-            }
+            // Последний ряд — не особый случай, а такой же прыжок.
+            //
+            // Раньше здесь стоял отдельный выход «дойти до двери» без прыжка,
+            // и болванки, честно прошедшие все десять шагов, сваливались
+            // в последнюю пропасть пешком: в состоянии стояло «шаг 10»,
+            // а дошедших — ноль.
+            bool toExit = targetStep >= config.Steps;
 
             if (targetStep != plannedStep)
             {
                 plannedStep = targetStep;
                 runUpDone = false;
-                plannedLane = ChooseLane(targetStep, onPlate ? lane : -1);
+                plannedLane = toExit
+                    ? Mathf.Clamp(onPlate ? lane : MemoryRunRoute.Center, 0, MemoryRunConfig.LaneCount - 1)
+                    : ChooseLane(targetStep, onPlate ? lane : -1);
             }
 
             float half = config.PlateSize * 0.5f;
@@ -227,35 +257,14 @@ namespace Igruha.Minigames.MemoryRun
                 ? Mathf.Clamp(targetX, config.LaneX(lane) - half + EdgeInset, config.LaneX(lane) + half - EdgeInset)
                 : targetX;
 
-            // 🔴 Целимся в БЛИЖНИЙ УГОЛ нужной плиты, а не в её центр.
-            //
-            // Разница не косметическая. С края своей плиты до центра соседней
-            // полосы 3.97 м, и всю боковую составляющую приходится добирать
-            // доворотом в воздухе — а доворот срезает скорость, и болванка
-            // пролетала 1.95 м вместо четырёх. До ближнего угла той же плиты
-            // 2.44 м почти по прямой. Человек прыгает именно так: в угол,
-            // а не в середину.
             // Целимся в ЦЕНТР плиты: у центра запас 1.44 м во все стороны,
             // у ближнего края — ноль в одну из них. Промах болванки на
             // полметра при прицеле в край означает пропасть, при прицеле
             // в центр — просто некрасивое приземление.
-            Vector3 aim = new Vector3(targetX, position.y, config.StepZ(plannedStep));
-
-            if (!walker.IsGrounded)
-            {
-                inFlight = true;
-
-                // 🔴 В воздухе курс не меняем вовсе — держим тот, с которым
-                // оттолкнулись.
-                //
-                // Доворот в полёте выглядит естественным, но обходится дорого:
-                // управление в воздухе не добавляет скорость, а разворачивает
-                // уже имеющуюся, и дальность прыжка падает с 3.3 м до 1.9 —
-                // болванка садилась в пропасть в семидесяти сантиметрах от
-                // края нужной плиты. Куда лететь, решают ноги на разгоне.
-                reader.DriveMove(walker.WorldToMoveInput(airCourse));
-                return;
-            }
+            Vector3 aim = new Vector3(
+                targetX,
+                position.y,
+                toExit ? config.ExitPadZ + ExitAimDepth : config.StepZ(plannedStep));
 
             float takeoffZ = onPlate
                 ? config.StepZ(step) + half - EdgeInset
