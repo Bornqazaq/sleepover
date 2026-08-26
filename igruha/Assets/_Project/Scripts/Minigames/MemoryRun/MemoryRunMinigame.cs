@@ -17,15 +17,18 @@ namespace Igruha.Minigames.MemoryRun
     ///
     /// <b>Маршрут не покидает этот объект.</b> Ни плиты, ни барьер, ни HUD не
     /// знают, какая плита безопасна: единственный, кто спрашивает у маршрута, —
-    /// <see cref="ResolveLanding"/>. В сетевой фазе объект живёт только
-    /// на сервере, и проверять это будут рефлексией по реплицируемым полям.
+    /// <see cref="ResolveLanding"/>. Маршрут и оба сида живут приватными полями
+    /// сервера и не уезжают никуда; перечень того, что действительно едет,
+    /// снимается рефлексией в <c>MemoryRunTrafficAudit</c>.
     /// </summary>
     /// <remarks>
-    /// <b>Network-ready.</b> Важное состояние меняют ровно четыре метода —
+    /// <b>Сеть.</b> Важное состояние меняют ровно четыре метода —
     /// <see cref="ResolveLanding"/>, <see cref="FinishTurn"/>,
-    /// <see cref="BeginTurn"/> и <see cref="CollectResults"/>, — и все они уже
+    /// <see cref="BeginTurn"/> и <see cref="CollectResults"/>, — и все они
     /// вызываются только под <see cref="MinigameControllerBase.HasAuthority"/>.
-    /// В фазе 3 их останется обернуть, а не переписать.
+    /// Машина без авторитета не считает ничего: очередь, ход и прогресс
+    /// приезжают готовыми через <see cref="MemoryRunNetwork"/> и попадают сюда
+    /// тремя методами <c>ApplyNetwork*</c>.
     /// </remarks>
     [RequireComponent(typeof(RoundTimer))]
     public sealed class MemoryRunMinigame : MinigameControllerBase
@@ -52,6 +55,20 @@ namespace Igruha.Minigames.MemoryRun
         /// <summary>Страховка от зацикливания, если у всех подряд не оказалось аватара.</summary>
         private const int MaxTurnSkips = 16;
 
+        /// <summary>
+        /// Как часто сервер проверяет, не вышел ли кто на плиты вне очереди.
+        /// Каждый кадр незачем: барьер держит физикой, а это проверка на того,
+        /// кто барьер обошёл.
+        /// </summary>
+        private const float GateCheckPeriod = 0.5f;
+
+        /// <summary>
+        /// Сколько секунд не трогать нарушителя после возврата. Перенос — это
+        /// поручение владельцу, и до сервера новая позиция доедет не мгновенно;
+        /// без выдержки сервер слал бы поручение каждую проверку.
+        /// </summary>
+        private const float GatePushBackCooldown = 1.5f;
+
         [Header("Ссылки")]
         [SerializeField] private MemoryRunConfig config;
         [SerializeField] private TurnGate gate;
@@ -61,11 +78,29 @@ namespace Igruha.Minigames.MemoryRun
         [Tooltip("Писать в лог, чем кончился каждый ход. Нужно на прогонах: без разбивки по причинам смерти нельзя отличить «маршрут сложный» от «прыжок не долетает»")]
         [SerializeField] private bool logTurns;
 
+        /// <summary>
+        /// 🔴 Секрет игры. Приватное поле сервера, которое не сериализуется
+        /// в инспекторе, не реплицируется и не отдаётся ни одним публичным
+        /// членом. Сид генерации не хранится вовсе — по нему маршрут
+        /// восстанавливается целиком.
+        /// </summary>
         private readonly MemoryRunRoute route = new MemoryRunRoute();
+
         private readonly MemoryRunState state = new MemoryRunState();
         private readonly TurnQueue queue = new TurnQueue();
         private readonly MemoryRunRanking ranking = new MemoryRunRanking();
         private readonly List<int> playerIds = new List<int>(8);
+
+        /// <summary>
+        /// Кто сейчас летит обратно в стартовую зону. Барьер их не трогает:
+        /// погибший полторы секунды отыгрывает рагдолл далеко за барьером, и
+        /// без этого списка сервер вернул бы его на старт первой же проверкой,
+        /// оборвав отлёт на полпути.
+        /// </summary>
+        private readonly HashSet<int> returning = new HashSet<int>();
+
+        /// <summary>Когда нарушителя в последний раз возвращали за барьер.</summary>
+        private readonly Dictionary<int, double> gatePushedAt = new Dictionary<int, double>(8);
 
         /// <summary>
         /// Плита оказалась безопасной. <b>Утечкой не является:</b> это видели
@@ -74,8 +109,24 @@ namespace Igruha.Minigames.MemoryRun
         /// </summary>
         public event System.Action<int, int> SafePlateProved;
 
-        /// <summary>Плита оказалась миной. Тоже общеизвестно: все слышали взрыв.</summary>
+        /// <summary>
+        /// Плита оказалась миной. Тоже общеизвестно: все слышали взрыв.
+        ///
+        /// Событие <b>серверное</b> — им пользуется погонщик болванок соло-прогона,
+        /// и координаты плиты в нём есть. Всему, что должно сработать на каждой
+        /// машине (VFX, звук), нужен <see cref="MineDetonated"/>.
+        /// </summary>
         public event System.Action<int, int> MinePlateProved;
+
+        /// <summary>
+        /// Взрыв под ногами — на каждой машине матча, с местом взрыва.
+        /// Точка подключения для VFX и звука фазы 4.
+        ///
+        /// Отдельно от <see cref="MinePlateProved"/> намеренно: там номер шага
+        /// и полоса, то есть язык маршрута, и в сеть это не уезжает. Здесь
+        /// точка в мире — ровно то, что и так видели все восемь человек.
+        /// </summary>
+        public event System.Action<Vector3> MineDetonated;
 
         /// <summary>Кто сейчас идёт. Общеизвестно — над ним горит метка.</summary>
         public PlayerController CurrentWalker => walker;
@@ -88,10 +139,19 @@ namespace Igruha.Minigames.MemoryRun
 
         /// <summary>Сколько секунд осталось у идущего. Ноль, пока идёт объявление хода.</summary>
         public float TurnSecondsLeft =>
-            turnArmed ? Mathf.Max(0f, (float)(turnDeadline - NetworkClock.Now)) : 0f;
+            TurnArmed ? Mathf.Max(0f, (float)(turnDeadline - NetworkClock.Now)) : 0f;
 
-        /// <summary>Идёт ли отсчёт хода. False — играет двухсекундное объявление.</summary>
-        public bool TurnArmed => turnArmed;
+        /// <summary>
+        /// Идёт ли отсчёт хода. False — играет двухсекундное объявление.
+        ///
+        /// Считается, а не хранится: оба момента общие для всех машин, поэтому
+        /// сервер и клиент отвечают одинаково без единого лишнего пакета.
+        /// </summary>
+        public bool TurnArmed =>
+            walkerId != TurnQueue.NoPlayer && NetworkClock.Now >= announceDeadline;
+
+        /// <summary>Размер состава. Сетевой половине — понять, что ростер доехал.</summary>
+        public int RosterCount => Players.Count;
 
         /// <summary>Лимит попыток из конфига — интерфейсу для строки «3 / 10».</summary>
         public int DeathLimit => config != null ? config.DeathLimit : 0;
@@ -105,15 +165,47 @@ namespace Igruha.Minigames.MemoryRun
         /// <summary>Персонаж участника. Нужен интерфейсу, чтобы понять, кто из них — эта машина.</summary>
         public PlayerController AvatarOf(int playerId) => FindAvatar(playerId);
 
+        /// <summary>
+        /// Ходит ли участник ещё — то есть стоит ли его называть в очереди.
+        ///
+        /// Считается из реплицированного прогресса, а не из очереди, нарочно:
+        /// у клиента очереди с выбывшими нет, и ответ обязан совпасть с
+        /// серверным до буквы, иначе host и client показывают разные строки
+        /// «Дальше:». Число смертей наружу при этом не отдаётся — чужой
+        /// счётчик попыток не показывает никто (спека 10).
+        /// </summary>
+        public bool IsStillWalking(int playerId)
+        {
+            if (!state.TryGet(playerId, out MemoryRunProgress progress) || progress.Finished)
+            {
+                return false;
+            }
+
+            if (config != null && progress.Deaths >= config.DeathLimit)
+            {
+                return false;
+            }
+
+            return FindAvatar(playerId) != null;
+        }
+
+        private MemoryRunNetwork network;
         private PlayerController walker;
         private StuckDetector stuckDetector;
         private int walkerId = TurnQueue.NoPlayer;
+        private int turnNumber;
         private double announceDeadline;
         private double turnDeadline;
-        private bool turnArmed;
         private bool turnClosing;
+        private double nextGateCheck;
         private int lastStep = -1;
         private int lastLane = -1;
+
+        protected override void Awake()
+        {
+            base.Awake();
+            network = GetComponent<MemoryRunNetwork>();
+        }
 
         protected override void OnPlayersReady()
         {
@@ -124,9 +216,17 @@ namespace Igruha.Minigames.MemoryRun
             }
 
             playerIds.Clear();
+            gatePushedAt.Clear();
+            returning.Clear();
+            turnNumber = 0;
+
             for (int i = 0; i < Players.Count; i++)
             {
                 playerIds.Add(Players[i].Id);
+
+                // Заводим все ключи заранее: словарь потом только читается
+                // и переписывается, то есть в раунде не аллоцирует.
+                gatePushedAt[Players[i].Id] = 0d;
             }
 
             state.Reset(playerIds);
@@ -136,12 +236,17 @@ namespace Igruha.Minigames.MemoryRun
                 return;
             }
 
-            // Два независимых сида, и это не педантизм. Сид очереди в фазе 3
-            // объявляется всем — иначе порядок ходов разъедется. Сид маршрута
-            // не объявляется никому и никогда: по нему маршрут восстанавливается
-            // целиком, то есть это тот же секрет, только в профиль.
+            // Два независимых сида, и оба остаются здесь. Порядок ходов
+            // объявляется готовым списком, а не сидом тасования: список
+            // сходится у всех всегда, а сид — только при точно совпадающем
+            // составе. Сид маршрута не объявляется тем более: по нему маршрут
+            // восстанавливается целиком, то есть это тот же секрет, только
+            // в профиль.
             queue.Build(Players, Random.Range(int.MinValue, int.MaxValue));
             route.Generate(config, Random.Range(int.MinValue, int.MaxValue));
+
+            network?.PublishTurnOrder(queue.Order);
+            network?.PublishProgress(state.Records);
         }
 
         protected override void OnRoundStarted()
@@ -161,12 +266,12 @@ namespace Igruha.Minigames.MemoryRun
             // уехало бы в хаб вместе с ним — у «Ангелов» так уехала
             // обездвиженность Водящего.
             StopAllCoroutines();
-            gate?.CloseForAll();
-            activeMarker?.Clear();
+            returning.Clear();
+            ClearTurn();
 
-            walker = null;
-            walkerId = TurnQueue.NoPlayer;
-            turnArmed = false;
+            // Ход снимается у всех, а не только у сервера: без этого метка
+            // над ушедшим в результаты игроком осталась бы гореть на клиенте.
+            network?.PublishTurn(TurnQueue.NoPlayer, turnNumber, 0d, 0d);
         }
 
         private void Update()
@@ -176,32 +281,39 @@ namespace Igruha.Minigames.MemoryRun
                 return;
             }
 
-            double now = NetworkClock.Now;
-
-            if (!turnArmed)
-            {
-                if (now >= announceDeadline)
-                {
-                    turnArmed = true;
-                    turnDeadline = now + config.TurnSeconds;
-                }
-
-                return;
-            }
-
-            if (now >= turnDeadline)
+            if (NetworkClock.Now >= turnDeadline)
             {
                 // Отсидеться нельзя: без этого один игрок морозит всю очередь
                 // до конца общего таймера, а остальные семеро просто ждут.
                 FinishTurn(TurnEnd.TimedOut);
+            }
+        }
+
+        /// <summary>
+        /// Клиент нашёл персонажа идущего не сразу: ход мог приехать раньше,
+        /// чем аватар заспавнился. Без этой попытки метка и барьер остались бы
+        /// висеть в прошлом ходу до конца текущего.
+        /// </summary>
+        private void LateUpdate()
+        {
+            if (HasAuthority || walkerId == TurnQueue.NoPlayer || walker != null)
+            {
                 return;
             }
 
+            BindWalkerVisuals();
         }
 
         private void FixedUpdate()
         {
-            if (!RoundActive || !HasAuthority || walker == null || turnClosing)
+            if (!RoundActive || !HasAuthority)
+            {
+                return;
+            }
+
+            EnforceGate();
+
+            if (walker == null || turnClosing)
             {
                 return;
             }
@@ -245,7 +357,12 @@ namespace Igruha.Minigames.MemoryRun
 
         /// <summary>
         /// Единственное место во всей игре, которое спрашивает у маршрута,
-        /// безопасна ли плита. В фазе 3 уходит за <c>IsServer</c> целиком.
+        /// безопасна ли плита. Зовётся только из <see cref="FixedUpdate"/>
+        /// под авторитетом, то есть на сервере и нигде больше.
+        ///
+        /// <b>Безопасный шаг наружу не объявляется.</b> Это и был бы маршрут,
+        /// выданный по одному шагу. Что шаг пройден, зрители видят сами —
+        /// по тому, что взрыва не было.
         /// </summary>
         private void ResolveLanding(int step, int lane)
         {
@@ -253,11 +370,12 @@ namespace Igruha.Minigames.MemoryRun
             {
                 state.RegisterReach(walkerId, step, NetworkClock.Now);
                 SafePlateProved?.Invoke(step, lane);
+                network?.PublishProgress(state.Records);
                 return;
             }
 
             MinePlateProved?.Invoke(step, lane);
-            Detonate(step, lane);
+            Detonate(config.CellCenter(step, lane));
             FinishTurn(TurnEnd.Mine);
         }
 
@@ -267,9 +385,14 @@ namespace Igruha.Minigames.MemoryRun
         /// вся механика: останься след, и следующий пойдёт по следам, а не
         /// по памяти. Копоть — только на лице персонажа, это фаза арта.
         /// </summary>
-        private void Detonate(int step, int lane)
+        /// <remarks>
+        /// Импульс уходит через <c>ApplyWorldImpulse</c>, а не напрямую:
+        /// позицией персонажа распоряжается машина его владельца, и сила,
+        /// приложенная к серверной копии, была бы тут же перетёрта сетевым
+        /// состоянием. Тот же путь у пружины, снаряда и зоны смерти.
+        /// </remarks>
+        private void Detonate(Vector3 center)
         {
-            Vector3 center = config.CellCenter(step, lane);
             Vector3 away = walker.transform.position - center;
             away.y = 0f;
 
@@ -277,7 +400,67 @@ namespace Igruha.Minigames.MemoryRun
                 ? (away.normalized + Vector3.up * 1.6f).normalized
                 : Vector3.up;
 
-            walker.ApplyImpulse(direction * config.MineImpulse, KnockdownType.FlyBack);
+            walker.ApplyWorldImpulse(direction * config.MineImpulse);
+
+            // Взрыв — событие, а не состояние: его отыгрывает каждая машина
+            // у себя. Уходит наружу ровно то, что и так видел весь зал.
+            network?.AnnounceDetonation(center);
+            MineDetonated?.Invoke(center);
+        }
+
+        /// <summary>
+        /// Барьер очереди глазами сервера: кто оказался на плитах не в свой
+        /// ход, тот возвращается в стартовую зону.
+        ///
+        /// Барьер держит физикой, но физику ходящего считает машина владельца,
+        /// и снять у себя одно исключение коллизии — правка на одну строчку
+        /// в подменённом клиенте. Значит право пройти обязан проверять сервер,
+        /// а не стена. Информация в этой игре — общий ресурс: вышедший вне
+        /// очереди либо столкнёт идущего до прыжка, либо разведает шаг,
+        /// которого зрители не увидели.
+        /// </summary>
+        private void EnforceGate()
+        {
+            double now = NetworkClock.Now;
+            if (now < nextGateCheck)
+            {
+                return;
+            }
+
+            nextGateCheck = now + GateCheckPeriod;
+
+            for (int i = 0; i < Players.Count; i++)
+            {
+                SessionPlayer player = Players[i];
+                if (player.Id == walkerId || returning.Contains(player.Id))
+                {
+                    continue;
+                }
+
+                // Дошедший стоит на выходной площадке по праву — она за плитами.
+                if (state.TryGet(player.Id, out MemoryRunProgress progress) && progress.Finished)
+                {
+                    continue;
+                }
+
+                PlayerController avatar = player.Avatar;
+                if (avatar == null || avatar.transform.position.z <= config.GateZ)
+                {
+                    continue;
+                }
+
+                if (gatePushedAt.TryGetValue(player.Id, out double pushedAt) &&
+                    now - pushedAt < GatePushBackCooldown)
+                {
+                    continue;
+                }
+
+                gatePushedAt[player.Id] = now;
+                avatar.RequestTeleport(StartZonePoint(avatar), Quaternion.identity);
+
+                Debug.LogWarning($"[Рейс] {NameOf(player.Id)} оказался за барьером не в свой ход — " +
+                                 "возвращён в стартовую зону сервером", this);
+            }
         }
 
         /// <summary>
@@ -311,10 +494,7 @@ namespace Igruha.Minigames.MemoryRun
                           $"место {where:F2}, последняя плита ш{lastStep}/п{lastLane}");
             }
 
-            gate?.CloseForAll();
-            activeMarker?.Clear();
-            walker = null;
-            turnArmed = false;
+            ClearTurn();
 
             if (reason == TurnEnd.Reached)
             {
@@ -336,7 +516,8 @@ namespace Igruha.Minigames.MemoryRun
                 // передавать ход в момент гибели.
                 if (finished != null)
                 {
-                    StartCoroutine(ReturnToStart(finished, reason == TurnEnd.TimedOut));
+                    returning.Add(finishedId);
+                    StartCoroutine(ReturnToStart(finishedId, finished, reason == TurnEnd.TimedOut));
                 }
 
                 if (exhausted)
@@ -351,6 +532,11 @@ namespace Igruha.Minigames.MemoryRun
 
             turnClosing = false;
 
+            // Прогресс объявляется один раз на закрытый ход, а не по каждому
+            // изменению внутри него: смерть, выбывание и приход к двери
+            // случаются вместе.
+            network?.PublishProgress(state.Records);
+
             if (IsRoundOver())
             {
                 EndMinigame();
@@ -361,6 +547,22 @@ namespace Igruha.Minigames.MemoryRun
         }
 
         private void HandleWalkerUnstuck() => FinishTurn(TurnEnd.Unstuck);
+
+        /// <summary>
+        /// Снять ход: барьер закрыт, метка погашена, ходящего нет.
+        /// Одна точка на все четыре повода — конец хода, конец раунда,
+        /// уход того, чей ход, и досрочное завершение.
+        /// </summary>
+        private void ClearTurn()
+        {
+            gate?.CloseForAll();
+            activeMarker?.Clear();
+
+            walker = null;
+            walkerId = TurnQueue.NoPlayer;
+            announceDeadline = 0d;
+            turnDeadline = 0d;
+        }
 
         /// <summary>
         /// Начало хода: барьер открыт, метка зажглась, две секунды на то, чтобы
@@ -396,8 +598,14 @@ namespace Igruha.Minigames.MemoryRun
 
             lastStep = -1;
             lastLane = -1;
-            turnArmed = false;
+            turnNumber++;
+
+            // Оба момента считаются здесь и объявляются разом. Раньше конец
+            // хода вычислялся в момент, когда истекало объявление, — при
+            // моменте вместо остатка так нельзя: клиенту пришлось бы досылать
+            // второй пакет ровно тогда, когда пойдёт отсчёт.
             announceDeadline = NetworkClock.Now + config.TurnAnnounceSeconds;
+            turnDeadline = announceDeadline + config.TurnSeconds;
 
             gate?.OpenFor(walker);
             activeMarker?.SetTarget(walker.transform);
@@ -410,6 +618,7 @@ namespace Igruha.Minigames.MemoryRun
                 stuckDetector.PlayerUnstuck += HandleWalkerUnstuck;
             }
 
+            network?.PublishTurn(walkerId, turnNumber, announceDeadline, turnDeadline);
         }
 
         /// <summary>
@@ -418,19 +627,27 @@ namespace Igruha.Minigames.MemoryRun
         /// в <see cref="MemoryRunState"/> при этом не сбрасывается: смерть
         /// стоит очереди и попытки, а не прогресса.
         /// </summary>
-        private IEnumerator ReturnToStart(PlayerController player, bool silent)
+        private IEnumerator ReturnToStart(int playerId, PlayerController player, bool silent)
         {
             if (!silent)
             {
                 yield return new WaitForSeconds(config.RagdollSeconds);
             }
 
-            if (player == null)
+            if (player != null)
             {
-                yield break;
+                player.RequestTeleport(StartZonePoint(player), Quaternion.identity);
             }
 
-            player.RequestTeleport(StartZonePoint(player), Quaternion.identity);
+            // Перенос — поручение владельцу, и новая позиция доедет до сервера
+            // не этим кадром. Без отметки барьер увидел бы возвращаемого ещё
+            // за собой и отчитался бы о нарушителе на каждой смерти.
+            gatePushedAt[playerId] = NetworkClock.Now;
+
+            // Пометку снимаем в любом случае, в том числе когда персонажа уже
+            // нет: иначе ушедший навсегда останется в списке возвращающихся,
+            // и барьер перестанет его касаться на весь раунд.
+            returning.Remove(playerId);
         }
 
         /// <summary>
@@ -527,26 +744,127 @@ namespace Igruha.Minigames.MemoryRun
             }
 
             bool wasWalking = playerId == walkerId;
+
             queue.Remove(playerId);
             RemovePlayer(playerId);
 
-            if (!wasWalking)
+            // Запись в состоянии остаётся: спека требует, чтобы ушедший
+            // сохранял достигнутое и получал место по лучшему результату.
+            // Из списков барьера убираем — за ним больше некому ходить.
+            returning.Remove(playerId);
+            gatePushedAt.Remove(playerId);
+
+            if (wasWalking)
             {
-                return;
+                if (stuckDetector != null)
+                {
+                    stuckDetector.PlayerUnstuck -= HandleWalkerUnstuck;
+                    stuckDetector = null;
+                }
+
+                ClearTurn();
             }
 
-            gate?.CloseForAll();
-            activeMarker?.Clear();
-            walker = null;
-            turnArmed = false;
-
+            // Проверять надо и когда ушёл ожидающий: если он был предпоследним,
+            // гонять оставшегося по уже раскрытому маршруту незачем — спека
+            // требует завершить раунд и отдать ему следующее свободное место.
             if (IsRoundOver())
             {
                 EndMinigame();
                 return;
             }
 
+            if (!wasWalking)
+            {
+                return;
+            }
+
+            // Ход уходит следующему немедленно и в этом же кадре. Всё, что
+            // тут промедлит, встанет всей очередью до конца общего таймера.
             BeginTurn();
+        }
+
+        // ========== ПРИЁМ СЕТЕВОГО СОСТОЯНИЯ ==========
+
+        /// <summary>
+        /// Порядок ходов, объявленный сервером. Очередь общеизвестна — её
+        /// показывает строка состояния, и она же нужна, чтобы понять, кто
+        /// следующий.
+        /// </summary>
+        public void ApplyNetworkTurnOrder(IReadOnlyList<int> order)
+        {
+            if (HasAuthority)
+            {
+                return;
+            }
+
+            queue.ApplyOrder(order);
+        }
+
+        /// <summary>
+        /// Чей ход и до какого момента. Оба момента — по общим часам, поэтому
+        /// остаток на экране клиента сходится с серверным без поправки на пинг.
+        /// </summary>
+        public void ApplyNetworkTurn(int netWalkerId, double armTime, double deadline)
+        {
+            if (HasAuthority)
+            {
+                return;
+            }
+
+            walkerId = netWalkerId;
+            announceDeadline = armTime;
+            turnDeadline = deadline;
+
+            BindWalkerVisuals();
+        }
+
+        /// <summary>Строка прогресса, посчитанная сервером.</summary>
+        public void ApplyNetworkProgress(in MemoryRunProgress record)
+        {
+            if (HasAuthority)
+            {
+                return;
+            }
+
+            state.ApplyReplicated(record);
+        }
+
+        /// <summary>
+        /// Взрыв, объявленный сервером. Отыгрывается на каждой машине: сам
+        /// отлёт везёт владелец персонажа, а VFX и звук фазы 4 приедут сюда.
+        /// </summary>
+        public void ApplyDetonation(Vector3 center)
+        {
+            if (HasAuthority)
+            {
+                return;
+            }
+
+            MineDetonated?.Invoke(center);
+        }
+
+        /// <summary>
+        /// Показать ход: метка над идущим и открытый ему барьер.
+        ///
+        /// Барьер открывается на каждой машине, а не только на серверной:
+        /// движение персонажа считает его владелец, и стена, не снятая
+        /// у него, остановила бы идущего у себя — а сервер продолжал бы
+        /// возвращать его туда, где он по своей картинке уже прошёл.
+        /// </summary>
+        private void BindWalkerVisuals()
+        {
+            walker = walkerId != TurnQueue.NoPlayer ? FindAvatar(walkerId) : null;
+
+            if (walker == null)
+            {
+                gate?.CloseForAll();
+                activeMarker?.Clear();
+                return;
+            }
+
+            gate?.OpenFor(walker);
+            activeMarker?.SetTarget(walker.transform);
         }
     }
 }

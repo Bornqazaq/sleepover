@@ -93,7 +93,15 @@ namespace Igruha.Minigames.MemoryRun
             hud.ShowStatus(builder.ToString());
         }
 
-        /// <summary>Кто ходит следующим. Очередь объявлена всем, скрывать нечего.</summary>
+        /// <summary>
+        /// Кто ходит следующим. Очередь объявлена всем, скрывать нечего.
+        ///
+        /// Дошедшие, выбравшие лимит попыток и ушедшие пропускаются: порядок
+        /// зафиксирован на весь раунд и не пересобирается, а называть следующим
+        /// того, кто уже за дверью, — прямая дезинформация. Признак берётся из
+        /// реплицированного состояния, поэтому у хоста и у клиента строка
+        /// получается одна и та же.
+        /// </summary>
         private void AppendQueue(int walkerId)
         {
             var order = game.TurnOrder;
@@ -121,6 +129,11 @@ namespace Igruha.Minigames.MemoryRun
             for (int offset = 1; offset < order.Count && shown < QueuePreview; offset++)
             {
                 int id = order[(current + offset) % order.Count];
+                if (!game.IsStillWalking(id))
+                {
+                    continue;
+                }
+
                 builder.Append(shown == 0 ? "\nДальше: " : ", ").Append(game.DisplayNameOf(id));
                 shown++;
             }

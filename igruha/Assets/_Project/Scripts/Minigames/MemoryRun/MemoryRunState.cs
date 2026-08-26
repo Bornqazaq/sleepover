@@ -165,6 +165,30 @@ namespace Igruha.Minigames.MemoryRun
         }
 
         /// <summary>
+        /// Принять запись, посчитанную сервером. Зовётся только на машине без
+        /// авторитета — это зеркало, а не второй источник истины.
+        ///
+        /// Отдельным методом, а не публичным сеттером: три метода выше остаются
+        /// единственным способом что-то <i>посчитать</i>, и по ним видно, что
+        /// считает их только сервер.
+        ///
+        /// <see cref="FinishedCount"/> здесь не восстанавливается намеренно:
+        /// порядок прибытия уже приехал готовым в <c>ArrivalOrder</c>, а
+        /// раздавать его — дело сервера, и клиенту счётчик не нужен ни на что.
+        /// </summary>
+        public void ApplyReplicated(in MemoryRunProgress record)
+        {
+            if (indexById.TryGetValue(record.PlayerId, out int index))
+            {
+                records[index] = record;
+                return;
+            }
+
+            indexById[record.PlayerId] = records.Count;
+            records.Add(record);
+        }
+
+        /// <summary>
         /// Участник ушёл из матча. Запись остаётся: спека требует, чтобы
         /// ушедший сохранял достигнутое и получал место по лучшему результату.
         /// </summary>

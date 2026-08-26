@@ -5007,6 +5007,7 @@ GameObject:
   - component: {fileID: 756139781}
   - component: {fileID: 756139782}
   - component: {fileID: 756139783}
+  - component: {fileID: 756139784}
   m_Layer: 0
   m_Name: MinigameManager
   m_TagString: Untagged
@@ -5157,6 +5158,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.MemoryRun.MemoryRunLocalHud
   game: {fileID: 756139781}
   hud: {fileID: 150850380}
+--- !u!114 &756139784
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 756139773}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c40cba1010483054bb1b044c9b89476b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.MemoryRun.MemoryRunNetwork
 --- !u!1 &764699238
 GameObject:
   m_ObjectHideFlags: 0
