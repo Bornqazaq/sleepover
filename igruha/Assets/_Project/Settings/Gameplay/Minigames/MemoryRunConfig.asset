@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ca001b7d6b345164bbba1a829eb32b32, type: 3}
+  m_Name: MemoryRunConfig
+  m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.MemoryRun.MemoryRunConfig
+  steps: 10
+  maxSameLaneRun: 2
+  turnSeconds: 40
+  turnAnnounceSeconds: 2
+  deathLimit: 10
+  ragdollSeconds: 1.5
+  mineImpulse: 16
+  unitsPerWidth: 0.72
+  plateSize: 4
+  plateThickness: 0.5
+  laneGap: 1
+  stepGap: 2
+  hallWidth: 28
+  ceilingHeight: 10
+  pitDepth: 12
+  startZoneSize: 14
+  startZoneLift: 1
+  cameraClearance: 6.5
+  exitPadDepth: 8
+  gateHeight: 3
