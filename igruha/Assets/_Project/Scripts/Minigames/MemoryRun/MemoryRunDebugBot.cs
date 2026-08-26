@@ -67,6 +67,8 @@ namespace Igruha.Minigames.MemoryRun
         [SerializeField] private MemoryRunConfig config;
         [Tooltip("Писать в лог каждое отталкивание: скорость разгона, полоса и цель. Нужно, когда болванки не долетают")]
         [SerializeField] private bool logJumps;
+        [Tooltip("Отдать болванке и персонажа этой машины — тогда соло-прогон идёт целиком сам, без рук. Только для редактора: в сетевой сессии погонщик выключается раньше, чем сюда дойдёт")]
+        [SerializeField] private bool autopilotLocalPlayer;
 
         private bool[,] provedSafe;
         private bool[,] provedMine;
@@ -159,6 +161,11 @@ namespace Igruha.Minigames.MemoryRun
                 return;
             }
 
+            if (autopilotLocalPlayer)
+            {
+                EngageLocalAutopilot();
+            }
+
             PlayerController walker = game.CurrentWalker;
             if (walker == null)
             {
@@ -185,6 +192,26 @@ namespace Igruha.Minigames.MemoryRun
             }
 
             Drive(walker, reader);
+        }
+
+        /// <summary>
+        /// Отдать болванке персонажа этой машины, чтобы соло-прогон шёл сам.
+        ///
+        /// Иначе проверка каркаса упирается в человека за клавиатурой: первый
+        /// персонаж локально управляем, <c>DriveMove</c> ему запрещён, и его ход
+        /// каждый круг просто истекает по таймеру. Дёргать автопилот снаружи,
+        /// из play-режима, не годится — мост на выполнении кода ставит паузу,
+        /// и игра перестаёт тикать вовсе.
+        /// </summary>
+        private void EngageLocalAutopilot()
+        {
+            foreach (var reader in UnityEngine.Object.FindObjectsByType<PlayerInputReader>(FindObjectsSortMode.None))
+            {
+                if (reader.LocallyControlled && !reader.Autopilot)
+                {
+                    reader.EngageAutopilot();
+                }
+            }
         }
 
         private void Drive(PlayerController walker, PlayerInputReader reader)

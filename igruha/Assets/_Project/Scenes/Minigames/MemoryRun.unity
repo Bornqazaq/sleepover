@@ -5141,6 +5141,7 @@ MonoBehaviour:
   game: {fileID: 756139781}
   config: {fileID: 11400000, guid: c750d1f85c0e08f4eb0f993595d6f8d5, type: 2}
   logJumps: 0
+  autopilotLocalPlayer: 1
 --- !u!1 &764699238
 GameObject:
   m_ObjectHideFlags: 0
@@ -11532,7 +11533,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Spawning.PlayerSpawner
   roster: {fileID: 11400000, guid: e3b6a37137cf96c419aef650157ec842, type: 2}
   spawnPoints: {fileID: 1638957353}
-  debugPlayerCount: 4
+  debugPlayerCount: 8
   defaultRole: 0
 --- !u!114 &1638957353
 MonoBehaviour:
