@@ -64,6 +64,10 @@ if (-not ('UG.Native' -as [type])) {
 [DllImport("user32.dll")] public static extern IntPtr SendMessageTimeout(IntPtr h, uint msg, IntPtr wp, IntPtr lp, uint flags, uint ms, out IntPtr res);
 [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr h, uint msg, IntPtr wp, IntPtr lp);
 [DllImport("user32.dll")] public static extern IntPtr SendMessage(IntPtr h, uint msg, IntPtr wp, IntPtr lp);
+// WM_GETTEXT needs a buffer in lParam, and StringBuilder does NOT implicitly
+// convert to IntPtr - passing it to the overload above threw at every call,
+// which took `dialogs` and `read` down entirely. Separate Unicode declaration.
+[DllImport("user32.dll", CharSet=CharSet.Unicode, EntryPoint="SendMessageW")] public static extern IntPtr SendMessageText(IntPtr h, uint msg, IntPtr wp, System.Text.StringBuilder lp);
 [DllImport("user32.dll")] public static extern int GetDlgCtrlID(IntPtr h);
 [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr h, IntPtr hdc, uint flags);
 public delegate bool EnumWindowsProc(IntPtr h, IntPtr p);
@@ -85,7 +89,7 @@ function Get-Text([IntPtr] $h) {
         $len = [UG.Native]::SendMessage($h, $WM_GETTEXTLENGTH, [IntPtr]::Zero, [IntPtr]::Zero)
         if ([int]$len -gt 0) {
             $sb2 = New-Object System.Text.StringBuilder ([int]$len + 2)
-            [void][UG.Native]::SendMessage($h, $WM_GETTEXT, [IntPtr]$sb2.Capacity, $sb2)
+            [void][UG.Native]::SendMessageText($h, $WM_GETTEXT, [IntPtr]$sb2.Capacity, $sb2)
             $t = $sb2.ToString()
         }
     }
@@ -105,6 +109,13 @@ function Get-UnityPids {
         foreach ($p in @(Get-Process -Name $n -ErrorAction SilentlyContinue)) { $pids += $p.Id }
     }
     return $pids
+}
+
+# Только сам редактор, без Hub. `start` обязан смотреть именно сюда: Hub висит
+# в трее почти всегда, и проверка по Get-UnityPids считала редактор запущенным,
+# когда его не было вовсе, — автозапуск молча не срабатывал.
+function Get-EditorPids {
+    return @(Get-Process -Name 'Unity' -ErrorAction SilentlyContinue | ForEach-Object { $_.Id })
 }
 
 # $Pids empty or $null means "every process" - used by -All, so that a Windows
@@ -351,7 +362,7 @@ switch ($Action) {
     }
 
     'start' {
-        if (Get-UnityPids) { 'Unity is already running.'; break }
+        if (Get-EditorPids) { 'Unity is already running.'; break }
         $verFile = Join-Path $ProjectPath 'ProjectSettings\ProjectVersion.txt'
         if (-not (Test-Path $verFile)) { throw "ProjectVersion.txt not found under $ProjectPath" }
         $ver = (Select-String -Path $verFile -Pattern '^m_EditorVersion:\s*(\S+)').Matches[0].Groups[1].Value
@@ -368,7 +379,7 @@ switch ($Action) {
     }
 
     'stop' {
-        $pids = Get-UnityPids
+        $pids = Get-EditorPids
         if (-not $pids.Count) { 'Unity is not running.'; break }
         foreach ($p in $pids) { Stop-Process -Id $p -Force -ErrorAction SilentlyContinue }
         "stopped pids: $($pids -join ', ')"

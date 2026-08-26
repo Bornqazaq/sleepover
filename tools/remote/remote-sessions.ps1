@@ -27,10 +27,21 @@ $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 if (-not $Repo) { $Repo = $RepoRoot }
 
 # Resolve claude.exe from PATH first so this works on any machine whatever
-# install method was used; fall back to the native-install location.
+# install method was used; fall back to known install locations.
+# A native install puts claude.exe on PATH. An npm -g install does NOT: it only
+# creates claude.cmd/.ps1 shims in the npm root, while the real binary sits
+# inside the package. Looking on PATH alone made this script throw on a machine
+# where Claude Code was perfectly healthy (26.08, вторая машина).
 $claude = (Get-Command claude.exe -ErrorAction SilentlyContinue).Source
-if (-not $claude) { $claude = Join-Path $env:USERPROFILE '.local\bin\claude.exe' }
-if (-not (Test-Path $claude)) { throw 'claude.exe not found - install Claude Code first' }
+if (-not $claude) {
+    $claude = @(
+        (Join-Path $env:USERPROFILE '.local\bin\claude.exe'),
+        (Join-Path $env:APPDATA 'npm\node_modules\@anthropic-ai\claude-code\bin\claude.exe')
+    ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+}
+# Last resort: the npm shim. Start-Process handles .cmd, it just costs a shell.
+if (-not $claude) { $claude = (Get-Command claude -ErrorAction SilentlyContinue).Source }
+if (-not $claude) { throw 'claude executable not found - install Claude Code first' }
 if (-not (Test-Path $Repo))   { throw "directory not found: $Repo" }
 
 Remove-Item Env:ANTHROPIC_API_KEY -ErrorAction SilentlyContinue
