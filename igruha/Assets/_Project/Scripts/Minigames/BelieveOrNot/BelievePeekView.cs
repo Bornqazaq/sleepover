@@ -33,7 +33,14 @@ namespace Igruha.Minigames.BelieveOrNot
 
         private void Awake()
         {
-            SetRootActive(false);
+            // Прячемся только если панель не открывают прямо сейчас.
+            // У панели, выключенной в сцене, Awake впервые срабатывает ровно
+            // в момент её включения из Show() — и без этой проверки она
+            // гасила сама себя: флаг «открыта» стоял, а объекта на экране нет.
+            if (!IsOpen)
+            {
+                SetRootActive(false);
+            }
         }
 
         /// <summary>Показать карточку. Зовётся только у того, кто Знающий.</summary>
@@ -65,8 +72,8 @@ namespace Igruha.Minigames.BelieveOrNot
                     : "У тебя крест. Убеди его ПОМЕНЯТЬСЯ.";
             }
 
-            SetRootActive(true);
             IsOpen = true;
+            SetRootActive(true);
         }
 
         /// <summary>Сколько осталось до конца показа.</summary>

@@ -33,10 +33,16 @@ namespace Igruha.Minigames.Exam
         /// </summary>
         public void ShowWaiting(int questionNumber, int totalQuestions, float secondsLeft)
         {
+            // Отсчёт — в шапку, а не в строку вопроса: приклеенный к тексту,
+            // он читался как часть фразы и растягивал строку, из-за чего
+            // автоподбор кегля мельчил её на ровном месте.
             SetHeader(questionNumber, totalQuestions, 0);
-            SetText(questionText, secondsLeft > 0f
-                ? $"Ведущий готовит вопрос…  {Mathf.CeilToInt(secondsLeft)}"
-                : "Ведущий готовит вопрос…");
+            if (headerText != null && secondsLeft > 0f)
+            {
+                headerText.text += $"   •   {Mathf.CeilToInt(secondsLeft)} с";
+            }
+
+            SetText(questionText, "Ведущий готовит вопрос…");
             SetText(optionAText, string.Empty);
             SetText(optionBText, string.Empty);
             ResetColors();
