@@ -27,19 +27,19 @@ namespace Igruha.EditorTools
         private const float BoardUnitScale = 0.01f;
 
         /// <summary>Насколько камера Ведущего поднята над кафедрой, в метрах.</summary>
-        private const float PodiumCameraLift = 2.08f;
+        private const float PodiumCameraLift = 2.35f;
 
         /// <summary>Насколько камера Ведущего отставлена от кафедры в зал, в метрах.</summary>
-        private const float PodiumCameraDistance = 4.56f;
+        private const float PodiumCameraDistance = 7.2f;
 
         /// <summary>Сдвиг камеры Ведущего вбок — ракурс в три четверти, в метрах.</summary>
-        private const float PodiumCameraSide = 4.5f;
+        private const float PodiumCameraSide = 2.6f;
 
         /// <summary>Наклон камеры Ведущего вниз, в градусах.</summary>
-        private const float PodiumCameraPitch = 9f;
+        private const float PodiumCameraPitch = 4f;
 
         /// <summary>Доворот камеры Ведущего на кафедру, в градусах.</summary>
-        private const float PodiumCameraYaw = -45f;
+        private const float PodiumCameraYaw = -19f;
 
         /// <summary>Яркость ламп класса.</summary>
         private const float LampIntensity = 4f;
@@ -58,6 +58,36 @@ namespace Igruha.EditorTools
 
         /// <summary>Какую долю меньшей стороны платформы занимает буква.</summary>
         private const float LetterFitFactor = 0.55f;
+
+        /// <summary>Насколько буква на полу темнее указателя — чтобы не спорила с ним.</summary>
+        private const float LetterFloorTint = 0.75f;
+
+        /// <summary>Доля цвета варианта в покрытии платформы — намёк, а не заливка.</summary>
+        private const float PlatformTint = 0.3f;
+
+        /// <summary>Толщина рамки доски, в метрах.</summary>
+        private const float BoardFrameThickness = 0.12f;
+
+        /// <summary>Высота парты, в метрах.</summary>
+        private const float DeskHeight = 0.72f;
+
+        /// <summary>Сколько парт вдоль каждой боковой стены.</summary>
+        private const int DesksPerSide = 3;
+
+        /// <summary>Отступ парт от боковой стены, в метрах.</summary>
+        private const float DeskWallGap = 1.6f;
+
+        /// <summary>Z ближайшей к платформам парты, в метрах.</summary>
+        private const float DeskFirstZ = -0.4f;
+
+        /// <summary>Шаг между партами, в метрах.</summary>
+        private const float DeskSpacing = 1.9f;
+
+        /// <summary>Высота подвесного указателя варианта, в метрах.</summary>
+        private const float SignHeight = 3.9f;
+
+        /// <summary>Высота самой таблички указателя, в метрах.</summary>
+        private const float SignPlateHeight = 1.3f;
 
         [MenuItem("Igruha/Экзамен/Построить арену")]
         public static void Build()
@@ -95,6 +125,7 @@ namespace Igruha.EditorTools
             BuildPodium(root.transform, config, podiumZ);
             BuildBoard(root.transform, config, far);
             BuildReturnZone(root.transform, config, returnZ);
+            BuildDecor(root.transform, config, platformsZ, podiumZ, far);
 
             WireMinigameReferences(root);
 
@@ -305,8 +336,8 @@ namespace Igruha.EditorTools
 
             // Две половины-створки: петли по внешним краям, распахиваются вниз.
             float halfWidth = config.PlatformWidth * 0.5f;
-            var left = BuildDoor(go.transform, "DoorLeft", config, -halfWidth * 0.5f, halfWidth);
-            var right = BuildDoor(go.transform, "DoorRight", config, halfWidth * 0.5f, halfWidth);
+            var left = BuildDoor(go.transform, "DoorLeft", config, -halfWidth * 0.5f, halfWidth, side);
+            var right = BuildDoor(go.transform, "DoorRight", config, halfWidth * 0.5f, halfWidth, side);
 
             var hatch = go.AddComponent<HingedFloorHatch>();
             var hatchSo = new SerializedObject(hatch);
@@ -328,7 +359,7 @@ namespace Igruha.EditorTools
         /// Половина пола на петле. Петля — по внешнему краю платформы, поэтому
         /// сама створка смещена от оси на четверть ширины.
         /// </summary>
-        private static Transform BuildDoor(Transform parent, string name, ExamConfig config, float centerX, float hingeX)
+        private static Transform BuildDoor(Transform parent, string name, ExamConfig config, float centerX, float hingeX, ExamSide side)
         {
             var pivot = new GameObject(name);
             pivot.transform.SetParent(parent, false);
@@ -337,7 +368,7 @@ namespace Igruha.EditorTools
             var leaf = CreateBox(pivot.transform, "Leaf",
                 new Vector3(config.PlatformWidth * 0.5f, 0.2f, config.PlatformDepth),
                 new Vector3(-Mathf.Sign(centerX) * config.PlatformWidth * 0.25f, -0.1f, 0f),
-                new Color(0.78f, 0.6f, 0.36f));
+                Color.Lerp(new Color(0.74f, 0.7f, 0.62f), SideColor(side), PlatformTint));
             SetLayer(leaf, "Ground");
 
             return pivot.transform;
@@ -437,7 +468,7 @@ namespace Igruha.EditorTools
             text.fontSize = LetterCanvasUnits * 0.8f;
             text.alignment = TextAlignmentOptions.Center;
             text.textWrappingMode = TextWrappingModes.NoWrap;
-            text.color = new Color(0.16f, 0.14f, 0.10f, 0.85f);
+            text.color = SideColor(side) * LetterFloorTint;
 
             return canvasGo;
         }
@@ -538,6 +569,186 @@ namespace Igruha.EditorTools
             marker.transform.SetParent(parent, false);
             marker.transform.position = new Vector3(0f, 0.1f, z);
         }
+
+        /// <summary>
+        /// Обстановка класса: парты у стен, шкаф, вешалка, компьютер на
+        /// кафедре, рамка доски и подвесные указатели вариантов.
+        ///
+        /// Всё ещё блокаут из примитивов — настоящий арт приезжает в фазе 4.
+        /// Смысл здесь не в красоте: пустая коробка не читается как класс,
+        /// а вариант, написанный только на полу, с уровня глаз почти не виден.
+        ///
+        /// ⚠️ Мебель НЕ на слое Ground. Ground для камеры непрозрачен, и
+        /// деоклюдер начал бы дёргать кадр на каждой парте (igruha/CLAUDE.md,
+        /// 2a). Игрокам мебель при этом остаётся препятствием: коллайдер
+        /// работает независимо от слоя.
+        /// </summary>
+        private static void BuildDecor(Transform parent, ExamConfig config, float platformsZ, float podiumZ, float farZ)
+        {
+            var decor = new GameObject("Decor");
+            decor.transform.SetParent(parent, false);
+
+            BuildDeskRows(decor.transform, config);
+            BuildCabinet(decor.transform, config, farZ);
+            BuildCoatRack(decor.transform, config);
+            BuildHostComputer(decor.transform, config, podiumZ);
+            BuildBoardFrame(decor.transform, config, farZ);
+            BuildOverheadSigns(decor.transform, config, platformsZ);
+        }
+
+        /// <summary>Парты вдоль боковых стен — в проходе между платформами и зоной возврата.</summary>
+        private static void BuildDeskRows(Transform parent, ExamConfig config)
+        {
+            var wood = new Color(0.55f, 0.4f, 0.28f);
+            float x = config.HallWidth * 0.5f - DeskWallGap;
+
+            for (int side = 0; side < 2; side++)
+            {
+                float sideX = side == 0 ? -x : x;
+
+                for (int i = 0; i < DesksPerSide; i++)
+                {
+                    float z = DeskFirstZ - i * DeskSpacing;
+                    var desk = new GameObject("Desk_" + (side == 0 ? "L" : "R") + (i + 1));
+                    desk.transform.SetParent(parent, false);
+                    desk.transform.localPosition = new Vector3(sideX, 0f, z);
+
+                    CreateBox(desk.transform, "Top", new Vector3(1.6f, 0.08f, 0.7f),
+                        new Vector3(0f, DeskHeight, 0f), wood);
+                    CreateBox(desk.transform, "LegL", new Vector3(0.1f, DeskHeight, 0.6f),
+                        new Vector3(-0.7f, DeskHeight * 0.5f, 0f), wood * 0.8f);
+                    CreateBox(desk.transform, "LegR", new Vector3(0.1f, DeskHeight, 0.6f),
+                        new Vector3(0.7f, DeskHeight * 0.5f, 0f), wood * 0.8f);
+                    CreateBox(desk.transform, "Bench", new Vector3(1.6f, 0.08f, 0.34f),
+                        new Vector3(0f, DeskHeight * 0.6f, -0.75f), wood * 0.9f);
+                }
+            }
+        }
+
+        /// <summary>Шкаф у дальней стены, со стороны кафедры.</summary>
+        private static void BuildCabinet(Transform parent, ExamConfig config, float farZ)
+        {
+            float x = config.HallWidth * 0.5f - 1.2f;
+            CreateBox(parent, "Cabinet", new Vector3(1.8f, 2.3f, 0.6f),
+                new Vector3(-x, 1.15f, farZ - 0.6f), new Color(0.42f, 0.31f, 0.22f));
+        }
+
+        /// <summary>Вешалка у боковой стены: стойка и перекладина.</summary>
+        private static void BuildCoatRack(Transform parent, ExamConfig config)
+        {
+            float x = config.HallWidth * 0.5f - 0.9f;
+            var metal = new Color(0.3f, 0.31f, 0.34f);
+
+            var rack = new GameObject("CoatRack");
+            rack.transform.SetParent(parent, false);
+            rack.transform.localPosition = new Vector3(x, 0f, -2.5f);
+
+            CreateBox(rack.transform, "Post", new Vector3(0.1f, 1.9f, 0.1f), new Vector3(0f, 0.95f, 0f), metal);
+            CreateBox(rack.transform, "Bar", new Vector3(0.08f, 0.08f, 2.4f), new Vector3(0f, 1.85f, 0f), metal);
+        }
+
+        /// <summary>Тумба с ретро-монитором на кафедре (спека 4.6).</summary>
+        private static void BuildHostComputer(Transform parent, ExamConfig config, float podiumZ)
+        {
+            var desk = new GameObject("HostDesk");
+            desk.transform.SetParent(parent, false);
+            desk.transform.localPosition = new Vector3(0f, config.PodiumHeight, podiumZ - 1.3f);
+
+            CreateBox(desk.transform, "Stand", new Vector3(1.4f, 1.05f, 0.65f),
+                new Vector3(0f, 0.52f, 0f), new Color(0.5f, 0.36f, 0.25f));
+            CreateBox(desk.transform, "Monitor", new Vector3(0.55f, 0.45f, 0.5f),
+                new Vector3(-0.35f, 1.28f, 0f), new Color(0.78f, 0.76f, 0.7f));
+            CreateBox(desk.transform, "Screen", new Vector3(0.42f, 0.32f, 0.02f),
+                new Vector3(-0.35f, 1.3f, -0.26f), new Color(0.15f, 0.35f, 0.2f));
+        }
+
+        /// <summary>Рамка доски — четыре бруска по периметру.</summary>
+        private static void BuildBoardFrame(Transform parent, ExamConfig config, float farZ)
+        {
+            float width = config.HallWidth * 0.45f;
+            float height = config.CeilingHeight * 0.5f;
+            float centerY = config.CeilingHeight * 0.6f;
+            float z = farZ - 0.3f - BoardThickness * 0.5f - BoardFrameThickness * 0.5f;
+            var frame = new Color(0.35f, 0.25f, 0.16f);
+
+            CreateBox(parent, "BoardFrame_Top", new Vector3(width + BoardFrameThickness * 2f, BoardFrameThickness, BoardFrameThickness),
+                new Vector3(0f, centerY + height * 0.5f, z), frame);
+            CreateBox(parent, "BoardFrame_Bottom", new Vector3(width + BoardFrameThickness * 2f, BoardFrameThickness, BoardFrameThickness),
+                new Vector3(0f, centerY - height * 0.5f, z), frame);
+            CreateBox(parent, "BoardFrame_Left", new Vector3(BoardFrameThickness, height, BoardFrameThickness),
+                new Vector3(-width * 0.5f - BoardFrameThickness * 0.5f, centerY, z), frame);
+            CreateBox(parent, "BoardFrame_Right", new Vector3(BoardFrameThickness, height, BoardFrameThickness),
+                new Vector3(width * 0.5f + BoardFrameThickness * 0.5f, centerY, z), frame);
+        }
+
+        /// <summary>
+        /// Подвесные указатели А и Б над платформами.
+        ///
+        /// Буква на полу читается только сверху, а глаза персонажа в метре
+        /// с небольшим над ней: с уровня игрока площадки различались плохо.
+        /// Указатель виден с любой точки зала и с обеих сторон.
+        /// </summary>
+        private static void BuildOverheadSigns(Transform parent, ExamConfig config, float platformsZ)
+        {
+            float offset = (config.PlatformWidth + config.PlatformGap) * 0.5f;
+
+            for (int i = 0; i < 2; i++)
+            {
+                ExamSide side = i == 0 ? ExamSide.A : ExamSide.B;
+                float x = i == 0 ? -offset : offset;
+
+                var sign = new GameObject("Sign_" + (side == ExamSide.A ? "A" : "B"));
+                sign.transform.SetParent(parent, false);
+                sign.transform.localPosition = new Vector3(x, SignHeight, platformsZ);
+
+                // Подвес ровно от верха таблички до потолка: посчитанный
+                // «на глаз» он протыкал перекрытие и торчал над классом.
+                float plateHalf = SignPlateHeight * 0.5f;
+                float ropeLength = config.CeilingHeight - SignHeight - plateHalf;
+                CreateBox(sign.transform, "Rope", new Vector3(0.06f, ropeLength, 0.06f),
+                    new Vector3(0f, plateHalf + ropeLength * 0.5f, 0f), new Color(0.3f, 0.3f, 0.32f));
+                CreateBox(sign.transform, "Plate", new Vector3(2.4f, SignPlateHeight, 0.1f),
+                    Vector3.zero, new Color(0.93f, 0.92f, 0.88f));
+
+                // Обе стороны: с одной надписью табличка читалась бы с изнанки
+                // зеркально — половине зала.
+                CreateSignFace(sign.transform, "Face_Front", side, new Vector3(0f, 0f, -0.07f), 0f);
+                CreateSignFace(sign.transform, "Face_Back", side, new Vector3(0f, 0f, 0.07f), 180f);
+            }
+        }
+
+        private static void CreateSignFace(Transform parent, string name, ExamSide side, Vector3 localPosition, float yaw)
+        {
+            var canvasGo = new GameObject(name, typeof(Canvas));
+            canvasGo.transform.SetParent(parent, false);
+            canvasGo.transform.localPosition = localPosition;
+            canvasGo.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
+            canvasGo.GetComponent<Canvas>().renderMode = RenderMode.WorldSpace;
+
+            var rect = (RectTransform)canvasGo.transform;
+            rect.sizeDelta = new Vector2(240f, 130f);
+            rect.localScale = Vector3.one * 0.01f;
+
+            var text = new GameObject("Letter", typeof(TextMeshProUGUI));
+            text.transform.SetParent(canvasGo.transform, false);
+            var textRect = (RectTransform)text.transform;
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+
+            var tmp = text.GetComponent<TextMeshProUGUI>();
+            tmp.text = side == ExamSide.A ? "А" : "Б";
+            tmp.fontSize = 110f;
+            tmp.alignment = TextAlignmentOptions.Center;
+            tmp.textWrappingMode = TextWrappingModes.NoWrap;
+            tmp.color = SideColor(side);
+        }
+
+        /// <summary>Цвет варианта: один и тот же на полу и на указателе.</summary>
+        private static Color SideColor(ExamSide side) => side == ExamSide.A
+            ? new Color(0.16f, 0.42f, 0.72f)
+            : new Color(0.78f, 0.5f, 0.09f);
 
         private static GameObject CreateBox(Transform parent, string name, Vector3 size, Vector3 position, Color color)
         {

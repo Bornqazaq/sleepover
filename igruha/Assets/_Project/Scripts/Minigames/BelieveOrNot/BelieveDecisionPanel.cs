@@ -36,7 +36,14 @@ namespace Igruha.Minigames.BelieveOrNot
 
         private void Awake()
         {
-            SetRootActive(false);
+            // Прячемся только если панель не открывают прямо сейчас.
+            // У панели, выключенной в сцене, Awake впервые срабатывает ровно
+            // в момент её включения из Open() — и без этой проверки она
+            // гасила сама себя: флаг «открыта» стоял, а объекта на экране нет.
+            if (!IsOpen)
+            {
+                SetRootActive(false);
+            }
 
             keepButton?.onClick.AddListener(() => Pick(Decision.Keep));
             swapButton?.onClick.AddListener(() => Pick(Decision.Swap));
@@ -60,8 +67,8 @@ namespace Igruha.Minigames.BelieveOrNot
 
             cursor.Release();
 
-            SetRootActive(true);
             IsOpen = true;
+            SetRootActive(true);
         }
 
         /// <summary>Сколько осталось до конца уговоров.</summary>
