@@ -136,6 +136,10 @@ namespace Igruha.Core.Player
         private bool movementLocked;
         private bool facingOverridden;
         private Component surfaceSource;
+        private Component speedCapSource;
+
+        /// <summary>Потолок скорости от внешней роли, м/с. Ноль — потолка нет.</summary>
+        private float speedCap;
         private float fallSpeed;
         private bool wasGrounded = true;
         private float launchGraceTimer;
@@ -427,6 +431,36 @@ namespace Igruha.Core.Player
             DecelerationMultiplier = 1f;
         }
 
+        /// <summary>
+        /// Опустить потолок скорости: роль мини-игры ограничивает бег, не трогая
+        /// общий <c>CharacterConfig</c>. Несущий бутыль в «Переноске предмета»
+        /// бежит 2.9 м/с вместо 6.5 — иначе он просто убегает от того, что несёт.
+        ///
+        /// Источник запоминается той же парой, что у поверхностей: две роли,
+        /// повесившие потолок одновременно, не сбрасывают друг друга случайно.
+        /// Потолок только опускает скорость и никогда не поднимает: значение
+        /// выше <c>config.MaxSpeed</c> ничего не меняет.
+        ///
+        /// Разгон и торможение остаются прежними — меняется только предел.
+        /// </summary>
+        public void ApplySpeedCap(Component source, float maxSpeed)
+        {
+            speedCapSource = source;
+            speedCap = Mathf.Max(0f, maxSpeed);
+        }
+
+        /// <summary>Снять потолок скорости. Срабатывает, только если его ставил этот же источник.</summary>
+        public void ClearSpeedCap(Component source)
+        {
+            if (speedCapSource != source)
+            {
+                return;
+            }
+
+            speedCapSource = null;
+            speedCap = 0f;
+        }
+
         private void UpdateCrouch()
         {
             // Ввод читаем только у ридера, который реально управляет этой копией.
@@ -560,6 +594,14 @@ namespace Igruha.Core.Player
         {
             Vector3 desiredDirection = ToCameraRelative(moveInput);
             float maxSpeed = config.MaxSpeed * Mathf.Lerp(1f, config.CrouchSpeedMultiplier, crouchBlend);
+
+            // Потолок роли только опускает предел и никогда не поднимает: присед
+            // под ним остаётся приседом, а не становится бегом.
+            if (speedCap > 0f)
+            {
+                maxSpeed = Mathf.Min(maxSpeed, speedCap);
+            }
+
             Vector3 desiredVelocity = Vector3.ClampMagnitude(desiredDirection, 1f) * maxSpeed;
             Vector3 currentHorizontal = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
 
