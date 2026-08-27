@@ -1405,7 +1405,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Punch
-  m_Speed: 1.2
+  m_Speed: 1.5600001
   m_CycleOffset: 0
   m_Transitions:
   - {fileID: 8755511528109458591}
@@ -1418,7 +1418,7 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: -203655887218126122, guid: b5a3aaf96ab6a6b4fab3ff696f82d3f7, type: 3}
+  m_Motion: {fileID: -203655887218126122, guid: 49f3e3771d82a6b4e8418befbfef709b, type: 3}
   m_Tag: 
   m_SpeedParameter: 
   m_MirrorParameter: 
