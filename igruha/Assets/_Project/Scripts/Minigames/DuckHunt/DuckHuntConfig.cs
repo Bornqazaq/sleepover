@@ -64,6 +64,8 @@ namespace Igruha.Minigames.DuckHunt
         [SerializeField] private float cameraPitchLimit = 55f;
         [Tooltip("Потолок скорости поворота, °/с. У Охотника обзор свободный — в отличие от Водящего «Ангелов», здесь ограничение даёт сама перспектива, а не скорость мыши")]
         [SerializeField] private float cameraTurnSpeed = 720f;
+        [Tooltip("Сдвиг камеры от глаза, м: X вбок, Y вверх, Z назад. Охотник смотрит от ТРЕТЬЕГО лица, из-за плеча: с отводом назад видно и его самого, и ружьё. Z меньше — камера ближе к затылку, Y больше — выше над плечом. Ноль по всем осям вернёт вид от первого лица (и тогда голова прячется, иначе она занимает весь кадр)")]
+        [SerializeField] private Vector3 cameraOffset = new Vector3(0f, 0.35f, 1.4f);
 
         [Header("Ловушки")]
         [Tooltip("Перезарядка кнопки, с. Общая для всех трёх ловушек")]
@@ -137,6 +139,7 @@ namespace Igruha.Minigames.DuckHunt
         public float HorizontalFieldOfView => horizontalFieldOfView;
         public float CameraPitchLimit => cameraPitchLimit;
         public float CameraTurnSpeed => cameraTurnSpeed;
+        public Vector3 CameraOffset => cameraOffset;
 
         // ========== ЛОВУШКИ ==========
 

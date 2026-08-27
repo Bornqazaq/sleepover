@@ -13,10 +13,18 @@ using Igruha.Core.UI;
 namespace Igruha.Core.Hub
 {
     /// <summary>
-    /// Запуск хаба: в сети ждёт ростер (персонажей уже создал сервер) и вешает
-    /// камеру на своего игрока; в одиночку — экран выбора персонажа, затем
-    /// спавн 2–8 персонажей через PlayerSpawner (см. его network-guard: если
-    /// сеть уже поднята, локальный спавн сам себя пропускает).
+    /// Запуск хаба: экран выбора персонажа, затем ожидание состава и камера на
+    /// своего игрока.
+    ///
+    /// Выбор идёт в обоих режимах. В сети он раньше пропускался вовсе —
+    /// персонажа выдавал сервер прямо в одобрении подключения, потому что NGO
+    /// берёт префаб именно там. Теперь одобрение тела не создаёт, и порядок
+    /// такой: показали экран → отправили намерение → сервер закрепил персонажа
+    /// и создал тело → ждём, пока тела появятся у всех.
+    ///
+    /// В одиночку — тот же экран, дальше спавн 2–8 персонажей через
+    /// PlayerSpawner (см. его network-guard: если сеть уже поднята, локальный
+    /// спавн сам себя пропускает).
     /// </summary>
     public sealed class HubBootstrap : MonoBehaviour
     {
@@ -42,8 +50,16 @@ namespace Igruha.Core.Hub
             bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
             IReadOnlyList<SessionPlayer> players;
 
+            if (characterSelect == null || roster == null)
+            {
+                Debug.LogError($"{name}: HubBootstrap не настроен (characterSelect/roster)", this);
+                yield break;
+            }
+
             if (networked)
             {
+                yield return ChooseCharacterNetworked();
+
                 yield return WaitForNetworkRoster();
                 ISessionScoreboard scoreboard = SessionScoreboard.Current;
                 if (scoreboard == null || scoreboard.Players.Count == 0)
@@ -56,28 +72,28 @@ namespace Igruha.Core.Hub
             }
             else
             {
-                if (playerSpawner == null || characterSelect == null || roster == null)
+                if (playerSpawner == null)
                 {
-                    Debug.LogError($"{name}: HubBootstrap не настроен (playerSpawner/characterSelect/roster)", this);
+                    Debug.LogError($"{name}: HubBootstrap не настроен (playerSpawner)", this);
                     yield break;
                 }
 
-                CharacterDefinition chosen = null;
+                int chosenIndex = -1;
                 bool choiceMade = false;
-                characterSelect.Show(roster, picked =>
+                characterSelect.Show(roster, null, picked =>
                 {
-                    chosen = picked;
+                    chosenIndex = picked;
                     choiceMade = true;
                 });
                 yield return new WaitUntil(() => choiceMade);
 
-                if (chosen == null)
+                if (chosenIndex < 0 || chosenIndex >= roster.Characters.Count)
                 {
                     Debug.LogError($"{name}: персонаж не выбран — спавн отменён", this);
                     yield break;
                 }
 
-                players = playerSpawner.SpawnPlayers(chosen);
+                players = playerSpawner.SpawnPlayers(roster.Characters[chosenIndex]);
             }
 
             if (players.Count == 0)
@@ -86,6 +102,47 @@ namespace Igruha.Core.Hub
             }
 
             yield return BindLocalPlayer(players, networked);
+        }
+
+        /// <summary>
+        /// Показать экран выбора и дождаться, пока сервер закрепит персонажа.
+        ///
+        /// Ждём сначала сам сервис выбора: он приезжает вместе с табло катки,
+        /// а сцена хаба может успеть загрузиться раньше. Без ожидания экран
+        /// открылся бы без связи с сервером — занятые не гасились бы, а клик
+        /// уходил в пустоту.
+        ///
+        /// Закрытие экрана решает сервер, а не клик: подтверждением служит
+        /// <c>HasChosen</c>. Так закрывается и случай, когда персонажа выдали
+        /// по истечении срока, — экран гаснет сам.
+        /// </summary>
+        private IEnumerator ChooseCharacterNetworked()
+        {
+            float deadline = Time.realtimeSinceStartup + networkRosterTimeout;
+
+            while (CharacterSelection.Current == null && Time.realtimeSinceStartup < deadline)
+            {
+                yield return null;
+            }
+
+            ICharacterSelection selection = CharacterSelection.Current;
+            if (selection == null)
+            {
+                Debug.LogError($"{name}: сетевая сессия не отдала выбор персонажа — играем тем, что даст сервер", this);
+                yield break;
+            }
+
+            if (selection.HasChosen)
+            {
+                yield break;
+            }
+
+            characterSelect.Show(roster, selection, _ => { });
+
+            while (characterSelect.IsOpen && Time.realtimeSinceStartup < deadline)
+            {
+                yield return null;
+            }
         }
 
         private IEnumerator WaitForNetworkRoster()

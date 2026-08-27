@@ -35,18 +35,50 @@ namespace Igruha.EditorTools
         // Границы секций этажа в ШП (спека, раздел 3.4).
         private const float EntryEnd = 6f;
         private const float ParkourStart = 6f;
-        private const float ParkourEnd = 18f;
-        private const float CoverStart = 18f;
+        // Паркур занимает треть этажа, а не двенадцать ШП. На коротком отрезке
+        // при дальности прыжка в 6.5 ШП умещается два прыжка — это не паркур,
+        // а две ступеньки. Удлинение — единственный способ сделать его дорогой,
+        // которую действительно проходят, а не перешагивают.
+        private const float ParkourEnd = 22f;
+        private const float CoverStart = 22f;
         private const float TrapZoneStart = 28f;
         private const float StairRoomStart = 40f;
 
         private const float ButtonProgress = 29f;
-        private const float ButtonProgressDoorFloor5 = 27f;
         private const float ButtonProgressGeyserFloor5 = 31f;
-        /// <summary>Смещение кнопки от середины коридора в сторону открытой грани, ШП. Нажать — значит выйти на простреливаемое место.</summary>
+        /// <summary>Смещение рычага от середины коридора в сторону открытой грани, ШП. Нажать — значит выйти на простреливаемое место.</summary>
         private const float ButtonOffsetFromPath = 4f;
 
         private const float DoorProgress = 40f;
+
+        /// <summary>За сколько секунд створка проходит путь целиком.</summary>
+        private const float DoorMoveDuration = 0.35f;
+
+        // Рычаг размером с ладонь, а не с человека. Прежняя кнопка была столбом
+        // с головой в полтора ШП: она читалась как часть планировки, загораживала
+        // проход и стояла в стороне от того, что открывает. Заметность держится
+        // не размером, а местом — рычаг врезан туда, куда игрок и так тянется.
+
+        /// <summary>Ширина плиты рычага попёрек грани, ШП.</summary>
+        private const float LeverPlateWidth = 0.35f;
+        /// <summary>Высота плиты рычага, ШП.</summary>
+        private const float LeverPlateHeight = 0.45f;
+        /// <summary>На сколько плита выступает из грани, ШП.</summary>
+        private const float LeverPlateDepth = 0.12f;
+        /// <summary>Длина ручки, ШП.</summary>
+        private const float LeverHandleLength = 0.5f;
+        /// <summary>Толщина ручки, ШП.</summary>
+        private const float LeverHandleThickness = 0.11f;
+        /// <summary>Наклон ручки от перпендикуляра к плите, градусы. Вверх — готов, вниз — на перезарядке.</summary>
+        private const float LeverTiltDegrees = 42f;
+        /// <summary>Высота ручки над полом, на котором стоит нажимающий, ШП. Уровень ладони.</summary>
+        private const float LeverHandHeight = 1.15f;
+        /// <summary>Отступ рычага двери от края лаза, ШП.</summary>
+        private const float LeverGateOffset = 0.55f;
+        /// <summary>Высота тумбы под рычагом ловушки, ШП — по пояс.</summary>
+        private const float LeverPedestalHeight = 1.1f;
+        /// <summary>Сторона тумбы, ШП.</summary>
+        private const float LeverPedestalSize = 0.9f;
         private const float CollapseStart = 34f;
         private const float CollapseEnd = 40f;
         private const float GeyserStart = 33f;
@@ -125,7 +157,53 @@ namespace Igruha.EditorTools
         private const float GateFirstStepWidths = 0.5f;
 
         /// <summary>Сторона паркурного блока, ШП.</summary>
-        private const float ParkourBlockSize = 1.5f;
+        // ========== ПРОПАСТИ ==========
+
+        /// <summary>
+        /// Сколько пропастей режется в перекрытии этажа сверх сквозных.
+        /// Пол этажа — не площадка, а решето: упасть можно почти везде,
+        /// и дорога через этаж выбирается, а не пробегается.
+        /// </summary>
+        private const int FloorHoleCount = 6;
+
+        /// <summary>
+        /// Сквозные пропасти — те, что стоят на одной и той же мировой отметке
+        /// на всех этажах. Провалившись в такую, летишь не на этаж ниже, а до
+        /// самого низа башни. Треть от общего числа: если такими сделать все,
+        /// этажи перестанут отличаться друг от друга.
+        /// </summary>
+        private const int ThroughHoleCount = 3;
+
+        private const float HoleMinLength = 2.5f;
+        private const float HoleMaxLength = 5.5f;
+        private const float HoleMinWidth = 3f;
+        private const float HoleMaxWidth = 6f;
+
+        /// <summary>Куда пропасти не лезут: торцы этажа, стены, соседние дыры. ШП.</summary>
+        private const float HoleClearance = 1.5f;
+
+        /// <summary>Где режутся случайные пропасти: зона укрытий и ловушек, ШП по трассе.</summary>
+        private const float HoleZoneStart = 24f;
+        private const float HoleZoneEnd = 32f;
+
+        /// <summary>
+        /// Полоса, где сквозные пропасти безопасно ложатся на любом этаже.
+        /// Считается в мировом X, а не в прогрессе: змейка разворачивает трассу
+        /// через этаж, и «одно и то же место» — это одно и то же X, иначе
+        /// пропасти разъедутся зеркально и сквозного колодца не выйдет.
+        /// Границы держат её подальше от обоих торцов, где на каждом втором
+        /// этаже стоит лестничная комната или вход.
+        /// </summary>
+        private const float ThroughHoleXMin = 12f;
+        private const float ThroughHoleXMax = 36f;
+
+        /// <summary>
+        /// Глубина ямы под паркуром первого этажа, ШП. На остальных этажах там
+        /// сквозная дыра, а на первом ронять некуда — под ним конец башни.
+        /// </summary>
+        private const float PitDepthWidths = 2.5f;
+
+        private const float ParkourBlockSize = 1.1f;
         /// <summary>Толщина паркурного блока, ШП.</summary>
         private const float ParkourBlockThickness = 0.6f;
         /// <summary>На сколько ШП соседние блоки расходятся по высоте. Прыжок берёт 2.27 — держим втрое меньше.</summary>
@@ -177,8 +255,11 @@ namespace Igruha.EditorTools
         /// виду у Охотника. Прижимать её к самому краю нельзя — площадка
         /// высотой до 2 ШП встаёт на пути настильного выстрела вдоль этажа.
         /// </summary>
-        private const float ParkourNearZ = 3f;
-        private const float ParkourWidth = 4f;
+        // Паркур раскинут почти на весь коридор, а не на узкую полосу: под ним
+        // теперь пропасть во всю глубину, и прыжок вбок — такая же часть дороги,
+        // как прыжок вперёд. Узкая полоса позволяла пробежать по краю.
+        private const float ParkourNearZ = 1.5f;
+        private const float ParkourWidth = 11f;
 
         /// <summary>Этаж: сколько укрытий, самый длинный открытый участок, разрывов паркура и максимальный разрыв (спека, раздел 3.9).</summary>
         private readonly struct FloorPlan
@@ -224,6 +305,34 @@ namespace Igruha.EditorTools
         private static readonly List<DuckHuntStairs> builtStairs = new List<DuckHuntStairs>(8);
         private static readonly List<string> warnings = new List<string>(8);
 
+        /// <summary>Прямоугольная дыра в перекрытии: координаты арены, X вдоль трассы, Z поперёк.</summary>
+        private readonly struct Hole
+        {
+            public readonly float XMin;
+            public readonly float XMax;
+            public readonly float ZMin;
+            public readonly float ZMax;
+
+            public Hole(float xMin, float xMax, float zMin, float zMax)
+            {
+                XMin = Mathf.Min(xMin, xMax);
+                XMax = Mathf.Max(xMin, xMax);
+                ZMin = Mathf.Min(zMin, zMax);
+                ZMax = Mathf.Max(zMin, zMax);
+            }
+
+            public bool Overlaps(float xMin, float xMax, float zMin, float zMax, float pad) =>
+                xMax > XMin - pad && xMin < XMax + pad && zMax > ZMin - pad && zMin < ZMax + pad;
+
+            public bool CoversColumn(float x) => x > XMin && x < XMax;
+        }
+
+        /// <summary>Сквозные пропасти — одни и те же на всех этажах.</summary>
+        private static readonly List<Hole> throughHoles = new List<Hole>(4);
+
+        /// <summary>Дыры текущего этажа: сквозные, случайные, паркурная пропасть и проём лестницы.</summary>
+        private static readonly List<Hole> slabHoles = new List<Hole>(24);
+
         private static Material floorMaterial;
         private static Material wallMaterial;
         private static Material coverHighMaterial;
@@ -258,6 +367,7 @@ namespace Igruha.EditorTools
             }
 
             random = new System.Random(Seed);
+            BuildThroughHoles();
             builtTraps.Clear();
             builtGeysers.Clear();
             builtStairs.Clear();
@@ -369,11 +479,6 @@ namespace Igruha.EditorTools
             float bottom = baseY - SlabWidths;
             int piece = 0;
 
-            bool hasHole = floor > 0;
-            GetStairHoleRange(floor - 1, out float holeXMin, out float holeXMax);
-            float holeZMin = StairHoleZMin;
-            float holeZMax = StairHoleZMax;
-
             // Провал стоит на четвёртом этаже: кусок пола перед выходной дверью.
             bool hasCollapse = floor == 3;
             float collapseMin = 0f;
@@ -383,12 +488,16 @@ namespace Igruha.EditorTools
                 GetXRange(floor, CollapseStart, CollapseEnd, out collapseMin, out collapseMax);
             }
 
-            // Границы по X, на которых меняется характер перекрытия.
+            CollectSlabHoles(floor);
+
+            // Перекрытие режется полосами по X, а внутри полосы — по Z.
+            // Прямоугольные вырезы иначе не собрать: дыр много, они не выстроены
+            // в линию, и каждая обязана оставить вокруг себя целый пол.
             var edges = new List<float> { 0f, length };
-            if (hasHole)
+            for (int i = 0; i < slabHoles.Count; i++)
             {
-                edges.Add(holeXMin);
-                edges.Add(holeXMax);
+                edges.Add(Mathf.Clamp(slabHoles[i].XMin, 0f, length));
+                edges.Add(Mathf.Clamp(slabHoles[i].XMax, 0f, length));
             }
 
             if (hasCollapse)
@@ -399,6 +508,7 @@ namespace Igruha.EditorTools
 
             edges.Sort();
 
+            var gaps = new List<Vector2>(8);
             for (int i = 0; i < edges.Count - 1; i++)
             {
                 float from = edges[i];
@@ -416,20 +526,219 @@ namespace Igruha.EditorTools
                     continue;
                 }
 
-                // Полоса с проёмом: сплошная всюду, кроме глубины самого проёма.
-                if (hasHole && middle > holeXMin && middle < holeXMax)
+                gaps.Clear();
+                for (int h = 0; h < slabHoles.Count; h++)
                 {
-                    Box(slab, $"Slab_{++piece}", groundLayer, floorMaterial, from, to, bottom, top, 0f, holeZMin);
-                    Box(slab, $"Slab_{++piece}", groundLayer, floorMaterial, from, to, bottom, top, holeZMax, depth);
-                    continue;
+                    if (slabHoles[h].CoversColumn(middle))
+                    {
+                        gaps.Add(new Vector2(slabHoles[h].ZMin, slabHoles[h].ZMax));
+                    }
                 }
 
-                Box(slab, $"Slab_{++piece}", groundLayer, floorMaterial, from, to, bottom, top, 0f, depth);
+                MergeRanges(gaps);
+
+                float cursor = 0f;
+                for (int gIndex = 0; gIndex < gaps.Count; gIndex++)
+                {
+                    float gapMin = Mathf.Clamp(gaps[gIndex].x, 0f, depth);
+                    float gapMax = Mathf.Clamp(gaps[gIndex].y, 0f, depth);
+                    if (gapMin - cursor > 0.001f)
+                    {
+                        Box(slab, $"Slab_{++piece}", groundLayer, floorMaterial, from, to, bottom, top, cursor, gapMin);
+                    }
+
+                    cursor = Mathf.Max(cursor, gapMax);
+                }
+
+                if (depth - cursor > 0.001f)
+                {
+                    Box(slab, $"Slab_{++piece}", groundLayer, floorMaterial, from, to, bottom, top, cursor, depth);
+                }
             }
 
             if (hasCollapse)
             {
                 BuildCollapseTrap(root, floor, collapseMin, collapseMax, bottom, top, depth);
+            }
+
+            if (floor == 0)
+            {
+                BuildParkourPit(root, floor, baseY);
+            }
+        }
+
+        /// <summary>
+        /// Собрать все дыры этажа: проём лестницы, пропасть под паркуром,
+        /// сквозные колодцы и случайные провалы.
+        ///
+        /// Первый этаж — единственный без пропастей: под ним конца башни нет,
+        /// и провалившийся улетал бы из локации, а не на этаж ниже. Паркурная
+        /// пропасть там всё равно режется, но под ней строится дно (см.
+        /// <see cref="BuildParkourPit"/>) — упасть можно, вылететь из уровня нельзя.
+        /// </summary>
+        private static void CollectSlabHoles(int floor)
+        {
+            slabHoles.Clear();
+
+            // Проём над лестницей этажа ниже — без него на этаж не подняться.
+            if (floor > 0)
+            {
+                GetStairHoleRange(floor - 1, out float stairXMin, out float stairXMax);
+                slabHoles.Add(new Hole(stairXMin, stairXMax, StairHoleZMin, StairHoleZMax));
+            }
+
+            // Пропасть под паркуром во всю глубину коридора. Она и делает
+            // паркур единственной дорогой: обойти её по краю нельзя, потому
+            // что края у неё нет.
+            GetParkourSpan(floor, out float parkourXMin, out float parkourXMax);
+            slabHoles.Add(new Hole(parkourXMin, parkourXMax, 0f, DepthWidths));
+
+            if (floor == 0)
+            {
+                return;
+            }
+
+            // Сквозные — одни и те же на всех этажах, поэтому летишь до низа.
+            for (int i = 0; i < throughHoles.Count; i++)
+            {
+                slabHoles.Add(throughHoles[i]);
+            }
+
+            // Случайные — свои на каждом этаже.
+            int placed = 0;
+            for (int attempt = 0; attempt < FloorHoleCount * 12 && placed < FloorHoleCount; attempt++)
+            {
+                float length = Mathf.Lerp(HoleMinLength, HoleMaxLength, (float)random.NextDouble());
+                float width = Mathf.Lerp(HoleMinWidth, HoleMaxWidth, (float)random.NextDouble());
+
+                float progress = Mathf.Lerp(HoleZoneStart, HoleZoneEnd - length, (float)random.NextDouble());
+                GetXRange(floor, progress, progress + length, out float xMin, out float xMax);
+                float zMin = Mathf.Lerp(HoleClearance, DepthWidths - HoleClearance - width, (float)random.NextDouble());
+                float zMax = zMin + width;
+
+                if (IsHoleBlocked(xMin, xMax, zMin, zMax))
+                {
+                    continue;
+                }
+
+                slabHoles.Add(new Hole(xMin, xMax, zMin, zMax));
+                placed++;
+            }
+        }
+
+        /// <summary>
+        /// Сквозные пропасти. Раскладываются один раз на всю башню и в мировом
+        /// X: змейка разворачивает трассу через этаж, и место, заданное
+        /// прогрессом, на соседнем этаже оказалось бы зеркальным — колодца
+        /// не получилось бы.
+        /// </summary>
+        private static void BuildThroughHoles()
+        {
+            throughHoles.Clear();
+
+            for (int attempt = 0; attempt < ThroughHoleCount * 20 && throughHoles.Count < ThroughHoleCount; attempt++)
+            {
+                float length = Mathf.Lerp(HoleMinLength, HoleMaxLength, (float)random.NextDouble());
+                float width = Mathf.Lerp(HoleMinWidth, HoleMaxWidth, (float)random.NextDouble());
+
+                float xMin = Mathf.Lerp(ThroughHoleXMin, ThroughHoleXMax - length, (float)random.NextDouble());
+                float zMin = Mathf.Lerp(HoleClearance, DepthWidths - HoleClearance - width, (float)random.NextDouble());
+
+                var hole = new Hole(xMin, xMin + length, zMin, zMin + width);
+
+                bool clash = false;
+                for (int i = 0; i < throughHoles.Count; i++)
+                {
+                    if (throughHoles[i].Overlaps(hole.XMin, hole.XMax, hole.ZMin, hole.ZMax, HoleClearance))
+                    {
+                        clash = true;
+                        break;
+                    }
+                }
+
+                if (!clash)
+                {
+                    throughHoles.Add(hole);
+                }
+            }
+        }
+
+        /// <summary>Пропасть нельзя ставить: она задевает уже занятое место или другую дыру.</summary>
+        private static bool IsHoleBlocked(float xMin, float xMax, float zMin, float zMax)
+        {
+            for (int i = 0; i < slabHoles.Count; i++)
+            {
+                if (slabHoles[i].Overlaps(xMin, xMax, zMin, zMax, HoleClearance))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>Слить пересекающиеся отрезки в один — иначе полоса пола резалась бы на куски внахлёст.</summary>
+        private static void MergeRanges(List<Vector2> ranges)
+        {
+            if (ranges.Count < 2)
+            {
+                return;
+            }
+
+            ranges.Sort((a, b) => a.x.CompareTo(b.x));
+            for (int i = ranges.Count - 1; i > 0; i--)
+            {
+                if (ranges[i].x <= ranges[i - 1].y)
+                {
+                    ranges[i - 1] = new Vector2(ranges[i - 1].x, Mathf.Max(ranges[i - 1].y, ranges[i].y));
+                    ranges.RemoveAt(i);
+                }
+            }
+        }
+
+        /// <summary>Где по X лежит паркурная пропасть этажа.</summary>
+        private static void GetParkourSpan(int floor, out float xMin, out float xMax)
+        {
+            float start = ParkourStart;
+            if (floor > 0)
+            {
+                GetStairHoleRange(floor - 1, out float holeXMin, out float holeXMax);
+                start = Mathf.Max(start, Mathf.Max(GetProgress(floor, holeXMin), GetProgress(floor, holeXMax)));
+            }
+
+            GetXRange(floor, start, ParkourEnd, out xMin, out xMax);
+        }
+
+        /// <summary>
+        /// Дно ямы под паркуром первого этажа. Ниже него башня кончается,
+        /// поэтому сквозной дыры здесь быть не может: сорвавшийся должен
+        /// потерять время и лезть заново, а не вылететь из уровня.
+        /// Выбраться помогают две ступени у дальнего края.
+        /// </summary>
+        private static void BuildParkourPit(Transform root, int floor, float baseY)
+        {
+            Transform group = ResetGroup(root, "ParkourPit");
+            GetParkourSpan(floor, out float xMin, out float xMax);
+
+            float floorTop = baseY - PitDepthWidths;
+            float floorBottom = floorTop - SlabWidths;
+
+            Box(group, "PitFloor", groundLayer, floorMaterial, xMin, xMax, floorBottom, floorTop, 0f, DepthWidths);
+            Box(group, "PitWall_Near", groundLayer, wallMaterial,
+                xMin - WallThickness, xMin, floorBottom, baseY, 0f, DepthWidths);
+            Box(group, "PitWall_Far", groundLayer, wallMaterial,
+                xMax, xMax + WallThickness, floorBottom, baseY, 0f, DepthWidths);
+
+            // Лесенка наружу — у той стороны, куда игрок и шёл.
+            bool forward = IsForward(floor);
+            float stepDepth = 1.2f;
+            for (int i = 0; i < 2; i++)
+            {
+                float top = floorTop + (i + 1) * (PitDepthWidths / 3f);
+                float from = forward ? xMax - (i + 1) * stepDepth : xMin + i * stepDepth;
+                float to = from + stepDepth;
+                Box(group, $"PitStep_{i + 1}", groundLayer, platformMaterial,
+                    from, to, floorTop, top, 0f, DepthWidths);
             }
         }
 
@@ -509,8 +818,18 @@ namespace Igruha.EditorTools
             float gateBottom = baseY + GateSillWidths;
             float gateTop = gateBottom + GateHeightWidths;
 
-            Box(room, "Partition_Below", groundLayer, wallMaterial,
-                partitionMin, partitionMax, baseY, gateBottom, 0f, DepthWidths);
+            // Низ перегородки — три куска, а не один: под лазом оставлена ниша
+            // ровно по створке. Раньше открытая створка уезжала вниз внутрь
+            // сплошной стены, и две стены стояли одна в другой.
+            float slotTop = gateBottom;
+            float slotBottom = gateBottom - GateHeightWidths;
+
+            Box(room, "Partition_Below_Near", groundLayer, wallMaterial,
+                partitionMin, partitionMax, baseY, slotTop, 0f, gateMin);
+            Box(room, "Partition_Below_Far", groundLayer, wallMaterial,
+                partitionMin, partitionMax, baseY, slotTop, gateMax, DepthWidths);
+            Box(room, "Partition_Below_Sill", groundLayer, wallMaterial,
+                partitionMin, partitionMax, baseY, slotBottom, gateMin, gateMax);
             Box(room, "Partition_Above", groundLayer, wallMaterial,
                 partitionMin, partitionMax, gateTop, baseY + ceiling, 0f, DepthWidths);
             Box(room, "Partition_SideA", groundLayer, wallMaterial,
@@ -520,7 +839,9 @@ namespace Igruha.EditorTools
 
             BuildGateApproach(root, floor, baseY, gateMin, gateMax);
             BuildStairPlatforms(room, floor, baseY);
-            BuildDoorTrap(root, floor, partitionMin, partitionMax, gateBottom, gateTop, gateMin, gateMax);
+
+            DoorTrap door = BuildDoorTrap(root, floor, partitionMin, partitionMax, gateBottom, gateTop, gateMin, gateMax);
+            BuildDoorLevers(root, floor, door, partitionMin, partitionMax, gateBottom, gateMin);
         }
 
         /// <summary>
@@ -734,12 +1055,25 @@ namespace Igruha.EditorTools
             // Разрывы идут ритмом «длинный — короткий — средний», а не одинаковые:
             // ровная цепочка проходится одним заученным ритмом. Самый длинный
             // разрыв берётся из таблицы 3.9 — это и есть прогрессия сложности по этажам.
-            float[] gapPattern = { plan.MaxGap, plan.MaxGap * 0.55f, plan.MaxGap * 0.8f };
+            // Ритм считается от предельного прыжка этажа, но большинство
+            // разрывов средние: цепочка из восьми прыжков подряд тяжелее двух
+            // предельных, и ошибиться в ней можно на любом. Длинный разрыв
+            // идёт четвёртым — там, где игрок уже поймал ритм и расслабился.
+            float longGap = Mathf.Min(plan.MaxGap, JumpRangeWidths * JumpSafetyShare - ParkourBlockSize);
+            float[] gapPattern =
+            {
+                longGap * 0.55f,
+                longGap * 0.75f,
+                longGap * 0.45f,
+                longGap,
+                longGap * 0.6f
+            };
 
             float cursor = start;
             float height = 1f;
             float previousZ = ParkourNearZ + (ParkourWidth - ParkourBlockSize) * 0.5f;
             int index = 0;
+            float lastLanded = start;
 
             while (cursor + ParkourBlockSize <= ParkourEnd + 0.01f)
             {
@@ -748,8 +1082,8 @@ namespace Igruha.EditorTools
                 // Высота гуляет вверх-вниз: ровная лесенка проходится не глядя,
                 // а перепад заставляет целиться.
                 height = Mathf.Clamp(
-                    height + (float)(random.NextDouble() * 2f - 1f) * ParkourHeightStep,
-                    0.6f, 2.2f);
+                    height + (float)(random.NextDouble() * 2f - 1f) * ParkourHeightStep * 1.6f,
+                    0.6f, 2.6f);
 
                 // Сдвиг попёрек — вторая ось прицеливания. Но он складывается
                 // с разрывом по теореме Пифагора, и на длинных разрывах его надо
@@ -778,6 +1112,20 @@ namespace Igruha.EditorTools
                 Box(group, $"Block_{index:00}", groundLayer, platformMaterial,
                     xMin, xMax, bottom, baseY + height, z, z + ParkourBlockSize);
                 previousZ = z;
+                lastLanded = cursor - gap;
+            }
+
+            // Последний блок вплотную к дальнему краю пропасти. Без него цепочка
+            // обрывается там, где кончился ритм разрывов, и остаток до твёрдого
+            // пола может оказаться длиннее прыжка — паркур станет непроходимым,
+            // а не сложным.
+            float tail = ParkourEnd - lastLanded;
+            if (tail > JumpRangeWidths * JumpSafetyShare)
+            {
+                GetXRange(floor, ParkourEnd - ParkourBlockSize, ParkourEnd, out float tailXMin, out float tailXMax);
+                float tailZ = Mathf.Clamp(previousZ, ParkourNearZ, ParkourNearZ + ParkourWidth - ParkourBlockSize);
+                Box(group, "Block_Tail", groundLayer, platformMaterial,
+                    tailXMin, tailXMax, baseY, baseY + 1f, tailZ, tailZ + ParkourBlockSize);
             }
         }
 
@@ -872,26 +1220,26 @@ namespace Igruha.EditorTools
         }
 
         /// <summary>
-        /// Линии «кнопка → зона эффекта» этажа в координатах трассы (p, z).
+        /// Линии «рычаг → зона эффекта» этажа в координатах трассы (p, z).
         /// Заданы числами, а не построенными объектами: укрытия строятся
         /// раньше ловушек, а расступиться перед линией должны именно они.
+        ///
+        /// Двери в списке нет намеренно. Её рычаги врезаны в перегородку по обе
+        /// стороны лаза: нажимающий стоит вплотную к зоне эффекта и смотрит
+        /// прямо в неё, проверять там нечего.
         /// </summary>
         private static List<Vector4> GetTrapSightLines(int floor)
         {
             var lines = new List<Vector4>(2);
 
-            // Линия идёт из середины постамента, а не из его угла: иначе
-            // проверочный луч стартует внутри самой кнопки и упирается в неё.
+            // Линия идёт из середины тумбы, а не из её угла: иначе проверочный
+            // луч стартует внутри самого рычага и упирается в него.
             float buttonZ = PathDepth - ButtonOffsetFromPath + 0.5f;
-            float doorwayZ = StairFlightANearZ + DoorwayWidth * 0.5f;
             float geyserZ = (DepthWidths - 5f) * 0.5f + 2.5f;
             float geyserP = (GeyserStart + GeyserEnd) * 0.5f;
 
             switch (floor)
             {
-                case 1:
-                    lines.Add(new Vector4(ButtonProgress + 0.5f, buttonZ, DoorProgress, doorwayZ));
-                    break;
                 case 2:
                     lines.Add(new Vector4(ButtonProgress + 0.5f, buttonZ, geyserP, geyserZ));
                     break;
@@ -899,7 +1247,6 @@ namespace Igruha.EditorTools
                     lines.Add(new Vector4(ButtonProgress + 0.5f, buttonZ, (CollapseStart + CollapseEnd) * 0.5f, DepthWidths * 0.5f));
                     break;
                 case 4:
-                    lines.Add(new Vector4(ButtonProgressDoorFloor5 + 0.5f, buttonZ, DoorProgress, doorwayZ));
                     lines.Add(new Vector4(ButtonProgressGeyserFloor5 + 0.5f, buttonZ, geyserP, geyserZ));
                     break;
             }
@@ -997,35 +1344,69 @@ namespace Igruha.EditorTools
 
         private static void BuildFloorTrap(Transform root, int floor, float baseY)
         {
+            // Рычагов двери здесь нет: они врезаны в саму перегородку и
+            // ставятся вместе с ней, в BuildStairRoom — все её числа известны
+            // только там.
             switch (floor)
             {
-                case 1:
-                    BuildButton(root, floor, baseY, ButtonProgress, "Door", FindTrap(root, "DoorTrap"));
-                    break;
                 case 2:
                     BuildGeyser(root, floor, baseY, ButtonProgress);
                     break;
                 case 3:
-                    BuildButton(root, floor, baseY, ButtonProgress, "Collapse", FindTrap(root, "CollapseTrap"));
+                    BuildPedestalLever(root, floor, baseY, ButtonProgress, "Collapse", "Провал",
+                        FindTrap(root, "CollapseTrap"));
                     break;
                 case 4:
-                    BuildButton(root, floor, baseY, ButtonProgressDoorFloor5, "Door", FindTrap(root, "DoorTrap"));
                     BuildGeyser(root, floor, baseY, ButtonProgressGeyserFloor5);
                     break;
             }
         }
 
         /// <summary>
-        /// Дверь на выходе с этажа. Захлопнувшись, она держит подбежавшего
-        /// снаружи — на открытом месте под обстрелом.
+        /// Рычаги двери — по одному на каждой грани перегородки, вплотную к
+        /// косяку лаза. Внешний жмёт тот, кто подбегает к лазу снаружи,
+        /// внутренний — тот, кто уже прошёл и хочет запереть проход за собой.
+        /// Захлопнуть можно и догоняя, и убегая.
+        ///
+        /// Раньше обе кнопки стояли столбами в стороне от лаза, и нажатие
+        /// требовало отдельного крюка к постаменту. Рычаг врезан в ту самую
+        /// стену, которую он закрывает: до него дотягиваются тем же движением,
+        /// каким лезут в проём. Дотянуться можно только с высоты порога — с
+        /// пола коридора рычаг вне радиуса, и подниматься по блокам всё равно
+        /// придётся.
         /// </summary>
-        private static void BuildDoorTrap(Transform root, int floor, float xMin, float xMax, float yMin, float yMax, float zMin, float zMax)
+        private static void BuildDoorLevers(Transform root, int floor, TrapBase door,
+            float partitionMin, float partitionMax, float gateBottom, float gateMin)
         {
-            if (floor != 1 && floor != 4)
+            if (door == null)
             {
                 return;
             }
 
+            // Коридор лежит со стороны меньшего прогресса, лестничная комната —
+            // большего. На нечётных этажах трасса идёт против X, и грани
+            // перегородки меняются местами.
+            bool forward = IsForward(floor);
+            float outerX = forward ? partitionMin : partitionMax;
+            float outerSign = forward ? -1f : 1f;
+
+            // Рычаг сидит на Partition_SideA — глухом куске перегородки сбоку
+            // от лаза, на его же высоте. Заняты обе грани: подбегающий видит
+            // свой рычаг снаружи, прошедший — свой изнутри.
+            float z = gateMin - LeverGateOffset;
+            float y = gateBottom + LeverHandHeight;
+
+            BuildWallLever(root, "Lever_DoorOuter", "Дверь", door, outerX, outerSign, y, z);
+            BuildWallLever(root, "Lever_DoorInner", "Дверь", door,
+                forward ? partitionMax : partitionMin, -outerSign, y, z);
+        }
+
+        /// <summary>
+        /// Дверь на выходе с этажа. Захлопнувшись, она держит подбежавшего
+        /// снаружи — на открытом месте под обстрелом.
+        /// </summary>
+        private static DoorTrap BuildDoorTrap(Transform root, int floor, float xMin, float xMax, float yMin, float yMax, float zMin, float zMax)
+        {
             Transform group = ResetGroup(root, "DoorTrap");
             var door = group.gameObject.AddComponent<DoorTrap>();
 
@@ -1049,11 +1430,22 @@ namespace Igruha.EditorTools
             so.FindProperty("closedLocalPosition").vector3Value = closed;
             so.FindProperty("openLocalPosition").vector3Value = open;
             so.FindProperty("closedDuration").floatValue = config.DoorClosedDuration;
-            so.FindProperty("cooldown").floatValue = config.ButtonCooldown;
+
+            // Дверь — переключатель, и кулдауна у неё нет по определению:
+            // рычаг закрывает и открывает проход сколько угодно раз подряд.
+            // Кулдаун из конфига остаётся у мгновенных ловушек, где нажатие
+            // разовое и повтор надо чем-то ограничивать.
+            so.FindProperty("cooldown").floatValue = 0f;
+
+            // Ход створки задаём явно: мгновенная дверь читается как телепорт,
+            // медленная перестаёт быть ловушкой. Треть секунды на два с половиной
+            // ШП — быстро, но глаз успевает за движением.
+            so.FindProperty("moveDuration").floatValue = DoorMoveDuration;
             so.ApplyModifiedPropertiesWithoutUndo();
 
             panel.transform.localPosition = open;
             builtTraps.Add(door);
+            return door;
         }
 
         /// <summary>
@@ -1118,40 +1510,129 @@ namespace Igruha.EditorTools
 
             builtTraps.Add(trap);
             builtGeysers.Add(trap);
-            BuildButton(root, floor, baseY, buttonProgress, "Geyser", trap);
+            BuildPedestalLever(root, floor, baseY, buttonProgress, "Geyser", "Гейзер", trap);
         }
 
         /// <summary>
-        /// Кнопка ловушки. Смещена от кратчайшего пути в сторону открытой грани:
-        /// отклонился ради подставы — потерял время и подставился под выстрел.
-        /// Это и есть цена нажатия.
+        /// Рычаг ловушки на тумбе. Место то же, что у прежней кнопки: в стороне
+        /// от кратчайшего пути, к открытой грани — отклонился ради подставы,
+        /// потерял время и подставился под выстрел. Это и есть цена нажатия.
+        /// Изменился только сам предмет: тумба по пояс вместо столба в рост.
         /// </summary>
-        private static void BuildButton(Transform root, int floor, float baseY, float progress, string label, TrapBase trap)
+        private static void BuildPedestalLever(Transform root, int floor, float baseY, float progress,
+            string label, string displayName, TrapBase trap)
         {
             if (trap == null)
             {
                 return;
             }
 
-            Transform group = ResetGroup(root, $"Button_{label}");
-            float z = PathDepth - ButtonOffsetFromPath;
+            Transform group = ResetGroup(root, $"Lever_{label}");
 
-            GetXRange(floor, progress, progress + 1f, out float xMin, out float xMax);
-            GameObject post = Box(group, "Post", groundLayer, buttonReadyMaterial,
-                xMin, xMax, baseY, baseY + 2f, z, z + 1f);
+            float z = PathDepth - ButtonOffsetFromPath;
+            GetXRange(floor, progress, progress + LeverPedestalSize, out float xMin, out float xMax);
+            float top = baseY + LeverPedestalHeight;
+
+            Box(group, "Pedestal", groundLayer, wallMaterial, xMin, xMax, baseY, top, z, z + LeverPedestalSize);
+
+            float centerX = (xMin + xMax) * 0.5f;
+            float centerZ = z + LeverPedestalSize * 0.5f;
+            Box(group, "Plate", groundLayer, wallMaterial,
+                centerX - LeverPlateWidth * 0.5f, centerX + LeverPlateWidth * 0.5f,
+                top, top + LeverPlateDepth,
+                centerZ - LeverPlateWidth * 0.5f, centerZ + LeverPlateWidth * 0.5f);
+
+            // Ручка стоит на плите и заваливается вдоль трассы. Поперёк нельзя:
+            // с одной стороны она смотрела бы в открытую грань и терялась на
+            // фоне пустоты, с другой — в упор в укрытия.
+            AttachLever(group, trap, displayName, ToWorld(centerX, top + LeverPlateDepth, centerZ),
+                new Vector3(0f, 0f, -LeverTiltDegrees), new Vector3(0f, 0f, LeverTiltDegrees));
+        }
+
+        /// <summary>
+        /// Рычаг на вертикальной грани: плита заподлицо со стеной и ручка,
+        /// торчащая наружу по нормали. <paramref name="outSign"/> — в какую
+        /// сторону по X смотрит грань.
+        /// </summary>
+        private static void BuildWallLever(Transform root, string groupName, string displayName,
+            TrapBase trap, float faceX, float outSign, float y, float z)
+        {
+            Transform group = ResetGroup(root, groupName);
+
+            float plateOuterX = faceX + outSign * LeverPlateDepth;
+            Box(group, "Plate", groundLayer, wallMaterial,
+                Mathf.Min(faceX, plateOuterX), Mathf.Max(faceX, plateOuterX),
+                y - LeverPlateHeight * 0.5f, y + LeverPlateHeight * 0.5f,
+                z - LeverPlateWidth * 0.5f, z + LeverPlateWidth * 0.5f);
+
+            // Ручка ходит в вертикальной плоскости: вверх — готов, вниз — на
+            // перезарядке. Углы считаются от перпендикуляра к плите, поэтому на
+            // противоположных гранях перегородки они зеркальны.
+            float ready = outSign > 0f ? -(90f - LeverTiltDegrees) : 90f - LeverTiltDegrees;
+            float fired = outSign > 0f ? -(90f + LeverTiltDegrees) : 90f + LeverTiltDegrees;
+
+            AttachLever(group, trap, displayName, ToWorld(plateOuterX, y, z),
+                new Vector3(0f, 0f, ready), new Vector3(0f, 0f, fired));
+        }
+
+        /// <summary>
+        /// Ручка рычага и его начинка: кнопка взаимодействия плюс сам рычаг.
+        ///
+        /// Ручка — отдельный поворачиваемый узел, а не просто куб: поворот идёт
+        /// вокруг точки крепления к плите, а не вокруг середины ручки.
+        /// Коллайдера у неё нет намеренно — она вращается, и телу игрока в ней
+        /// делать нечего; чтобы дотянуться, хватает коллайдера плиты. Цветом
+        /// готовности красится именно ручка: она же и меняет положение, так что
+        /// оба признака состояния лежат на одном предмете.
+        /// </summary>
+        private static void AttachLever(Transform group, TrapBase trap, string displayName,
+            Vector3 hinge, Vector3 readyEuler, Vector3 firedEuler)
+        {
+            var pivot = new GameObject("Handle");
+            pivot.transform.SetParent(group, false);
+            pivot.transform.position = hinge;
+
+            var bar = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            bar.name = "Bar";
+            bar.layer = groundLayer;
+            bar.transform.SetParent(pivot.transform, false);
+            Object.DestroyImmediate(bar.GetComponent<Collider>());
+
+            float length = config.ToUnits(LeverHandleLength);
+            float thickness = config.ToUnits(LeverHandleThickness);
+            bar.transform.localPosition = new Vector3(0f, length * 0.5f, 0f);
+            bar.transform.localScale = new Vector3(thickness, length, thickness);
+            bar.GetComponent<MeshRenderer>().sharedMaterial = buttonReadyMaterial;
 
             var button = group.gameObject.AddComponent<TrapActivationButton>();
-            var so = new SerializedObject(button);
-            so.FindProperty("buttonName").stringValue = label;
+            var buttonSo = new SerializedObject(button);
+            buttonSo.FindProperty("buttonName").stringValue = displayName;
 
-            SerializedProperty traps = so.FindProperty("traps");
+            SerializedProperty traps = buttonSo.FindProperty("traps");
             traps.arraySize = 1;
             traps.GetArrayElementAtIndex(0).objectReferenceValue = trap;
 
-            so.FindProperty("indicator").objectReferenceValue = post.GetComponent<MeshRenderer>();
-            so.FindProperty("readyMaterial").objectReferenceValue = buttonReadyMaterial;
-            so.FindProperty("cooldownMaterial").objectReferenceValue = buttonBusyMaterial;
-            so.ApplyModifiedPropertiesWithoutUndo();
+            buttonSo.FindProperty("indicator").objectReferenceValue = bar.GetComponent<MeshRenderer>();
+            buttonSo.FindProperty("readyMaterial").objectReferenceValue = buttonReadyMaterial;
+            buttonSo.FindProperty("cooldownMaterial").objectReferenceValue = buttonBusyMaterial;
+            buttonSo.ApplyModifiedPropertiesWithoutUndo();
+
+            // Без NetworkObject нажатие по сети не доезжает вообще: мост ищет
+            // его в родителях цели и, не найдя, отклоняет намерение целиком
+            // (предупреждение в лог, ловушка молчит). Компонент висит на самом
+            // рычаге, а не на арене: по присланной ссылке сервер обязан узнать
+            // именно этот рычаг, иначе он возьмёт первый интерактив в башне.
+            group.gameObject.AddComponent<Unity.Netcode.NetworkObject>();
+
+            var lever = group.gameObject.AddComponent<TrapLever>();
+            var leverSo = new SerializedObject(lever);
+            leverSo.FindProperty("trap").objectReferenceValue = trap;
+            leverSo.FindProperty("handle").objectReferenceValue = pivot.transform;
+            leverSo.FindProperty("readyEuler").vector3Value = readyEuler;
+            leverSo.FindProperty("firedEuler").vector3Value = firedEuler;
+            leverSo.ApplyModifiedPropertiesWithoutUndo();
+
+            pivot.transform.localRotation = Quaternion.Euler(readyEuler);
         }
 
         private static TrapBase FindTrap(Transform root, string groupName)
@@ -1327,10 +1808,12 @@ namespace Igruha.EditorTools
             Object.DestroyImmediate(barrier.GetComponent<MeshFilter>());
 
             // Единственное укрытие на крыше — по спеке ровно одно, на X = 40.
-            // По глубине отодвинуто от проёма лестницы: там оно перекрыло бы
-            // выход на крышу.
+            // Стоит у бортика, а не у глухой стены: Охотник бьёт с лифта, то
+            // есть из-за открытой грани, и укрытие имеет смысл только между ним
+            // и Уткой. У дальней стены оно не прикрывало ни от чего.
+            // Ближе к проёму лестницы не ставим — там оно перекрыло бы выход.
             Box(root, "Cover_Roof", coverLayer, coverHighMaterial,
-                40f, 42f, baseY, baseY + HighCoverWidths, 9f, 11f);
+                40f, 42f, baseY, baseY + HighCoverWidths, 0.8f, 2.8f);
         }
 
         private static DuckHuntFinishZone BuildFinishZone(Transform tower)
@@ -1565,10 +2048,9 @@ namespace Igruha.EditorTools
         /// Видит ли нажимающий зону эффекта своей ловушки (спека, 5.1): без
         /// прямой видимости нажатие — лотерея.
         ///
-        /// У двери целимся в ПРОЁМ, а не в саму створку. Открытая створка
-        /// припаркована в толще задней стены, и луч до неё честно упирается в
-        /// стену — проверка по створке показывает перекрытие там, где его нет.
-        /// Ровно на это попался замер 19.08.
+        /// Проверяются только ловушки с разнесёнными рычагом и зоной эффекта —
+        /// Гейзер и Провал. У двери они совмещены (рычаги на самой перегородке),
+        /// и в списке линий её нет.
         /// </summary>
         private static void ValidateButtonSightLines()
         {
@@ -1583,24 +2065,18 @@ namespace Igruha.EditorTools
                 {
                     Vector4 line = lines[i];
                     Vector3 eye = ToWorld(GetX(floor, line.x), baseY + EyeHeightWidths, line.y);
-                    // Зона эффекта двери — это лаз, а он поднят на три ШП.
-                    // Метить в пол перед перегородкой бессмысленно: там теперь
-                    // глухая стена, и блоки подъёма закрывают её законно.
-                    float targetHeight = Mathf.Approximately(line.z, DoorProgress)
-                        ? GateSillWidths + GateHeightWidths * 0.5f
-                        : EyeHeightWidths * 0.5f;
-                    Vector3 target = ToWorld(GetX(floor, line.z), baseY + targetHeight, line.w);
+                    Vector3 target = ToWorld(GetX(floor, line.z), baseY + EyeHeightWidths * 0.5f, line.w);
                     Vector3 direction = (target - eye).normalized;
 
-                    // Стартуем на шаг от постамента: игрок стоит рядом с
-                    // кнопкой, а не внутри неё.
+                    // Стартуем на шаг от тумбы: игрок стоит рядом с рычагом,
+                    // а не внутри него.
                     Vector3 origin = eye + direction * config.ToUnits(1.5f);
                     float distance = Vector3.Distance(origin, target);
 
                     if (Physics.Raycast(origin, direction, out RaycastHit hit, distance - 0.1f, mask, QueryTriggerInteraction.Ignore))
                     {
                         warnings.Add(
-                            $"этаж {floor + 1}: от кнопки на p={line.x:F0} не видно зону эффекта на p={line.z:F0} — " +
+                            $"этаж {floor + 1}: от рычага на p={line.x:F0} не видно зону эффекта на p={line.z:F0} — " +
                             $"луч упирается в «{hit.collider.name}» на {hit.distance:F2} м");
                     }
                 }
@@ -1820,9 +2296,14 @@ namespace Igruha.EditorTools
 
             floorMaterial = EnsureMaterial("DH_Floor", new Color(0.55f, 0.55f, 0.58f));
             wallMaterial = EnsureMaterial("DH_Wall", new Color(0.38f, 0.38f, 0.42f));
-            coverHighMaterial = EnsureMaterial("DH_CoverHigh", new Color(0.62f, 0.45f, 0.28f));
-            coverLowMaterial = EnsureMaterial("DH_CoverLow", new Color(0.78f, 0.66f, 0.36f));
-            platformMaterial = EnsureMaterial("DH_Platform", new Color(0.35f, 0.55f, 0.65f));
+            // Укрытия и площадки — того же серого, что и вся башня: решение
+            // геймдизайнера. Цвета были разные (коричневый, песочный, синий),
+            // и арена рябила. Обратная сторона — низкое укрытие больше не
+            // отличается от высокого на глаз, и разбирать их придётся по высоте.
+            Color blockGrey = new Color(0.5f, 0.5f, 0.53f);
+            coverHighMaterial = EnsureMaterial("DH_CoverHigh", blockGrey);
+            coverLowMaterial = EnsureMaterial("DH_CoverLow", blockGrey);
+            platformMaterial = EnsureMaterial("DH_Platform", blockGrey);
             iceMaterial = EnsureMaterial("DH_Ice", new Color(0.72f, 0.86f, 0.95f));
             trapMaterial = EnsureMaterial("DH_Trap", new Color(0.65f, 0.3f, 0.3f));
             buttonReadyMaterial = EnsureMaterial("DH_ButtonReady", new Color(0.9f, 0.2f, 0.2f));

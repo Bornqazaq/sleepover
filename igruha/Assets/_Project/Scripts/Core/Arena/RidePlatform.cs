@@ -15,13 +15,18 @@ namespace Igruha.Core.Arena
     /// — <see cref="DriveMode.Scripted"/>: едет туда, куда сказали правила игры,
     ///   и пассажир на это не влияет (клетка «Секундомера»).
     ///
+    /// Поверх обоих лежит третий источник высоты — <see cref="ApplyNetworkHeight"/>:
+    /// машина, которая высотой не распоряжается, едет к присланной отметке и
+    /// своего хода не считает вовсе. Скриптовому режиму он не нужен, тот сходится
+    /// сам по общим часам; а вот ход по оси ввода сойтись не может — ось живёт
+    /// у одного игрока, и повторить её у себя остальным нечем.
+    ///
     /// <b>Пассажира несёт та машина, которой он принадлежит.</b> Авторитет над
     /// позицией персонажа у владельца (ClientNetworkTransform), и сервер чужого
     /// игрока сдвинуть не может — это ограничение IGR-297. Обойти его удаётся
-    /// потому, что сама платформа движется детерминированно: одна и та же
-    /// начальная точка, цель и длительность дают одинаковый путь на всех
-    /// машинах, поэтому расхождения не возникает и синхронизировать пассажира
-    /// отдельно не нужно.
+    /// потому, что платформа на каждой машине едет к одной и той же отметке:
+    /// у скриптового хода она считается от общих часов, у сетевого приходит
+    /// с сервера. Пассажира довозит его собственная машина.
     ///
     /// Не отвечает за то, чтобы с платформы нельзя было сойти: борта и крышу
     /// строит то, что платформу использует (у клетки это прутья и крыша).
@@ -29,6 +34,20 @@ namespace Igruha.Core.Arena
     [RequireComponent(typeof(Rigidbody))]
     public sealed class RidePlatform : MonoBehaviour
     {
+        /// <summary>
+        /// Во сколько раз быстрее своего хода платформа догоняет присланную
+        /// высоту. Ровно на своей скорости она отставала бы навсегда: доля
+        /// секунды, потерянная пакетом на дороге, не отыгрывается уже никак.
+        /// </summary>
+        private const float NetworkCatchUpFactor = 1.35f;
+
+        /// <summary>
+        /// С какого расхождения присланная высота ставится сразу, м. Меньшее
+        /// доводится ходом: платформа, прыгающая на каждом пакете, читается
+        /// как сломанная, а полтора метра она проходит за полсекунды.
+        /// </summary>
+        private const float NetworkSnapDistance = 1.5f;
+
         public enum DriveMode
         {
             /// <summary>Едет по оси ввода пассажира.</summary>
@@ -64,6 +83,10 @@ namespace Igruha.Core.Arena
         private double scriptedStartTime;
         private bool scriptedFromClock;
 
+        /// <summary>Высотой распоряжается не эта машина: едем к присланной отметке.</summary>
+        private bool followsNetwork;
+        private float networkY;
+
         public DriveMode Mode
         {
             get => mode;
@@ -75,10 +98,26 @@ namespace Igruha.Core.Arena
             }
         }
 
+        /// <summary>Высоту платформы задаёт сервер, а не эта машина.</summary>
+        public bool FollowsNetwork => followsNetwork;
+
         /// <summary>Едет ли платформа прямо сейчас.</summary>
-        public bool Moving => mode == DriveMode.Scripted ? scripted : !Mathf.Approximately(axis, 0f);
+        public bool Moving
+        {
+            get
+            {
+                if (followsNetwork)
+                {
+                    return !Mathf.Approximately(CurrentY, ClampedNetworkY);
+                }
+
+                return mode == DriveMode.Scripted ? scripted : !Mathf.Approximately(axis, 0f);
+            }
+        }
 
         public float CurrentY => body != null ? body.position.y : transform.position.y;
+
+        private float ClampedNetworkY => Mathf.Clamp(networkY, minY, maxY);
 
         private void Awake()
         {
@@ -117,6 +156,30 @@ namespace Igruha.Core.Arena
             }
 
             axis = Mathf.Clamp(value, -1f, 1f);
+        }
+
+        /// <summary>
+        /// Высота, решённая сервером. Пока она приходит, платформа едет к ней,
+        /// а ось ввода и скриптовый ход на этой машине не работают: две руки
+        /// на одной платформе дают рывки в обе стороны.
+        ///
+        /// Отметка запоминается, а не применяется разово. Стоящая платформа
+        /// новых значений не шлёт — и, не помни мы последнюю, любой локальный
+        /// сдвиг (например, <see cref="SnapTo"/> на старте раунда) остался бы
+        /// на этой машине навсегда.
+        /// </summary>
+        public void ApplyNetworkHeight(float y)
+        {
+            followsNetwork = true;
+            networkY = y;
+            axis = 0f;
+            scripted = false;
+        }
+
+        /// <summary>Вернуть платформу под управление этой машины: авторитет снова здесь.</summary>
+        public void ReleaseNetworkHeight()
+        {
+            followsNetwork = false;
         }
 
         /// <summary>
@@ -176,7 +239,17 @@ namespace Igruha.Core.Arena
         private void FixedUpdate()
         {
             float currentY = CurrentY;
-            float nextY = mode == DriveMode.Scripted ? StepScripted() : StepAxis(currentY);
+            float nextY;
+
+            if (followsNetwork)
+            {
+                nextY = StepToNetwork(currentY);
+            }
+            else
+            {
+                nextY = mode == DriveMode.Scripted ? StepScripted() : StepAxis(currentY);
+            }
+
             float delta = nextY - currentY;
             if (Mathf.Approximately(delta, 0f))
             {
@@ -197,6 +270,23 @@ namespace Igruha.Core.Arena
             }
 
             return Mathf.Clamp(currentY + axis * speed * Time.fixedDeltaTime, minY, maxY);
+        }
+
+        /// <summary>
+        /// Ход к присланной отметке. Близкое расхождение доводим движением —
+        /// платформа обязана выглядеть едущей, а не мигающей; далёкое ставим
+        /// сразу, иначе после подключения в середине раунда она ползла бы
+        /// через всю шахту на глазах у игрока.
+        /// </summary>
+        private float StepToNetwork(float currentY)
+        {
+            float target = ClampedNetworkY;
+            if (Mathf.Abs(target - currentY) >= NetworkSnapDistance)
+            {
+                return target;
+            }
+
+            return Mathf.MoveTowards(currentY, target, speed * NetworkCatchUpFactor * Time.fixedDeltaTime);
         }
 
         private float StepScripted()

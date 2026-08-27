@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using Unity.Cinemachine;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using Igruha.Core.Minigame;
 using Igruha.Core.Player;
@@ -13,8 +15,18 @@ namespace Igruha.Core.CameraSystems
     /// как игрок закончил свой — без спектатора он смотрит в пустоту.
     ///
     /// Компонент не знает правил игры: кто выбыл и кто ещё в деле, решает
-    /// мини-игра и отдаёт сюда список живых. Список берётся по ссылке —
+    /// мини-игра и отдаёт сюда список целей. Список берётся по ссылке —
     /// мини-игра его обновляет, а камера сама уходит с пропавшей цели.
+    ///
+    /// Первая цель выбирается случайно, а не по порядку списка: иначе все
+    /// выбывшие смотрят за одним и тем же человеком — первым в ростере.
+    /// Случайность тут чисто зрительская и считается локально: на исход
+    /// раунда она не влияет, поэтому серверу её решать незачем.
+    ///
+    /// Листается мышью: ЛКМ — следующий, ПКМ — предыдущий. Читаем устройство
+    /// напрямую, тем же приёмом, что и Esc в <see cref="PauseScreen"/>, —
+    /// это не игровое действие, и заводить под него привязку в общем ассете
+    /// управления не нужно.
     /// </summary>
     public sealed class SpectatorCamera : MonoBehaviour
     {
@@ -24,6 +36,12 @@ namespace Igruha.Core.CameraSystems
         [SerializeField] private InputActionReference previousAction;
         [Tooltip("Каким ригом смотрим за живыми")]
         [SerializeField] private CameraMode spectatorMode = CameraMode.ThirdPerson;
+        [Tooltip("Риг 3rd-person: наблюдателю он глушится, а поворот ведётся от тела того, за кем смотрим")]
+        [SerializeField] private ThirdPersonCameraRig cameraRig;
+        [Tooltip("Наклон камеры наблюдателя за обычным игроком: своей точки обзора у него нет")]
+        [SerializeField] private float spectatorPitch = 12f;
+        [Tooltip("Риг первого лица: им транслируется взгляд роли, у которой обзор не совпадает с телом (Охотник)")]
+        [SerializeField] private FirstPersonCameraRig firstPersonRig;
 
         public bool IsActive { get; private set; }
 
@@ -33,6 +51,10 @@ namespace Igruha.Core.CameraSystems
         private IReadOnlyList<SessionPlayer> alive;
         private CameraMode restoreMode;
         private Transform restoreTarget;
+        private CinemachineOrbitalFollow orbit;
+
+        /// <summary>Своя точка обзора цели. Пусто — смотрим за ней как за обычным игроком.</summary>
+        private ISpectatorView targetView;
 
         /// <summary>
         /// Уйти в наблюдатели. Список живых берётся по ссылке и перечитывается
@@ -46,7 +68,8 @@ namespace Igruha.Core.CameraSystems
                 return;
             }
 
-            if (!IsActive)
+            bool wasActive = IsActive;
+            if (!wasActive)
             {
                 restoreMode = cameraController.CurrentMode;
                 restoreTarget = cameraController.CurrentTarget;
@@ -58,8 +81,26 @@ namespace Igruha.Core.CameraSystems
             nextAction?.action.Enable();
             previousAction?.action.Enable();
 
+            // Наблюдатель камеру не крутит: он смотрит чужими глазами, и своя
+            // мышь тут только увела бы кадр от того, что делает игрок.
+            if (cameraRig != null)
+            {
+                cameraRig.SetLookSuspended(true);
+                if (orbit == null)
+                {
+                    orbit = cameraRig.GetComponent<CinemachineOrbitalFollow>();
+                }
+            }
+
             SetLocalControlEnabled(false);
-            Advance(1);
+
+            // Повторный вызов только обновляет список целей. Цель не
+            // перевыбираем: мини-игра зовёт Activate и на смерть, и следом на
+            // исчезновение тела, и камера прыгала бы на случайного дважды.
+            if (!wasActive)
+            {
+                PickRandomTarget();
+            }
         }
 
         /// <summary>Вернуть камеру своему персонажу.</summary>
@@ -73,9 +114,13 @@ namespace Igruha.Core.CameraSystems
             IsActive = false;
             alive = null;
             Target = null;
+            ReleaseTargetView();
 
             nextAction?.action.Disable();
             previousAction?.action.Disable();
+
+            // Своя камера возвращается игроку вместе с управлением.
+            cameraRig?.SetLookSuspended(false);
 
             hud?.HideSpectatorTarget();
             SetLocalControlEnabled(true);
@@ -100,14 +145,110 @@ namespace Igruha.Core.CameraSystems
                 return;
             }
 
-            if (WasPressed(nextAction))
+            if (WasPressed(nextAction) || WasMousePressed(true))
             {
                 Advance(1);
             }
-            else if (WasPressed(previousAction))
+            else if (WasPressed(previousAction) || WasMousePressed(false))
             {
                 Advance(-1);
             }
+        }
+
+        /// <summary>
+        /// Вести камеру за взглядом того, за кем смотрим: это трансляция, а не
+        /// свободный обзор.
+        ///
+        /// У роли со своей точкой обзора (<see cref="ISpectatorView"/> — сейчас
+        /// это Охотник в первом лице) берём её углы: смотреть за стрелком
+        /// из-за спины не то же самое, что видеть его прицел. У обычного
+        /// игрока такой точки нет, и азимут берётся с тела — оно повёрнуто
+        /// туда же, куда он смотрит, и по сети ходит через NetworkTransform.
+        ///
+        /// В LateUpdate, после того как тело за этот кадр уже переместилось:
+        /// иначе камера отставала бы от цели ровно на кадр и картинка дрожала.
+        /// </summary>
+        private void LateUpdate()
+        {
+            if (!IsActive || !IsWatchable(Target))
+            {
+                return;
+            }
+
+            if (targetView != null && targetView.TryGetView(out CameraMode _, out float viewYaw, out float viewPitch))
+            {
+                firstPersonRig?.SetView(viewYaw, viewPitch);
+                return;
+            }
+
+            if (orbit == null)
+            {
+                return;
+            }
+
+            float yaw = Target.Avatar.transform.eulerAngles.y;
+
+            InputAxis horizontal = orbit.HorizontalAxis;
+            horizontal.Value = Mathf.Repeat(yaw + 180f, 360f) - 180f;
+            orbit.HorizontalAxis = horizontal;
+
+            InputAxis vertical = orbit.VerticalAxis;
+            vertical.Value = spectatorPitch;
+            orbit.VerticalAxis = vertical;
+        }
+
+        /// <summary>
+        /// Первая цель — случайный живой, а не первый по списку. Обход от
+        /// случайной точки, а не один бросок: выпасть может уже выбывший, и
+        /// тогда камера осталась бы вовсе без цели.
+        /// </summary>
+        private void PickRandomTarget()
+        {
+            int count = alive != null ? alive.Count : 0;
+            if (count == 0)
+            {
+                SetTarget(null);
+                return;
+            }
+
+            int offset = Random.Range(0, count);
+            for (int i = 0; i < count; i++)
+            {
+                SessionPlayer candidate = alive[(offset + i) % count];
+                if (IsWatchable(candidate))
+                {
+                    SetTarget(candidate);
+                    return;
+                }
+            }
+
+            SetTarget(null);
+        }
+
+        /// <summary>
+        /// ЛКМ — следующий, ПКМ — предыдущий.
+        ///
+        /// Клик по интерфейсу не листает: на экране паузы кнопка «Продолжить»
+        /// жмётся той же левой, и без этой проверки один клик и нажимал бы
+        /// кнопку, и уводил камеру на другого игрока.
+        /// </summary>
+        private static bool WasMousePressed(bool next)
+        {
+            Mouse mouse = Mouse.current;
+            if (mouse == null)
+            {
+                return false;
+            }
+
+            EventSystem events = EventSystem.current;
+            if (events != null && events.IsPointerOverGameObject())
+            {
+                return false;
+            }
+
+            return next
+                ? mouse.leftButton.wasPressedThisFrame
+                : mouse.rightButton.wasPressedThisFrame;
         }
 
         /// <summary>Перейти к следующей живой цели по кругу в заданную сторону.</summary>
@@ -148,6 +289,7 @@ namespace Igruha.Core.CameraSystems
             }
 
             Target = player;
+            ReleaseTargetView();
 
             if (player == null)
             {
@@ -156,8 +298,43 @@ namespace Igruha.Core.CameraSystems
                 return;
             }
 
-            cameraController.Apply(spectatorMode, player.Avatar.transform);
+            // У роли может быть своя точка обзора — тогда смотрим ей, а не
+            // общим ригом за спиной.
+            targetView = player.Avatar.GetComponent<ISpectatorView>();
+            CameraMode mode = spectatorMode;
+
+            if (targetView != null && targetView.TryGetView(out CameraMode viewMode, out _, out _))
+            {
+                mode = viewMode;
+                if (mode == CameraMode.FirstPerson && firstPersonRig != null)
+                {
+                    // Риг обязан замолчать до того, как станет видимым: иначе
+                    // первый же кадр он отрисует по своему последнему углу.
+                    firstPersonRig.SetViewDrivenExternally(true);
+                }
+            }
+            else
+            {
+                targetView = null;
+            }
+
+            cameraController.Apply(mode, player.Avatar.transform);
             hud?.ShowSpectatorTarget(player.DisplayName);
+        }
+
+        /// <summary>
+        /// Отпустить чужую точку обзора: риг первого лица должен вернуться к
+        /// своему вводу, иначе следующий его хозяин не сможет повернуть голову.
+        /// </summary>
+        private void ReleaseTargetView()
+        {
+            if (targetView == null)
+            {
+                return;
+            }
+
+            targetView = null;
+            firstPersonRig?.SetViewDrivenExternally(false);
         }
 
         private int IndexOf(SessionPlayer player)

@@ -16,8 +16,12 @@ namespace Igruha.Minigames.DuckHunt
     /// случай спеки: провалившемуся ровно на свистке зачитывается тот этаж,
     /// с которого он падал, а не тот, куда не успел приземлиться.
     ///
-    /// Состояние собрано здесь целиком, а не разбросано по компонентам —
-    /// в сетевой фазе эти поля уезжают в NetworkVariable как есть.
+    /// Состояние собрано здесь целиком, а не разбросано по компонентам, и
+    /// считает его только сервер: <see cref="Sample"/> зовётся под авторитетом,
+    /// остальные машины получают готовое через <see cref="ApplyNetworkState"/>.
+    /// Компонент вешается на аватар в рантайме, поэтому сетевым он быть не может
+    /// (NGO индексирует NetworkBehaviour при спавне) — состояние реплицирует
+    /// сетевая половина мини-игры списком на всех Уток сразу.
     /// </summary>
     [RequireComponent(typeof(PlayerController))]
     public sealed class DuckProgress : MonoBehaviour
@@ -110,6 +114,25 @@ namespace Igruha.Minigames.DuckHunt
 
             Dead = true;
             DeathTime = roundTime;
+        }
+
+        /// <summary>
+        /// Принять состояние, решённое сервером. Присваивается целиком и без
+        /// проверок «а не откат ли это»: сервер — единственный источник, и его
+        /// свежее слово всегда вернее того, что тут лежало. В том числе поэтому
+        /// откат провалом пола доезжает до клиента как есть.
+        ///
+        /// Финиш отдельным флагом не гоняем: номер по порядку прибытия
+        /// начинается с единицы, поэтому ноль и значит «не добежал».
+        /// </summary>
+        public void ApplyNetworkState(int floor, float progress, int finishOrder, bool dead, float deathTime)
+        {
+            Floor = floor;
+            Progress = progress;
+            FinishOrder = finishOrder;
+            Finished = finishOrder > 0;
+            Dead = dead;
+            DeathTime = deathTime;
         }
     }
 }

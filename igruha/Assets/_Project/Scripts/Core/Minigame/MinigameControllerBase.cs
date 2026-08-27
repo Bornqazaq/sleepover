@@ -38,8 +38,29 @@ namespace Igruha.Core.Minigame
         private IMinigameNetworkBridge bridge;
         private MinigamePhase phase = MinigamePhase.Idle;
 
+        /// <summary>
+        /// Состав раунда получен — <see cref="StartMinigame"/> отработал.
+        /// До этого применять сетевую фазу нельзя, см. <see cref="ApplyPhase"/>.
+        /// </summary>
+        private bool playersReady;
+
+        /// <summary>Фаза, приехавшая из сети раньше состава. Ждёт <see cref="StartMinigame"/>.</summary>
+        private MinigamePhase pendingPhase;
+        private bool hasPendingPhase;
+
         public MinigameDefinition Definition => definition;
         public event Action<MinigameResults> ResultsReported;
+
+        /// <summary>
+        /// Мини-игра текущей сцены. Пусто — сцена без мини-игры, то есть хаб.
+        /// По этому и различает свои две роли кнопка «Выход» на паузе: из
+        /// раунда или из сессии.
+        ///
+        /// Через статическую ссылку, а не поле в инспекторе, намеренно: поле
+        /// пришлось бы заполнять в каждой сцене, а забытая ссылка молчит —
+        /// на этом уже терялось колесо эмоций в Duck Hunt.
+        /// </summary>
+        public static MinigameControllerBase Current { get; private set; }
 
         public MinigamePhase Phase => phase;
 
@@ -59,17 +80,34 @@ namespace Igruha.Core.Minigame
 
         protected virtual void OnEnable()
         {
+            Current = this;
+
             if (roundTimer != null)
             {
                 roundTimer.Finished += HandleTimerFinished;
+            }
+
+            if (hud != null)
+            {
+                hud.RestartRequested += HandleRestartRequested;
             }
         }
 
         protected virtual void OnDisable()
         {
+            if (Current == this)
+            {
+                Current = null;
+            }
+
             if (roundTimer != null)
             {
                 roundTimer.Finished -= HandleTimerFinished;
+            }
+
+            if (hud != null)
+            {
+                hud.RestartRequested -= HandleRestartRequested;
             }
         }
 
@@ -83,12 +121,14 @@ namespace Igruha.Core.Minigame
 
             hud?.Bind(roundTimer);
             SetPlayersControlEnabled(false);
+            playersReady = true;
             OnPlayersReady();
 
             // Фазы объявляет авторитет. Клиент уже готов (ростер и роли есть),
             // но ждёт команды из сети, иначе его раунд пойдёт в своём времени.
             if (!HasAuthority)
             {
+                ApplyPendingPhase();
                 return;
             }
 
@@ -119,6 +159,67 @@ namespace Igruha.Core.Minigame
             return false;
         }
 
+        /// <summary>
+        /// Идёт раунд (или обучалка перед ним) — из него есть куда выходить.
+        /// </summary>
+        public bool CanLeaveRound => phase == MinigamePhase.Round || phase == MinigamePhase.Tutorial;
+
+        /// <summary>
+        /// Локальный игрок выходит из раунда, оставаясь в катке. Дальше он
+        /// смотрит за остальными и вместе со всеми уезжает в хаб.
+        ///
+        /// Само правило выхода — дело конкретной игры и решается на сервере:
+        /// здесь только отправка намерения.
+        /// </summary>
+        public void LeaveRound()
+        {
+            if (!CanLeaveRound)
+            {
+                return;
+            }
+
+            if (bridge != null && bridge.IsNetworkSession)
+            {
+                bridge.RequestLeaveRound();
+                return;
+            }
+
+            // Сцена открыта напрямую: сервера нет, решаем на месте.
+            SessionPlayer local = SessionScoreboard.Current?.LocalPlayer;
+            if (local != null)
+            {
+                ApplyLeaveRound(local.Id);
+            }
+        }
+
+        /// <summary>Намерение доехало до сервера — разбираем правилами игры.</summary>
+        public void ApplyLeaveRound(int playerId)
+        {
+            if (!HasAuthority || !CanLeaveRound)
+            {
+                return;
+            }
+
+            OnPlayerLeftRound(playerId);
+        }
+
+        /// <summary>
+        /// Правило игры: что делать с тем, кто вышел из раунда сам. Зовётся
+        /// только у авторитета. По умолчанию — ничего: играм без выбывания
+        /// выход из раунда смысла не добавляет.
+        /// </summary>
+        protected virtual void OnPlayerLeftRound(int playerId) { }
+
+        /// <summary>
+        /// Эта машина досматривает матч со стороны: игрок подключился, когда
+        /// раунд уже шёл, и тела у него нет. Правило игры решает, за кем
+        /// смотреть; по умолчанию — ни за кем, камера остаётся как есть.
+        ///
+        /// Чисто клиентское представление: на состояние раунда зритель не
+        /// влияет и в результатах не участвует.
+        /// </summary>
+        public virtual void BeginViewing() { }
+
         /// <summary>Завершение раунда: по таймеру или досрочно правилами игры.</summary>
         public void EndMinigame()
         {
@@ -143,9 +244,31 @@ namespace Igruha.Core.Minigame
             bridge?.PublishPhase(next);
         }
 
-        /// <summary>Применить фазу: у авторитета — из GoToPhase, у клиента — из сети.</summary>
+        /// <summary>
+        /// Применить фазу: у авторитета — из GoToPhase, у клиента — из сети.
+        ///
+        /// Фаза может приехать раньше состава, и это норма: клиент грузит сцену
+        /// и ждёт, пока соберётся ростер, а сервер к этому времени уже объявил
+        /// раунд. Применить её сейчас — значит войти в раунд с пустым списком
+        /// участников, а пришедший следом <see cref="StartMinigame"/> выключит
+        /// всем управление, и включать его будет уже некому: <c>ApplyPhase</c>
+        /// на ту же фазу второй раз не сработает. Ровно так у клиентов и
+        /// отнимался ввод целиком — замерено 25.08 на host + 3 client, в логе
+        /// «раунд начат (клиент), участников 0».
+        ///
+        /// Поэтому придерживаем фазу до состава. Приехало несколько — держим
+        /// последнюю: подключившемуся к середине важно текущее положение дел,
+        /// а не путь, которым к нему пришли.
+        /// </summary>
         public void ApplyPhase(MinigamePhase next)
         {
+            if (!playersReady)
+            {
+                pendingPhase = next;
+                hasPendingPhase = true;
+                return;
+            }
+
             if (phase == next)
             {
                 return;
@@ -170,6 +293,19 @@ namespace Igruha.Core.Minigame
                     EnterResults();
                     break;
             }
+        }
+
+        /// <summary>Состав пришёл — применить фазу, которую держали до него.</summary>
+        private void ApplyPendingPhase()
+        {
+            if (!hasPendingPhase)
+            {
+                return;
+            }
+
+            hasPendingPhase = false;
+            Debug.Log($"🎬 {name}: состав собран ({playerList.Count}) — применяю отложенную фазу {pendingPhase}");
+            ApplyPhase(pendingPhase);
         }
 
         private void EnterTutorial()
@@ -317,7 +453,56 @@ namespace Igruha.Core.Minigame
         private void ShowResults(MinigameResults finalResults)
         {
             ResultsReported?.Invoke(finalResults);
+
+            // Переигрывать вправе только тот, кто объявляет фазы: в сетевой
+            // катке сцену перезагружает сервер, клиент за собой её утащить
+            // не может.
+            hud?.SetRestartAvailable(HasAuthority);
             hud?.ShowResults(finalResults, playerList);
+        }
+
+        /// <summary>
+        /// Переиграть тот же раунд: перезагрузить свою же сцену. Заведомо грубо
+        /// и намеренно — это отладочный путь на время разработки, а не рематч
+        /// катки (тот живёт в EPIC 4 вместе с очками и тай-брейком).
+        ///
+        /// В сетевой катке сцену объявляет сервер через NGO, клиенты
+        /// переезжают сами — тем же путём, что и возврат в хаб.
+        /// </summary>
+        private void HandleRestartRequested()
+        {
+            if (!HasAuthority)
+            {
+                return;
+            }
+
+            StopAllCoroutines();
+
+            string sceneName = gameObject.scene.name;
+            NetworkManager network = NetworkManager.Singleton;
+
+            if (network == null || !network.IsListening)
+            {
+                SceneManager.LoadScene(sceneName);
+                return;
+            }
+
+            if (!network.IsServer)
+            {
+                return;
+            }
+
+            if (!BuildSceneCatalog.TryResolvePath(sceneName, out string scenePath))
+            {
+                Debug.LogError($"{name}: сцены '{sceneName}' нет в Build Settings — переигрывать нечего", this);
+                return;
+            }
+
+            SceneEventProgressStatus status = network.SceneManager.LoadScene(scenePath, LoadSceneMode.Single);
+            if (status != SceneEventProgressStatus.Started)
+            {
+                Debug.LogError($"{name}: NGO не смог перезапустить '{sceneName}': {status}", this);
+            }
         }
 
         private void SetPlayersControlEnabled(bool enabled)

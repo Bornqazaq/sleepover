@@ -4,6 +4,8 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using Igruha.Core.Arena;
 using Igruha.Core.CameraSystems;
+using Igruha.Core.Combat;
+using Igruha.Core.Interaction;
 using Igruha.Core.Minigame;
 using Igruha.Core.Player;
 using Igruha.Core.Session;
@@ -29,6 +31,28 @@ namespace Igruha.Minigames.DuckHunt
     {
         /// <summary>Ключ истории спец-ролей: своя очередь Охотника, независимая от других игр.</summary>
         private const string HunterRoleKey = "DuckHunt.Hunter";
+
+        /// <summary>Момент свистка ещё не объявлен сервером.</summary>
+        public const double NotAnnounced = -1d;
+
+        /// <summary>
+        /// Насколько точка выстрела, присланная Охотником, может отстоять от
+        /// его же тела на сервере, м. Допуск щедрый намеренно: глаз почти на
+        /// полтора метра выше центра капсулы, и ещё столько же берём на
+        /// отставание лифта на машине Охотника от серверного.
+        /// </summary>
+        private const float MuzzleReachTolerance = 3.5f;
+
+        /// <summary>Короче этого присланное направление считается мусором, а не прицелом.</summary>
+        private const float MinAimSqrMagnitude = 1e-4f;
+
+        /// <summary>
+        /// Сколько ловушек арены реплицируется. Состояние едет битовой маской
+        /// в одном числе: тридцать два бита — тридцать две ловушки. У Duck Hunt
+        /// их десять, но молча обрезать лишние нельзя — ловушка, о которой сеть
+        /// не знает, срабатывает только у сервера.
+        /// </summary>
+        private const int MaxSyncedTraps = 32;
 
         private const string GroundLayerName = "Ground";
         private const string CoverLayerName = "Cover";
@@ -82,6 +106,12 @@ namespace Igruha.Minigames.DuckHunt
         [Tooltip("Гейзеры: сила подброса считается из высоты в конфиге и массы персонажа")]
         [SerializeField] private SpringTrap[] geysers = Array.Empty<SpringTrap>();
 
+        /// <summary>Интерактор своего аватара — источник подсказки «что нажать».</summary>
+        private PlayerInteractor localInteractor;
+
+        /// <summary>Что показано в подсказке сейчас. Нужен, чтобы не пересобирать строку каждый кадр.</summary>
+        private IInteractable promptTarget;
+
         [Header("Дебаг (тест в одиночку)")]
         [Tooltip("Локальный игрок играет за Охотника, иначе за Утку")]
         [SerializeField] private bool localPlayerIsHunter;
@@ -97,6 +127,47 @@ namespace Igruha.Minigames.DuckHunt
         [Header("Прицел")]
         [Tooltip("Прицел Охотника: включается только у того, кому выпала эта роль")]
         [SerializeField] private GameObject crosshair;
+
+        /// <summary>
+        /// Слепок итога Утки: всё, чем решаются места, и ничего больше.
+        ///
+        /// Нужен из-за ухода игрока. <see cref="DuckProgress"/> живёт на
+        /// аватаре, а аватар вышедшего NGO уничтожает — к моменту подсчёта
+        /// мест читать с него было бы обращением к разрушенному объекту.
+        /// Поэтому места считаются не с компонента, а отсюда: пока Утка в
+        /// игре, слепок зеркалит её прогресс, после выхода остаётся
+        /// единственным источником.
+        /// </summary>
+        private readonly struct DuckOutcome
+        {
+            public readonly int Floor;
+            public readonly float Progress;
+            public readonly int FinishOrder;
+            public readonly bool Dead;
+            public readonly float DeathTime;
+
+            public DuckOutcome(int floor, float progress, int finishOrder, bool dead, float deathTime)
+            {
+                Floor = floor;
+                Progress = progress;
+                FinishOrder = finishOrder;
+                Dead = dead;
+                DeathTime = deathTime;
+            }
+
+            /// <summary>Утка добежала. Порядок прибытия начинается с единицы, поэтому ноль и значит «не добежала».</summary>
+            public bool Finished => FinishOrder > 0;
+
+            /// <summary>Утка выбыла из гонки — неважно, добежала или погибла.</summary>
+            public bool Retired => Finished || Dead;
+
+            public static DuckOutcome From(DuckProgress progress) => new DuckOutcome(
+                progress.Floor, progress.Progress, progress.FinishOrder, progress.Dead, progress.DeathTime);
+
+            /// <summary>Тот же итог, но погибшей: этим уход Утки приравнивается к смерти на её точке.</summary>
+            public DuckOutcome AsDead(float deathTime) =>
+                new DuckOutcome(Floor, Progress, FinishOrder, true, deathTime);
+        }
 
         /// <summary>
         /// Состояние одной Утки за раунд. Сам прогресс живёт в
@@ -140,25 +211,103 @@ namespace Igruha.Minigames.DuckHunt
 
             /// <summary>Номер точки маршрута, к которой идём сейчас.</summary>
             public int RouteIndex;
+
+            /// <summary>
+            /// Игрок вышел из матча. Ссылки на аватар и его компоненты с этого
+            /// момента пусты — NGO уничтожил тело, — а итог живёт в
+            /// <see cref="Frozen"/>.
+            /// </summary>
+            public bool Left;
+
+            /// <summary>
+            /// Последний известный итог. Пока Утка в игре, его обновляет
+            /// авторитет в <see cref="SampleProgress"/>, а на остальных машинах —
+            /// приезжающее состояние. После выхода игрока не меняется.
+            /// </summary>
+            public DuckOutcome Frozen;
+
+            /// <summary>
+            /// Итог Утки — живой или ушедшей. Единственная точка, откуда его
+            /// читают места: обращаться к <see cref="Progress"/> напрямую нельзя,
+            /// у ушедшего игрока этого компонента уже нет.
+            /// </summary>
+            public DuckOutcome Outcome => Left || Progress == null
+                ? Frozen
+                : DuckOutcome.From(Progress);
         }
 
         private static readonly Comparison<DuckRecord> DuckRanking = CompareDucks;
 
         private readonly List<DuckRecord> ducks = new List<DuckRecord>(8);
         private readonly List<SessionPlayer> aliveDucks = new List<SessionPlayer>(8);
+
+        /// <summary>
+        /// За кем может смотреть выбывший: живые Утки плюс Охотник. Отдельный
+        /// список, а не <see cref="aliveDucks"/>, потому что Охотник в живых
+        /// Утках не числится и не должен — по нему считаются места. Камера
+        /// держит его по ссылке и перечитывает каждый кадр, поэтому список
+        /// переписывается на месте, а не пересоздаётся.
+        /// </summary>
+        private readonly List<SessionPlayer> spectatorTargets = new List<SessionPlayer>(9);
         private readonly List<int> placementOrder = new List<int>(8);
 
         private HunterController hunter;
         private PlayerController hunterAvatar;
         private int hunterPlayerId = SpecialRoleHistory.NoPlayer;
-        private float countdownRemaining;
+
+        /// <summary>
+        /// Охотник вышел из матча посреди раунда. Роль за ним остаётся —
+        /// по ней ему выдаётся место, — но место это последнее (спека, 10.2).
+        /// </summary>
+        private bool hunterLeft;
+
         private float roundElapsed;
         private int finishCounter;
+        private DuckHuntNetwork network;
+
+        /// <summary>
+        /// Обработчики срабатывания ловушек, по одному на ловушку. Держим их
+        /// полем, потому что каждый замыкает свой номер: без сохранённой ссылки
+        /// от такой подписки потом не отписаться.
+        /// </summary>
+        private Action[] trapFiredHandlers;
+
+        /// <summary>
+        /// Момент свистка на общих часах: с него раунд живой. Объявляет его
+        /// авторитет один раз, дальше каждая машина считает отсчёт сама — так он
+        /// кончается у всех одновременно и не зависит от пинга.
+        /// </summary>
+        private double liveTime = NotAnnounced;
 
         /// <summary>Стартовый отсчёт кончился: Утки бегут, Охотник стреляет.</summary>
         public bool RoundLive { get; private set; }
 
+        /// <summary>Идёт сетевая катка и сетевая половина игры живая.</summary>
+        private bool Networked => network != null && network.IsActive;
+
+        /// <summary>Момент свистка объявлен. Пока нет — раунд держит всех на месте.</summary>
+        private bool CountdownAnnounced => liveTime >= 0d;
+
+        /// <summary>Сколько осталось до свистка, с. Ноль — отсчёт вышел.</summary>
+        private float CountdownRemaining =>
+            CountdownAnnounced ? Mathf.Max(0f, (float)(liveTime - NetworkClock.Now)) : 0f;
+
+        /// <summary>Про ожидание свистка уже сказали. Иначе строка шла бы каждый кадр.</summary>
+        private bool waitingForWhistleLogged;
+
         // ========== ЖИЗНЕННЫЙ ЦИКЛ ==========
+
+        protected override void Awake()
+        {
+            base.Awake();
+            network = GetComponent<DuckHuntNetwork>();
+
+            if (traps.Length > MaxSyncedTraps)
+            {
+                Debug.LogError($"{name}: ловушек {traps.Length}, а реплицируется не больше " +
+                               $"{MaxSyncedTraps} — лишние будут срабатывать только у сервера", this);
+            }
+        }
 
         protected override void OnPlayersReady()
         {
@@ -172,6 +321,8 @@ namespace Igruha.Minigames.DuckHunt
             {
                 finishZone.DuckArrived += HandleDuckArrived;
             }
+
+            SubscribeTraps();
         }
 
         protected override void OnDisable()
@@ -181,13 +332,90 @@ namespace Igruha.Minigames.DuckHunt
             {
                 finishZone.DuckArrived -= HandleDuckArrived;
             }
+
+            UnsubscribeTraps();
+        }
+
+        /// <summary>
+        /// Подписаться на срабатывание каждой ловушки. Номер ловушки — её место
+        /// в массиве сцены: он одинаков на всех машинах, поэтому по нему и
+        /// адресуем оповещение.
+        /// </summary>
+        private void SubscribeTraps()
+        {
+            if (trapFiredHandlers != null)
+            {
+                return;
+            }
+
+            trapFiredHandlers = new Action[traps.Length];
+            for (int i = 0; i < traps.Length; i++)
+            {
+                if (traps[i] == null)
+                {
+                    continue;
+                }
+
+                int index = i;
+                trapFiredHandlers[i] = () => AnnounceTrapFired(index);
+                traps[i].Fired += trapFiredHandlers[i];
+            }
+        }
+
+        private void UnsubscribeTraps()
+        {
+            if (trapFiredHandlers == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < traps.Length && i < trapFiredHandlers.Length; i++)
+            {
+                if (traps[i] != null && trapFiredHandlers[i] != null)
+                {
+                    traps[i].Fired -= trapFiredHandlers[i];
+                }
+            }
+
+            trapFiredHandlers = null;
+        }
+
+        /// <summary>
+        /// Ловушка сработала у авторитета — разослать остальным. Клиент своё
+        /// срабатывание не объявляет: у него его и не бывает, решает сервер.
+        /// </summary>
+        private void AnnounceTrapFired(int index)
+        {
+            if (!HasAuthority || index >= MaxSyncedTraps)
+            {
+                return;
+            }
+
+            network?.AnnounceTrapFired(index);
         }
 
         protected override void OnRoundStarted()
         {
             roundElapsed = 0f;
             finishCounter = 0;
-            countdownRemaining = config != null ? config.StartCountdown : 0f;
+            hunterLeft = false;
+
+            // Свисток назначает авторитет, остальные ждут его объявления.
+            // Не назначь мы момент здесь — клиент отпустил бы Уток в башню
+            // по своему отсчёту, и первые секунды гонки шли бы у него
+            // раньше, чем сервер начал их считать.
+            // Клиент перечитывает свисток из сети, а не обнуляет его. Его раунд
+            // начинается позже сетевого — сначала должен собраться состав, — и
+            // сервер к этому моменту вполне мог свисток уже объявить. Обнули мы
+            // его здесь, Утки ждали бы события, которое прошло.
+            liveTime = HasAuthority
+                ? NetworkClock.Now + (config != null ? config.StartCountdown : 0f)
+                : Networked ? network.LiveTime : NotAnnounced;
+            waitingForWhistleLogged = false;
+
+            Debug.Log($"🦆 Duck Hunt: раунд начат ({(HasAuthority ? "АВТОРИТЕТ" : "клиент")}), " +
+                      $"участников {Players.Count}, Охотник {hunterPlayerId}, " +
+                      $"свисток {(CountdownAnnounced ? $"через {CountdownRemaining:F1} с" : "ещё не объявлен")}");
 
             ResetTraps();
             SetRoundLive(false);
@@ -195,26 +423,18 @@ namespace Igruha.Minigames.DuckHunt
 
         protected override void OnRoundEnded()
         {
+            liveTime = NotAnnounced;
             SetRoundLive(false);
             StopAllBots();
             RestoreDucks();
             Hud?.HideCountdown();
             Hud?.HideStatus();
-
-            // На экране результатов прицел висел бы поверх таблицы мест.
-            if (crosshair != null)
-            {
-                crosshair.SetActive(false);
-            }
         }
 
         private void Update()
         {
-            if (RoundActive && countdownRemaining > 0f)
-            {
-                Hud?.ShowCountdown(countdownRemaining);
-            }
-
+            TickCountdown();
+            TickDuckPrompt();
             HandleDebugRoleSwitch();
         }
 
@@ -227,7 +447,6 @@ namespace Igruha.Minigames.DuckHunt
             }
 
             roundElapsed += Time.fixedDeltaTime;
-            TickCountdown();
 
             if (!RoundLive)
             {
@@ -243,33 +462,60 @@ namespace Igruha.Minigames.DuckHunt
         /// заблокировано у всех, а Охотник не может выстрелить. Так Утки
         /// не разбегаются до свистка, а Охотник не расстреливает толпу
         /// на старте, пока она стоит кучей.
+        ///
+        /// Считает отсчёт каждая машина сама — от одного объявленного момента
+        /// на общих часах. Досылать остаток каждый кадр не нужно, а свисток
+        /// звучит у всех одновременно.
         /// </summary>
         private void TickCountdown()
         {
-            if (countdownRemaining <= 0f)
+            if (!RoundActive || RoundLive)
             {
                 return;
             }
 
-            countdownRemaining -= Time.fixedDeltaTime;
-            if (countdownRemaining > 0f)
+            if (!CountdownAnnounced)
             {
+                // Клиент ждёт момент свистка от сервера. Пока его нет, раунд
+                // держит всех на месте — и это самое место, где сетевой раунд
+                // может встать молча, поэтому оно говорит о себе вслух.
+                if (!waitingForWhistleLogged)
+                {
+                    waitingForWhistleLogged = true;
+                    Debug.Log("🦆 Duck Hunt: жду от сервера момент свистка");
+                }
+
                 return;
             }
 
-            countdownRemaining = 0f;
+            float remaining = CountdownRemaining;
+            if (remaining > 0f)
+            {
+                Hud?.ShowCountdown(remaining);
+                return;
+            }
+
             Hud?.HideCountdown();
             SetRoundLive(true);
         }
 
         private void SetRoundLive(bool live)
         {
+            // Свисток — единственное место, где сетевой раунд способен встать
+            // молча, поэтому оно говорит о себе вслух. Заморозку не пишем:
+            // она случается и на старте раунда, и в его конце.
+            if (live && !RoundLive)
+            {
+                Debug.Log($"🦆 Duck Hunt: СВИСТОК — Утки побежали ({ducks.Count}), " +
+                          $"Охотник {hunterPlayerId}, {(HasAuthority ? "АВТОРИТЕТ" : "клиент")}");
+            }
+
             RoundLive = live;
 
             for (int i = 0; i < ducks.Count; i++)
             {
                 PlayerController avatar = ducks[i].Avatar;
-                if (avatar != null && !ducks[i].Progress.Retired)
+                if (avatar != null && !ducks[i].Outcome.Retired)
                 {
                     avatar.MovementLocked = !live;
                     SuspendInput(avatar, !live);
@@ -294,8 +540,19 @@ namespace Igruha.Minigames.DuckHunt
             // и взаимодействует, хоть и не стреляет.
             SuspendInput(hunterAvatar, !live);
 
+            // Лифт останавливает авторитет, и только он. Ось Охотника, играющего
+            // с клиента, приезжает намерением и после свистка больше не придёт —
+            // платформа уехала бы до верхней границы на глазах у всех, пока
+            // на экране висят места.
+            if (!live && HasAuthority)
+            {
+                elevator?.SetAxis(0f);
+            }
+
+            ApplyHunterAuthority();
             SetDummyBotsRunning(live);
             RefreshHunterStatus();
+            RefreshCrosshair();
         }
 
         /// <summary>
@@ -314,11 +571,24 @@ namespace Igruha.Minigames.DuckHunt
             }
         }
 
+        /// <summary>
+        /// Перечитать положение всех Уток и обновить слепки. Слепок ведётся
+        /// здесь же, а не только в момент выхода игрока: дисконнект разбирается
+        /// на ближайшем тике, и к этому тику NGO уже успевает уничтожить аватар —
+        /// читать прогресс было бы не с чего.
+        /// </summary>
         private void SampleProgress()
         {
             for (int i = 0; i < ducks.Count; i++)
             {
-                ducks[i].Progress.Sample(arena);
+                DuckRecord duck = ducks[i];
+                if (duck.Left || duck.Progress == null)
+                {
+                    continue;
+                }
+
+                duck.Progress.Sample(arena);
+                duck.Frozen = DuckOutcome.From(duck.Progress);
             }
         }
 
@@ -370,6 +640,7 @@ namespace Igruha.Minigames.DuckHunt
                 aliveDucks.Add(player);
             }
 
+            RefreshSpectatorTargets();
             PlaceDucksAtStart();
             ApplyGeyserForce();
 
@@ -379,7 +650,7 @@ namespace Igruha.Minigames.DuckHunt
             }
 
             ApplyRoleCamera();
-            SetRoundLive(RoundActive && countdownRemaining <= 0f);
+            SetRoundLive(RoundActive && CountdownAnnounced && CountdownRemaining <= 0f);
         }
 
         private DuckRecord CreateDuck(SessionPlayer player, PlayerController avatar)
@@ -414,7 +685,8 @@ namespace Igruha.Minigames.DuckHunt
                 Elimination = elimination,
                 Bot = EnsureDummyBot(avatar),
                 IsDummy = avatar.TryGetComponent(out PlayerInputReader reader) && !reader.LocallyControlled,
-                LastFloor = progress.Floor
+                LastFloor = progress.Floor,
+                Frozen = DuckOutcome.From(progress)
             };
 
             // Подписка одна на аватар за раунд: Restore не отписывает, поэтому
@@ -448,6 +720,13 @@ namespace Igruha.Minigames.DuckHunt
 
             hunter.DuckShot -= HandleDuckShot;
             hunter.DuckShot += HandleDuckShot;
+
+            // Выстрел разослать остальным может только тот, кто его посчитал,
+            // а событие приходит одинаково — и когда стреляет хост сам, и когда
+            // он исполняет намерение клиента. Отсюда одна подписка на оба случая.
+            hunter.Fired -= HandleHunterFired;
+            hunter.Fired += HandleHunterFired;
+
             hunter.Attach(config, elevator, firstPersonRig);
 
             MoveTo(avatar, spawnPoints?.GetPoint(SpawnRole.Special, 0));
@@ -463,12 +742,18 @@ namespace Igruha.Minigames.DuckHunt
 
         private void ClearHunter()
         {
+            // Тело отпускаем всегда, даже если самого компонента уже нет: при
+            // уходе Охотника аватар уничтожен, проверка ниже отсечёт разрушенную
+            // роль — и ссылка на тело осталась бы висеть до конца раунда.
+            hunterAvatar = null;
+
             if (hunter == null)
             {
                 return;
             }
 
             hunter.DuckShot -= HandleDuckShot;
+            hunter.Fired -= HandleHunterFired;
             if (hunter.Weapon != null)
             {
                 hunter.Weapon.AmmoChanged -= HandleAmmoChanged;
@@ -496,6 +781,13 @@ namespace Igruha.Minigames.DuckHunt
             {
                 DuckRecord duck = ducks[i];
 
+                // Ушедшего расставлять нечем: тела нет, в списке он остался
+                // только ради места в результатах.
+                if (duck.Left || duck.Progress == null)
+                {
+                    continue;
+                }
+
                 if (duck.IsDummy && !driveDummyDucks)
                 {
                     PlaceAsTarget(duck, i);
@@ -506,6 +798,7 @@ namespace Igruha.Minigames.DuckHunt
                 }
 
                 duck.Progress.ResetProgress(arena);
+                duck.Frozen = DuckOutcome.From(duck.Progress);
             }
         }
 
@@ -556,21 +849,32 @@ namespace Igruha.Minigames.DuckHunt
             ISessionScoreboard scoreboard = SessionScoreboard.Current;
             if (scoreboard == null || !scoreboard.HasAuthority)
             {
-                // Клиент роль не выбирает — придёт из сети. Ростер уже одинаков,
-                // поэтому до этого момента берём первого детерминированно.
-                return 0;
+                // Клиент роль не выбирает — она приезжает из сети. Пока не
+                // приехала, Охотника нет вовсе: назначить наугад значило бы
+                // запереть на лифте не того игрока и отдать ему ружьё.
+                return IndexOfPlayer(network != null ? network.HunterPlayerId : SpecialRoleHistory.NoPlayer);
             }
 
-            int pickedId = scoreboard.PickSpecialRole(HunterRoleKey);
+            int picked = IndexOfPlayer(scoreboard.PickSpecialRole(HunterRoleKey));
+            return picked >= 0 ? picked : 0;
+        }
+
+        private int IndexOfPlayer(int playerId)
+        {
+            if (playerId == SpecialRoleHistory.NoPlayer)
+            {
+                return -1;
+            }
+
             for (int i = 0; i < Players.Count; i++)
             {
-                if (Players[i].Id == pickedId)
+                if (Players[i].Id == playerId)
                 {
                     return i;
                 }
             }
 
-            return 0;
+            return -1;
         }
 
         /// <summary>
@@ -596,10 +900,19 @@ namespace Igruha.Minigames.DuckHunt
                 localIsHunter ? CameraMode.FirstPerson : CameraMode.ThirdPerson,
                 local.Avatar.transform);
 
-            // Прицел — только своему Охотнику. Утке он не нужен и мешал бы.
+            RefreshCrosshair();
+        }
+
+        /// <summary>
+        /// Прицел — только своему Охотнику и только в живом раунде. На стартовом
+        /// отсчёте стрелять нельзя, и висящий прицел обещает игроку то, чего
+        /// ему пока не дают; на экране результатов он лёг бы поверх таблицы мест.
+        /// </summary>
+        private void RefreshCrosshair()
+        {
             if (crosshair != null)
             {
-                crosshair.SetActive(localIsHunter);
+                crosshair.SetActive(RoundLive && IsLocal(hunterPlayerId));
             }
         }
 
@@ -665,7 +978,7 @@ namespace Igruha.Minigames.DuckHunt
             }
 
             DuckRecord duck = FindDuckByElimination(victim);
-            if (duck == null || duck.Progress.Retired)
+            if (duck == null || duck.Left || duck.Progress == null || duck.Progress.Retired)
             {
                 return;
             }
@@ -676,9 +989,25 @@ namespace Igruha.Minigames.DuckHunt
             duck.Progress.Sample(arena);
             duck.Progress.MarkDead(roundElapsed);
 
+            // Слепок обновляем здесь же, а не ждём следующего опроса: выйди
+            // игрок в этом же кадре, замораживать было бы уже нечего.
+            duck.Frozen = DuckOutcome.From(duck.Progress);
+
             duck.Bot?.Stop();
             RemoveFromAlive(duck.PlayerId);
             victim.Eliminate(hitPoint, impulse);
+
+            // В наблюдатели — сразу, не дожидаясь, пока тело долетит и
+            // исчезнет: до этого проходит около секунды, и всё это время
+            // выбывший смотрит в никуда.
+            if (IsLocal(duck.PlayerId))
+            {
+                ActivateSpectator();
+            }
+
+            // Прогресс и выбывание приедут состоянием сами, а вот сторона
+            // отлёта нужна ровно в этот миг: по ней выбирается клип падения.
+            network?.AnnounceDuckDeath(duck.PlayerId, hitPoint, impulse);
 
             CheckRoundOver();
         }
@@ -698,6 +1027,7 @@ namespace Igruha.Minigames.DuckHunt
             }
 
             progress.MarkFinished(++finishCounter);
+            duck.Frozen = DuckOutcome.From(progress);
             duck.Bot?.Stop();
 
             if (duck.Avatar != null)
@@ -709,7 +1039,7 @@ namespace Igruha.Minigames.DuckHunt
 
             if (IsLocal(duck.PlayerId))
             {
-                spectator?.Activate(aliveDucks);
+                ActivateSpectator();
             }
 
             CheckRoundOver();
@@ -725,7 +1055,7 @@ namespace Igruha.Minigames.DuckHunt
             DuckRecord duck = FindDuckByElimination(elimination);
             if (duck != null && IsLocal(duck.PlayerId))
             {
-                spectator?.Activate(aliveDucks);
+                ActivateSpectator();
             }
         }
 
@@ -733,7 +1063,7 @@ namespace Igruha.Minigames.DuckHunt
         {
             for (int i = 0; i < ducks.Count; i++)
             {
-                if (!ducks[i].Progress.Retired)
+                if (!ducks[i].Outcome.Retired)
                 {
                     return;
                 }
@@ -753,9 +1083,52 @@ namespace Igruha.Minigames.DuckHunt
                 if (aliveDucks[i].Id == playerId)
                 {
                     aliveDucks.RemoveAt(i);
+                    break;
+                }
+            }
+
+            RefreshSpectatorTargets();
+        }
+
+        // ========== НАБЛЮДАТЕЛЬ ==========
+
+        /// <summary>
+        /// Пересобрать список того, за кем можно смотреть: живые Утки и
+        /// Охотник. Зовётся на каждое изменение состава, а не каждый кадр —
+        /// целей не больше девяти, но кадровый цикл на них тратить незачем.
+        /// </summary>
+        private void RefreshSpectatorTargets()
+        {
+            spectatorTargets.Clear();
+            for (int i = 0; i < aliveDucks.Count; i++)
+            {
+                spectatorTargets.Add(aliveDucks[i]);
+            }
+
+            if (hunterPlayerId == SpecialRoleHistory.NoPlayer)
+            {
+                return;
+            }
+
+            for (int i = 0; i < Players.Count; i++)
+            {
+                if (Players[i].Id == hunterPlayerId)
+                {
+                    spectatorTargets.Add(Players[i]);
                     return;
                 }
             }
+        }
+
+        /// <summary>
+        /// Уйти в наблюдатели. Зовётся в тот же миг, когда игрок выбыл: своего
+        /// падения он не увидит, зато и не будет секунду смотреть в пустоту.
+        /// Повторные вызовы список обновляют, но цель не перевыбирают.
+        /// </summary>
+        private void ActivateSpectator()
+        {
+            RefreshSpectatorTargets();
+            spectator?.Activate(spectatorTargets);
         }
 
         /// <summary>
@@ -766,13 +1139,230 @@ namespace Igruha.Minigames.DuckHunt
         {
             for (int i = 0; i < ducks.Count; i++)
             {
-                ducks[i].Elimination?.Restore();
+                DuckRecord duck = ducks[i];
 
-                if (ducks[i].Avatar != null)
+                // Ушедшего возвращать некуда: тела нет, и в кадре итогов его
+                // быть не должно — в списке он остался только ради места.
+                if (duck.Left)
                 {
-                    ducks[i].Avatar.MovementLocked = false;
+                    continue;
+                }
+
+                if (duck.Elimination != null)
+                {
+                    duck.Elimination.Restore();
+                }
+
+                if (duck.Avatar != null)
+                {
+                    duck.Avatar.MovementLocked = false;
                 }
             }
+        }
+
+        // ========== УХОД ИГРОКА ==========
+
+        /// <summary>
+        /// Участник вышел из матча. Зовёт сетевая половина на ближайшем тике
+        /// после дисконнекта — и только у авторитета, он один знает про уход.
+        ///
+        /// Правило спеки, раздел 10.2: уход Охотника заканчивает раунд
+        /// немедленно — стрелять больше некому, и оставшиеся Утки добежали бы
+        /// до крыши по пустой башне. Уход Утки раунд не трогает: она числится
+        /// погибшей на той точке, где её застал выход.
+        /// </summary>
+        public void HandlePlayerLeft(int playerId)
+        {
+            if (!HasAuthority)
+            {
+                return;
+            }
+
+            if (playerId != SpecialRoleHistory.NoPlayer && playerId == hunterPlayerId)
+            {
+                HandleHunterLeft();
+                return;
+            }
+
+            DuckRecord duck = FindDuckById(playerId);
+            if (duck == null)
+            {
+                // Ни Охотник, ни Утка: игрок вышел до раздачи ролей. Место ему
+                // считать не по чему, поэтому просто вычёркиваем из состава —
+                // иначе он получит место в результатах, не сыграв ни секунды.
+                RemovePlayer(playerId);
+                return;
+            }
+
+            RetireLeftDuck(duck);
+
+            Debug.Log($"🦆 Duck Hunt: Утка {playerId} вышла — зачтена погибшей " +
+                      $"на этаже {duck.Frozen.Floor}, живых осталось {aliveDucks.Count}");
+
+            // Последняя Утка вышла — стрелять больше не в кого. Общая проверка
+            // закроет раунд сама: ушедшая числится выбывшей наравне с погибшими.
+            CheckRoundOver();
+        }
+
+        /// <summary>
+        /// Подключился посреди матча: тела нет, смотрим за теми, кто играет.
+        /// Тот же наблюдатель, что и у выбывших, — отдельного режима не надо.
+        /// </summary>
+        public override void BeginViewing() => ActivateSpectator();
+
+        /// <summary>
+        /// Игрок сам вышел из раунда, но остался в катке (кнопка «Выход» на
+        /// паузе). От дисконнекта отличается одним: тело никуда не делось.
+        ///
+        /// Поэтому Утка не «забывается», а погибает на своей точке — обычной
+        /// смертью, с отлётом тела и местом среди погибших. Так вышедший
+        /// попадает в наблюдатели тем же путём, что и подстреленный, и ждёт
+        /// остальных до конца раунда.
+        ///
+        /// Охотник закрывает раунд, как и при дисконнекте: стрелять больше
+        /// некому.
+        /// </summary>
+        protected override void OnPlayerLeftRound(int playerId)
+        {
+            if (playerId != SpecialRoleHistory.NoPlayer && playerId == hunterPlayerId)
+            {
+                HandleHunterLeft();
+                return;
+            }
+
+            DuckRecord duck = FindDuckById(playerId);
+            if (duck == null || duck.Left || duck.Progress == null || duck.Progress.Retired)
+            {
+                return;
+            }
+
+            duck.Progress.Sample(arena);
+            duck.Progress.MarkDead(roundElapsed);
+            duck.Frozen = DuckOutcome.From(duck.Progress);
+
+            duck.Bot?.Stop();
+            RemoveFromAlive(duck.PlayerId);
+
+            Debug.Log($"🦆 Duck Hunt: Утка {playerId} вышла из раунда — зачтена погибшей " +
+                      $"на этаже {duck.Frozen.Floor}, живых осталось {aliveDucks.Count}");
+
+            if (duck.Elimination != null && duck.Avatar != null && !duck.Elimination.IsEliminated)
+            {
+                Vector3 impulse = FallbackDeathImpulse(duck.Avatar);
+                Vector3 point = duck.Avatar.transform.position;
+                duck.Elimination.Eliminate(point, impulse);
+
+                // Остальным нужна сторона отлёта: состояние приедет само, а по
+                // нему выбирается клип падения.
+                network?.AnnounceDuckDeath(duck.PlayerId, point, impulse);
+            }
+
+            if (IsLocal(duck.PlayerId))
+            {
+                ActivateSpectator();
+            }
+
+            CheckRoundOver();
+        }
+
+        /// <summary>
+        /// Охотник вышел. Раунд закрывается сразу же, а место ему выдаётся
+        /// последнее — за это отвечает <see cref="hunterLeft"/> в
+        /// <see cref="CollectResults"/>.
+        ///
+        /// Порядок самих Уток при этом не трогаем: живые и так стоят выше
+        /// погибших и ранжируются по достигнутой точке — ровно то, чего спека
+        /// требует от такого раунда.
+        ///
+        /// Роль за ушедшим сохраняется намеренно: обнули мы <c>hunterPlayerId</c>
+        /// здесь, выдавать место было бы уже некому.
+        /// </summary>
+        private void HandleHunterLeft()
+        {
+            if (hunterLeft)
+            {
+                return;
+            }
+
+            hunterLeft = true;
+
+            Debug.Log($"🦆 Duck Hunt: Охотник {hunterPlayerId} вышел — раунд закрывается досрочно, " +
+                      $"живых Уток {aliveDucks.Count}");
+
+            // Оружие и лифт отвязываем до конца раунда: подписки висели на
+            // компоненте уничтоженного аватара, а ось лифта больше никто не
+            // пришлёт — платформа иначе уедет до упора на экране результатов.
+            ClearHunter();
+            elevator?.SetAxis(0f);
+            ApplyHunterAuthority();
+            RefreshCrosshair();
+
+            EndMinigame();
+        }
+
+        /// <summary>
+        /// Утка ушла из матча: числится погибшей на той точке, где её застал
+        /// выход, тело убирается.
+        /// </summary>
+        private void RetireLeftDuck(DuckRecord duck)
+        {
+            if (duck.Left)
+            {
+                return;
+            }
+
+            if (duck.Progress != null && !duck.Progress.Retired)
+            {
+                // Прогресс дочитывается перед заморозкой: место считается по
+                // точке выхода, а не по той, где Утку последний раз опросили.
+                duck.Progress.Sample(arena);
+                duck.Progress.MarkDead(roundElapsed);
+                duck.Frozen = DuckOutcome.From(duck.Progress);
+            }
+            else if (!duck.Frozen.Retired)
+            {
+                // Аватар уничтожен раньше, чем разобрали уход. Дочитывать
+                // нечего — домечаем погибшей по последнему слепку.
+                duck.Frozen = duck.Frozen.AsDead(roundElapsed);
+            }
+
+            MarkDuckLeft(duck);
+        }
+
+        /// <summary>
+        /// Забыть тело ушедшей Утки.
+        ///
+        /// Ссылки обнуляются явно, а не оставляются «уничтоженными»: оператор
+        /// <c>?.</c> проверяет настоящий null и разрушенный объект Unity не
+        /// отсекает, поэтому вызов по такой ссылке падает
+        /// <c>MissingReferenceException</c>. После обнуления все проверки
+        /// <c>!= null</c> по коду мини-игры срабатывают как надо.
+        /// </summary>
+        private void MarkDuckLeft(DuckRecord duck)
+        {
+            if (duck.Left)
+            {
+                return;
+            }
+
+            duck.Left = true;
+
+            if (duck.Bot != null)
+            {
+                duck.Bot.Stop();
+            }
+
+            RemoveFromAlive(duck.PlayerId);
+
+            duck.Avatar = null;
+            duck.Progress = null;
+            duck.Elimination = null;
+            duck.Bot = null;
+            duck.Route.Clear();
+            duck.RouteIndex = 0;
+
+            // Наблюдателю говорить ничего не нужно: список живых он держит по
+            // ссылке и перечитывает каждый кадр, а с пропавшей цели уходит сам.
         }
 
         // ========== HUD ОХОТНИКА ==========
@@ -795,6 +1385,68 @@ namespace Igruha.Minigames.DuckHunt
             Hud.ShowStatus(hunter.Weapon.IsReloading
                 ? "Перезарядка…"
                 : $"Патроны: {hunter.Weapon.Ammo} / {hunter.Weapon.MagazineSize}");
+        }
+
+        // ========== ПОДСКАЗКА ВЗАИМОДЕЙСТВИЯ ==========
+
+        /// <summary>
+        /// Строка «что можно нажать» для локальной Утки.
+        ///
+        /// Без неё рычаг ловушки не найти: он маленький и врезан в стену, а
+        /// радиус взаимодействия — 1.8 м, и стоя на полшага дальше игрок жмёт
+        /// E в пустоту, не понимая, почему ничего не происходит. Строка
+        /// состояния у Утки свободна — обойму в ней показывает только свой
+        /// Охотник, — и подсказке там место.
+        ///
+        /// Опрос каждый кадр, а строка пересобирается только на смене цели:
+        /// <c>InteractionPrompt</c> склеивает текст, и держать это в кадре
+        /// нельзя.
+        /// </summary>
+        private void TickDuckPrompt()
+        {
+            if (Hud == null || IsLocal(hunterPlayerId))
+            {
+                return;
+            }
+
+            IInteractable target = RoundLive ? ResolveLocalInteractable() : null;
+            if (ReferenceEquals(target, promptTarget))
+            {
+                return;
+            }
+
+            promptTarget = target;
+
+            if (target == null)
+            {
+                Hud.HideStatus();
+                return;
+            }
+
+            Hud.ShowStatus($"[E] {target.InteractionPrompt}");
+        }
+
+        /// <summary>
+        /// Что сейчас в руках у локальной Утки. Интерактор берётся у своего
+        /// аватара из табло, а не поиском по сцене, и переспрашивается только
+        /// пока не найден: аватар появляется позже правил.
+        /// </summary>
+        private IInteractable ResolveLocalInteractable()
+        {
+            if (localInteractor == null)
+            {
+                SessionPlayer local = SessionScoreboard.Current?.LocalPlayer;
+                if (local?.Avatar == null)
+                {
+                    return null;
+                }
+
+                local.Avatar.TryGetComponent(out localInteractor);
+            }
+
+            return localInteractor != null && localInteractor.enabled
+                ? localInteractor.CurrentInteractable
+                : null;
         }
 
         // ========== БОЛВАНКИ СОЛО-ТЕСТА ==========
@@ -861,7 +1513,13 @@ namespace Igruha.Minigames.DuckHunt
         {
             for (int i = 0; i < ducks.Count; i++)
             {
-                ducks[i].Bot?.Stop();
+                // Через != null, а не через ?.: водитель живёт на аватаре, и
+                // у ушедшего игрока это уничтоженный объект, которого оператор
+                // ?. не отсекает.
+                if (ducks[i].Bot != null)
+                {
+                    ducks[i].Bot.Stop();
+                }
             }
         }
 
@@ -880,7 +1538,8 @@ namespace Igruha.Minigames.DuckHunt
             for (int i = 0; i < ducks.Count; i++)
             {
                 DuckRecord duck = ducks[i];
-                if (duck.Bot == null || duck.Progress.Retired || duck.Avatar == null)
+                if (duck.Left || duck.Bot == null || duck.Avatar == null || duck.Progress == null ||
+                    duck.Progress.Retired)
                 {
                     continue;
                 }
@@ -1033,10 +1692,428 @@ namespace Igruha.Minigames.DuckHunt
             Debug.Log($"Duck Hunt: локальный игрок теперь {(localPlayerIsHunter ? "ОХОТНИК" : "УТКА")}");
         }
 
+        // ========== СЕТЕВОЕ СОСТОЯНИЕ ==========
+
+        /// <summary>Кому выпала роль Охотника. Это число и реплицирует сетевая половина.</summary>
+        public int HunterPlayerId => hunterPlayerId;
+
+        /// <summary>Момент свистка на общих часах. <see cref="NotAnnounced"/> — ещё не объявлен.</summary>
+        public double LiveTime => liveTime;
+
+        /// <summary>Высота лифта на этой машине.</summary>
+        public float ElevatorHeight => elevator != null ? elevator.CurrentY : 0f;
+
+        /// <summary>Уток в раунде.</summary>
+        public int DuckCount => ducks.Count;
+
+        /// <summary>
+        /// Какие ловушки сейчас сработаны — по биту на ловушку в порядке массива.
+        /// Одним числом, а не списком: состояние ловушки это ровно один флаг,
+        /// а список пришлось бы отдельно держать в согласии с массивом сцены.
+        /// </summary>
+        public uint TrapMask
+        {
+            get
+            {
+                uint mask = 0u;
+                int count = Mathf.Min(traps.Length, MaxSyncedTraps);
+                for (int i = 0; i < count; i++)
+                {
+                    if (traps[i] != null && traps[i].IsSprung)
+                    {
+                        mask |= 1u << i;
+                    }
+                }
+
+                return mask;
+            }
+        }
+
+        /// <summary>Обойма Охотника для репликации. Ложь — Охотника или оружия ещё нет.</summary>
+        public bool TryGetHunterWeapon(out int ammo, out double reloadEndsAt)
+        {
+            HitscanWeapon weapon = hunter != null ? hunter.Weapon : null;
+            if (weapon == null)
+            {
+                ammo = 0;
+                reloadEndsAt = 0d;
+                return false;
+            }
+
+            ammo = weapon.Ammo;
+            reloadEndsAt = weapon.ReloadEndsAt;
+            return true;
+        }
+
+        /// <summary>Состояние Утки для репликации. Ложь — такой Утки в раунде нет.</summary>
+        public bool TryGetDuckState(int index, out DuckNetState state)
+        {
+            if (index < 0 || index >= ducks.Count)
+            {
+                state = default;
+                return false;
+            }
+
+            DuckRecord duck = ducks[index];
+
+            // Через слепок, а не с компонента: у ушедшего игрока компонента
+            // уже нет, а его замороженный итог обязан доехать до клиентов —
+            // иначе они до конца раунда считают его бегущим.
+            DuckOutcome outcome = duck.Outcome;
+            state = new DuckNetState
+            {
+                PlayerId = duck.PlayerId,
+                Floor = (byte)Mathf.Clamp(outcome.Floor, 0, byte.MaxValue),
+                Progress = outcome.Progress,
+                FinishOrder = (byte)Mathf.Clamp(outcome.FinishOrder, 0, byte.MaxValue),
+                Dead = outcome.Dead,
+                DeathTime = outcome.DeathTime
+            };
+
+            return true;
+        }
+
+        /// <summary>
+        /// Намерение Охотника подвинуть лифт, приехавшее с его машины.
+        /// Проверок две, и обе обязательны: лифтом правит только тот, кому
+        /// выпала роль, и только пока раунд живой — иначе платформа ездила бы
+        /// и на отсчёте, и на экране результатов.
+        /// </summary>
+        public void ServerMoveElevator(int playerId, float axis)
+        {
+            if (!HasAuthority || !RoundLive || playerId != hunterPlayerId)
+            {
+                return;
+            }
+
+            elevator?.SetAxis(axis);
+        }
+
+        /// <summary>
+        /// Намерение Охотника выстрелить, приехавшее с его машины. Клиент
+        /// присылает только точку и направление — обойму, задержку, конус
+        /// разброса и сам луч считает эта сторона, и клиентский результат
+        /// не спрашивается вовсе.
+        /// </summary>
+        public void ServerFire(int playerId, Vector3 origin, Vector3 direction)
+        {
+            if (!HasAuthority || !RoundLive || playerId != hunterPlayerId || hunter == null)
+            {
+                return;
+            }
+
+            if (!IsUsable(origin) || !IsUsable(direction) || direction.sqrMagnitude < MinAimSqrMagnitude)
+            {
+                Debug.LogWarning($"{name}: выстрел игрока {playerId} отклонён — негодная точка или направление", this);
+                return;
+            }
+
+            hunter.TryFire(ValidateMuzzle(origin, playerId), direction.normalized);
+        }
+
+        /// <summary>Намерение перезарядиться. Обойма — состояние раунда, меняет её только авторитет.</summary>
+        public void ServerReload(int playerId)
+        {
+            if (!HasAuthority || !RoundLive || playerId != hunterPlayerId)
+            {
+                return;
+            }
+
+            hunter?.Weapon?.Reload();
+        }
+
+        /// <summary>
+        /// Точку выстрела берём клиентскую: целится игрок своей камерой, и
+        /// подменять её серверной значит стрелять не туда, куда он смотрел.
+        /// А вот выстрелить из другого конца карты ему нельзя — слишком
+        /// далёкая точка заменяется на свою.
+        /// </summary>
+        private Vector3 ValidateMuzzle(Vector3 origin, int playerId)
+        {
+            Vector3 own = hunter.GetMuzzlePosition();
+            float offset = (origin - own).magnitude;
+            if (offset <= MuzzleReachTolerance)
+            {
+                return origin;
+            }
+
+            Debug.LogWarning($"{name}: точка выстрела игрока {playerId} в {offset:F1} м от его тела — беру серверную", this);
+            return own;
+        }
+
+        /// <summary>Числом из сети можно пользоваться: без NaN и бесконечностей.</summary>
+        private static bool IsUsable(Vector3 value) =>
+            float.IsFinite(value.x) && float.IsFinite(value.y) && float.IsFinite(value.z);
+
+        /// <summary>
+        /// Выстрел состоялся у авторитета — разослать его остальным, чтобы звук,
+        /// вспышка и трассер были у всех одинаковые.
+        /// </summary>
+        private void HandleHunterFired(HitscanWeapon.HitResult result)
+        {
+            if (!HasAuthority)
+            {
+                return;
+            }
+
+            network?.AnnounceShot(result.Origin, result.Point, result.Hit);
+        }
+
+        /// <summary>Выстрел, посчитанный сервером: отыграть его картинку у себя.</summary>
+        public void ApplyNetworkShot(Vector3 origin, Vector3 point, bool hit) =>
+            hunter?.PlayRemoteShot(origin, point, hit);
+
+        /// <summary>
+        /// Утку убили — сервер прислал точку попадания и импульс отлёта.
+        /// Прогресс и выход из гонки приедут отдельно, состоянием: это событие
+        /// отвечает только за то, как именно улетит тело.
+        /// </summary>
+        public void ApplyNetworkDuckDeath(int playerId, Vector3 hitPoint, Vector3 impulse)
+        {
+            DuckRecord duck = FindDuckById(playerId);
+            if (duck?.Elimination == null || duck.Elimination.IsEliminated)
+            {
+                return;
+            }
+
+            duck.Bot?.Stop();
+            duck.Elimination.Eliminate(hitPoint, impulse);
+        }
+
+        /// <summary>
+        /// Роль приехала с сервера. Пересдаём расклад целиком: раздача ролей
+        /// идемпотентна, ровно ей же пользуется отладочная пересдача по клавише.
+        /// </summary>
+        public void ApplyNetworkHunter()
+        {
+            if (Players.Count == 0)
+            {
+                return;
+            }
+
+            AssignRoles();
+        }
+
+        /// <summary>Момент свистка, объявленный сервером.</summary>
+        public void ApplyNetworkLiveTime(double value)
+        {
+            if (HasAuthority)
+            {
+                return;
+            }
+
+            liveTime = value;
+        }
+
+        /// <summary>Высота лифта, решённая сервером.</summary>
+        public void ApplyNetworkElevatorHeight(float height) => elevator?.ApplyNetworkHeight(height);
+
+        /// <summary>Вернуть лифт под управление этой машины: сетевого состояния больше нет.</summary>
+        public void ReleaseNetworkElevator() => elevator?.ReleaseNetworkHeight();
+
+        /// <summary>Обойма и перезарядка, решённые сервером.</summary>
+        /// <summary>
+        /// Прицел Охотника, посчитанный на его машине. Нужен только показу:
+        /// по нему наблюдатель смотрит его глазами, а выстрел несёт своё
+        /// направление отдельно.
+        /// </summary>
+        public void ApplyNetworkHunterAim(float yaw, float pitch) => hunter?.ApplyNetworkAim(yaw, pitch);
+
+        public void ApplyNetworkHunterWeapon(int ammo, double reloadEndsAt)
+        {
+            if (hunter != null && hunter.Weapon != null)
+            {
+                hunter.Weapon.ApplyNetworkState(ammo, reloadEndsAt);
+            }
+        }
+
+        /// <summary>
+        /// Ловушка сработала по решению сервера — отыграть это у себя.
+        /// Состояние ловушки приезжает отдельно, маской: здесь только момент,
+        /// под звук и вспышку.
+        /// </summary>
+        public void ApplyNetworkTrapFired(int index)
+        {
+            if (index < 0 || index >= traps.Length)
+            {
+                return;
+            }
+
+            traps[index]?.PlayFired();
+        }
+
+        /// <summary>Состояние ловушек, решённое сервером.</summary>
+        public void ApplyNetworkTrapMask(uint mask)
+        {
+            int count = Mathf.Min(traps.Length, MaxSyncedTraps);
+            for (int i = 0; i < count; i++)
+            {
+                traps[i]?.ApplySprung((mask & (1u << i)) != 0u);
+            }
+        }
+
+        /// <summary>
+        /// Состояние Утки, решённое сервером. Применяется целиком, вместе
+        /// с выходом из гонки: без этого клиент до конца раунда считает
+        /// погибших живыми — отпускает им движение на свистке, держит их
+        /// в списке живых и водит по ним камеру наблюдателя.
+        /// </summary>
+        public void ApplyNetworkDuck(int playerId, int floor, float progress, int finishOrder, bool dead, float deathTime)
+        {
+            DuckRecord duck = FindDuckById(playerId);
+            if (duck == null)
+            {
+                return;
+            }
+
+            bool wasRetired = duck.Outcome.Retired;
+
+            // Слепок ведём всегда: он и есть то, по чему эта машина потом
+            // покажет места, а тела к тому моменту может уже не быть.
+            duck.Frozen = new DuckOutcome(floor, progress, finishOrder, dead, deathTime);
+
+            // Аватара ушедшего игрока NGO уничтожил и на этой машине тоже.
+            // Состояние доехало в слепок, применять его больше не к чему:
+            // тело убрано, из живых Утку надо вычеркнуть.
+            if (duck.Progress == null)
+            {
+                MarkDuckLeft(duck);
+                return;
+            }
+
+            duck.Progress.ApplyNetworkState(floor, progress, finishOrder, dead, deathTime);
+
+            if (wasRetired == duck.Progress.Retired)
+            {
+                return;
+            }
+
+            if (duck.Progress.Retired)
+            {
+                ApplyDuckRetired(duck);
+                return;
+            }
+
+            // Сервер пересдал расклад: выбывшая Утка снова в гонке.
+            duck.Elimination?.Restore();
+            if (duck.Avatar != null)
+            {
+                duck.Avatar.MovementLocked = !RoundLive;
+            }
+
+            AddToAlive(duck.PlayerId);
+        }
+
+        /// <summary>
+        /// Утка выбыла по решению сервера. Дошедшую останавливаем, погибшую
+        /// роняем: событие выстрела с точкой попадания и импульсом отлёта
+        /// приезжает отдельно, но состояние важнее позы — тело не должно
+        /// стоять живым только потому, что направление ещё в дороге.
+        /// </summary>
+        private void ApplyDuckRetired(DuckRecord duck)
+        {
+            duck.Bot?.Stop();
+            RemoveFromAlive(duck.PlayerId);
+
+            if (duck.Outcome.Finished)
+            {
+                if (duck.Avatar != null)
+                {
+                    duck.Avatar.MovementLocked = true;
+                }
+
+                if (IsLocal(duck.PlayerId))
+                {
+                    ActivateSpectator();
+                }
+
+                return;
+            }
+
+            if (duck.Elimination != null && !duck.Elimination.IsEliminated && duck.Avatar != null)
+            {
+                duck.Elimination.Eliminate(duck.Avatar.transform.position, FallbackDeathImpulse(duck.Avatar));
+            }
+
+            // В наблюдатели — сразу, тем же правилом, что и у авторитета:
+            // ждать, пока тело долетит и исчезнет, выбывший не должен.
+            if (IsLocal(duck.PlayerId))
+            {
+                ActivateSpectator();
+            }
+        }
+
+        /// <summary>
+        /// Чем ронять Утку, когда известно только то, что она погибла.
+        /// Направление берём от её собственного лица: пока событие выстрела
+        /// не приехало, важно, что тело падает, а не куда именно.
+        /// </summary>
+        private Vector3 FallbackDeathImpulse(PlayerController avatar)
+        {
+            float force = config != null ? config.DeathImpulse : 18f;
+            float lift = config != null ? config.DeathImpulseLift : 0.4f;
+            Vector3 direction = avatar != null ? -avatar.Facing : Vector3.back;
+            return (direction + Vector3.up * lift).normalized * force;
+        }
+
+        /// <summary>
+        /// Кто на этой машине распоряжается лифтом и оружием Охотника.
+        /// Зовётся после каждой выдачи роли: Attach создаёт оружие заново,
+        /// и режим ему надо проставить снова.
+        /// </summary>
+        private void ApplyHunterAuthority()
+        {
+            if (Networked)
+            {
+                network.ConfigureHunter(hunter, IsLocal(hunterPlayerId));
+                return;
+            }
+
+            if (hunter == null)
+            {
+                return;
+            }
+
+            hunter.Relay = null;
+
+            if (hunter.Weapon != null)
+            {
+                hunter.Weapon.DrivenExternally = false;
+            }
+        }
+
+        private void AddToAlive(int playerId)
+        {
+            for (int i = 0; i < aliveDucks.Count; i++)
+            {
+                if (aliveDucks[i].Id == playerId)
+                {
+                    return;
+                }
+            }
+
+            for (int i = 0; i < Players.Count; i++)
+            {
+                if (Players[i].Id == playerId)
+                {
+                    aliveDucks.Add(Players[i]);
+                    RefreshSpectatorTargets();
+                    return;
+                }
+            }
+        }
+
         // ========== ПОИСК ==========
 
         private DuckRecord FindDuckByElimination(PlayerElimination elimination)
         {
+            // Пустую ссылку не ищем: у ушедших Уток она обнулена, и поиск по
+            // null нашёл бы первую попавшуюся из них.
+            if (elimination == null)
+            {
+                return null;
+            }
+
             for (int i = 0; i < ducks.Count; i++)
             {
                 if (ducks[i].Elimination == elimination)
@@ -1050,9 +2127,28 @@ namespace Igruha.Minigames.DuckHunt
 
         private DuckRecord FindDuckByProgress(DuckProgress progress)
         {
+            // Та же причина, что и в поиске по выбыванию: у ушедших ссылка пуста.
+            if (progress == null)
+            {
+                return null;
+            }
+
             for (int i = 0; i < ducks.Count; i++)
             {
                 if (ducks[i].Progress == progress)
+                {
+                    return ducks[i];
+                }
+            }
+
+            return null;
+        }
+
+        private DuckRecord FindDuckById(int playerId)
+        {
+            for (int i = 0; i < ducks.Count; i++)
+            {
+                if (ducks[i].PlayerId == playerId)
                 {
                     return ducks[i];
                 }
@@ -1084,7 +2180,7 @@ namespace Igruha.Minigames.DuckHunt
             for (int i = 0; i < ducks.Count; i++)
             {
                 placementOrder.Add(ducks[i].PlayerId);
-                if (ducks[i].Progress.Finished)
+                if (ducks[i].Outcome.Finished)
                 {
                     finished++;
                 }
@@ -1092,7 +2188,16 @@ namespace Igruha.Minigames.DuckHunt
 
             if (hunterPlayerId != SpecialRoleHistory.NoPlayer)
             {
-                placementOrder.Insert(Mathf.Clamp(finished, 0, placementOrder.Count), hunterPlayerId);
+                // Ушедший Охотник встаёт последним (спека, 10.2): он бросил
+                // раунд, и вставать выше тех, кто добежал сам, ему не за что.
+                // Порядок самих Уток при этом не меняется — живые и так стоят
+                // выше погибших и ранжируются по достигнутой точке, а это
+                // ровно то, что спека требует от такого раунда.
+                int slot = hunterLeft
+                    ? placementOrder.Count
+                    : Mathf.Clamp(finished, 0, placementOrder.Count);
+
+                placementOrder.Insert(slot, hunterPlayerId);
             }
 
             // Место обязано быть у всех: тот, кто остался без аватара
@@ -1129,23 +2234,26 @@ namespace Igruha.Minigames.DuckHunt
             // Дошедшие — строго по порядку зачёта. Сравнивать по времени нельзя:
             // два финиша в одном тике дают одинаковое время, а List.Sort
             // нестабилен — места разъехались бы между машинами.
+            DuckOutcome left = a.Outcome;
+            DuckOutcome right = b.Outcome;
+
             if (categoryA == 0)
             {
-                return a.Progress.FinishOrder.CompareTo(b.Progress.FinishOrder);
+                return left.FinishOrder.CompareTo(right.FinishOrder);
             }
 
             // Дальше по трассе — выше место, поэтому сравнение развёрнуто.
             int byProgress = -DuckHuntArena.CompareProgress(
-                a.Progress.Floor, a.Progress.Progress,
-                b.Progress.Floor, b.Progress.Progress);
+                left.Floor, left.Progress,
+                right.Floor, right.Progress);
             if (byProgress != 0)
             {
                 return byProgress;
             }
 
-            if (categoryA == 2 && !Mathf.Approximately(a.Progress.DeathTime, b.Progress.DeathTime))
+            if (categoryA == 2 && !Mathf.Approximately(left.DeathTime, right.DeathTime))
             {
-                return b.Progress.DeathTime.CompareTo(a.Progress.DeathTime);
+                return right.DeathTime.CompareTo(left.DeathTime);
             }
 
             // Полное равенство: порядок по идентификатору одинаков на всех
@@ -1155,12 +2263,13 @@ namespace Igruha.Minigames.DuckHunt
 
         private static int Category(DuckRecord duck)
         {
-            if (duck.Progress.Finished)
+            DuckOutcome outcome = duck.Outcome;
+            if (outcome.Finished)
             {
                 return 0;
             }
 
-            return duck.Progress.Dead ? 2 : 1;
+            return outcome.Dead ? 2 : 1;
         }
     }
 }

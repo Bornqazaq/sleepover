@@ -11,6 +11,11 @@ namespace Igruha.Core.Traps
     /// Срабатывание — исход раунда, поэтому решает его только сервер.
     /// Намерение игрока доезжает сюда через серверное взаимодействие
     /// (PlayerInteractor → сервер → TrapActivationButton.Interact).
+    ///
+    /// Ловушки, которые держат состояние (закрытая створка, убранный пол),
+    /// отдают его наружу парой <see cref="IsSprung"/> / <see cref="ApplySprung"/>:
+    /// сетевая половина мини-игры реплицирует его одним общим способом и не
+    /// знает, какая именно ловушка перед ней.
     /// </summary>
     public abstract class TrapBase : MonoBehaviour
     {
@@ -24,6 +29,17 @@ namespace Igruha.Core.Traps
         /// </summary>
         public event Action<bool> ReadyChanged;
 
+        /// <summary>
+        /// Ловушка сработала прямо сейчас — под звук, вспышку и тряску.
+        ///
+        /// Отдельно от состояния, и это не дублирование. Состояние отвечает
+        /// на «закрыта ли дверь», а событие — на «в этот миг захлопнулась»,
+        /// и у мгновенных ловушек второе есть, а первого нет вовсе: гейзер
+        /// подбрасывает и в тот же кадр снова свободен. Без этого события
+        /// остальные машины про его срабатывание не узнают никогда.
+        /// </summary>
+        public event Action Fired;
+
         private float cooldownTimer;
 
         /// <summary>
@@ -35,6 +51,17 @@ namespace Igruha.Core.Traps
 
         /// <summary>Сколько осталось до готовности, с. Ноль — готова.</summary>
         public float CooldownRemaining => cooldownTimer;
+
+        /// <summary>
+        /// Ловушка сейчас в сработавшем состоянии: створка закрыта, участок пола
+        /// убран. У мгновенных ловушек (гейзер, падающий ящик) состояния нет —
+        /// они отыгрывают эффект и в тот же миг снова свободны, поэтому здесь
+        /// умолчание, а не абстрактный член.
+        /// </summary>
+        public virtual bool IsSprung => false;
+
+        /// <summary>Применить состояние, решённое сервером. У мгновенных ловушек применять нечего.</summary>
+        public virtual void ApplySprung(bool sprung) { }
 
         protected virtual void Update()
         {
@@ -70,9 +97,25 @@ namespace Igruha.Core.Traps
             }
 
             cooldownTimer = cooldown;
-            ReadyChanged?.Invoke(false);
+
+            // Ловушка без кулдауна не бывает «не готова» ни на кадр. Объявить
+            // её занятой всё равно означало бы соврать: вернуть готовность
+            // некому — обратное событие шлёт отсчёт, а его нет.
+            if (cooldownTimer > 0f)
+            {
+                ReadyChanged?.Invoke(false);
+            }
+
             OnActivated();
+            Fired?.Invoke();
         }
+
+        /// <summary>
+        /// Отыграть срабатывание, ничего не решая. Зовут машины, которые исход
+        /// не считали: сервер объявил, что ловушка сработала, — им остаётся
+        /// только показать это.
+        /// </summary>
+        public void PlayFired() => Fired?.Invoke();
 
         /// <summary>Снять кулдаун и вернуть ловушку в исходное состояние. Для старта раунда.</summary>
         public virtual void ResetTrap()

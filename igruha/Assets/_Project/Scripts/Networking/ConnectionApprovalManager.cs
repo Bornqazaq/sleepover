@@ -1,7 +1,5 @@
-using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
-using Igruha.Core.Player;
 
 namespace Igruha.Networking
 {
@@ -17,15 +15,6 @@ namespace Igruha.Networking
     {
         private const int PROTOCOL_VERSION = 1;
         private const int MAX_PLAYERS = 8;
-
-        [Tooltip("Ростер персонажей: каждому подключившемуся достаётся свой, пока они не кончатся")]
-        [SerializeField] private CharacterRoster roster;
-
-        /// <summary>
-        /// Кому какой персонаж выдан. Раздаёт только сервер и только в момент
-        /// одобрения — до спавна, потому что NGO выбирает префаб именно здесь.
-        /// </summary>
-        private readonly Dictionary<ulong, int> assignedCharacters = new Dictionary<ulong, int>(MAX_PLAYERS);
 
         // Awake, а не Start: колбэк должен быть зарегистрирован до того, как
         // AppNetworkManager поднимет хост или клиент в своём Start().
@@ -52,10 +41,6 @@ namespace Igruha.Networking
             // Установить callback для валидации подключений
             networkManager.ConnectionApprovalCallback += HandleConnectionApproval;
 
-            // Освобождать персонажа при выходе: иначе после пары переподключений
-            // ростер «кончится» и все начнут получать одну и ту же модель.
-            networkManager.OnClientDisconnectCallback += ReleaseCharacter;
-
             Debug.Log("✅ ConnectionApprovalManager: Connection Approval enabled");
         }
 
@@ -65,7 +50,6 @@ namespace Igruha.Networking
             if (networkManager != null)
             {
                 networkManager.ConnectionApprovalCallback -= HandleConnectionApproval;
-                networkManager.OnClientDisconnectCallback -= ReleaseCharacter;
             }
         }
 
@@ -108,129 +92,27 @@ namespace Igruha.Networking
 
             // ✅ Все проверки пройдены — одобрить подключение
             response.Approved = true;
-            response.CreatePlayerObject = true;
 
-            // Свой персонаж каждому. Без этого NGO спавнит всем один и тот же
-            // NetworkConfig.PlayerPrefab, и вся комната состоит из одинаковых близнецов.
-            AssignCharacter(request.ClientNetworkId, response);
+            // Тело здесь не создаём намеренно. NGO берёт префаб именно в
+            // одобрении, то есть до того, как игрок вообще увидел экран
+            // выбора, — и раньше персонаж выдавался сервером молча, а выбора
+            // не было. Теперь тело спавнит CharacterSelectionManager, когда
+            // решено, кем играть.
+            response.CreatePlayerObject = false;
 
-            // Развести игроков по спавну: без этого все появляются в одной точке
-            // и выталкивают друг друга физикой
-            response.Position = GetSpawnPosition(request.ClientNetworkId);
-            response.Rotation = Quaternion.identity;
-
-            Debug.Log($"✅ Client {request.ClientNetworkId} APPROVED — creating player object at {response.Position}");
+            Debug.Log($"✅ Client {request.ClientNetworkId} APPROVED — тело появится после выбора персонажа");
         }
 
-        /// <summary>
-        /// Выдать подключающемуся свободного персонажа и подставить его префаб в ответ.
-        ///
-        /// Решает сервер: выбор модели — часть состояния катки, клиенту его доверять
-        /// нельзя (иначе двое пришлют один и тот же и снова станут близнецами).
-        /// Персонажей в ростере меньше, чем мест (5 против 8), поэтому при переполнении
-        /// идём по кругу — повтор лучше, чем отказ в подключении.
-        /// </summary>
-        private void AssignCharacter(ulong clientId, NetworkManager.ConnectionApprovalResponse response)
-        {
-            if (roster == null)
-            {
-                Debug.LogWarning("⚠️ ConnectionApprovalManager: не назначен ростер — все получат префаб по умолчанию");
-                return;
-            }
-
-            IReadOnlyList<CharacterDefinition> characters = roster.Characters;
-            int chosen = -1;
-
-            // Первый проход — только незанятые, второй — по кругу от clientId.
-            for (int i = 0; i < characters.Count && chosen < 0; i++)
-            {
-                if (characters[i].IsAvailable && !IsTaken(i))
-                {
-                    chosen = i;
-                }
-            }
-
-            if (chosen < 0)
-            {
-                for (int i = 0; i < characters.Count; i++)
-                {
-                    int candidate = (int)((clientId + (ulong)i) % (ulong)characters.Count);
-                    if (characters[candidate].IsAvailable)
-                    {
-                        chosen = candidate;
-                        break;
-                    }
-                }
-            }
-
-            if (chosen < 0)
-            {
-                Debug.LogError("❌ ConnectionApprovalManager: в ростере нет ни одного персонажа с префабом");
-                return;
-            }
-
-            GameObject prefab = characters[chosen].Prefab;
-            if (!prefab.TryGetComponent(out NetworkObject networkObject))
-            {
-                Debug.LogError($"❌ На префабе '{prefab.name}' нет NetworkObject — персонаж не может быть сетевым");
-                return;
-            }
-
-            // Префаб обязан быть в списке сетевых. Незарегистрированный NGO
-            // не создаст ни у кого: подключившийся остаётся БЕЗ ПЕРСОНАЖА,
-            // а сервер на каждом кадре пытается доодобрить его заново и сыплет
-            // «An item with the same key has already been added».
-            //
-            // Так и было: в ростере восемь персонажей, а в DefaultNetworkPrefabs
-            // лежали пять. Шестой, седьмой и восьмой участники катки оказывались
-            // зрителями без тела. На двоих и на четверых это не воспроизводится
-            // вообще — потому и дожило до прогона восьмерых.
-            //
-            // Список чиним данными, но проверку оставляем здесь: следующий
-            // добавленный персонаж иначе повторит ровно это, и снова молча.
-            if (!IsRegisteredNetworkPrefab(networkObject.PrefabIdHash))
-            {
-                Debug.LogError(
-                    $"❌ Префаб персонажа '{characters[chosen].DisplayName}' не зарегистрирован в " +
-                    "DefaultNetworkPrefabs — выдаю префаб по умолчанию. Добавь его в список, " +
-                    "иначе часть игроков останется без персонажа");
-                return;
-            }
-
-            assignedCharacters[clientId] = chosen;
-            response.PlayerPrefabHash = networkObject.PrefabIdHash;
-
-            Debug.Log($"🎭 Client {clientId} получает персонажа '{characters[chosen].DisplayName}'");
-        }
-
-        /// <summary>Префаб есть в списке сетевых префабов — NGO сможет его создать.</summary>
-        private static bool IsRegisteredNetworkPrefab(uint prefabIdHash)
-        {
-            NetworkManager network = NetworkManager.Singleton;
-            return network != null && network.NetworkConfig != null && network.NetworkConfig.Prefabs != null &&
-                   network.NetworkConfig.Prefabs.NetworkPrefabOverrideLinks.ContainsKey(prefabIdHash);
-        }
-
-        private bool IsTaken(int characterIndex)
-        {
-            foreach (int taken in assignedCharacters.Values)
-            {
-                if (taken == characterIndex)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private void ReleaseCharacter(ulong clientId) => assignedCharacters.Remove(clientId);
 
         /// <summary>
         /// Точка спавна по кругу вокруг центра арены — детерминированно от ClientId,
         /// чтобы сервер и клиенты считали одинаково.
+        ///
+        /// Публичная, потому что тело теперь спавнит
+        /// <see cref="CharacterSelectionManager"/> — после выбора персонажа, —
+        /// а раскладка по кругу должна остаться одна на всех.
         /// </summary>
-        private static Vector3 GetSpawnPosition(ulong clientId)
+        public static Vector3 GetSpawnPosition(ulong clientId)
         {
             const float radius = 3f;
             float angle = clientId * (360f / MAX_PLAYERS) * Mathf.Deg2Rad;

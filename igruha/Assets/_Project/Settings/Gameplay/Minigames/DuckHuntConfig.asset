@@ -32,8 +32,9 @@ MonoBehaviour:
   horizontalFieldOfView: 90
   cameraPitchLimit: 55
   cameraTurnSpeed: 720
+  cameraOffset: {x: 0, y: 0.35, z: 1.4}
   buttonCooldown: 10
-  doorClosedDuration: 5
+  doorClosedDuration: 0
   collapseDuration: 3
   geyserLaunchHeight: 4.5
   iceAccelerationMultiplier: 0.45

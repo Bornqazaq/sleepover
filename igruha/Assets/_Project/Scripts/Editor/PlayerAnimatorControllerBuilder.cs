@@ -1,4 +1,4 @@
-﻿using UnityEditor;
+using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
 using Igruha.Core.Player;
@@ -415,6 +415,12 @@ namespace Igruha.EditorTools
             AddExitTransition(standUpForwardState, idleState, 0.92f, TransitionDuration);
 
             BuildEmoteStates(set, controller, machine, idleState, runState);
+
+            // Слой ружья строится тем же кодом, что и дописывает его в готовые
+            // контроллеры пунктом меню. Иначе пересборка контроллера молча
+            // теряла бы стойку Охотника — ровно так уже терялся параметр
+            // приседа (разбор в STATE.md за 15.08).
+            HunterRifleLayerBuilder.Build(controller, HunterRifleLayerBuilder.LoadRifleClip());
 
             AssetDatabase.SaveAssets();
 

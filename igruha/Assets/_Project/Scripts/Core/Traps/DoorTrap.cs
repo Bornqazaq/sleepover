@@ -1,16 +1,22 @@
 using System;
 using UnityEngine;
+using Igruha.Core.Session;
 
 namespace Igruha.Core.Traps
 {
     /// <summary>
-    /// Дверь, которая захлопывается по кнопке и через заданное время открывается сама.
+    /// Дверь, которая захлопывается по нажатию.
     /// Тот, кто подбегал к проходу, вынужден ждать снаружи — в Duck Hunt на
     /// простреливаемом месте. Та же конструкция нужна «Камерам-ловушкам».
     ///
+    /// Каждое нажатие переключает створку: закрыта — откроется, открыта —
+    /// закроется. Выдержка при этом не обязательна: с нулевой дверь стоит
+    /// закрытой, пока её не откроют тем же рычагом, и открывать-закрывать
+    /// можно сколько угодно раз подряд.
+    ///
     /// Состояние — один флаг «закрыта», и меняется он только через
-    /// <see cref="SetClosed"/>. В сетевой фазе флаг становится NetworkVariable,
-    /// а этот метод — тем, что применяет реплицированное состояние на клиенте.
+    /// <see cref="SetClosed"/>. В сетевой катке флаг реплицирует мини-игра,
+    /// а этот метод — то, чем присланное состояние применяется на клиенте.
     /// </summary>
     public sealed class DoorTrap : TrapBase
     {
@@ -25,7 +31,7 @@ namespace Igruha.Core.Traps
         [SerializeField] private float moveDuration = 0.25f;
 
         [Header("Срабатывание")]
-        [Tooltip("Сколько дверь держится закрытой, с")]
+        [Tooltip("Сколько дверь держится закрытой, с. Ноль — стоит закрытой, пока не откроют нажатием")]
         [SerializeField] private float closedDuration = 5f;
 
         /// <summary>Дверь закрылась (true) или открылась (false) — для звука и VFX.</summary>
@@ -37,6 +43,10 @@ namespace Igruha.Core.Traps
         /// <summary>Дверь сейчас закрыта (в том числе пока едет закрываться).</summary>
         public bool IsClosed { get; private set; }
 
+        public override bool IsSprung => IsClosed;
+
+        public override void ApplySprung(bool sprung) => SetClosed(sprung);
+
         private void Start()
         {
             // Стартовое положение выставляем в Start, а не в Awake: створку
@@ -46,11 +56,16 @@ namespace Igruha.Core.Traps
             ApplyBlend();
         }
 
-        protected override void OnActivated() => SetClosed(true);
+        /// <summary>
+        /// Нажатие переключает створку, а не закрывает её. Иначе дверь,
+        /// оставленную закрытой, нечем открыть обратно: с нулевой выдержкой
+        /// она так и стояла бы до конца раунда.
+        /// </summary>
+        protected override void OnActivated() => SetClosed(!IsClosed);
 
         /// <summary>
         /// Открыть или закрыть дверь. Единственная точка смены состояния:
-        /// сюда же придёт решение сервера в сетевой фазе.
+        /// сюда же придёт решение сервера в сетевой катке.
         /// </summary>
         public void SetClosed(bool closed)
         {
@@ -68,7 +83,12 @@ namespace Igruha.Core.Traps
         {
             base.Update();
 
-            if (IsClosed)
+            // Открывает дверь обратно тот же, кто её закрыл. На клиенте отсчёт
+            // не идёт: он открыл бы створку по своему таймеру, а сервер — по
+            // своему, и на разнице в полпинга Утка успевала бы пройти проём,
+            // которого на сервере ещё нет. Нулевая выдержка отсчёт отключает
+            // целиком — дверь ждёт следующего нажатия.
+            if (IsClosed && closedDuration > 0f && WorldAuthority.HasAuthority)
             {
                 closedTimer -= Time.deltaTime;
                 if (closedTimer <= 0f)

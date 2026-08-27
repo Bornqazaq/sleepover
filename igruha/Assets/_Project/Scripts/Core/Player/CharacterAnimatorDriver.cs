@@ -25,10 +25,25 @@ namespace Igruha.Core.Player
         private static readonly int EmoteHash = Animator.StringToHash("Emote");
         private static readonly int EmotePlayHash = Animator.StringToHash("EmotePlay");
         private static readonly int EmoteStopHash = Animator.StringToHash("EmoteStop");
+        private static readonly int FireParameterHash = Animator.StringToHash("Fire");
+
+        /// <summary>
+        /// Имя слоя ружья в контроллере. Слой отдельный и лежит поверх основного:
+        /// пока его вес ноль, персонаж анимируется ровно как раньше, а роль
+        /// со стойкой и выстрелом не задевает ни одного замороженного состояния.
+        /// </summary>
+        private const string RifleLayerName = "Rifle";
+
+        /// <summary>Слой ружья не найден — у этого персонажа его просто нет.</summary>
+        private const int NoLayer = -1;
 
         private PlayerPushAbility punchAbility;
         private PlayerEmoteAbility emoteAbility;
         private CapsuleCollider capsule;
+
+        /// <summary>Индекс слоя ружья. Считается один раз: поиск по имени идёт строкой.</summary>
+        private int rifleLayer = NoLayer;
+        private bool rifleLayerResolved;
         private Vector3 visualBaseScale = Vector3.one;
         private float standingHeight = 1f;
 
@@ -123,6 +138,60 @@ namespace Igruha.Core.Player
 
             float ratio = Mathf.Clamp(capsule.height / standingHeight, 0.1f, 1f);
             visualRoot.localScale = new Vector3(visualBaseScale.x, visualBaseScale.y * ratio, visualBaseScale.z);
+        }
+
+        /// <summary>
+        /// Взять или убрать ружьё. Это вес слоя, а не параметр: слой либо
+        /// перекрывает позу целиком, либо не существует для персонажа вовсе.
+        ///
+        /// Публичный вход нужен так же, как <see cref="ApplyCrouchVisual"/>:
+        /// у чужих копий этот компонент выключен, чтобы не затирать параметры
+        /// из NetworkAnimator, — но стойку Охотника показать надо, и роль
+        /// известна на каждой машине.
+        /// </summary>
+        public void SetRifleAiming(bool aiming)
+        {
+            int layer = ResolveRifleLayer();
+            if (layer == NoLayer)
+            {
+                return;
+            }
+
+            animator.SetLayerWeight(layer, aiming ? 1f : 0f);
+
+            // Накопленный триггер снимаем: иначе, взяв ружьё второй раз за матч,
+            // Охотник первым же кадром отыгрывает выстрел, которого не делал.
+            if (!aiming)
+            {
+                animator.ResetTrigger(FireParameterHash);
+            }
+        }
+
+        /// <summary>
+        /// Отыграть выстрел. Зовётся на каждой машине по состоявшемуся выстрелу,
+        /// а не по нажатию: на клике в кулдаун или по пустой обойме выстрела нет,
+        /// и дёргать ствол не на что.
+        /// </summary>
+        public void PlayFire()
+        {
+            if (ResolveRifleLayer() == NoLayer)
+            {
+                return;
+            }
+
+            animator.SetTrigger(FireParameterHash);
+        }
+
+        private int ResolveRifleLayer()
+        {
+            if (rifleLayerResolved)
+            {
+                return rifleLayer;
+            }
+
+            rifleLayerResolved = true;
+            rifleLayer = animator != null ? animator.GetLayerIndex(RifleLayerName) : NoLayer;
+            return rifleLayer;
         }
 
         private void OnJumped()

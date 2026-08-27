@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using Igruha.Core.Minigame;
 
 namespace Igruha.Core.Combat
 {
@@ -16,6 +17,16 @@ namespace Igruha.Core.Combat
     /// В сетевой фазе её зовёт сервер, получив от клиента чистое направление:
     /// конус разброса накладывается здесь, то есть на авторитетной стороне,
     /// и клиент не может выстрелить точнее, чем ему положено.
+    ///
+    /// Обойма и перезарядка — состояние раунда, а не картинка, поэтому машина,
+    /// которая их не ведёт, ставит себе <see cref="DrivenExternally"/> и живёт
+    /// присланным: стрелять и перезаряжаться сама она уже не вправе.
+    ///
+    /// Оба таймера хранятся <b>моментами на общих часах</b>, а не остатками.
+    /// Остаток пришлось бы досылать каждый кадр, момент достаточно объявить
+    /// один раз — и перезарядка кончается у всех одновременно, без поправки
+    /// на пинг. Вне сети общие часы — это обычное время сцены, так что
+    /// одиночный тест работает как раньше.
     /// </summary>
     public sealed class HitscanWeapon : MonoBehaviour
     {
@@ -24,15 +35,26 @@ namespace Igruha.Core.Combat
         {
             /// <summary>Луч во что-то попал.</summary>
             public bool Hit { get; }
+
+            /// <summary>
+            /// Откуда ушёл луч. Без неё подписчик не нарисует трассер, не спросив
+            /// стрелка отдельно, — а в сетевой катке спрашивать некого: выстрел
+            /// посчитал сервер, и точка вылета приезжает вместе с результатом.
+            /// </summary>
+            public Vector3 Origin { get; }
+
             /// <summary>Точка попадания, либо конец луча на предельной дальности.</summary>
             public Vector3 Point { get; }
             /// <summary>Направление уже с наложенным разбросом — по нему рисуется трассер.</summary>
             public Vector3 Direction { get; }
+
+            /// <summary>Во что попали. Пусто на машинах, которые выстрел не считали.</summary>
             public Collider Collider { get; }
 
-            public HitResult(bool hit, Vector3 point, Vector3 direction, Collider collider)
+            public HitResult(bool hit, Vector3 origin, Vector3 point, Vector3 direction, Collider collider)
             {
                 Hit = hit;
+                Origin = origin;
                 Point = point;
                 Direction = direction;
                 Collider = collider;
@@ -64,21 +86,33 @@ namespace Igruha.Core.Combat
         /// <summary>Началась (true) или кончилась (false) перезарядка.</summary>
         public event Action<bool> ReloadingChanged;
 
-        private float fireTimer;
-        private float reloadTimer;
+        /// <summary>Момент, раньше которого следующий выстрел не пройдёт. Общие часы.</summary>
+        private double nextFireTime;
+
+        /// <summary>Момент конца перезарядки на общих часах. Ноль — оружие не перезаряжается.</summary>
+        private double reloadEndsAt;
 
         /// <summary>Патронов в обойме прямо сейчас.</summary>
         public int Ammo { get; private set; }
 
         public int MagazineSize => magazineSize;
 
-        public bool IsReloading => reloadTimer > 0f;
+        /// <summary>
+        /// Обойму и перезарядку ведёт не эта машина: она их только рисует.
+        /// Ставится на всех, кроме авторитета, в сетевой катке.
+        /// </summary>
+        public bool DrivenExternally { get; set; }
+
+        public bool IsReloading => reloadEndsAt > 0d && NetworkClock.Now < reloadEndsAt;
+
+        /// <summary>Момент конца перезарядки на общих часах — его и реплицируем.</summary>
+        public double ReloadEndsAt => reloadEndsAt;
 
         /// <summary>Сколько осталось до конца перезарядки, с. Ноль — оружие готово.</summary>
-        public float ReloadRemaining => reloadTimer;
+        public float ReloadRemaining => IsReloading ? (float)(reloadEndsAt - NetworkClock.Now) : 0f;
 
         /// <summary>Оружие готово выстрелить: есть патрон, вышла задержка, не идёт перезарядка.</summary>
-        public bool CanFire => Ammo > 0 && fireTimer <= 0f && !IsReloading;
+        public bool CanFire => Ammo > 0 && NetworkClock.Now >= nextFireTime && !IsReloading;
 
         /// <summary>
         /// Половина угла конуса разброса, °. Роль меняет его по обстоятельствам —
@@ -110,22 +144,23 @@ namespace Igruha.Core.Combat
             ResetWeapon();
         }
 
+        /// <summary>
+        /// Досыпать обойму по моменту конца перезарядки. Считают все машины, а не
+        /// один авторитет: момент общий, и результат у него ровно один — полная
+        /// обойма. Ждать ради него пакета значило бы показать стрелку пустое
+        /// оружие на лишние полпинга.
+        /// </summary>
         private void Update()
         {
-            fireTimer = Mathf.Max(0f, fireTimer - Time.deltaTime);
-
-            if (reloadTimer <= 0f)
+            if (reloadEndsAt <= 0d || NetworkClock.Now < reloadEndsAt)
             {
                 return;
             }
 
-            reloadTimer = Mathf.Max(0f, reloadTimer - Time.deltaTime);
-            if (reloadTimer <= 0f)
-            {
-                Ammo = magazineSize;
-                AmmoChanged?.Invoke(Ammo);
-                ReloadingChanged?.Invoke(false);
-            }
+            reloadEndsAt = 0d;
+            Ammo = magazineSize;
+            AmmoChanged?.Invoke(Ammo);
+            ReloadingChanged?.Invoke(false);
         }
 
         /// <summary>
@@ -137,13 +172,16 @@ namespace Igruha.Core.Combat
         /// </summary>
         public bool TryFire(Vector3 origin, Vector3 direction, out HitResult result)
         {
-            if (!CanFire)
+            // Машина, которая обойму не ведёт, не стреляет вовсе: локальный
+            // выстрел списал бы патрон, который ей не принадлежит, и её счётчик
+            // разошёлся бы с серверным до конца раунда.
+            if (DrivenExternally || !CanFire)
             {
                 result = default;
                 return false;
             }
 
-            fireTimer = fireDelay;
+            nextFireTime = NetworkClock.Now + fireDelay;
             Ammo--;
             AmmoChanged?.Invoke(Ammo);
 
@@ -165,7 +203,7 @@ namespace Igruha.Core.Combat
         /// </summary>
         public void Reload()
         {
-            if (IsReloading || Ammo >= magazineSize)
+            if (DrivenExternally || IsReloading || Ammo >= magazineSize)
             {
                 return;
             }
@@ -176,11 +214,12 @@ namespace Igruha.Core.Combat
         /// <summary>Вернуть оружие в исходное состояние: полная обойма, таймеры сброшены. Для старта раунда.</summary>
         public void ResetWeapon()
         {
-            fireTimer = 0f;
+            bool wasReloading = IsReloading;
+            nextFireTime = 0d;
+            reloadEndsAt = 0d;
 
-            if (IsReloading)
+            if (wasReloading)
             {
-                reloadTimer = 0f;
                 ReloadingChanged?.Invoke(false);
             }
 
@@ -188,9 +227,31 @@ namespace Igruha.Core.Combat
             AmmoChanged?.Invoke(Ammo);
         }
 
+        /// <summary>
+        /// Применить состояние, решённое сервером. Момент конца перезарядки
+        /// приходит в тех же общих часах, поэтому остаток совпадает с серверным
+        /// без поправки на пинг.
+        /// </summary>
+        public void ApplyNetworkState(int ammo, double reloadEnd)
+        {
+            bool wasReloading = IsReloading;
+            reloadEndsAt = reloadEnd;
+
+            if (Ammo != ammo)
+            {
+                Ammo = Mathf.Clamp(ammo, 0, magazineSize);
+                AmmoChanged?.Invoke(Ammo);
+            }
+
+            if (wasReloading != IsReloading)
+            {
+                ReloadingChanged?.Invoke(IsReloading);
+            }
+        }
+
         private void BeginReload()
         {
-            reloadTimer = reloadDuration;
+            reloadEndsAt = NetworkClock.Now + Mathf.Max(0f, reloadDuration);
             ReloadingChanged?.Invoke(true);
         }
 
@@ -218,10 +279,10 @@ namespace Igruha.Core.Combat
         {
             if (Physics.Raycast(origin, direction, out RaycastHit hit, range, hitMask, QueryTriggerInteraction.Ignore))
             {
-                return new HitResult(true, hit.point, direction, hit.collider);
+                return new HitResult(true, origin, hit.point, direction, hit.collider);
             }
 
-            return new HitResult(false, origin + direction * range, direction, null);
+            return new HitResult(false, origin, origin + direction * range, direction, null);
         }
     }
 }

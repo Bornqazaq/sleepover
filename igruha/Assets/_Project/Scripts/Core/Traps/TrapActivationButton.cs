@@ -101,7 +101,23 @@ namespace Igruha.Core.Traps
             }
         }
 
-        public bool CanInteract(PlayerController player) => IsReady;
+        /// <summary>
+        /// Жать может только живой и только готовую кнопку. Живость проверяет
+        /// кнопка, а не интерактор: у выбывшего тело спрятано, но
+        /// <c>PlayerInteractor</c> на нём остался — погибший у самой кнопки
+        /// дотянулся бы до неё с того света. Зовётся в том числе на сервере,
+        /// из <c>PlayerInteractor.ExecuteInteraction</c>, поэтому верить
+        /// клиенту на слово не приходится.
+        /// </summary>
+        public bool CanInteract(PlayerController player)
+        {
+            if (player != null && player.TryGetComponent(out PlayerElimination elimination) && elimination.IsEliminated)
+            {
+                return false;
+            }
+
+            return IsReady;
+        }
 
         public void Interact(PlayerController player)
         {

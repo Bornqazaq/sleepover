@@ -1,8 +1,9 @@
-﻿using System;
+using System;
 using UnityEngine;
 using Igruha.Core.Arena;
 using Igruha.Core.CameraSystems;
 using Igruha.Core.Combat;
+using Igruha.Core.Minigame;
 using Igruha.Core.Player;
 
 namespace Igruha.Minigames.DuckHunt
@@ -13,21 +14,35 @@ namespace Igruha.Minigames.DuckHunt
     ///
     /// Сам по себе он ничего не решает. Готовый выстрел уходит наружу событием
     /// <see cref="DuckShot"/>, а смерть засчитывает мини-игра — только она знает
-    /// время раунда, прогресс жертвы и условие конца. В сетевой фазе
-    /// <see cref="TryFire"/> становится телом ServerRpc: клиент присылает точку
-    /// и направление, сервер проверяет обойму с задержкой, сам делает луч и
-    /// накладывает разброс. Ничего из этого переписывать не придётся.
+    /// время раунда, прогресс жертвы и условие конца.
+    ///
+    /// Про сеть роль не знает ничего: и лифт, и оружие ведут себя как обычно,
+    /// а машина, которая ими не распоряжается, подставляет ей два шва —
+    /// <see cref="Relay"/> для намерений и <c>DrivenExternally</c> у оружия.
+    /// Ни один из них не переписывает логику ниже.
     ///
     /// Компонент вешается на аватар в рантайме — состав игроков известен только
     /// после раздачи ролей.
     /// </summary>
     [RequireComponent(typeof(PlayerController))]
-    public sealed class HunterController : MonoBehaviour
+    public sealed class HunterController : MonoBehaviour, ISpectatorView
     {
         /// <summary>Запасная высота глаза, м — только если у тела нет капсулы.</summary>
         private const float DefaultEyeHeight = 1.5f;
         /// <summary>На сколько глаз ниже макушки, м. То же значение, что у рига первого лица.</summary>
         private const float EyeDropFromTop = 0.15f;
+
+        /// <summary>Запасная дальность прицельного луча, м — только если конфиг не подставлен.</summary>
+        private const float DefaultAimRange = 43.2f;
+
+        /// <summary>
+        /// На сколько луч прицела начинается дальше собственного тела, м.
+        /// Полметра с запасом перекрывают капсулу: иначе центр экрана упирается
+        /// в затылок Охотника, и прицел показывает его собственную макушку.
+        /// </summary>
+        private const float AimSkipPastBody = 0.5f;
+
+
 
         /// <summary>Выстрел попал в Утку: жертва, точка попадания, импульс отлёта.</summary>
         public event Action<PlayerElimination, Vector3, Vector3> DuckShot;
@@ -41,17 +56,85 @@ namespace Igruha.Minigames.DuckHunt
         private HitscanWeapon weapon;
         private PlayerController motor;
         private PlayerInputReader input;
+        private CharacterAnimatorDriver animatorDriver;
 
         /// <summary>Оружие Охотника — HUD читает у него обойму и перезарядку.</summary>
         public HitscanWeapon Weapon => weapon;
 
+        /// <summary>
+        /// Куда уходят намерения роли — ход лифта, выстрел, перезарядка, —
+        /// когда решает не эта машина. Пусто в одиночной сцене: там всё
+        /// применяется на месте. В сетевой катке решает сам релей: что-то
+        /// он отправляет серверу, что-то молча глотает (см. IHunterRelay).
+        /// </summary>
+        public IHunterRelay Relay { get; set; }
+
         /// <summary>Роль активна: ввод читается, выстрел разрешён.</summary>
         public bool Active { get; private set; }
+
+        /// <summary>Риг первого лица этой роли — сетевая половина шлёт с него прицел.</summary>
+        public FirstPersonCameraRig Rig => cameraRig;
+
+        /// <summary>
+        /// Прицелом правит эта машина: она хозяин роли. У остальных углы
+        /// приезжают с сервера и лежат в <see cref="networkYaw"/>.
+        /// </summary>
+        public bool AimIsLocal { get; private set; }
+
+        /// <summary>Присланный сервером прицел: азимут и наклон.</summary>
+        private float networkYaw;
+        private float networkPitch;
+
+        /// <summary>Кто правит прицелом. Ставит сетевая половина после каждой выдачи роли.</summary>
+        public void SetAimLocal(bool local) => AimIsLocal = local;
+
+        /// <summary>Прицел, посчитанный сервером. Нужен только для показа: выстрел несёт своё направление.</summary>
+        public void ApplyNetworkAim(float yaw, float pitch)
+        {
+            networkYaw = yaw;
+            networkPitch = pitch;
+        }
+
+        /// <summary>
+        /// Что видит Охотник. Наблюдателю отдаём первое лицо: смотреть за
+        /// стрелком из-за спины — не то же самое, что видеть его прицел.
+        ///
+        /// У хозяина роли углы берём с рига живьём, у остальных — присланные:
+        /// на чужой машине риг этой роли не крутится вовсе.
+        ///
+        /// Роль снята — точки обзора нет. Компонент при этом остаётся на
+        /// аватаре (<see cref="Detach"/> его не удаляет), и без этой проверки
+        /// бывший Охотник, ставший Уткой, показывал бы наблюдателю первое лицо
+        /// по углам прошлого раунда.
+        /// </summary>
+        public bool TryGetView(out CameraMode mode, out float yaw, out float pitch)
+        {
+            mode = CameraMode.FirstPerson;
+            yaw = 0f;
+            pitch = 0f;
+
+            if (!Active)
+            {
+                return false;
+            }
+
+            if (AimIsLocal && cameraRig != null)
+            {
+                yaw = cameraRig.Yaw;
+                pitch = cameraRig.Pitch;
+                return true;
+            }
+
+            yaw = networkYaw;
+            pitch = networkPitch;
+            return true;
+        }
 
         private void Awake()
         {
             motor = GetComponent<PlayerController>();
             input = GetComponent<PlayerInputReader>();
+            TryGetComponent(out animatorDriver);
         }
 
         /// <summary>
@@ -78,7 +161,23 @@ namespace Igruha.Minigames.DuckHunt
             // ей назвали, а не всех, кто оказался сверху. Для Охотника это и
             // нужно — на лифте он один на весь раунд.
             elevator?.SetPassenger(motor);
-            elevator?.SnapTo(config != null ? config.ElevatorMinHeightUnits : 0f);
+
+            // Ставить платформу на нижнюю отметку вправе только та машина,
+            // которая ею и правит: у остальных высота приезжает с сервера,
+            // и местный сдвиг они всё равно тут же отыграют назад.
+            if (elevator != null && !elevator.FollowsNetwork)
+            {
+                elevator.SnapTo(config != null ? config.ElevatorMinHeightUnits : 0f);
+            }
+
+            // Ружьё в руках всю роль: пока не стреляют, стойка держится
+            // неподвижной — это нулевая скорость состояния, а не отдельный клип.
+            animatorDriver?.SetRifleAiming(true);
+
+            // Своё тело Охотнику видно: иначе руки и ствол не в кадре, и вся
+            // анимация выстрела играет для кого угодно, кроме него самого.
+            cameraRig?.SetOwnModelVisible(true);
+
             Active = true;
         }
 
@@ -86,11 +185,21 @@ namespace Igruha.Minigames.DuckHunt
         public void Detach()
         {
             Active = false;
-            elevator?.SetAxis(0f);
+
+            // Ноль уходит тем же путём, что и ход: на клиенте это последнее
+            // намерение, иначе сервер так и будет держать последнюю ось и
+            // повезёт лифт дальше без хозяина.
+            SetElevatorAxis(0f);
 
             // Пассажира снимаем вместе с ролью: платформа держит ссылку на
             // тело и продолжила бы возить его после пересдачи ролей.
             elevator?.SetPassenger(null);
+            animatorDriver?.SetRifleAiming(false);
+            cameraRig?.SetOwnModelVisible(false);
+
+            // Риг общий на все игры: отвод камеры снимаем вместе с ролью,
+            // иначе следующая роль первого лица получит вид из-за плеча.
+            cameraRig?.SetShoulderOffset(Vector3.zero);
 
             if (motor != null)
             {
@@ -151,6 +260,7 @@ namespace Igruha.Minigames.DuckHunt
             cameraRig.SetPitchLimits(-config.CameraPitchLimit, config.CameraPitchLimit);
             cameraRig.SetMaxTurnSpeed(config.CameraTurnSpeed);
             cameraRig.SetHorizontalFieldOfView(config.HorizontalFieldOfView);
+            cameraRig.SetShoulderOffset(config.CameraOffset);
         }
 
         private void Update()
@@ -177,7 +287,7 @@ namespace Igruha.Minigames.DuckHunt
             }
 
             float axis = input != null && input.enabled ? input.MoveInput.y : 0f;
-            elevator.SetAxis(axis);
+            SetElevatorAxis(axis);
 
             // Разброс зависит от того, едет ли платформа: стрелять на ходу
             // можно, но заметно хуже.
@@ -205,7 +315,7 @@ namespace Igruha.Minigames.DuckHunt
             if (input.InteractPressed)
             {
                 input.ConsumeInteract();
-                weapon.Reload();
+                RequestReload();
             }
         }
 
@@ -217,17 +327,23 @@ namespace Igruha.Minigames.DuckHunt
         }
 
         /// <summary>
-        /// Выстрелить из точки в направлении. Настоящая точка выстрела: в
-        /// сетевой фазе ровно это тело переезжает в FireServerRpc, куда клиент
-        /// присылает origin и direction, а проверка обоймы, луч и разброс
-        /// остаются на сервере.
+        /// Выстрелить из точки в направлении. Единственная точка выстрела:
+        /// сюда приходит и живой игрок, и болванка соло-теста (та целится
+        /// расчётом, а не камерой), и сервер, получивший намерение клиента.
         ///
-        /// Отдельно от <see cref="TryFire()"/> она нужна ещё и болванке
-        /// соло-теста: та целится расчётом, а не камерой живого игрока.
+        /// Когда решает не эта машина, направление уходит серверу чистым —
+        /// обойму, задержку, конус разброса и сам луч считает он. Отсюда и
+        /// <c>false</c> в ответ: выстрел не состоялся <b>здесь</b>, а результат
+        /// приедет обратно готовым.
         /// </summary>
         public bool TryFire(Vector3 origin, Vector3 direction)
         {
             if (!Active || weapon == null)
+            {
+                return false;
+            }
+
+            if (Relay != null && Relay.TryRelayFire(origin, direction))
             {
                 return false;
             }
@@ -237,9 +353,55 @@ namespace Igruha.Minigames.DuckHunt
                 return false;
             }
 
-            Fired?.Invoke(result);
+            RaiseShot(result);
             ResolveHit(result);
             return true;
+        }
+
+        /// <summary>
+        /// Перезарядить вручную. Тем же путём, что и выстрел: обойма — состояние
+        /// раунда, и менять её вправе только тот, кто её ведёт.
+        /// </summary>
+        public void RequestReload()
+        {
+            if (!Active || weapon == null)
+            {
+                return;
+            }
+
+            if (Relay != null && Relay.TryRelayReload())
+            {
+                return;
+            }
+
+            weapon.Reload();
+        }
+
+        /// <summary>
+        /// Отыграть выстрел, посчитанный сервером: звук, вспышка и трассер
+        /// от дула до точки попадания. Коллайдера здесь нет и быть не может —
+        /// во что попал луч, решено уже на сервере, а этой машине нужна только
+        /// картинка.
+        /// </summary>
+        public void PlayRemoteShot(Vector3 origin, Vector3 point, bool hit)
+        {
+            Vector3 direction = point - origin;
+            direction = direction.sqrMagnitude > Mathf.Epsilon ? direction.normalized : transform.forward;
+
+            RaiseShot(new HitscanWeapon.HitResult(hit, origin, point, direction, null));
+        }
+
+        /// <summary>
+        /// Выстрел состоялся — отыграть его на этой машине. Одна точка на оба
+        /// случая: и когда стреляли здесь, и когда результат приехал с сервера.
+        /// Анимация висит на состоявшемся выстреле, а не на нажатии: щелчок
+        /// в кулдаун или по пустой обойме выстрелом не является, и дёргать
+        /// ствол на нём нечего.
+        /// </summary>
+        private void RaiseShot(HitscanWeapon.HitResult result)
+        {
+            animatorDriver?.PlayFire();
+            Fired?.Invoke(result);
         }
 
         /// <summary>Точка, из которой уходит луч — глаз Охотника. Болванке нужна та же, что и живому.</summary>
@@ -249,8 +411,21 @@ namespace Igruha.Minigames.DuckHunt
             return origin;
         }
 
-        /// <summary>Двигать лифт напрямую — для болванки соло-теста.</summary>
-        public void SetElevatorAxis(float axis) => elevator?.SetAxis(axis);
+        /// <summary>
+        /// Двигать лифт. Единственная точка: и живой игрок, и болванка
+        /// соло-теста идут через неё. Когда высотой распоряжается сервер, ось
+        /// уходит ему намерением, а платформу здесь не трогаем — иначе она
+        /// поедет от двух рук сразу и задёргается.
+        /// </summary>
+        public void SetElevatorAxis(float axis)
+        {
+            if (Relay != null && Relay.TryRelayElevatorAxis(axis))
+            {
+                return;
+            }
+
+            elevator?.SetAxis(axis);
+        }
 
         /// <summary>
         /// Откуда и куда уходит луч. Целимся ровно тем, что видит игрок, но
@@ -265,13 +440,45 @@ namespace Igruha.Minigames.DuckHunt
         {
             if (cameraRig != null && cameraRig.isActiveAndEnabled)
             {
-                origin = cameraRig.transform.position;
-                direction = cameraRig.transform.forward;
+                // Стреляем из глаза, а не из камеры: камера отведена за плечо,
+                // и луч из неё пошёл бы сквозь собственное тело — первым
+                // попаданием стала бы своя капсула.
+                origin = cameraRig.EyePosition;
+
+                // А целимся туда, куда показывает прицел. Это отдельное
+                // направление: центр экрана — ось камеры, а она за плечом,
+                // и прямая «глаз → взгляд» с ней не совпадает. Считать надо
+                // именно так, иначе прицел врёт ровно на величину отвода.
+                direction = (ResolveAimPoint() - origin).normalized;
                 return;
             }
 
             origin = transform.position + Vector3.up * ResolveEyeHeight();
             direction = motor != null ? motor.Facing : transform.forward;
+        }
+
+        /// <summary>
+        /// Точка под прицелом — то, во что упирается центр экрана. Луч пускается
+        /// от камеры, но начинается за спиной персонажа: иначе первым же, во что
+        /// он упрётся, окажется собственный затылок.
+        ///
+        /// Не попал ни во что — берём точку на предельной дальности: целиться
+        /// в небо игроку никто не запрещает.
+        /// </summary>
+        private Vector3 ResolveAimPoint()
+        {
+            Transform view = cameraRig.transform;
+            float range = config != null ? config.ShotRangeUnits : DefaultAimRange;
+            float skip = Vector3.Distance(view.position, cameraRig.EyePosition) + AimSkipPastBody;
+            Vector3 start = view.position + view.forward * skip;
+
+            LayerMask mask = config != null ? config.ShotMask : ~0;
+            if (Physics.Raycast(start, view.forward, out RaycastHit hit, range, mask, QueryTriggerInteraction.Ignore))
+            {
+                return hit.point;
+            }
+
+            return start + view.forward * range;
         }
 
         /// <summary>Высота глаза от капсулы: у персонажей разный рост, числом её не задать.</summary>
