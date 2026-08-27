@@ -640,6 +640,8 @@ namespace Igruha.Minigames.CarryItem
 
             SetInputSuspended(false);
 
+            LogFinalTable();
+
             if (!HasAuthority)
             {
                 return;
@@ -652,6 +654,42 @@ namespace Igruha.Minigames.CarryItem
 
             Debug.Log($"🫙 [Переноска] куда ушла вода — A: {LossReport(TeamSide.A)}");
             Debug.Log($"🫙 [Переноска] куда ушла вода — B: {LossReport(TeamSide.B)}");
+        }
+
+        /// <summary>
+        /// Выписать итог в лог — на <b>каждой</b> машине, а не только у сервера.
+        ///
+        /// Стенд из восьми процессов проверяется сличением восьми логов между
+        /// собой: разъехавшийся уровень бака у хоста и клиента иначе не поймать
+        /// вовсе — у каждого своя картинка, и обе выглядят правдоподобно.
+        /// Формат строки общий для проекта, его читает <c>autorun-report.sh</c>.
+        /// </summary>
+        private void LogFinalTable()
+        {
+            var table = new System.Text.StringBuilder(256);
+            table.Append("📊 [Переноска] итог у ");
+            table.Append(HasAuthority
+                ? "хоста"
+                : $"клиента id={SessionScoreboard.Current?.LocalPlayer?.Id}");
+            table.Append(':');
+
+            TeamSide winner = ResolveWinner();
+            table.Append(" A=").Append(state.TeamA.Water).Append('/').Append(state.TeamA.Deliveries)
+                 .Append(" B=").Append(state.TeamB.Water).Append('/').Append(state.TeamB.Deliveries)
+                 .Append(" победитель=").Append(winner == TeamSide.None ? "нет" : winner.ToString());
+
+            for (int i = 0; i < entries.Count; i++)
+            {
+                Entry entry = entries[i];
+                table.Append(" | id=").Append(entry.PlayerId).Append(' ').Append(entry.Team);
+
+                if (entry.Left)
+                {
+                    table.Append(" ВЫШЕЛ");
+                }
+            }
+
+            Debug.Log(table.ToString(), this);
         }
 
         /// <summary>Разрез потерь одной строкой. Числа приёмки и плейтеста.</summary>

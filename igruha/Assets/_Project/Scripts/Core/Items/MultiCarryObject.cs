@@ -405,12 +405,26 @@ namespace Igruha.Core.Items
                 return;
             }
 
+            // Ручек стало меньше — держащих исчезнувшие надо отцепить: у
+            // авторитета решением, у остальных на месте. ReleaseHandle
+            // откажется на клиенте, поэтому там отцепляем напрямую.
             for (int i = clamped; i < handles.Length; i++)
             {
-                ReleaseHandle(i, CarryReleaseReason.RoundEnded);
+                if (!ReleaseHandle(i, CarryReleaseReason.RoundEnded))
+                {
+                    DetachHandle(i, CarryReleaseReason.RoundEnded);
+                }
             }
 
+            bool grew = clamped > handleCount;
             handleCount = clamped;
+
+            // Ручек стало больше — разбираем состояние заново: занятый слот мог
+            // не влезать в прежний предел и ждать ровно этого.
+            if (grew && IsSpawned)
+            {
+                handlesPending = true;
+            }
         }
 
         /// <summary>
@@ -783,8 +797,24 @@ namespace Igruha.Core.Items
 
             for (int slot = 0; slot < handles.Length; slot++)
             {
-                ulong wanted = slot < handleCount ? state.Of(slot) : MultiCarryNetState.NoCarrier;
                 Handle handle = handles[slot];
+                ulong wanted = state.Of(slot);
+
+                // Число ручек приезжает своим каналом — на самом объекте, — и
+                // может опоздать к состоянию ручек: тогда занятый слот выходит
+                // за ещё не выросший предел. Не разбираем его, но и не забываем:
+                // без отметки такая ручка потерялась бы навсегда, а несущий
+                // остался бы у клиента стоять с пустыми руками.
+                if (slot >= handleCount)
+                {
+                    if (wanted != MultiCarryNetState.NoCarrier)
+                    {
+                        handlesPending = true;
+                    }
+
+                    DetachHandle(slot, reason);
+                    continue;
+                }
 
                 if (wanted == MultiCarryNetState.NoCarrier)
                 {
