@@ -104,8 +104,22 @@ namespace Igruha.Core.Items
             public PlayerPushAbility CarrierPush;
             public Action<KnockdownType> KnockdownHandler;
 
+            /// <summary>Сколько секунд ручку ещё нельзя сорвать перерастяжением. См. <see cref="GrabGraceSeconds"/>.</summary>
+            public float GraceTimer;
+
             public bool Occupied => Carrier != null;
         }
+
+        /// <summary>
+        /// Сколько секунд после захвата ручку не срывает перерастяжением, с.
+        ///
+        /// Взяться можно с вытянутой руки — радиус взаимодействия больше
+        /// предела связи, — и без выдержки такой захват рвался бы в тот же
+        /// кадр, в котором состоялся. Выдержка не поблажка: как только за
+        /// ручку взялись, натяжение тянет объект к несущему, и разрыв
+        /// закрывается сам за доли секунды.
+        /// </summary>
+        private const float GrabGraceSeconds = 1f;
 
         private readonly Handle[] handles = new Handle[MaxHandles];
         private Rigidbody body;
@@ -221,6 +235,39 @@ namespace Igruha.Core.Items
         public Rigidbody CarrierBodyAt(int slot) =>
             slot >= 0 && slot < handles.Length ? handles[slot].CarrierBody : null;
 
+        /// <summary>
+        /// Где должен стоять несущий на этом слоте — точка, к которой его тянет
+        /// связь. Дальше ручки на своё же тело: в саму ручку несущий встать не
+        /// может, там объект.
+        ///
+        /// Нужна снаружи всем, кто ведёт кого-то к объекту: болванке соло-теста,
+        /// подсказке интерфейса, замеру натяжения на приёмке.
+        /// </summary>
+        public Vector3 StationOf(int slot)
+        {
+            if (slot < 0 || slot >= handleCount)
+            {
+                return body != null ? body.position : transform.position;
+            }
+
+            Vector3 origin = body != null ? body.position : transform.position;
+            return origin + HandleDirection(slot) * (settings.handleRadius + settings.carrierStandoff);
+        }
+
+        /// <summary>Натяжение связи на этом слоте, м. Ноль — слот свободен или несущий стоит на месте.</summary>
+        public float StretchOf(int slot)
+        {
+            PlayerController carrier = CarrierAt(slot);
+            if (carrier == null)
+            {
+                return 0f;
+            }
+
+            Vector3 offset = carrier.transform.position - StationOf(slot);
+            offset.y = 0f;
+            return offset.magnitude;
+        }
+
         // ========== ВЗАИМОДЕЙСТВИЕ ==========
 
         public bool CanInteract(PlayerController player)
@@ -276,13 +323,14 @@ namespace Igruha.Core.Items
                 return false;
             }
 
-            int slot = FindFreeSlot();
+            int slot = FindNearestFreeSlot(player.transform.position);
             if (slot < 0)
             {
                 return false;
             }
 
             Handle handle = handles[slot];
+            handle.GraceTimer = GrabGraceSeconds;
             handle.Carrier = player;
             handle.CarrierBody = player.GetComponent<Rigidbody>();
             handle.CarrierCollider = player.GetComponent<CapsuleCollider>();
@@ -519,9 +567,12 @@ namespace Igruha.Core.Items
                 stretch.y = 0f;
                 float distance = stretch.magnitude;
 
+                handle.GraceTimer = Mathf.Max(0f, handle.GraceTimer - dt);
+
                 // Перерастянутая ручка срывается до того, как её посчитают:
-                // сорванная рука ни тянет, ни держит.
-                if (distance > settings.breakDistance)
+                // сорванная рука ни тянет, ни держит. Только что взявшемуся
+                // дают выдержку — за неё натяжение подтягивает объект к нему.
+                if (distance > settings.breakDistance && handle.GraceTimer <= 0f)
                 {
                     ReleaseHandle(i, CarryReleaseReason.Overstretched);
                     continue;
@@ -709,6 +760,41 @@ namespace Igruha.Core.Items
             }
 
             return -1;
+        }
+
+        /// <summary>
+        /// Свободная ручка, ближайшая к подошедшему.
+        ///
+        /// Раздавать слоты по порядку нельзя: ручки расставлены по окружности,
+        /// и подошедшему с одной стороны доставалась бы ручка с другой — то
+        /// есть стоянка за спиной у объекта. Связь до неё сразу длиннее
+        /// предела, и захват рвался бы в тот же кадр, в котором состоялся.
+        /// </summary>
+        private int FindNearestFreeSlot(Vector3 position)
+        {
+            int best = -1;
+            float bestSqr = float.MaxValue;
+
+            for (int i = 0; i < handleCount; i++)
+            {
+                if (handles[i].Occupied)
+                {
+                    continue;
+                }
+
+                Vector3 station = body.position +
+                                  HandleDirection(i) * (settings.handleRadius + settings.carrierStandoff);
+                station.y = position.y;
+
+                float sqr = (station - position).sqrMagnitude;
+                if (sqr < bestSqr)
+                {
+                    bestSqr = sqr;
+                    best = i;
+                }
+            }
+
+            return best;
         }
 
         private int FindSlotOf(PlayerController player)

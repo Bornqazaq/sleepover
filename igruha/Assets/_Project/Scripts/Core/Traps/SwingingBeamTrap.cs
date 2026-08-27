@@ -108,9 +108,7 @@ namespace Igruha.Core.Traps
                 return;
             }
 
-            Vector3 direction = Velocity;
-            direction.y = 0f;
-            direction = direction.sqrMagnitude > 0.0001f ? direction.normalized : transform.forward;
+            Vector3 direction = HitDirection(other.transform.position);
 
             PlayerController player = other.GetComponentInParent<PlayerController>();
             if (player != null)
@@ -123,6 +121,30 @@ namespace Igruha.Core.Traps
             // решает сама цель: балка про воду и очки не знает.
             ITrapImpactTarget target = other.GetComponentInParent<ITrapImpactTarget>();
             target?.TakeTrapImpact(direction, impactForce);
+        }
+
+        /// <summary>
+        /// Куда сносит попавшего под балку: по касательной к её ходу в точке
+        /// удара.
+        ///
+        /// Скорость самой балки для этого не годится. У балки, вращающейся
+        /// вокруг собственного центра (радиус ноль), центр стоит на месте и
+        /// скорость равна нулю — а сносить она обязана вбок, иначе игрока
+        /// выбивает вдоль балки, то есть никуда.
+        /// </summary>
+        private Vector3 HitDirection(Vector3 point)
+        {
+            Vector3 arm = point - center;
+            arm.y = 0f;
+
+            if (arm.sqrMagnitude < 0.0001f)
+            {
+                return transform.right;
+            }
+
+            // Балка идёт по возрастанию угла вокруг вертикали: касательная в
+            // точке — это и есть направление её хода.
+            return Vector3.Cross(Vector3.up, arm).normalized;
         }
 
         private void OnDrawGizmosSelected()
