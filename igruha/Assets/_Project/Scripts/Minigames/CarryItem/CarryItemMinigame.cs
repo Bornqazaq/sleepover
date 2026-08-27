@@ -33,6 +33,8 @@ namespace Igruha.Minigames.CarryItem
             public WaterTank Tank;
             [Tooltip("Роль точек спавна этой команды")]
             public SpawnRole SpawnRole = SpawnRole.TeamA;
+            [Tooltip("Маршрут болванок соло-теста: доска, горлышко, доска. Живому игроку не нужен")]
+            public CarryItemBotRoute Route;
         }
 
         /// <summary>Участник раунда: место в составе и команда. В фазе 3 уедет в NetworkList.</summary>
@@ -64,6 +66,17 @@ namespace Igruha.Minigames.CarryItem
         private readonly List<TeamRanking.Entry> rankingBuffer = new List<TeamRanking.Entry>(8);
         private readonly List<CarryItemDebugBot> bots = new List<CarryItemDebugBot>(8);
 
+        /// <summary>
+        /// Куда ушла вода за раунд: команда × причина, единиц.
+        ///
+        /// Нужен приёмке и плейтесту. Без разреза «расплескали» — это одно
+        /// число, из которого не видно, что чинить: перекос от рассинхрона,
+        /// балка над горлышком или пропорция тарана. Считается по тому же
+        /// событию, что и сама потеря, поэтому разойтись со счётом не может.
+        /// </summary>
+        private readonly int[,] spentByReason =
+            new int[3, System.Enum.GetValues(typeof(WaterLossReason)).Length];
+
         private CarryItemState state;
         private Coroutine countdownRoutine;
 
@@ -84,6 +97,7 @@ namespace Igruha.Minigames.CarryItem
             }
 
             state = default;
+            System.Array.Clear(spentByReason, 0, spentByReason.Length);
 
             AssignTeams();
             PlaceTeams();
@@ -208,9 +222,14 @@ namespace Igruha.Minigames.CarryItem
         private void OnBottleTaken(TeamSide side, WaterBottle bottle)
         {
             bottle.Carry.SetOwnerFilter(player => TeamOfAvatar(player) == side);
+            bottle.WaterSpent += (amount, reason) => spentByReason[(int)side, (int)reason] += amount;
+
             ramDetector?.SetBottles(teamA.Stack != null ? teamA.Stack.LiveBottle : null,
                 teamB.Stack != null ? teamB.Stack.LiveBottle : null);
         }
+
+        /// <summary>Сколько воды команда потеряла по этой причине за раунд, единиц.</summary>
+        public int SpentBy(TeamSide side, WaterLossReason reason) => spentByReason[(int)side, (int)reason];
 
         // ========== РАУНД ==========
 
@@ -306,9 +325,23 @@ namespace Igruha.Minigames.CarryItem
             SetInputSuspended(false);
 
             TeamSide winner = state.Winner();
-            Debug.Log($"🫙 [Переноска] итог: A — {state.TeamA.Water}, B — {state.TeamB.Water}, " +
+            Debug.Log($"🫙 [Переноска] итог: A — {state.TeamA.Water} за {state.TeamA.Deliveries} ходок, " +
+                      $"B — {state.TeamB.Water} за {state.TeamB.Deliveries}, " +
                       $"победитель — {(winner == TeamSide.None ? "нет" : winner.ToString())}");
+
+            Debug.Log($"🫙 [Переноска] куда ушла вода — A: {LossReport(TeamSide.A)}");
+            Debug.Log($"🫙 [Переноска] куда ушла вода — B: {LossReport(TeamSide.B)}");
         }
+
+        /// <summary>Разрез потерь одной строкой. Числа приёмки и плейтеста.</summary>
+        private string LossReport(TeamSide side) =>
+            $"перекос {SpentBy(side, WaterLossReason.Tilt)}, " +
+            $"удары {SpentBy(side, WaterLossReason.Hit)}, " +
+            $"падения {SpentBy(side, WaterLossReason.Drop)}, " +
+            $"броски {SpentBy(side, WaterLossReason.Throw)}, " +
+            $"таран {SpentBy(side, WaterLossReason.RamVictim) + SpentBy(side, WaterLossReason.RamAttacker)}, " +
+            $"пропасть {SpentBy(side, WaterLossReason.Void)}, " +
+            $"донесено {SpentBy(side, WaterLossReason.Poured)}";
 
         private void ReleaseTeam(TeamRig rig)
         {
@@ -371,6 +404,23 @@ namespace Igruha.Minigames.CarryItem
             }
 
             return TeamSide.None;
+        }
+
+        /// <summary>
+        /// Следующая точка пути команды: доска, горлышко, доска — и только
+        /// потом сама цель. Разбор, зачем это нужно, — в
+        /// <see cref="CarryItemBotRoute"/>.
+        /// </summary>
+        public Vector3 NextWaypoint(TeamSide side, Vector3 from, Vector3 to, out bool isFinal)
+        {
+            CarryItemBotRoute route = side == TeamSide.A ? teamA.Route : teamB.Route;
+            if (route == null)
+            {
+                isFinal = true;
+                return to;
+            }
+
+            return route.NextPoint(from, to, out isFinal);
         }
 
         /// <summary>Штабель этой команды. Нужен болванкам соло-теста.</summary>
