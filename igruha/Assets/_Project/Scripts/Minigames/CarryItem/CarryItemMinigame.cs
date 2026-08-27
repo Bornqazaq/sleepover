@@ -116,6 +116,13 @@ namespace Igruha.Minigames.CarryItem
         /// <summary>Счёт раунда одной структурой. У клиента — то, что приехало от сервера.</summary>
         public CarryItemState State => state;
 
+        /// <summary>
+        /// Сколько участников в ростере сессии. По изменению этого числа
+        /// сетевая половина понимает, что приехавший раньше состав пора
+        /// разобрать заново: тела появляются не в тот же миг, что состав.
+        /// </summary>
+        public int RosterCount => Players.Count;
+
         protected override void Awake()
         {
             base.Awake();
