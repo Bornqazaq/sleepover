@@ -1,3 +1,5 @@
+using System;
+using Unity.Netcode;
 using Igruha.Core.Session;
 
 namespace Igruha.Minigames.CarryItem
@@ -24,11 +26,11 @@ namespace Igruha.Minigames.CarryItem
     }
 
     /// <summary>
-    /// Счёт одной команды. Отдельной структурой, потому что в фазе 3 она
-    /// целиком уезжает в <c>NetworkVariable</c>, а разрозненные поля
-    /// MonoBehaviour пришлось бы синхронизировать по одному.
+    /// Счёт одной команды. Отдельной структурой, потому что целиком уезжает
+    /// в <c>NetworkVariable</c> внутри <see cref="CarryItemState"/>, а
+    /// разрозненные поля MonoBehaviour пришлось бы синхронизировать по одному.
     /// </summary>
-    public struct CarryItemTeamState
+    public struct CarryItemTeamState : INetworkSerializable, IEquatable<CarryItemTeamState>
     {
         /// <summary>Воды в баке, единиц. Это и есть счёт.</summary>
         public int Water;
@@ -41,14 +43,29 @@ namespace Igruha.Minigames.CarryItem
 
         /// <summary>Сколько ходок команда закрыла. Нужно на приёмке: за раунд их должно выходить шесть.</summary>
         public int Deliveries;
+
+        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+        {
+            serializer.SerializeValue(ref Water);
+            serializer.SerializeValue(ref LastDeliveryTime);
+            serializer.SerializeValue(ref Deliveries);
+        }
+
+        public bool Equals(CarryItemTeamState other) =>
+            Water == other.Water &&
+            Deliveries == other.Deliveries &&
+            LastDeliveryTime.Equals(other.LastDeliveryTime);
     }
 
     /// <summary>
-    /// Состояние раунда одной структурой (спека 10). Мигрирует в
+    /// Состояние раунда одной структурой (спека 10). Едет в
     /// <c>NetworkVariable</c> целиком, поэтому правила её читают и пишут
     /// через контроллер, а не держат свои копии по углам.
+    ///
+    /// Уровень воды в баке — это счёт: разъедется он, разъедется исход раунда.
+    /// Поэтому пишет структуру только сервер, а клиент её отображает.
     /// </summary>
-    public struct CarryItemState
+    public struct CarryItemState : INetworkSerializable, IEquatable<CarryItemState>
     {
         public CarryItemTeamState TeamA;
         public CarryItemTeamState TeamB;
@@ -110,5 +127,13 @@ namespace Igruha.Minigames.CarryItem
 
             return TeamA.LastDeliveryTime <= TeamB.LastDeliveryTime ? TeamSide.A : TeamSide.B;
         }
+
+        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+        {
+            TeamA.NetworkSerialize(serializer);
+            TeamB.NetworkSerialize(serializer);
+        }
+
+        public bool Equals(CarryItemState other) => TeamA.Equals(other.TeamA) && TeamB.Equals(other.TeamB);
     }
 }

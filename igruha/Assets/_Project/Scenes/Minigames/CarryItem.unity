@@ -3263,6 +3263,7 @@ GameObject:
   - component: {fileID: 756139780}
   - component: {fileID: 756139782}
   - component: {fileID: 756139781}
+  - component: {fileID: 756139783}
   m_Layer: 0
   m_Name: MinigameManager
   m_TagString: Untagged
@@ -3410,6 +3411,18 @@ MonoBehaviour:
   botObstacles:
     serializedVersion: 2
     m_Bits: 320
+--- !u!114 &756139783
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 756139773}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b08168b4366ae9744bd5a3a6c213aaca, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.CarryItem.CarryItemNetwork
 --- !u!1 &760860835
 GameObject:
   m_ObjectHideFlags: 0

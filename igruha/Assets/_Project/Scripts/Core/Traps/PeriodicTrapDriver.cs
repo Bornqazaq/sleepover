@@ -14,9 +14,18 @@ namespace Igruha.Core.Traps
     /// один. Поэтому в сетевой фазе ловушки сойдутся у всех без единого пакета,
     /// и синхронизировать их не придётся вовсе.
     ///
+    /// Сетка отсчитывается от <b>нуля самих часов</b>, а не от момента запуска
+    /// этой машины: запускаются машины вразнобой, и сетка от собственного
+    /// старта у каждой была бы своя.
+    ///
     /// Дрейфа нет и внутри одной машины: номер срабатывания считается делением
     /// прошедшего времени на период, а не прибавлением периода к «сейчас».
     /// Пропущенный кадр не сдвигает всю дальнейшую сетку.
+    ///
+    /// <b>Решает срабатывание сервер, отыгрывают все.</b> Урон и импульсы
+    /// назначает только авторитет (<c>TrapBase.Activate</c>), остальные машины
+    /// в тот же момент общей сетки играют эффект через <c>PlayFired</c> — иначе
+    /// клиент не увидел бы и не услышал ни одного срабатывания за раунд.
     /// </summary>
     public sealed class PeriodicTrapDriver : MonoBehaviour
     {
@@ -28,9 +37,6 @@ namespace Igruha.Core.Traps
         [SerializeField] private float phaseOffset;
         [Tooltip("Тикать сразу со старта сцены. Снять, если ловушку включают правила раунда")]
         [SerializeField] private bool runOnStart = true;
-
-        /// <summary>Момент, от которого отсчитывается сетка срабатываний, на общих часах.</summary>
-        private double originTime;
 
         /// <summary>Номер последнего сработавшего интервала. −1 — ещё ни одного.</summary>
         private long lastFiredIndex = -1;
@@ -69,16 +75,24 @@ namespace Igruha.Core.Traps
             }
         }
 
-        /// <summary>Начать отсчёт заново от текущего момента общих часов.</summary>
+        /// <summary>
+        /// Включить ловушку. Сетка при этом не сдвигается — она общая и
+        /// абсолютная; сдвигается только отметка «отсюда считаем сработавшим»,
+        /// чтобы включённая посреди раунда ловушка не отыграла разом весь
+        /// пропущенный ряд.
+        /// </summary>
         public void Restart()
         {
-            originTime = NetworkClock.Now + phaseOffset;
-            lastFiredIndex = -1;
+            lastFiredIndex = CurrentIndex();
             running = true;
         }
 
         /// <summary>Остановить. Ловушка остаётся в том состоянии, в каком была.</summary>
         public void StopDriving() => running = false;
+
+        /// <summary>Номер интервала общей сетки прямо сейчас.</summary>
+        private long CurrentIndex() =>
+            period > 0f ? (long)System.Math.Floor((NetworkClock.Now - phaseOffset) / period) : 0L;
 
         private void Update()
         {
@@ -87,26 +101,22 @@ namespace Igruha.Core.Traps
                 return;
             }
 
-            // Срабатывание — исход раунда, и решает его авторитет. Вне сети
-            // авторитет здесь же, поэтому одиночный тест работает как есть.
-            if (!WorldAuthority.HasAuthority)
-            {
-                return;
-            }
-
-            double elapsed = NetworkClock.Now - originTime;
-            if (elapsed < 0d)
-            {
-                return;
-            }
-
-            long index = (long)(elapsed / period);
+            long index = CurrentIndex();
             if (index <= lastFiredIndex)
             {
                 return;
             }
 
             lastFiredIndex = index;
+
+            // Срабатывание — исход раунда, и решает его авторитет. Остальные
+            // машины дошли до того же интервала той же сеткой и просто играют
+            // эффект: без этого клиент за раунд не увидел бы ни одного удара.
+            if (!WorldAuthority.HasAuthority)
+            {
+                trap.PlayFired();
+                return;
+            }
 
             // Кулдаун самой ловушки длиннее периода — она будет молча
             // пропускать срабатывания, и это почти всегда ошибка настройки.
