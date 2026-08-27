@@ -79,7 +79,7 @@ namespace Igruha.Core.Items
             tensionDeadzone = 0.12f,
 
             breakDistance = 1.8f,
-            tetherFreeSpeedPerMeter = 4f,
+            tetherFreeSpeedPerMeter = 1.3f,
             tetherGrip = 0.85f,
 
             tiltThreshold = 45f,

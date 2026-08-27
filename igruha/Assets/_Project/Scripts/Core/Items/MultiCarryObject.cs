@@ -214,6 +214,13 @@ namespace Igruha.Core.Items
         public PlayerController CarrierAt(int slot) =>
             slot >= 0 && slot < handles.Length ? handles[slot].Carrier : null;
 
+        /// <summary>
+        /// Тело несущего на этом слоте. Кэшировано в момент захвата: тем, кто
+        /// читает скорости несущих каждый такт физики, звать GetComponent нельзя.
+        /// </summary>
+        public Rigidbody CarrierBodyAt(int slot) =>
+            slot >= 0 && slot < handles.Length ? handles[slot].CarrierBody : null;
+
         // ========== ВЗАИМОДЕЙСТВИЕ ==========
 
         public bool CanInteract(PlayerController player)
