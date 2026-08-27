@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 using Igruha.Core.Arena;
@@ -25,6 +25,61 @@ namespace Igruha.EditorTools
     {
         private const string ConfigPath = "Assets/_Project/Settings/Gameplay/Minigames/DuckHuntConfig.asset";
         private const string MaterialFolder = "Assets/_Project/Materials/DuckHunt";
+
+        /// <summary>Где лежат паки Synty. В репозиторий не входят — ставятся каждым разработчиком отдельно.</summary>
+        private static readonly string[] SyntyFolders = { "Assets/Synty" };
+
+        private const string FarmProps = "Assets/Synty/PolygonFarm/Prefabs/Props/";
+        private const string FarmBuildings = "Assets/Synty/PolygonFarm/Prefabs/Buildings/";
+        private const string FarmEnvironments = "Assets/Synty/PolygonFarm/Prefabs/Environments/";
+        private const string FarmGenerics = "Assets/Synty/PolygonFarm/Prefabs/Generic/";
+        private const string FarmVehicles = "Assets/Synty/PolygonFarm/Prefabs/Vehicles/";
+        private const string FarmFx = "Assets/Synty/PolygonFarm/Prefabs/FX/";
+        private const string AlpineFx = "Assets/Synty/PolygonNatureBiomes/PNB_Alpine_Mountain/FX/FX_Prefabs/";
+
+        /// <summary>Сноп сена на летнем этаже — спека, 9.5.</summary>
+        private const string GeyserFxSummer = FarmFx + "FX_Wheat_Spray_01.prefab";
+
+        /// <summary>Снежная струя на зимнем этаже. Пара в паках нет, снежная пыль — ближайшее по смыслу.</summary>
+        private const string GeyserFxWinter = AlpineFx + "FX_Snow_Dust_01.prefab";
+
+        /// <summary>Облако пыли из-под провалившегося пола.</summary>
+        private const string CollapseFx = FarmFx + "FX_Dust_Wind_01.prefab";
+
+        /// <summary>Уровень земли, ШП. Ниже зоны вылета (-6) быть не должен, иначе упавший приземлится вместо выбывания.</summary>
+        private const float GroundLevel = -3.2f;
+
+        /// <summary>Половина стороны плиты земли, ШП.</summary>
+        private const float GroundHalfSize = 280f;
+
+        /// <summary>Насколько фундамент выступает за габарит этажа, ШП.</summary>
+        private const float FoundationOverhang = 1.2f;
+
+        /// <summary>Свободное поле вокруг габарита башни, куда декорации не ставятся, ШП.</summary>
+        private const float SceneryKeepOut = 8f;
+
+        private const int SceneryTreeCount = 26;
+        private const int HorizonCount = 14;
+        private const int CloudCount = 12;
+
+        private static readonly Color SunColor = new Color(1f, 0.96f, 0.87f);
+        private const float SunIntensity = 1.7f;
+        private static readonly Color AmbientSky = new Color(0.78f, 0.85f, 0.97f);
+        private static readonly Color AmbientEquator = new Color(0.74f, 0.73f, 0.69f);
+        private static readonly Color AmbientGround = new Color(0.50f, 0.48f, 0.42f);
+
+        /// <summary>Повторов тайловой текстуры на юнит поверхности. Пол — крупно, чтобы шаг читался.</summary>
+        private const float FloorTiling = 0.35f;
+
+        /// <summary>Лёд тайлится мельче: крупный повтор на скользком настиле читается как размазня.</summary>
+        private const float IceTiling = 0.9f;
+
+        /// <summary>Трава в поле повторяется чаще: плита земли в четыреста ШП, и крупный тайл на ней размазывается в пятно.</summary>
+        private const float GroundTiling = 1.2f;
+
+        private static readonly int BaseMapId = Shader.PropertyToID("_BaseMap");
+        private static readonly int BumpMapId = Shader.PropertyToID("_BumpMap");
+        private static readonly int SmoothnessId = Shader.PropertyToID("_Smoothness");
 
         private const string GroundLayerName = "Ground";
         private const string CoverLayerName = "Cover";
@@ -61,8 +116,6 @@ namespace Igruha.EditorTools
 
         /// <summary>Ширина плиты рычага попёрек грани, ШП.</summary>
         private const float LeverPlateWidth = 0.35f;
-        /// <summary>Высота плиты рычага, ШП.</summary>
-        private const float LeverPlateHeight = 0.45f;
         /// <summary>На сколько плита выступает из грани, ШП.</summary>
         private const float LeverPlateDepth = 0.12f;
         /// <summary>Длина ручки, ШП.</summary>
@@ -73,12 +126,16 @@ namespace Igruha.EditorTools
         private const float LeverTiltDegrees = 42f;
         /// <summary>Высота ручки над полом, на котором стоит нажимающий, ШП. Уровень ладони.</summary>
         private const float LeverHandHeight = 1.15f;
-        /// <summary>Отступ рычага двери от края лаза, ШП.</summary>
-        private const float LeverGateOffset = 0.55f;
         /// <summary>Высота тумбы под рычагом ловушки, ШП — по пояс.</summary>
         private const float LeverPedestalHeight = 1.1f;
         /// <summary>Сторона тумбы, ШП.</summary>
         private const float LeverPedestalSize = 0.9f;
+        /// <summary>Высота мачты-маркера над полом, ШП. Выше стоящей Утки (2.29) и выше любого укрытия (2.5).</summary>
+        private const float MastHeight = 3.2f;
+        /// <summary>Толщина мачты, ШП. Тонкая: она метка, а не укрытие.</summary>
+        private const float MastThickness = 0.16f;
+        /// <summary>Сторона фонаря на мачте, ШП.</summary>
+        private const float MastLampSize = 0.6f;
         private const float CollapseStart = 34f;
         private const float CollapseEnd = 40f;
         private const float GeyserStart = 33f;
@@ -95,8 +152,22 @@ namespace Igruha.EditorTools
         private const int CoverPlacementAttempts = 24;
         /// <summary>Зазор вокруг укрытия, ШП: и между соседями, и до линии видимости кнопки.</summary>
         private const float CoverClearance = 0.3f;
-        /// <summary>Полос по глубине, по которым перебираются места для укрытий. Шаг полосы больше глубины укрытия с зазором.</summary>
-        private const int CoverDepthLanes = 4;
+        /// <summary>Длина укрытия вдоль трассы, ШП.</summary>
+        private const float CoverLength = 2.5f;
+        /// <summary>До какой длины укрытие ужимается, если место тесное, ШП.</summary>
+        private const float MinCoverLength = 1.5f;
+        /// <summary>Глубина укрытия поперёк этажа, ШП.</summary>
+        private const float CoverDepth = 2f;
+        /// <summary>
+        /// Отступ полосы укрытий от открытой грани и от задней стены, ШП.
+        ///
+        /// Метр с небольшим, а не полтора: на пятом этаже пять укрытий обязаны
+        /// встать поперёк одним рядом, потому что вдоль трассы им остаётся два
+        /// с половиной ШП — всё остальное занимает плановый открытый пробег в
+        /// шестнадцать. При отступе в 1.5 глубины хватало ровно на четыре
+        /// полосы, и пятое укрытие каждую пересборку оставалось за бортом.
+        /// </summary>
+        private const float CoverEdgeMargin = 1f;
         /// <summary>Высота глаз стоящего, ШП. От неё считается видимость зоны эффекта с кнопки.</summary>
         private const float EyeHeightWidths = 2.08f;
 
@@ -203,8 +274,7 @@ namespace Igruha.EditorTools
         /// </summary>
         private const float PitDepthWidths = 2.5f;
 
-        private const float ParkourBlockSize = 1.1f;
-        /// <summary>Толщина паркурного блока, ШП.</summary>
+        /// <summary>Толщина паркурного блока, ШП. Сторона задаётся этажом — см. <see cref="FloorPlan.Platform"/>.</summary>
         private const float ParkourBlockThickness = 0.6f;
         /// <summary>На сколько ШП соседние блоки расходятся по высоте. Прыжок берёт 2.27 — держим втрое меньше.</summary>
         private const float ParkourHeightStep = 0.7f;
@@ -270,13 +340,17 @@ namespace Igruha.EditorTools
             public float MaxGap { get; }
             public bool Ice { get; }
 
-            public FloorPlan(int covers, float longestOpen, int gaps, float maxGap, bool ice)
+            /// <summary>Сторона паркурной площадки, ШП. Третий параметр прогрессии из спеки: платформы сужаются к верхним этажам.</summary>
+            public float Platform { get; }
+
+            public FloorPlan(int covers, float longestOpen, int gaps, float maxGap, bool ice, float platform)
             {
                 Covers = covers;
                 LongestOpen = longestOpen;
                 Gaps = gaps;
                 MaxGap = maxGap;
                 Ice = ice;
+                Platform = platform;
             }
         }
 
@@ -286,13 +360,23 @@ namespace Igruha.EditorTools
         /// геймдизайнера от 19.08 — сложность паркура читается по длине прыжка,
         /// а не по количеству дыр, а ужатый до 1.75 ШП разрыв перешагивается.
         /// </summary>
+        /// <summary>
+        /// Прогрессия сложности идёт по трём параметрам спеки (раздел 6):
+        /// плотность укрытий падает, открытый участок растёт, паркур сужается.
+        ///
+        /// Ширина площадки была константой в 1.1 ШП на всех пяти этажах — при
+        /// теле в 1 ШП поперёк это полоска в ладонь шире ботинка, одинаково
+        /// неудобная и на «намеренно лёгком» первом этаже, и на пятом. Спека
+        /// же требует именно сужения к верху, и заодно край площадки обязан
+        /// читаться в прыжке (14.3): на 1.1 ШП читать там нечего.
+        /// </summary>
         private static readonly FloorPlan[] Plans =
         {
-            new FloorPlan(12, 6f, 2, 2f, false),   // 1 — ферма, намеренно лёгкий
-            new FloorPlan(10, 8f, 2, 3f, false),   // 2 — ферма, Дверь
-            new FloorPlan(8, 10f, 2, 3f, true),    // 3 — зима, Гейзер
-            new FloorPlan(6, 13f, 1, 4f, false),   // 4 — ферма, Провал
-            new FloorPlan(5, 16f, 1, 5f, true)     // 5 — зима, Дверь + Гейзер
+            new FloorPlan(12, 6f, 2, 2f, false, 2.6f),   // 1 — ферма, намеренно лёгкий
+            new FloorPlan(10, 8f, 2, 3f, false, 2.3f),   // 2 — ферма, Дверь
+            new FloorPlan(8, 10f, 2, 3f, true, 2f),      // 3 — зима, Гейзер
+            new FloorPlan(6, 13f, 1, 4f, false, 1.7f),   // 4 — ферма, Провал
+            new FloorPlan(5, 16f, 1, 5f, true, 1.4f)     // 5 — зима, Дверь + Гейзер
         };
 
         private static DuckHuntConfig config;
@@ -300,10 +384,43 @@ namespace Igruha.EditorTools
         private static int coverLayer;
         private static int barrierLayer;
         private static System.Random random;
+
+        /// <summary>
+        /// Отдельный генератор под арт. Брать общий нельзя: выбор модели
+        /// сдвинул бы последовательность, по которой раскладываются укрытия
+        /// и паркур, и проверенная планировка поехала бы от смены тюка.
+        /// </summary>
+        private static System.Random dressRandom;
+
+        /// <summary>Биом текущего этажа: зимние этажи одеваются во второй набор моделей.</summary>
+        private static bool currentWinter;
         private static readonly List<TrapBase> builtTraps = new List<TrapBase>(8);
         private static readonly List<SpringTrap> builtGeysers = new List<SpringTrap>(4);
         private static readonly List<DuckHuntStairs> builtStairs = new List<DuckHuntStairs>(8);
         private static readonly List<string> warnings = new List<string>(8);
+
+        /// <summary>
+        /// Линия «рычаг → зона эффекта» в координатах трассы. Высота цели
+        /// хранится отдельно, потому что она разная: гейзер и провал лежат на
+        /// полу, а створка висит в лазе на пороге в три ШП.
+        /// </summary>
+        private readonly struct SightLine
+        {
+            public readonly float FromProgress;
+            public readonly float FromDepth;
+            public readonly float ToProgress;
+            public readonly float ToDepth;
+            public readonly float ToHeight;
+
+            public SightLine(float fromProgress, float fromDepth, float toProgress, float toDepth, float toHeight)
+            {
+                FromProgress = fromProgress;
+                FromDepth = fromDepth;
+                ToProgress = toProgress;
+                ToDepth = toDepth;
+                ToHeight = toHeight;
+            }
+        }
 
         /// <summary>Прямоугольная дыра в перекрытии: координаты арены, X вдоль трассы, Z поперёк.</summary>
         private readonly struct Hole
@@ -334,6 +451,14 @@ namespace Igruha.EditorTools
         private static readonly List<Hole> slabHoles = new List<Hole>(24);
 
         private static Material floorMaterial;
+        private static Material floorWinterMaterial;
+        private static Material metalMaterial;
+        private static Material groundMaterial;
+        private static Material foundationMaterial;
+        private static Material barnMaterial;
+
+        /// <summary>Модели окружения, которых не оказалось: паки Synty каждый ставит себе сам.</summary>
+        private static readonly List<string> missingScenery = new List<string>(8);
         private static Material wallMaterial;
         private static Material coverHighMaterial;
         private static Material coverLowMaterial;
@@ -367,6 +492,9 @@ namespace Igruha.EditorTools
             }
 
             random = new System.Random(Seed);
+            dressRandom = new System.Random(Seed ^ 0x5F3759DF);
+            DuckHuntDress.Begin();
+            missingScenery.Clear();
             BuildThroughHoles();
             builtTraps.Clear();
             builtGeysers.Clear();
@@ -394,6 +522,8 @@ namespace Igruha.EditorTools
 
             BuildRoof(tower);
             RidePlatform platform = BuildElevator(ResetGroup(arenaRoot.transform, "ElevatorShaft"));
+            BuildEnvironment(ResetGroup(arenaRoot.transform, "Environment"));
+            TuneLighting();
             DuckHuntFinishZone finish = BuildFinishZone(tower);
             BuildSpawns(spawnsRoot.transform, platform);
             BuildKillZone();
@@ -430,6 +560,7 @@ namespace Igruha.EditorTools
         {
             Transform root = ResetGroup(tower, $"Floor_{floor + 1}");
             FloorPlan plan = Plans[floor];
+            currentWinter = plan.Ice;
 
             float baseY = floor * config.FloorStepWidths;
             float length = config.FloorLengthWidths;
@@ -544,7 +675,7 @@ namespace Igruha.EditorTools
                     float gapMax = Mathf.Clamp(gaps[gIndex].y, 0f, depth);
                     if (gapMin - cursor > 0.001f)
                     {
-                        Box(slab, $"Slab_{++piece}", groundLayer, floorMaterial, from, to, bottom, top, cursor, gapMin);
+                        Box(slab, $"Slab_{++piece}", groundLayer, FloorMaterial, from, to, bottom, top, cursor, gapMin);
                     }
 
                     cursor = Mathf.Max(cursor, gapMax);
@@ -552,7 +683,7 @@ namespace Igruha.EditorTools
 
                 if (depth - cursor > 0.001f)
                 {
-                    Box(slab, $"Slab_{++piece}", groundLayer, floorMaterial, from, to, bottom, top, cursor, depth);
+                    Box(slab, $"Slab_{++piece}", groundLayer, FloorMaterial, from, to, bottom, top, cursor, depth);
                 }
             }
 
@@ -723,7 +854,7 @@ namespace Igruha.EditorTools
             float floorTop = baseY - PitDepthWidths;
             float floorBottom = floorTop - SlabWidths;
 
-            Box(group, "PitFloor", groundLayer, floorMaterial, xMin, xMax, floorBottom, floorTop, 0f, DepthWidths);
+            Box(group, "PitFloor", groundLayer, FloorMaterial, xMin, xMax, floorBottom, floorTop, 0f, DepthWidths);
             Box(group, "PitWall_Near", groundLayer, wallMaterial,
                 xMin - WallThickness, xMin, floorBottom, baseY, 0f, DepthWidths);
             Box(group, "PitWall_Far", groundLayer, wallMaterial,
@@ -778,8 +909,9 @@ namespace Igruha.EditorTools
             // прозрачная стена, а сплошной бортик ловил бы выстрелы. Он всего
             // 1 ШП высотой, но глаз Охотника в нижней точке лифта примерно на
             // этом же уровне — и весь первый этаж переставал простреливаться.
-            GameObject ledge = Box(walls, "Ledge", groundLayer, wallMaterial,
-                0f, length, baseY, baseY + LedgeWidths, -WallThickness, 0f);
+            GameObject ledge = DressedBox(walls, "Ledge", groundLayer, wallMaterial,
+                0f, length, baseY, baseY + LedgeWidths, -WallThickness, 0f,
+                DuckHuntDress.Kind.Ledge);
             Object.DestroyImmediate(ledge.GetComponent<Collider>());
         }
 
@@ -800,7 +932,7 @@ namespace Igruha.EditorTools
             float ceiling = CeilingWidths;
 
             // Стена со стороны лифта — та самая, из-за которой комната не простреливается.
-            Box(room, "Wall_TowardElevator", groundLayer, wallMaterial,
+            Box(room, "Wall_TowardElevator", groundLayer, barnMaterial,
                 xMin, xMax, baseY, baseY + ceiling, -WallThickness, 0f);
 
             // Перегородка от коридора. Прохода по полу в ней нет намеренно:
@@ -840,8 +972,7 @@ namespace Igruha.EditorTools
             BuildGateApproach(root, floor, baseY, gateMin, gateMax);
             BuildStairPlatforms(room, floor, baseY);
 
-            DoorTrap door = BuildDoorTrap(root, floor, partitionMin, partitionMax, gateBottom, gateTop, gateMin, gateMax);
-            BuildDoorLevers(root, floor, door, partitionMin, partitionMax, gateBottom, gateMin);
+            BuildDoorTrap(root, floor, partitionMin, partitionMax, gateBottom, gateTop, gateMin, gateMax);
         }
 
         /// <summary>
@@ -894,8 +1025,9 @@ namespace Igruha.EditorTools
                 float zMin = Mathf.Clamp(gateMin + lateral[i], gateMin, gateMax - zSize);
 
                 GetXRange(floor, p, p + GateBlockSize, out float xMin, out float xMax);
-                Box(group, $"GateBlock_{i + 1}", groundLayer, platformMaterial,
-                    xMin, xMax, baseY, baseY + heights[i], zMin, zMin + zSize);
+                DressedBox(group, $"GateBlock_{i + 1}", groundLayer, platformMaterial,
+                    xMin, xMax, baseY, baseY + heights[i], zMin, zMin + zSize,
+                    DuckHuntDress.Kind.GateStep);
             }
 
             WarnIfTooHighToStep(floor, config.ToUnits(GateFirstStepWidths), "первый блок подъёма");
@@ -1059,7 +1191,12 @@ namespace Igruha.EditorTools
             // разрывов средние: цепочка из восьми прыжков подряд тяжелее двух
             // предельных, и ошибиться в ней можно на любом. Длинный разрыв
             // идёт четвёртым — там, где игрок уже поймал ритм и расслабился.
-            float longGap = Mathf.Min(plan.MaxGap, JumpRangeWidths * JumpSafetyShare - ParkourBlockSize);
+            // Сторона площадки — своя на каждом этаже: это третий параметр
+            // прогрессии из спеки. Ниже она участвует и в разрывах, и в
+            // поперечном сносе, поэтому берётся один раз в начале.
+            float blockSize = plan.Platform;
+
+            float longGap = Mathf.Min(plan.MaxGap, JumpRangeWidths * JumpSafetyShare - blockSize);
             float[] gapPattern =
             {
                 longGap * 0.55f,
@@ -1071,11 +1208,11 @@ namespace Igruha.EditorTools
 
             float cursor = start;
             float height = 1f;
-            float previousZ = ParkourNearZ + (ParkourWidth - ParkourBlockSize) * 0.5f;
+            float previousZ = ParkourNearZ + (ParkourWidth - blockSize) * 0.5f;
             int index = 0;
             float lastLanded = start;
 
-            while (cursor + ParkourBlockSize <= ParkourEnd + 0.01f)
+            while (cursor + blockSize <= ParkourEnd + 0.01f)
             {
                 float gap = gapPattern[index % gapPattern.Length];
 
@@ -1091,14 +1228,14 @@ namespace Igruha.EditorTools
                 float budget = JumpRangeWidths * JumpSafetyShare;
                 float lateral = Mathf.Sqrt(Mathf.Max(0f, budget * budget - gap * gap));
                 float bandMin = Mathf.Max(ParkourNearZ, previousZ - lateral);
-                float bandMax = Mathf.Min(ParkourNearZ + ParkourWidth - ParkourBlockSize, previousZ + lateral);
+                float bandMax = Mathf.Min(ParkourNearZ + ParkourWidth - blockSize, previousZ + lateral);
                 float z = Mathf.Lerp(bandMin, bandMax, (float)random.NextDouble());
 
-                GetXRange(floor, cursor, cursor + ParkourBlockSize, out float xMin, out float xMax);
-                cursor += ParkourBlockSize + gap;
+                GetXRange(floor, cursor, cursor + blockSize, out float xMin, out float xMax);
+                cursor += blockSize + gap;
                 index++;
 
-                if (OverlapsStairwell(floor, xMin, xMax, z, z + ParkourBlockSize))
+                if (OverlapsStairwell(floor, xMin, xMax, z, z + blockSize))
                 {
                     continue;
                 }
@@ -1109,8 +1246,9 @@ namespace Igruha.EditorTools
                     ? baseY
                     : baseY + height - ParkourBlockThickness;
 
-                Box(group, $"Block_{index:00}", groundLayer, platformMaterial,
-                    xMin, xMax, bottom, baseY + height, z, z + ParkourBlockSize);
+                DressedBox(group, $"Block_{index:00}", groundLayer, platformMaterial,
+                    xMin, xMax, bottom, baseY + height, z, z + blockSize,
+                    DuckHuntDress.Kind.Platform);
                 previousZ = z;
                 lastLanded = cursor - gap;
             }
@@ -1122,10 +1260,11 @@ namespace Igruha.EditorTools
             float tail = ParkourEnd - lastLanded;
             if (tail > JumpRangeWidths * JumpSafetyShare)
             {
-                GetXRange(floor, ParkourEnd - ParkourBlockSize, ParkourEnd, out float tailXMin, out float tailXMax);
-                float tailZ = Mathf.Clamp(previousZ, ParkourNearZ, ParkourNearZ + ParkourWidth - ParkourBlockSize);
-                Box(group, "Block_Tail", groundLayer, platformMaterial,
-                    tailXMin, tailXMax, baseY, baseY + 1f, tailZ, tailZ + ParkourBlockSize);
+                GetXRange(floor, ParkourEnd - blockSize, ParkourEnd, out float tailXMin, out float tailXMax);
+                float tailZ = Mathf.Clamp(previousZ, ParkourNearZ, ParkourNearZ + ParkourWidth - blockSize);
+                DressedBox(group, "Block_Tail", groundLayer, platformMaterial,
+                    tailXMin, tailXMax, baseY, baseY + 1f, tailZ, tailZ + blockSize,
+                    DuckHuntDress.Kind.Platform);
             }
         }
 
@@ -1133,24 +1272,55 @@ namespace Igruha.EditorTools
         /// Укрытия. Высокие прячут стоящего, низкие — только присевшего, и
         /// присед стоит 55% скорости: за низким укрытием безопасно, но медленно.
         /// Плотность падает от этажа к этажу — это и есть прогрессия сложности.
+        ///
+        /// Раскладка идёт решёткой «ряд вдоль трассы × полоса по глубине», а не
+        /// случайным перебором. Перебор с двумя десятками попыток выдыхался на
+        /// верхних этажах: там полоса прогресса сжимается до двух ШП (сорок
+        /// минус открытый пробег в шестнадцать), все укрытия приходится ставить
+        /// почти на одном p, различая только глубиной, и случайная точка
+        /// попадала в уже занятое место снова и снова. Каждая пересборка
+        /// теряла по два-три укрытия на этаж — то есть ровно ту величину,
+        /// которая и задаёт прогрессию сложности.
         /// </summary>
         private static void BuildCovers(Transform root, int floor, float baseY, FloorPlan plan)
         {
             Transform group = ResetGroup(root, "Covers");
 
             // Укрытия кончаются там, где начинается плановый открытый пробег.
-            // «Самый длинный открытый участок» из таблицы 3.9 — параметр
-            // прогрессии, и получаться он обязан намеренно. Раньше он выходил
-            // побочным эффектом: укрытие, попавшее в зону ловушек или в проём
-            // лестницы, просто выбрасывалось — этажи теряли до трети укрытий,
-            // а голый хвост выходил одинаковым на всех пяти.
+            // «Самый длинный открытый участок» из таблицы прогрессии — параметр
+            // спеки, и получаться он обязан намеренно, а не побочным эффектом
+            // от выброшенных укрытий.
             float from = CoverStart;
-            float to = Mathf.Max(from + 2f, StairRoomStart - plan.LongestOpen);
-            float step = (to - from) / plan.Covers;
+            float to = Mathf.Max(from + CoverLength, StairRoomStart - plan.LongestOpen);
             int highCount = Mathf.RoundToInt(plan.Covers * HighCoverShare);
 
-            List<Vector4> sightLines = GetTrapSightLines(floor);
+            List<SightLine> sightLines = GetTrapSightLines(floor);
+
+            // Полосы глубины: сколько укрытий встаёт поперёк этажа, не задевая
+            // друг друга. Считается от глубины этажа, а не задано числом:
+            // ширина этажа — настройка конфига, и захардкоженные четыре полосы
+            // разъехались бы вместе с ней.
+            float bandMin = CoverEdgeMargin;
+            float bandMax = DepthWidths - CoverEdgeMargin - CoverDepth;
+            int lanes = Mathf.Max(1, Mathf.FloorToInt((bandMax - bandMin) / (CoverDepth + CoverClearance)) + 1);
+
+            // Рядов вдоль трассы столько, чтобы хватило на все укрытия, плюс
+            // запасной ряд, если решётка сходится ровно под их число. Запас
+            // нужен не для красоты: линию «рычаг — зона эффекта» загораживать
+            // нельзя, и на этаже с дверью она съедает ровно одну клетку. Без
+            // запаса это стоило этажу одного укрытия каждую пересборку.
+            // Ряд добавляется только если он не ужмёт укрытие ниже
+            // минимальной длины — на верхних этажах полоса слишком коротка.
+            int rows = Mathf.CeilToInt(plan.Covers / (float)lanes);
+            if (rows * lanes <= plan.Covers && (to - from) / (rows + 1) >= MinCoverLength + CoverClearance * 2f)
+            {
+                rows += 1;
+            }
+
+            float rowStep = (to - from) / rows;
+
             var placed = new List<Vector4>(plan.Covers);
+            int built = 0;
 
             for (int i = 0; i < plan.Covers; i++)
             {
@@ -1159,64 +1329,162 @@ namespace Igruha.EditorTools
                 // без высоких, и стоящему игроку прятаться негде.
                 bool high = i * highCount / plan.Covers != (i + 1) * highCount / plan.Covers;
                 float height = high ? HighCoverWidths : LowCoverWidths;
-                bool done = false;
 
+                // Соседние по номеру укрытия расходятся и по глубине, и по
+                // ряду: иначе ближний ряд забивается целиком, а дальний
+                // остаётся пустым.
+                int lane = i % lanes;
+                int row = i / lanes;
+
+                float laneDepth = lanes == 1
+                    ? Mathf.Lerp(bandMin, bandMax, 0.5f)
+                    : Mathf.Lerp(bandMin, bandMax, lane / (float)(lanes - 1));
+
+                // Место укрытия ищется в три захода: своя клетка решётки,
+                // затем вся полоса вразброс, затем — если и там не нашлось —
+                // сплошной перебор клеток подряд. Последний заход и даёт
+                // обещание «сколько укрытий в плане, столько и встанет»:
+                // случайный поиск в тесной полосе верхних этажей может
+                // не найти щель, которая там есть.
+                bool done = false;
                 for (int attempt = 0; attempt < CoverPlacementAttempts && !done; attempt++)
                 {
-                    // С каждой попыткой укрытие уже и переходит на следующую
-                    // полосу глубины. Чистый случайный перебор в узкой полосе
-                    // поздних этажей выдыхается раньше, чем находит щель, а
-                    // терять укрытие нельзя — их число и есть прогрессия.
+                    // Первые попытки — в своей клетке решётки с небольшим
+                    // разбросом, дальше клетка отпускается: ровность важна,
+                    // наличие важнее.
                     float squeeze = attempt / (float)CoverPlacementAttempts;
-                    float width = Mathf.Lerp(2.5f, 1.5f, squeeze);
-                    float lane = attempt % CoverDepthLanes / (float)(CoverDepthLanes - 1);
+                    bool loose = squeeze >= 0.5f;
 
-                    // Сначала укрытие ищет место в своей доле полосы — так они
-                    // раскладываются ровно. Если доля забита, отпускаем его
-                    // гулять по всей полосе: ровность важна, наличие важнее.
-                    float p = squeeze < 0.5f
-                        ? from + step * (i + (float)random.NextDouble())
-                        : Mathf.Lerp(from, to - width, (float)random.NextDouble());
-                    p = Mathf.Clamp(p, from, to - width);
-                    float z = attempt == 0
-                        ? Mathf.Lerp(1.5f, DepthWidths - 3.5f, (float)random.NextDouble())
-                        : Mathf.Lerp(1.5f, DepthWidths - 3.5f, lane);
+                    // Длину укрытия задаёт шаг ряда, а не константа. На верхних
+                    // этажах полоса всего в два-три ШП, и укрытие в полные 2.5
+                    // не помещается даже в один ряд: все они схлопывались на
+                    // одном p и различались только глубиной, а глубина даёт
+                    // ровно четыре места. Пятому укрытию вставать было некуда.
+                    float rowWidth = Mathf.Clamp(rowStep - CoverClearance * 2f, MinCoverLength, CoverLength);
+                    float width = Mathf.Lerp(rowWidth, MinCoverLength, squeeze);
 
-                    // Линию от кнопки до зоны эффекта не загораживаем: спека
-                    // (5.1) требует прямой видимости, иначе нажатие — лотерея.
-                    if (BlocksSightLine(sightLines, p, p + width, z, z + 2f))
+                    // Внутри ряда укрытие стоит по центру клетки, а не у её
+                    // края: соседние ряды тогда расходятся на полный зазор с
+                    // обеих сторон и не считаются слипшимися.
+                    float slotMin = from + rowStep * row;
+                    float slotMax = Mathf.Min(to, slotMin + rowStep);
+                    float slack = Mathf.Max(0f, slotMax - slotMin - width);
+                    float p = loose
+                        ? Mathf.Lerp(from, to - width, (float)random.NextDouble())
+                        : slotMin + slack * (0.25f + 0.5f * (float)random.NextDouble());
+                    p = Mathf.Clamp(p, from, Mathf.Max(from, to - width));
+
+                    // Глубина гуляет в пределах своей полосы, чтобы ряд не
+                    // выглядел линейкой, но не наезжает на соседнюю.
+                    float jitter = CoverClearance * 0.5f * (float)(random.NextDouble() * 2f - 1f);
+                    float z = loose
+                        ? Mathf.Lerp(bandMin, bandMax, (float)random.NextDouble())
+                        : Mathf.Clamp(laneDepth + jitter, bandMin, bandMax);
+
+                    // Линию от рычага до зоны эффекта не загораживаем: спека
+                    // требует прямой видимости, иначе нажатие — лотерея.
+                    if (BlocksSightLine(sightLines, p, p + width, z, z + CoverDepth))
                     {
                         continue;
                     }
 
                     GetXRange(floor, p, p + width, out float xMin, out float xMax);
-                    if (OverlapsStairwell(floor, xMin, xMax, z, z + 2f))
+                    if (OverlapsStairwell(floor, xMin, xMax, z, z + CoverDepth))
                     {
                         continue;
                     }
 
                     // Слипшиеся укрытия читаются как одна стена и съедают
                     // проходимость этажа — держим их врозь.
-                    if (OverlapsPlaced(placed, p, p + width, z, z + 2f))
+                    if (OverlapsPlaced(placed, p, p + width, z, z + CoverDepth))
                     {
                         continue;
                     }
 
-                    Box(group, $"Cover_{i + 1:00}_{(high ? "High" : "Low")}", coverLayer,
+                    DressedBox(group, $"Cover_{i + 1:00}_{(high ? "High" : "Low")}", coverLayer,
                         high ? coverHighMaterial : coverLowMaterial,
-                        xMin, xMax, baseY, baseY + height, z, z + 2f);
+                        xMin, xMax, baseY, baseY + height, z, z + CoverDepth,
+                        high ? DuckHuntDress.Kind.CoverHigh : DuckHuntDress.Kind.CoverLow);
 
-                    placed.Add(new Vector4(p, p + width, z, z + 2f));
+                    placed.Add(new Vector4(p, p + width, z, z + CoverDepth));
                     done = true;
+                    built++;
                 }
 
                 if (!done)
                 {
-                    warnings.Add(
-                        $"этаж {floor + 1}: укрытие {i + 1} из {plan.Covers} поставить некуда — " +
-                        $"полоса p {from:F0}…{to:F0} занята");
+                    done = SweepForFreeCell(group, floor, baseY, sightLines, placed,
+                        from, to, bandMin, bandMax, lanes, rows, high, height, i);
+                    if (done)
+                    {
+                        built++;
+                    }
                 }
             }
+
+            if (built < plan.Covers)
+            {
+                warnings.Add(
+                    $"этаж {floor + 1}: поставлено {built} укрытий из {plan.Covers} — " +
+                    $"полоса p {from:F0}…{to:F0}, полос глубины {lanes}, рядов {rows}");
+            }
+        }
+
+        /// <summary>
+        /// Сплошной перебор клеток решётки под укрытие, которому не нашлось
+        /// места вразброс. Идёт по всем рядам и полосам подряд и ставит
+        /// укрытие в первую свободную клетку.
+        ///
+        /// Нужен ровно из-за верхних этажей: там полоса прогресса ужимается до
+        /// пары ШП, свободных клеток остаётся одна-две, и случайный тык в них
+        /// не попадает даже за два десятка попыток. Потерянное укрытие — это
+        /// потерянная прогрессия сложности, а не косметика.
+        /// </summary>
+        private static bool SweepForFreeCell(Transform group, int floor, float baseY,
+            List<SightLine> sightLines, List<Vector4> placed,
+            float from, float to, float bandMin, float bandMax, int lanes, int rows,
+            bool high, float height, int index)
+        {
+            float rowStep = (to - from) / rows;
+            float width = Mathf.Clamp(rowStep - CoverClearance * 2f, MinCoverLength, CoverLength);
+
+            for (int row = 0; row < rows; row++)
+            {
+                for (int lane = 0; lane < lanes; lane++)
+                {
+                    float p = from + rowStep * row + Mathf.Max(0f, rowStep - width) * 0.5f;
+                    p = Mathf.Clamp(p, from, Mathf.Max(from, to - width));
+                    float z = lanes == 1
+                        ? Mathf.Lerp(bandMin, bandMax, 0.5f)
+                        : Mathf.Lerp(bandMin, bandMax, lane / (float)(lanes - 1));
+
+                    if (BlocksSightLine(sightLines, p, p + width, z, z + CoverDepth))
+                    {
+                        continue;
+                    }
+
+                    GetXRange(floor, p, p + width, out float xMin, out float xMax);
+                    if (OverlapsStairwell(floor, xMin, xMax, z, z + CoverDepth))
+                    {
+                        continue;
+                    }
+
+                    if (OverlapsPlaced(placed, p, p + width, z, z + CoverDepth))
+                    {
+                        continue;
+                    }
+
+                    DressedBox(group, $"Cover_{index + 1:00}_{(high ? "High" : "Low")}", coverLayer,
+                        high ? coverHighMaterial : coverLowMaterial,
+                        xMin, xMax, baseY, baseY + height, z, z + CoverDepth,
+                        high ? DuckHuntDress.Kind.CoverHigh : DuckHuntDress.Kind.CoverLow);
+
+                    placed.Add(new Vector4(p, p + width, z, z + CoverDepth));
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -1228,9 +1496,9 @@ namespace Igruha.EditorTools
         /// стороны лаза: нажимающий стоит вплотную к зоне эффекта и смотрит
         /// прямо в неё, проверять там нечего.
         /// </summary>
-        private static List<Vector4> GetTrapSightLines(int floor)
+        private static List<SightLine> GetTrapSightLines(int floor)
         {
-            var lines = new List<Vector4>(2);
+            var lines = new List<SightLine>(2);
 
             // Линия идёт из середины тумбы, а не из её угла: иначе проверочный
             // луч стартует внутри самого рычага и упирается в него.
@@ -1238,29 +1506,42 @@ namespace Igruha.EditorTools
             float geyserZ = (DepthWidths - 5f) * 0.5f + 2.5f;
             float geyserP = (GeyserStart + GeyserEnd) * 0.5f;
 
+            // Гейзер и провал лежат на полу — смотреть на них надо вниз.
+            float groundTarget = EyeHeightWidths * 0.5f;
+
+            // Створка висит в лазе, а лаз поднят на порог в три ШП. Целить в
+            // неё на высоте пола бессмысленно: там сплошная перегородка под
+            // порогом, и проверка ловит стену вместо створки.
+            float gateZ = StairFlightANearZ + DoorwayWidth * 0.5f;
+            float gateTarget = GateSillWidths + GateHeightWidths * 0.5f;
+
             switch (floor)
             {
+                case 1:
+                    lines.Add(new SightLine(ButtonProgress + 0.5f, buttonZ, DoorProgress, gateZ, gateTarget));
+                    break;
                 case 2:
-                    lines.Add(new Vector4(ButtonProgress + 0.5f, buttonZ, geyserP, geyserZ));
+                    lines.Add(new SightLine(ButtonProgress + 0.5f, buttonZ, geyserP, geyserZ, groundTarget));
                     break;
                 case 3:
-                    lines.Add(new Vector4(ButtonProgress + 0.5f, buttonZ, (CollapseStart + CollapseEnd) * 0.5f, DepthWidths * 0.5f));
+                    lines.Add(new SightLine(ButtonProgress + 0.5f, buttonZ, (CollapseStart + CollapseEnd) * 0.5f, DepthWidths * 0.5f, groundTarget));
                     break;
                 case 4:
-                    lines.Add(new Vector4(ButtonProgressGeyserFloor5 + 0.5f, buttonZ, geyserP, geyserZ));
+                    lines.Add(new SightLine(ButtonProgressGeyserFloor5 + 0.5f, buttonZ, geyserP, geyserZ, groundTarget));
+                    lines.Add(new SightLine(ButtonProgress + 0.5f, buttonZ, DoorProgress, gateZ, gateTarget));
                     break;
             }
 
             return lines;
         }
 
-        private static bool BlocksSightLine(List<Vector4> lines, float pMin, float pMax, float zMin, float zMax)
+        private static bool BlocksSightLine(List<SightLine> lines, float pMin, float pMax, float zMin, float zMax)
         {
             for (int i = 0; i < lines.Count; i++)
             {
-                Vector4 line = lines[i];
+                SightLine line = lines[i];
                 if (SegmentIntersectsRect(
-                        new Vector2(line.x, line.y), new Vector2(line.z, line.w),
+                        new Vector2(line.FromProgress, line.FromDepth), new Vector2(line.ToProgress, line.ToDepth),
                         pMin - CoverClearance, pMax + CoverClearance,
                         zMin - CoverClearance, zMax + CoverClearance))
                 {
@@ -1344,11 +1625,19 @@ namespace Igruha.EditorTools
 
         private static void BuildFloorTrap(Transform root, int floor, float baseY)
         {
-            // Рычагов двери здесь нет: они врезаны в саму перегородку и
-            // ставятся вместе с ней, в BuildStairRoom — все её числа известны
-            // только там.
+            // Рычаг двери стоит там же, где рычаги двух других ловушек, — на
+            // тумбе в 29 ШП, в стороне от кратчайшего пути. Раньше он был
+            // врезан в саму перегородку у лаза, и это ломало главный принцип
+            // спеки (9.1-9.2): нажимающий обязан стоять У КНОПКИ, а не в зоне
+            // эффекта. У лаза он стоял ровно в ней — захлопывал створку себе
+            // под нос, цена нажатия исчезала, и ловушка догоняющего
+            // превращалась в кнопку «закрыть за собой».
             switch (floor)
             {
+                case 1:
+                    BuildPedestalLever(root, floor, baseY, ButtonProgress, "Door", "Дверь",
+                        FindTrap(root, "DoorTrap"));
+                    break;
                 case 2:
                     BuildGeyser(root, floor, baseY, ButtonProgress);
                     break;
@@ -1357,54 +1646,15 @@ namespace Igruha.EditorTools
                         FindTrap(root, "CollapseTrap"));
                     break;
                 case 4:
+                    // Пятый этаж несёт обе ловушки (спека, раздел 6), поэтому и
+                    // рычага два: гейзер сдвинут на 31 ШП, чтобы тумбы не слиплись.
                     BuildGeyser(root, floor, baseY, ButtonProgressGeyserFloor5);
+                    BuildPedestalLever(root, floor, baseY, ButtonProgress, "Door", "Дверь",
+                        FindTrap(root, "DoorTrap"));
                     break;
             }
         }
 
-        /// <summary>
-        /// Рычаги двери — по одному на каждой грани перегородки, вплотную к
-        /// косяку лаза. Внешний жмёт тот, кто подбегает к лазу снаружи,
-        /// внутренний — тот, кто уже прошёл и хочет запереть проход за собой.
-        /// Захлопнуть можно и догоняя, и убегая.
-        ///
-        /// Раньше обе кнопки стояли столбами в стороне от лаза, и нажатие
-        /// требовало отдельного крюка к постаменту. Рычаг врезан в ту самую
-        /// стену, которую он закрывает: до него дотягиваются тем же движением,
-        /// каким лезут в проём. Дотянуться можно только с высоты порога — с
-        /// пола коридора рычаг вне радиуса, и подниматься по блокам всё равно
-        /// придётся.
-        /// </summary>
-        private static void BuildDoorLevers(Transform root, int floor, TrapBase door,
-            float partitionMin, float partitionMax, float gateBottom, float gateMin)
-        {
-            if (door == null)
-            {
-                return;
-            }
-
-            // Коридор лежит со стороны меньшего прогресса, лестничная комната —
-            // большего. На нечётных этажах трасса идёт против X, и грани
-            // перегородки меняются местами.
-            bool forward = IsForward(floor);
-            float outerX = forward ? partitionMin : partitionMax;
-            float outerSign = forward ? -1f : 1f;
-
-            // Рычаг сидит на Partition_SideA — глухом куске перегородки сбоку
-            // от лаза, на его же высоте. Заняты обе грани: подбегающий видит
-            // свой рычаг снаружи, прошедший — свой изнутри.
-            float z = gateMin - LeverGateOffset;
-            float y = gateBottom + LeverHandHeight;
-
-            BuildWallLever(root, "Lever_DoorOuter", "Дверь", door, outerX, outerSign, y, z);
-            BuildWallLever(root, "Lever_DoorInner", "Дверь", door,
-                forward ? partitionMax : partitionMin, -outerSign, y, z);
-        }
-
-        /// <summary>
-        /// Дверь на выходе с этажа. Захлопнувшись, она держит подбежавшего
-        /// снаружи — на открытом месте под обстрелом.
-        /// </summary>
         private static DoorTrap BuildDoorTrap(Transform root, int floor, float xMin, float xMax, float yMin, float yMax, float zMin, float zMax)
         {
             Transform group = ResetGroup(root, "DoorTrap");
@@ -1412,8 +1662,8 @@ namespace Igruha.EditorTools
 
             // Створка ровно по лазу: он теперь единственный проход на этаж,
             // и закрывать всю перегородку от пола до потолка больше нечего.
-            GameObject panel = Box(group, "Panel", groundLayer, trapMaterial,
-                xMin, xMax, yMin, yMax, zMin, zMax);
+            GameObject panel = DressedBox(group, "Panel", groundLayer, trapMaterial,
+                xMin, xMax, yMin, yMax, zMin, zMax, DuckHuntDress.Kind.TrapDoor);
 
             // Открытая створка уходит вниз на свою высоту — в глухой кусок
             // перегородки под лазом, где её целиком видно не будет. Раньше
@@ -1431,11 +1681,12 @@ namespace Igruha.EditorTools
             so.FindProperty("openLocalPosition").vector3Value = open;
             so.FindProperty("closedDuration").floatValue = config.DoorClosedDuration;
 
-            // Дверь — переключатель, и кулдауна у неё нет по определению:
-            // рычаг закрывает и открывает проход сколько угодно раз подряд.
-            // Кулдаун из конфига остаётся у мгновенных ловушек, где нажатие
-            // разовое и повтор надо чем-то ограничивать.
-            so.FindProperty("cooldown").floatValue = 0f;
+            // Перезарядка у двери такая же, как у двух других ловушек
+            // (спека, 9.3): захлопнулась на пять секунд, потом десять секунд
+            // рычаг не работает. Нулевой кулдаун превращал её в переключатель
+            // «держать закрытым сколько угодно» — этого спека не описывает
+            // нигде, а на этаже с одним проходом это глухая пробка.
+            so.FindProperty("cooldown").floatValue = config.ButtonCooldown;
 
             // Ход створки задаём явно: мгновенная дверь читается как телепорт,
             // медленная перестаёт быть ловушкой. Треть секунды на два с половиной
@@ -1458,8 +1709,8 @@ namespace Igruha.EditorTools
             Transform group = ResetGroup(root, "CollapseTrap");
             var trap = group.gameObject.AddComponent<CollapsingFloorTrap>();
 
-            GameObject section = Box(group, "Section", groundLayer, trapMaterial,
-                xMin, xMax, bottom, top, 0f, depth);
+            GameObject section = DressedBox(group, "Section", groundLayer, trapMaterial,
+                xMin, xMax, bottom, top, 0f, depth, DuckHuntDress.Kind.TrapFloor);
 
             var so = new SerializedObject(trap);
             SerializedProperty colliders = so.FindProperty("floorColliders");
@@ -1473,6 +1724,9 @@ namespace Igruha.EditorTools
             so.FindProperty("openDuration").floatValue = config.CollapseDuration;
             so.FindProperty("cooldown").floatValue = config.ButtonCooldown;
             so.ApplyModifiedPropertiesWithoutUndo();
+
+            AttachTrapEffect(group, trap, CollapseFx,
+                ToWorld((xMin + xMax) * 0.5f, bottom, depth * 0.5f));
 
             builtTraps.Add(trap);
         }
@@ -1501,7 +1755,11 @@ namespace Igruha.EditorTools
 
             // Видимая площадка, чтобы зона читалась с кнопки: спека требует
             // прямой видимости, а невидимую зону не во что целиться глазом.
-            Box(group, "Pad", groundLayer, trapMaterial, xMin, xMax, baseY, baseY + 0.15f, z, z + 5f);
+            DressedBox(group, "Pad", groundLayer, trapMaterial, xMin, xMax, baseY, baseY + 0.15f, z, z + 5f,
+                DuckHuntDress.Kind.TrapPad);
+
+            AttachTrapEffect(group, trap, currentWinter ? GeyserFxWinter : GeyserFxSummer,
+                ToWorld((xMin + xMax) * 0.5f, baseY + 0.2f, z + 2.5f));
 
             var so = new SerializedObject(trap);
             so.FindProperty("cooldown").floatValue = config.ButtonCooldown;
@@ -1533,10 +1791,14 @@ namespace Igruha.EditorTools
             GetXRange(floor, progress, progress + LeverPedestalSize, out float xMin, out float xMax);
             float top = baseY + LeverPedestalHeight;
 
-            Box(group, "Pedestal", groundLayer, wallMaterial, xMin, xMax, baseY, top, z, z + LeverPedestalSize);
+            DressedBox(group, "Pedestal", groundLayer, wallMaterial, xMin, xMax, baseY, top, z, z + LeverPedestalSize,
+                DuckHuntDress.Kind.LeverPost);
 
             float centerX = (xMin + xMax) * 0.5f;
             float centerZ = z + LeverPedestalSize * 0.5f;
+
+            BuildLeverMast(group, centerX, centerZ, baseY);
+
             Box(group, "Plate", groundLayer, wallMaterial,
                 centerX - LeverPlateWidth * 0.5f, centerX + LeverPlateWidth * 0.5f,
                 top, top + LeverPlateDepth,
@@ -1550,29 +1812,85 @@ namespace Igruha.EditorTools
         }
 
         /// <summary>
-        /// Рычаг на вертикальной грани: плита заподлицо со стеной и ручка,
-        /// торчащая наружу по нормали. <paramref name="outSign"/> — в какую
-        /// сторону по X смотрит грань.
+        /// Подвесить ловушке эффект срабатывания.
+        ///
+        /// Эффект живёт отдельным объектом рядом с ловушкой, а не внутри её
+        /// подвижных частей: у провала подвижная часть исчезает вместе с
+        /// рендерером, и вложенная в неё партикл-система погасла бы ровно в тот
+        /// момент, ради которого её ставили.
+        ///
+        /// Партикл-система переводится в ручной запуск: у эффектов пака стоит
+        /// автостарт с зацикливанием, и без этого сноп сена бил бы из площадки
+        /// непрерывно всю игру.
         /// </summary>
-        private static void BuildWallLever(Transform root, string groupName, string displayName,
-            TrapBase trap, float faceX, float outSign, float y, float z)
+        private static void AttachTrapEffect(Transform group, TrapBase trap, string fxPath, Vector3 position)
         {
-            Transform group = ResetGroup(root, groupName);
+            if (trap == null)
+            {
+                return;
+            }
 
-            float plateOuterX = faceX + outSign * LeverPlateDepth;
-            Box(group, "Plate", groundLayer, wallMaterial,
-                Mathf.Min(faceX, plateOuterX), Mathf.Max(faceX, plateOuterX),
-                y - LeverPlateHeight * 0.5f, y + LeverPlateHeight * 0.5f,
-                z - LeverPlateWidth * 0.5f, z + LeverPlateWidth * 0.5f);
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(fxPath);
+            if (prefab == null)
+            {
+                if (!missingScenery.Contains(fxPath))
+                {
+                    missingScenery.Add(fxPath);
+                }
 
-            // Ручка ходит в вертикальной плоскости: вверх — готов, вниз — на
-            // перезарядке. Углы считаются от перпендикуляра к плите, поэтому на
-            // противоположных гранях перегородки они зеркальны.
-            float ready = outSign > 0f ? -(90f - LeverTiltDegrees) : 90f - LeverTiltDegrees;
-            float fired = outSign > 0f ? -(90f + LeverTiltDegrees) : 90f + LeverTiltDegrees;
+                return;
+            }
 
-            AttachLever(group, trap, displayName, ToWorld(plateOuterX, y, z),
-                new Vector3(0f, 0f, ready), new Vector3(0f, 0f, fired));
+            var fx = (GameObject)PrefabUtility.InstantiatePrefab(prefab, group);
+            fx.name = "Fx";
+            fx.transform.position = position;
+            fx.transform.rotation = Quaternion.identity;
+
+            var systems = fx.GetComponentsInChildren<ParticleSystem>(true);
+            for (int i = 0; i < systems.Length; i++)
+            {
+                ParticleSystem.MainModule main = systems[i].main;
+                main.playOnAwake = false;
+                main.loop = false;
+                systems[i].Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            }
+
+            var effects = group.gameObject.AddComponent<DuckHuntTrapEffects>();
+            var so = new SerializedObject(effects);
+            so.FindProperty("trap").objectReferenceValue = trap;
+            so.FindProperty("burst").objectReferenceValue = systems.Length > 0 ? systems[0] : null;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// Мачта над тумбой с красным фонарём наверху.
+        ///
+        /// Спека (14.3) требует, чтобы кнопка ловушки была крупной, красной и
+        /// видной издалека. Сам рычаг таким быть не может: он размером с
+        /// ладонь и врезан туда, куда игрок тянется рукой, — это решение
+        /// осталось в силе, потому что столб в рост загораживал проход.
+        /// Мачта разводит два требования по разным предметам: работает рука,
+        /// а видно издалека фонарь над ней.
+        ///
+        /// Коллайдеров у мачты нет намеренно. Во-первых, она не предмет
+        /// взаимодействия. Во-вторых, из тумбы выходит проверочный луч
+        /// видимости зоны эффекта, и сплошная мачта ловила бы его на первом
+        /// же сантиметре.
+        /// </summary>
+        private static void BuildLeverMast(Transform group, float centerX, float centerZ, float baseY)
+        {
+            float half = MastThickness * 0.5f;
+            GameObject mast = Box(group, "Mast", groundLayer, wallMaterial,
+                centerX - half, centerX + half, baseY, baseY + MastHeight,
+                centerZ - half, centerZ + half);
+            Object.DestroyImmediate(mast.GetComponent<Collider>());
+
+            float lampHalf = MastLampSize * 0.5f;
+            GameObject lamp = Box(group, "Lamp", groundLayer, buttonReadyMaterial,
+                centerX - lampHalf, centerX + lampHalf,
+                baseY + MastHeight, baseY + MastHeight + MastLampSize,
+                centerZ - lampHalf, centerZ + lampHalf);
+            Object.DestroyImmediate(lamp.GetComponent<Collider>());
         }
 
         /// <summary>
@@ -1766,8 +2084,9 @@ namespace Igruha.EditorTools
         {
             Transform group = ResetGroup(root, "SpawnShield");
             GetXRange(0, 0f, SpawnShieldLength, out float xMin, out float xMax);
-            Box(group, "Shield", groundLayer, wallMaterial,
-                xMin, xMax, baseY, baseY + SpawnShieldHeight, 0f, SpawnShieldThickness);
+            DressedBox(group, "Shield", groundLayer, wallMaterial,
+                xMin, xMax, baseY, baseY + SpawnShieldHeight, 0f, SpawnShieldThickness,
+                DuckHuntDress.Kind.SpawnShield);
         }
 
 
@@ -1787,13 +2106,13 @@ namespace Igruha.EditorTools
 
             // Настил с проёмом ровно над верхом лестницы: вокруг него крыша
             // сплошная, иначе вышедший на неё проваливается обратно.
-            Box(root, "Roof_Near", groundLayer, floorMaterial,
+            Box(root, "Roof_Near", groundLayer, FloorMaterial,
                 0f, Mathf.Min(holeMin, holeMax), baseY - SlabWidths, baseY, 0f, depth);
-            Box(root, "Roof_Far", groundLayer, floorMaterial,
+            Box(root, "Roof_Far", groundLayer, FloorMaterial,
                 Mathf.Max(holeMin, holeMax), length, baseY - SlabWidths, baseY, 0f, depth);
-            Box(root, "Roof_HoleSideA", groundLayer, floorMaterial,
+            Box(root, "Roof_HoleSideA", groundLayer, FloorMaterial,
                 holeMin, holeMax, baseY - SlabWidths, baseY, 0f, holeZMin);
-            Box(root, "Roof_HoleSideB", groundLayer, floorMaterial,
+            Box(root, "Roof_HoleSideB", groundLayer, FloorMaterial,
                 holeMin, holeMax, baseY - SlabWidths, baseY, holeZMax, depth);
 
             // Крыша простреливается — по спеке это осознанно. Бортик и барьер
@@ -1854,9 +2173,9 @@ namespace Igruha.EditorTools
             // срезают Охотнику выстрелы вдоль этажа: стоят они у самой
             // платформы, и на косых углах перекрывают весь дальний конец башни.
             Transform rails = ResetGroup(root, "Rails");
-            GameObject railA = Box(rails, "Rail_A", groundLayer, wallMaterial,
+            GameObject railA = Box(rails, "Rail_A", groundLayer, metalMaterial,
                 x - half - 0.5f, x - half, minH, maxH + 2f, z - half, z - half + 0.5f);
-            GameObject railB = Box(rails, "Rail_B", groundLayer, wallMaterial,
+            GameObject railB = Box(rails, "Rail_B", groundLayer, metalMaterial,
                 x + half, x + half + 0.5f, minH, maxH + 2f, z + half - 0.5f, z + half);
             Object.DestroyImmediate(railA.GetComponent<Collider>());
             Object.DestroyImmediate(railB.GetComponent<Collider>());
@@ -1864,13 +2183,14 @@ namespace Igruha.EditorTools
             Transform platformRoot = ResetGroup(root, "Platform");
             platformRoot.position = ToWorld(x, minH, z);
 
-            GameObject deck = Box(platformRoot, "Deck", groundLayer, platformMaterial,
-                x - half, x + half, minH - 0.4f, minH, z - half, z + half);
+            GameObject deck = DressedBox(platformRoot, "Deck", groundLayer, metalMaterial,
+                x - half, x + half, minH - 0.4f, minH, z - half, z + half,
+                DuckHuntDress.Kind.ElevatorDeck);
             deck.transform.SetParent(platformRoot, true);
 
             // Перила по краям: сойти нельзя и так (RidePlatform держит пассажира),
             // но без них платформа не читается как платформа.
-            Box(platformRoot, "Rail_Front", groundLayer, wallMaterial,
+            Box(platformRoot, "Rail_Front", groundLayer, metalMaterial,
                 x - half, x + half, minH, minH + 1f, z - half, z - half + 0.3f);
 
             // Rigidbody создаётся требованием самой платформы, кинематику и
@@ -2048,9 +2368,8 @@ namespace Igruha.EditorTools
         /// Видит ли нажимающий зону эффекта своей ловушки (спека, 5.1): без
         /// прямой видимости нажатие — лотерея.
         ///
-        /// Проверяются только ловушки с разнесёнными рычагом и зоной эффекта —
-        /// Гейзер и Провал. У двери они совмещены (рычаги на самой перегородке),
-        /// и в списке линий её нет.
+        /// Проверяются все три ловушки: с переносом рычага двери на тумбу
+        /// разнесённые рычаг и зона эффекта появились и у неё.
         /// </summary>
         private static void ValidateButtonSightLines()
         {
@@ -2058,14 +2377,14 @@ namespace Igruha.EditorTools
 
             for (int floor = 0; floor < config.FloorCount; floor++)
             {
-                List<Vector4> lines = GetTrapSightLines(floor);
+                List<SightLine> lines = GetTrapSightLines(floor);
                 float baseY = floor * config.FloorStepWidths;
 
                 for (int i = 0; i < lines.Count; i++)
                 {
-                    Vector4 line = lines[i];
-                    Vector3 eye = ToWorld(GetX(floor, line.x), baseY + EyeHeightWidths, line.y);
-                    Vector3 target = ToWorld(GetX(floor, line.z), baseY + EyeHeightWidths * 0.5f, line.w);
+                    SightLine line = lines[i];
+                    Vector3 eye = ToWorld(GetX(floor, line.FromProgress), baseY + EyeHeightWidths, line.FromDepth);
+                    Vector3 target = ToWorld(GetX(floor, line.ToProgress), baseY + line.ToHeight, line.ToDepth);
                     Vector3 direction = (target - eye).normalized;
 
                     // Стартуем на шаг от тумбы: игрок стоит рядом с рычагом,
@@ -2076,7 +2395,7 @@ namespace Igruha.EditorTools
                     if (Physics.Raycast(origin, direction, out RaycastHit hit, distance - 0.1f, mask, QueryTriggerInteraction.Ignore))
                     {
                         warnings.Add(
-                            $"этаж {floor + 1}: от рычага на p={line.x:F0} не видно зону эффекта на p={line.z:F0} — " +
+                            $"этаж {floor + 1}: от рычага на p={line.FromProgress:F0} не видно зону эффекта на p={line.ToProgress:F0} — " +
                             $"луч упирается в «{hit.collider.name}» на {hit.distance:F2} м");
                     }
                 }
@@ -2184,6 +2503,23 @@ namespace Igruha.EditorTools
                 $"шаг {config.FloorStepUnits:F2}, высота башни {config.TowerHeightUnits:F2}, " +
                 $"ход лифта {config.ElevatorMinHeightUnits:F2}…{config.ElevatorMaxHeightUnits:F2}, ловушек {builtTraps.Count}.";
 
+            // Ненайденные модели — отдельной строкой и всегда. Паки Synty в
+            // репозиторий не входят, и на машине без них башня соберётся
+            // серой: без этой строки разница читалась бы как «арт не сделан».
+            var absent = new List<string>(missingScenery);
+            for (int i = 0; i < DuckHuntDress.Missing.Count; i++)
+            {
+                absent.Add(DuckHuntDress.Missing[i]);
+            }
+
+            if (absent.Count > 0)
+            {
+                Debug.LogWarning(
+                    $"Duck Hunt: не найдено моделей паков — {absent.Count}. Там, где их нет, башня осталась блокаутом. " +
+                    "Поставь паки Synty (POLYGON Farm и POLYGON Nature Biomes: Alpine Mountain) и пересобери.\n— " +
+                    string.Join("\n— ", absent.ToArray()));
+            }
+
             if (warnings.Count == 0)
             {
                 Debug.Log(summary);
@@ -2194,6 +2530,9 @@ namespace Igruha.EditorTools
         }
 
         // ========== ГЕОМЕТРИЯ ==========
+
+        /// <summary>Материал пола текущего этажа: земля летом, снег зимой.</summary>
+        private static Material FloorMaterial => currentWinter ? floorWinterMaterial : floorMaterial;
 
         private static float DepthWidths => config.FloorDepthUnits / config.CharacterWidth;
         private static float CeilingWidths => config.CeilingHeightUnits / config.CharacterWidth;
@@ -2285,6 +2624,258 @@ namespace Igruha.EditorTools
             return go;
         }
 
+        /// <summary>
+        /// Поле вокруг башни: земля, фундамент, ферма на горизонте, горы и небо.
+        ///
+        /// Спека (14) ставит башню посреди открытого поля под ярким солнцем, а
+        /// до этой сессии вокруг не было вообще ничего: башня висела в пустоте,
+        /// и нижней половиной кадра у Охотника была нижняя половина скайбокса.
+        ///
+        /// Всё окружение — без коллайдеров и вне зоны игры. Земля лежит НИЖЕ
+        /// зоны вылета, поэтому упавший всё так же выбывает, а не приземляется
+        /// на травку: смерть считает триггер, а не пол.
+        /// </summary>
+        private static void BuildEnvironment(Transform root)
+        {
+            float length = config.FloorLengthWidths;
+            float depth = DepthWidths;
+            float centreX = length * 0.5f;
+            float centreZ = depth * 0.5f;
+
+            // Земля: одна большая плита под всей сценой.
+            GameObject ground = Box(root, "Ground", groundLayer, groundMaterial,
+                centreX - GroundHalfSize, centreX + GroundHalfSize,
+                GroundLevel - 1f, GroundLevel,
+                centreZ - GroundHalfSize, centreZ + GroundHalfSize);
+            Object.DestroyImmediate(ground.GetComponent<Collider>());
+
+            // Фундамент — юбка по периметру первого этажа. Сплошную плиту сюда
+            // класть нельзя: под паркуром первого этажа выкопана яма, и плита
+            // засыпала бы её.
+            Transform basement = ResetGroup(root, "Foundation");
+            BuildFoundationSkirt(basement, length, depth);
+
+            BuildFarmScenery(ResetGroup(root, "Scenery"), centreX);
+            BuildHorizon(ResetGroup(root, "Horizon"), centreX, centreZ);
+        }
+
+        /// <summary>Юбка фундамента по четырём сторонам первого этажа.</summary>
+        private static void BuildFoundationSkirt(Transform root, float length, float depth)
+        {
+            float top = -SlabWidths;
+            float bottom = GroundLevel;
+            float over = FoundationOverhang;
+
+            AddScenery(Box(root, "Skirt_Front", groundLayer, foundationMaterial,
+                -over, length + over, bottom, top, -over, 0f));
+            AddScenery(Box(root, "Skirt_Back", groundLayer, foundationMaterial,
+                -over, length + over, bottom, top, depth, depth + over));
+            AddScenery(Box(root, "Skirt_EndA", groundLayer, foundationMaterial,
+                -over, 0f, bottom, top, 0f, depth));
+            AddScenery(Box(root, "Skirt_EndB", groundLayer, foundationMaterial,
+                length, length + over, bottom, top, 0f, depth));
+        }
+
+        /// <summary>
+        /// Ферма в поле: амбар, силосы, ветряк, водонапорка, техника, деревья.
+        ///
+        /// Всё стоит за шахтой лифта, то есть ровно в той половине мира, куда
+        /// Утки смотрят с этажей через открытую грань. Ставить это за башней
+        /// бессмысленно — там сплошная задняя стена.
+        /// </summary>
+        private static void BuildFarmScenery(Transform root, float centreX)
+        {
+            float length = config.FloorLengthWidths;
+            float depth = DepthWidths;
+
+            // прогресс вдоль трассы, глубина от открытой грани (отрицательная —
+            // за лифтом), доворот, масштаб
+            PlaceScenery(root, FarmBuildings + "SM_Bld_Barn_01.prefab", centreX - 34f, -58f, 25f, 1f);
+            PlaceScenery(root, FarmBuildings + "SM_Bld_Silo_01.prefab", centreX + 26f, -63f, 0f, 1f);
+            PlaceScenery(root, FarmBuildings + "SM_Bld_Silo_02.prefab", centreX + 31f, -66f, 0f, 1f);
+            PlaceScenery(root, FarmBuildings + "SM_Bld_Silo_Base_01.prefab", centreX + 26f, -63f, 0f, 1f);
+            PlaceScenery(root, FarmBuildings + "SM_Bld_WaterTower_01.prefab", centreX + 8f, -44f, 0f, 1f);
+            PlaceScenery(root, FarmProps + "SM_Prop_Windmill_01.prefab", centreX - 12f, -86f, -20f, 1f);
+            PlaceScenery(root, FarmBuildings + "SM_Bld_Farmhouse_01.prefab", centreX + 48f, -52f, -35f, 1f);
+            PlaceScenery(root, FarmProps + "SM_Prop_Scarecrow_01.prefab", centreX - 4f, -30f, 15f, 1f);
+            PlaceScenery(root, FarmVehicles + "SM_Veh_Tractor_01.prefab", centreX + 16f, -33f, 70f, 1f);
+            PlaceScenery(root, FarmProps + "SM_Prop_Truck_Rusted_01.prefab", centreX - 22f, -36f, 110f, 1f);
+            PlaceScenery(root, FarmProps + "SM_Prop_Well_01.prefab", centreX - 30f, -28f, 0f, 1f);
+
+            // Деревья и кусты по кругу: они и прячут край плиты земли.
+            var rng = new System.Random(Seed ^ 0x2BADD00D);
+            string[] trees =
+            {
+                FarmEnvironments + "SM_Env_Tree_Large_01.prefab",
+                FarmEnvironments + "SM_Env_Tree_Apple_Grown_01.prefab",
+                FarmEnvironments + "SM_Env_Tree_Pear_Grown_01.prefab",
+                FarmGenerics + "SM_Generic_Tree_01.prefab",
+                FarmGenerics + "SM_Generic_Tree_03.prefab"
+            };
+
+            for (int i = 0; i < SceneryTreeCount; i++)
+            {
+                double angle = i / (double)SceneryTreeCount * System.Math.PI * 2.0;
+                float radius = Mathf.Lerp(46f, 96f, (float)rng.NextDouble());
+                float p = centreX + (float)System.Math.Cos(angle) * radius;
+                float d = (float)System.Math.Sin(angle) * radius;
+
+                // Пятно самой башни и полоса перед открытой гранью держатся
+                // чистыми. Башня — потому что дерево, попавшее в её габарит,
+                // прорастает сквозь этажи; полоса — потому что там летают
+                // выстрелы, и дерево в кадре Охотника помеха, а не пейзаж.
+                bool insideTower = p > -SceneryKeepOut && p < length + SceneryKeepOut
+                                   && d > -SceneryKeepOut && d < depth + SceneryKeepOut;
+                bool inFiringLane = d < 0f && d > -26f && Mathf.Abs(p - centreX) < 30f;
+                if (insideTower || inFiringLane)
+                {
+                    continue;
+                }
+
+                PlaceScenery(root, trees[rng.Next(trees.Length)], p, d,
+                    (float)rng.NextDouble() * 360f, Mathf.Lerp(0.8f, 1.5f, (float)rng.NextDouble()));
+            }
+        }
+
+        /// <summary>Горы по горизонту и облака: без них небо кончается голой линией.</summary>
+        private static void BuildHorizon(Transform root, float centreX, float centreZ)
+        {
+            var rng = new System.Random(Seed ^ 0x1EAF);
+            string[] ranges =
+            {
+                FarmGenerics + "SM_Generic_Mountains_Grass_01.prefab",
+                FarmGenerics + "SM_Generic_Mountains_Grass_02.prefab",
+                FarmGenerics + "SM_Generic_Mountains_Soft_01.prefab",
+                FarmGenerics + "SM_Generic_Mountains_Snow_01.prefab"
+            };
+
+            for (int i = 0; i < HorizonCount; i++)
+            {
+                double angle = i / (double)HorizonCount * System.Math.PI * 2.0;
+                float radius = Mathf.Lerp(190f, 250f, (float)rng.NextDouble());
+                float p = centreX + (float)System.Math.Cos(angle) * radius;
+                float d = centreZ + (float)System.Math.Sin(angle) * radius;
+                PlaceScenery(root, ranges[rng.Next(ranges.Length)], p, d,
+                    (float)rng.NextDouble() * 360f, Mathf.Lerp(2.5f, 4.5f, (float)rng.NextDouble()), GroundLevel);
+            }
+
+            string[] clouds =
+            {
+                FarmGenerics + "SM_Generic_Cloud_01.prefab",
+                FarmGenerics + "SM_Generic_Cloud_02.prefab",
+                FarmGenerics + "SM_Generic_Cloud_03.prefab",
+                FarmGenerics + "SM_Generic_Cloud_04.prefab",
+                FarmGenerics + "SM_Generic_Cloud_05.prefab"
+            };
+
+            for (int i = 0; i < CloudCount; i++)
+            {
+                double angle = i / (double)CloudCount * System.Math.PI * 2.0 + 0.4;
+                float radius = Mathf.Lerp(70f, 170f, (float)rng.NextDouble());
+                float p = centreX + (float)System.Math.Cos(angle) * radius;
+                float d = centreZ + (float)System.Math.Sin(angle) * radius;
+                float height = Mathf.Lerp(48f, 78f, (float)rng.NextDouble());
+                PlaceScenery(root, clouds[rng.Next(clouds.Length)], p, d,
+                    (float)rng.NextDouble() * 360f, Mathf.Lerp(1.5f, 3f, (float)rng.NextDouble()), height);
+            }
+        }
+
+        /// <summary>
+        /// Поставить модель окружения в точку поля. Координаты — в ШП: p вдоль
+        /// трассы, d по глубине от открытой грани. Высота по умолчанию — уровень
+        /// земли.
+        /// </summary>
+        private static void PlaceScenery(Transform root, string prefabPath, float p, float d, float yaw, float scale)
+        {
+            PlaceScenery(root, prefabPath, p, d, yaw, scale, GroundLevel);
+        }
+
+        private static void PlaceScenery(Transform root, string prefabPath, float p, float d, float yaw, float scale, float height)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            if (prefab == null)
+            {
+                if (!missingScenery.Contains(prefabPath))
+                {
+                    missingScenery.Add(prefabPath);
+                }
+
+                return;
+            }
+
+            var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, root);
+            go.transform.position = ToWorld(p, height, d);
+            go.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+            go.transform.localScale = Vector3.one * scale;
+            AddScenery(go);
+        }
+
+        /// <summary>
+        /// Пометить объект как декорацию: срезать коллайдеры и включить
+        /// статическую пакетную отрисовку. Коллайдеры срезаются у всего
+        /// окружения без исключений — за открытой гранью летают выстрелы
+        /// Охотника, и любое дерево с коллайдером ловило бы их вместо Уток.
+        /// </summary>
+        private static void AddScenery(GameObject go)
+        {
+            var colliders = go.GetComponentsInChildren<Collider>(true);
+            for (int i = 0; i < colliders.Length; i++)
+            {
+                Object.DestroyImmediate(colliders[i], true);
+            }
+
+            GameObjectUtility.SetStaticEditorFlags(go,
+                StaticEditorFlags.BatchingStatic | StaticEditorFlags.OccludeeStatic);
+        }
+
+        /// <summary>
+        /// Солнечный день из раздела 14 спеки. Настройки держим кодом, а не
+        /// инспектором: YAML сцены не переживает слияние веток, и правка
+        /// освещения молча теряется — тот же довод, что у формата камеры.
+        /// </summary>
+        private static void TuneLighting()
+        {
+            GameObject lighting = GameObject.Find("_Lighting");
+            Light sun = lighting == null ? null : lighting.GetComponentInChildren<Light>(true);
+            if (sun != null)
+            {
+                sun.type = LightType.Directional;
+                sun.color = SunColor;
+                sun.intensity = SunIntensity;
+                sun.shadows = LightShadows.Soft;
+                sun.shadowStrength = 0.65f;
+
+                // Солнце светит вдоль открытой грани и сверху-сбоку: так тени
+                // укрытий ложатся поперёк коридора и читаются как объём, а не
+                // как плоские пятна.
+                sun.transform.rotation = Quaternion.Euler(52f, 205f, 0f);
+                RenderSettings.sun = sun;
+            }
+
+            // Этажи перекрыты плитой сверху — прямого солнца внутри почти нет,
+            // и всё, чем видно коридор, это рассеянный свет. При стандартной
+            // единице интерьер уходил в тёмно-серое, и укрытия переставали
+            // отличаться друг от друга.
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
+            RenderSettings.ambientSkyColor = AmbientSky;
+            RenderSettings.ambientEquatorColor = AmbientEquator;
+            RenderSettings.ambientGroundColor = AmbientGround;
+            RenderSettings.ambientIntensity = 1f;
+            RenderSettings.fog = false;
+        }
+
+        /// <summary>
+        /// Коробка блокаута, одетая в модель пака. Геометрия и коллайдер —
+        /// те же, что были на сером блокауте; меняется только то, что видно.
+        /// </summary>
+        private static GameObject DressedBox(Transform parent, string name, int layer, Material material,
+            float xMin, float xMax, float yMin, float yMax, float zMin, float zMax, DuckHuntDress.Kind dress)
+        {
+            GameObject box = Box(parent, name, layer, material, xMin, xMax, yMin, yMax, zMin, zMax);
+            DuckHuntDress.Apply(box, dress, currentWinter, dressRandom);
+            return box;
+        }
+
         // ========== СЛУЖЕБНОЕ ==========
 
         private static void EnsureMaterials()
@@ -2294,20 +2885,94 @@ namespace Igruha.EditorTools
                 AssetDatabase.CreateFolder("Assets/_Project/Materials", "DuckHunt");
             }
 
-            floorMaterial = EnsureMaterial("DH_Floor", new Color(0.55f, 0.55f, 0.58f));
-            wallMaterial = EnsureMaterial("DH_Wall", new Color(0.38f, 0.38f, 0.42f));
-            // Укрытия и площадки — того же серого, что и вся башня: решение
-            // геймдизайнера. Цвета были разные (коричневый, песочный, синий),
-            // и арена рябила. Обратная сторона — низкое укрытие больше не
-            // отличается от высокого на глаз, и разбирать их придётся по высоте.
-            Color blockGrey = new Color(0.5f, 0.5f, 0.53f);
-            coverHighMaterial = EnsureMaterial("DH_CoverHigh", blockGrey);
-            coverLowMaterial = EnsureMaterial("DH_CoverLow", blockGrey);
-            platformMaterial = EnsureMaterial("DH_Platform", blockGrey);
-            iceMaterial = EnsureMaterial("DH_Ice", new Color(0.72f, 0.86f, 0.95f));
+            // Цвета сняты пипеткой с атласов паков Synty, а не подобраны на
+            // глаз: поверхности башни обязаны сидеть в той же палитре, что и
+            // реквизит, иначе стык блокаута и моделей видно на любом кадре.
+            floorMaterial = EnsureSurface("DH_Floor", new Color(0.341f, 0.275f, 0.200f),
+                "Dirt_Texture_01", "Dirt_Normals_01", FloorTiling);
+            floorWinterMaterial = EnsureSurface("DH_FloorWinter", new Color(0.86f, 0.89f, 0.93f),
+                "Snow_01", "Snow_01_Normals", FloorTiling);
+            // Светлее пипетки с атласа: пипетка даёт средний цвет доски на
+            // солнце, а стены этажа стоят в постоянной тени под перекрытием и
+            // на этом цвете уходили в чёрное. Тон тот же, светлота выше.
+            wallMaterial = EnsureMaterial("DH_Wall", new Color(0.52f, 0.46f, 0.38f));
+            metalMaterial = EnsureMaterial("DH_Metal", new Color(0.391f, 0.412f, 0.422f));
+            groundMaterial = EnsureSurface("DH_Ground", new Color(0.373f, 0.533f, 0.275f),
+                "Grass_Texture_01", "Grass_Normals_01", GroundTiling);
+            foundationMaterial = EnsureMaterial("DH_Foundation", new Color(0.52f, 0.50f, 0.46f));
+
+            // Красный амбарный торец у лестничной комнаты — не только про
+            // раздел 14.1 спеки. Лестничная комната это единственная точка
+            // этажа, куда выстрел не достаёт, и её обязано быть видно с любого
+            // места коридора. Сплошной коричневый торец сливался со стенами.
+            barnMaterial = EnsureMaterial("DH_Barn", new Color(0.62f, 0.21f, 0.18f));
+
+            // Укрытия и площадки почти везде скрыты моделями. Материал под
+            // ними остаётся запасным видом: если пака нет, арена обязана
+            // читаться серым блокаутом, а не исчезнуть.
+            coverHighMaterial = EnsureMaterial("DH_CoverHigh", new Color(0.688f, 0.595f, 0.428f));
+            coverLowMaterial = EnsureMaterial("DH_CoverLow", new Color(0.681f, 0.588f, 0.422f));
+            platformMaterial = EnsureMaterial("DH_Platform", new Color(0.456f, 0.372f, 0.269f));
+            // Лёд идёт на СНЕЖНОЙ текстуре с голубым подтоном и высокой
+            // гладкостью, а не на ледяной. Ледяная текстура пака насыщенно
+            // синяя: она рассчитана на маленькую полынью, а здесь ей кроют
+            // настил во весь этаж — и зимний этаж читался бассейном, а не
+            // наледью. Скользкость всё равно задаёт не материал, а конфиг.
+            iceMaterial = EnsureSurface("DH_Ice", new Color(0.82f, 0.90f, 0.97f),
+                "Snow_01", "Snow_01_Normals", IceTiling);
+            iceMaterial.color = new Color(0.80f, 0.89f, 0.98f);
+            iceMaterial.SetFloat(SmoothnessId, 0.75f);
             trapMaterial = EnsureMaterial("DH_Trap", new Color(0.65f, 0.3f, 0.3f));
             buttonReadyMaterial = EnsureMaterial("DH_ButtonReady", new Color(0.9f, 0.2f, 0.2f));
             buttonBusyMaterial = EnsureMaterial("DH_ButtonBusy", new Color(0.3f, 0.3f, 0.3f));
+        }
+
+        /// <summary>
+        /// Материал с тайловой текстурой пака. Текстура ищется по имени, а не
+        /// по пути: паки Synty в репозиторий не кладутся, ставит их каждый сам,
+        /// и жёсткий путь развалился бы на чужой машине с другой раскладкой
+        /// импорта. Не нашлась — материал остаётся заливкой того же цвета,
+        /// и арена читается серым блокаутом, а не исчезает.
+        /// </summary>
+        private static Material EnsureSurface(string name, Color tint, string albedo, string normal, float tiling)
+        {
+            Material material = EnsureMaterial(name, tint);
+            Texture2D albedoMap = FindTexture(albedo);
+            if (albedoMap == null)
+            {
+                return material;
+            }
+
+            material.color = Color.white;
+            material.SetTexture(BaseMapId, albedoMap);
+            material.SetTextureScale(BaseMapId, new Vector2(tiling, tiling));
+
+            Texture2D normalMap = FindTexture(normal);
+            if (normalMap != null)
+            {
+                material.EnableKeyword("_NORMALMAP");
+                material.SetTexture(BumpMapId, normalMap);
+                material.SetTextureScale(BumpMapId, new Vector2(tiling, tiling));
+            }
+
+            EditorUtility.SetDirty(material);
+            return material;
+        }
+
+        /// <summary>Текстура пака по точному имени ассета. Ничего не найдено — null, это допустимо.</summary>
+        private static Texture2D FindTexture(string assetName)
+        {
+            string[] guids = AssetDatabase.FindAssets($"{assetName} t:Texture2D", SyntyFolders);
+            for (int i = 0; i < guids.Length; i++)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guids[i]);
+                if (System.IO.Path.GetFileNameWithoutExtension(path) == assetName)
+                {
+                    return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+                }
+            }
+
+            return null;
         }
 
         private static Material EnsureMaterial(string name, Color color)
@@ -2316,6 +2981,14 @@ namespace Igruha.EditorTools
             var existing = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (existing != null)
             {
+                // Цвет переписываем всегда: иначе смена палитры не доезжает
+                // до проекта, где материал уже создан прошлой пересборкой,
+                // и половина арены остаётся в старых тонах.
+                existing.color = color;
+                existing.SetTexture(BaseMapId, null);
+                existing.DisableKeyword("_NORMALMAP");
+                existing.SetTexture(BumpMapId, null);
+                EditorUtility.SetDirty(existing);
                 return existing;
             }
 

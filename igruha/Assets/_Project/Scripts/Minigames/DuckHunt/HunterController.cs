@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using UnityEngine;
 using Igruha.Core.Arena;
 using Igruha.Core.CameraSystems;
@@ -57,6 +57,9 @@ namespace Igruha.Minigames.DuckHunt
         private PlayerController motor;
         private PlayerInputReader input;
         private CharacterAnimatorDriver animatorDriver;
+
+        /// <summary>Выданная на роль модель ружья. Живёт ровно столько, сколько роль.</summary>
+        private GameObject rifleProp;
 
         /// <summary>Оружие Охотника — HUD читает у него обойму и перезарядку.</summary>
         public HitscanWeapon Weapon => weapon;
@@ -173,12 +176,75 @@ namespace Igruha.Minigames.DuckHunt
             // Ружьё в руках всю роль: пока не стреляют, стойка держится
             // неподвижной — это нулевая скорость состояния, а не отдельный клип.
             animatorDriver?.SetRifleAiming(true);
+            ShowRifleProp(true);
 
             // Своё тело Охотнику видно: иначе руки и ствол не в кадре, и вся
             // анимация выстрела играет для кого угодно, кроме него самого.
             cameraRig?.SetOwnModelVisible(true);
 
             Active = true;
+        }
+
+        /// <summary>
+        /// Выдать или забрать модель ружья.
+        ///
+        /// Ружьё крепится к кости правой кисти аватара и уничтожается вместе с
+        /// ролью. Ни префаб персонажа, ни аниматор при этом не меняются — они
+        /// заморожены (igruha/CLAUDE.md, раздел 0), и трогать их ради предмета
+        /// в руке нельзя. Слой стойки с ружьём уже существует отдельно; здесь
+        /// добавляется только то, что этой стойке до сих пор не хватало —
+        /// собственно ружьё.
+        ///
+        /// Модель чисто визуальная: коллайдеры срезаются, попадание считает
+        /// hitscan-луч из <see cref="HitscanWeapon"/>, а не геометрия ствола.
+        /// </summary>
+        private void ShowRifleProp(bool show)
+        {
+            if (!show)
+            {
+                if (rifleProp != null)
+                {
+                    Destroy(rifleProp);
+                    rifleProp = null;
+                }
+
+                return;
+            }
+
+            if (rifleProp != null || config == null || config.RifleProp == null)
+            {
+                return;
+            }
+
+            Transform hand = ResolveRightHand();
+            if (hand == null)
+            {
+                return;
+            }
+
+            rifleProp = Instantiate(config.RifleProp, hand);
+            rifleProp.name = "RifleProp";
+            rifleProp.transform.localPosition = config.RifleLocalPosition;
+            rifleProp.transform.localRotation = Quaternion.Euler(config.RifleLocalRotation);
+            rifleProp.transform.localScale = Vector3.one * config.RifleScale;
+
+            var colliders = rifleProp.GetComponentsInChildren<Collider>(true);
+            for (int i = 0; i < colliders.Length; i++)
+            {
+                Destroy(colliders[i]);
+            }
+        }
+
+        /// <summary>Кость правой кисти аватара. Скелет у всех восьмерых Humanoid, поэтому кость ищется по роли, а не по имени.</summary>
+        private Transform ResolveRightHand()
+        {
+            var animator = GetComponentInChildren<Animator>();
+            if (animator == null || !animator.isHuman)
+            {
+                return null;
+            }
+
+            return animator.GetBoneTransform(HumanBodyBones.RightHand);
         }
 
         /// <summary>Снять роль: тело снова обычное. Нужно при пересдаче ролей в соло-тесте.</summary>
@@ -195,6 +261,7 @@ namespace Igruha.Minigames.DuckHunt
             // тело и продолжила бы возить его после пересдачи ролей.
             elevator?.SetPassenger(null);
             animatorDriver?.SetRifleAiming(false);
+            ShowRifleProp(false);
             cameraRig?.SetOwnModelVisible(false);
 
             // Риг общий на все игры: отвод камеры снимаем вместе с ролью,

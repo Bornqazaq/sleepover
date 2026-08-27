@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Igruha.Minigames.DuckHunt
 {
@@ -66,6 +66,16 @@ namespace Igruha.Minigames.DuckHunt
         [SerializeField] private float cameraTurnSpeed = 720f;
         [Tooltip("Сдвиг камеры от глаза, м: X вбок, Y вверх, Z назад. Охотник смотрит от ТРЕТЬЕГО лица, из-за плеча: с отводом назад видно и его самого, и ружьё. Z меньше — камера ближе к затылку, Y больше — выше над плечом. Ноль по всем осям вернёт вид от первого лица (и тогда голова прячется, иначе она занимает весь кадр)")]
         [SerializeField] private Vector3 cameraOffset = new Vector3(0f, 0.35f, 1.4f);
+
+        [Header("Охотник — ружьё в руках")]
+        [Tooltip("Модель ружья, которая выдаётся Охотнику на время роли. Пусто — Охотник целится пустыми руками, как было до арта")]
+        [SerializeField] private GameObject rifleProp;
+        [Tooltip("Сдвиг ружья от кости правой кисти, м")]
+        [SerializeField] private Vector3 rifleLocalPosition = new Vector3(0.02f, 0.03f, 0.06f);
+        [Tooltip("Доворот ружья в руке, °. Не подобран на глаз: посчитан из осей кости кисти так, чтобы ствол смотрел вперёд по персонажу. Скелет у всех восьмерых один (mixamorig), поэтому значение общее")]
+        [SerializeField] private Vector3 rifleLocalRotation = new Vector3(331.8f, 273.7f, 153.1f);
+        [Tooltip("Масштаб модели ружья. Ружьё пака сделано под взрослого человека, персонажи проекта ниже и коренастее")]
+        [SerializeField] private float rifleScale = 0.75f;
 
         [Header("Ловушки")]
         [Tooltip("Перезарядка кнопки, с. Общая для всех трёх ловушек")]
@@ -140,6 +150,13 @@ namespace Igruha.Minigames.DuckHunt
         public float CameraPitchLimit => cameraPitchLimit;
         public float CameraTurnSpeed => cameraTurnSpeed;
         public Vector3 CameraOffset => cameraOffset;
+
+        // ========== РУЖЬЁ ==========
+
+        public GameObject RifleProp => rifleProp;
+        public Vector3 RifleLocalPosition => rifleLocalPosition;
+        public Vector3 RifleLocalRotation => rifleLocalRotation;
+        public float RifleScale => rifleScale;
 
         // ========== ЛОВУШКИ ==========
 
