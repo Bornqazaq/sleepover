@@ -50,6 +50,19 @@ namespace Igruha.Core.Player
         /// <summary>Эмоция, играющая прямо сейчас (1..8), либо NoEmote.</summary>
         public int ActiveEmote { get; private set; }
 
+        /// <summary>
+        /// Разрешить колесо, пока движение заблокировано. По умолчанию нет:
+        /// замороженный обязан стоять статуей, и в «Ангелах» пляшущая статуя
+        /// ломает всю затею.
+        ///
+        /// Включает игра, которая держит персонажа на месте не заморозкой,
+        /// а постановкой — Ведущий «Экзамена» за кафедрой не может уйти,
+        /// но насмешки над классом это ровно то, ради чего он там стоит.
+        /// Игра, включившая флаг, обязана снять его сама: персонаж переезжает
+        /// между сценами живым.
+        /// </summary>
+        public bool AllowedWhileLocked { get; set; }
+
         private PlayerController motor;
 
         private void Awake()
@@ -81,8 +94,13 @@ namespace Igruha.Core.Player
             // Заблокированный не танцует: в «Ангелах» замороженный обязан стоять
             // статуей, и пляшущая статуя ломает всю затею. Нокдаун глушит по той же
             // причине — персонаж в этот момент не управляется.
+            //
+            // Исключение по явному запросу игры: держать на месте можно не только
+            // заморозкой. Ведущий «Экзамена» стоит за кафедрой и уйти не может,
+            // но насмешки ему нужны — см. AllowedWhileLocked.
             bool wantsWheel = inputReader.EmoteHeld && HasEmotes
-                              && !motor.IsKnockedDown && !motor.MovementLocked;
+                              && !motor.IsKnockedDown
+                              && (!motor.MovementLocked || AllowedWhileLocked);
 
             if (wantsWheel && !IsWheelOpen)
             {
@@ -161,6 +179,30 @@ namespace Igruha.Core.Player
 
             ActiveEmote = selected;
             EmotePlayed?.Invoke(selected);
+        }
+
+        /// <summary>
+        /// Снять играющую эмоцию извне и закрыть колесо.
+        ///
+        /// Сама по себе эмоция кончается, когда игрок пошёл — по
+        /// <see cref="PlayerController.NormalizedSpeed"/>. Под блокировкой
+        /// движения скорость нулевая, поэтому танец крутится вечно, и снять
+        /// его изнутри нечем. Зовёт тот, кто ставит персонажа в позу.
+        /// </summary>
+        public void StopEmote()
+        {
+            if (IsWheelOpen)
+            {
+                CloseWheel();
+            }
+
+            if (ActiveEmote == NoEmote)
+            {
+                return;
+            }
+
+            ActiveEmote = NoEmote;
+            EmoteStopped?.Invoke();
         }
 
         /// <summary>Сектор в пределах списка и с непустым названием — за ним есть клип.</summary>

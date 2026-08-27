@@ -46,6 +46,8 @@ namespace Igruha.Minigames.Exam
         [SerializeField] private Transform returnZone;
         [SerializeField] private MinigameCameraController cameraController;
         [SerializeField] private Transform podiumCameraRig;
+        [Tooltip("Точка, с которой Ведущий смотрит на зал, пока Ученики выбирают платформу")]
+        [SerializeField] private Transform hallCameraRig;
 
         /// <summary>Состояние матча — то, что в фазе 3 станет NetworkVariable.</summary>
         private ExamMatchState match;
@@ -450,6 +452,7 @@ namespace Igruha.Minigames.Exam
             }
 
             previous.Avatar.MovementLocked = false;
+            ReleaseEmotesWhileLocked(previous.Avatar);
             autoplayDoneAt = 0d;
 
             if (HasAuthority && returnZone != null)
@@ -500,6 +503,34 @@ namespace Igruha.Minigames.Exam
         }
 
         /// <summary>
+        /// Поставить персонажа за кафедру: полный рост, никакого танца.
+        /// Вызывается ДО блокировки — под ней поза уже не меняется.
+        /// </summary>
+        private static void ResetPodiumPose(PlayerController avatar, bool allowEmotes)
+        {
+            avatar.ForceStand();
+
+            if (avatar.TryGetComponent(out PlayerEmoteAbility emotes))
+            {
+                emotes.StopEmote();
+                emotes.AllowedWhileLocked = allowEmotes;
+            }
+        }
+
+        /// <summary>
+        /// Вернуть насмешкам обычное правило. Обязательно: персонаж переезжает
+        /// между сценами живым, и разрешение, уехавшее в хаб или в следующую
+        /// мини-игру, дало бы пляшущую статую там, где её быть не должно.
+        /// </summary>
+        private static void ReleaseEmotesWhileLocked(PlayerController avatar)
+        {
+            if (avatar.TryGetComponent(out PlayerEmoteAbility emotes))
+            {
+                emotes.AllowedWhileLocked = false;
+            }
+        }
+
+        /// <summary>
         /// Следующий Ведущий по кругу. Если очередь дошла до игрока, которого
         /// уже нет, ход переходит следующему живому, а общее число вопросов
         /// НЕ меняется: кто-то поведёт дважды, и это честнее, чем укорачивать
@@ -533,7 +564,23 @@ namespace Igruha.Minigames.Exam
 
                 case StageReveal:
                     questionInput?.Close();
-                    RestoreHostCamera();
+
+                    // Ведущему камеру НЕ возвращаем: он остаётся за кафедрой
+                    // до конца вопроса, а места для 3rd person там нет. Между
+                    // кафедрой (z=11.16) и дальней стеной (z=12.96) 1.8 м при
+                    // требуемых правилом камеры ~4.5 (igruha/CLAUDE.md, 2a):
+                    // риг уезжал за стену, деокклюдер подтягивал камеру
+                    // вплотную к спине, и кадр вставал на уровне пояса — ни
+                    // Ведущего в рост, ни доски. Повернуть было некуда: сзади
+                    // стена с доской, спереди невидимая стенка возвышения.
+                    //
+                    // Фиксированная камера кафедры держится весь его ход и
+                    // возвращается там, где Ведущий с кафедры сходит, —
+                    // в ReleasePreviousHost и OnRoundEnded.
+                    if (!FindEntryPlayer(match.HostPlayerId).IsLocal)
+                    {
+                        RestoreHostCamera();
+                    }
 
                     // Текст уходит клиентам ровно в этот момент и ни секундой
                     // раньше: в фазе печати его нет ни у кого, кроме Ведущего
@@ -585,6 +632,13 @@ namespace Igruha.Minigames.Exam
                     break;
 
                 case StageChoice:
+                    // Ведущий разворачивается на зал. Свой вопрос он уже
+                    // прочитал на доске в фазе показа, а дальше начинается то,
+                    // ради чего он его писал: кто куда побежит и кто провалится.
+                    // Камера кафедры смотрит НА кафедру — с неё этого не видно
+                    // вовсе, и вся развязка проходила бы мимо него.
+                    ApplyHallCamera();
+
                     for (int i = 0; i < bots.Count; i++)
                     {
                         bots[i].ChooseSide(platformA != null ? platformA.transform : null,
@@ -676,6 +730,16 @@ namespace Igruha.Minigames.Exam
             {
                 host.Player.Avatar.TeleportTo(podiumStand.position, podiumStand.rotation);
             }
+
+            // Ставим за кафедру «с нуля»: в полный рост и без танца. Под
+            // блокировкой поза застывает как есть, а играющая эмоция кончается
+            // только когда игрок пошёл — то есть под блокировкой никогда.
+            // Присевший или танцевавший в момент телепорта так и вёл бы вопрос
+            // сидя или приплясывая, и снять это ему было бы нечем.
+            //
+            // Насмешки при этом остаются: уйти Ведущий не может, но класс
+            // подразнить — ровно то, ради чего он там стоит.
+            ResetPodiumPose(host.Player.Avatar, allowEmotes: true);
 
             host.Player.Avatar.MovementLocked = true;
 
@@ -1215,6 +1279,7 @@ namespace Igruha.Minigames.Exam
                 if (Players[i].Avatar != null)
                 {
                     Players[i].Avatar.MovementLocked = false;
+                    ReleaseEmotesWhileLocked(Players[i].Avatar);
                 }
             }
 
@@ -1273,6 +1338,23 @@ namespace Igruha.Minigames.Exam
             }
 
             cameraController.Apply(CameraMode.Fixed, podiumCameraRig);
+        }
+
+        /// <summary>
+        /// Общий план зала для Ведущего: платформы с толпой, а за ними он сам
+        /// на кафедре и доска с вопросом. Ракурс фиксированный, поэтому
+        /// деокклюдеру нечего подтягивать — у кафедры на 3rd person места нет
+        /// (igruha/CLAUDE.md, 2a).
+        /// </summary>
+        private void ApplyHallCamera()
+        {
+            if (cameraController == null || hallCameraRig == null ||
+                !FindEntryPlayer(match.HostPlayerId).IsLocal)
+            {
+                return;
+            }
+
+            cameraController.Apply(CameraMode.Fixed, hallCameraRig);
         }
 
         private void RestoreHostCamera()
