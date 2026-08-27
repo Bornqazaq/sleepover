@@ -32,10 +32,14 @@ namespace Igruha.Core.UI
         [Header("Цвета")]
         [SerializeField] private Color teamAColor = new Color(0.25f, 0.55f, 1f);
         [SerializeField] private Color teamBColor = new Color(1f, 0.45f, 0.2f);
-        [Tooltip("Рамка своей команды")]
-        [SerializeField] private Color ownFrameColor = Color.white;
-        [Tooltip("Рамка чужой команды")]
-        [SerializeField] private Color otherFrameColor = new Color(1f, 1f, 1f, 0.25f);
+        [Tooltip("Подложка своей команды. Тёмная и плотная: на ней читается подпись")]
+        [SerializeField] private Color ownFrameColor = new Color(0.05f, 0.05f, 0.05f, 0.8f);
+        [Tooltip("Подложка чужой команды — та же, но бледнее")]
+        [SerializeField] private Color otherFrameColor = new Color(0.05f, 0.05f, 0.05f, 0.35f);
+        [Tooltip("Подпись своей команды")]
+        [SerializeField] private Color ownLabelColor = Color.white;
+        [Tooltip("Подпись чужой команды")]
+        [SerializeField] private Color otherLabelColor = new Color(1f, 1f, 1f, 0.6f);
 
         private TeamSide localTeam = TeamSide.None;
 
@@ -123,16 +127,38 @@ namespace Igruha.Core.UI
             }
         }
 
+        /// <summary>
+        /// Своя команда отличается двумя признаками сразу: подложка плотнее и
+        /// подпись ярче.
+        ///
+        /// Одной подсветкой рамки не обойтись. Белая непрозрачная рамка своей
+        /// команды съедала белую же подпись — на скриншоте прогона видно белую
+        /// полосу без единой цифры. Подложка тёмная у обеих, различается
+        /// плотностью, и текст читается в любом случае.
+        /// </summary>
         private void ApplyFrames()
         {
+            bool ownIsA = localTeam == TeamSide.A;
+            bool ownIsB = localTeam == TeamSide.B;
+
             if (frameA != null)
             {
-                frameA.color = localTeam == TeamSide.A ? ownFrameColor : otherFrameColor;
+                frameA.color = ownIsA ? ownFrameColor : otherFrameColor;
             }
 
             if (frameB != null)
             {
-                frameB.color = localTeam == TeamSide.B ? ownFrameColor : otherFrameColor;
+                frameB.color = ownIsB ? ownFrameColor : otherFrameColor;
+            }
+
+            if (labelA != null)
+            {
+                labelA.color = ownIsA ? ownLabelColor : otherLabelColor;
+            }
+
+            if (labelB != null)
+            {
+                labelB.color = ownIsB ? ownLabelColor : otherLabelColor;
             }
         }
     }
