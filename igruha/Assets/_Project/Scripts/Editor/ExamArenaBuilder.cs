@@ -41,6 +41,22 @@ namespace Igruha.EditorTools
         /// <summary>Доворот камеры Ведущего на кафедру, в градусах.</summary>
         private const float PodiumCameraYaw = -19f;
 
+        /// <summary>
+        /// Насколько камера зала отставлена за ближний край платформ, в метрах.
+        ///
+        /// Число не на глаз: у фиксированного рига поле зрения 40°, то есть
+        /// по горизонтали 65.8° при 16:9. Чтобы обе платформы (±9.36 м)
+        /// помещались в кадр целиком, нужно отойти почти к задней стене —
+        /// ближе край дальней платформы уходит за границу кадра.
+        /// </summary>
+        private const float HallCameraDistance = 11.5f;
+
+        /// <summary>Насколько камера зала опущена под потолок, в метрах.</summary>
+        private const float HallCameraDrop = 0.6f;
+
+        /// <summary>Наклон камеры зала вниз, в градусах.</summary>
+        private const float HallCameraPitch = 12.5f;
+
         /// <summary>Яркость ламп класса.</summary>
         private const float LampIntensity = 4f;
 
@@ -123,6 +139,7 @@ namespace Igruha.EditorTools
             BuildPlatform(root.transform, config, ExamSide.B, platformsZ);
             BuildGapFloor(root.transform, config, platformsZ);
             BuildPodium(root.transform, config, podiumZ);
+            BuildHallCamera(root.transform, config, platformsZ);
             BuildBoard(root.transform, config, far);
             BuildReturnZone(root.transform, config, returnZ);
             BuildDecor(root.transform, config, platformsZ, podiumZ, far);
@@ -172,6 +189,7 @@ namespace Igruha.EditorTools
             SetReference(so, "podiumStand", FindTransform(root, "HostStand"));
             SetReference(so, "returnZone", FindTransform(root, "ReturnPoint"));
             SetReference(so, "podiumCameraRig", FindTransform(root, "PodiumCameraRig"));
+            SetReference(so, "hallCameraRig", FindTransform(root, "HallCameraRig"));
             so.ApplyModifiedPropertiesWithoutUndo();
 
             EditorUtility.SetDirty(minigame);
@@ -429,6 +447,25 @@ namespace Igruha.EditorTools
             rig.transform.position = new Vector3(PodiumCameraSide, config.PodiumHeight + PodiumCameraLift,
                 z - PodiumCameraDistance);
             rig.transform.rotation = Quaternion.Euler(PodiumCameraPitch, PodiumCameraYaw, 0f);
+        }
+
+        /// <summary>
+        /// Точка, с которой Ведущий смотрит на зал, пока Ученики выбирают
+        /// платформу. Стоит под потолком за спинами Учеников и смотрит вперёд:
+        /// в кадре обе платформы целиком, а за ними кафедра с Ведущим и доска
+        /// с его вопросом. Ракурс фиксированный намеренно — за кафедрой на
+        /// 3rd person места нет, там до задней стены 1.8 м при требуемых
+        /// правилом камеры ~4.5 (igruha/CLAUDE.md, 2a).
+        /// </summary>
+        private static void BuildHallCamera(Transform parent, ExamConfig config, float platformsZ)
+        {
+            var rig = new GameObject("HallCameraRig");
+            rig.transform.SetParent(parent, false);
+            rig.transform.position = new Vector3(
+                0f,
+                config.CeilingHeight - HallCameraDrop,
+                platformsZ - config.PlatformDepth * 0.5f - HallCameraDistance);
+            rig.transform.rotation = Quaternion.Euler(HallCameraPitch, 0f, 0f);
         }
 
         /// <summary>
