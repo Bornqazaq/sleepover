@@ -20,6 +20,11 @@ namespace Igruha.Minigames.CarryItem
     ///
     /// Досрочного конца нет намеренно: даже полный бак раунд не останавливает.
     /// Излишек некуда девать, а соперник ещё может догнать.
+    ///
+    /// <b>Сеть.</b> Состав и счёт решает сервер и объявляет через
+    /// <see cref="CarryItemNetwork"/>; клиент их только отображает. Без сетевой
+    /// половины (сцена открыта напрямую) правила работают как раньше — авторитет
+    /// у единственной машины.
     /// </summary>
     public sealed class CarryItemMinigame : MinigameControllerBase
     {
@@ -37,7 +42,7 @@ namespace Igruha.Minigames.CarryItem
             public CarryItemBotRoute Route;
         }
 
-        /// <summary>Участник раунда: место в составе и команда. В фазе 3 уедет в NetworkList.</summary>
+        /// <summary>Участник раунда: место в составе и команда.</summary>
         private struct Entry
         {
             public int PlayerId;
@@ -66,6 +71,9 @@ namespace Igruha.Minigames.CarryItem
         private readonly List<TeamRanking.Entry> rankingBuffer = new List<TeamRanking.Entry>(8);
         private readonly List<CarryItemDebugBot> bots = new List<CarryItemDebugBot>(8);
 
+        /// <summary>Состав под отправку в сеть. Переиспользуется — раунд не должен мусорить.</summary>
+        private readonly List<CarryItemMemberNetState> rosterBuffer = new List<CarryItemMemberNetState>(8);
+
         /// <summary>
         /// Куда ушла вода за раунд: команда × причина, единиц.
         ///
@@ -73,18 +81,30 @@ namespace Igruha.Minigames.CarryItem
         /// число, из которого не видно, что чинить: перекос от рассинхрона,
         /// балка над горлышком или пропорция тарана. Считается по тому же
         /// событию, что и сама потеря, поэтому разойтись со счётом не может.
+        ///
+        /// Живёт у авторитета: потери считает он один.
         /// </summary>
         private readonly int[,] spentByReason =
             new int[3, System.Enum.GetValues(typeof(WaterLossReason)).Length];
 
         private CarryItemState state;
+        private CarryItemNetwork net;
         private Coroutine countdownRoutine;
 
         /// <summary>Числа игры. Нужны болванкам и предметам арены.</summary>
         public CarryItemConfig Config => config;
 
-        /// <summary>Счёт раунда одной структурой. В фазе 3 уедет в NetworkVariable целиком.</summary>
+        /// <summary>Отметка пропасти. Нужна бутыли, приехавшей из сети: в трафик её не гоняем.</summary>
+        public float VoidLevel => voidLevel;
+
+        /// <summary>Счёт раунда одной структурой. У клиента — то, что приехало от сервера.</summary>
         public CarryItemState State => state;
+
+        protected override void Awake()
+        {
+            base.Awake();
+            net = GetComponent<CarryItemNetwork>();
+        }
 
         // ========== СТАРТ ==========
 
@@ -99,13 +119,25 @@ namespace Igruha.Minigames.CarryItem
             state = default;
             System.Array.Clear(spentByReason, 0, spentByReason.Length);
 
-            AssignTeams();
-            PlaceTeams();
+            // Составы делит и разводит сервер. Клиент дождётся объявленного
+            // состава: повторив деление у себя, он получил бы те же команды
+            // только при точно совпавшем порядке ростера.
+            if (HasAuthority)
+            {
+                AssignTeams();
+                PlaceTeams();
+                PublishRoster();
+            }
+            else
+            {
+                entries.Clear();
+            }
+
             ConfigureRigs();
             AttachBots();
 
             progressBar?.ResetBars(config.TankCapacity);
-            progressBar?.SetLocalTeam(TeamOfPlayer(SessionScoreboard.Current?.LocalPlayer?.Id ?? -1));
+            RefreshLocalTeam();
         }
 
         /// <summary>
@@ -135,6 +167,85 @@ namespace Igruha.Minigames.CarryItem
             Debug.Log($"🫙 [Переноска] составы: A — {TeamAssignment.TeamASize(Players.Count)}, " +
                       $"B — {TeamAssignment.TeamBSize(Players.Count)} из {Players.Count}");
         }
+
+        /// <summary>Объявить состав всем. Один вызов на раунд плюс правка при уходе игрока.</summary>
+        private void PublishRoster()
+        {
+            if (net == null)
+            {
+                return;
+            }
+
+            rosterBuffer.Clear();
+            for (int i = 0; i < entries.Count; i++)
+            {
+                rosterBuffer.Add(new CarryItemMemberNetState
+                {
+                    PlayerId = entries[i].PlayerId,
+                    Team = (byte)entries[i].Team
+                });
+            }
+
+            net.PublishRoster(rosterBuffer);
+        }
+
+        /// <summary>
+        /// Состав приехал с сервера. Персонажей ищем в ростере сессии: тела
+        /// свои на каждой машине, а по сети едут только номера участников.
+        /// </summary>
+        public void ApplyNetworkRoster(IReadOnlyList<CarryItemMemberNetState> members)
+        {
+            entries.Clear();
+
+            for (int i = 0; i < members.Count; i++)
+            {
+                PlayerController avatar = AvatarOf(members[i].PlayerId);
+                entries.Add(new Entry
+                {
+                    PlayerId = members[i].PlayerId,
+                    Team = (TeamSide)members[i].Team,
+                    Avatar = avatar,
+                    OriginalRespawn = avatar != null && avatar.TryGetComponent(out PlayerRespawner respawner)
+                        ? respawner.RespawnPoint
+                        : null
+                });
+            }
+
+            // Число ручек у бутыли — это размер команды, и клиент обязан знать
+            // его для подсказки над свободной ручкой.
+            teamA.Stack?.SetTeamSize(SizeOf(TeamSide.A));
+            teamB.Stack?.SetTeamSize(SizeOf(TeamSide.B));
+
+            RefreshLocalTeam();
+        }
+
+        /// <summary>Счёт приехал с сервера. Клиент только показывает — считать ему нечего.</summary>
+        public void ApplyNetworkState(in CarryItemState value)
+        {
+            state = value;
+
+            teamA.Tank?.ApplyNetworkLevel(state.TeamA.Water);
+            teamB.Tank?.ApplyNetworkLevel(state.TeamB.Water);
+
+            progressBar?.SetValue(TeamSide.A, state.TeamA.Water, config.TankCapacity);
+            progressBar?.SetValue(TeamSide.B, state.TeamB.Water, config.TankCapacity);
+        }
+
+        private PlayerController AvatarOf(int playerId)
+        {
+            for (int i = 0; i < Players.Count; i++)
+            {
+                if (Players[i].Id == playerId)
+                {
+                    return Players[i].Avatar;
+                }
+            }
+
+            return null;
+        }
+
+        private void RefreshLocalTeam() =>
+            progressBar?.SetLocalTeam(TeamOfPlayer(SessionScoreboard.Current?.LocalPlayer?.Id ?? -1));
 
         /// <summary>
         /// Развести по стартовым зонам. Спавнер раздаёт точки одной роли, а
@@ -185,13 +296,25 @@ namespace Igruha.Minigames.CarryItem
 
         private void ConfigureRigs()
         {
-            int sizeA = TeamAssignment.TeamASize(entries.Count);
-            int sizeB = TeamAssignment.TeamBSize(entries.Count);
-
-            SetUpRig(teamA, TeamSide.A, sizeA);
-            SetUpRig(teamB, TeamSide.B, sizeB);
+            SetUpRig(teamA, TeamSide.A, SizeOf(TeamSide.A));
+            SetUpRig(teamB, TeamSide.B, SizeOf(TeamSide.B));
 
             ramDetector?.Configure(config);
+        }
+
+        /// <summary>Сколько человек в команде по текущему составу.</summary>
+        private int SizeOf(TeamSide side)
+        {
+            int count = 0;
+            for (int i = 0; i < entries.Count; i++)
+            {
+                if (entries[i].Team == side)
+                {
+                    count++;
+                }
+            }
+
+            return count;
         }
 
         private void SetUpRig(TeamRig rig, TeamSide side, int teamSize)
@@ -212,6 +335,31 @@ namespace Igruha.Minigames.CarryItem
             rig.Stack.Configure(config, side, teamSize, voidLevel);
             rig.Stack.TeamFilter = player => TeamOfAvatar(player) == side;
             rig.Stack.BottleTaken += bottle => OnBottleTaken(side, bottle);
+
+            // Полторы секунды у штабеля отсчитывает сервер: тара — это ходка,
+            // а ходка — счёт. С машины несущего уходит только «держу».
+            rig.Stack.HoldRelay = (stackTeam, held) => net?.SubmitStackHold(stackTeam, held);
+        }
+
+        /// <summary>
+        /// Намерение «держу E у штабеля» доехало до сервера. Кто отправитель,
+        /// сетевая половина взяла из сообщения; своя ли команда и дотягивается
+        /// ли игрок — решает сам штабель.
+        /// </summary>
+        public void ApplyStackHold(int playerId, TeamSide side, bool held)
+        {
+            if (!HasAuthority)
+            {
+                return;
+            }
+
+            PlayerController avatar = AvatarOf(playerId);
+            if (avatar == null)
+            {
+                return;
+            }
+
+            StackOf(side)?.HoldChanged(avatar, held);
         }
 
         /// <summary>
@@ -222,10 +370,40 @@ namespace Igruha.Minigames.CarryItem
         private void OnBottleTaken(TeamSide side, WaterBottle bottle)
         {
             bottle.Carry.SetOwnerFilter(player => TeamOfAvatar(player) == side);
-            bottle.WaterSpent += (amount, reason) => spentByReason[(int)side, (int)reason] += amount;
+
+            // Разрез потерь ведёт тот, кто их считает. У клиента SpendWater
+            // молчит, и подписка здесь дала бы вечные нули в отчёте.
+            if (HasAuthority)
+            {
+                bottle.WaterSpent += (amount, reason) => spentByReason[(int)side, (int)reason] += amount;
+            }
 
             ramDetector?.SetBottles(teamA.Stack != null ? teamA.Stack.LiveBottle : null,
                 teamB.Stack != null ? teamB.Stack.LiveBottle : null);
+        }
+
+        /// <summary>
+        /// Бутыль приехала из сети: сервер выдал её со штабеля, а этой машине
+        /// осталось прицепить к ней числа игры и записать в свой штабель, чтобы
+        /// правило одной бутыли читалось и здесь.
+        /// </summary>
+        public void AdoptNetworkBottle(WaterBottle bottle)
+        {
+            if (bottle == null || config == null)
+            {
+                return;
+            }
+
+            TeamSide side = bottle.Team;
+            bottle.ApplyNetworkSetup(config, voidLevel);
+
+            BottleStack stack = StackOf(side);
+            if (stack == null)
+            {
+                return;
+            }
+
+            stack.AdoptBottle(bottle);
         }
 
         /// <summary>Сколько воды команда потеряла по этой причине за раунд, единиц.</summary>
@@ -246,6 +424,9 @@ namespace Igruha.Minigames.CarryItem
         /// <summary>
         /// Обратный отсчёт: ввод заморожен целиком, чтобы «управления нет»
         /// значило именно это, а не «двигаться нельзя, а толкать можно».
+        ///
+        /// Идёт на каждой машине по своим часам, и это верно: отсчёт объявляет
+        /// фаза раунда, а она приезжает всем одним пакетом.
         /// </summary>
         private IEnumerator CountdownThenGo()
         {
@@ -266,15 +447,68 @@ namespace Igruha.Minigames.CarryItem
 
         private void OnDelivered(TeamSide side, int amount, double time)
         {
+            if (!HasAuthority)
+            {
+                return;
+            }
+
             state.Deliver(side, amount, config.TankCapacity, time, false);
             progressBar?.SetValue(side, state.Of(side).Water, config.TankCapacity);
+            net?.PublishState(state);
         }
 
         private void OnBottleFinished(TeamSide side)
         {
+            if (!HasAuthority)
+            {
+                return;
+            }
+
             state.Deliver(side, 0, config.TankCapacity, 0d, true);
+            net?.PublishState(state);
+
             Debug.Log($"🫙 [Переноска] команда {side} закрыла ходку №{state.Of(side).Deliveries}, " +
                       $"в баке {state.Of(side).Water} из {config.TankCapacity}");
+        }
+
+        // ========== УХОД ИГРОКА ==========
+
+        /// <summary>
+        /// Участник вышел из матча. Строку из состава снимаем, команды
+        /// остальных не трогаем: пересчёт по индексу перевёл бы половину лобби
+        /// в другую команду посреди ходки.
+        ///
+        /// Зовёт сетевая половина, только у сервера.
+        /// </summary>
+        public void HandlePlayerLeft(int playerId)
+        {
+            if (!HasAuthority)
+            {
+                return;
+            }
+
+            int index = IndexOfPlayer(playerId);
+            if (index < 0)
+            {
+                return;
+            }
+
+            entries.RemoveAt(index);
+            RemovePlayer(playerId);
+            PublishRoster();
+        }
+
+        private int IndexOfPlayer(int playerId)
+        {
+            for (int i = 0; i < entries.Count; i++)
+            {
+                if (entries[i].PlayerId == playerId)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
         }
 
         // ========== КОНЕЦ ==========
@@ -285,8 +519,9 @@ namespace Igruha.Minigames.CarryItem
         ///
         /// Правило, стоившее отдельного дня на «Ангелах»: персонаж уезжает в хаб
         /// живым, и незакрытая роль уезжает вместе с ним. Всё это снимает
-        /// <c>MultiCarryObject.ReleaseAll</c> — по одному несущему за раз, той же
-        /// точкой входа, что и обычное отцепление.
+        /// <c>MultiCarryObject.ReleaseAll</c> — и снимает на <b>каждой</b>
+        /// машине, не дожидаясь пакета: потолок скорости живёт в моторе
+        /// владельца, а мотор у него свой.
         /// </summary>
         protected override void OnRoundEnded()
         {
@@ -324,6 +559,11 @@ namespace Igruha.Minigames.CarryItem
 
             SetInputSuspended(false);
 
+            if (!HasAuthority)
+            {
+                return;
+            }
+
             TeamSide winner = state.Winner();
             Debug.Log($"🫙 [Переноска] итог: A — {state.TeamA.Water} за {state.TeamA.Deliveries} ходок, " +
                       $"B — {state.TeamB.Water} за {state.TeamB.Deliveries}, " +
@@ -359,6 +599,8 @@ namespace Igruha.Minigames.CarryItem
         /// нижние. Счёт 0 : 0 — победителя нет, и все получают последнее место
         /// и ноль очков: отдать всем первое означало бы выдать максимум за
         /// общий провал.
+        ///
+        /// Считает только сервер — клиенту приедут готовые места.
         /// </summary>
         protected override void CollectResults(MinigameResults results)
         {
@@ -423,7 +665,7 @@ namespace Igruha.Minigames.CarryItem
             return route.NextPoint(from, to, out isFinal);
         }
 
-        /// <summary>Штабель этой команды. Нужен болванкам соло-теста.</summary>
+        /// <summary>Штабель этой команды. Нужен болванкам соло-теста и разбору сетевой бутыли.</summary>
         public BottleStack StackOf(TeamSide side) =>
             side == TeamSide.A ? teamA.Stack : side == TeamSide.B ? teamB.Stack : null;
 

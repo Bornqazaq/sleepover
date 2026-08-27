@@ -79,9 +79,28 @@ namespace Igruha.Minigames.CarryItem
             }
         }
 
+        /// <summary>
+        /// Показать уровень, решённый сервером. Бак — это счёт, и считает его
+        /// только авторитет; остальным приезжает готовое число внутри
+        /// <see cref="CarryItemState"/>.
+        /// </summary>
+        public void ApplyNetworkLevel(int value)
+        {
+            if (WorldAuthority.HasAuthority)
+            {
+                return;
+            }
+
+            water = Mathf.Max(0, value);
+            ApplyLevelVisual();
+        }
+
         private void Update()
         {
-            if (config == null || insideZone.Count == 0)
+            // Слив — потеря воды и прибавка к счёту разом, то есть исход раунда.
+            // Считает его только авторитет: у клиента зона бака та же, и без
+            // этой проверки каждая машина долила бы свою порцию.
+            if (config == null || insideZone.Count == 0 || !WorldAuthority.HasAuthority)
             {
                 return;
             }

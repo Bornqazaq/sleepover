@@ -1,11 +1,43 @@
 using System;
+using Unity.Netcode;
 using UnityEngine;
 using Igruha.Core.Items;
+using Igruha.Core.Minigame;
 using Igruha.Core.Session;
 using Igruha.Core.Traps;
 
 namespace Igruha.Minigames.CarryItem
 {
+    /// <summary>
+    /// Состояние бутыли одной структурой: чья она, сколько у неё ручек и
+    /// сколько осталось воды.
+    ///
+    /// Вместе, а не тремя каналами: команда и число ручек назначаются в тот же
+    /// миг, что и первый уровень воды, — при выдаче со штабеля. Приехавший
+    /// отдельно уровень воды по бутыли без команды разбирать было бы некуда.
+    /// </summary>
+    public struct WaterBottleNetState : INetworkSerializable, IEquatable<WaterBottleNetState>
+    {
+        /// <summary>Чья бутыль, <see cref="TeamSide"/> байтом.</summary>
+        public byte Team;
+
+        /// <summary>Сколько у бутыли ручек — размер команды на момент выдачи.</summary>
+        public byte Handles;
+
+        /// <summary>Остаток воды, единиц. Вместимость 100, в short помещается с запасом.</summary>
+        public short Water;
+
+        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+        {
+            serializer.SerializeValue(ref Team);
+            serializer.SerializeValue(ref Handles);
+            serializer.SerializeValue(ref Water);
+        }
+
+        public bool Equals(WaterBottleNetState other) =>
+            Team == other.Team && Handles == other.Handles && Water == other.Water;
+    }
+
     /// <summary>
     /// Бутыль с водой: сколько в ней осталось и куда это утекает.
     ///
@@ -15,11 +47,16 @@ namespace Igruha.Minigames.CarryItem
     ///
     /// <b>Одна точка расхода — <see cref="SpendWater"/>.</b> Через неё проходят
     /// все виды потерь без исключения: удар, наклон, падение, бросок, таран,
-    /// слив в бак, пропасть. В фазе 3 она уйдёт за <c>IsServer</c>, и ни одно
-    /// правило переписывать не придётся.
+    /// слив в бак, пропасть. Считает её только авторитет: уровень воды — это
+    /// счёт, и клиенту его не доверяют ни на кадр.
+    ///
+    /// Отсчёты — кулдаун удара, задержка перед утечкой, исчезновение пустой —
+    /// тикают там же, у авторитета. Клиент видит результат уровнем воды и
+    /// отыгрывает индикацию: подсветку и звук считает каждая машина сама, по
+    /// наклону, который и так приезжает поворотом.
     /// </summary>
     [RequireComponent(typeof(MultiCarryObject))]
-    public sealed class WaterBottle : MonoBehaviour, ITrapImpactTarget
+    public sealed class WaterBottle : NetworkBehaviour, ITrapImpactTarget
     {
         [SerializeField] private CarryItemConfig config;
 
@@ -50,6 +87,10 @@ namespace Igruha.Minigames.CarryItem
         /// <summary>Бутыль перестала существовать: слита, улетела в пропасть, пустую бросили.</summary>
         public event Action<WaterBottle> Gone;
 
+        /// <summary>Чья бутыль, сколько ручек, сколько воды. Пишет сервер, читают все.</summary>
+        private readonly NetworkVariable<WaterBottleNetState> netState =
+            new NetworkVariable<WaterBottleNetState>();
+
         private MultiCarryObject carry;
         private MaterialPropertyBlock materialBlock;
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
@@ -63,6 +104,9 @@ namespace Igruha.Minigames.CarryItem
         private float voidLevel = float.NegativeInfinity;
         private int shownStep = -1;
         private bool gone;
+
+        /// <summary>Клиент уже разобрал эту бутыль по штабелю своей команды.</summary>
+        private bool adopted;
 
         /// <summary>Сколько воды осталось, единиц.</summary>
         public int Water { get; private set; }
@@ -78,6 +122,9 @@ namespace Igruha.Minigames.CarryItem
 
         /// <summary>Бутыль уже списана и доживает кадр до уничтожения.</summary>
         public bool IsGone => gone;
+
+        /// <summary>Вправе ли эта машина списывать воду. Вне сети — да, иначе только сервер.</summary>
+        private bool HasAuthority => IsSpawned ? IsServer : WorldAuthority.HasAuthority;
 
         private void Awake()
         {
@@ -102,10 +149,73 @@ namespace Igruha.Minigames.CarryItem
             carry.Thrown -= OnThrown;
         }
 
+        public override void OnNetworkSpawn()
+        {
+            base.OnNetworkSpawn();
+
+            netState.OnValueChanged += OnNetStateChanged;
+
+            if (IsServer)
+            {
+                // Штабель настроил бутыль до спавна — теперь её состояние можно
+                // объявить. Раньше спавна NetworkVariable писать нечем: канал
+                // ещё не заведён.
+                PublishState();
+                return;
+            }
+
+            ApplyNetState(netState.Value);
+            TryAdopt();
+        }
+
+        /// <summary>
+        /// Клиент получил чужую бутыль. Команду, ручки и уровень она везёт сама,
+        /// а числа игры и отметку пропасти берёт у правил раунда — те лежат в
+        /// сцене на каждой машине.
+        ///
+        /// Отложено до приезда команды намеренно: спавн и первое состояние —
+        /// два разных сообщения, и в кадре спавна бутыль ещё ничья. Разобрать
+        /// её тогда было бы не к какому штабелю.
+        /// </summary>
+        private void TryAdopt()
+        {
+            if (adopted || Team == TeamSide.None)
+            {
+                return;
+            }
+
+            if (MinigameControllerBase.Current is not CarryItemMinigame game)
+            {
+                Debug.LogWarning($"{name}: бутыль приехала в сцену без правил «Переноски» — настроить её нечем", this);
+                return;
+            }
+
+            adopted = true;
+            game.AdoptNetworkBottle(this);
+        }
+
+        public override void OnNetworkDespawn()
+        {
+            netState.OnValueChanged -= OnNetStateChanged;
+
+            // Сервер объявил, что бутыли больше нет. Штабель ждёт ровно этого,
+            // чтобы разрешить взять новую.
+            if (!gone)
+            {
+                gone = true;
+                Gone?.Invoke(this);
+            }
+
+            base.OnNetworkDespawn();
+        }
+
         /// <summary>
         /// Выдать бутыль команде. Числа модели переноски уходят в
         /// <see cref="MultiCarryObject"/> отсюда: так все значения спеки живут
         /// в одном ассете и крутятся на плейтесте без пересборки.
+        ///
+        /// Зовёт только штабель на авторитете — и до <c>NetworkObject.Spawn</c>,
+        /// чтобы состояние уехало вместе со спавном, а не догоняло его.
         /// </summary>
         public void Initialize(CarryItemConfig gameConfig, TeamSide team, int handleCount, float voidY)
         {
@@ -125,6 +235,24 @@ namespace Igruha.Minigames.CarryItem
             carry.Configure(BuildCarrySettings(config));
             carry.SetHandleCount(handleCount);
 
+            PublishState();
+            ApplyLevelVisual();
+        }
+
+        /// <summary>
+        /// Донастроить бутыль, приехавшую из сети. Команду, ручки и уровень она
+        /// привезла сама — здесь только то, чего в трафике нет и быть не должно:
+        /// общие числа игры и отметка пропасти.
+        /// </summary>
+        public void ApplyNetworkSetup(CarryItemConfig gameConfig, float voidY)
+        {
+            config = gameConfig;
+            voidLevel = voidY;
+
+            carry.Configure(BuildCarrySettings(config));
+            carry.SetHandleCount(netState.Value.Handles);
+
+            shownStep = -1;
             ApplyLevelVisual();
         }
 
@@ -157,15 +285,15 @@ namespace Igruha.Minigames.CarryItem
         // ========== ЕДИНСТВЕННАЯ ТОЧКА РАСХОДА ==========
 
         /// <summary>
-        /// Списать воду. <b>Все виды потерь идут только сюда</b> — в фазе 3
-        /// метод уйдёт за <c>IsServer</c> целиком, и логика правил не изменится.
+        /// Списать воду. <b>Все виды потерь идут только сюда</b>, и считает их
+        /// только авторитет: клиент видит результат уровнем воды.
         ///
         /// Возвращает, сколько реально списано: в бутыли могло остаться меньше,
         /// чем просили, и бак обязан долить ровно списанное, а не запрошенное.
         /// </summary>
         public int SpendWater(int amount, WaterLossReason reason)
         {
-            if (gone || amount <= 0 || Water <= 0)
+            if (!HasAuthority || gone || amount <= 0 || Water <= 0)
             {
                 return 0;
             }
@@ -173,6 +301,7 @@ namespace Igruha.Minigames.CarryItem
             int spent = Mathf.Min(amount, Water);
             Water -= spent;
 
+            PublishState();
             ApplyLevelVisual();
             WaterSpent?.Invoke(spent, reason);
 
@@ -189,11 +318,11 @@ namespace Igruha.Minigames.CarryItem
         /// <summary>
         /// Удар по бутыли: игрок, брошенный предмет, ловушка. Все три — 20
         /// единиц с <b>общим</b> кулдауном: одно событие даёт один штраф, даже
-        /// если по бутыли попало сразу два кирпича.
+        /// если по бутыли попало сразу два кирпича. Кулдаун тикает у авторитета.
         /// </summary>
         public bool TakeHit(WaterLossReason reason)
         {
-            if (gone || hitCooldownTimer > 0f)
+            if (!HasAuthority || gone || hitCooldownTimer > 0f)
             {
                 return false;
             }
@@ -209,11 +338,11 @@ namespace Igruha.Minigames.CarryItem
         /// <summary>
         /// Убрать бутыль из игры. Через неё же проходит и слив, и пропасть, и
         /// исчезновение брошенной пустой: штабель ждёт ровно этого события,
-        /// чтобы выдать новую.
+        /// чтобы выдать новую. Решает авторитет, остальные узнают из despawn.
         /// </summary>
         public void Vanish()
         {
-            if (gone)
+            if (gone || !HasAuthority)
             {
                 return;
             }
@@ -221,7 +350,49 @@ namespace Igruha.Minigames.CarryItem
             gone = true;
             carry.ReleaseAll(CarryReleaseReason.RoundEnded);
             Gone?.Invoke(this);
+
+            if (IsSpawned)
+            {
+                NetworkObject.Despawn(true);
+                return;
+            }
+
             Destroy(gameObject);
+        }
+
+        // ========== СЕТЕВОЕ СОСТОЯНИЕ ==========
+
+        private void PublishState()
+        {
+            if (!IsSpawned || !IsServer)
+            {
+                return;
+            }
+
+            netState.Value = new WaterBottleNetState
+            {
+                Team = (byte)Team,
+                Handles = (byte)Mathf.Clamp(carry.HandleCount, 1, MultiCarryObject.MaxHandles),
+                Water = (short)Mathf.Clamp(Water, 0, short.MaxValue)
+            };
+        }
+
+        private void OnNetStateChanged(WaterBottleNetState previous, WaterBottleNetState current)
+        {
+            if (IsServer)
+            {
+                return;
+            }
+
+            ApplyNetState(current);
+            TryAdopt();
+            ApplyLevelVisual();
+        }
+
+        private void ApplyNetState(in WaterBottleNetState state)
+        {
+            Team = (TeamSide)state.Team;
+            Water = state.Water;
         }
 
         // ========== ПОТЕРИ ==========
@@ -246,12 +417,20 @@ namespace Igruha.Minigames.CarryItem
                 return;
             }
 
+            // Индикация — у каждого своя: подсветка и плеск читаются по наклону,
+            // а наклон и так приезжает поворотом.
+            UpdateIndication();
+
+            if (!HasAuthority)
+            {
+                return;
+            }
+
             float delta = Time.deltaTime;
 
             hitCooldownTimer = Mathf.Max(0f, hitCooldownTimer - delta);
 
             UpdateTiltLeak(delta);
-            UpdateIndication();
             UpdateDespawn(delta);
             CheckVoid();
         }
@@ -268,7 +447,6 @@ namespace Igruha.Minigames.CarryItem
             {
                 tiltHoldTimer = 0f;
                 leakAccumulator = 0f;
-                SetLeakSound(false);
                 return;
             }
 
@@ -277,8 +455,6 @@ namespace Igruha.Minigames.CarryItem
             {
                 return;
             }
-
-            SetLeakSound(Water > 0);
 
             leakAccumulator += config.TiltLossPerSecond * delta;
             int whole = Mathf.FloorToInt(leakAccumulator);
@@ -340,7 +516,7 @@ namespace Igruha.Minigames.CarryItem
 
         private void OnCollisionEnter(Collision collision)
         {
-            if (gone || !WorldAuthority.HasAuthority)
+            if (gone || !HasAuthority)
             {
                 return;
             }
@@ -351,7 +527,7 @@ namespace Igruha.Minigames.CarryItem
                 return;
             }
 
-            if (collision.gameObject.GetComponentInParent<Igruha.Core.Items.PickupItem>() == null)
+            if (collision.gameObject.GetComponentInParent<PickupItem>() == null)
             {
                 return;
             }
@@ -416,6 +592,9 @@ namespace Igruha.Minigames.CarryItem
 
             ApplyIndicatorColor(color);
             UpdateSloshSound(Mathf.Clamp01(tilt / Mathf.Max(threshold, 0.01f)));
+
+            // Струя слышна там же, где видна: наклон за порогом и вода ещё есть.
+            SetLeakSound(carry.BeyondTiltThreshold && Water > 0);
         }
 
         private void ApplyIndicatorColor(Color color)
