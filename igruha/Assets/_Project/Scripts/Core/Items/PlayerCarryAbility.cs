@@ -30,6 +30,17 @@ namespace Igruha.Core.Items
 
         public bool IsCarrying => carried != null;
 
+        /// <summary>
+        /// Руки заняты внешней ролью — подбирать предметы нельзя.
+        ///
+        /// Ставит и снимает тот, кто занял руки. В «Переноске предмета» это
+        /// ручка бутыли: держащий её не подбирает кирпичи, пока не отцепится.
+        /// Проверка живёт здесь, а не в каждом источнике подбора: источников
+        /// уже два (<see cref="PickupItem"/> и раздатчик кучки), и третий
+        /// про запрет забудет.
+        /// </summary>
+        public bool HandsBlocked { get; set; }
+
         /// <summary>Якорь в руке. Предмет цепляется к нему сам, на каждой машине.</summary>
         public Transform HoldAnchor => holdAnchor;
 
@@ -63,7 +74,7 @@ namespace Igruha.Core.Items
         /// </summary>
         public bool TryPickup(PickupItem item)
         {
-            if (IsCarrying || item == null || item.IsHeld || holdAnchor == null)
+            if (HandsBlocked || IsCarrying || item == null || item.IsHeld || holdAnchor == null)
             {
                 return false;
             }

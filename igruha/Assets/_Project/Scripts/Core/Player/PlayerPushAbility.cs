@@ -19,6 +19,13 @@ namespace Igruha.Core.Player
         /// <summary>Замах начался — визуал проигрывает клип удара.</summary>
         public event Action PunchStarted;
 
+        /// <summary>
+        /// Роль, забравшая кнопку себе: пока она стоит, персонаж не бьёт и не
+        /// бросает предмет. Ставит и снимает тот, кто занял руки, — см.
+        /// <see cref="IPushButtonOverride"/>.
+        /// </summary>
+        public IPushButtonOverride ButtonOverride { get; set; }
+
         private PlayerController self;
         private CapsuleCollider body;
         private Igruha.Core.Items.PlayerCarryAbility carryAbility;
@@ -48,7 +55,19 @@ namespace Igruha.Core.Player
 
             inputReader.ConsumePush();
 
-            if (cooldownTimer > 0f || self.IsKnockedDown || self.Config == null)
+            if (self.IsKnockedDown || self.Config == null)
+            {
+                return;
+            }
+
+            // Роль, занявшая руки, разбирает нажатие раньше кулдауна удара:
+            // у неё своя цена действия, и кулдаун кулака к ней отношения не имеет.
+            if (ButtonOverride != null && ButtonOverride.HandlePushButton(self))
+            {
+                return;
+            }
+
+            if (cooldownTimer > 0f)
             {
                 return;
             }
