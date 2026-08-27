@@ -23,6 +23,15 @@ namespace Igruha.Core.Hub
     /// </summary>
     public sealed class ConsoleTerminal : MonoBehaviour, IInteractable, ILocalInteraction
     {
+        // Подсказка говорит «зажми», потому что действие Interact сидит на Hold
+        // (0.4 с) — замороженная привязка, см. igruha/CLAUDE.md, раздел 0.
+        // Обычные IInteractable вроде этого срабатывают через
+        // WasPerformedThisFrame, а он при Hold молчит до конца удержания:
+        // короткое нажатие E не сделает ничего. Формулировка «E — включить»
+        // это скрывала, и на плейтесте 17.08 (IGR-328) человек решил, что
+        // сломана игра. Тогда цена была «не запустилась одна игра из девяти»,
+        // теперь телевизор — единственный вход, и цена выросла до всей игры.
+
         [SerializeField] private ConsoleMenu menu;
         [Tooltip("Как называется предмет в подсказке")]
         [SerializeField] private string deviceName = "Приставка";
@@ -37,7 +46,7 @@ namespace Igruha.Core.Hub
                 }
 
                 return CanStartHere
-                    ? $"E — включить: {deviceName}"
+                    ? $"Зажми E — включить: {deviceName}"
                     : $"{deviceName} — включает хост";
             }
         }
