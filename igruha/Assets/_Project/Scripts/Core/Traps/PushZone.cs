@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 using Igruha.Core.Player;
 using Igruha.Core.Session;
@@ -16,6 +17,16 @@ namespace Igruha.Core.Traps
     /// зона обязана именно сбивать, а не валить.
     ///
     /// Обычные тела в зоне тоже сносит: брошенная бутыль, кирпич, тачка.
+    ///
+    /// <b>Сеть: каждая машина толкает своего.</b> Зона не событие, а
+    /// непрерывная сила, и уходит она не в счёт, а в курс — поэтому её вправе
+    /// применять сам владелец персонажа. Через сервер это было бы полсотни
+    /// пакетов в секунду на каждого стоящего в струе: <c>ApplyWorldImpulse</c>
+    /// у авторитета шлёт владельцу отдельное сообщение на каждый такт физики.
+    /// Тот же приём, что у тяги в <c>MultiCarryObject</c>.
+    ///
+    /// Обычные тела остаются за сервером: их физику считает он один, и
+    /// остальным они приезжают <c>NetworkTransform</c>.
     /// </summary>
     [RequireComponent(typeof(Collider))]
     public sealed class PushZone : MonoBehaviour
@@ -27,7 +38,21 @@ namespace Igruha.Core.Traps
         [Tooltip("Толкать ли обычные тела: брошенную тару, кирпичи, тачку")]
         [SerializeField] private bool affectsRigidbodies = true;
 
-        private readonly List<PlayerController> players = new List<PlayerController>(8);
+        /// <summary>
+        /// Персонаж в зоне вместе со своим сетевым объектом. Пара, а не два
+        /// списка: <c>NetworkObject</c> спрашивают каждый такт физики, и звать
+        /// ради него <c>GetComponent</c> в цикле нельзя.
+        /// </summary>
+        private struct Occupant
+        {
+            public PlayerController Player;
+            public NetworkObject Net;
+
+            /// <summary>Ведёт ли персонажа эта машина. Вне сети — всегда: мотор здесь же.</summary>
+            public bool LocallyOwned => Net == null || !Net.IsSpawned || Net.IsOwner;
+        }
+
+        private readonly List<Occupant> players = new List<Occupant>(8);
         private readonly List<Rigidbody> bodies = new List<Rigidbody>(8);
 
         /// <summary>Сила выталкивания, Н. Задаётся мини-игрой из её конфига.</summary>
@@ -58,9 +83,13 @@ namespace Igruha.Core.Traps
             PlayerController player = other.GetComponentInParent<PlayerController>();
             if (player != null)
             {
-                if (!players.Contains(player))
+                if (IndexOf(player) < 0)
                 {
-                    players.Add(player);
+                    players.Add(new Occupant
+                    {
+                        Player = player,
+                        Net = player.GetComponent<NetworkObject>()
+                    });
                 }
 
                 return;
@@ -83,7 +112,12 @@ namespace Igruha.Core.Traps
             PlayerController player = other.GetComponentInParent<PlayerController>();
             if (player != null)
             {
-                players.Remove(player);
+                int index = IndexOf(player);
+                if (index >= 0)
+                {
+                    players.RemoveAt(index);
+                }
+
                 return;
             }
 
@@ -94,14 +128,22 @@ namespace Igruha.Core.Traps
             }
         }
 
+        private int IndexOf(PlayerController player)
+        {
+            for (int i = 0; i < players.Count; i++)
+            {
+                if (players[i].Player == player)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
         private void FixedUpdate()
         {
             if (players.Count == 0 && bodies.Count == 0)
-            {
-                return;
-            }
-
-            if (!WorldAuthority.HasAuthority)
             {
                 return;
             }
@@ -111,13 +153,27 @@ namespace Igruha.Core.Traps
 
             for (int i = players.Count - 1; i >= 0; i--)
             {
-                if (players[i] == null)
+                Occupant occupant = players[i];
+                if (occupant.Player == null)
                 {
                     players.RemoveAt(i);
                     continue;
                 }
 
-                players[i].ApplyWorldImpulse(push);
+                // Только своего: чужого ведёт его машина, и толчок отсюда всё
+                // равно был бы перетёрт. ApplyImpulse, а не ApplyWorldImpulse, —
+                // решать здесь нечего, сила одинакова у всех и по геометрии
+                // зоны видна каждому.
+                if (occupant.LocallyOwned)
+                {
+                    occupant.Player.ApplyImpulse(push);
+                }
+            }
+
+            // Обычные тела считает сервер: их физика целиком на нём.
+            if (!WorldAuthority.HasAuthority)
+            {
+                return;
             }
 
             for (int i = bodies.Count - 1; i >= 0; i--)

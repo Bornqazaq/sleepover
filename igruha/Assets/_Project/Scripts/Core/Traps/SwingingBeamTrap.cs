@@ -15,6 +15,13 @@ namespace Igruha.Core.Traps
     /// поэтому в сетевой фазе балка сойдётся у всех без трафика, а подключившийся
     /// в середине раунда сразу увидит её там же, где остальные.
     ///
+    /// Момент этот — <b>ноль самих общих часов</b>, а не миг включения балки.
+    /// Разница принципиальная и стоила бы всей затеи: включаются машины
+    /// вразнобой (сцена грузится у каждого своё время), и балка, отсчитывающая
+    /// фазу от собственного старта, стояла бы у каждого в своём месте — при
+    /// том что трафика нет и разъезд ничем не лечится. От нуля часов формула
+    /// сходится побуквенно у всех и у любого опоздавшего.
+    ///
     /// Висит на самой балке — там, где коллайдер-триггер: только объект с
     /// коллайдером получает <c>OnTriggerEnter</c>. Точка вращения задаётся
     /// отдельным трансформом, чтобы балку можно было двигать по арене, не
@@ -43,7 +50,6 @@ namespace Igruha.Core.Traps
 
         private Vector3 center;
         private Quaternion baseRotation;
-        private double originTime;
         private Vector3 previousPosition;
 
         /// <summary>Скорость балки в мире, м/с. По ней считается направление удара.</summary>
@@ -69,14 +75,6 @@ namespace Igruha.Core.Traps
             center = pivot != null ? pivot.position : transform.position;
             baseRotation = transform.rotation;
             previousPosition = transform.position;
-            originTime = NetworkClock.Now + phaseOffset;
-        }
-
-        private void OnEnable()
-        {
-            // Фазу отсчитываем от включения: балка, поднятая правилами раунда
-            // посреди игры, не должна прыгать в случайное положение.
-            originTime = NetworkClock.Now + phaseOffset;
         }
 
         /// <summary>Задать точку вращения в мире. Нужна билдеру арены, который ставит балку по числам конфига.</summary>
@@ -89,7 +87,7 @@ namespace Igruha.Core.Traps
                 return;
             }
 
-            float angle = (float)((NetworkClock.Now - originTime) / period) * 360f;
+            float angle = (float)((NetworkClock.Now - phaseOffset) / period) * 360f;
             Quaternion swing = Quaternion.Euler(0f, angle, 0f);
 
             Vector3 next = center + swing * (Vector3.forward * radius);
