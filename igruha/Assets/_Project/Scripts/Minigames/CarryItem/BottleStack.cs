@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 using Igruha.Core.Interaction;
+using Igruha.Core.Items;
 using Igruha.Core.Player;
 using Igruha.Core.Session;
 
@@ -44,13 +46,33 @@ namespace Igruha.Minigames.CarryItem
         /// <summary>Штабель выдал бутыль. По этому событию правила её донастраивают.</summary>
         public event Action<WaterBottle> BottleTaken;
 
+        /// <summary>
+        /// Один держащий и его отсчёт.
+        ///
+        /// Держащих <b>несколько</b>, и это не роскошь. Одним полем «кто держит»
+        /// двое из одной команды, подошедшие вместе, запирали друг друга
+        /// насмерть: второй перебивал первого, первый об этом не узнавал — а
+        /// узнать ему неоткуда, удержание уходит на сервер только на переходе
+        /// «нажал» / «отпустил». Сброшенный так игрок оставался «держащим» у
+        /// себя и молчал до конца раунда. На стенде это стоило команде A всех
+        /// шести ходок: ноль тары за 200 секунд при живых болванках.
+        ///
+        /// Правило одной бутыли от этого не страдает: тару получает тот, кто
+        /// первым достоял свои полторы секунды, а остальным отсчёт обнуляет
+        /// сам факт, что штабель больше не готов.
+        /// </summary>
+        private struct Holder
+        {
+            public PlayerController Player;
+            public float Timer;
+        }
+
         private TeamSide team = TeamSide.None;
         private int handleCount = 1;
         private float voidLevel = float.NegativeInfinity;
 
         private WaterBottle liveBottle;
-        private PlayerController holder;
-        private float holdTimer;
+        private readonly List<Holder> holders = new List<Holder>(MultiCarryObject.MaxHandles);
 
         public string InteractionPrompt => prompt;
 
@@ -60,8 +82,27 @@ namespace Igruha.Minigames.CarryItem
         /// <summary>Готов ли штабель выдать новую бутыль прямо сейчас.</summary>
         public bool Ready => liveBottle == null;
 
-        /// <summary>Сколько секунд осталось держать E. Ноль — не держат вовсе.</summary>
-        public float HoldRemaining => holder != null ? Mathf.Max(0f, config.TakeSeconds - holdTimer) : 0f;
+        /// <summary>
+        /// Сколько секунд осталось держать E тому, кто ближе всех к выдаче.
+        /// Ноль — не держит никто.
+        /// </summary>
+        public float HoldRemaining
+        {
+            get
+            {
+                float best = 0f;
+                for (int i = 0; i < holders.Count; i++)
+                {
+                    float left = Mathf.Max(0f, config.TakeSeconds - holders[i].Timer);
+                    if (i == 0 || left < best)
+                    {
+                        best = left;
+                    }
+                }
+
+                return best;
+            }
+        }
 
         /// <summary>Чей штабель.</summary>
         public TeamSide Team => team;
@@ -140,26 +181,46 @@ namespace Igruha.Minigames.CarryItem
         /// </summary>
         public void HoldChanged(PlayerController player, bool held)
         {
+            if (player == null)
+            {
+                return;
+            }
+
+            int index = IndexOfHolder(player);
+
             if (!held)
             {
-                if (holder == player)
+                if (index >= 0)
                 {
-                    holder = null;
-                    holdTimer = 0f;
+                    holders.RemoveAt(index);
                     RelayHold(player, false);
                 }
 
                 return;
             }
 
-            if (!CanInteract(player))
+            // Уже держит — второй раз отсчёт не сбрасываем: одно и то же
+            // намерение может доехать дважды, и обнуление съело бы полсекунды.
+            if (index >= 0 || !CanInteract(player))
             {
                 return;
             }
 
-            holder = player;
-            holdTimer = 0f;
+            holders.Add(new Holder { Player = player, Timer = 0f });
             RelayHold(player, true);
+        }
+
+        private int IndexOfHolder(PlayerController player)
+        {
+            for (int i = 0; i < holders.Count; i++)
+            {
+                if (holders[i].Player == player)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
         }
 
         /// <summary>
@@ -187,40 +248,50 @@ namespace Igruha.Minigames.CarryItem
         {
             ApplyReadyVisual();
 
-            if (holder == null)
+            if (holders.Count == 0)
             {
                 return;
             }
 
-            // Отошёл, был сбит или команда успела взять тару другим человеком —
-            // отсчёт обнуляется, а не доигрывается сам собой.
-            if (!Ready || holder.IsKnockedDown)
+            float delta = Time.deltaTime;
+
+            for (int i = holders.Count - 1; i >= 0; i--)
             {
-                PlayerController dropped = holder;
-                holder = null;
-                holdTimer = 0f;
-                RelayHold(dropped, false);
+                Holder entry = holders[i];
+
+                // Ушёл из матча, был сбит или команда успела взять тару другим
+                // человеком — отсчёт обнуляется, а не доигрывается сам собой.
+                if (entry.Player == null || !Ready || entry.Player.IsKnockedDown)
+                {
+                    PlayerController dropped = entry.Player;
+                    holders.RemoveAt(i);
+                    RelayHold(dropped, false);
+                    continue;
+                }
+
+                entry.Timer += delta;
+
+                if (entry.Timer < config.TakeSeconds)
+                {
+                    holders[i] = entry;
+                    continue;
+                }
+
+                // Выдаёт сервер. У клиента отсчёт досчитан и стоит на месте:
+                // полоса над штабелем полная, а бутыль появится, когда её
+                // объявят.
+                if (!WorldAuthority.HasAuthority)
+                {
+                    entry.Timer = config.TakeSeconds;
+                    holders[i] = entry;
+                    continue;
+                }
+
+                PlayerController taker = entry.Player;
+                holders.RemoveAt(i);
+                Dispense(taker);
                 return;
             }
-
-            holdTimer += Time.deltaTime;
-            if (holdTimer < config.TakeSeconds)
-            {
-                return;
-            }
-
-            // Выдаёт сервер. У клиента отсчёт досчитан и стоит на месте: полоса
-            // над штабелем полная, а бутыль появится, когда её объявят.
-            if (!WorldAuthority.HasAuthority)
-            {
-                holdTimer = config.TakeSeconds;
-                return;
-            }
-
-            PlayerController taker = holder;
-            holder = null;
-            holdTimer = 0f;
-            Dispense(taker);
         }
 
         /// <summary>
@@ -290,8 +361,7 @@ namespace Igruha.Minigames.CarryItem
         /// <summary>Убрать живую бутыль команды — конец раунда.</summary>
         public void ClearLiveBottle()
         {
-            holder = null;
-            holdTimer = 0f;
+            holders.Clear();
 
             if (liveBottle != null)
             {
