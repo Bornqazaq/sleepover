@@ -184,6 +184,26 @@ namespace Igruha.Core.Items
             /// <summary>Сколько секунд ручку ещё нельзя сорвать перерастяжением. См. <see cref="GrabGraceSeconds"/>.</summary>
             public float GraceTimer;
 
+            /// <summary>
+            /// Куда несущий просится идти, по его же словам. У своего берётся
+            /// прямо из мотора, у чужого приезжает <c>CarrierIntentRpc</c>.
+            /// </summary>
+            public Vector2 Intent;
+
+            /// <summary>
+            /// Горизонтальная скорость несущего, посчитанная по его позиции, а
+            /// не взятая из тела. У чужой копии тело ведёт <c>NetworkTransform</c>,
+            /// и <c>linearVelocity</c> там пустой — ровно тот класс дыр, на
+            /// котором «Рейс на память» отдал целую катку одному хосту.
+            /// </summary>
+            public Vector3 TrackedVelocity;
+
+            public Vector3 LastPosition;
+            public bool HasLastPosition;
+
+            /// <summary>Сколько секунд несущий держится выше своего потолка скорости, прося при этом бежать.</summary>
+            public float OverspeedTimer;
+
             public bool Occupied => Carrier != null;
 
             /// <summary>
@@ -204,6 +224,34 @@ namespace Igruha.Core.Items
         /// закрывается сам за доли секунды.
         /// </summary>
         private const float GrabGraceSeconds = 1f;
+
+        /// <summary>
+        /// Во сколько раз несущему прощается превышение своего потолка
+        /// скорости. Запас нужен честному игроку: спуск, доска под уклон и
+        /// интерполяция чужой позиции дают короткие всплески выше потолка,
+        /// а сорванная за них ручка читалась бы как случайный баг.
+        /// </summary>
+        private const float SpeedCapTolerance = 1.35f;
+
+        /// <summary>
+        /// Сколько секунд превышение терпится, прежде чем ручку снимут, с.
+        /// Всплеск в пару кадров не наказывается, а снятый потолок держится
+        /// столько, сколько игрок бежит.
+        /// </summary>
+        private const float OverspeedGraceSeconds = 0.75f;
+
+        /// <summary>
+        /// С какой длины вектор ввода считается «просит бежать». Ниже —
+        /// персонажа несёт чужая сила, и превышение потолка не его вина.
+        /// </summary>
+        private const float ActiveIntent = 0.3f;
+
+        /// <summary>
+        /// На сколько должен измениться вектор ввода, чтобы уйти на сервер.
+        /// Ввод шлётся по изменению, а не каждый кадр, — как ось лифта
+        /// Охотника (<c>MoveElevatorServerRpc</c>).
+        /// </summary>
+        private const float IntentEpsilon = 0.1f;
 
         private readonly Handle[] handles = new Handle[MaxHandles];
 
@@ -232,6 +280,10 @@ namespace Igruha.Core.Items
         /// доедут тела. Разбираем повторно, пока не сойдётся.
         /// </summary>
         private bool handlesPending;
+
+        /// <summary>Последний отправленный серверу вектор ввода и был ли он вообще отправлен.</summary>
+        private Vector2 sentIntent;
+        private bool intentSent;
 
         public int HandleCount => handleCount;
         public int CarrierCount { get; private set; }
@@ -378,12 +430,12 @@ namespace Igruha.Core.Items
         /// </summary>
         public Vector3 StationOf(int slot)
         {
+            Vector3 origin = BasePosition;
             if (slot < 0 || slot >= handleCount)
             {
-                return body != null ? body.position : transform.position;
+                return origin;
             }
 
-            Vector3 origin = body != null ? body.position : transform.position;
             return origin + HandleDirection(slot) * (settings.handleRadius + settings.carrierStandoff);
         }
 
@@ -913,24 +965,249 @@ namespace Igruha.Core.Items
 
         // ========== МОДЕЛЬ ==========
 
+        /// <summary>
+        /// Основание объекта в мире. У авторитета — из физики, у остальных из
+        /// трансформа: там тело кинематическое и его ведёт
+        /// <c>NetworkTransform</c>, а <c>Rigidbody.position</c> догоняет
+        /// трансформ только к ближайшему шагу физики.
+        /// </summary>
+        private Vector3 BasePosition =>
+            HasAuthority && body != null ? body.position : transform.position;
+
+        /// <summary>
+        /// Шаг переноски разложен на три части, и разложен не по вкусу, а по
+        /// тому, кто чем вправе распоряжаться:
+        ///
+        /// 1. <b>Скорости несущих</b> считает каждая машина по позициям — они
+        ///    нужны и серверу (проверки), и владельцу (тяга);
+        /// 2. <b>объект</b> — сумму натяжений, потолок и наклон — считает
+        ///    только сервер, остальные видят результат <c>NetworkTransform</c>;
+        /// 3. <b>упругую тягу к своей стоянке</b> применяет машина владельца
+        ///    несущего: сервер чужого игрока двигать не вправе (IGR-297), и
+        ///    попытка дала бы рывок с откатом. Тот же приём, что у
+        ///    <c>RidePlatform</c>, — «пассажира везёт его собственная машина».
+        /// </summary>
         private void FixedUpdate()
         {
-            // Движение и наклон — исход, а исход считает авторитет. Вне сети
-            // авторитет здесь же, поэтому одиночный тест сцены не меняется.
-            if (!HasAuthority)
+            float dt = Time.fixedDeltaTime;
+
+            TrackCarrierMotion(dt);
+
+            if (HasAuthority)
+            {
+                if (CarrierCount > 0)
+                {
+                    StepCarried(dt);
+                }
+
+                StepTiltRelaxation(dt);
+                ApplyRotation();
+            }
+
+            StepOwnedTethers();
+            ReportOwnIntent();
+        }
+
+        /// <summary>
+        /// Скорость каждого несущего по его же позиции.
+        ///
+        /// Не из <c>Rigidbody.linearVelocity</c> намеренно: у чужой копии
+        /// персонажа тело ведёт <c>NetworkTransform</c>, скорость в нём пустая,
+        /// и всё, что на неё опирается — тяга и таран, — на сервере молча
+        /// перестало бы работать. Ровно этот класс дыр на одной машине не
+        /// воспроизводится никогда.
+        /// </summary>
+        private void TrackCarrierMotion(float dt)
+        {
+            if (dt <= Mathf.Epsilon)
             {
                 return;
             }
 
-            float dt = Time.fixedDeltaTime;
-
-            if (CarrierCount > 0)
+            for (int i = 0; i < handles.Length; i++)
             {
-                StepCarried(dt);
+                Handle handle = handles[i];
+                if (!handle.Occupied)
+                {
+                    handle.HasLastPosition = false;
+                    handle.TrackedVelocity = Vector3.zero;
+                    continue;
+                }
+
+                Vector3 position = handle.Carrier.transform.position;
+                if (!handle.HasLastPosition)
+                {
+                    handle.LastPosition = position;
+                    handle.HasLastPosition = true;
+                    handle.TrackedVelocity = Vector3.zero;
+                    continue;
+                }
+
+                Vector3 step = position - handle.LastPosition;
+                step.y = 0f;
+                handle.LastPosition = position;
+                handle.TrackedVelocity = step / dt;
+            }
+        }
+
+        /// <summary>
+        /// Горизонтальная скорость несущего на этом слоте, м/с. Считана по
+        /// позиции, поэтому одинаково верна и у владельца, и у сервера.
+        /// </summary>
+        public Vector3 CarrierVelocityAt(int slot) =>
+            slot >= 0 && slot < handles.Length ? handles[slot].TrackedVelocity : Vector3.zero;
+
+        /// <summary>
+        /// Упругая тяга к своей стоянке — только за своих несущих. Стоянка
+        /// берётся от реплицированной позиции объекта, поэтому у владельца она
+        /// та же самая, что у сервера, с точностью до задержки.
+        /// </summary>
+        private void StepOwnedTethers()
+        {
+            for (int i = 0; i < handleCount; i++)
+            {
+                Handle handle = handles[i];
+                if (!handle.Occupied || !handle.LocallyOwned || handle.CarrierBody == null)
+                {
+                    continue;
+                }
+
+                Vector3 stretch = handle.Carrier.transform.position - StationOf(i);
+                stretch.y = 0f;
+
+                float distance = stretch.magnitude;
+                if (distance <= settings.tensionDeadzone)
+                {
+                    continue;
+                }
+
+                HoldCarrier(handle, stretch / distance, distance);
+            }
+        }
+
+        // ========== ВВОД НЕСУЩЕГО ==========
+
+        /// <summary>
+        /// Отправить серверу свой вектор ввода — по изменению, а не каждый
+        /// кадр. Прецедент тот же, что у лифта Охотника: ось едет событием,
+        /// а не потоком.
+        ///
+        /// Серверу он нужен ровно для одного — <b>отличить рывок от полёта</b>.
+        /// Скорость несущего сервер и так видит по позиции, но позиция не
+        /// говорит, бежит человек сам или его несёт ловушка. Двигать бутыль по
+        /// присланному вектору сервер не станет: тянет её натяжение связи, и
+        /// числа приёмки каркаса выведены именно из него.
+        /// </summary>
+        private void ReportOwnIntent()
+        {
+            // Хосту слать себе нечего: он читает намерение своего несущего
+            // прямо из мотора.
+            if (!IsSpawned || IsServer)
+            {
+                return;
             }
 
-            StepTiltRelaxation(dt);
-            ApplyRotation();
+            int slot = FindOwnedSlot();
+            if (slot < 0)
+            {
+                intentSent = false;
+                sentIntent = Vector2.zero;
+                return;
+            }
+
+            Vector3 intent = handles[slot].Carrier.MoveIntent;
+            Vector2 flat = new Vector2(intent.x, intent.z);
+
+            if (intentSent && (flat - sentIntent).sqrMagnitude < IntentEpsilon * IntentEpsilon)
+            {
+                return;
+            }
+
+            sentIntent = flat;
+            intentSent = true;
+            CarrierIntentRpc(flat);
+        }
+
+        /// <summary>
+        /// Ручка, которую держит персонаж этой машины. −1 — ни одной. Больше
+        /// одной быть не может: тот же игрок за вторую ручку не возьмётся.
+        /// </summary>
+        private int FindOwnedSlot()
+        {
+            for (int i = 0; i < handleCount; i++)
+            {
+                Handle handle = handles[i];
+                if (handle.Occupied && handle.LocallyOwned)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        /// <summary>
+        /// Вектор ввода от машины несущего. Отправителя берём из
+        /// <c>RpcParams</c>, длину обрезаем единицей: прислать «бегу втрое
+        /// быстрее» нельзя, а прислать за чужого — некуда.
+        /// </summary>
+        [Rpc(SendTo.Server, RequireOwnership = false)]
+        private void CarrierIntentRpc(Vector2 intent, RpcParams rpcParams = default)
+        {
+            int slot = SlotOfSender(rpcParams.Receive.SenderClientId);
+            if (slot < 0)
+            {
+                return;
+            }
+
+            handles[slot].Intent = Vector2.ClampMagnitude(intent, 1f);
+        }
+
+        /// <summary>Куда просится несущий: у своего — прямо из мотора, у чужого — из присланного.</summary>
+        private Vector2 IntentOf(Handle handle)
+        {
+            if (!handle.LocallyOwned)
+            {
+                return handle.Intent;
+            }
+
+            Vector3 intent = handle.Carrier.MoveIntent;
+            return new Vector2(intent.x, intent.z);
+        }
+
+        /// <summary>
+        /// Держится ли несущий в своём потолке скорости. Проверка серверная:
+        /// потолок ставится на <c>PlayerController</c>, то есть в моторе
+        /// владельца, а мотор клиент волен и подменить.
+        ///
+        /// Быстрее потолка бывает и честно — толчок, пружина, струя из трубы, —
+        /// поэтому одной скорости мало: наказываем только того, кто <b>сам
+        /// просится</b> бежать быстрее, и только если держится так дольше
+        /// выдержки. Наказание — сорванная ручка: бежать быстрее команды
+        /// нельзя, а бутыль от этого всё равно быстрее не поедет.
+        /// </summary>
+        private bool HoldsSpeedCap(Handle handle, int slot, float dt)
+        {
+            float cap = settings.carrierSpeedCap * SpeedCapTolerance;
+            if (handle.TrackedVelocity.sqrMagnitude <= cap * cap ||
+                IntentOf(handle).sqrMagnitude < ActiveIntent * ActiveIntent)
+            {
+                handle.OverspeedTimer = 0f;
+                return true;
+            }
+
+            handle.OverspeedTimer += dt;
+            if (handle.OverspeedTimer < OverspeedGraceSeconds)
+            {
+                return true;
+            }
+
+            Debug.LogWarning($"{name}: несущий {handle.Carrier.name} держит " +
+                             $"{handle.TrackedVelocity.magnitude:F1} м/с при потолке " +
+                             $"{settings.carrierSpeedCap:F1} — ручка снята", this);
+
+            ReleaseHandle(slot, CarryReleaseReason.Overstretched);
+            return false;
         }
 
         private void LateUpdate()
@@ -951,8 +1228,13 @@ namespace Igruha.Core.Items
         }
 
         /// <summary>
-        /// Один шаг переноски: натяжения → скорость и момент, обратная тяга
-        /// несущим, срыв перерастянутых ручек.
+        /// Один шаг переноски у авторитета: натяжения → скорость и момент,
+        /// срыв перерастянутых ручек, проверка потолка скорости несущих.
+        ///
+        /// Обратной тяги здесь <b>нет</b>: её применяет машина владельца в
+        /// <see cref="StepOwnedTethers"/>. Всё остальное осталось серверным
+        /// ровно в том виде, в каком считалось в соло-каркасе, — числа приёмки
+        /// выведены отсюда и меняться не должны.
         /// </summary>
         private void StepCarried(float dt)
         {
@@ -991,6 +1273,14 @@ namespace Igruha.Core.Items
                     continue;
                 }
 
+                // Потолок скорости несущего стоит в его моторе, а мотор живёт
+                // у клиента. Проверяет его сервер — и снимает ручку тому, кто
+                // потолок обошёл.
+                if (!HoldsSpeedCap(handle, i, dt))
+                {
+                    continue;
+                }
+
                 footSum += carrierPosition.y;
                 occupied++;
                 supportSum += handleDir * settings.handleRadius;
@@ -1005,8 +1295,6 @@ namespace Igruha.Core.Items
                     // Плечо — от основания объекта до его ручки, вместе с высотой:
                     // именно высота ручки и превращает горизонтальную тягу в крен.
                     torqueSum += Vector3.Cross(HandleOffsetWorld(i), tension);
-
-                    HoldCarrier(handle, direction, distance);
                 }
             }
 
@@ -1045,6 +1333,13 @@ namespace Igruha.Core.Items
         ///
         /// Забирает не всё превышение, а долю: упрямый бегун всё-таки дотягивает
         /// связь до предела и срывает ручку — это и есть наказание за рывок.
+        ///
+        /// <b>Применяет машина владельца</b>, а не сервер: здесь правится
+        /// скорость самого персонажа, а чужого персонажа сервер двигать не
+        /// вправе — его позицией распоряжается владелец (IGR-297), и серверная
+        /// правка была бы перетёрта следующим же пакетом. Позиция объекта, от
+        /// которой считается стоянка, у владельца реплицированная — тот же
+        /// приём, что у <c>RidePlatform</c>.
         /// </summary>
         private void HoldCarrier(Handle handle, Vector3 outward, float distance)
         {
@@ -1189,7 +1484,7 @@ namespace Igruha.Core.Items
                     continue;
                 }
 
-                Vector3 station = body.position +
+                Vector3 station = BasePosition +
                                   HandleDirection(i) * (settings.handleRadius + settings.carrierStandoff);
                 station.y = position.y;
 

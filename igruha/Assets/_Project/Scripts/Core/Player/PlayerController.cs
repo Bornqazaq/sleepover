@@ -106,6 +106,18 @@ namespace Igruha.Core.Player
         public float DecelerationMultiplier { get; private set; } = 1f;
 
         /// <summary>
+        /// Куда персонаж просится идти прямо сейчас: мировое направление ввода
+        /// длиной 0…1. Считается там же, где локомоция, то есть у владельца —
+        /// у чужих копий мотор выключен, и здесь всегда ноль.
+        ///
+        /// Отличает «бежит сам» от «его несёт»: толчок, ловушка и зона
+        /// выталкивания разгоняют тело, ничего не прося. Сетевому авторитету
+        /// это нужно, чтобы проверять потолок скорости роли и не наказывать
+        /// за чужой импульс.
+        /// </summary>
+        public Vector3 MoveIntent { get; private set; }
+
+        /// <summary>
         /// Направление взгляда по авторитетному повороту Rigidbody.
         /// Transform отстаёт от физики на кадр после MoveRotation/TeleportTo,
         /// а по этому направлению решается, в лицо прилетело или в спину.
@@ -286,6 +298,7 @@ namespace Igruha.Core.Player
                 }
 
                 NormalizedSpeed = 0f;
+                MoveIntent = Vector3.zero;
                 return;
             }
 
@@ -299,6 +312,7 @@ namespace Igruha.Core.Player
                 StopHorizontally();
                 StopSpin();
                 NormalizedSpeed = 0f;
+                MoveIntent = Vector3.zero;
                 return;
             }
 
@@ -593,6 +607,8 @@ namespace Igruha.Core.Player
         private void ApplyLocomotion(Vector2 moveInput)
         {
             Vector3 desiredDirection = ToCameraRelative(moveInput);
+            MoveIntent = Vector3.ClampMagnitude(desiredDirection, 1f);
+
             float maxSpeed = config.MaxSpeed * Mathf.Lerp(1f, config.CrouchSpeedMultiplier, crouchBlend);
 
             // Потолок роли только опускает предел и никогда не поднимает: присед
