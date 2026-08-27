@@ -46,6 +46,8 @@ namespace Igruha.Minigames.Exam
         [SerializeField] private Transform returnZone;
         [SerializeField] private MinigameCameraController cameraController;
         [SerializeField] private Transform podiumCameraRig;
+        [Tooltip("Точка, с которой Ведущий смотрит на зал, пока Ученики выбирают платформу")]
+        [SerializeField] private Transform hallCameraRig;
 
         /// <summary>Состояние матча — то, что в фазе 3 станет NetworkVariable.</summary>
         private ExamMatchState match;
@@ -601,6 +603,13 @@ namespace Igruha.Minigames.Exam
                     break;
 
                 case StageChoice:
+                    // Ведущий разворачивается на зал. Свой вопрос он уже
+                    // прочитал на доске в фазе показа, а дальше начинается то,
+                    // ради чего он его писал: кто куда побежит и кто провалится.
+                    // Камера кафедры смотрит НА кафедру — с неё этого не видно
+                    // вовсе, и вся развязка проходила бы мимо него.
+                    ApplyHallCamera();
+
                     for (int i = 0; i < bots.Count; i++)
                     {
                         bots[i].ChooseSide(platformA != null ? platformA.transform : null,
@@ -1289,6 +1298,23 @@ namespace Igruha.Minigames.Exam
             }
 
             cameraController.Apply(CameraMode.Fixed, podiumCameraRig);
+        }
+
+        /// <summary>
+        /// Общий план зала для Ведущего: платформы с толпой, а за ними он сам
+        /// на кафедре и доска с вопросом. Ракурс фиксированный, поэтому
+        /// деокклюдеру нечего подтягивать — у кафедры на 3rd person места нет
+        /// (igruha/CLAUDE.md, 2a).
+        /// </summary>
+        private void ApplyHallCamera()
+        {
+            if (cameraController == null || hallCameraRig == null ||
+                !FindEntryPlayer(match.HostPlayerId).IsLocal)
+            {
+                return;
+            }
+
+            cameraController.Apply(CameraMode.Fixed, hallCameraRig);
         }
 
         private void RestoreHostCamera()
