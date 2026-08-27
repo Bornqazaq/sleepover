@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5ff30a9de0bd091418969d623a868299, type: 3}
+  m_Name: BelieveOrNotConfig
+  m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.BelieveOrNot.BelieveOrNotConfig
+  seatingSeconds: 3
+  peekSeconds: 3
+  persuasionSeconds: 40
+  revealSeconds: 4
+  reactionSeconds: 3
+  boxSwapSeconds: 1.2
+  lidOpenSeconds: 0.4
+  lidPeekAngle: 12
+  boxSwapArcHeight: 0.35
+  phraseCooldown: 1.5
+  phraseBubbleSeconds: 3
+  roundsByPlayerCount: 04000000030000000200000003000000030000000400000004000000
+  matchTimeoutSeconds: 360
+  unitsPerWidth: 0.72
+  hallWidth: 34
+  hallDepth: 34
+  ceilingHeight: 7
+  tableDiameter: 4
+  tableHeight: 1
+  seatDistance: 2.8
+  barrierRadius: 1.6
+  barrierHeight: 1.5
+  spectatorZoneRadius: 10
+  spawnRingRadius: 6
+  boxSize: 0.8
+  boxOffset: 1
+  lampHeight: 3.5
+  seatCameraBack: 0.5
+  seatCameraHeight: 2.6
+  seatLookHeight: 1.1
+  seatCameraFov: 42
+  lampSpotAngle: 110
+  lampIntensity: 25
+  lampColor: {r: 1, g: 0.85, b: 0.65, a: 1}
+  ambientColor: {r: 0.02, g: 0.02, b: 0.03, a: 1}

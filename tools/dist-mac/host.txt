@@ -1,0 +1,4 @@
+# Address of the host machine (Tailscale IPv4, 100.x.x.x).
+# The organizer fills this in BEFORE handing out the archive.
+# One line, digits and dots only, no spaces.
+100.98.180.3

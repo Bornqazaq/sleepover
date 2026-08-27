@@ -272,9 +272,29 @@ namespace Igruha.Networking
         private void SpawnPlayer(ulong clientId, int characterIndex)
         {
             GameObject prefab = roster.Characters[characterIndex].Prefab;
-            if (!prefab.TryGetComponent(out NetworkObject _))
+            if (!prefab.TryGetComponent(out NetworkObject networkObject))
             {
                 Debug.LogError($"❌ На префабе '{prefab.name}' нет NetworkObject — персонаж не может быть сетевым");
+                return;
+            }
+
+            // Префаб обязан быть в списке сетевых. Незарегистрированный NGO
+            // не создаст ни у кого: выбравший остаётся БЕЗ ПЕРСОНАЖА.
+            //
+            // Так и было (IGR-388): в ростере восемь персонажей, а в
+            // DefaultNetworkPrefabs лежали пять — шестой, седьмой и восьмой
+            // участники катки оказывались зрителями без тела. На двоих и на
+            // четверых это не воспроизводится вовсе — потому и дожило до
+            // прогона восьмерых.
+            //
+            // Список чиним данными, но проверку держим здесь: следующий
+            // добавленный персонаж иначе повторит ровно это, и снова молча.
+            if (!IsRegisteredNetworkPrefab(networkObject.PrefabIdHash))
+            {
+                Debug.LogError(
+                    $"❌ Префаб персонажа '{roster.Characters[characterIndex].DisplayName}' не зарегистрирован в " +
+                    "DefaultNetworkPrefabs — тело не создаётся. Добавь его в список, " +
+                    "иначе часть игроков останется без персонажа");
                 return;
             }
 
@@ -286,6 +306,14 @@ namespace Igruha.Networking
             instance.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId);
 
             Debug.Log($"🎭 Клиент {clientId} играет за '{roster.Characters[characterIndex].DisplayName}'");
+        }
+
+        /// <summary>Префаб есть в списке сетевых префабов — NGO сможет его создать.</summary>
+        private static bool IsRegisteredNetworkPrefab(uint prefabIdHash)
+        {
+            NetworkManager network = NetworkManager.Singleton;
+            return network != null && network.NetworkConfig != null && network.NetworkConfig.Prefabs != null &&
+                   network.NetworkConfig.Prefabs.NetworkPrefabOverrideLinks.ContainsKey(prefabIdHash);
         }
 
         private int PickRandomFree()

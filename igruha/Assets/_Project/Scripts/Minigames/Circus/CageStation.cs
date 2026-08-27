@@ -23,17 +23,13 @@ namespace Igruha.Minigames.Circus
     [RequireComponent(typeof(RidePlatform))]
     public sealed class CageStation : MonoBehaviour
     {
-        [Tooltip("Створки дна: петли по внешним краям, распахиваются вниз")]
-        [SerializeField] private Transform doorLeft;
-        [SerializeField] private Transform doorRight;
         [Tooltip("Слот реквизита в центре клетки")]
         [SerializeField] private Transform propSlot;
         [Tooltip("Точка респавна внутри клетки — едет вниз вместе с ней")]
         [SerializeField] private Transform respawnPoint;
-        [Tooltip("На сколько градусов распахиваются створки")]
-        [SerializeField] private float doorOpenAngle = 110f;
-        [Tooltip("С какого угла створки перестают держать игрока. Раньше — он съезжает по наклонной и его подбрасывает")]
-        [SerializeField] private float doorReleaseAngle = 25f;
+        [Tooltip("Пол на створках. Общий компонент Core — та же механика служит платформам «Экзамена»")]
+        [SerializeField] private HingedFloorHatch hatch;
+
         [Tooltip("На какой слой возвращать спрятанную от камеры стену, когда клетка опустела")]
         [SerializeField] private string cameraBlockingLayerName = "Ground";
 
@@ -45,8 +41,6 @@ namespace Igruha.Minigames.Circus
 
         private RidePlatform platform;
         private CircusArenaConfig config;
-        private Collider[] doorColliders = Array.Empty<Collider>();
-        private Coroutine doorRoutine;
         private PlayerController occupant;
         private Transform previousRespawnPoint;
         private bool lockedByDescent;
@@ -75,7 +69,7 @@ namespace Igruha.Minigames.Circus
         /// </summary>
         public int Level { get; private set; }
 
-        public bool DoorsOpen { get; private set; }
+        public bool DoorsOpen => hatch != null && hatch.DoorsOpen;
 
         public bool Descending => platform != null && platform.Moving;
 
@@ -89,15 +83,32 @@ namespace Igruha.Minigames.Circus
             platform = GetComponent<RidePlatform>();
             platform.Mode = RidePlatform.DriveMode.Scripted;
             platform.Arrived += HandleArrived;
-            CacheDoorColliders();
             CacheCameraHiddenColliders();
+
+            if (hatch == null)
+            {
+                Debug.LogError($"{name}: не назначен HingedFloorHatch — дно клетки не откроется", this);
+                return;
+            }
+
+            // Момент падения решает люк: он отпускает пассажира на пороге угла,
+            // а не в конце анимации. Клетка только пересказывает это своим
+            // подписчикам, чтобы игры не знали про устройство пола.
+            hatch.Released += HandleHatchReleased;
         }
+
+        private void HandleHatchReleased(HingedFloorHatch _) => DoorsOpened?.Invoke(this);
 
         private void OnDestroy()
         {
             if (platform != null)
             {
                 platform.Arrived -= HandleArrived;
+            }
+
+            if (hatch != null)
+            {
+                hatch.Released -= HandleHatchReleased;
             }
         }
 
@@ -155,15 +166,6 @@ namespace Igruha.Minigames.Circus
                     cameraHiddenColliders[i].gameObject.layer = layer;
                 }
             }
-        }
-
-        private void CacheDoorColliders()
-        {
-            var left = doorLeft != null ? doorLeft.GetComponentsInChildren<Collider>(true) : Array.Empty<Collider>();
-            var right = doorRight != null ? doorRight.GetComponentsInChildren<Collider>(true) : Array.Empty<Collider>();
-            doorColliders = new Collider[left.Length + right.Length];
-            left.CopyTo(doorColliders, 0);
-            right.CopyTo(doorColliders, left.Length);
         }
 
         /// <summary>
@@ -304,13 +306,7 @@ namespace Igruha.Minigames.Circus
             // мешает спрятанное сильно: см. SetCameraBlocking.
             SetCameraBlocking(true);
 
-            DoorsOpen = true;
-            if (doorRoutine != null)
-            {
-                StopCoroutine(doorRoutine);
-            }
-
-            doorRoutine = StartCoroutine(SwingDoors(duration));
+            hatch.OpenDoors(duration);
         }
 
         public void CloseDoors()
@@ -318,74 +314,7 @@ namespace Igruha.Minigames.Circus
             // Клетка снова целая и в ней снова сидят — прячем стену от камеры.
             SetCameraBlocking(false);
 
-            if (doorRoutine != null)
-            {
-                StopCoroutine(doorRoutine);
-                doorRoutine = null;
-            }
-
-            DoorsOpen = false;
-            SetDoorAngle(0f);
-            SetDoorCollidersEnabled(true);
-        }
-
-        private IEnumerator SwingDoors(float duration)
-        {
-            float elapsed = 0f;
-            float span = Mathf.Max(0.01f, duration);
-            bool released = false;
-
-            while (elapsed < span)
-            {
-                elapsed += Time.deltaTime;
-                float angle = Mathf.Lerp(0f, doorOpenAngle, elapsed / span);
-                SetDoorAngle(angle);
-
-                // Коллайдеры снимаются, как только створки заметно наклонились:
-                // дальше игрок съезжал бы по наклонной плоскости, и вращающийся
-                // коллайдер подбрасывал бы его вбок вместо падения вниз.
-                if (!released && angle >= doorReleaseAngle)
-                {
-                    released = true;
-                    SetDoorCollidersEnabled(false);
-                    DoorsOpened?.Invoke(this);
-                }
-
-                yield return null;
-            }
-
-            SetDoorAngle(doorOpenAngle);
-            if (!released)
-            {
-                SetDoorCollidersEnabled(false);
-                DoorsOpened?.Invoke(this);
-            }
-
-            doorRoutine = null;
-        }
-
-        private void SetDoorAngle(float angle)
-        {
-            if (doorLeft != null)
-            {
-                doorLeft.localRotation = Quaternion.Euler(0f, 0f, -angle);
-            }
-
-            if (doorRight != null)
-            {
-                doorRight.localRotation = Quaternion.Euler(0f, 0f, angle);
-            }
-        }
-
-        private void SetDoorCollidersEnabled(bool value)
-        {
-            for (int i = 0; i < doorColliders.Length; i++)
-            {
-                if (doorColliders[i] != null)
-                {
-                    doorColliders[i].enabled = value;
-                }
-            }
+            hatch.CloseDoors();
         }
 
         private void LockOccupant(bool locked)

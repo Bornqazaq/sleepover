@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17189913c00a34a13bd74ba67118aead, type: 3}
+  m_Name: ExamConfig
+  m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.Exam.ExamConfig
+  typingSeconds: 30
+  revealQuestionSeconds: 3
+  choiceSeconds: 8
+  tensionSeconds: 3
+  respawnSeconds: 2
+  hatchOpenSeconds: 0.5
+  hatchHeldSeconds: 3
+  hatchCloseSeconds: 0.5
+  questionMaxLength: 80
+  optionMaxLength: 30
+  lonelyBonus: 1
+  splitFullThreshold: 1
+  splitHalfThreshold: 2
+  questionsPerPlayer: 04000000030000000200000001000000010000000100000001000000
+  matchTimeoutSeconds: 600
+  stuckTeleportSeconds: 3
+  unitsPerWidth: 0.72
+  hallWidth: 40
+  hallDepth: 36
+  ceilingHeight: 8
+  platformWidth: 12
+  platformDepth: 10
+  platformGap: 2
+  podiumWidth: 10
+  podiumDepth: 5
+  podiumHeight: 1
+  returnZoneWidth: 26
+  returnZoneDepth: 5
+  returnToPlatformGap: 6
+  cameraSlackDepth: 7
+  pitDepth: 10

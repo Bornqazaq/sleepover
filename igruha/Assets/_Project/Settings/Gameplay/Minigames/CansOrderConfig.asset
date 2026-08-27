@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.CansOrder.CansOrderConfig
   briefingSeconds: 4
   briefingRiseSeconds: 2
-  placementWindowSeconds: 10
-  resultsSeconds: 5
+  placementWindowSeconds: 14
+  resultsSeconds: 7
   cageDescendSeconds: 2
   hatchOpenSeconds: 2
   pauseSeconds: 1

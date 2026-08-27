@@ -35,6 +35,27 @@ public class AppNetworkManager : MonoBehaviour
     private bool isConnected;
     private bool isSubscribedToClientEvents;
 
+    /// <summary>Кадров в секунду у headless-инстанса: физике и сети хватает, ядро не жжётся.</summary>
+    private const int HeadlessFrameRate = 60;
+
+    /// <summary>
+    /// Ограничить частоту кадров инстансу, который ничего не рисует.
+    ///
+    /// Без рисования Unity крутит цикл настолько быстро, насколько может, и
+    /// один такой процесс съедает ядро целиком. На стенде из восьми процессов
+    /// это значит, что машина меряет саму себя: клиенты отбирают время у хоста,
+    /// таймеры плывут, и найденное «расхождение» оказывается перегрузкой
+    /// стенда, а не багом игры.
+    /// </summary>
+    private void Awake()
+    {
+        if (Application.isBatchMode)
+        {
+            Application.targetFrameRate = HeadlessFrameRate;
+            Debug.Log($"🖥️ headless-инстанс: частота кадров ограничена {HeadlessFrameRate}");
+        }
+    }
+
     private void Start()
     {
         if (NetworkManager.Singleton == null)
@@ -53,7 +74,7 @@ public class AppNetworkManager : MonoBehaviour
         if (role == NetworkStartRole.Client)
         {
             ApplyEndpointArguments();
-            Debug.Log($"🟢 Роль CLIENT ({reason}) — подключаюсь к {DescribeEndpoint()}");
+            Debug.Log($"🟢 Роль CLIENT ({reason}) — подключаюсь к {DescribeTarget()}");
             giveUpTime = Time.realtimeSinceStartup + connectionTimeout;
             SubscribeToClientEvents();
             StartClient();
@@ -66,7 +87,8 @@ public class AppNetworkManager : MonoBehaviour
         // до этого SceneManager ещё не готов принимать запросы
         NetworkManager.Singleton.OnServerStarted += HandleServerStarted;
         NetworkManager.Singleton.StartHost();
-        Debug.Log($"🟢 Роль HOST ({reason}) — слушаю {DescribeEndpoint()} (с Connection Approval)");
+        Debug.Log($"🟢 Роль HOST ({reason}) — слушаю {DescribeListen()} (с Connection Approval)");
+        WarnIfListenAddressIsLocal();
     }
 
     /// <summary>
@@ -81,6 +103,9 @@ public class AppNetworkManager : MonoBehaviour
     /// (<c>ServerListenAddress</c>), и это должен быть <c>0.0.0.0</c>, иначе
     /// снаружи к нему не подключиться.
     /// </summary>
+    /// <summary>Адрес, на котором хост принимает подключения откуда угодно.</summary>
+    private const string AnyListenAddress = "0.0.0.0";
+
     private void ApplyEndpointArguments()
     {
         UnityTransport transport = NetworkManager.Singleton.NetworkConfig.NetworkTransport as UnityTransport;
@@ -101,13 +126,64 @@ public class AppNetworkManager : MonoBehaviour
         }
     }
 
-    /// <summary>Куда стучимся или что слушаем — одной строкой для лога.</summary>
-    private string DescribeEndpoint()
+    /// <summary>Куда стучится клиент — одной строкой для лога.</summary>
+    private string DescribeTarget()
     {
         UnityTransport transport = NetworkManager.Singleton.NetworkConfig.NetworkTransport as UnityTransport;
         return transport != null
             ? $"{transport.ConnectionData.Address}:{transport.ConnectionData.Port}"
             : "неизвестный транспорт";
+    }
+
+    /// <summary>
+    /// Что реально слушает хост — одной строкой для лога.
+    ///
+    /// Печатать сюда <c>ConnectionData.Address</c> нельзя: это адрес, по
+    /// которому к хосту стучатся клиенты, а сокет сервер биндит на
+    /// <c>ServerListenAddress</c>, и они не совпадают. В логе билда стояло
+    /// <c>127.0.0.1:7777</c>, пока сокет честно висел на <c>0.0.0.0:7777</c>
+    /// (проверено netstat). На живом прогоне такая строка отправляет чинить
+    /// то, что не сломано.
+    /// </summary>
+    private string DescribeListen()
+    {
+        UnityTransport transport = NetworkManager.Singleton.NetworkConfig.NetworkTransport as UnityTransport;
+        if (transport == null)
+        {
+            return "неизвестный транспорт";
+        }
+
+        string listenAddress = transport.ConnectionData.ServerListenAddress;
+        return string.IsNullOrWhiteSpace(listenAddress)
+            ? $"(адрес прослушивания не задан):{transport.ConnectionData.Port}"
+            : $"{listenAddress}:{transport.ConnectionData.Port}";
+    }
+
+    /// <summary>
+    /// Предупредить, если хост слушает петлю.
+    ///
+    /// С <c>127.0.0.1</c> хост поднимается штатно и локально работает, а
+    /// снаружи к нему не подключается никто — и выясняется это только когда
+    /// люди уже собрались на прогон. Лучше сказать об этом в первой же строке
+    /// лога хоста, чем искать причину при десяти зрителях.
+    /// </summary>
+    private void WarnIfListenAddressIsLocal()
+    {
+        UnityTransport transport = NetworkManager.Singleton.NetworkConfig.NetworkTransport as UnityTransport;
+        if (transport == null)
+        {
+            return;
+        }
+
+        string listenAddress = transport.ConnectionData.ServerListenAddress;
+        if (listenAddress == AnyListenAddress)
+        {
+            return;
+        }
+
+        Debug.LogWarning(
+            $"⚠️ Хост слушает {listenAddress}, а не {AnyListenAddress} — снаружи к нему никто не подключится. " +
+            "Поправить ServerListenAddress у UnityTransport в сцене Boot.");
     }
 
     private void OnDestroy()
