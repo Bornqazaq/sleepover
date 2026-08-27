@@ -46,16 +46,16 @@ namespace Igruha.Minigames.CarryItem
 
         private void FixedUpdate()
         {
-            if (config == null)
+            // Кто атакующий — решает сервер: у клиента свои скорости и свой
+            // порядок кадров, и он назначил бы атакующим кого угодно. Кулдаун
+            // тикает там же: клиентский отсчёт всё равно ничего не решает.
+            if (config == null || !WorldAuthority.HasAuthority)
             {
                 return;
             }
 
             cooldownTimer = Mathf.Max(0f, cooldownTimer - Time.fixedDeltaTime);
-
-            // Кто атакующий — решает сервер: у клиента свои скорости и свой
-            // порядок кадров, и он назначил бы атакующим кого угодно.
-            if (!WorldAuthority.HasAuthority || cooldownTimer > 0f)
+            if (cooldownTimer > 0f)
             {
                 return;
             }
@@ -91,7 +91,11 @@ namespace Igruha.Minigames.CarryItem
                         continue;
                     }
 
-                    if (TryRam(left, carryA.CarrierBodyAt(i), right, carryB.CarrierBodyAt(j)))
+                    // Скорости берём у самой переноски, а не у тел: чужую копию
+                    // персонажа ведёт NetworkTransform, и linearVelocity на
+                    // сервере у неё пустой. По телам таран засчитывался бы
+                    // только между хостом и болванками — то есть никогда.
+                    if (TryRam(left, carryA.CarrierVelocityAt(i), right, carryB.CarrierVelocityAt(j)))
                     {
                         return;
                     }
@@ -104,7 +108,7 @@ namespace Igruha.Minigames.CarryItem
         /// перебирать нечего: кулдаун общий, и второе столкновение в тот же
         /// такт всё равно ничего не даст.
         /// </summary>
-        private bool TryRam(PlayerController left, Rigidbody leftBody, PlayerController right, Rigidbody rightBody)
+        private bool TryRam(PlayerController left, Vector3 leftVelocity, PlayerController right, Vector3 rightVelocity)
         {
             Vector3 axis = right.transform.position - left.transform.position;
             axis.y = 0f;
@@ -116,9 +120,6 @@ namespace Igruha.Minigames.CarryItem
             }
 
             axis /= gap;
-
-            Vector3 leftVelocity = HorizontalVelocity(leftBody);
-            Vector3 rightVelocity = HorizontalVelocity(rightBody);
 
             // Проекция «в сторону соперника» у каждого своя: она и решает, кто
             // наехал, а кто попал под наезд.
@@ -151,18 +152,6 @@ namespace Igruha.Minigames.CarryItem
             victimBottle.SpendWater(config.RamVictimLoss, WaterLossReason.RamVictim);
             attackerBottle.SpendWater(config.RamAttackerLoss, WaterLossReason.RamAttacker);
             return true;
-        }
-
-        private static Vector3 HorizontalVelocity(Rigidbody body)
-        {
-            if (body == null)
-            {
-                return Vector3.zero;
-            }
-
-            Vector3 velocity = body.linearVelocity;
-            velocity.y = 0f;
-            return velocity;
         }
     }
 }

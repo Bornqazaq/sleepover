@@ -305,6 +305,14 @@ namespace Igruha.Minigames.CarryItem
             ApplyLevelVisual();
             WaterSpent?.Invoke(spent, reason);
 
+            // Уровень уедет сам, состоянием, — но по нему не видно, почему воды
+            // стало меньше. Причину шлём отдельно и только под эффекты: плеск,
+            // брызги и цифру над бутылью видят все, а не один виновник.
+            if (IsSpawned && IsServer)
+            {
+                AnnounceLossRpc(spent, (byte)reason);
+            }
+
             // Опустела, лёжа на земле, — пошёл отсчёт до исчезновения. Слив в
             // бак сюда не попадает: там бутыль убирают сразу, не дожидаясь.
             if (Water == 0 && reason != WaterLossReason.Poured)
@@ -394,6 +402,14 @@ namespace Igruha.Minigames.CarryItem
             Team = (TeamSide)state.Team;
             Water = state.Water;
         }
+
+        /// <summary>
+        /// Потеря случилась — отыграть её. Хосту не шлём: у него событие уже
+        /// прошло на месте, в <see cref="SpendWater"/>.
+        /// </summary>
+        [Rpc(SendTo.NotServer)]
+        private void AnnounceLossRpc(int amount, byte reason) =>
+            WaterSpent?.Invoke(amount, (WaterLossReason)reason);
 
         // ========== ПОТЕРИ ==========
 
