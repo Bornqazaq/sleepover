@@ -452,6 +452,7 @@ namespace Igruha.Minigames.Exam
             }
 
             previous.Avatar.MovementLocked = false;
+            ReleaseEmotesWhileLocked(previous.Avatar);
             autoplayDoneAt = 0d;
 
             if (HasAuthority && returnZone != null)
@@ -498,6 +499,34 @@ namespace Igruha.Minigames.Exam
                 // друг друга физикой.
                 float offset = (i % 5 - 2) * 1.6f;
                 avatar.TeleportTo(returnZone.position + returnZone.right * offset, Quaternion.identity);
+            }
+        }
+
+        /// <summary>
+        /// Поставить персонажа за кафедру: полный рост, никакого танца.
+        /// Вызывается ДО блокировки — под ней поза уже не меняется.
+        /// </summary>
+        private static void ResetPodiumPose(PlayerController avatar, bool allowEmotes)
+        {
+            avatar.ForceStand();
+
+            if (avatar.TryGetComponent(out PlayerEmoteAbility emotes))
+            {
+                emotes.StopEmote();
+                emotes.AllowedWhileLocked = allowEmotes;
+            }
+        }
+
+        /// <summary>
+        /// Вернуть насмешкам обычное правило. Обязательно: персонаж переезжает
+        /// между сценами живым, и разрешение, уехавшее в хаб или в следующую
+        /// мини-игру, дало бы пляшущую статую там, где её быть не должно.
+        /// </summary>
+        private static void ReleaseEmotesWhileLocked(PlayerController avatar)
+        {
+            if (avatar.TryGetComponent(out PlayerEmoteAbility emotes))
+            {
+                emotes.AllowedWhileLocked = false;
             }
         }
 
@@ -701,6 +730,16 @@ namespace Igruha.Minigames.Exam
             {
                 host.Player.Avatar.TeleportTo(podiumStand.position, podiumStand.rotation);
             }
+
+            // Ставим за кафедру «с нуля»: в полный рост и без танца. Под
+            // блокировкой поза застывает как есть, а играющая эмоция кончается
+            // только когда игрок пошёл — то есть под блокировкой никогда.
+            // Присевший или танцевавший в момент телепорта так и вёл бы вопрос
+            // сидя или приплясывая, и снять это ему было бы нечем.
+            //
+            // Насмешки при этом остаются: уйти Ведущий не может, но класс
+            // подразнить — ровно то, ради чего он там стоит.
+            ResetPodiumPose(host.Player.Avatar, allowEmotes: true);
 
             host.Player.Avatar.MovementLocked = true;
 
@@ -1240,6 +1279,7 @@ namespace Igruha.Minigames.Exam
                 if (Players[i].Avatar != null)
                 {
                     Players[i].Avatar.MovementLocked = false;
+                    ReleaseEmotesWhileLocked(Players[i].Avatar);
                 }
             }
 
