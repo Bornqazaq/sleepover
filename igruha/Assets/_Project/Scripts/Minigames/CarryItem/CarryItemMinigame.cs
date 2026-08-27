@@ -237,6 +237,12 @@ namespace Igruha.Minigames.CarryItem
             teamB.Stack?.SetTeamSize(SizeOf(TeamSide.B));
 
             RefreshLocalTeam();
+
+            // Болванку автопрогона вешаем только теперь: на OnPlayersReady у
+            // этой машины состава ещё не было, и вешать её было не на кого.
+            // Без этого стенд простаивал бы у всех, кроме хоста, — а выглядело
+            // бы это как «клиенты не играют», то есть как сетевой баг.
+            AttachBots();
         }
 
         /// <summary>Счёт приехал с сервера. Клиент только показывает — считать ему нечего.</summary>
@@ -805,15 +811,41 @@ namespace Igruha.Minigames.CarryItem
         }
 
         /// <summary>
-        /// Повесить болванки на манекенов. Только вне сети: в сетевой сессии
-        /// манекенов не бывает, а болванка, доживи она туда, играла бы за
-        /// живого человека.
+        /// Повесить болванки.
+        ///
+        /// Вне сети они садятся на манекенов — на копии без локального
+        /// управления, — а свой персонаж остаётся за человеком.
+        ///
+        /// 🔴 В сетевой катке манекенов не бывает: у каждой копии есть
+        /// владелец-человек, и болванка играла бы за него. Единственное
+        /// исключение — стенд автопрогона, и оно не по признаку, а
+        /// <b>по аргументу запуска</b>: в процессе с <c>--bot</c> за
+        /// клавиатурой нет никого. Там болванка ведёт ровно одного персонажа —
+        /// своего; чужих ведут их машины. Тот же приём у «Рейса на память» и
+        /// «Экзамена».
+        ///
+        /// Без этого стенд из четырёх процессов молча простоял бы весь раунд:
+        /// баки остались бы по нулям, а выглядело бы это как сломанная игра,
+        /// а не как отключённая болванка.
         /// </summary>
         private void AttachBots()
         {
+            // Зовётся дважды: у авторитета сразу с составом, у остальных ещё
+            // раз, когда состав приедет. Прежние болванки снимаем — иначе
+            // после ухода игрока его болванка осталась бы рулить телом,
+            // которого в составе больше нет.
+            for (int i = 0; i < bots.Count; i++)
+            {
+                if (bots[i] != null)
+                {
+                    bots[i].enabled = false;
+                }
+            }
+
             bots.Clear();
 
-            if (WorldAuthority.IsNetworkSession)
+            bool networked = WorldAuthority.IsNetworkSession;
+            if (networked && !LaunchArguments.BotEnabled)
             {
                 return;
             }
@@ -821,8 +853,24 @@ namespace Igruha.Minigames.CarryItem
             for (int i = 0; i < entries.Count; i++)
             {
                 PlayerController avatar = entries[i].Avatar;
-                if (avatar == null || !avatar.TryGetComponent(out PlayerInputReader reader) ||
-                    reader.LocallyControlled)
+                if (avatar == null || !avatar.TryGetComponent(out PlayerInputReader reader))
+                {
+                    continue;
+                }
+
+                if (networked)
+                {
+                    // Только своего: чужую копию ведёт её собственная машина.
+                    if (!reader.LocallyControlled)
+                    {
+                        continue;
+                    }
+
+                    // Автопилот не добавляет второй источник ввода, а заменяет
+                    // первый: пока он взведён, клавиатура не читается вовсе.
+                    reader.EngageAutopilot();
+                }
+                else if (reader.LocallyControlled)
                 {
                     continue;
                 }
@@ -835,6 +883,12 @@ namespace Igruha.Minigames.CarryItem
                 bot.enabled = true;
                 bot.Configure(this, entries[i].Team, botObstacles);
                 bots.Add(bot);
+            }
+
+            if (networked && bots.Count > 0)
+            {
+                Debug.Log($"🫙 [Переноска] 🤖 сетевой автопрогон: болванка ведёт ТОЛЬКО персонажа " +
+                          "этой машины, чужими не рулит");
             }
         }
     }
