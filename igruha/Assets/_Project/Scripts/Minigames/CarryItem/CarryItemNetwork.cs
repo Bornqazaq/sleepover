@@ -23,14 +23,22 @@ namespace Igruha.Minigames.CarryItem
         /// <summary>Команда, <see cref="TeamSide"/> байтом.</summary>
         public byte Team;
 
+        /// <summary>
+        /// Игрок вышел из матча. Строка остаётся: место ему полагается наравне
+        /// с остальными (спека 10.1), а из состава он выбывает только как пара
+        /// рук — по нему считается число ручек у бутыли.
+        /// </summary>
+        public bool Left;
+
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
             serializer.SerializeValue(ref PlayerId);
             serializer.SerializeValue(ref Team);
+            serializer.SerializeValue(ref Left);
         }
 
         public bool Equals(CarryItemMemberNetState other) =>
-            PlayerId == other.PlayerId && Team == other.Team;
+            PlayerId == other.PlayerId && Team == other.Team && Left == other.Left;
     }
 
     /// <summary>

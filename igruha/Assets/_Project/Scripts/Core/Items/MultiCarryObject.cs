@@ -204,7 +204,20 @@ namespace Igruha.Core.Items
             /// <summary>Сколько секунд несущий держится выше своего потолка скорости, прося при этом бежать.</summary>
             public float OverspeedTimer;
 
-            public bool Occupied => Carrier != null;
+            /// <summary>
+            /// Слот занят. Отдельным полем, а не проверкой <c>Carrier != null</c>:
+            /// вышедший из матча уносит с собой свой объект, ссылка становится
+            /// пустой — и слот, считай себя он свободным, молча освободился бы
+            /// в обход единственной точки отцепления. Счётчик несущих при этом
+            /// остался бы завышенным навсегда, а бутыль — висящей в руках у
+            /// призрака.
+            /// </summary>
+            public bool Taken;
+
+            public bool Occupied => Taken;
+
+            /// <summary>Слот занят, и несущий на нём ещё существует.</summary>
+            public bool Alive => Taken && Carrier != null;
 
             /// <summary>
             /// Ведёт ли несущего эта машина. Вне сети — всегда: мотор здесь же.
@@ -732,7 +745,7 @@ namespace Igruha.Core.Items
             Vector3 aim = Vector3.zero;
             for (int i = 0; i < handles.Length; i++)
             {
-                if (handles[i].Occupied)
+                if (handles[i].Alive)
                 {
                     aim += handles[i].Carrier.Facing;
                 }
@@ -859,7 +872,12 @@ namespace Igruha.Core.Items
         {
             Handle handle = handles[slot];
 
+            handle.Taken = true;
             handle.GraceTimer = GrabGraceSeconds;
+            handle.OverspeedTimer = 0f;
+            handle.Intent = Vector2.zero;
+            handle.HasLastPosition = false;
+            handle.TrackedVelocity = Vector3.zero;
             handle.Carrier = player;
             handle.CarrierBody = player.GetComponent<Rigidbody>();
             handle.CarrierCollider = player.GetComponent<CapsuleCollider>();
@@ -911,10 +929,16 @@ namespace Igruha.Core.Items
 
             PlayerController carrier = handle.Carrier;
 
-            carrier.KnockdownStarted -= handle.KnockdownHandler;
-            handle.KnockdownHandler = null;
+            // Несущего может уже не быть: вышедший из матча уносит с собой свой
+            // объект. Слот при этом всё равно обязан освободиться — иначе
+            // бутыль останется в руках у призрака, а ручка не достанется никому.
+            if (carrier != null)
+            {
+                carrier.KnockdownStarted -= handle.KnockdownHandler;
+                carrier.ClearSpeedCap(this);
+            }
 
-            carrier.ClearSpeedCap(this);
+            handle.KnockdownHandler = null;
             SetCollisionsWithCarrier(handle, false);
 
             if (handle.CarrierCarry != null)
@@ -927,12 +951,17 @@ namespace Igruha.Core.Items
                 handle.CarrierPush.ButtonOverride = null;
             }
 
+            handle.Taken = false;
             handle.Carrier = null;
             handle.CarrierBody = null;
             handle.CarrierCollider = null;
             handle.CarrierCarry = null;
             handle.CarrierPush = null;
             handle.CarrierNetwork = null;
+            handle.HasLastPosition = false;
+            handle.TrackedVelocity = Vector3.zero;
+            handle.Intent = Vector2.zero;
+            handle.OverspeedTimer = 0f;
 
             CarrierCount--;
             HandleReleased?.Invoke(slot, carrier, reason);
@@ -991,6 +1020,7 @@ namespace Igruha.Core.Items
         {
             float dt = Time.fixedDeltaTime;
 
+            DropGoneCarriers();
             TrackCarrierMotion(dt);
 
             if (HasAuthority)
@@ -1006,6 +1036,33 @@ namespace Igruha.Core.Items
 
             StepOwnedTethers();
             ReportOwnIntent();
+        }
+
+        /// <summary>
+        /// Несущий вышел из матча. Проверяется каждый такт, как носитель в
+        /// <see cref="PickupItem"/>: дисконнект не спрашивает разрешения и не
+        /// проходит через отцепление, поэтому слот освобождает страховка.
+        ///
+        /// Решает авторитет: у него же снимается и сама ручка, а состояние
+        /// разъедется остальным обычным путём.
+        /// </summary>
+        private void DropGoneCarriers()
+        {
+            if (!HasAuthority)
+            {
+                return;
+            }
+
+            for (int i = 0; i < handles.Length; i++)
+            {
+                Handle handle = handles[i];
+                if (!handle.Taken || handle.Alive)
+                {
+                    continue;
+                }
+
+                ReleaseHandle(i, CarryReleaseReason.RoundEnded);
+            }
         }
 
         /// <summary>
@@ -1027,7 +1084,7 @@ namespace Igruha.Core.Items
             for (int i = 0; i < handles.Length; i++)
             {
                 Handle handle = handles[i];
-                if (!handle.Occupied)
+                if (!handle.Alive)
                 {
                     handle.HasLastPosition = false;
                     handle.TrackedVelocity = Vector3.zero;
@@ -1067,7 +1124,7 @@ namespace Igruha.Core.Items
             for (int i = 0; i < handleCount; i++)
             {
                 Handle handle = handles[i];
-                if (!handle.Occupied || !handle.LocallyOwned || handle.CarrierBody == null)
+                if (!handle.Alive || !handle.LocallyOwned || handle.CarrierBody == null)
                 {
                     continue;
                 }
@@ -1137,7 +1194,7 @@ namespace Igruha.Core.Items
             for (int i = 0; i < handleCount; i++)
             {
                 Handle handle = handles[i];
-                if (handle.Occupied && handle.LocallyOwned)
+                if (handle.Alive && handle.LocallyOwned)
                 {
                     return i;
                 }
@@ -1249,7 +1306,7 @@ namespace Igruha.Core.Items
             for (int i = 0; i < handleCount; i++)
             {
                 Handle handle = handles[i];
-                if (!handle.Occupied)
+                if (!handle.Alive)
                 {
                     continue;
                 }

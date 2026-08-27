@@ -49,6 +49,13 @@ namespace Igruha.Minigames.CarryItem
             public TeamSide Team;
             public PlayerController Avatar;
             public Transform OriginalRespawn;
+
+            /// <summary>
+            /// Игрок вышел из матча. Строку не удаляем: место ему полагается
+            /// наравне с остальными, по накопленному командой на момент выхода
+            /// (спека 10.1). Из состава он выбывает только как пара рук.
+            /// </summary>
+            public bool Left;
         }
 
         [Header("Переноска предмета")]
@@ -91,6 +98,15 @@ namespace Igruha.Minigames.CarryItem
         private CarryItemNetwork net;
         private Coroutine countdownRoutine;
 
+        /// <summary>
+        /// Раунд оборван уходом целой команды, и победитель назначен не по
+        /// воде, а по этому факту. Отдельным флагом, а не значением
+        /// <see cref="TeamSide.None"/>: «победителя нет» — это законный исход
+        /// (обе команды с нулём), и спутать его с «никто не обрывал» нельзя.
+        /// </summary>
+        private bool winnerForced;
+        private TeamSide forcedWinner = TeamSide.None;
+
         /// <summary>Числа игры. Нужны болванкам и предметам арены.</summary>
         public CarryItemConfig Config => config;
 
@@ -117,6 +133,8 @@ namespace Igruha.Minigames.CarryItem
             }
 
             state = default;
+            winnerForced = false;
+            forcedWinner = TeamSide.None;
             System.Array.Clear(spentByReason, 0, spentByReason.Length);
 
             // Составы делит и разводит сервер. Клиент дождётся объявленного
@@ -182,7 +200,8 @@ namespace Igruha.Minigames.CarryItem
                 rosterBuffer.Add(new CarryItemMemberNetState
                 {
                     PlayerId = entries[i].PlayerId,
-                    Team = (byte)entries[i].Team
+                    Team = (byte)entries[i].Team,
+                    Left = entries[i].Left
                 });
             }
 
@@ -204,6 +223,7 @@ namespace Igruha.Minigames.CarryItem
                 {
                     PlayerId = members[i].PlayerId,
                     Team = (TeamSide)members[i].Team,
+                    Left = members[i].Left,
                     Avatar = avatar,
                     OriginalRespawn = avatar != null && avatar.TryGetComponent(out PlayerRespawner respawner)
                         ? respawner.RespawnPoint
@@ -302,13 +322,17 @@ namespace Igruha.Minigames.CarryItem
             ramDetector?.Configure(config);
         }
 
-        /// <summary>Сколько человек в команде по текущему составу.</summary>
+        /// <summary>
+        /// Сколько человек в команде <b>сейчас</b>. Вышедшие не считаются: по
+        /// этому числу раздаются ручки у бутыли, а призрак ручку не держит.
+        /// В местах они при этом участвуют — там перебирается весь состав.
+        /// </summary>
         private int SizeOf(TeamSide side)
         {
             int count = 0;
             for (int i = 0; i < entries.Count; i++)
             {
-                if (entries[i].Team == side)
+                if (entries[i].Team == side && !entries[i].Left)
                 {
                     count++;
                 }
@@ -474,9 +498,17 @@ namespace Igruha.Minigames.CarryItem
         // ========== УХОД ИГРОКА ==========
 
         /// <summary>
-        /// Участник вышел из матча. Строку из состава снимаем, команды
-        /// остальных не трогаем: пересчёт по индексу перевёл бы половину лобби
-        /// в другую команду посреди ходки.
+        /// Участник вышел из матча (спека 10.1).
+        ///
+        /// Строку из состава <b>не удаляем</b>: место ему полагается наравне с
+        /// остальными, по накопленному командой. Команды остальных тоже не
+        /// трогаем — пересчёт по индексу перевёл бы половину лобби в другую
+        /// команду посреди ходки.
+        ///
+        /// Что происходит на самом деле: ручка ушедшего освобождается, у бутыли
+        /// становится на одну ручку меньше, и от несбалансированной тяги она
+        /// начинает крениться — команда несёт дальше уже вкривь. Отдельного
+        /// кода на это не нужно, так работает сама модель переноски.
         ///
         /// Зовёт сетевая половина, только у сервера.
         /// </summary>
@@ -488,15 +520,64 @@ namespace Igruha.Minigames.CarryItem
             }
 
             int index = IndexOfPlayer(playerId);
-            if (index < 0)
+            if (index < 0 || entries[index].Left)
             {
                 return;
             }
 
-            entries.RemoveAt(index);
-            RemovePlayer(playerId);
+            Entry entry = entries[index];
+
+            // Ручку снимаем сами, не дожидаясь страховки: она сработает в
+            // ближайший такт физики, но состав уже объявлен, и число ручек
+            // должно сойтись с ним в тот же миг.
+            WaterBottle bottle = StackOf(entry.Team)?.LiveBottle;
+            if (bottle != null && entry.Avatar != null)
+            {
+                bottle.Carry.ReleaseFor(entry.Avatar, CarryReleaseReason.RoundEnded);
+            }
+
+            entry.Left = true;
+            entry.Avatar = null;
+            entries[index] = entry;
+
+            StackOf(entry.Team)?.SetTeamSize(SizeOf(entry.Team));
             PublishRoster();
+
+            Debug.Log($"🫙 [Переноска] {playerId} вышел из матча, в команде {entry.Team} осталось " +
+                      $"{SizeOf(entry.Team)}");
+
+            EndIfTeamWipedOut();
         }
+
+        /// <summary>
+        /// Команда кончилась целиком — играть дальше нечем. Победа второй
+        /// команде; если ушли обе, победителя нет и все получают последнее
+        /// место общим механизмом.
+        /// </summary>
+        private void EndIfTeamWipedOut()
+        {
+            bool aliveA = SizeOf(TeamSide.A) > 0;
+            bool aliveB = SizeOf(TeamSide.B) > 0;
+
+            if (aliveA && aliveB)
+            {
+                return;
+            }
+
+            winnerForced = true;
+            forcedWinner = aliveA ? TeamSide.A : aliveB ? TeamSide.B : TeamSide.None;
+
+            Debug.Log($"🫙 [Переноска] раунд оборван: команда кончилась целиком, победитель — " +
+                      $"{(forcedWinner == TeamSide.None ? "нет" : forcedWinner.ToString())}");
+
+            EndMinigame();
+        }
+
+        /// <summary>
+        /// Кто победил. Обычно решает вода, но ушедшая целиком команда отдаёт
+        /// раунд сопернику независимо от того, сколько успела донести.
+        /// </summary>
+        private TeamSide ResolveWinner() => winnerForced ? forcedWinner : state.Winner();
 
         private int IndexOfPlayer(int playerId)
         {
@@ -564,7 +645,7 @@ namespace Igruha.Minigames.CarryItem
                 return;
             }
 
-            TeamSide winner = state.Winner();
+            TeamSide winner = ResolveWinner();
             Debug.Log($"🫙 [Переноска] итог: A — {state.TeamA.Water} за {state.TeamA.Deliveries} ходок, " +
                       $"B — {state.TeamB.Water} за {state.TeamB.Deliveries}, " +
                       $"победитель — {(winner == TeamSide.None ? "нет" : winner.ToString())}");
@@ -610,7 +691,7 @@ namespace Igruha.Minigames.CarryItem
                 rankingBuffer.Add(new TeamRanking.Entry(entries[i].PlayerId, entries[i].Team));
             }
 
-            TeamRanking.Fill(rankingBuffer, state.Winner(), results);
+            TeamRanking.Fill(rankingBuffer, ResolveWinner(), results);
         }
 
         // ========== СЛУЖЕБНОЕ ==========
