@@ -13,6 +13,9 @@ namespace Igruha.Core.Spawning
         private readonly List<SpawnPoint> points = new List<SpawnPoint>(16);
         private readonly List<SpawnPoint> buffer = new List<SpawnPoint>(16);
 
+        /// <summary>Роли, по которым уже пожаловались. Иначе жалоба идёт на каждого игрока подряд.</summary>
+        private readonly HashSet<SpawnRole> warnedRoles = new HashSet<SpawnRole>();
+
         private void Awake()
         {
             Collect();
@@ -47,14 +50,50 @@ namespace Igruha.Core.Spawning
         /// <summary>i-я точка роли (по кругу, если игроков больше, чем точек).</summary>
         public SpawnPoint GetPoint(SpawnRole role, int index)
         {
-            IReadOnlyList<SpawnPoint> rolePoints = GetPoints(role);
+            IReadOnlyList<SpawnPoint> rolePoints = Resolve(role);
             if (rolePoints.Count == 0)
             {
-                Debug.LogWarning($"{name}: нет точек спавна роли {role}", this);
                 return null;
             }
 
             return rolePoints[Wrap(index, rolePoints.Count)];
+        }
+
+        /// <summary>
+        /// Точки роли, а если их нет — <b>любые</b>.
+        ///
+        /// Отказ здесь дороже неточности. Роли просит общий размещатель, и
+        /// просит он <see cref="SpawnRole.Default"/>; у командной арены точек
+        /// этой роли нет вовсе — там свои <c>TeamA</c> и <c>TeamB</c>, а по
+        /// командам игроков разводят правила раунда. Возвращая null, набор
+        /// оставлял всех там, где их застал вход в сцену: в «Переноске» это
+        /// пропасть, и каждый успевал провалиться и респавнуться до старта
+        /// раунда (IGR-457).
+        ///
+        /// Запасная точка не отменяет разведение по командам — оно идёт следом
+        /// и ставит всех на свои места. Она лишь гарантирует, что до него
+        /// игрок стоит на арене, а не над пустотой.
+        /// </summary>
+        private IReadOnlyList<SpawnPoint> Resolve(SpawnRole role)
+        {
+            IReadOnlyList<SpawnPoint> rolePoints = GetPoints(role);
+            if (rolePoints.Count > 0)
+            {
+                return rolePoints;
+            }
+
+            if (warnedRoles.Add(role))
+            {
+                Debug.LogWarning($"{name}: нет точек спавна роли {role} — раздаю любые. " +
+                                 "Если игроков расставляет сама мини-игра, это нормально", this);
+            }
+
+            if (points.Count == 0)
+            {
+                Collect();
+            }
+
+            return points;
         }
 
         /// <summary>
@@ -69,10 +108,9 @@ namespace Igruha.Core.Spawning
         /// </summary>
         public SpawnPoint GetSpreadPoint(SpawnRole role, int index, int count)
         {
-            IReadOnlyList<SpawnPoint> rolePoints = GetPoints(role);
+            IReadOnlyList<SpawnPoint> rolePoints = Resolve(role);
             if (rolePoints.Count == 0)
             {
-                Debug.LogWarning($"{name}: нет точек спавна роли {role}", this);
                 return null;
             }
 
