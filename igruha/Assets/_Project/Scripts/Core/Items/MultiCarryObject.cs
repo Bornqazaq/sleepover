@@ -1,4 +1,5 @@
 using System;
+using Unity.Netcode;
 using UnityEngine;
 using Igruha.Core.Interaction;
 using Igruha.Core.Player;
@@ -19,6 +20,75 @@ namespace Igruha.Core.Items
         Thrown,
         /// <summary>Раунд кончился, роль снимается с игрока.</summary>
         RoundEnded
+    }
+
+    /// <summary>
+    /// Кто держит ручки и в полёте ли объект — <b>состояние, а не событие</b>
+    /// (спека «Переноски предмета», 10). Слоты хранят <c>NetworkObjectId</c>
+    /// несущих, как <c>holderObjectId</c> в <see cref="PickupItem"/>, только
+    /// массивом: оно же защищает от двойного захвата и оно же догоняет
+    /// подключившегося в середине раунда.
+    ///
+    /// Причина последнего срыва едет тем же каналом одним байтом. Отдельного
+    /// канала под неё не заводим: срыв всегда меняет слот, а несколько ручек
+    /// срываются разом ровно по одной причине — бросок или конец раунда.
+    /// </summary>
+    public struct MultiCarryNetState : INetworkSerializable, IEquatable<MultiCarryNetState>
+    {
+        /// <summary>Слот свободен. Идентификаторы сетевых объектов начинаются с единицы.</summary>
+        public const ulong NoCarrier = 0UL;
+
+        public ulong Handle0;
+        public ulong Handle1;
+        public ulong Handle2;
+        public ulong Handle3;
+
+        /// <summary>Объект брошен и ещё не коснулся земли.</summary>
+        public bool InFlight;
+
+        /// <summary>Причина последнего срыва, <see cref="CarryReleaseReason"/> байтом.</summary>
+        public byte LastRelease;
+
+        public readonly ulong Of(int slot)
+        {
+            switch (slot)
+            {
+                case 0: return Handle0;
+                case 1: return Handle1;
+                case 2: return Handle2;
+                case 3: return Handle3;
+                default: return NoCarrier;
+            }
+        }
+
+        public void Set(int slot, ulong carrierId)
+        {
+            switch (slot)
+            {
+                case 0: Handle0 = carrierId; break;
+                case 1: Handle1 = carrierId; break;
+                case 2: Handle2 = carrierId; break;
+                case 3: Handle3 = carrierId; break;
+            }
+        }
+
+        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+        {
+            serializer.SerializeValue(ref Handle0);
+            serializer.SerializeValue(ref Handle1);
+            serializer.SerializeValue(ref Handle2);
+            serializer.SerializeValue(ref Handle3);
+            serializer.SerializeValue(ref InFlight);
+            serializer.SerializeValue(ref LastRelease);
+        }
+
+        public bool Equals(MultiCarryNetState other) =>
+            Handle0 == other.Handle0 &&
+            Handle1 == other.Handle1 &&
+            Handle2 == other.Handle2 &&
+            Handle3 == other.Handle3 &&
+            InFlight == other.InFlight &&
+            LastRelease == other.LastRelease;
     }
 
     /// <summary>
@@ -53,13 +123,19 @@ namespace Igruha.Core.Items
     /// — <b>одиночка несёт ровно:</b> у объекта с одной ручкой центр опоры
     ///   совпадает с этой ручкой, смещения нет вовсе.
     ///
-    /// Скорость и наклон считает авторитет — в сетевой фазе сервер, вне сети
-    /// эта же машина. Остальные увидят результат через NetworkTransform.
-    /// Упругая тяга к своей стоянке в фазе 3 переедет на машину владельца
-    /// (см. <c>RidePlatform</c>): чужого игрока сервер двигать не вправе.
+    /// <b>Сеть.</b> Решения принимает сервер: кто взялся, кто сорвался, куда
+    /// поехал объект и как он накренился. Позиция и поворот уезжают
+    /// <c>NetworkTransform</c>, занятые ручки — <see cref="MultiCarryNetState"/>.
+    /// Последствия захвата (потолок скорости, занятые руки, развязка коллизий)
+    /// применяет <b>каждая машина у себя</b>: они живут в моторе владельца, и
+    /// ждать пакета им нельзя.
+    ///
+    /// Упругая тяга к своей стоянке — единственное, что считает не сервер, а
+    /// машина владельца несущего (см. <c>RidePlatform</c>): чужого игрока
+    /// сервер двигать не вправе, это IGR-297.
     /// </summary>
     [RequireComponent(typeof(Rigidbody))]
-    public sealed class MultiCarryObject : MonoBehaviour, IInteractable, IPushButtonOverride
+    public sealed class MultiCarryObject : NetworkBehaviour, IInteractable, IPushButtonOverride
     {
         /// <summary>Больше четырёх рук не бывает: столько человек в самой большой команде проекта.</summary>
         public const int MaxHandles = 4;
@@ -102,12 +178,20 @@ namespace Igruha.Core.Items
             public CapsuleCollider CarrierCollider;
             public PlayerCarryAbility CarrierCarry;
             public PlayerPushAbility CarrierPush;
+            public NetworkObject CarrierNetwork;
             public Action<KnockdownType> KnockdownHandler;
 
             /// <summary>Сколько секунд ручку ещё нельзя сорвать перерастяжением. См. <see cref="GrabGraceSeconds"/>.</summary>
             public float GraceTimer;
 
             public bool Occupied => Carrier != null;
+
+            /// <summary>
+            /// Ведёт ли несущего эта машина. Вне сети — всегда: мотор здесь же.
+            /// В сети — только у владельца: сервер чужого игрока не двигает.
+            /// </summary>
+            public bool LocallyOwned =>
+                CarrierNetwork == null || !CarrierNetwork.IsSpawned || CarrierNetwork.IsOwner;
         }
 
         /// <summary>
@@ -122,6 +206,11 @@ namespace Igruha.Core.Items
         private const float GrabGraceSeconds = 1f;
 
         private readonly Handle[] handles = new Handle[MaxHandles];
+
+        /// <summary>Занятые ручки и полёт. Пишет сервер, читают все.</summary>
+        private readonly NetworkVariable<MultiCarryNetState> netState =
+            new NetworkVariable<MultiCarryNetState>();
+
         private Rigidbody body;
         private Collider[] ownColliders;
         private Predicate<PlayerController> ownerFilter;
@@ -135,23 +224,46 @@ namespace Igruha.Core.Items
         private Quaternion baseRotation = Quaternion.identity;
         private bool beyondThreshold;
         private bool hadCarriers;
+        private bool inFlight;
+
+        /// <summary>
+        /// Состояние приехало, а персонажа по идентификатору ещё нет. Так бывает
+        /// у подключившегося в середине раунда: бутыль спавнится раньше, чем
+        /// доедут тела. Разбираем повторно, пока не сойдётся.
+        /// </summary>
+        private bool handlesPending;
 
         public int HandleCount => handleCount;
         public int CarrierCount { get; private set; }
         public bool IsCarried => CarrierCount > 0;
 
-        /// <summary>Текущий наклон от вертикали, °.</summary>
-        public float TiltAngle => tiltRotation.magnitude * Mathf.Rad2Deg;
+        /// <summary>
+        /// Текущий наклон от вертикали, °.
+        ///
+        /// У авторитета — из самой модели. У остальных считается по
+        /// реплицированному повороту: наклон и так приезжает
+        /// <c>NetworkTransform</c>, и отдельный канал под то же число был бы
+        /// вторым источником правды.
+        /// </summary>
+        public float TiltAngle => HasAuthority
+            ? tiltRotation.magnitude * Mathf.Rad2Deg
+            : Vector3.Angle(transform.up, Vector3.up);
 
         /// <summary>Наклон за порогом прямо сейчас.</summary>
         public bool BeyondTiltThreshold => beyondThreshold;
 
         /// <summary>Объект брошен и ещё не коснулся земли. На свистке такой не засчитывается.</summary>
-        public bool InFlight { get; private set; }
+        public bool InFlight => inFlight;
 
         public MultiCarrySettings Settings => settings;
 
         public string InteractionPrompt => interactionPrompt;
+
+        /// <summary>
+        /// Вправе ли эта машина решать судьбу объекта. Вне сетевой сессии — да,
+        /// иначе сцена, открытая напрямую из редактора, не играла бы вовсе.
+        /// </summary>
+        private bool HasAuthority => IsSpawned ? IsServer : WorldAuthority.HasAuthority;
 
         private void Reset()
         {
@@ -176,6 +288,27 @@ namespace Igruha.Core.Items
             {
                 handles[i] = new Handle();
             }
+        }
+
+        public override void OnNetworkSpawn()
+        {
+            base.OnNetworkSpawn();
+
+            netState.OnValueChanged += OnNetStateChanged;
+
+            // Своя физика есть только у того, кто считает движение. У остальных
+            // объект ведёт NetworkTransform, и вторые руки дают дрожь — та же
+            // ловушка, что решена в PickupItem выключением физики у неавторитета.
+            body.isKinematic = !IsServer;
+
+            // Состояние могло приехать до подписки — разбираем то, что уже есть.
+            ApplyNetState(netState.Value);
+        }
+
+        public override void OnNetworkDespawn()
+        {
+            netState.OnValueChanged -= OnNetStateChanged;
+            base.OnNetworkDespawn();
         }
 
         private void OnDisable()
@@ -303,12 +436,15 @@ namespace Igruha.Core.Items
         }
 
         /// <summary>
-        /// Занять свободную ручку. Единственная точка входа на захват — в фазе
-        /// сети она уйдёт за <c>IsServer</c> без переписывания логики.
+        /// Занять свободную ручку. <b>Единственная точка входа на захват</b>, и
+        /// решает её только авторитет: иначе двое возьмутся за одну ручку.
+        ///
+        /// Сам захват здесь не применяется — здесь публикуется состояние, а
+        /// применяют его все машины разом в <see cref="ApplyNetState"/>.
         /// </summary>
         public bool TryGrab(PlayerController player)
         {
-            if (player == null || InFlight)
+            if (!HasAuthority || player == null || InFlight)
             {
                 return false;
             }
@@ -329,17 +465,359 @@ namespace Igruha.Core.Items
                 return false;
             }
 
+            if (!IsSpawned)
+            {
+                AttachHandle(slot, player);
+                return true;
+            }
+
+            NetworkObject carrierObject = player.GetComponent<NetworkObject>();
+            if (carrierObject == null || !carrierObject.IsSpawned)
+            {
+                Debug.LogWarning($"{name}: у несущего нет заспавненного NetworkObject — ручка не выдана", this);
+                return false;
+            }
+
+            MultiCarryNetState next = netState.Value;
+            next.Set(slot, carrierObject.NetworkObjectId);
+            netState.Value = next;
+            return true;
+        }
+
+        /// <summary>
+        /// <b>Единственная точка отцепления.</b> Сюда приходят все три причины
+        /// срыва из спеки 9.2 — нажатие E, перерастяжение, сбитый несущий — плюс
+        /// бросок и конец раунда. Решает авторитет; клиент только просит
+        /// (см. <see cref="RequestReleaseRpc"/>).
+        /// </summary>
+        public bool ReleaseHandle(int slot, CarryReleaseReason reason)
+        {
+            if (slot < 0 || slot >= handles.Length || !HasAuthority)
+            {
+                return false;
+            }
+
+            if (!handles[slot].Occupied)
+            {
+                return false;
+            }
+
+            if (!IsSpawned)
+            {
+                DetachHandle(slot, reason);
+                return true;
+            }
+
+            MultiCarryNetState next = netState.Value;
+            next.Set(slot, MultiCarryNetState.NoCarrier);
+            next.LastRelease = (byte)reason;
+            netState.Value = next;
+            return true;
+        }
+
+        /// <summary>Отцепить конкретного игрока, где бы он ни держал.</summary>
+        public bool ReleaseFor(PlayerController player, CarryReleaseReason reason)
+        {
+            int slot = FindSlotOf(player);
+            return slot >= 0 && ReleaseHandle(slot, reason);
+        }
+
+        /// <summary>
+        /// Отцепить всех. Конец раунда обязан звать это сам — иначе роль уедет
+        /// в хаб вместе с телом (спека 10.2).
+        ///
+        /// Локальные последствия снимаются на <b>каждой</b> машине, не дожидаясь
+        /// пакета: потолок скорости и запрет удара живут в моторе владельца, и
+        /// отдать их обратно обязана его же машина.
+        /// </summary>
+        public void ReleaseAll(CarryReleaseReason reason)
+        {
+            if (IsSpawned && IsServer)
+            {
+                MultiCarryNetState next = netState.Value;
+                bool changed = false;
+
+                for (int i = 0; i < handles.Length; i++)
+                {
+                    if (next.Of(i) == MultiCarryNetState.NoCarrier)
+                    {
+                        continue;
+                    }
+
+                    next.Set(i, MultiCarryNetState.NoCarrier);
+                    changed = true;
+                }
+
+                if (changed)
+                {
+                    next.LastRelease = (byte)reason;
+                    netState.Value = next;
+                }
+            }
+
+            for (int i = 0; i < handles.Length; i++)
+            {
+                DetachHandle(i, reason);
+            }
+        }
+
+        private void OnLastHandleReleased(CarryReleaseReason reason)
+        {
+            // Отпущенный объект снова живёт под физикой: падает, катится,
+            // проваливается в пропасть.
+            body.useGravity = true;
+
+            if (reason == CarryReleaseReason.Thrown)
+            {
+                return;
+            }
+
+            ApplyInFlight(false);
+
+            if (hadCarriers)
+            {
+                Dropped?.Invoke();
+            }
+        }
+
+        // ========== КНОПКА ТОЛЧКА: СОВМЕСТНЫЙ БРОСОК ==========
+
+        /// <summary>
+        /// Держащий бутыль не бьёт — он швыряет её. Бросают <b>все несущие
+        /// разом</b>, поэтому решение принимает объект, а не персонаж:
+        /// дальность растёт с числом бросающих.
+        ///
+        /// Нажатие приходит из мотора владельца, а бросок — исход раунда,
+        /// поэтому у клиента отсюда уходит намерение, а бросает сервер.
+        /// </summary>
+        public bool HandlePushButton(PlayerController player)
+        {
+            if (!IsCarriedBy(player))
+            {
+                return false;
+            }
+
+            if (HasAuthority)
+            {
+                ThrowByCarriers();
+                return true;
+            }
+
+            RequestThrowRpc();
+            return true;
+        }
+
+        /// <summary>
+        /// Намерение бросить от машины несущего. Отправителя берём из
+        /// <c>RpcParams</c>, а не из аргумента: иначе чужим намерением можно
+        /// было бы выбить бутыль из рук соперника.
+        /// </summary>
+        [Rpc(SendTo.Server, RequireOwnership = false)]
+        private void RequestThrowRpc(RpcParams rpcParams = default)
+        {
+            if (SlotOfSender(rpcParams.Receive.SenderClientId) < 0)
+            {
+                return;
+            }
+
+            ThrowByCarriers();
+        }
+
+        /// <summary>
+        /// Намерение отпустить ручку от машины несущего. Нужно ровно одному
+        /// случаю — <b>сбитому несущему</b>: нокдаун считает мотор владельца,
+        /// у сервера чужой мотор выключен, и без этого сообщения ручка
+        /// осталась бы в руках у лежащего. Нажатие E сюда не попадает: оно и
+        /// так идёт через серверное взаимодействие.
+        ///
+        /// Подделать нечего: клиент вправе отпустить только свою ручку, а это
+        /// он и так может нажатием.
+        /// </summary>
+        [Rpc(SendTo.Server, RequireOwnership = false)]
+        private void RequestReleaseRpc(byte reason, RpcParams rpcParams = default)
+        {
+            int slot = SlotOfSender(rpcParams.Receive.SenderClientId);
+            if (slot < 0)
+            {
+                return;
+            }
+
+            ReleaseHandle(slot, (CarryReleaseReason)reason);
+        }
+
+        /// <summary>Какую ручку держит игрок этого клиента. −1 — ни одной.</summary>
+        private int SlotOfSender(ulong senderClientId)
+        {
+            for (int i = 0; i < handleCount; i++)
+            {
+                NetworkObject carrier = handles[i].CarrierNetwork;
+                if (carrier != null && carrier.OwnerClientId == senderClientId)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        /// <summary>
+        /// Совместный бросок. Направление — среднее из взглядов несущих,
+        /// импульс — на каждого бросающего свой. Решает только авторитет.
+        /// </summary>
+        public void ThrowByCarriers()
+        {
+            if (!HasAuthority)
+            {
+                return;
+            }
+
+            int throwers = CarrierCount;
+            if (throwers == 0)
+            {
+                return;
+            }
+
+            Vector3 aim = Vector3.zero;
+            for (int i = 0; i < handles.Length; i++)
+            {
+                if (handles[i].Occupied)
+                {
+                    aim += handles[i].Carrier.Facing;
+                }
+            }
+
+            aim.y = 0f;
+            aim = aim.sqrMagnitude < 0.0001f ? transform.forward : aim.normalized;
+
+            ReleaseAll(CarryReleaseReason.Thrown);
+
+            PublishInFlight(true);
+            body.useGravity = true;
+            body.linearVelocity = Vector3.zero;
+            body.AddForce((aim + Vector3.up * settings.throwUpward).normalized *
+                          (settings.throwImpulsePerCarrier * throwers), ForceMode.Impulse);
+
+            Thrown?.Invoke(throwers);
+        }
+
+        // ========== СЕТЕВОЕ СОСТОЯНИЕ ==========
+
+        private void OnNetStateChanged(MultiCarryNetState previous, MultiCarryNetState current) =>
+            ApplyNetState(current);
+
+        /// <summary>
+        /// Разложить приехавшее состояние по ручкам. Зовётся на каждой машине,
+        /// включая сервер: решение и его последствия разведены намеренно — иначе
+        /// у хоста и у клиента были бы две разные ветки применения, и сходились
+        /// бы они только на бумаге.
+        /// </summary>
+        private void ApplyNetState(in MultiCarryNetState state)
+        {
+            handlesPending = false;
+            CarryReleaseReason reason = (CarryReleaseReason)state.LastRelease;
+
+            for (int slot = 0; slot < handles.Length; slot++)
+            {
+                ulong wanted = slot < handleCount ? state.Of(slot) : MultiCarryNetState.NoCarrier;
+                Handle handle = handles[slot];
+
+                if (wanted == MultiCarryNetState.NoCarrier)
+                {
+                    DetachHandle(slot, reason);
+                    continue;
+                }
+
+                if (handle.Occupied && handle.CarrierNetwork != null &&
+                    handle.CarrierNetwork.NetworkObjectId == wanted)
+                {
+                    continue;
+                }
+
+                PlayerController carrier = ResolveCarrier(wanted);
+                if (carrier == null)
+                {
+                    // Подключились в середине раунда: бутыль уже здесь, а тела
+                    // несущих ещё едут. Разберём в следующем кадре.
+                    handlesPending = true;
+                    continue;
+                }
+
+                DetachHandle(slot, reason);
+                AttachHandle(slot, carrier);
+            }
+
+            ApplyInFlight(state.InFlight);
+        }
+
+        private void PublishInFlight(bool value)
+        {
+            ApplyInFlight(value);
+
+            if (!IsSpawned || !IsServer)
+            {
+                return;
+            }
+
+            MultiCarryNetState next = netState.Value;
+            if (next.InFlight == value)
+            {
+                return;
+            }
+
+            next.InFlight = value;
+            netState.Value = next;
+        }
+
+        private void ApplyInFlight(bool value)
+        {
+            if (inFlight == value)
+            {
+                return;
+            }
+
+            bool wasFlying = inFlight;
+            inFlight = value;
+
+            if (wasFlying)
+            {
+                Landed?.Invoke();
+            }
+        }
+
+        private static PlayerController ResolveCarrier(ulong carrierObjectId)
+        {
+            NetworkManager manager = NetworkManager.Singleton;
+            if (manager == null || manager.SpawnManager == null)
+            {
+                return null;
+            }
+
+            return manager.SpawnManager.SpawnedObjects.TryGetValue(carrierObjectId, out NetworkObject carrierObject)
+                ? carrierObject.GetComponent<PlayerController>()
+                : null;
+        }
+
+        // ========== ПРИВЯЗКА НЕСУЩЕГО: ПРИМЕНЯЕТ КАЖДАЯ МАШИНА ==========
+
+        /// <summary>
+        /// Повесить последствия захвата на этой машине. Ничего не решает —
+        /// решение уже принято авторитетом и приехало состоянием.
+        /// </summary>
+        private void AttachHandle(int slot, PlayerController player)
+        {
             Handle handle = handles[slot];
+
             handle.GraceTimer = GrabGraceSeconds;
             handle.Carrier = player;
             handle.CarrierBody = player.GetComponent<Rigidbody>();
             handle.CarrierCollider = player.GetComponent<CapsuleCollider>();
             handle.CarrierCarry = player.GetComponent<PlayerCarryAbility>();
             handle.CarrierPush = player.GetComponent<PlayerPushAbility>();
+            handle.CarrierNetwork = player.GetComponent<NetworkObject>();
 
             // Сбитый несущий роняет ручку. Подписка на слот своя, чтобы снять
             // её потом ровно той же ссылкой.
-            handle.KnockdownHandler = _ => ReleaseHandle(slot, CarryReleaseReason.Knockdown);
+            handle.KnockdownHandler = _ => OnCarrierKnockedDown(slot);
             player.KnockdownStarted += handle.KnockdownHandler;
 
             // Руки заняты: ни ударить, ни подобрать, ни бросить предмет.
@@ -364,30 +842,19 @@ namespace Igruha.Core.Items
             // Объект в руках держит модель, а не гравитация: иначе он волочится
             // по полу, а на доске над пропастью проваливается между несущими.
             body.useGravity = false;
-            InFlight = false;
+            ApplyInFlight(false);
 
             HandleTaken?.Invoke(slot, player);
             CarrierCountChanged?.Invoke(CarrierCount);
-            return true;
         }
 
-        /// <summary>
-        /// <b>Единственная точка отцепления.</b> Сюда приходят все три причины
-        /// срыва из спеки 9.2 — нажатие E, перерастяжение, сбитый несущий — плюс
-        /// бросок и конец раунда. В фазе сети её обернут проверкой
-        /// <c>IsServer</c>, и больше ничего менять не придётся.
-        /// </summary>
-        public bool ReleaseHandle(int slot, CarryReleaseReason reason)
+        /// <summary>Снять последствия захвата на этой машине.</summary>
+        private void DetachHandle(int slot, CarryReleaseReason reason)
         {
-            if (slot < 0 || slot >= handles.Length)
-            {
-                return false;
-            }
-
             Handle handle = handles[slot];
             if (!handle.Occupied)
             {
-                return false;
+                return;
             }
 
             PlayerController carrier = handle.Carrier;
@@ -413,6 +880,7 @@ namespace Igruha.Core.Items
             handle.CarrierCollider = null;
             handle.CarrierCarry = null;
             handle.CarrierPush = null;
+            handle.CarrierNetwork = null;
 
             CarrierCount--;
             HandleReleased?.Invoke(slot, carrier, reason);
@@ -422,97 +890,25 @@ namespace Igruha.Core.Items
             {
                 OnLastHandleReleased(reason);
             }
-
-            return true;
-        }
-
-        /// <summary>Отцепить конкретного игрока, где бы он ни держал.</summary>
-        public bool ReleaseFor(PlayerController player, CarryReleaseReason reason)
-        {
-            int slot = FindSlotOf(player);
-            return slot >= 0 && ReleaseHandle(slot, reason);
-        }
-
-        /// <summary>Отцепить всех. Конец раунда обязан звать это сам — иначе роль уедет в хаб вместе с телом.</summary>
-        public void ReleaseAll(CarryReleaseReason reason)
-        {
-            for (int i = 0; i < handles.Length; i++)
-            {
-                ReleaseHandle(i, reason);
-            }
-        }
-
-        private void OnLastHandleReleased(CarryReleaseReason reason)
-        {
-            // Отпущенный объект снова живёт под физикой: падает, катится,
-            // проваливается в пропасть.
-            body.useGravity = true;
-
-            if (reason == CarryReleaseReason.Thrown)
-            {
-                return;
-            }
-
-            InFlight = false;
-
-            if (hadCarriers)
-            {
-                Dropped?.Invoke();
-            }
-        }
-
-        // ========== КНОПКА ТОЛЧКА: СОВМЕСТНЫЙ БРОСОК ==========
-
-        /// <summary>
-        /// Держащий бутыль не бьёт — он швыряет её. Бросают <b>все несущие
-        /// разом</b>, поэтому решение принимает объект, а не персонаж:
-        /// дальность растёт с числом бросающих.
-        /// </summary>
-        public bool HandlePushButton(PlayerController player)
-        {
-            if (!IsCarriedBy(player))
-            {
-                return false;
-            }
-
-            ThrowByCarriers();
-            return true;
         }
 
         /// <summary>
-        /// Совместный бросок. Направление — среднее из взглядов несущих,
-        /// импульс — на каждого бросающего свой. Единственная точка входа:
-        /// в фазе сети она уйдёт за <c>IsServer</c>.
+        /// Несущего сбили. Нокдаун считает мотор владельца, а у сервера чужой
+        /// мотор выключен: поэтому у авторитета здесь решение, а у владельца —
+        /// намерение.
         /// </summary>
-        public void ThrowByCarriers()
+        private void OnCarrierKnockedDown(int slot)
         {
-            int throwers = CarrierCount;
-            if (throwers == 0)
+            if (HasAuthority)
             {
+                ReleaseHandle(slot, CarryReleaseReason.Knockdown);
                 return;
             }
 
-            Vector3 aim = Vector3.zero;
-            for (int i = 0; i < handles.Length; i++)
+            if (IsSpawned && handles[slot].LocallyOwned)
             {
-                if (handles[i].Occupied)
-                {
-                    aim += handles[i].Carrier.Facing;
-                }
+                RequestReleaseRpc((byte)CarryReleaseReason.Knockdown);
             }
-
-            aim.y = 0f;
-            aim = aim.sqrMagnitude < 0.0001f ? transform.forward : aim.normalized;
-
-            ReleaseAll(CarryReleaseReason.Thrown);
-
-            InFlight = true;
-            body.useGravity = true;
-            body.linearVelocity = Vector3.zero;
-            body.AddForce((aim + Vector3.up * settings.throwUpward).normalized *
-                          (settings.throwImpulsePerCarrier * throwers), ForceMode.Impulse);
-
-            Thrown?.Invoke(throwers);
         }
 
         // ========== МОДЕЛЬ ==========
@@ -521,7 +917,7 @@ namespace Igruha.Core.Items
         {
             // Движение и наклон — исход, а исход считает авторитет. Вне сети
             // авторитет здесь же, поэтому одиночный тест сцены не меняется.
-            if (!WorldAuthority.HasAuthority)
+            if (!HasAuthority)
             {
                 return;
             }
@@ -535,6 +931,23 @@ namespace Igruha.Core.Items
 
             StepTiltRelaxation(dt);
             ApplyRotation();
+        }
+
+        private void LateUpdate()
+        {
+            // Порог наклона читают все: подсветка и звук бутыли живут на каждой
+            // машине, а не только у того, кто считает модель.
+            bool beyond = TiltAngle >= settings.tiltThreshold;
+            if (beyond != beyondThreshold)
+            {
+                beyondThreshold = beyond;
+                TiltThresholdCrossed?.Invoke(beyond);
+            }
+
+            if (handlesPending)
+            {
+                ApplyNetState(netState.Value);
+            }
         }
 
         /// <summary>
@@ -675,13 +1088,6 @@ namespace Igruha.Core.Items
                     tiltAngularVelocity -= axis * along;
                 }
             }
-
-            bool beyond = TiltAngle >= settings.tiltThreshold;
-            if (beyond != beyondThreshold)
-            {
-                beyondThreshold = beyond;
-                TiltThresholdCrossed?.Invoke(beyond);
-            }
         }
 
         private void ApplyRotation()
@@ -731,7 +1137,9 @@ namespace Igruha.Core.Items
 
         private void OnCollisionEnter(Collision collision)
         {
-            if (!InFlight)
+            // Приземление снимает полёт, а полёт — состояние: решает авторитет,
+            // остальные узнают из него же.
+            if (!InFlight || !HasAuthority)
             {
                 return;
             }
@@ -741,8 +1149,7 @@ namespace Igruha.Core.Items
                 return;
             }
 
-            InFlight = false;
-            Landed?.Invoke();
+            PublishInFlight(false);
         }
 
         // ========== СЛУЖЕБНОЕ ==========
