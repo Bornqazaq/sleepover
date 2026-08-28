@@ -461,7 +461,7 @@ namespace Igruha.Minigames.Exam
                 // в одной точке и не расталкивали друг друга физикой.
                 float offset = (match.QuestionNumber % 5 - 2) * 1.6f;
                 Vector3 spot = returnZone.position + returnZone.right * offset;
-                previous.Avatar.TeleportTo(spot, Quaternion.identity);
+                previous.Avatar.RequestTeleport(spot, Quaternion.identity);
             }
 
             if (previous == SessionScoreboard.Current?.LocalPlayer)
@@ -497,8 +497,12 @@ namespace Igruha.Minigames.Exam
                 // Разводим по ширине зоны той же арифметикой, что и бывших
                 // Ведущих: иначе поднятые встают в одну точку и расталкивают
                 // друг друга физикой.
+                //
+                // RequestTeleport по той же причине, что и у кафедры: упавший
+                // клиент прямым TeleportTo не поднимался вовсе и досиживал
+                // матч в яме, ведя оттуда свои вопросы (живой прогон 28.08).
                 float offset = (i % 5 - 2) * 1.6f;
-                avatar.TeleportTo(returnZone.position + returnZone.right * offset, Quaternion.identity);
+                avatar.RequestTeleport(returnZone.position + returnZone.right * offset, Quaternion.identity);
             }
         }
 
@@ -726,9 +730,16 @@ namespace Igruha.Minigames.Exam
 
             // Ведущий переезжает за кафедру мгновенно: проход через зал
             // отнял бы половину фазы печати.
+            //
+            // RequestTeleport, а НЕ TeleportTo. Персонаж висит на
+            // ClientNetworkTransform (авторитет владельца), и прямой перенос
+            // с сервера чужую копию не двигает: владелец перезапишет позицию
+            // в тот же кадр. Живой прогон 28.08: Ведущим стал клиент, за
+            // кафедрой не появился никто, панель печати не открылась, и оба
+            // игрока отсидели все 30 секунд фазы, ожидая «фантомного» третьего.
             if (podiumStand != null && HasAuthority)
             {
-                host.Player.Avatar.TeleportTo(podiumStand.position, podiumStand.rotation);
+                host.Player.Avatar.RequestTeleport(podiumStand.position, podiumStand.rotation);
             }
 
             // Ставим за кафедру «с нуля»: в полный рост и без танца. Под
