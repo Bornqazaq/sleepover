@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.InputSystem;
 using Unity.Cinemachine;
 
@@ -38,10 +38,16 @@ namespace Igruha.Core.CameraSystems
         [Header("Формат камеры — орбита от третьего лица, как в GTA 5. Не менять")]
         [Tooltip("Слои сплошной геометрии: Ground, Cover, PlayerBarrier. Default сюда не входит намеренно — там триггеры чекпоинтов и ловушек и сами персонажи")]
         [SerializeField] private LayerMask occluders;
-        [Tooltip("Насколько близко камера подходит к персонажу, когда её прижало к стене")]
+        [Tooltip("Насколько близко камера подходит к точке обхода, когда её прижало к стене")]
         [SerializeField] private float minDistanceFromTarget = 0.25f;
         [Tooltip("Радиус пробника камеры — на столько она держится от геометрии")]
         [SerializeField] private float probeRadius = 0.28f;
+        [Tooltip("На сколько точка обхода выше макушки персонажа")]
+        [SerializeField] private float pivotHeadroom = 0.25f;
+        [Tooltip("Высота точки обхода, если у цели нет капсулы, — метры от её основания")]
+        [SerializeField] private float fallbackPivotHeight = 1.9f;
+        [Tooltip("С какой дистанции до точки обхода взгляд начинает подниматься к макушке")]
+        [SerializeField] private float aimLiftDistance = 2.2f;
 
         /// <summary>
         /// Захват курсора телепортирует его в центр экрана, и следом приходит
@@ -61,8 +67,17 @@ namespace Igruha.Core.CameraSystems
         private bool discardFirstLook;
 
         private CinemachineOrbitalFollow orbit;
+        private CinemachineCamera cam;
+        private CinemachineDeoccluder deoccluder;
+        private CinemachineRotationComposer composer;
         private int warmupFramesLeft;
         private bool lookSuspended;
+
+        /// <summary>Точка взгляда в кадре без помех — та, что выставил геймдизайнер. К ней камера возвращается, отойдя от стены.</summary>
+        private Vector3 restAimOffset;
+
+        private Transform pivotTarget;
+        private CapsuleCollider pivotCapsule;
 
         /// <summary>
         /// Накопленное смещение мыши, ещё не отданное камере.
@@ -103,6 +118,14 @@ namespace Igruha.Core.CameraSystems
         private void Awake()
         {
             orbit = GetComponent<CinemachineOrbitalFollow>();
+            deoccluder = GetComponent<CinemachineDeoccluder>();
+            TryGetComponent(out cam);
+
+            if (TryGetComponent(out composer))
+            {
+                restAimOffset = composer.TargetOffset;
+            }
+
             EnforceFormat();
         }
 
@@ -118,7 +141,7 @@ namespace Igruha.Core.CameraSystems
         /// </summary>
         private void EnforceFormat()
         {
-            if (!TryGetComponent(out CinemachineDeoccluder deoccluder))
+            if (deoccluder == null)
             {
                 Debug.LogError($"{name}: на риге нет CinemachineDeoccluder — камера будет проходить сквозь стены", this);
                 return;
@@ -136,7 +159,71 @@ namespace Igruha.Core.CameraSystems
             avoidance.DistanceLimit = 0f;
             // Ждать перед реакцией нельзя: за время ожидания стена уже в кадре.
             avoidance.MinimumOcclusionTime = 0f;
+
+            // Подтягивается камера к точке над макушкой, а не к точке взгляда.
+            // На этапе Body, когда работает деокклюдер, точкой взгляда ещё
+            // служит корень персонажа — то есть его ступни. Камера съезжала
+            // к ним по лучу и упиралась в ноги с полуметра: кадр занимали
+            // голени и пол, обзор пропадал целиком. Высота уточняется каждый
+            // кадр в LateUpdate — она едет от приседа.
+            avoidance.UseFollowTarget.Enabled = true;
+            avoidance.UseFollowTarget.YOffset = fallbackPivotHeight;
             deoccluder.AvoidObstacles = avoidance;
+        }
+
+        /// <summary>
+        /// Защита от геометрии: держать камеру над макушкой и поднимать к ней
+        /// взгляд по мере того, как камеру прижимает к персонажу.
+        ///
+        /// Одной точки обхода мало. Камера перестаёт съезжать в ноги, но взгляд
+        /// остаётся на прежней точке у пола — прижатая камера смотрит с макушки
+        /// почти отвесно вниз, и обзор теряется ровно так же. Поэтому точка
+        /// взгляда едет вверх вместе с сокращением дистанции: на полном отлёте
+        /// кадр в точности прежний, вплотную — камера стоит над головой и
+        /// смотрит вперёд, а персонаж уходит под нижний край кадра.
+        /// </summary>
+        private void LateUpdate()
+        {
+            if (cam == null || composer == null || deoccluder == null)
+            {
+                return;
+            }
+
+            Transform target = cam.Follow;
+            if (target == null)
+            {
+                return;
+            }
+
+            if (!ReferenceEquals(target, pivotTarget))
+            {
+                pivotTarget = target;
+                target.TryGetComponent(out pivotCapsule);
+            }
+
+            // Присед меняет высоту капсулы, и точка обхода обязана ехать с ней:
+            // постоянные два метра в лазу оказались бы внутри перекрытия, а луч
+            // обхода — внутри геометрии, откуда он не видит ничего.
+            float pivotHeight = pivotCapsule != null
+                ? pivotCapsule.center.y + pivotCapsule.height * 0.5f + pivotHeadroom
+                : fallbackPivotHeight;
+
+            CinemachineDeoccluder.ObstacleAvoidance avoidance = deoccluder.AvoidObstacles;
+            avoidance.UseFollowTarget.YOffset = pivotHeight;
+            deoccluder.AvoidObstacles = avoidance;
+
+            // Ближе этого камера не подходит физически: деокклюдер начинает
+            // пробу от суммы минимальной дистанции и радиуса пробника.
+            float closest = minDistanceFromTarget + probeRadius;
+            float far = Mathf.Max(aimLiftDistance, closest + 0.01f);
+
+            Vector3 pivot = target.position + target.rotation * (Vector3.up * pivotHeight);
+            float distance = Vector3.Distance(cam.State.GetFinalPosition(), pivot);
+            float lift = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(closest, far, distance));
+
+            Vector3 aim = restAimOffset;
+            aim.y = Mathf.Lerp(restAimOffset.y, pivotHeight, lift);
+            composer.TargetOffset = aim;
         }
 
         private void OnEnable()
