@@ -71,21 +71,29 @@ namespace Igruha.Minigames.BelieveOrNot
         [Tooltip("Радиус окружности стартовых точек")]
         [SerializeField] private float spawnRingRadius = 6f;
         [SerializeField] private float boxSize = 0.8f;
-        [Tooltip("Смещение коробки от центра стола к своему владельцу")]
-        [SerializeField] private float boxOffset = 1f;
+        [Tooltip("Смещение коробки от центра стола к своему владельцу. Держать близко к центру: " +
+                 "разнесённые по краям коробки не влезают в один кадр вместе с лицом оппонента")]
+        [SerializeField] private float boxOffset = 0.55f;
         [SerializeField] private float lampHeight = 3.5f;
 
         [Header("Камера сидящего")]
-        [Tooltip("На сколько риг отнесён назад от своей точки посадки, ШП")]
-        [SerializeField] private float seatCameraBack = 0.5f;
-        [Tooltip("Высота рига над полом, метры. Выше головы сидящего намеренно: " +
-                 "с уровня глаз собственный затылок закрывает весь кадр")]
-        [SerializeField] private float seatCameraHeight = 2.6f;
+        [Tooltip("Насколько риг отнесён за точку посадки вдоль оси стола, ШП. Работает только " +
+                 "в паре с боковым выносом и высотой: сам по себе отход назад ставит камеру " +
+                 "в затылок себе")]
+        [SerializeField] private float seatCameraBack = 0.19f;
+        [Tooltip("Боковой вынос рига от оси стола, ШП. Ноль означает взгляд СКВОЗЬ собственную " +
+                 "голову: до плейтеста 28.08 было именно так, и своё же тело закрывало " +
+                 "обе коробки и половину лица оппонента. Кадр обязан быть через плечо")]
+        [SerializeField] private float seatCameraSide = 0.83f;
+        [Tooltip("Высота рига над полом, метры. Выше головы сидящего: сверху видно крышки " +
+                 "коробок и что с ними делают, с уровня глаз — только их бока")]
+        [SerializeField] private float seatCameraHeight = 2f;
         [Tooltip("Куда смотрит камера: точка над центром стола, метры. По ней в кадр попадают " +
-                 "и обе коробки, и лицо оппонента, а свой затылок остаётся за нижней границей")]
-        [SerializeField] private float seatLookHeight = 1.1f;
-        [Tooltip("Угол обзора. Подобран так, чтобы свой затылок был вне кадра, а лицо оппонента читалось")]
-        [SerializeField] private float seatCameraFov = 42f;
+                 "и обе коробки, и лицо оппонента, и пузырь с его репликой")]
+        [SerializeField] private float seatLookHeight = 1.2f;
+        [Tooltip("Угол обзора. Подобран так, чтобы пузырь оппонента не срезало верхней " +
+                 "границей, а своя коробка не ушла за нижнюю")]
+        [SerializeField] private float seatCameraFov = 50f;
 
         [Header("Свет")]
         [Tooltip("Угол конуса лампы над столом")]
@@ -93,8 +101,10 @@ namespace Igruha.Minigames.BelieveOrNot
         [SerializeField] private float lampIntensity = 25f;
         [Tooltip("Цвет лампы: тёплый, ~3000 K")]
         [SerializeField] private Color lampColor = new Color(1f, 0.85f, 0.65f);
-        [Tooltip("Общий свет зала. Почти чёрный — темнота здесь механика фокуса, а не украшение")]
-        [SerializeField] private Color ambientColor = new Color(0.02f, 0.02f, 0.03f);
+        [Tooltip("Общий свет зала. Тёмный — темнота здесь механика фокуса, а не украшение, — " +
+                 "но не чёрный: на 0.02 зритель за пределами круга лампы не видел ни пола, " +
+                 "ни соседей и терял стол из виду вовсе")]
+        [SerializeField] private Color ambientColor = new Color(0.07f, 0.07f, 0.09f);
 
         public float SeatingSeconds => seatingSeconds;
         public float PeekSeconds => peekSeconds;
@@ -132,6 +142,9 @@ namespace Igruha.Minigames.BelieveOrNot
         public float LampHeight => lampHeight * unitsPerWidth;
 
         public float SeatCameraBack => seatCameraBack * unitsPerWidth;
+
+        /// <summary>Боковой вынос камеры сидящего — кадр «через плечо».</summary>
+        public float SeatCameraSide => seatCameraSide * unitsPerWidth;
 
         /// <summary>Высота рига задана в метрах: она привязана к росту персонажа, а не к планировке.</summary>
         public float SeatCameraHeight => seatCameraHeight;

@@ -383,7 +383,14 @@ namespace Igruha.EditorTools
             for (int seat = 0; seat < BelieveTable.SeatCount; seat++)
             {
                 Vector3 direction = SeatDirection(seat);
+
+                // Камера стоит НЕ в затылке сидящему, а через плечо и чуть впереди
+                // него. Взгляд из-за затылка (как было до плейтеста 28.08) закрывал
+                // собственным телом весь стол: обе коробки, руки оппонента и половину
+                // его лица. Своё тело обязано остаться позади объектива.
+                Vector3 side = Vector3.Cross(Vector3.up, direction);
                 Vector3 position = direction * (config.SeatDistance + config.SeatCameraBack) +
+                                   side * config.SeatCameraSide +
                                    Vector3.up * config.SeatCameraHeight;
 
                 var camAnchor = new GameObject($"SeatCamera_{seat}");
@@ -428,25 +435,35 @@ namespace Igruha.EditorTools
                 Vector3.zero, boxColor);
             Object.DestroyImmediate(body.GetComponent<Collider>());
 
-            // Петля сзади: крышка обязана откидываться назад, а не подниматься
-            // параллельно столу.
+            // Петля сбоку, а не сзади. Откинутая назад крышка ближней коробки
+            // вставала ровно между камерой сидящего и столом — тёмная плита
+            // на треть экрана, из-за которой не видно ни второй коробки, ни
+            // рук оппонента. Вбок обе крышки уходят в разные стороны сами:
+            // коробки развёрнуты друг к другу, и локальная ось X у них
+            // смотрит в противоположные стороны мира.
             var hinge = new GameObject("LidHinge");
             hinge.transform.SetParent(root.transform, false);
-            hinge.transform.localPosition = new Vector3(0f, size * 0.35f, -size * 0.375f);
+            hinge.transform.localPosition = new Vector3(size * 0.5f, size * 0.35f, 0f);
 
             GameObject lid = CreateBox(hinge.transform, "Lid", new Vector3(size, size * 0.12f, size * 0.75f),
-                new Vector3(0f, 0f, size * 0.375f), boxColor);
+                new Vector3(-size * 0.5f, 0f, 0f), boxColor);
             Object.DestroyImmediate(lid.GetComponent<Collider>());
 
-            GameObject win = CreateBox(root.transform, "Card_Win", new Vector3(size * 0.7f, 0.02f, size * 0.5f),
-                new Vector3(0f, size * 0.3f, 0f), new Color(0.35f, 0.72f, 0.4f));
-            Object.DestroyImmediate(win.GetComponent<Collider>());
-            win.SetActive(false);
+            // Карточки живут на общем держателе: на раскрытии он поднимается над
+            // коробкой и разворачивается к камере. Лежащая на дне пластина не
+            // читается ни сидящим (он смотрит вдоль неё и видит торец), ни залу
+            // (её закрывает откинутая крышка) — плейтест 28.08.
+            // Знак поднимается не строго над своей коробкой, а со сдвигом вбок.
+            // Обе коробки стоят на одной оси с камерой сидящего, и знаки,
+            // поднятые ровно вверх, закрывают друг друга: ближний — дальний.
+            // Коробки развёрнуты друг к другу, поэтому один и тот же сдвиг
+            // по локальной оси разводит знаки в разные стороны сам.
+            var cardPivot = new GameObject("CardPivot");
+            cardPivot.transform.SetParent(root.transform, false);
+            cardPivot.transform.localPosition = new Vector3(size * 0.55f, size * 0.1f, 0f);
 
-            GameObject lose = CreateBox(root.transform, "Card_Lose", new Vector3(size * 0.7f, 0.02f, size * 0.5f),
-                new Vector3(0f, size * 0.3f, 0f), new Color(0.75f, 0.32f, 0.3f));
-            Object.DestroyImmediate(lose.GetComponent<Collider>());
-            lose.SetActive(false);
+            GameObject win = BuildSign(cardPivot.transform, "Card_Win", size, true);
+            GameObject lose = BuildSign(cardPivot.transform, "Card_Lose", size, false);
 
             var glow = new GameObject("PeekGlow");
             glow.transform.SetParent(root.transform, false);
@@ -467,9 +484,66 @@ namespace Igruha.EditorTools
             so.FindProperty("loseCard").objectReferenceValue = lose;
             so.FindProperty("peekGlow").objectReferenceValue = glow;
             so.FindProperty("gagPuff").objectReferenceValue = gag;
+            so.FindProperty("cardPivot").objectReferenceValue = cardPivot.transform;
+            so.FindProperty("revealLift").floatValue = size * 0.95f;
             so.ApplyModifiedPropertiesWithoutUndo();
 
             return component;
+        }
+
+        /// <summary>
+        /// Знак исхода: щит с галочкой или с крестом.
+        ///
+        /// Собран геометрией, а не текстом, намеренно. Значков ✓ и ✗ нет в
+        /// статическом атласе шрифта — тот же случай, на котором «Экзамен»
+        /// потерял разметку (`STATE.md`, 3.12). Плюс геометрия читается
+        /// с любого расстояния и не зависит от языка: зрителю с десяти метров
+        /// нужен силуэт, а не подпись.
+        /// </summary>
+        private static GameObject BuildSign(Transform parent, string name, float size, bool win)
+        {
+            var root = new GameObject(name);
+            root.transform.SetParent(parent, false);
+
+            float plate = size * 0.55f;
+            Color faceColor = win ? new Color(0.10f, 0.42f, 0.18f) : new Color(0.52f, 0.10f, 0.10f);
+            Color markColor = win ? new Color(0.55f, 1f, 0.6f) : new Color(1f, 0.72f, 0.68f);
+
+            CreateUnlitBox(root.transform, "Face", new Vector3(plate, plate, size * 0.06f), Vector3.zero, faceColor);
+
+            // Полосы знака вынесены вперёд щита: держатель разворачивается
+            // к камере лицом (+Z), и знак обязан оказаться перед фоном.
+            float bar = plate * 0.2f;
+            float front = size * 0.05f;
+
+            if (win)
+            {
+                CreateUnlitBox(root.transform, "Mark_Short", new Vector3(bar, plate * 0.42f, bar),
+                    new Vector3(-plate * 0.16f, -plate * 0.12f, front), markColor)
+                    .transform.localRotation = Quaternion.Euler(0f, 0f, 40f);
+
+                CreateUnlitBox(root.transform, "Mark_Long", new Vector3(bar, plate * 0.78f, bar),
+                    new Vector3(plate * 0.08f, plate * 0.04f, front), markColor)
+                    .transform.localRotation = Quaternion.Euler(0f, 0f, -25f);
+            }
+            else
+            {
+                CreateUnlitBox(root.transform, "Mark_A", new Vector3(bar, plate * 0.8f, bar),
+                    new Vector3(0f, 0f, front), markColor)
+                    .transform.localRotation = Quaternion.Euler(0f, 0f, 45f);
+
+                CreateUnlitBox(root.transform, "Mark_B", new Vector3(bar, plate * 0.8f, bar),
+                    new Vector3(0f, 0f, front), markColor)
+                    .transform.localRotation = Quaternion.Euler(0f, 0f, -45f);
+            }
+
+            foreach (Collider collider in root.GetComponentsInChildren<Collider>())
+            {
+                Object.DestroyImmediate(collider);
+            }
+
+            root.SetActive(false);
+            return root;
         }
 
         /// <summary>
@@ -600,8 +674,10 @@ namespace Igruha.EditorTools
                 }
 
                 // Не выключаем совсем: без него силуэты зрителей сливаются
-                // в чёрное пятно и по залу непонятно, где кто.
-                lights[i].intensity = 0.06f;
+                // в чёрное пятно и по залу непонятно, где кто. На 0.06 так
+                // и было — зритель, отбежавший от лампы, оставался в почти
+                // полной темноте (плейтест 28.08).
+                lights[i].intensity = 0.18f;
                 lights[i].color = new Color(0.55f, 0.6f, 0.8f);
                 lights[i].shadows = LightShadows.None;
             }
@@ -639,13 +715,14 @@ namespace Igruha.EditorTools
             var tutorial = Object.FindFirstObjectByType<TutorialScreen>(FindObjectsInactive.Include);
             var timer = Object.FindFirstObjectByType<RoundTimer>(FindObjectsInactive.Include);
             var camera = Object.FindFirstObjectByType<MinigameCameraController>(FindObjectsInactive.Include);
-            var canvas = Object.FindFirstObjectByType<Canvas>(FindObjectsInactive.Include);
+            Canvas canvas = FindScreenCanvas(hud, tutorial);
 
             Transform uiRoot = canvas != null ? canvas.transform : null;
             EnsureHudStatusLine(hud, uiRoot);
             BelievePeekView peek = BuildPeekView(uiRoot);
             BelieveDecisionPanel decision = BuildDecisionPanel(uiRoot);
             QuickPhrasePanel phrases = BuildPhrasePanel(uiRoot);
+            BelieveSeatHud seatHud = BuildSeatHud(uiRoot);
             Transform fixedRig = BuildFixedRig(camera, config);
 
             // Ассеты перечитываются здесь, а не берутся из аргумента: между
@@ -664,6 +741,7 @@ namespace Igruha.EditorTools
             so.FindProperty("peekView").objectReferenceValue = peek;
             so.FindProperty("decisionPanel").objectReferenceValue = decision;
             so.FindProperty("phrasePanel").objectReferenceValue = phrases;
+            so.FindProperty("seatHud").objectReferenceValue = seatHud;
             so.FindProperty("knowerPhrases").objectReferenceValue = Find<QuickPhraseSet>("BelieveKnowerPhrases");
             so.FindProperty("deciderPhrases").objectReferenceValue = Find<QuickPhraseSet>("BelieveDeciderPhrases");
             so.ApplyModifiedPropertiesWithoutUndo();
@@ -685,6 +763,48 @@ namespace Igruha.EditorTools
                 tableSo.FindProperty("fixedCameraRig").objectReferenceValue = fixedRig;
                 tableSo.ApplyModifiedPropertiesWithoutUndo();
             }
+        }
+
+        /// <summary>
+        /// Найти ЭКРАННЫЙ холст — тот, на котором уже живут таймер и заставка.
+        ///
+        /// ⚠️ Здесь стоял <c>FindFirstObjectByType&lt;Canvas&gt;</c>, и это была
+        /// самая дорогая ошибка блокаута. К моменту вызова в сцене уже собраны
+        /// два пузыря реплик, а пузырь — тоже <c>Canvas</c>, только мировой,
+        /// масштаба 0.004 и развёрнутый к камере спиной. Поиск «первого
+        /// попавшегося» отдавал пузырь примерно через раз, и весь интерфейс
+        /// игры — карточка Знающего, кнопки Решающего, панель реплик, строка
+        /// счёта — уезжал внутрь этого пузыря: сантиметровыми зеркальными
+        /// буквами над головой сидящего. Живой прогон 28.08 звучал ровно так:
+        /// «текст отзеркален, ничего не читается, непонятно, что происходит».
+        ///
+        /// Поэтому холст ищется по владельцу, а не по типу: заставка и HUD
+        /// шаблона гарантированно висят на экранном холсте.
+        /// </summary>
+        private static Canvas FindScreenCanvas(RoundHud hud, TutorialScreen tutorial)
+        {
+            Canvas byOwner = tutorial != null ? tutorial.GetComponentInParent<Canvas>(true) : null;
+            if (byOwner == null && hud != null)
+            {
+                byOwner = hud.GetComponentInParent<Canvas>(true);
+            }
+
+            if (byOwner != null && byOwner.renderMode != RenderMode.WorldSpace)
+            {
+                return byOwner;
+            }
+
+            Canvas[] all = Object.FindObjectsByType<Canvas>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            for (int i = 0; i < all.Length; i++)
+            {
+                if (all[i].renderMode != RenderMode.WorldSpace)
+                {
+                    return all[i];
+                }
+            }
+
+            Debug.LogError("🎴 В сцене нет экранного холста — интерфейс игры вешать некуда");
+            return null;
         }
 
         /// <summary>
@@ -741,7 +861,7 @@ namespace Igruha.EditorTools
             {
                 "definition", "roundTimer", "tutorialScreen", "hud", "config", "table",
                 "stageState", "cameraController", "peekView", "decisionPanel", "phrasePanel",
-                "knowerPhrases", "deciderPhrases"
+                "seatHud", "knowerPhrases", "deciderPhrases"
             };
 
             var missing = new List<string>();
@@ -838,7 +958,7 @@ namespace Igruha.EditorTools
                                          ?? host.AddComponent<BelieveDecisionPanel>();
 
             RectTransform root = CreatePanel(host.transform, "Root", new Vector2(720f, 190f),
-                new Vector2(0f, -260f), new Color(0.04f, 0.04f, 0.06f, 0.9f));
+                new Vector2(0f, -330f), new Color(0.04f, 0.04f, 0.06f, 0.9f));
 
             Button keep = CreateButton(root, "KeepButton", "← ОСТАВИТЬ", new Vector2(-170f, 20f));
             Button swap = CreateButton(root, "SwapButton", "ПОМЕНЯТЬ →", new Vector2(170f, 20f));
@@ -860,13 +980,49 @@ namespace Igruha.EditorTools
             return panel;
         }
 
+        /// <summary>
+        /// Две строки «кто ты» и «что сказали». Панели под ними нет намеренно:
+        /// строки висят поверх кадра и не отъедают у него место — за столом
+        /// важно лицо оппонента, а не рамка.
+        /// </summary>
+        private static BelieveSeatHud BuildSeatHud(Transform uiRoot)
+        {
+            GameObject host = EnsureUiHost(uiRoot, "SeatHud");
+            BelieveSeatHud seatHud = host.GetComponent<BelieveSeatHud>() ?? host.AddComponent<BelieveSeatHud>();
+
+            TMP_Text role = CreateText(host.transform, "RoleLine", string.Empty, 28f, TextAlignmentOptions.Center);
+            // Низ экрана, а не верх: сверху уже стоят таймер и строка счёта
+            // из шаблона, и роль наезжала прямо на цифры таймера.
+            var roleRect = (RectTransform)role.transform;
+            roleRect.sizeDelta = new Vector2(1600f, 40f);
+            roleRect.anchoredPosition = new Vector2(0f, -470f);
+            role.enabled = false;
+
+            TMP_Text talk = CreateText(host.transform, "TalkLine", string.Empty, 34f, TextAlignmentOptions.Center);
+            var talkRect = (RectTransform)talk.transform;
+            talkRect.anchorMin = new Vector2(0.5f, 0.5f);
+            talkRect.anchorMax = new Vector2(0.5f, 0.5f);
+            talkRect.pivot = new Vector2(0.5f, 0.5f);
+            talkRect.sizeDelta = new Vector2(1400f, 90f);
+            talkRect.anchoredPosition = new Vector2(0f, 215f);
+            talk.textWrappingMode = TextWrappingModes.Normal;
+            talk.enabled = false;
+
+            var so = new SerializedObject(seatHud);
+            so.FindProperty("roleText").objectReferenceValue = role;
+            so.FindProperty("talkText").objectReferenceValue = talk;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            return seatHud;
+        }
+
         private static QuickPhrasePanel BuildPhrasePanel(Transform uiRoot)
         {
             GameObject host = EnsureUiHost(uiRoot, "PhrasePanel");
             QuickPhrasePanel panel = host.GetComponent<QuickPhrasePanel>() ?? host.AddComponent<QuickPhrasePanel>();
 
             RectTransform root = CreatePanel(host.transform, "Root", new Vector2(420f, 260f),
-                new Vector2(-430f, -140f), new Color(0.04f, 0.04f, 0.06f, 0.86f));
+                new Vector2(-560f, -40f), new Color(0.04f, 0.04f, 0.06f, 0.86f));
 
             TMP_Text hint = CreateText(root, "Hint", string.Empty, 19f, TextAlignmentOptions.Center);
             var hintRect = (RectTransform)hint.transform;
@@ -998,7 +1154,32 @@ namespace Igruha.EditorTools
             text.color = new Color(0.93f, 0.91f, 0.85f);
             text.alignment = alignment;
             text.raycastTarget = false;
+
+            // Перенос по словам, а не одна бесконечная строка за краем экрана:
+            // ровно на этом плейтест 28.08 потерял и описание игры, и половину
+            // строки счёта.
+            text.textWrappingMode = TextWrappingModes.Normal;
             return text;
+        }
+
+        /// <summary>
+        /// Кубик без света: цвет виден такой, какой задан, независимо от того,
+        /// куда смотрит грань. Нужен ровно для знаков исхода — вертикальная
+        /// пластина под лампой сверху остаётся почти чёрной и не читается,
+        /// а исход кона обязан быть виден с любого места зала.
+        /// </summary>
+        private static GameObject CreateUnlitBox(Transform parent, string name, Vector3 size, Vector3 position,
+            Color color)
+        {
+            GameObject go = CreateBox(parent, name, size, position, color);
+
+            Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+            if (shader != null)
+            {
+                go.GetComponent<Renderer>().sharedMaterial = new Material(shader) { color = color };
+            }
+
+            return go;
         }
 
         private static GameObject CreateBox(Transform parent, string name, Vector3 size, Vector3 position, Color color)

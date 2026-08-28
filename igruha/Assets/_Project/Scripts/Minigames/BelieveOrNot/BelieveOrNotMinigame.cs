@@ -49,6 +49,7 @@ namespace Igruha.Minigames.BelieveOrNot
         [SerializeField] private BelievePeekView peekView;
         [SerializeField] private BelieveDecisionPanel decisionPanel;
         [SerializeField] private QuickPhrasePanel phrasePanel;
+        [SerializeField] private BelieveSeatHud seatHud;
 
         [Header("Наборы реплик")]
         [SerializeField] private QuickPhraseSet knowerPhrases;
@@ -75,6 +76,13 @@ namespace Igruha.Minigames.BelieveOrNot
         /// поэтому исход считается как «поменяли ли» поверх этого значения.
         /// </summary>
         private int winningSeat;
+
+        /// <summary>
+        /// Что показали лично мне в этом коне. Только для надписи на своём
+        /// экране: у Решающего и у зрителей здесь всегда <c>Unknown</c>,
+        /// и содержимым коробок это значение не является.
+        /// </summary>
+        private BelieveCard localCard = BelieveCard.Unknown;
 
         /// <summary>Номер кона, который уже разрешён. Защита от второго разрешения того же кона.</summary>
         private int resolvedRound;
@@ -260,6 +268,8 @@ namespace Igruha.Minigames.BelieveOrNot
             peekView?.Close();
             decisionPanel?.Close();
             phrasePanel?.Close();
+            seatHud?.HideAll();
+            localCard = BelieveCard.Unknown;
             table?.HideBubbles();
 
             for (int i = 0; i < Players.Count; i++)
@@ -815,6 +825,8 @@ namespace Igruha.Minigames.BelieveOrNot
             peekView?.Close();
             decisionPanel?.Close();
             phrasePanel?.Close();
+            seatHud?.HideAll();
+            localCard = BelieveCard.Unknown;
             table.HideBubbles();
 
             // Блокировку и иммунитет ставит каждая машина себе сама, по
@@ -830,6 +842,12 @@ namespace Igruha.Minigames.BelieveOrNot
 
             PrepareBoxes();
             ApplySeatCamera();
+
+            // Роль пишем уже на рассадке, а не с началом уговоров: Решающему
+            // знать про себя нечего и ждать нечего, а лишние шесть секунд
+            // без единой подписи на экране — это ровно то, из-за чего игра
+            // читается как «меня куда-то перенесло и что-то происходит».
+            ShowLocalRole();
         }
 
         /// <summary>
@@ -945,7 +963,49 @@ namespace Igruha.Minigames.BelieveOrNot
         /// Показать карточку Знающему. Единственный путь, которым содержимое
         /// коробки вообще становится известно клиенту, и он адресный.
         /// </summary>
-        public void ApplyPeek(BelieveCard card) => peekView?.Show(card);
+        public void ApplyPeek(BelieveCard card)
+        {
+            localCard = card;
+            peekView?.Show(card);
+            ShowLocalRole();
+        }
+
+        /// <summary>
+        /// Написать на экране, кто ты в этом коне и что от тебя требуется.
+        ///
+        /// Карточка Знающего показывается три секунды, а уговоры идут сорок:
+        /// без этой строки половина игры проходила «а что мне было выпало?».
+        /// Решающий же до плейтеста 28.08 не видел на экране вообще ничего,
+        /// кроме двух кнопок без объяснения.
+        /// </summary>
+        private void ShowLocalRole()
+        {
+            if (seatHud == null)
+            {
+                return;
+            }
+
+            if (SeatOf(LocalPlayerId) < 0)
+            {
+                seatHud.HideRole();
+                return;
+            }
+
+            if (LocalPlayerId == match.KnowerPlayerId)
+            {
+                string card = localCard == BelieveCard.Win
+                    ? "у тебя ГАЛОЧКА — убеди его НЕ меняться"
+                    : localCard == BelieveCard.Lose
+                        ? "у тебя КРЕСТ — убеди его ПОМЕНЯТЬСЯ"
+                        : "смотри свою карточку";
+
+                seatHud.ShowRole($"Ты ЗНАЮЩИЙ · {card} · 1–5 — реплика", true);
+                return;
+            }
+
+            seatHud.ShowRole("Ты РЕШАЮЩИЙ · что в коробках, не знаешь · " +
+                             "← оставить, → поменять · 1–4 — реплика", false);
+        }
 
         private void ApplyPersuasionStage()
         {
@@ -957,6 +1017,7 @@ namespace Igruha.Minigames.BelieveOrNot
 
             peekView?.Close();
             ScheduleAutoplay();
+            ShowLocalRole();
 
             int localSeat = SeatOf(LocalPlayerId);
             if (localSeat < 0)
@@ -1115,8 +1176,16 @@ namespace Igruha.Minigames.BelieveOrNot
                 return;
             }
 
+            string phrase = set.Get(phraseIndex);
+
             bubble.AttachTo(FindPlayer(playerId)?.Avatar?.CameraTarget);
-            bubble.Show(set.Get(phraseIndex), config.PhraseBubbleSeconds);
+            bubble.Show(phrase, config.PhraseBubbleSeconds);
+
+            // Дубль строкой на экране. Свой пузырь сидящий не видит вовсе —
+            // он у него за спиной, — а чужой пропадает, стоит зрителю встать
+            // между камерой и столом. Разговор здесь и есть игра, и терять
+            // его на ракурсе нельзя.
+            seatHud?.ShowTalk(NameOf(playerId), phrase, config.PhraseBubbleSeconds);
         }
 
         private void ApplyRevealStage()
@@ -1178,7 +1247,53 @@ namespace Igruha.Minigames.BelieveOrNot
             atSeat0?.Reveal(seat0Card, config.LidOpenSeconds);
             atSeat1?.Reveal(seat1Card, config.LidOpenSeconds);
 
+            AnnounceOutcome(decision, seat0Card);
+
             revealRoutine = null;
+        }
+
+        /// <summary>
+        /// Сказать словами, чем кончился кон. Знаки над коробками читаются
+        /// не всем и не всегда: зритель может стоять к столу спиной, а
+        /// проигравшему в этот момент дымит в лицо облачко.
+        ///
+        /// Считается локально из тех же карточек, что приехали в раскрытие, —
+        /// отдельного сетевого сообщения не нужно, и разъехаться этой строке
+        /// с картинкой негде.
+        /// </summary>
+        private void AnnounceOutcome(Decision decision, BelieveCard seat0Card)
+        {
+            if (seatHud == null)
+            {
+                return;
+            }
+
+            // ⚠️ Карточки приезжают по НОМЕРУ КОРОБКИ, а не по месту, за которым
+            // она в итоге стоит: обмен меняет места коробок, содержимое остаётся
+            // при них. Поэтому исход считается ровно так же, как его считает
+            // авторитет в ResolveRound, — «поменяли ли» поверх того, у какой
+            // коробки лежала галочка. Иначе после обмена строка называла бы
+            // победителем проигравшего, а знаки над коробками показывали бы
+            // правду: две разные картинки одного и того же кона.
+            int cardSeat = seat0Card == BelieveCard.Win ? 0 : 1;
+            int winnerSeat = decision == Decision.Swap
+                ? BelieveTable.SeatCount - 1 - cardSeat
+                : cardSeat;
+
+            int winnerId = SeatedId(winnerSeat);
+            int localSeat = SeatOf(LocalPlayerId);
+
+            if (localSeat < 0)
+            {
+                seatHud.ShowResult($"Кон взял {NameOf(winnerId)}", true, config.ReactionSeconds);
+                return;
+            }
+
+            bool localWon = localSeat == winnerSeat;
+            seatHud.ShowResult(
+                localWon ? "Галочка у тебя — кон твой" : $"Галочка у соперника — кон взял {NameOf(winnerId)}",
+                localWon,
+                config.ReactionSeconds);
         }
 
         private void ApplyReactionStage()

@@ -37,13 +37,14 @@ MonoBehaviour:
   spectatorZoneRadius: 10
   spawnRingRadius: 6
   boxSize: 0.8
-  boxOffset: 1
+  boxOffset: 0.55
   lampHeight: 3.5
-  seatCameraBack: 0.5
-  seatCameraHeight: 2.6
-  seatLookHeight: 1.1
-  seatCameraFov: 42
+  seatCameraBack: 0.19
+  seatCameraSide: 0.83
+  seatCameraHeight: 2
+  seatLookHeight: 1.2
+  seatCameraFov: 50
   lampSpotAngle: 110
   lampIntensity: 25
   lampColor: {r: 1, g: 0.85, b: 0.65, a: 1}
-  ambientColor: {r: 0.02, g: 0.02, b: 0.03, a: 1}
+  ambientColor: {r: 0.07, g: 0.07, b: 0.09, a: 1}

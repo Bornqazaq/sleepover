@@ -19,7 +19,7 @@ namespace Igruha.Minigames.BelieveOrNot
     /// </summary>
     public sealed class BelieveBox : MonoBehaviour
     {
-        [Tooltip("Крышка. Вращается вокруг своей локальной оси X")]
+        [Tooltip("Крышка. Вращается вокруг своей локальной оси Z — петля сбоку коробки")]
         [SerializeField] private Transform lid;
 
         [Tooltip("Карточка с галочкой. Включается только в момент раскрытия")]
@@ -34,9 +34,30 @@ namespace Igruha.Minigames.BelieveOrNot
         [Tooltip("Облачко в лицо проигравшему. Косметика: персонажа не двигает")]
         [SerializeField] private ParticleSystem gagPuff;
 
+        [Tooltip("Держатель обеих карточек. На раскрытии поднимается над коробкой и " +
+                 "разворачивается к камере")]
+        [SerializeField] private Transform cardPivot;
+
+        [Tooltip("На сколько карточка поднимается над коробкой при раскрытии, метры")]
+        [SerializeField] private float revealLift = 0.45f;
+
+        [Tooltip("Время подъёма карточки, секунды")]
+        [SerializeField] private float cardRiseSeconds = 0.35f;
+
+        /// <summary>
+        /// Насколько откидывается крышка. Больше 90° намеренно: ровно на 90°
+        /// крышка встаёт вертикально и у ближней коробки закрывает собой всё
+        /// содержимое от того, кто на неё смотрит.
+        /// </summary>
+        private const float RevealLidAngle = 108f;
+
         private Quaternion closedRotation;
+        private Vector3 cardHome;
         private Coroutine lidRoutine;
         private Coroutine moveRoutine;
+        private Coroutine cardRoutine;
+        private bool cardRaised;
+        private Camera view;
 
         /// <summary>
         /// Что лежит внутри. Заполняется только на стороне авторитета
@@ -54,8 +75,48 @@ namespace Igruha.Minigames.BelieveOrNot
                 closedRotation = lid.localRotation;
             }
 
+            if (cardPivot != null)
+            {
+                cardHome = cardPivot.localPosition;
+            }
+
             SetCardsVisible(false);
             SetGlow(false);
+        }
+
+        /// <summary>
+        /// Поднятая карточка держится лицом к камере.
+        ///
+        /// Плоская карточка на дне коробки не читается вовсе: сидящий смотрит
+        /// на стол почти вдоль неё и видит торец в два сантиметра, а зрителю
+        /// её закрывает откинутая крышка. Поэтому исход кона показывает не
+        /// содержимое коробки, а поднятый над ней знак, развёрнутый к тому,
+        /// кто смотрит.
+        /// </summary>
+        private void LateUpdate()
+        {
+            if (!cardRaised || cardPivot == null)
+            {
+                return;
+            }
+
+            if (view == null || !view.isActiveAndEnabled)
+            {
+                view = Camera.main;
+            }
+
+            if (view == null)
+            {
+                return;
+            }
+
+            Vector3 toCamera = view.transform.position - cardPivot.position;
+            if (toCamera.sqrMagnitude < 0.0001f)
+            {
+                return;
+            }
+
+            cardPivot.rotation = Quaternion.LookRotation(toCamera, Vector3.up);
         }
 
         /// <summary>
@@ -75,6 +136,13 @@ namespace Igruha.Minigames.BelieveOrNot
                 lid.localRotation = closedRotation;
             }
 
+            if (cardPivot != null)
+            {
+                cardPivot.localPosition = cardHome;
+                cardPivot.localRotation = Quaternion.identity;
+            }
+
+            cardRaised = false;
             SetCardsVisible(false);
             SetGlow(false);
         }
@@ -100,7 +168,8 @@ namespace Igruha.Minigames.BelieveOrNot
         }
 
         /// <summary>
-        /// Раскрыть коробку: крышка уходит на 90°, карточка появляется.
+        /// Раскрыть коробку: крышка откидывается вбок, знак исхода поднимается
+        /// над коробкой и разворачивается к камере.
         /// Обе коробки обязаны получить этот вызов в один кадр — раскрытие
         /// одновременное, иначе зал успевает прочитать исход по первой.
         ///
@@ -114,7 +183,44 @@ namespace Igruha.Minigames.BelieveOrNot
             Card = card;
             SetGlow(false);
             SetCardsVisible(true);
-            RotateLid(-90f, seconds);
+            RotateLid(-RevealLidAngle, seconds);
+            RaiseCard();
+        }
+
+        /// <summary>Поднять знак над коробкой. Дальше его держит лицом к камере LateUpdate.</summary>
+        private void RaiseCard()
+        {
+            if (cardPivot == null)
+            {
+                return;
+            }
+
+            cardRaised = true;
+
+            if (cardRoutine != null)
+            {
+                StopCoroutine(cardRoutine);
+            }
+
+            cardRoutine = StartCoroutine(CardRiseRoutine());
+        }
+
+        private IEnumerator CardRiseRoutine()
+        {
+            Vector3 from = cardPivot.localPosition;
+            Vector3 to = cardHome + Vector3.up * revealLift;
+            float elapsed = 0f;
+
+            while (elapsed < cardRiseSeconds)
+            {
+                elapsed += Time.deltaTime;
+                float t = cardRiseSeconds > 0f ? Mathf.Clamp01(elapsed / cardRiseSeconds) : 1f;
+                cardPivot.localPosition = Vector3.Lerp(from, to, Mathf.SmoothStep(0f, 1f, t));
+                yield return null;
+            }
+
+            cardPivot.localPosition = to;
+            cardRoutine = null;
         }
 
         /// <summary>Гэг проигравшей коробки. Ничего не двигает и ни на что не влияет.</summary>
@@ -178,7 +284,7 @@ namespace Igruha.Minigames.BelieveOrNot
                 StopCoroutine(lidRoutine);
             }
 
-            lidRoutine = StartCoroutine(LidRoutine(closedRotation * Quaternion.Euler(angle, 0f, 0f), seconds));
+            lidRoutine = StartCoroutine(LidRoutine(closedRotation * Quaternion.Euler(0f, 0f, angle), seconds));
         }
 
         private IEnumerator LidRoutine(Quaternion target, float seconds)
@@ -231,6 +337,12 @@ namespace Igruha.Minigames.BelieveOrNot
             {
                 StopCoroutine(moveRoutine);
                 moveRoutine = null;
+            }
+
+            if (cardRoutine != null)
+            {
+                StopCoroutine(cardRoutine);
+                cardRoutine = null;
             }
         }
     }

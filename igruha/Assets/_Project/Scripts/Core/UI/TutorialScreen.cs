@@ -33,6 +33,8 @@ namespace Igruha.Core.UI
                 return;
             }
 
+            EnforceWrapping();
+
             if (titleText != null)
             {
                 titleText.text = definition.DisplayName;
@@ -58,6 +60,35 @@ namespace Igruha.Core.UI
             hideTimer = definition.TutorialDuration;
             visible = true;
             panel.SetActive(true);
+        }
+
+        /// <summary>
+        /// Заставить строки переноситься по словам.
+        ///
+        /// ⚠️ В шаблоне сцены у всех трёх полей стоит <c>NoWrap</c>, и описание
+        /// длиннее одной строки уезжало за оба края экрана: у «Верю / не верю»
+        /// из четырнадцати слов читались шесть средних, начало и конец были
+        /// срезаны рамкой кадра. Правится кодом, а не в инспекторе, по той же
+        /// причине, что и формат камеры (`igruha/CLAUDE.md`, 2a): шаблон
+        /// копируется в каждую мини-игру, YAML не переживает слияние веток,
+        /// и одна правка руками чинит одну сцену из девяти.
+        /// </summary>
+        private void EnforceWrapping()
+        {
+            Wrap(titleText);
+            Wrap(objectiveText);
+            Wrap(controlsText);
+        }
+
+        private static void Wrap(TMP_Text text)
+        {
+            if (text == null)
+            {
+                return;
+            }
+
+            text.textWrappingMode = TextWrappingModes.Normal;
+            text.overflowMode = TextOverflowModes.Overflow;
         }
 
         /// <summary>
