@@ -62,7 +62,10 @@ namespace Igruha.Minigames.BelieveOrNot
 
             if (hintText != null)
             {
-                hintText.text = "← оставить    •    поменять →";
+                // Кнопки подписаны сами, и повторять подписи под ними незачем.
+                // Сказать надо то, чего по кнопкам не видно: второго нажатия
+                // не будет.
+                hintText.text = "Решение окончательное";
             }
 
             cursor.Release();
