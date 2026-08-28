@@ -278,11 +278,16 @@ namespace Igruha.EditorTools
             var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
             StripColliders(go);
 
-            Vector3 size = OrientedSize(local.size, entry.YawSteps);
+            // В оси модели перекладывается габарит коробки, а не наоборот.
+            // Масштаб применяется до доворота, поэтому посчитанный в осях
+            // коробки он после поворота на 90° уходит не на ту ось: стог,
+            // одевавший полосу провала, выходил 21 метр в длину при коробке
+            // в 4.32 и ложился поперёк соседних кусков перекрытия.
+            Vector3 target = SwapForYaw(boxScale, entry.YawSteps);
             Vector3 world = new Vector3(
-                Mathf.Abs(boxScale.x) / size.x,
-                Mathf.Abs(boxScale.y) / size.y,
-                Mathf.Abs(boxScale.z) / size.z);
+                Mathf.Abs(target.x) / local.size.x,
+                Mathf.Abs(target.y) / local.size.y,
+                Mathf.Abs(target.z) / local.size.z);
 
             ApplyTransform(go.transform, entry.YawSteps, local, boxScale, world, Vector3.zero);
         }
@@ -295,7 +300,7 @@ namespace Igruha.EditorTools
         private static void PlaceRow(Transform parent, GameObject prefab, Entry entry, Bounds local,
             Vector3 boxScale, System.Random rng)
         {
-            Vector3 size = OrientedSize(local.size, entry.YawSteps);
+            Vector3 size = SwapForYaw(local.size, entry.YawSteps);
             bool alongX = Mathf.Abs(boxScale.x) >= Mathf.Abs(boxScale.z);
             float runLength = Mathf.Abs(alongX ? boxScale.x : boxScale.z);
             float crossLength = Mathf.Abs(alongX ? boxScale.z : boxScale.x);
@@ -325,13 +330,15 @@ namespace Igruha.EditorTools
                 float centre01 = (i + 0.5f) / count - 0.5f;
                 Vector3 offset01 = alongX ? new Vector3(centre01, 0f, 0f) : new Vector3(0f, 0f, centre01);
 
-                Vector3 world = alongX
-                    ? new Vector3(uniform * fill, uniform, uniform * crossFill)
-                    : new Vector3(uniform * crossFill, uniform, uniform * fill);
-
                 // Разворот через одну копию: одинаково повёрнутый ряд читается
                 // как забор из клонов, а зеркальный — как сложенная кладка.
+                // Пол-оборота осей не меняет, четверть — меняет.
                 int yaw = entry.YawSteps + (rng.Next(2) == 0 ? 0 : 2);
+
+                Vector3 world = SwapForYaw(alongX
+                    ? new Vector3(uniform * fill, uniform, uniform * crossFill)
+                    : new Vector3(uniform * crossFill, uniform, uniform * fill), yaw);
+
                 ApplyTransform(go.transform, yaw, local, boxScale, world, offset01);
             }
         }
@@ -348,10 +355,14 @@ namespace Igruha.EditorTools
         {
             Quaternion yaw = Quaternion.Euler(0f, 90f * yawSteps, 0f);
             t.localRotation = yaw;
+
+            // Делится на габарит коробки в осях модели: масштаб по оси X модели
+            // после доворота на 90° умножается на масштаб коробки по Z, а не X.
+            Vector3 parent = SwapForYaw(boxScale, yawSteps);
             t.localScale = new Vector3(
-                world.x / Mathf.Max(0.0001f, Mathf.Abs(boxScale.x)),
-                world.y / Mathf.Max(0.0001f, Mathf.Abs(boxScale.y)),
-                world.z / Mathf.Max(0.0001f, Mathf.Abs(boxScale.z)));
+                world.x / Mathf.Max(0.0001f, Mathf.Abs(parent.x)),
+                world.y / Mathf.Max(0.0001f, Mathf.Abs(parent.y)),
+                world.z / Mathf.Max(0.0001f, Mathf.Abs(parent.z)));
 
             // Центр габарита модели после масштаба и доворота — в локальных
             // единицах коробки, то есть в долях её размера.
@@ -365,10 +376,14 @@ namespace Igruha.EditorTools
             t.localPosition = offset01 - centreLocal;
         }
 
-        /// <summary>Габарит модели с учётом доворота на 90°: длина и глубина меняются местами.</summary>
-        private static Vector3 OrientedSize(Vector3 size, int yawSteps)
+        /// <summary>
+        /// Переложить вектор между осями коробки и осями модели. Доворот на 90°
+        /// меняет длину и глубину местами, на 180° — не меняет ничего, поэтому
+        /// смотрится только чётность. Операция обратна самой себе.
+        /// </summary>
+        private static Vector3 SwapForYaw(Vector3 v, int yawSteps)
         {
-            return (Mathf.Abs(yawSteps) % 2 == 0) ? size : new Vector3(size.z, size.y, size.x);
+            return (Mathf.Abs(yawSteps) % 2 == 0) ? v : new Vector3(v.z, v.y, v.x);
         }
 
         /// <summary>

@@ -450,6 +450,9 @@ namespace Igruha.EditorTools
         /// <summary>Дыры текущего этажа: сквозные, случайные, паркурная пропасть и проём лестницы.</summary>
         private static readonly List<Hole> slabHoles = new List<Hole>(24);
 
+        /// <summary>Куски пола текущего этажа: заполняет <see cref="BuildSlab"/>, читает <see cref="BuildIce"/>.</summary>
+        private static readonly List<Rect> slabRects = new List<Rect>(24);
+
         private static Material floorMaterial;
         private static Material floorWinterMaterial;
         private static Material metalMaterial;
@@ -620,10 +623,43 @@ namespace Igruha.EditorTools
             }
 
             CollectSlabHoles(floor);
+            CutFloorRects(length, depth, hasCollapse, collapseMin, collapseMax);
 
-            // Перекрытие режется полосами по X, а внутри полосы — по Z.
-            // Прямоугольные вырезы иначе не собрать: дыр много, они не выстроены
-            // в линию, и каждая обязана оставить вокруг себя целый пол.
+            for (int i = 0; i < slabRects.Count; i++)
+            {
+                Rect rect = slabRects[i];
+                Box(slab, $"Slab_{++piece}", groundLayer, FloorMaterial,
+                    rect.xMin, rect.xMax, bottom, top, rect.yMin, rect.yMax);
+            }
+
+            if (hasCollapse)
+            {
+                BuildCollapseTrap(root, floor, collapseMin, collapseMax, bottom, top, depth);
+            }
+
+            if (floor == 0)
+            {
+                BuildParkourPit(root, floor, baseY);
+            }
+        }
+
+        /// <summary>
+        /// Нарезать пол этажа на цельные прямоугольники, обходя дыры из
+        /// <see cref="slabHoles"/>. Полосами по X, а внутри полосы — по Z:
+        /// прямоугольные вырезы иначе не собрать, дыр много, они не выстроены
+        /// в линию, и каждая обязана оставить вокруг себя целый пол.
+        ///
+        /// Результат кладётся в <see cref="slabRects"/> и служит дважды: по нему
+        /// строится перекрытие и по нему же — ледяной настил зимнего этажа.
+        /// Второе и есть причина, по которой нарезка вынесена в общий метод:
+        /// лёд, нарезанный отдельно, накрывал сплошным листом и паркурную
+        /// пропасть, и сквозные колодцы — то есть лежал там, где пола нет.
+        /// В прямоугольнике X — по длине этажа, Y — по его глубине.
+        /// </summary>
+        private static void CutFloorRects(float length, float depth, bool hasSkip, float skipMin, float skipMax)
+        {
+            slabRects.Clear();
+
             var edges = new List<float> { 0f, length };
             for (int i = 0; i < slabHoles.Count; i++)
             {
@@ -631,10 +667,10 @@ namespace Igruha.EditorTools
                 edges.Add(Mathf.Clamp(slabHoles[i].XMax, 0f, length));
             }
 
-            if (hasCollapse)
+            if (hasSkip)
             {
-                edges.Add(collapseMin);
-                edges.Add(collapseMax);
+                edges.Add(skipMin);
+                edges.Add(skipMax);
             }
 
             edges.Sort();
@@ -652,7 +688,7 @@ namespace Igruha.EditorTools
                 float middle = (from + to) * 0.5f;
 
                 // Полоса провала строится отдельно — она умеет исчезать.
-                if (hasCollapse && middle > collapseMin && middle < collapseMax)
+                if (hasSkip && middle > skipMin && middle < skipMax)
                 {
                     continue;
                 }
@@ -675,7 +711,7 @@ namespace Igruha.EditorTools
                     float gapMax = Mathf.Clamp(gaps[gIndex].y, 0f, depth);
                     if (gapMin - cursor > 0.001f)
                     {
-                        Box(slab, $"Slab_{++piece}", groundLayer, FloorMaterial, from, to, bottom, top, cursor, gapMin);
+                        slabRects.Add(Rect.MinMaxRect(from, cursor, to, gapMin));
                     }
 
                     cursor = Mathf.Max(cursor, gapMax);
@@ -683,18 +719,8 @@ namespace Igruha.EditorTools
 
                 if (depth - cursor > 0.001f)
                 {
-                    Box(slab, $"Slab_{++piece}", groundLayer, FloorMaterial, from, to, bottom, top, cursor, depth);
+                    slabRects.Add(Rect.MinMaxRect(from, cursor, to, depth));
                 }
-            }
-
-            if (hasCollapse)
-            {
-                BuildCollapseTrap(root, floor, collapseMin, collapseMax, bottom, top, depth);
-            }
-
-            if (floor == 0)
-            {
-                BuildParkourPit(root, floor, baseY);
             }
         }
 
@@ -1717,9 +1743,27 @@ namespace Igruha.EditorTools
             colliders.arraySize = 1;
             colliders.GetArrayElementAtIndex(0).objectReferenceValue = section.GetComponent<Collider>();
 
+            // Ловушка прячет то, что видно на самом деле. Дресс гасит рендерер
+            // коробки блокаута и ставит внутрь модель: отдав ловушке рендерер
+            // коробки, мы получили бы провал, на котором стог остаётся висеть
+            // в воздухе, а на закрытии — серую коробку поверх модели, потому
+            // что ловушка включает рендереры обратно. Без паков дресса нет,
+            // включённым остаётся рендерер коробки — список соберётся сам.
+            var visible = new List<Renderer>(4);
+            foreach (Renderer candidate in section.GetComponentsInChildren<Renderer>(true))
+            {
+                if (candidate.enabled)
+                {
+                    visible.Add(candidate);
+                }
+            }
+
             SerializedProperty renderers = so.FindProperty("floorRenderers");
-            renderers.arraySize = 1;
-            renderers.GetArrayElementAtIndex(0).objectReferenceValue = section.GetComponent<MeshRenderer>();
+            renderers.arraySize = visible.Count;
+            for (int i = 0; i < visible.Count; i++)
+            {
+                renderers.GetArrayElementAtIndex(i).objectReferenceValue = visible[i];
+            }
 
             so.FindProperty("openDuration").floatValue = config.CollapseDuration;
             so.FindProperty("cooldown").floatValue = config.ButtonCooldown;
@@ -1983,56 +2027,32 @@ namespace Igruha.EditorTools
             so.FindProperty("decelerationMultiplier").floatValue = config.IceDecelerationMultiplier;
             so.ApplyModifiedPropertiesWithoutUndo();
 
-            BuildIceTile(group, floor, baseY);
+            BuildIceTile(group, baseY);
         }
 
         /// <summary>
         /// Видимая плитка льда: без неё зимний этаж ничем не отличается
         /// от летнего. Коллайдера у неё нет — опору даёт перекрытие.
         ///
-        /// Проём лестницы вырезается в плитке точно так же, как в перекрытии.
-        /// Снять один коллайдер было мало: сплошной лист всё равно накрывал
-        /// проём сверху, и поднимающийся с этажа ниже упирался взглядом в лёд,
-        /// читал это как забетонированный тупик — и проходил сквозь него насквозь.
-        /// Замечено на лестницах 2→3 и 4→5, то есть на обоих зимних этажах.
+        /// Лёд кладётся ровно по кускам перекрытия (<see cref="slabRects"/>),
+        /// то есть только там, где под ним есть пол. Своя нарезка тут была
+        /// ошибкой: она знала лишь про проём лестницы, и сплошной лист
+        /// накрывал и паркурную пропасть, и сквозные колодцы, и случайные
+        /// провалы — Утка видела ледяной пол там, где падала насквозь.
+        ///
+        /// Полоса провала (четвёртый этаж) в нарезку не входит и льда не
+        /// получает: она умеет исчезать, и настил обязан исчезать вместе с
+        /// ней. Пока провал стоит на летнем этаже, вопрос не возникает.
         /// </summary>
-        private static void BuildIceTile(Transform group, int floor, float baseY)
+        private static void BuildIceTile(Transform group, float baseY)
         {
             float top = baseY + IceTileWidths;
-            float length = config.FloorLengthWidths;
-            float depth = DepthWidths;
             int piece = 0;
 
-            bool hasHole = floor > 0;
-            GetStairHoleRange(floor - 1, out float holeXMin, out float holeXMax);
-
-            var edges = new List<float> { 0f, length };
-            if (hasHole)
+            for (int i = 0; i < slabRects.Count; i++)
             {
-                edges.Add(Mathf.Clamp(holeXMin, 0f, length));
-                edges.Add(Mathf.Clamp(holeXMax, 0f, length));
-            }
-
-            edges.Sort();
-
-            for (int i = 0; i < edges.Count - 1; i++)
-            {
-                float from = edges[i];
-                float to = edges[i + 1];
-                if (to - from < 0.001f)
-                {
-                    continue;
-                }
-
-                float middle = (from + to) * 0.5f;
-                if (hasHole && middle > holeXMin && middle < holeXMax)
-                {
-                    AddIcePiece(group, ref piece, from, to, baseY, top, 0f, StairHoleZMin);
-                    AddIcePiece(group, ref piece, from, to, baseY, top, StairHoleZMax, depth);
-                    continue;
-                }
-
-                AddIcePiece(group, ref piece, from, to, baseY, top, 0f, depth);
+                Rect rect = slabRects[i];
+                AddIcePiece(group, ref piece, rect.xMin, rect.xMax, baseY, top, rect.yMin, rect.yMax);
             }
         }
 
