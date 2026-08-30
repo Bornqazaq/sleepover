@@ -269,7 +269,61 @@ namespace Igruha.EditorTools
                 PlaceSingle(holder.transform, prefab, entry, local, boxScale);
             }
 
+            ClampToBox(holder.transform, box.transform);
             return holder;
+        }
+
+        /// <summary>
+        /// Последняя проверка: модель не имеет права торчать за свою коробку
+        /// по горизонтали.
+        ///
+        /// Расчёты выше считают масштаб из пропорций модели и упираются в
+        /// <see cref="StretchLimit"/>, но с полученным габаритом никто не
+        /// сверялся — и узкая в своих осях модель выходила кратно шире коробки.
+        /// Поймано на корыте четвёртого этажа: коробка укрытия 1.37 м, модель
+        /// 5.32 м, полтора метра её висели над пропастью рядом с перекрытием.
+        /// Дальше это читается уже не как дресс, а как забытый в воздухе кусок.
+        ///
+        /// По высоте не ужимаем: высота укрытия — его геймплейный смысл
+        /// (прячет стоящего или присевшего), и ради неё модель растягивать
+        /// как раз можно.
+        /// </summary>
+        private static void ClampToBox(Transform holder, Transform box)
+        {
+            var renderers = holder.GetComponentsInChildren<Renderer>(true);
+            if (renderers.Length == 0)
+            {
+                return;
+            }
+
+            Bounds total = renderers[0].bounds;
+            for (int i = 1; i < renderers.Length; i++)
+            {
+                total.Encapsulate(renderers[i].bounds);
+            }
+
+            Vector3 allowed = box.lossyScale;
+            float limitX = Mathf.Abs(allowed.x) * StretchLimit;
+            float limitZ = Mathf.Abs(allowed.z) * StretchLimit;
+            float scaleX = total.size.x > limitX ? limitX / total.size.x : 1f;
+            float scaleZ = total.size.z > limitZ ? limitZ / total.size.z : 1f;
+            float shrink = Mathf.Min(scaleX, scaleZ);
+            if (shrink >= 0.999f)
+            {
+                return;
+            }
+
+            // Ужимаем равномерно и только по горизонтали: неравномерное сжатие
+            // сплющивает модель в блин, а это заметнее, чем лишний сантиметр.
+            for (int i = 0; i < holder.childCount; i++)
+            {
+                Transform child = holder.GetChild(i);
+                Vector3 s = child.localScale;
+                child.localScale = new Vector3(s.x * shrink, s.y, s.z * shrink);
+
+                Vector3 p = child.localPosition;
+                child.localPosition = new Vector3(p.x * shrink, p.y, p.z * shrink);
+            }
         }
 
         /// <summary>Одна копия, растянутая точно в габарит коробки.</summary>

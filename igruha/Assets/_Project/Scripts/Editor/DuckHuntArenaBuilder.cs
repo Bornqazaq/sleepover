@@ -253,6 +253,18 @@ namespace Igruha.EditorTools
         /// <summary>Куда пропасти не лезут: торцы этажа, стены, соседние дыры. ШП.</summary>
         private const float HoleClearance = 1.5f;
 
+        /// <summary>
+        /// Вынос перекрытия за стену, ШП. Ровно столько же, сколько толщина
+        /// стены: меньше не читается с земли, больше превращает поясок в козырёк.
+        /// </summary>
+        private const float CorniceOverhang = 0.5f;
+
+        /// <summary>Ниже этого размера, м, блок считается вырожденным и не строится.</summary>
+        private const float DegenerateBoxSize = 0.01f;
+
+        /// <summary>Сдвиг мачты от центра тумбы к её задней грани, ШП — чтобы ручка рычага её не задевала.</summary>
+        private const float MastZOffset = 0.22f;
+
         /// <summary>Где режутся случайные пропасти: зона укрытий и ловушек, ШП по трассе.</summary>
         private const float HoleZoneStart = 24f;
         private const float HoleZoneEnd = 32f;
@@ -310,6 +322,7 @@ namespace Igruha.EditorTools
         private const float JumpSafetyShare = 0.8f;
         /// <summary>Толщина видимого ледяного настила, ШП. Чисто декоративный лист поверх перекрытия.</summary>
         private const float IceTileWidths = 0.05f;
+
 
 
 
@@ -459,6 +472,7 @@ namespace Igruha.EditorTools
         private static Material groundMaterial;
         private static Material foundationMaterial;
         private static Material barnMaterial;
+        private static Material roofMaterial;
 
         /// <summary>Модели окружения, которых не оказалось: паки Synty каждый ставит себе сам.</summary>
         private static readonly List<string> missingScenery = new List<string>(8);
@@ -588,6 +602,12 @@ namespace Igruha.EditorTools
             {
                 BuildIce(root, floor, baseY);
             }
+
+            // Декор — последним на этаже. Он единственный ищет себе свободное
+            // место сам, щупая уже построенное: поставленный раньше, он
+            // оказывался под ловушками, рычагами и настилом льда, которые
+            // строятся следом и о нём не знают.
+            BuildFloorDecor(root, floor, baseY);
         }
 
         /// <summary>
@@ -609,7 +629,11 @@ namespace Igruha.EditorTools
             Transform slab = ResetGroup(root, "Slab");
             float length = config.FloorLengthWidths;
             float depth = DepthWidths;
-            float top = baseY;
+            // На зимнем этаже верхний слой перекрытия ОТДАЁТСЯ льду: плита
+            // кончается там, где начинается настил. Иначе настил приходится
+            // класть поверх плиты или топить в неё — и в обоих случаях это два
+            // блока в одном объёме на площадь всего этажа.
+            float top = currentWinter ? baseY - IceTileWidths : baseY;
             float bottom = baseY - SlabWidths;
             int piece = 0;
 
@@ -623,6 +647,7 @@ namespace Igruha.EditorTools
             }
 
             CollectSlabHoles(floor);
+            ProtectPartitionStrip(floor);
             CutFloorRects(length, depth, hasCollapse, collapseMin, collapseMax);
 
             for (int i = 0; i < slabRects.Count; i++)
@@ -632,6 +657,8 @@ namespace Igruha.EditorTools
                     rect.xMin, rect.xMax, bottom, top, rect.yMin, rect.yMax);
             }
 
+            BuildSlabCornice(slab, length, depth, bottom, top);
+
             if (hasCollapse)
             {
                 BuildCollapseTrap(root, floor, collapseMin, collapseMax, bottom, top, depth);
@@ -640,6 +667,103 @@ namespace Igruha.EditorTools
             if (floor == 0)
             {
                 BuildParkourPit(root, floor, baseY);
+            }
+        }
+
+        /// <summary>
+        /// Карниз по периметру этажа.
+        ///
+        /// Перекрытие резалось ровно по внутренней грани стен, а стены толщиной
+        /// 0.36 идут наружу — и на уровне каждого пола по обоим торцам и по
+        /// задней стене оставалась сквозная щель 0.36 × 0.72 м во всю длину
+        /// башни. Снаружи она читалась тёмной полосой между этажами, и сквозь
+        /// неё было видно небо.
+        ///
+        /// Карниз закрывает щель и выходит за стену ещё на вынос: у здания
+        /// появляется межэтажный поясок, а перекрытие перестаёт выглядеть
+        /// вставленным внутрь коробки.
+        /// </summary>
+        private static void BuildSlabCornice(Transform slab, float length, float depth, float bottom, float top)
+        {
+            float outer = WallThickness + CorniceOverhang;
+
+            Box(slab, "Cornice_EndA", groundLayer, FloorMaterial,
+                -outer, 0f, bottom, top, -outer, depth + outer);
+            Box(slab, "Cornice_EndB", groundLayer, FloorMaterial,
+                length, length + outer, bottom, top, -outer, depth + outer);
+            Box(slab, "Cornice_Back", groundLayer, FloorMaterial,
+                0f, length, bottom, top, depth, depth + outer);
+            Box(slab, "Cornice_Front", groundLayer, FloorMaterial,
+                0f, length, bottom, top, -outer, 0f);
+        }
+
+        /// <summary>
+        /// Отодвинуть дыры от полосы над перегородкой лестничной комнаты этажа
+        /// ниже, чтобы нарезка оставила там ЦЕЛЬНЫЙ пол.
+        ///
+        /// Перегородка поднимается до самого перекрытия, но накрыта им не была
+        /// ни в одной точке: куски пола режутся по границам дыр, а полоса
+        /// перегородки как раз попадала на край паркурной пропасти — стена
+        /// упиралась в пустоту, сверху щель во всю её длину.
+        ///
+        /// Сначала это чинилось отдельной полосой поверх пола, но она ложилась
+        /// внахлёст на соседние куски и на верхнюю ступень — блок внутри блока
+        /// в семи местах. Правильнее не класть вторую плиту, а подвинуть дыру:
+        /// пол тогда один, цельный, и с напуском в обе стороны от перегородки.
+        /// </summary>
+        private static void ProtectPartitionStrip(int floor)
+        {
+            if (floor <= 0)
+            {
+                return;
+            }
+
+            int below = floor - 1;
+            float doorX = GetX(below, DoorProgress);
+            float partitionMin = Mathf.Min(doorX, doorX + (IsForward(below) ? -WallThickness : WallThickness));
+            float partitionMax = partitionMin + WallThickness;
+
+            // Напуск идёт ТОЛЬКО в сторону этажа. В сторону лестничной комнаты
+            // нельзя: там проём над маршем, и полоса ложилась поверх верхней
+            // ступени — 0.88 м³ ступени внутри плиты на каждом переходе. Плюс
+            // это козырёк ровно над головой поднимающегося, ради которого
+            // проём и делали шире марша.
+            GetStairRoomXRange(below, out float roomMin, out float roomMax);
+            bool roomOnRight = roomMin >= partitionMax - 0.01f;
+            float keepMin = roomOnRight ? partitionMin - CorniceOverhang : partitionMin;
+            float keepMax = roomOnRight ? partitionMax : partitionMax + CorniceOverhang;
+
+            for (int i = slabHoles.Count - 1; i >= 0; i--)
+            {
+                Hole h = slabHoles[i];
+                if (h.XMax <= keepMin || h.XMin >= keepMax)
+                {
+                    continue;
+                }
+
+                bool leftPart = h.XMin < keepMin;
+                bool rightPart = h.XMax > keepMax;
+
+                if (leftPart && rightPart)
+                {
+                    // Полоса посреди дыры — режем дыру надвое, оставляя между
+                    // половинами целую перемычку под перегородкой.
+                    slabHoles[i] = new Hole(h.XMin, keepMin, h.ZMin, h.ZMax);
+                    slabHoles.Add(new Hole(keepMax, h.XMax, h.ZMin, h.ZMax));
+                }
+                else if (leftPart)
+                {
+                    slabHoles[i] = new Hole(h.XMin, keepMin, h.ZMin, h.ZMax);
+                }
+                else if (rightPart)
+                {
+                    slabHoles[i] = new Hole(keepMax, h.XMax, h.ZMin, h.ZMax);
+                }
+                else
+                {
+                    // Дыра целиком под перегородкой — её там быть не может.
+                    slabHoles.RemoveAt(i);
+                }
             }
         }
 
@@ -821,6 +945,28 @@ namespace Igruha.EditorTools
         }
 
         /// <summary>Пропасть нельзя ставить: она задевает уже занятое место или другую дыру.</summary>
+        /// <summary>
+        /// Стоит ли пятно прямо над дырой. В отличие от <see cref="IsHoleBlocked"/>
+        /// зазора вокруг дыры не требует: тому запас нужен, чтобы не резать пол
+        /// на лоскуты, а здесь вопрос ровно один — есть ли под ногами опора.
+        ///
+        /// С полным <see cref="HoleClearance"/> проверка съедала верхние этажи:
+        /// полоса там узкая, дыр много, и укрытий вставало 1–2 вместо пяти.
+        /// А их число — это прогрессия сложности башни, терять его нельзя.
+        /// </summary>
+        private static bool IsOverHole(float xMin, float xMax, float zMin, float zMax)
+        {
+            for (int i = 0; i < slabHoles.Count; i++)
+            {
+                if (slabHoles[i].Overlaps(xMin, xMax, zMin, zMax, 0f))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private static bool IsHoleBlocked(float xMin, float xMax, float zMin, float zMax)
         {
             for (int i = 0; i < slabHoles.Count; i++)
@@ -880,11 +1026,16 @@ namespace Igruha.EditorTools
             float floorTop = baseY - PitDepthWidths;
             float floorBottom = floorTop - SlabWidths;
 
+            // Стены ямы доводятся до НИЗА перекрытия, а не до его верха: иначе
+            // они прошивают плиту пола насквозь по всей её толщине — 2.61 м³
+            // геометрии внутри геометрии на каждой стене.
+            float pitWallTop = baseY - SlabWidths;
+
             Box(group, "PitFloor", groundLayer, FloorMaterial, xMin, xMax, floorBottom, floorTop, 0f, DepthWidths);
             Box(group, "PitWall_Near", groundLayer, wallMaterial,
-                xMin - WallThickness, xMin, floorBottom, baseY, 0f, DepthWidths);
+                xMin - WallThickness, xMin, floorBottom, pitWallTop, 0f, DepthWidths);
             Box(group, "PitWall_Far", groundLayer, wallMaterial,
-                xMax, xMax + WallThickness, floorBottom, baseY, 0f, DepthWidths);
+                xMax, xMax + WallThickness, floorBottom, pitWallTop, 0f, DepthWidths);
 
             // Лесенка наружу — у той стороны, куда игрок и шёл.
             bool forward = IsForward(floor);
@@ -935,10 +1086,25 @@ namespace Igruha.EditorTools
             // прозрачная стена, а сплошной бортик ловил бы выстрелы. Он всего
             // 1 ШП высотой, но глаз Охотника в нижней точке лифта примерно на
             // этом же уровне — и весь первый этаж переставал простреливаться.
+            // Бортик доходит только до лестничной комнаты, а не до конца этажа.
+            // Дальше по открытой грани стоит сплошная стена комнаты той же
+            // толщины и на том же месте — бортик уходил внутрь неё целиком, по
+            // 1.49 м³ утопленной геометрии на каждом этаже. Видно её не было,
+            // но это две поверхности в одной точке: z-fighting и лишний меш.
+            //
+            // Границу берём через GetXRange, а не константой: трасса змейкой,
+            // и на чётных этажах лестничная комната стоит с другого конца.
+            // С константой бортик обрезался всегда справа и на половине этажей
+            // всё равно въезжал в стену.
+            GetXRange(floor, 0f, StairRoomStart, out float ledgeFrom, out float ledgeTo);
             GameObject ledge = DressedBox(walls, "Ledge", groundLayer, wallMaterial,
-                0f, length, baseY, baseY + LedgeWidths, -WallThickness, 0f,
+                Mathf.Min(ledgeFrom, ledgeTo), Mathf.Max(ledgeFrom, ledgeTo),
+                baseY, baseY + LedgeWidths, -WallThickness, 0f,
                 DuckHuntDress.Kind.Ledge);
-            Object.DestroyImmediate(ledge.GetComponent<Collider>());
+            if (ledge != null)
+            {
+                Object.DestroyImmediate(ledge.GetComponent<Collider>());
+            }
         }
 
         /// <summary>
@@ -1124,8 +1290,15 @@ namespace Igruha.EditorTools
             float pFlightEnd = pEnd - StairLandingRunWidths;
 
             float platformHeight = GateSillWidths;
-            float flightZMin = StairFlightBFarZ;
-            float flightZMax = StairFlightBFarZ + StairFlightWidth;
+
+            // Марш кладём РОВНО по проёму в перекрытии, а не по своей номинальной
+            // ширине. Проём шире марша на StairHoleMargin с каждой стороны — это
+            // запас для макушки, и он нужен. Но пока ступени были уже проёма, по
+            // бокам оставались сквозные щели в 0.72 м: с верхних ступеней в них
+            // проваливались на этаж ниже, и выглядели они как брак сборки.
+            // Расширять надо ступени, а не сужать проём.
+            float flightZMin = StairHoleZMin;
+            float flightZMax = StairHoleZMax;
 
             var steps = new List<Transform>(StepCount + 2);
 
@@ -1140,6 +1313,15 @@ namespace Igruha.EditorTools
             GetXRange(floor, pFlightEnd, pEnd, out float turnFrom, out float turnTo);
             steps.Add(Box(stairs, "LandingTurn", groundLayer, platformMaterial,
                 turnFrom, turnTo, baseY, baseY + platformHeight, flightZMin, flightZMax).transform);
+
+            // Ближняя полоса — от стены лифта до марша. Раньше её не было вовсе,
+            // и в комнате оставался карман: пол этажа на 2.16 м ниже помостов,
+            // стены со всех сторон, прыжок берёт 2.27 ШП с места — упавшего туда
+            // сбросом или гейзером доставать было нечем, он досиживал раунд в яме.
+            // Полоса лежит заподлицо с остальными помостами, так что комната
+            // становится одной ровной площадкой с маршем посередине.
+            steps.Add(Box(stairs, "LandingFront", groundLayer, platformMaterial,
+                platFrom, platTo, baseY, baseY + platformHeight, 0f, flightZMin).transform);
 
             // Марш целиком лежит в полосе проёма: над ним нет перекрытия,
             // и макушке упираться не во что.
@@ -1420,6 +1602,15 @@ namespace Igruha.EditorTools
                         continue;
                     }
 
+                    // Над пропастью укрытие ставить нельзя. Проверки на дыры тут
+                    // не было вовсе, и раскладка исправно вешала ящики и тюки в
+                    // воздух над проёмами: девять штук по башне, один — в 11.5 м
+                    // над полом. Прятаться за таким нельзя, зато видно отовсюду.
+                    if (IsOverHole(xMin, xMax, z, z + CoverDepth))
+                    {
+                        continue;
+                    }
+
                     // Слипшиеся укрытия читаются как одна стена и съедают
                     // проходимость этажа — держим их врозь.
                     if (OverlapsPlaced(placed, p, p + width, z, z + CoverDepth))
@@ -1491,6 +1682,11 @@ namespace Igruha.EditorTools
 
                     GetXRange(floor, p, p + width, out float xMin, out float xMax);
                     if (OverlapsStairwell(floor, xMin, xMax, z, z + CoverDepth))
+                    {
+                        continue;
+                    }
+
+                    if (IsOverHole(xMin, xMax, z, z + CoverDepth))
                     {
                         continue;
                     }
@@ -1645,6 +1841,259 @@ namespace Igruha.EditorTools
             }
 
             return true;
+        }
+
+
+        // ========== ДЕКОР ==========
+
+        /// <summary>Путь к реквизиту фермерского пака. Тот же, что у дресса.</summary>
+        private const string DecorPropPath = "Assets/Synty/PolygonFarm/Prefabs/Props/";
+
+        /// <summary>
+        /// Реквизит, стоящий на полу: бочки, мешки, ящики, инвентарь.
+        /// Всё это амбарное по смыслу — башня и есть амбар.
+        /// </summary>
+        private static readonly string[] DecorFloorProps =
+        {
+            "SM_Prop_Barrel_01", "SM_Prop_Barrel_02", "SM_Prop_Rusted_Drum_01",
+            "SM_Prop_GrainBag_01", "SM_Prop_GrainBag_Open_01", "SM_Prop_GrainBag_Open_02",
+            "SM_Prop_Crate_01", "SM_Prop_PalletCrate_01", "SM_Prop_Wood_Stack_01",
+            "SM_Prop_Wood_Stack_02", "SM_Prop_Rack_01", "SM_Prop_Table_01",
+            "SM_Prop_ToolBox_01", "SM_Prop_Tool_Bucket_01", "SM_Prop_Watering_Can_01",
+            "SM_Prop_Can_01", "SM_Prop_Can_02", "SM_Prop_GasCan_01", "SM_Prop_Tyre_01",
+            "SM_Prop_SpoolWheel_01", "SM_Prop_Wheelbarrow_01", "SM_Prop_Wheelbarrow_Metal_01",
+            "SM_Prop_Hay_Pile_01", "SM_Prop_Chicken_Coop_01", "SM_Prop_Beehive_01",
+            "SM_Prop_Beehive_03", "SM_Prop_Rubbish_Pile_01", "SM_Prop_Rubbish_Pile_03",
+            "SM_Prop_PlantBox_Large_01", "SM_Prop_Pot_01", "SM_Prop_Pot_02",
+            "SM_Prop_Anvil_01", "SM_Prop_Vice_01", "SM_Prop_Bench_01", "SM_Prop_Chair_01"
+        };
+
+        /// <summary>Длинный инвентарь — его прислоняют к стене, а не ставят стоймя.</summary>
+        private static readonly string[] DecorLeaningProps =
+        {
+            "SM_Prop_Tool_Pitchfork_01", "SM_Prop_Tool_Hayfork_01", "SM_Prop_Tool_Rake_01",
+            "SM_Prop_Tool_Scythe_01", "SM_Prop_Tool_Spade_01", "SM_Prop_Tool_Hoe_01",
+            "SM_Prop_Tool_Axe_01"
+        };
+
+        /// <summary>Глубина полосы декора у задней стены, ШП.</summary>
+        private const float DecorBandDepth = 2.6f;
+        /// <summary>Шаг между предметами вдоль стены, ШП.</summary>
+        private const float DecorStep = 1.5f;
+        /// <summary>
+        /// Свой сид расстановки декора, не общий.
+        ///
+        /// Общий <see cref="random"/> крутят все построения подряд, и стоит
+        /// поправить что угодно выше по коду — счётчик сдвигается, а вместе с
+        /// ним меняется весь реквизит этажа. Со стороны это выглядит так,
+        /// будто декор кто-то переставил, хотя правили совсем другое место.
+        /// Со своим сидом раскладка держится от пересборки к пересборке.
+        /// </summary>
+        private const int DecorSeed = 20260831;
+        /// <summary>Наклон прислонённого инвентаря, °.</summary>
+        private const float DecorLeanDegrees = 14f;
+
+        /// <summary>
+        /// Реквизит этажа: то, что делает башню обжитым амбаром, а не коробкой
+        /// с ящиками для пряток.
+        ///
+        /// Стоит вдоль ЗАДНЕЙ, глухой стены — там, где не проходит ни трасса,
+        /// ни линия выстрела с лифта. Коллайдеры срезаются: декор не имеет
+        /// права стать укрытием, которого нет в плане этажа, и не должен
+        /// цеплять бегущего. Прятаться можно только за настоящими укрытиями —
+        /// их число и есть прогрессия сложности.
+        ///
+        /// Места, которые декор обходит: дыры в перекрытии (иначе повиснет в
+        /// воздухе), лестничная комната и полоса подъёма к лазу.
+        /// </summary>
+        private static void BuildFloorDecor(Transform root, int floor, float baseY)
+        {
+            Transform group = ResetGroup(root, "Decor");
+            Physics.SyncTransforms();
+            var placedDecor = new List<Bounds>(24);
+
+            float bandFar = DepthWidths - 0.35f;
+            float bandNear = bandFar - DecorBandDepth;
+
+            // Свой генератор со своим сидом, привязанным к номеру этажа.
+            var decorRandom = new System.Random(DecorSeed + floor);
+
+            for (int row = 0; row < 2; row++)
+            for (float p = 1.5f + row * DecorStep * 0.5f; p < StairRoomStart - DecorStep; p += DecorStep)
+            {
+                // Подъём к лазу и сама лестничная комната обязаны остаться
+                // чистыми: там единственная дорога наверх.
+                if (p > GateApproachStart - 2f)
+                {
+                    continue;
+                }
+
+                float jitter = (float)(decorRandom.NextDouble() * 2f - 1f);
+                float x = p + jitter * 0.4f;
+                float rowNear = row == 0 ? bandNear + DecorBandDepth * 0.5f : bandNear;
+                float rowFar = row == 0 ? bandFar : bandNear + DecorBandDepth * 0.5f;
+                float z = Mathf.Lerp(rowNear, rowFar, (float)decorRandom.NextDouble());
+
+                bool lean = decorRandom.NextDouble() < 0.22;
+                string[] set = lean ? DecorLeaningProps : DecorFloorProps;
+                string prop = set[decorRandom.Next(set.Length)];
+
+                float yaw = lean
+                    ? (IsForward(floor) ? 180f : 0f) + (float)(decorRandom.NextDouble() * 30f - 15f)
+                    : (float)(decorRandom.NextDouble() * 360f);
+
+                // Через GetX, а не напрямую: трасса идёт змейкой, и прогресс
+                // на чётных этажах отсчитывается с другого конца. Без перевода
+                // декор ставился по мировому X как есть и на половине этажей
+                // оказывался внутри лестничной комнаты и блоков подъёма.
+                GameObject go = SpawnDecor(group, prop, ToWorld(GetX(floor, x), baseY, z), yaw);
+                if (go == null)
+                {
+                    continue;
+                }
+
+                if (lean)
+                {
+                    // Прислонённое к стене: наклон в сторону стены, иначе черенок
+                    // висит в воздухе и предмет читается воткнутым в пол.
+                    go.transform.rotation = Quaternion.Euler(DecorLeanDegrees, yaw, 0f);
+                }
+
+                if (!SeatDecorOnFloor(go, baseY) || !IsDecorSpotFree(go, placedDecor))
+                {
+                    Object.DestroyImmediate(go);
+                    continue;
+                }
+
+                placedDecor.Add(DecorBounds(go));
+            }
+        }
+
+        /// <summary>Габарит предмета декора по его рендерерам.</summary>
+        private static Bounds DecorBounds(GameObject go)
+        {
+            var renderers = go.GetComponentsInChildren<Renderer>(true);
+            Bounds b = renderers[0].bounds;
+            for (int i = 1; i < renderers.Length; i++)
+            {
+                b.Encapsulate(renderers[i].bounds);
+            }
+
+            return b;
+        }
+
+        /// <summary>
+        /// Свободно ли место под предмет: не влез ли он в блок арены и не сел
+        /// ли поверх уже поставленного декора.
+        ///
+        /// Без этой проверки расстановка исправно втыкала предметы друг в друга
+        /// и в укрытия — доходило до вложений на все сто процентов, когда
+        /// горшок целиком оказывался внутри тюка. Коллайдеров у декора нет,
+        /// поэтому геометрию арены щупаем <c>OverlapBox</c> по её коллайдерам,
+        /// а свой брат ищется по списку уже поставленных.
+        ///
+        /// Коробка проверки приподнята и ужата: иначе она всегда цепляет пол,
+        /// на котором предмет и стоит.
+        /// </summary>
+        private static bool IsDecorSpotFree(GameObject go, List<Bounds> placed)
+        {
+            Bounds b = DecorBounds(go);
+
+            for (int i = 0; i < placed.Count; i++)
+            {
+                Bounds o = placed[i];
+                float ox = Mathf.Min(b.max.x, o.max.x) - Mathf.Max(b.min.x, o.min.x);
+                float oy = Mathf.Min(b.max.y, o.max.y) - Mathf.Max(b.min.y, o.min.y);
+                float oz = Mathf.Min(b.max.z, o.max.z) - Mathf.Max(b.min.z, o.min.z);
+                if (ox > 0.02f && oy > 0.02f && oz > 0.02f)
+                {
+                    return false;
+                }
+            }
+
+            Vector3 extents = new Vector3(b.extents.x * 0.8f, b.extents.y * 0.55f, b.extents.z * 0.8f);
+            Vector3 centre = b.center + Vector3.up * (b.extents.y * 0.4f);
+            return Physics.OverlapBox(centre, extents, Quaternion.identity, ~0,
+                QueryTriggerInteraction.Ignore).Length == 0;
+        }
+
+        /// <summary>
+        /// Посадить предмет на пол по факту, а не по расчёту.
+        ///
+        /// Расчётной проверки дыр мало: у моделей пака точка отсчёта где угодно —
+        /// у одних в основании, у других в центре, — и предмет, поставленный
+        /// «на baseY», оказывался то утопленным, то висящим. Здесь низ габарита
+        /// опускается на реальную поверхность под ним.
+        ///
+        /// Если поверхности под предметом нет или она чужая (провалился в
+        /// проём перекрытия и нашёл пол этажом ниже), предмет не ставится
+        /// вовсе — лучше пустое место, чем бочка в воздухе.
+        /// </summary>
+        private static bool SeatDecorOnFloor(GameObject go, float baseY)
+        {
+            var renderers = go.GetComponentsInChildren<Renderer>(true);
+            if (renderers.Length == 0)
+            {
+                return false;
+            }
+
+            Bounds b = renderers[0].bounds;
+            for (int i = 1; i < renderers.Length; i++)
+            {
+                b.Encapsulate(renderers[i].bounds);
+            }
+
+            float floorY = config.ToUnits(baseY);
+            RaycastHit hit;
+
+            // Триггеры пропускаем: зона скользкого пола на зимних этажах — это
+            // коллайдер во весь этаж на полтора метра выше настила, и луч
+            // утыкался в него вместо пола. Разница выходила больше допуска, и
+            // на обоих зимних этажах не вставало ни одного предмета.
+            if (!Physics.Raycast(new Vector3(b.center.x, floorY + 1.5f, b.center.z), Vector3.down,
+                    out hit, 4f, ~0, QueryTriggerInteraction.Ignore))
+            {
+                return false;
+            }
+
+            // Нашли не свой этаж — значит стоим над проёмом.
+            if (Mathf.Abs(hit.point.y - floorY) > 0.35f)
+            {
+                return false;
+            }
+
+            go.transform.position += new Vector3(0f, hit.point.y - b.min.y, 0f);
+            return true;
+        }
+
+        /// <summary>
+        /// Поставить одну модель декора. Коллайдеры срезаются здесь же:
+        /// геометрию арены держат коробки блокаута, и вторая поверхность
+        /// другой формы поверх выверенной ломает и проходимость, и выстрел.
+        /// </summary>
+        private static GameObject SpawnDecor(Transform parent, string propName, Vector3 position, float yaw)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(DecorPropPath + propName + ".prefab");
+            if (prefab == null)
+            {
+                if (!missingScenery.Contains(propName))
+                {
+                    missingScenery.Add(propName);
+                }
+
+                return null;
+            }
+
+            var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
+            go.transform.SetPositionAndRotation(position, Quaternion.Euler(0f, yaw, 0f));
+
+            var colliders = go.GetComponentsInChildren<Collider>(true);
+            for (int i = 0; i < colliders.Length; i++)
+            {
+                Object.DestroyImmediate(colliders[i]);
+            }
+
+            return go;
         }
 
         // ========== ЛОВУШКИ ==========
@@ -1841,7 +2290,11 @@ namespace Igruha.EditorTools
             float centerX = (xMin + xMax) * 0.5f;
             float centerZ = z + LeverPedestalSize * 0.5f;
 
-            BuildLeverMast(group, centerX, centerZ, baseY);
+            // Мачта сдвинута к задней грани тумбы. По центру она стоит соосно
+            // с ручкой рычага, и та проходит сквозь столб при любом наклоне —
+            // после того как мачту подняли с пола на плиту, обе детали начали
+            // расти из одной точки.
+            BuildLeverMast(group, centerX, centerZ + MastZOffset, baseY);
 
             Box(group, "Plate", groundLayer, wallMaterial,
                 centerX - LeverPlateWidth * 0.5f, centerX + LeverPlateWidth * 0.5f,
@@ -1851,7 +2304,10 @@ namespace Igruha.EditorTools
             // Ручка стоит на плите и заваливается вдоль трассы. Поперёк нельзя:
             // с одной стороны она смотрела бы в открытую грань и терялась на
             // фоне пустоты, с другой — в упор в укрытия.
-            AttachLever(group, trap, displayName, ToWorld(centerX, top + LeverPlateDepth, centerZ),
+            // Шарнир поднят над плитой на толщину самой ручки: сидя точно на
+            // плите, наклонённая ручка задевала её нижним углом.
+            AttachLever(group, trap, displayName,
+                ToWorld(centerX, top + LeverPlateDepth + LeverHandleThickness, centerZ),
                 new Vector3(0f, 0f, -LeverTiltDegrees), new Vector3(0f, 0f, LeverTiltDegrees));
         }
 
@@ -1923,18 +2379,29 @@ namespace Igruha.EditorTools
         /// </summary>
         private static void BuildLeverMast(Transform group, float centerX, float centerZ, float baseY)
         {
+            // Мачта начинается от ВЕРХА плиты, а не от пола. Раньше она шла
+            // снизу и проходила сквозь тумбу и плиту насквозь — столб внутри
+            // двух деталей сразу. Стоящая на плите читается так же, а внутри
+            // ничего не прячет.
             float half = MastThickness * 0.5f;
+            float mastBase = baseY + LeverPedestalHeight + LeverPlateDepth;
             GameObject mast = Box(group, "Mast", groundLayer, wallMaterial,
-                centerX - half, centerX + half, baseY, baseY + MastHeight,
+                centerX - half, centerX + half, mastBase, baseY + MastHeight,
                 centerZ - half, centerZ + half);
-            Object.DestroyImmediate(mast.GetComponent<Collider>());
+            if (mast != null)
+            {
+                Object.DestroyImmediate(mast.GetComponent<Collider>());
+            }
 
             float lampHalf = MastLampSize * 0.5f;
             GameObject lamp = Box(group, "Lamp", groundLayer, buttonReadyMaterial,
                 centerX - lampHalf, centerX + lampHalf,
                 baseY + MastHeight, baseY + MastHeight + MastLampSize,
                 centerZ - lampHalf, centerZ + lampHalf);
-            Object.DestroyImmediate(lamp.GetComponent<Collider>());
+            if (lamp != null)
+            {
+                Object.DestroyImmediate(lamp.GetComponent<Collider>());
+            }
         }
 
         /// <summary>
@@ -2046,17 +2513,27 @@ namespace Igruha.EditorTools
         /// </summary>
         private static void BuildIceTile(Transform group, float baseY)
         {
-            float top = baseY + IceTileWidths;
+            // Настил занимает вырез, оставленный ему перекрытием, и доходит
+            // ровно до уровня пола. Ни поверх плиты, ни внутри неё: стык.
+            // Верхняя отметка та же, что была у плиты, поэтому ни ходьба, ни
+            // расстановка предметов не меняются ни на миллиметр.
+            float top = baseY;
+            float bottom = baseY - IceTileWidths;
             int piece = 0;
 
             for (int i = 0; i < slabRects.Count; i++)
             {
                 Rect rect = slabRects[i];
-                AddIcePiece(group, ref piece, rect.xMin, rect.xMax, baseY, top, rect.yMin, rect.yMax);
+                AddIcePiece(group, ref piece, rect.xMin, rect.xMax, bottom, top, rect.yMin, rect.yMax);
             }
         }
 
-        /// <summary>Кусок ледяного настила. Без коллайдера: чисто видимая вещь.</summary>
+        /// <summary>
+        /// Кусок ледяного настила. Коллайдер ему нужен: на зимнем этаже верхний
+        /// слой перекрытия отдан льду, и именно он теперь поверхность, по
+        /// которой ходят. Двух поверхностей при этом не появляется — плита под
+        /// ним ровно на его толщину ниже.
+        /// </summary>
         private static void AddIcePiece(Transform group, ref int piece, float xMin, float xMax,
             float yMin, float yMax, float zMin, float zMax)
         {
@@ -2065,9 +2542,8 @@ namespace Igruha.EditorTools
                 return;
             }
 
-            GameObject tile = Box(group, $"IceFloor_{++piece}", groundLayer, iceMaterial,
+            Box(group, $"IceFloor_{++piece}", groundLayer, iceMaterial,
                 xMin, xMax, yMin, yMax, zMin, zMax);
-            Object.DestroyImmediate(tile.GetComponent<Collider>());
         }
 
         /// <summary>Точка возврата этажа: сюда StuckDetector вытаскивает застрявшего.</summary>
@@ -2126,25 +2602,54 @@ namespace Igruha.EditorTools
 
             // Настил с проёмом ровно над верхом лестницы: вокруг него крыша
             // сплошная, иначе вышедший на неё проваливается обратно.
-            Box(root, "Roof_Near", groundLayer, FloorMaterial,
-                0f, Mathf.Min(holeMin, holeMax), baseY - SlabWidths, baseY, 0f, depth);
-            Box(root, "Roof_Far", groundLayer, FloorMaterial,
-                Mathf.Max(holeMin, holeMax), length, baseY - SlabWidths, baseY, 0f, depth);
-            Box(root, "Roof_HoleSideA", groundLayer, FloorMaterial,
+            // Проём лестницы на последнем этаже упирается в торец башни, и
+            // одна из двух половин настила вырождается в плоскость нулевой
+            // ширины. Строим только ту, у которой ширина есть.
+            float nearEnd = Mathf.Min(holeMin, holeMax);
+            float farStart = Mathf.Max(holeMin, holeMax);
+
+            if (nearEnd > 0.01f)
+            {
+                Box(root, "Roof_Near", groundLayer, roofMaterial,
+                    0f, nearEnd, baseY - SlabWidths, baseY, 0f, depth);
+            }
+
+            if (length - farStart > 0.01f)
+            {
+                Box(root, "Roof_Far", groundLayer, roofMaterial,
+                    farStart, length, baseY - SlabWidths, baseY, 0f, depth);
+            }
+            Box(root, "Roof_HoleSideA", groundLayer, roofMaterial,
                 holeMin, holeMax, baseY - SlabWidths, baseY, 0f, holeZMin);
-            Box(root, "Roof_HoleSideB", groundLayer, FloorMaterial,
+            Box(root, "Roof_HoleSideB", groundLayer, roofMaterial,
                 holeMin, holeMax, baseY - SlabWidths, baseY, holeZMax, depth);
+
+            // Тот же карниз, что на этажах. Без него по периметру крыши, включая
+            // торец проёма над лестницей, оставалась сквозная щель в толщину
+            // настила: сам настил кончается по внутренней грани стен, а стены
+            // пятого этажа кончаются ниже него. Раньше эту щель с торца
+            // визуально прикрывала плоскость нулевой ширины Roof_Far — не
+            // закрывала, а загораживала собой.
+            BuildSlabCornice(root, length, depth, baseY - SlabWidths, baseY);
+
+            BuildRoofParapet(root, baseY, length, depth);
 
             // Крыша простреливается — по спеке это осознанно. Бортик и барьер
             // те же, что на этажах: упасть с крыши нельзя.
             GameObject roofLedge = Box(root, "Ledge", groundLayer, wallMaterial,
                 0f, length, baseY, baseY + LedgeWidths, -WallThickness, 0f);
-            Object.DestroyImmediate(roofLedge.GetComponent<Collider>());
+            if (roofLedge != null)
+            {
+                Object.DestroyImmediate(roofLedge.GetComponent<Collider>());
+            }
 
             GameObject barrier = Box(root, "Barrier", barrierLayer, null,
                 0f, length, baseY, baseY + CeilingWidths, -WallThickness, 0f);
-            Object.DestroyImmediate(barrier.GetComponent<MeshRenderer>());
-            Object.DestroyImmediate(barrier.GetComponent<MeshFilter>());
+            if (barrier != null)
+            {
+                Object.DestroyImmediate(barrier.GetComponent<MeshRenderer>());
+                Object.DestroyImmediate(barrier.GetComponent<MeshFilter>());
+            }
 
             // Единственное укрытие на крыше — по спеке ровно одно, на X = 40.
             // Стоит у бортика, а не у глухой стены: Охотник бьёт с лифта, то
@@ -2153,6 +2658,47 @@ namespace Igruha.EditorTools
             // Ближе к проёму лестницы не ставим — там оно перекрыло бы выход.
             Box(root, "Cover_Roof", coverLayer, coverHighMaterial,
                 40f, 42f, baseY, baseY + HighCoverWidths, 0.8f, 2.8f);
+        }
+
+        /// <summary>
+        /// Парапет и труба — верхняя точка силуэта башни.
+        ///
+        /// Крыша была голой плитой, и башня заканчивалась срезом: снизу с земли
+        /// это читалось как недостроенный этаж. Парапет даёт кровле край, а
+        /// труба — узнаваемую макушку, по которой башня опознаётся издалека.
+        ///
+        /// Три глухие стороны, открытая грань не трогается: там уже стоят
+        /// бортик и прозрачный барьер, и сплошной парапет ловил бы выстрелы
+        /// Охотника с лифта — крыша по спеке обязана простреливаться.
+        ///
+        /// Высота ниже низкого укрытия намеренно: парапет обязан читаться
+        /// краем, а не давать на финише укрытие, которого в спеке нет.
+        /// </summary>
+        private static void BuildRoofParapet(Transform root, float baseY, float length, float depth)
+        {
+            const float ParapetHeight = 0.8f;
+            const float ParapetThickness = 0.5f;
+            float top = baseY + ParapetHeight;
+
+            Box(root, "Parapet_Back", groundLayer, roofMaterial,
+                -ParapetThickness, length + ParapetThickness, baseY, top, depth, depth + ParapetThickness);
+            Box(root, "Parapet_EndA", groundLayer, roofMaterial,
+                -ParapetThickness, 0f, baseY, top, 0f, depth);
+            Box(root, "Parapet_EndB", groundLayer, roofMaterial,
+                length, length + ParapetThickness, baseY, top, 0f, depth);
+
+            // Труба стоит над глухим торцом, дальше всего от проёма лестницы и
+            // от финишной площадки: на дороге она не мешает никому.
+            const float ChimneyBase = 3f;
+            const float ChimneySide = 2f;
+            const float ChimneyHeight = 3.2f;
+            Box(root, "Chimney", groundLayer, foundationMaterial,
+                ChimneyBase, ChimneyBase + ChimneySide, baseY, baseY + ChimneyHeight,
+                depth - ChimneySide - 1f, depth - 1f);
+            Box(root, "Chimney_Cap", groundLayer, metalMaterial,
+                ChimneyBase - 0.3f, ChimneyBase + ChimneySide + 0.3f,
+                baseY + ChimneyHeight, baseY + ChimneyHeight + 0.4f,
+                depth - ChimneySide - 1.3f, depth - 0.7f);
         }
 
         private static DuckHuntFinishZone BuildFinishZone(Transform tower)
@@ -2636,6 +3182,22 @@ namespace Igruha.EditorTools
             go.transform.position = (min + max) * 0.5f;
             go.transform.localScale = max - min;
 
+            // Вырожденный блок — плоскость нулевой толщины. Видно её не будет,
+            // но она лежит внутри соседей и даёт z-fighting, а поиском пар
+            // «блок в блоке» не ловится вовсе: пересечение по сплющенной оси
+            // ровно ноль. Поймано на Roof_Far, который на последнем этаже
+            // выходил шириной 0.000 и сидел внутри обеих боковин проёма.
+            Vector3 size = go.transform.localScale;
+            if (Mathf.Abs(size.x) < DegenerateBoxSize
+                || Mathf.Abs(size.y) < DegenerateBoxSize
+                || Mathf.Abs(size.z) < DegenerateBoxSize)
+            {
+                Debug.LogWarning($"DuckHuntArenaBuilder: блок «{name}» вырожден — размер {size:F3}. " +
+                                 "Такой кусок не строится: он невидим и лежит внутри соседей.", parent);
+                Object.DestroyImmediate(go);
+                return null;
+            }
+
             if (material != null)
             {
                 go.GetComponent<MeshRenderer>().sharedMaterial = material;
@@ -2892,6 +3454,11 @@ namespace Igruha.EditorTools
             float xMin, float xMax, float yMin, float yMax, float zMin, float zMax, DuckHuntDress.Kind dress)
         {
             GameObject box = Box(parent, name, layer, material, xMin, xMax, yMin, yMax, zMin, zMax);
+            if (box == null)
+            {
+                return null;
+            }
+
             DuckHuntDress.Apply(box, dress, currentWinter, dressRandom);
             return box;
         }
@@ -2921,11 +3488,21 @@ namespace Igruha.EditorTools
                 "Grass_Texture_01", "Grass_Normals_01", GroundTiling);
             foundationMaterial = EnsureMaterial("DH_Foundation", new Color(0.52f, 0.50f, 0.46f));
 
-            // Красный амбарный торец у лестничной комнаты — не только про
-            // раздел 14.1 спеки. Лестничная комната это единственная точка
-            // этажа, куда выстрел не достаёт, и её обязано быть видно с любого
-            // места коридора. Сплошной коричневый торец сливался со стенами.
-            barnMaterial = EnsureMaterial("DH_Barn", new Color(0.62f, 0.21f, 0.18f));
+            // Кровля — своя, а не общий пол этажа. Раньше крыша брала
+            // FloorMaterial, а он к этому моменту стоял на зимнем варианте от
+            // последнего построенного этажа: башня заканчивалась снежным
+            // настилом, будто у амбара сдуло кровлю. Тёмная дранка ставит
+            // верхнюю точку силуэта и отделяет крышу от этажей.
+            roofMaterial = EnsureSurface("DH_Roof", new Color(0.278f, 0.239f, 0.212f),
+                "Wood_Texture_01", "Wood_Normals_01", FloorTiling);
+
+            // Торец лестничной комнаты. Красного тут больше нет ни в каком
+            // виде: и сигнальный (0.62, 0.21, 0.18), и приглушённый бордовый
+            // читались как отдельно выкрашенный кусок, а не как часть здания —
+            // будто эти участки нарочно пометили краской. Взят тон из той же
+            // палитры, что и остальная башня: темнее стен этажа, светлее
+            // кровли. Комната опознаётся сменой тона, а не чужим цветом.
+            barnMaterial = EnsureMaterial("DH_Barn", new Color(0.404f, 0.337f, 0.259f));
 
             // Укрытия и площадки почти везде скрыты моделями. Материал под
             // ними остаётся запасным видом: если пака нет, арена обязана
