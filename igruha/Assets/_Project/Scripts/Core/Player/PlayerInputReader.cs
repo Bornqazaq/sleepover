@@ -116,6 +116,41 @@ namespace Igruha.Core.Player
             JumpPressed = true;
         }
 
+        /// <summary>
+        /// Взаимодействие извне — разовое нажатие E. Гасится потребителем через
+        /// <see cref="ConsumeInteract"/>, как обычное нажатие.
+        ///
+        /// Нужно болванкам соло-теста там, где половина правил игры живёт за
+        /// кнопкой E: взяться за ручку, отпустить, взять предмет с кучки.
+        /// Без этого болванку пришлось бы водить в обход правил, напрямую
+        /// вызывая логику мини-игры, — и проверка перестала бы проверять то,
+        /// что делает живой игрок.
+        /// </summary>
+        public void DriveInteract()
+        {
+            if (LocallyControlled && !Autopilot)
+            {
+                return;
+            }
+
+            InteractPressed = true;
+        }
+
+        /// <summary>
+        /// Удержание E извне: им берут со штабеля и держат кнопку отсчёта.
+        /// Состояние, а не нажатие, поэтому снимать его обязан тот же, кто
+        /// поставил, — потребитель его не гасит.
+        /// </summary>
+        public void DriveInteractHold(bool held)
+        {
+            if (LocallyControlled && !Autopilot)
+            {
+                return;
+            }
+
+            InteractHeld = held;
+        }
+
         private void OnEnable()
         {
             Acquire(moveAction);

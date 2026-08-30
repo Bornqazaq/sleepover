@@ -106,6 +106,18 @@ namespace Igruha.Core.Player
         public float DecelerationMultiplier { get; private set; } = 1f;
 
         /// <summary>
+        /// Куда персонаж просится идти прямо сейчас: мировое направление ввода
+        /// длиной 0…1. Считается там же, где локомоция, то есть у владельца —
+        /// у чужих копий мотор выключен, и здесь всегда ноль.
+        ///
+        /// Отличает «бежит сам» от «его несёт»: толчок, ловушка и зона
+        /// выталкивания разгоняют тело, ничего не прося. Сетевому авторитету
+        /// это нужно, чтобы проверять потолок скорости роли и не наказывать
+        /// за чужой импульс.
+        /// </summary>
+        public Vector3 MoveIntent { get; private set; }
+
+        /// <summary>
         /// Направление взгляда по авторитетному повороту Rigidbody.
         /// Transform отстаёт от физики на кадр после MoveRotation/TeleportTo,
         /// а по этому направлению решается, в лицо прилетело или в спину.
@@ -136,6 +148,10 @@ namespace Igruha.Core.Player
         private bool movementLocked;
         private bool facingOverridden;
         private Component surfaceSource;
+        private Component speedCapSource;
+
+        /// <summary>Потолок скорости от внешней роли, м/с. Ноль — потолка нет.</summary>
+        private float speedCap;
         private float fallSpeed;
         private bool wasGrounded = true;
         private float launchGraceTimer;
@@ -282,6 +298,7 @@ namespace Igruha.Core.Player
                 }
 
                 NormalizedSpeed = 0f;
+                MoveIntent = Vector3.zero;
                 return;
             }
 
@@ -295,6 +312,7 @@ namespace Igruha.Core.Player
                 StopHorizontally();
                 StopSpin();
                 NormalizedSpeed = 0f;
+                MoveIntent = Vector3.zero;
                 return;
             }
 
@@ -425,6 +443,36 @@ namespace Igruha.Core.Player
             surfaceSource = null;
             AccelerationMultiplier = 1f;
             DecelerationMultiplier = 1f;
+        }
+
+        /// <summary>
+        /// Опустить потолок скорости: роль мини-игры ограничивает бег, не трогая
+        /// общий <c>CharacterConfig</c>. Несущий бутыль в «Переноске предмета»
+        /// бежит 2.9 м/с вместо 6.5 — иначе он просто убегает от того, что несёт.
+        ///
+        /// Источник запоминается той же парой, что у поверхностей: две роли,
+        /// повесившие потолок одновременно, не сбрасывают друг друга случайно.
+        /// Потолок только опускает скорость и никогда не поднимает: значение
+        /// выше <c>config.MaxSpeed</c> ничего не меняет.
+        ///
+        /// Разгон и торможение остаются прежними — меняется только предел.
+        /// </summary>
+        public void ApplySpeedCap(Component source, float maxSpeed)
+        {
+            speedCapSource = source;
+            speedCap = Mathf.Max(0f, maxSpeed);
+        }
+
+        /// <summary>Снять потолок скорости. Срабатывает, только если его ставил этот же источник.</summary>
+        public void ClearSpeedCap(Component source)
+        {
+            if (speedCapSource != source)
+            {
+                return;
+            }
+
+            speedCapSource = null;
+            speedCap = 0f;
         }
 
         private void UpdateCrouch()
@@ -559,7 +607,17 @@ namespace Igruha.Core.Player
         private void ApplyLocomotion(Vector2 moveInput)
         {
             Vector3 desiredDirection = ToCameraRelative(moveInput);
+            MoveIntent = Vector3.ClampMagnitude(desiredDirection, 1f);
+
             float maxSpeed = config.MaxSpeed * Mathf.Lerp(1f, config.CrouchSpeedMultiplier, crouchBlend);
+
+            // Потолок роли только опускает предел и никогда не поднимает: присед
+            // под ним остаётся приседом, а не становится бегом.
+            if (speedCap > 0f)
+            {
+                maxSpeed = Mathf.Min(maxSpeed, speedCap);
+            }
+
             Vector3 desiredVelocity = Vector3.ClampMagnitude(desiredDirection, 1f) * maxSpeed;
             Vector3 currentHorizontal = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
 
