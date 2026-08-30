@@ -16,12 +16,48 @@
 |---|---|
 | **Персонажи** — капсулы, рост, радиус, ростер, префабы восьмерых | `Prefabs/Player/*`, `Settings/Gameplay/CharacterConfig.asset`, `CharacterRoster.asset` |
 | **Камера** — формат, риг, дистанция, деокклюдер | `Prefabs/Camera/PartyCameraRig.prefab`, `Core/CameraSystems/ThirdPersonCameraRig.cs` |
-| **Анимации** — присед (Ctrl), ходьба в приседе (Ctrl+W), прыжок и беговой прыжок, танцы | `Art/Animations/*.controller`, `CrouchWalkForward.anim`, `Editor/SharedCrouchClipBuilder.cs` |
+| **Анимации** — присед (Ctrl), ходьба в приседе (Ctrl+W), прыжок и беговой прыжок, танцы, **удар** | `Art/Animations/*.controller`, `CrouchWalkForward.anim`, `Editor/SharedCrouchClipBuilder.cs`, `Editor/PlayerAnimatorControllerBuilder.cs` |
 | **Насмешки по Tab** — колесо, 8 секторов, привязка | `Core/UI/EmoteWheel.cs`, `Core/Player/PlayerEmoteAbility.cs` |
 | **Все привязки клавиш** | `InputSystem_Actions.inputactions` |
 
 **Не трогать без явной просьбы геймдизайнера. Совсем.** Ни «заодно поправил»,
 ни «так логичнее», ни «в мою мини-игру не вписывалось».
+
+### Удар — у каждого персонажа СВОЙ клип. Это решение, а не недосмотр
+
+**Состояние `Punch` каждого персонажа ссылается на его собственный клип.
+Не сводить всех к одному общему клипу.** Решение геймдизайнера, подтверждено
+повторно 30.08 — считать закрытым вопросом.
+
+Общая скорость удара — `PunchSpeed = 1.2`. Персональная поправка задаётся
+`punchSpeedMultiplier`, и она есть ровно у одного персонажа.
+
+| Персонаж | Клип удара | Скорость состояния |
+|---|---|---|
+| Aza | `Aza@Cross Punch` | **1.56** (1.2 × 1.3) |
+| Boss | `Boss@Jab Cross` (двойка, а не одиночный кросс — так и задумано) | 1.2 |
+| Fat | `Fat@Cross Punch` | 1.2 |
+| Girl | `Girl@crossPunch` | 1.2 |
+| Milez | `Milez@crossPunch` | 1.2 |
+| MyBoy | `MyBoy@Cross Punch` | 1.2 |
+| Shlanga | `Shlanga@cross` | 1.2 |
+| Karlan | `Karlan(Fbx without color)@Cross Punch` | 1.2 |
+
+**Почему это выглядит как ошибка, но ею не является.** Длительность удара
+у персонажей разная — 0.83 с у большинства, 1.28 с у Aza, 1.64 с у Boss.
+Ровно это 24.08 приняли за поломку и «выровняли», переведя всех восьмерых на
+общий клип Карлана со скоростью 1.20 (STATE.md, раздел 2e). Правку откатили
+27.08 (`c6667f27`), и **повторять её не нужно**: разнобой таймингов —
+характер персонажей, а не рассинхрон.
+
+Клипы прописаны пер-персонажно в `Editor/PlayerAnimatorControllerBuilder.cs`
+(`punchClip:` в каждом `Build<X>AnimatorController`, `punchSpeedMultiplier`
+у Aza). Билдер и восемь `.controller` обязаны совпадать: если они разъедутся,
+правильным считается билдер, а `.controller` пересобирается из него.
+
+Двойное имя клипов сбивает поиск: у Boss и Shlanga они называются не
+`Cross Punch`, а `Jab Cross` и `cross` — по слову «punch» не находятся.
+Это не значит, что клип потерян.
 
 ### Единственное исключение
 
