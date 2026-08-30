@@ -70,11 +70,15 @@ namespace Igruha.Minigames.DuckHunt
         [Header("Охотник — ружьё в руках")]
         [Tooltip("Модель ружья, которая выдаётся Охотнику на время роли. Пусто — Охотник целится пустыми руками, как было до арта")]
         [SerializeField] private GameObject rifleProp;
-        [Tooltip("Сдвиг ружья от кости правой кисти, м")]
-        [SerializeField] private Vector3 rifleLocalPosition = new Vector3(0.02f, 0.03f, 0.06f);
-        [Tooltip("Доворот ружья в руке, °. Не подобран на глаз: посчитан из осей кости кисти так, чтобы ствол смотрел вперёд по персонажу. Скелет у всех восьмерых один (mixamorig), поэтому значение общее")]
-        [SerializeField] private Vector3 rifleLocalRotation = new Vector3(331.8f, 273.7f, 153.1f);
-        [Tooltip("Масштаб модели ружья. Ружьё пака сделано под взрослого человека, персонажи проекта ниже и коренастее")]
+        [Tooltip("Положение ружья от точки на высоте плеча, м, в осях ПРИЦЕЛА: X вправо, Y вверх, Z вперёд по лучу. Ружьё стоит по лучу выстрела, а кисти к нему подтягивает IK — поэтому сдвиг общий на весь ростер, высота плеча замеряется у каждого своя")]
+        [SerializeField] private Vector3 rifleGripOffset = new Vector3(0.14f, -0.02f, 0.12f);
+        [Tooltip("Доворот ружья относительно луча выстрела, °. Ноль — ствол точно по лучу. Ненулевым его делают только ради читаемости позы со стороны")]
+        [SerializeField] private Vector3 rifleTilt = Vector3.zero;
+        [Tooltip("Где на ружье шейка приклада с курком — координата вдоль ствола в единицах модели. Сюда IK ставит ПРАВУЮ кисть")]
+        [SerializeField] private float rifleGripPoint = 0.055f;
+        [Tooltip("Где на ружье цевьё — координата вдоль ствола в единицах модели. Сюда IK ставит ЛЕВУЮ кисть. Дальше от курка — шире хват")]
+        [SerializeField] private float rifleForePoint = 0.58f;
+        [Tooltip("Масштаб модели ружья. Ружьё пака сделано под взрослого человека, персонажи проекта ниже и коренастее. Масштаб кисти в него не входит — он компенсируется отдельно, иначе ружьё разного размера у разных персонажей")]
         [SerializeField] private float rifleScale = 0.75f;
 
         [Header("Ловушки")]
@@ -154,9 +158,11 @@ namespace Igruha.Minigames.DuckHunt
         // ========== РУЖЬЁ ==========
 
         public GameObject RifleProp => rifleProp;
-        public Vector3 RifleLocalPosition => rifleLocalPosition;
-        public Vector3 RifleLocalRotation => rifleLocalRotation;
+        public Vector3 RifleGripOffset => rifleGripOffset;
+        public Vector3 RifleTilt => rifleTilt;
         public float RifleScale => rifleScale;
+        public float RifleGripPoint => rifleGripPoint;
+        public float RifleForePoint => rifleForePoint;
 
         // ========== ЛОВУШКИ ==========
 

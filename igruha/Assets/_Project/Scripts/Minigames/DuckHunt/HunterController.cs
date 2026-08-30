@@ -42,6 +42,9 @@ namespace Igruha.Minigames.DuckHunt
         /// </summary>
         private const float AimSkipPastBody = 0.5f;
 
+        /// <summary>Запасная высота плеча, м, — если кости плеча в аватаре не оказалось.</summary>
+        private const float DefaultShoulderHeight = 1.2f;
+
 
 
         /// <summary>Выстрел попал в Утку: жертва, точка попадания, импульс отлёта.</summary>
@@ -60,6 +63,12 @@ namespace Igruha.Minigames.DuckHunt
 
         /// <summary>Выданная на роль модель ружья. Живёт ровно столько, сколько роль.</summary>
         private GameObject rifleProp;
+
+        /// <summary>Притягивает кисти к ружью. Висит на объекте с аниматором, живёт вместе с ролью.</summary>
+        private RifleGripIk gripIk;
+
+        /// <summary>Высота плеча над подошвами, м. Замеряется один раз: у восьмерых она разная.</summary>
+        private float shoulderHeight;
 
         /// <summary>Оружие Охотника — HUD читает у него обойму и перезарядку.</summary>
         public HitscanWeapon Weapon => weapon;
@@ -208,6 +217,15 @@ namespace Igruha.Minigames.DuckHunt
                     rifleProp = null;
                 }
 
+                // Компонент оставляем на месте: нулевой вес полностью возвращает
+                // позу клипа, а пересдача роли тому же телу тогда не плодит копии.
+                if (gripIk != null)
+                {
+                    gripIk.Weight = 0f;
+                    gripIk.GripPoint = null;
+                    gripIk.ForePoint = null;
+                }
+
                 return;
             }
 
@@ -216,16 +234,29 @@ namespace Igruha.Minigames.DuckHunt
                 return;
             }
 
-            Transform hand = ResolveRightHand();
-            if (hand == null)
+            var animator = GetComponentInChildren<Animator>();
+            if (animator == null || !animator.isHuman)
             {
                 return;
             }
 
-            rifleProp = Instantiate(config.RifleProp, hand);
+            // Плечо у восьмерых на разной высоте — от 1.05 м у Girl до 1.27 м
+            // у MyBoy. Замеряем один раз и дальше держим ружьё от него, а не от
+            // кости: кость едет с анимацией, и ружьё, привязанное к ней, тряслось
+            // бы вместе с дыханием стойки.
+            Transform shoulder = animator.GetBoneTransform(HumanBodyBones.RightUpperArm);
+            shoulderHeight = shoulder != null
+                ? Vector3.Dot(shoulder.position - transform.position, transform.up)
+                : DefaultShoulderHeight;
+
+            // Ружьё висит на КОРНЕ роли, а не на кости кисти. Дочерним объектом
+            // кости оно быть не может: масштаб кисти у восьмерых разный — от
+            // 0.98 у Girl до 2.44 у MyBoy, — и наследуя его, одно и то же
+            // rifleScale давало ружьё длиной от 0.9 до 2.2 м. У корня масштаб
+            // единичный у всех, поэтому rifleScale означает ровно то, что
+            // написано в конфиге.
+            rifleProp = Instantiate(config.RifleProp, transform);
             rifleProp.name = "RifleProp";
-            rifleProp.transform.localPosition = config.RifleLocalPosition;
-            rifleProp.transform.localRotation = Quaternion.Euler(config.RifleLocalRotation);
             rifleProp.transform.localScale = Vector3.one * config.RifleScale;
 
             var colliders = rifleProp.GetComponentsInChildren<Collider>(true);
@@ -233,18 +264,72 @@ namespace Igruha.Minigames.DuckHunt
             {
                 Destroy(colliders[i]);
             }
-        }
 
-        /// <summary>Кость правой кисти аватара. Скелет у всех восьмерых Humanoid, поэтому кость ищется по роли, а не по имени.</summary>
-        private Transform ResolveRightHand()
-        {
-            var animator = GetComponentInChildren<Animator>();
-            if (animator == null || !animator.isHuman)
+            // Две точки хвата — куда IK поставит кисти. Они дочерние ружью,
+            // поэтому едут и масштабируются вместе с ним, и подстройка хвата
+            // остаётся парой чисел в конфиге, а не правкой кода.
+            gripIk = animator.gameObject.GetComponent<RifleGripIk>();
+            if (gripIk == null)
             {
-                return null;
+                gripIk = animator.gameObject.AddComponent<RifleGripIk>();
             }
 
-            return animator.GetBoneTransform(HumanBodyBones.RightHand);
+            gripIk.GripPoint = CreateGripPoint("RifleGrip", config.RifleGripPoint);
+            gripIk.ForePoint = CreateGripPoint("RifleFore", config.RifleForePoint);
+            gripIk.Weight = 1f;
+
+            UpdateRiflePose();
+        }
+
+        /// <summary>Пустышка на стволе — цель для кисти. Дочерняя ружью, координата задаётся в единицах модели.</summary>
+        private Transform CreateGripPoint(string pointName, float alongBarrel)
+        {
+            var point = new GameObject(pointName).transform;
+            point.SetParent(rifleProp.transform, false);
+            point.localPosition = new Vector3(0f, 0f, alongBarrel);
+            point.localRotation = Quaternion.identity;
+            return point;
+        }
+
+        /// <summary>
+        /// Поставить ружьё на текущем кадре. Кисти к нему приведёт
+        /// <see cref="RifleGripIk"/> — здесь только само ружьё.
+        ///
+        /// Ружьё стоит по ЛУЧУ ВЫСТРЕЛА, от точки на высоте плеча. Ни к одной
+        /// кости оно не привязано, и это главное: стойка приходит одним клипом
+        /// на восемь разных тел, кисти после ретаргета расходятся (от 0.296 м
+        /// между ними у Shlanga до 0.577 м у Fat), и ружьё, привязанное к
+        /// рукам, уезжало вслед за ними — у одного стволом в небо, у другого
+        /// прикладом в лицо.
+        ///
+        /// Обратный порядок это снимает: ружьё смотрит туда, куда полетит пуля,
+        /// одинаково у всех, а разброс тел отрабатывает IK, подтягивая кисти.
+        ///
+        /// Считается в <see cref="Update"/>, а не в <c>LateUpdate</c>:
+        /// <c>OnAnimatorIK</c> вызывается между ними, и точки хвата обязаны
+        /// стоять на месте раньше, иначе IK тянет кисти к прошлому кадру.
+        /// </summary>
+        private void UpdateRiflePose()
+        {
+            if (rifleProp == null || config == null)
+            {
+                return;
+            }
+
+            TryGetAim(out _, out Vector3 direction);
+            if (direction.sqrMagnitude < 0.0001f)
+            {
+                return;
+            }
+
+            // Вертикаль берём у тела, а не мировую: крен ружья тогда повторяет
+            // крен персонажа, и на наклонной платформе лифта ствол не встаёт
+            // «ровно по горизонту» поперёк позы.
+            Quaternion aim = Quaternion.LookRotation(direction, transform.up);
+            Quaternion rotation = aim * Quaternion.Euler(config.RifleTilt);
+
+            Vector3 anchor = transform.position + transform.up * shoulderHeight;
+            rifleProp.transform.SetPositionAndRotation(anchor + aim * config.RifleGripOffset, rotation);
         }
 
         /// <summary>Снять роль: тело снова обычное. Нужно при пересдаче ролей в соло-тесте.</summary>
@@ -339,6 +424,7 @@ namespace Igruha.Minigames.DuckHunt
 
             DriveElevator();
             HandleWeaponInput();
+            UpdateRiflePose();
         }
 
         /// <summary>

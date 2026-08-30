@@ -34,8 +34,10 @@ MonoBehaviour:
   cameraTurnSpeed: 720
   cameraOffset: {x: 0, y: 0.35, z: 1.4}
   rifleProp: {fileID: 1343913474093690, guid: 5b777d2389fa4194db76d1d12b1dca56, type: 3}
-  rifleLocalPosition: {x: 0.02, y: 0.03, z: 0.06}
-  rifleLocalRotation: {x: 331.8, y: 273.7, z: 153.1}
+  rifleGripOffset: {x: 0.14, y: -0.02, z: 0.12}
+  rifleTilt: {x: 0, y: 0, z: 0}
+  rifleGripPoint: 0.055
+  rifleForePoint: 0.58
   rifleScale: 0.75
   buttonCooldown: 10
   doorClosedDuration: 0

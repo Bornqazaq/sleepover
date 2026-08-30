@@ -126,6 +126,12 @@ namespace Igruha.EditorTools
             int index = layers.Length - 1;
             layers[index].defaultWeight = 0f;
             layers[index].blendingMode = AnimatorLayerBlendingMode.Override;
+
+            // Без IK Pass Unity не вызывает OnAnimatorIK, и RifleGripIk молча
+            // ничего не делает: кисти остаются там, куда их поставил клип, а
+            // ружьё живёт отдельной жизнью. Один клип ретаргетится на восемь
+            // разных пропорций, поэтому руки к ружью приводит только IK.
+            layers[index].iKPass = true;
             controller.layers = layers;
 
             AnimatorStateMachine machine = controller.layers[index].stateMachine;
