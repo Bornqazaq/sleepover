@@ -15,13 +15,22 @@ namespace Igruha.Minigames.HoleInWall
     /// в <see cref="MinigameControllerBase"/>, здесь только своё.
     /// </summary>
     /// <remarks>
-    /// <b>Сеть.</b> Важное состояние меняют четыре метода —
+    /// <b>Сеть.</b> Важное состояние меняют пять методов —
     /// <see cref="ResolveWall"/>, <see cref="SweepTrack"/>,
-    /// <see cref="ReturnMember"/> и <see cref="CollectResults"/>, — и все они
-    /// зовутся только под <see cref="MinigameControllerBase.HasAuthority"/>.
-    /// Расписание и рисунок стен считает сервер один раз на раунд; движение
-    /// стены не шлётся вовсе — оно чистая функция от общих часов
+    /// <see cref="ReturnMember"/>, <see cref="ApplyPose"/> и
+    /// <see cref="CollectResults"/>, — и все они зовутся только под
+    /// <see cref="MinigameControllerBase.HasAuthority"/>. Состав пар, рисунок
+    /// стен и момент начала раунда считает сервер один раз и объявляет
+    /// через <see cref="HoleInWallNetwork"/>; движение стены не шлётся вовсе —
+    /// оно чистая функция от объявленного момента и общих часов
     /// (<see cref="SweepingWall"/>).
+    ///
+    /// <b>Пуск стены считает каждая машина сама, вердикт — только сервер.</b>
+    /// Это одна и та же формула от одного и того же объявленного момента,
+    /// поэтому стена стоит у всех в одном месте без единого пакета, — но
+    /// сравнивать её с позами вправе только тот, кто видит обоих партнёров
+    /// в один и тот же миг. Исход парный и стоит места в таблице: при пинге
+    /// двое иначе увидели бы разный итог одной стены (спека 10.1).
     ///
     /// <b>Вердикт считается один раз и на всю дорожку сразу.</b> Спека говорит
     /// «когда передняя грань доходит до центра капсулы игрока», и для одиночки
@@ -54,6 +63,9 @@ namespace Igruha.Minigames.HoleInWall
         /// <summary>Длительность сигнала перед ударом, с.</summary>
         private const float WarningToneSeconds = 0.18f;
 
+        /// <summary>Шаг сида между дорожками. Простое число, чтобы соседние дорожки не попадали в одну последовательность.</summary>
+        private const int TrackSeedStride = 7919;
+
         [Header("Дырка в стене")]
         [SerializeField] private HoleInWallConfig config;
         [Tooltip("Все дорожки арены. Заполняется построителем арены")]
@@ -64,13 +76,33 @@ namespace Igruha.Minigames.HoleInWall
         private readonly List<PairAssignment.Pair> pairs = new List<PairAssignment.Pair>(4);
         private readonly List<HoleInWallTrack> playingTracks = new List<HoleInWallTrack>(4);
         private readonly Dictionary<int, HoleInWallTrack> trackByPlayer = new Dictionary<int, HoleInWallTrack>(8);
-        private readonly List<PlayerTether> tethers = new List<PlayerTether>(4);
         private readonly WallPatternGenerator generator = new WallPatternGenerator();
         private readonly ScoreRanking ranking = new ScoreRanking();
 
+        /// <summary>
+        /// Счёт ушедших, замороженный на моменте выхода. Дорожку после ухода
+        /// может доигрывать напарник, и набранное им уже не общее: ушедший
+        /// ранжируется по тому, что успел сам (спека 10.2).
+        /// </summary>
+        private readonly Dictionary<int, int> frozenScores = new Dictionary<int, int>(8);
+
+        /// <summary>Буфер перерисовки дорожки, потерявшей напарника. Переиспользуется, чтобы не плодить мусор.</summary>
+        private readonly List<WallPattern> soloPatterns = new List<WallPattern>(8);
+
+        private HoleInWallNetwork network;
         private AudioSource warningSource;
         private AudioClip warningClip;
         private double roundStartTime;
+
+        /// <summary>
+        /// Момент начала раунда известен: у сервера он проставлен, у клиента
+        /// приехал. До этого считать расписание не от чего — стены стояли бы
+        /// в нуле общих часов, то есть уже уехавшими.
+        /// </summary>
+        private bool roundStartKnown;
+
+        /// <summary>Сид раунда. Хранится: по нему перерисовывается дорожка, потерявшая напарника.</summary>
+        private int roundSeed;
         private int currentWall = -1;
         private float stageHitTime;
         private bool wallWarned;
@@ -86,7 +118,7 @@ namespace Igruha.Minigames.HoleInWall
         {
             get
             {
-                if (config == null || currentWall < 0 || !RoundActive)
+                if (config == null || currentWall < 0 || !RoundActive || !roundStartKnown)
                 {
                     return 0f;
                 }
@@ -99,8 +131,17 @@ namespace Igruha.Minigames.HoleInWall
         /// <summary>Числа игры. Интерфейсу и погонщику болванок — чтобы не заводить вторую ссылку на тот же ассет.</summary>
         public HoleInWallConfig Config => config;
 
-        /// <summary>Дорожки, на которых идёт игра. Погонщику болванок и интерфейсу.</summary>
+        /// <summary>
+        /// Дорожки этого раунда. Погонщику болванок, интерфейсу и сетевой
+        /// половине. Список набирается на старте и до конца раунда не меняется:
+        /// дорожка, потерявшая всех участников, остаётся в нём пустой
+        /// (<see cref="HoleInWallTrack.Active"/> — ложь), потому что её номер
+        /// держит раскладку у клиента.
+        /// </summary>
         public IReadOnlyList<HoleInWallTrack> PlayingTracks => playingTracks;
+
+        /// <summary>Сколько участников в раунде. Сетевой половине — понять, собрался ли уже ростер.</summary>
+        public int RosterCount => Players.Count;
 
         /// <summary>Дорожка этого участника. Пусто — участника в раунде нет.</summary>
         public HoleInWallTrack TrackOf(int playerId) =>
@@ -109,12 +150,14 @@ namespace Igruha.Minigames.HoleInWall
         protected override void Awake()
         {
             base.Awake();
+            network = GetComponent<HoleInWallNetwork>();
             BuildWarningSound();
         }
 
         protected override void OnEnable()
         {
             base.OnEnable();
+            ResultsReported += LogResults;
 
             if (stageState != null)
             {
@@ -125,6 +168,8 @@ namespace Igruha.Minigames.HoleInWall
 
         protected override void OnDisable()
         {
+            ResultsReported -= LogResults;
+
             if (stageState != null)
             {
                 stageState.StageStarted -= HandleStageStarted;
@@ -132,6 +177,102 @@ namespace Igruha.Minigames.HoleInWall
             }
 
             base.OnDisable();
+        }
+
+        /// <summary>
+        /// Итоговая таблица в лог — <b>на каждой машине</b>, ровно та, которую
+        /// эта машина показывает.
+        ///
+        /// Пишется по событию шаблона, а не из <see cref="CollectResults"/>:
+        /// места считает сервер, и лог из подсчёта был бы только у него. Чтобы
+        /// приёмка сверяла восемь таблиц построчно, а не на глаз, каждая машина
+        /// обязана назвать свою. Тот же приём в «Рейсе на память».
+        ///
+        /// Дорожка и её счёт идут рядом с местом: исход здесь парный, и без
+        /// номера дорожки нельзя увидеть, что двое разделили место не случайно.
+        ///
+        /// ⚠️ Побуквенно строки сходятся у всех, <b>пока никто не выходил</b>.
+        /// У ушедшего дорожки на клиентах уже нет, а замороженный счёт знает
+        /// только сервер — его строка будет полнее. Это не рассинхрон: место
+        /// ушедшего считает сервер и рассылает готовым, и вот оно совпадает
+        /// у всех.
+        /// </summary>
+        private void LogResults(MinigameResults results)
+        {
+            var report = new System.Text.StringBuilder("[Дырка] итог: ");
+            IReadOnlyList<MinigameResults.PlayerResult> entries = results.Entries;
+
+            for (int i = 0; i < entries.Count; i++)
+            {
+                MinigameResults.PlayerResult entry = entries[i];
+                HoleInWallTrack track = TrackOf(entry.PlayerId);
+
+                report.Append(entry.Place).Append(". id=").Append(entry.PlayerId)
+                      .Append(" дорожка=").Append(track != null ? track.Index.ToString() : "нет")
+                      .Append(" стен=").Append(ScoreOf(entry.PlayerId))
+                      .Append(frozenScores.ContainsKey(entry.PlayerId) ? " (вышел)" : string.Empty)
+                      .Append("; ");
+            }
+
+            Debug.Log(report.ToString());
+        }
+
+        /// <summary>
+        /// Проверка снятия ролей — <b>на каждой машине</b>, отдельной строкой
+        /// и сразу после того, как роли сняты.
+        ///
+        /// Почему не вместе с таблицей мест: у клиента места приезжают
+        /// отдельным <c>Rpc</c>, и он рассылается <b>раньше</b>, чем публикуется
+        /// смена фазы. Значит, на клиенте таблица печатается ещё до
+        /// <see cref="OnRoundEnded"/> — то есть до снятия ролей, — и проверка
+        /// оттуда врала бы «не снято» на каждом прогоне.
+        ///
+        /// Проверять это глазами нельзя вовсе: незакрытая роль уезжает в хаб
+        /// вместе с живым <c>NetworkObject</c> персонажа и даёт симптом
+        /// «не работает у одного человека из всех», а он и означает, что
+        /// состояние привязано к машине и на одной его не увидеть.
+        /// </summary>
+        private void LogRoleAudit()
+        {
+            int checkedMembers = 0;
+            int stuckRoles = 0;
+
+            for (int i = 0; i < playingTracks.Count; i++)
+            {
+                HoleInWallTrack track = playingTracks[i];
+                IReadOnlyList<HoleInWallTrack.Member> members = track.Members;
+
+                for (int m = 0; m < members.Count; m++)
+                {
+                    PlayerController avatar = members[m].Avatar;
+                    if (avatar == null)
+                    {
+                        continue;
+                    }
+
+                    checkedMembers++;
+
+                    // Сам компонент позы здесь ещё жив — Destroy у Unity
+                    // отложенный, — поэтому спрашиваем не «есть ли он», а
+                    // «работает ли»: выключенный уже снял с персонажа всё,
+                    // что вешал.
+                    PlayerPoseAbility pose = avatar.GetComponent<PlayerPoseAbility>();
+
+                    if (avatar.FacingOverride.HasValue || avatar.CrouchInputSuppressed ||
+                        (pose != null && pose.enabled) || track.Tether != null)
+                    {
+                        stuckRoles++;
+                    }
+                }
+            }
+
+            Debug.Log($"[Дырка] роли сняты у {checkedMembers - stuckRoles} из {checkedMembers}");
+
+            if (stuckRoles > 0)
+            {
+                Debug.LogError($"{name}: {stuckRoles} участников уезжают в хаб с ролью раунда — " +
+                               "фиксированный фронт, запрет Ctrl, поза или трос не сняты", this);
+            }
         }
 
         // ========== ПОДГОТОВКА РАУНДА ==========
@@ -146,18 +287,75 @@ namespace Igruha.Minigames.HoleInWall
 
             ClearRound();
 
-            // Состав делит сервер один раз. У клиента в фазе 3 он приедет
-            // готовым — пересчитывать его там будет нечем и незачем.
-            int seed = HasAuthority
-                ? UnityEngine.Random.Range(int.MinValue, int.MaxValue)
-                : 0;
+            // Состав делит сервер один раз и объявляет готовым. Клиент его
+            // не пересчитывает: тот же сид у него сошёлся бы в ту же раскладку
+            // только при точно совпавшем ростере, а объявленный список
+            // сходится всегда.
+            if (!HasAuthority)
+            {
+                // ⚠️ Момент начала раунда здесь НЕ сбрасывается, и это важно.
+                // Сервер объявляет его, как только начал раунд, а ростер
+                // у клиента собирается своим темпом: объявление вполне
+                // приезжает раньше, чем сюда дойдёт очередь. Сбросив его,
+                // мы получили бы клиента, у которого стены не едут вовсе,
+                // — а второй раз объявление не придёт, оно уже не меняется.
+                return;
+            }
 
-            PairAssignment.Assign(Players, seed, pairs);
+            roundStartKnown = false;
+            roundSeed = UnityEngine.Random.Range(int.MinValue, int.MaxValue);
+
+            PairAssignment.Assign(Players, roundSeed, pairs);
             AssignTracks();
-            GeneratePatterns(seed);
+            GeneratePatterns();
+
+            network?.PublishTracks(playingTracks);
+            network?.PublishSchedule(playingTracks);
+            PublishPoses();
 
             Debug.Log($"🧱 «Дырка в стене»: {Players.Count} игроков, {playingTracks.Count} дорожек, " +
                       $"{config.WallCount} стен, раунд {config.RoundLength:F1} с");
+        }
+
+        /// <summary>
+        /// Разослать всё, что сервер уже решил. Зовётся сетевой половиной, если
+        /// она ожила позже раунда: порядок спавна и старта мини-игры ничем
+        /// не связан.
+        /// </summary>
+        public void PublishNetworkState()
+        {
+            if (!HasAuthority || network == null || playingTracks.Count == 0)
+            {
+                return;
+            }
+
+            network.PublishTracks(playingTracks);
+            network.PublishSchedule(playingTracks);
+            PublishPoses();
+
+            if (roundStartKnown)
+            {
+                network.PublishRoundStart(roundStartTime);
+            }
+        }
+
+        private void PublishPoses()
+        {
+            if (network == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < playingTracks.Count; i++)
+            {
+                IReadOnlyList<HoleInWallTrack.Member> members = playingTracks[i].Members;
+                for (int m = 0; m < members.Count; m++)
+                {
+                    HoleInWallTrack.Member member = members[m];
+                    network.PublishPose(member.PlayerId,
+                        member.Pose != null ? member.Pose.CurrentPose : HoleInWallPose.None);
+                }
+            }
         }
 
         /// <summary>
@@ -190,6 +388,11 @@ namespace Igruha.Minigames.HoleInWall
                 for (int slot = 0; slot < pair.Size; slot++)
                 {
                     int playerId = pair.MemberAt(slot);
+                    if (playerId == PairAssignment.NoPlayer)
+                    {
+                        continue;
+                    }
+
                     HoleInWallTrack.Member member = BuildMember(playerId);
                     if (member == null)
                     {
@@ -215,11 +418,29 @@ namespace Igruha.Minigames.HoleInWall
             }
         }
 
+        /// <summary>Дорожка по её номеру на арене. Пусто — такой в раунде нет.</summary>
+        private HoleInWallTrack TrackByIndex(int index)
+        {
+            for (int i = 0; i < playingTracks.Count; i++)
+            {
+                if (playingTracks[i].Index == index)
+                {
+                    return playingTracks[i];
+                }
+            }
+
+            return null;
+        }
+
         private HoleInWallTrack.Member BuildMember(int playerId)
         {
             PlayerController avatar = FindAvatar(playerId);
             if (avatar == null)
             {
+                // Молчать здесь нельзя: пара без второго превращается
+                // в одиночку, ей достаётся один вырез вместо двух, и стена
+                // на вид расходится с той, по которой судит сервер.
+                Debug.LogError($"{name}: у игрока {playerId} нет аватара — дорожка соберётся неполной", this);
                 return null;
             }
 
@@ -230,7 +451,7 @@ namespace Igruha.Minigames.HoleInWall
                 pose = avatar.gameObject.AddComponent<PlayerPoseAbility>();
             }
 
-            pose.Configure(config);
+            pose.Configure(config, this, playerId);
 
             avatar.TryGetComponent(out StuckDetector stuck);
             avatar.TryGetComponent(out PlayerRespawner respawner);
@@ -278,7 +499,7 @@ namespace Igruha.Minigames.HoleInWall
             tether.Configure(config.TetherLength, config.TetherRamp,
                 config.TetherPullAcceleration, config.TetherHardLimit);
             tether.Bind(track.Members[0].Avatar, track.Members[1].Avatar);
-            tethers.Add(tether);
+            track.Tether = tether;
 
             // ⚠️ Пока трос натянут, детектор застревания обязан молчать: игрок
             // на натянутом тросе выглядит для него точно как зажатый геометрией,
@@ -293,7 +514,7 @@ namespace Igruha.Minigames.HoleInWall
             }
         }
 
-        private void GeneratePatterns(int seed)
+        private void GeneratePatterns()
         {
             if (!HasAuthority)
             {
@@ -303,12 +524,15 @@ namespace Igruha.Minigames.HoleInWall
             for (int i = 0; i < playingTracks.Count; i++)
             {
                 HoleInWallTrack track = playingTracks[i];
-
-                // Свой сид на дорожку: соседи решают разные задачи, и половина
-                // удовольствия в том, что видно, как позорятся рядом.
-                generator.Generate(config, seed + track.Index * 7919, track.Solo, track.Patterns);
+                generator.Generate(config, TrackSeed(track), track.Solo, track.Patterns);
             }
         }
+
+        /// <summary>
+        /// Свой сид на дорожку: соседи решают разные задачи, и половина
+        /// удовольствия в том, что видно, как позорятся рядом.
+        /// </summary>
+        private int TrackSeed(HoleInWallTrack track) => roundSeed + track.Index * TrackSeedStride;
 
         // ========== ТЕЧЕНИЕ РАУНДА ==========
 
@@ -316,11 +540,27 @@ namespace Igruha.Minigames.HoleInWall
         {
             if (config == null || !HasAuthority)
             {
+                // Момент начала объявит сервер: от него считается всё
+                // расписание, и придумывать свой клиенту нельзя.
                 return;
             }
 
             roundStartTime = NetworkClock.Now;
+            roundStartKnown = true;
+            network?.PublishRoundStart(roundStartTime);
             stageState?.BeginSubround(1, FirstStage, config.StageDuration(0));
+        }
+
+        /// <summary>Момент начала раунда приехал от сервера. От него считается всё расписание.</summary>
+        public void ApplyNetworkRoundStart(double time)
+        {
+            if (HasAuthority)
+            {
+                return;
+            }
+
+            roundStartTime = time;
+            roundStartKnown = true;
         }
 
         private void HandleStageStarted(byte stage)
@@ -331,7 +571,17 @@ namespace Igruha.Minigames.HoleInWall
 
             for (int i = 0; i < playingTracks.Count; i++)
             {
-                playingTracks[i].BeginWall();
+                HoleInWallTrack track = playingTracks[i];
+                track.BeginWall();
+
+                // Дорожка, оставшаяся без участников, уходит со СЛЕДУЮЩЕЙ
+                // стены, а не в момент ухода: пустая платформа посреди подъезда
+                // читалась бы как чужая брошенная (спека 10.2).
+                if (!track.Active && track.gameObject.activeSelf)
+                {
+                    track.Wall.Retire();
+                    track.gameObject.SetActive(false);
+                }
             }
         }
 
@@ -354,9 +604,15 @@ namespace Igruha.Minigames.HoleInWall
             stageState.EnterStage((byte)(next + FirstStage), config.StageDuration(next));
         }
 
+        /// <summary>
+        /// Такт раунда. Идёт на <b>каждой</b> машине, а не только у сервера:
+        /// пустить стену и довезти её до конца обязан каждый, иначе арена
+        /// у клиента была бы пустой. Что именно делает только сервер, отмечено
+        /// внутри <see cref="TickTrack"/>.
+        /// </summary>
         private void FixedUpdate()
         {
-            if (!RoundActive || !HasAuthority || config == null || currentWall < 0)
+            if (!RoundActive || config == null || currentWall < 0 || !roundStartKnown)
             {
                 return;
             }
@@ -366,7 +622,7 @@ namespace Igruha.Minigames.HoleInWall
 
             // Сигнал звучит один раз на стену, а не на дорожку: момент удара
             // у всех дорожек общий, и четыре источника дали бы четырёхкратную
-            // громкость вместо подсказки.
+            // громкость вместо подсказки. Звук локальный — по сети не едет.
             if (!wallWarned && elapsed >= stageHitTime - config.WarningLead)
             {
                 wallWarned = true;
@@ -383,17 +639,27 @@ namespace Igruha.Minigames.HoleInWall
         {
             SweepingWall wall = track.Wall;
 
-            // Стена одиночки стартует позже: подъезд у неё короче на те же
-            // 25 %, на которые выше скорость, а момент удара общий.
-            if (!track.WallLaunched &&
+            // Пуск считает каждая машина сама — это чистая функция от
+            // объявленного момента начала раунда и таблицы подъездов, поэтому
+            // на движение стены не уходит ни одного пакета. Стена одиночки
+            // стартует позже: подъезд у неё короче на те же 25 %, на которые
+            // выше скорость, а момент удара общий.
+            // Рисунок обязателен: у клиента он приезжает отдельным списком
+            // и может опоздать на кадр-другой относительно стадии. Без этой
+            // проверки стена той стены просто не поехала бы вовсе — пуск
+            // бывает один раз, а промахнуться им можно навсегда.
+            if (track.Active && !track.WallLaunched && currentWall < track.Patterns.Count &&
                 elapsed >= stageHitTime - config.ApproachSeconds(currentWall, track.Solo))
             {
                 LaunchWall(track);
             }
 
-            // Момент проверки — передняя грань стены на линии проверки.
-            // Формула та же, по которой стена и едет: разойтись им негде.
-            if (track.WallLaunched && !track.WallResolved && wall.FrontZ <= config.CheckLineZ)
+            // 🔴 Вердикт — только сервер и только один раз. Момент проверки —
+            // передняя грань стены на линии проверки; формула та же, по которой
+            // стена и едет, разойтись им негде. Клиент исход не считает
+            // и узнаёт его оповещением (спека 10.1).
+            if (HasAuthority && track.Active && track.WallLaunched && !track.WallResolved &&
+                wall.FrontZ <= config.CheckLineZ)
             {
                 ResolveWall(track);
             }
@@ -403,18 +669,23 @@ namespace Igruha.Minigames.HoleInWall
                 wall.Retire();
             }
 
-            TickReturns(track, now);
+            if (HasAuthority)
+            {
+                TickReturns(track, now);
+            }
         }
 
         private void LaunchWall(HoleInWallTrack track)
         {
-            track.WallLaunched = true;
-
             if (currentWall >= track.Patterns.Count)
             {
                 Debug.LogError($"{name}: у дорожки {track.Index} нет рисунка стены {currentWall + 1}", this);
                 return;
             }
+
+            // Отметка ставится только после того, как пуск состоялся: иначе
+            // единственная попытка сгорела бы на недоехавшем расписании.
+            track.WallLaunched = true;
 
             WallPattern pattern = track.Patterns[currentWall];
             double startTime = roundStartTime + stageHitTime - config.ApproachSeconds(currentWall, track.Solo);
@@ -446,13 +717,39 @@ namespace Igruha.Minigames.HoleInWall
         {
             track.WallResolved = true;
 
-            if (TrackFits(track))
+            bool passed = TrackFits(track);
+            if (passed)
             {
                 track.AwardWall();
+            }
+            else
+            {
+                SweepTrack(track);
+            }
+
+            // Счёт — состояние, и уезжает реплицированным списком. Сам вердикт —
+            // событие, и уезжает оповещением: правдой он уже стал здесь.
+            network?.PublishTracks(playingTracks);
+            network?.AnnounceWallResolved(track.Index, currentWall, passed);
+        }
+
+        /// <summary>
+        /// Исход стены, посчитанный сервером. Клиент его <b>узнаёт</b>, а не
+        /// считает: отметка нужна, чтобы он не пытался решить сам, и чтобы
+        /// в фазе 4 было к чему цеплять звук удара и брызги.
+        /// </summary>
+        public void ApplyNetworkWallResolved(int trackIndex, int wallIndex, bool passed)
+        {
+            if (HasAuthority || wallIndex != currentWall)
+            {
                 return;
             }
 
-            SweepTrack(track);
+            HoleInWallTrack track = TrackByIndex(trackIndex);
+            if (track != null)
+            {
+                track.WallResolved = true;
+            }
         }
 
         /// <summary>
@@ -468,7 +765,19 @@ namespace Igruha.Minigames.HoleInWall
 
             if (members.Count == 1)
             {
-                return MemberFits(track, members[0], 0);
+                // Одиночке годится любой вырез. Обычно он один — но пара,
+                // потерявшая напарника посреди подъезда, доигрывает эту стену
+                // прежним рисунком на двоих, и лезть оставшемуся есть куда:
+                // менять вырез в момент подъезда нечестно (спека 10.2).
+                for (int cutout = 0; cutout < track.Wall.CutoutCount; cutout++)
+                {
+                    if (MemberFits(track, members[0], cutout))
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
             }
 
             if (members.Count < 2 || track.Wall.CutoutCount < 2)
@@ -541,7 +850,11 @@ namespace Igruha.Minigames.HoleInWall
 
                 // Стена идёт навстречу взгляду, то есть прилетает в лицо:
                 // отсюда отлёт назад, а не подсечка сзади.
-                member.Avatar.ApplyImpulse(impulse, KnockdownType.FlyBack);
+                //
+                // Через ApplyWorldImpulse, а не напрямую: решает сервер, но
+                // телом распоряжается машина владельца, и прямой вызов на
+                // чужой копии тут же перетёрло бы сетевым транспортом.
+                member.Avatar.ApplyWorldImpulse(impulse, KnockdownType.FlyBack);
                 ScheduleReturn(member, config.SweptReturnSeconds);
             }
         }
@@ -625,6 +938,9 @@ namespace Igruha.Minigames.HoleInWall
             ReleaseTethers();
             stageState?.StopSequence();
             currentWall = -1;
+            roundStartKnown = false;
+
+            LogRoleAudit();
         }
 
         private static void ReleaseMember(HoleInWallTrack.Member member)
@@ -645,36 +961,73 @@ namespace Igruha.Minigames.HoleInWall
 
             member.Avatar.FacingOverride = null;
 
-            // Способность сама снимает и позу, и запрет Ctrl-приседа в OnDisable.
             if (member.Pose != null)
             {
+                // ⚠️ Сначала выключаем, и только потом уничтожаем. Способность
+                // снимает позу и запрет Ctrl-приседа в OnDisable, а Destroy
+                // у Unity отложенный: до конца кадра компонент жив, и всё это
+                // время персонаж стоит с отключённым приседом. Кадр — мелочь,
+                // но роль обязана сниматься там, где написано, а не когда-то
+                // потом: иначе проверить это нечем, а симптом «не работает
+                // у одного человека из всех» ищут потом сутки.
+                member.Pose.enabled = false;
                 Destroy(member.Pose);
             }
         }
 
         private void ReleaseTethers()
         {
-            for (int i = 0; i < tethers.Count; i++)
+            for (int i = 0; i < tracks.Length; i++)
             {
-                if (tethers[i] == null)
+                if (tracks[i] != null)
                 {
-                    continue;
+                    ReleaseTether(tracks[i]);
                 }
+            }
+        }
 
-                tethers[i].Release();
-                Destroy(tethers[i].gameObject);
+        /// <summary>
+        /// Снять трос с дорожки. Обязателен и в конце раунда, и в момент, когда
+        /// пара теряет одного: иначе оставшегося таскает за мёртвым напарником,
+        /// а в хабе — за живым.
+        /// </summary>
+        private void ReleaseTether(HoleInWallTrack track)
+        {
+            if (track.Tether == null)
+            {
+                return;
             }
 
-            tethers.Clear();
+            track.Tether.Release();
+            Destroy(track.Tether.gameObject);
+            track.Tether = null;
+
+            // Детектор застревания держал на трос ссылку: оставленная, она
+            // указывала бы на уничтоженный объект.
+            IReadOnlyList<HoleInWallTrack.Member> members = track.Members;
+            for (int i = 0; i < members.Count; i++)
+            {
+                if (members[i].Stuck != null)
+                {
+                    members[i].Stuck.Tether = null;
+                }
+            }
         }
 
         private void ClearRound()
         {
+            ReleaseTethers();
+
             playingTracks.Clear();
             trackByPlayer.Clear();
             pairs.Clear();
+            frozenScores.Clear();
             currentWall = -1;
 
+            // ⚠️ Момент начала раунда здесь НЕ сбрасывается. Клиент собирает
+            // дорожки этим же путём, когда приезжает состав, — а состав вполне
+            // может приехать позже объявленного момента. Сбросив его тут,
+            // мы получили бы клиента, у которого стены не едут вовсе.
             for (int i = 0; i < tracks.Length; i++)
             {
                 if (tracks[i] != null)
@@ -699,11 +1052,27 @@ namespace Igruha.Minigames.HoleInWall
             for (int i = 0; i < Players.Count; i++)
             {
                 int playerId = Players[i].Id;
-                HoleInWallTrack track = TrackOf(playerId);
-                ranking.Add(playerId, track != null ? track.Score : 0);
+                ranking.Add(playerId, ScoreOf(playerId));
             }
 
             ranking.Build(results);
+        }
+
+        /// <summary>
+        /// Счёт участника. У ушедшего он заморожен на моменте выхода: дорожку
+        /// после него мог доигрывать напарник, и те очки уже не его. Место
+        /// ушедший всё равно получает наравне со всеми (спека 10.2) — из состава
+        /// раунда его не вычёркиваем.
+        /// </summary>
+        private int ScoreOf(int playerId)
+        {
+            if (frozenScores.TryGetValue(playerId, out int frozen))
+            {
+                return frozen;
+            }
+
+            HoleInWallTrack track = TrackOf(playerId);
+            return track != null ? track.Score : 0;
         }
 
         private PlayerController FindAvatar(int playerId)
@@ -717,6 +1086,335 @@ namespace Igruha.Minigames.HoleInWall
             }
 
             return null;
+        }
+
+        // ========== ПОЗА ==========
+
+        /// <summary>
+        /// Намерение игрока встать в позу. Зовёт <see cref="PlayerPoseAbility"/>
+        /// на машине того, кто нажал.
+        ///
+        /// Поза — единственное действие в этой игре и единственное, что решает
+        /// исход, поэтому применяет её сервер: клиент шлёт номер, сервер
+        /// проверяет и кладёт в реплицируемое состояние. Отклик при этом
+        /// остаётся мгновенным — своё изображение клиент меняет сразу, не дожидаясь
+        /// круга до сервера, иначе игра играется с пингом в единственном
+        /// своём действии. Сервер перепишет, если не согласен.
+        /// </summary>
+        public void SubmitPoseIntent(int playerId, HoleInWallPose pose)
+        {
+            if (!RoundActive)
+            {
+                return;
+            }
+
+            if (HasAuthority)
+            {
+                ApplyPose(playerId, pose);
+                return;
+            }
+
+            PoseOf(playerId)?.SetPose(pose);
+            network?.SubmitPose(pose);
+        }
+
+        /// <summary>
+        /// Принять позу игрока. <b>Единственное место, где поза становится
+        /// общей правдой</b>, и работает оно только под авторитетом.
+        ///
+        /// Диапазон проверяется здесь, а не у отправителя: из сети приезжает
+        /// байт, и он может быть любым.
+        /// </summary>
+        public void ApplyPose(int playerId, HoleInWallPose pose)
+        {
+            if (!HasAuthority || !RoundActive)
+            {
+                return;
+            }
+
+            if (pose == HoleInWallPose.None || (int)pose > HoleInWallConfig.PoseCount)
+            {
+                return;
+            }
+
+            PlayerPoseAbility ability = PoseOf(playerId);
+            if (ability == null)
+            {
+                // Не участник этого раунда — позы у него нет и быть не может.
+                return;
+            }
+
+            ability.SetPose(pose);
+            network?.PublishPose(playerId, pose);
+        }
+
+        /// <summary>Поза, подтверждённая сервером. Клиент её только применяет.</summary>
+        public void ApplyNetworkPose(int playerId, HoleInWallPose pose)
+        {
+            if (HasAuthority)
+            {
+                return;
+            }
+
+            PoseOf(playerId)?.SetPose(pose);
+        }
+
+        /// <summary>Способность позы этого участника. Пусто — участника в раунде нет.</summary>
+        private PlayerPoseAbility PoseOf(int playerId)
+        {
+            HoleInWallTrack track = TrackOf(playerId);
+            if (track == null)
+            {
+                return null;
+            }
+
+            int slot = track.IndexOfMember(playerId);
+            return slot >= 0 ? track.Members[slot].Pose : null;
+        }
+
+        // ========== ДИСКОННЕКТЫ ==========
+
+        /// <summary>
+        /// Игрок сам вышел из раунда, оставшись в катке. Разбирается ровно так
+        /// же, как уход по обрыву связи: для дорожки разницы нет.
+        /// </summary>
+        protected override void OnPlayerLeftRound(int playerId) => HandlePlayerLeft(playerId);
+
+        /// <summary>
+        /// Участник ушёл. Игра парная, поэтому уход одного ломает не только
+        /// его, но и напарника (спека 10.2):
+        ///
+        /// <list type="bullet">
+        /// <item>отвалился один из пары — со <b>следующей</b> стены дорожка идёт
+        /// одиночкой: вырез один, скорость +25 %. Текущая доигрывается прежним
+        /// рисунком, менять вырез в момент подъезда нечестно. Счёт сохраняется;</item>
+        /// <item>отвалился одиночка или оба из пары — дорожка уходит со
+        /// следующей стены;</item>
+        /// <item>ушедший остаётся в таблице мест и ранжируется по счёту
+        /// на момент выхода.</item>
+        /// </list>
+        ///
+        /// Зовётся только у авторитета: он один знает про уход.
+        /// </summary>
+        public void HandlePlayerLeft(int playerId)
+        {
+            if (!HasAuthority)
+            {
+                return;
+            }
+
+            HoleInWallTrack track = TrackOf(playerId);
+            if (track == null)
+            {
+                return;
+            }
+
+            // Счёт замирает до того, как дорожка поедет дальше без него.
+            frozenScores[playerId] = track.Score;
+            trackByPlayer.Remove(playerId);
+
+            // Трос снимается сразу: за ушедшим оставшегося таскать некому,
+            // но жёсткий предел честно тянул бы его к мёртвому телу.
+            ReleaseTether(track);
+
+            if (!track.RemoveMember(playerId))
+            {
+                return;
+            }
+
+            if (track.Active)
+            {
+                RedrawAsSolo(track);
+                network?.PublishSchedule(playingTracks);
+            }
+
+            network?.PublishTracks(playingTracks);
+
+            Debug.Log($"🚪 «Дырка в стене»: игрок {playerId} вышел, дорожка {track.Index} " +
+                      (track.Active ? "переходит в режим одиночки со следующей стены" : "снимается со следующей стены"), this);
+        }
+
+        /// <summary>
+        /// Перерисовать дорожке всё, что она ещё не сыграла, — под одиночку.
+        /// Текущую стену не трогаем: она уже пущена, и подменить ей вырез
+        /// на подъезде значит обмануть того, кто под неё встал.
+        /// </summary>
+        private void RedrawAsSolo(HoleInWallTrack track)
+        {
+            generator.Generate(config, TrackSeed(track), true, soloPatterns);
+
+            for (int wall = currentWall + 1; wall < track.Patterns.Count && wall < soloPatterns.Count; wall++)
+            {
+                track.Patterns[wall] = soloPatterns[wall];
+            }
+
+            // Одиночка стоит по центру платформы: и место возврата, и точка
+            // респавна переезжают туда же.
+            track.ArrangeSlots(config);
+            RebindSlots(track);
+        }
+
+        /// <summary>
+        /// Пере-навесить точки возврата после смены состава: место участника
+        /// внутри дорожки могло сдвинуться, а точка респавна берётся по номеру
+        /// места, а не по человеку.
+        /// </summary>
+        private static void RebindSlots(HoleInWallTrack track)
+        {
+            IReadOnlyList<HoleInWallTrack.Member> members = track.Members;
+            for (int i = 0; i < members.Count; i++)
+            {
+                Transform slot = track.SlotOf(i);
+                if (slot != null)
+                {
+                    members[i].Respawner?.SetRespawnPoint(slot);
+                }
+            }
+        }
+
+        // ========== ПРИЁМ СЕТЕВОГО СОСТОЯНИЯ ==========
+
+        /// <summary>
+        /// Состав дорожек приехал от сервера.
+        ///
+        /// Состав меняется дважды за раунд — на старте и на дисконнекте, —
+        /// а счёт после каждой стены. Пересобирать дорожки на каждое очко
+        /// нельзя: это снесло бы и расписание, и позы, и способности с аватаров.
+        /// Поэтому сначала смотрим, изменился ли состав.
+        /// </summary>
+        /// <returns>Истина — дорожки пересобраны, разложить по ним остальное заново.</returns>
+        public bool ApplyNetworkTracks(IReadOnlyList<HoleInWallTrackNetState> states)
+        {
+            if (HasAuthority || config == null || states == null || states.Count == 0 || Players.Count == 0)
+            {
+                return false;
+            }
+
+            bool rebuilt = false;
+
+            if (playingTracks.Count != states.Count)
+            {
+                BuildTracksFromNetwork(states);
+                rebuilt = true;
+            }
+            else
+            {
+                rebuilt = SyncMembersFromNetwork(states);
+            }
+
+            for (int i = 0; i < states.Count; i++)
+            {
+                HoleInWallTrack track = TrackByIndex(states[i].TrackIndex);
+                track?.ApplyScore(states[i].Score);
+            }
+
+            return rebuilt;
+        }
+
+        private void BuildTracksFromNetwork(IReadOnlyList<HoleInWallTrackNetState> states)
+        {
+            ClearRound();
+
+            pairs.Clear();
+            for (int i = 0; i < states.Count; i++)
+            {
+                // Раскладка держится на позиции в списке: пара под номером i
+                // встаёт на дорожку i. Номер дорожки едет в строке, и если
+                // в нумерации всё же окажется дырка, добиваем её пустой парой,
+                // а не сдвигаем всех влево.
+                while (pairs.Count < states[i].TrackIndex)
+                {
+                    pairs.Add(new PairAssignment.Pair(PairAssignment.NoPlayer, PairAssignment.NoPlayer));
+                }
+
+                pairs.Add(new PairAssignment.Pair(states[i].FirstMemberId, states[i].SecondMemberId));
+            }
+
+            AssignTracks();
+        }
+
+        /// <summary>
+        /// Состав уже собран — сверить его с приехавшим и снять тех, кого
+        /// в нём больше нет. Пересборкой это делать нельзя: у оставшегося
+        /// снялись бы способность позы и фиксированный фронт.
+        /// </summary>
+        private bool SyncMembersFromNetwork(IReadOnlyList<HoleInWallTrackNetState> states)
+        {
+            bool changed = false;
+
+            for (int i = 0; i < states.Count; i++)
+            {
+                HoleInWallTrackNetState state = states[i];
+                HoleInWallTrack track = TrackByIndex(state.TrackIndex);
+                if (track == null)
+                {
+                    continue;
+                }
+
+                bool trackChanged = false;
+
+                for (int m = track.Members.Count - 1; m >= 0; m--)
+                {
+                    int playerId = track.Members[m].PlayerId;
+                    if (playerId == state.FirstMemberId || playerId == state.SecondMemberId)
+                    {
+                        continue;
+                    }
+
+                    trackByPlayer.Remove(playerId);
+                    ReleaseTether(track);
+                    track.RemoveMember(playerId);
+                    trackChanged = true;
+                }
+
+                if (!trackChanged)
+                {
+                    continue;
+                }
+
+                changed = true;
+
+                if (track.Active)
+                {
+                    track.ArrangeSlots(config);
+                    RebindSlots(track);
+                }
+            }
+
+            return changed;
+        }
+
+        /// <summary>
+        /// Расписание стен приехало от сервера. Рисунок объявлен структурой,
+        /// а не сидом: см. <see cref="HoleInWallWallNetState"/>.
+        /// </summary>
+        public void ApplyNetworkSchedule(IReadOnlyList<HoleInWallWallNetState> states)
+        {
+            if (HasAuthority || states == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < playingTracks.Count; i++)
+            {
+                playingTracks[i].Patterns.Clear();
+            }
+
+            for (int i = 0; i < states.Count; i++)
+            {
+                HoleInWallTrack track = TrackByIndex(states[i].TrackIndex);
+                if (track == null)
+                {
+                    continue;
+                }
+
+                // Строки приходят по стенам подряд на каждую дорожку, поэтому
+                // добавления хватает — сортировать нечего.
+                if (track.Patterns.Count == states[i].WallIndex)
+                {
+                    track.Patterns.Add(states[i].ToPattern());
+                }
+            }
         }
 
         // ========== ЗВУК ==========

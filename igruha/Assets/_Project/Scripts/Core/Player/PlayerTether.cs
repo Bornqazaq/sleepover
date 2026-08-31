@@ -1,4 +1,6 @@
+using Unity.Netcode;
 using UnityEngine;
+using Igruha.Core.Session;
 
 namespace Igruha.Core.Player
 {
@@ -28,9 +30,18 @@ namespace Igruha.Core.Player
     /// второго вниз сквозь пол, а поднятый ловушкой — вверх. Игра горизонтальная,
     /// и трос в ней тоже.
     ///
-    /// <b>Сеть.</b> Силу прикладывает <see cref="PlayerController.ApplyImpulse"/>
-    /// напрямую, а не <c>ApplyWorldImpulse</c>: в фазе 3 натяжение считает
-    /// сервер целиком (тикет 18.18), и гонять каждый такт через relay незачем.
+    /// <b>Сеть: каждая машина тянет своего.</b> Трос — не событие, а
+    /// непрерывная сила, и уходит она не в счёт, а в курс, поэтому её вправе
+    /// применять сам владелец персонажа. Через сервер это было бы полсотни
+    /// пакетов в секунду на каждую пару: <c>ApplyWorldImpulse</c> у авторитета
+    /// шлёт владельцу отдельное сообщение на каждый такт физики. Отсюда
+    /// <see cref="PlayerController.ApplyImpulse"/> напрямую — и только своему.
+    /// Тот же приём, что у струи в <c>Core/Traps/PushZone</c> и у тяги
+    /// в <c>Core/Items/MultiCarryObject</c>.
+    ///
+    /// Решать здесь нечего: натяжение — чистая функция от двух позиций,
+    /// а обе видны каждой машине через сетевой транспорт персонажа. Обе
+    /// половины силы прикладываются, просто разными машинами: свою — каждая.
     /// </remarks>
     [RequireComponent(typeof(LineRenderer))]
     public sealed class PlayerTether : MonoBehaviour
@@ -44,6 +55,14 @@ namespace Igruha.Core.Player
         private PlayerController second;
         private Rigidbody firstBody;
         private Rigidbody secondBody;
+
+        /// <summary>
+        /// Сетевые объекты связанных. Спрашиваются каждый такт физики, поэтому
+        /// кэшируются на <see cref="Bind"/>, а не берутся <c>GetComponent</c>
+        /// в цикле.
+        /// </summary>
+        private NetworkObject firstNet;
+        private NetworkObject secondNet;
 
         private float maxLength = 4.32f;
         private float rampDistance = 0.72f;
@@ -103,6 +122,8 @@ namespace Igruha.Core.Player
             second = b;
             firstBody = a != null ? a.GetComponent<Rigidbody>() : null;
             secondBody = b != null ? b.GetComponent<Rigidbody>() : null;
+            firstNet = a != null ? a.GetComponent<NetworkObject>() : null;
+            secondNet = b != null ? b.GetComponent<NetworkObject>() : null;
 
             IsTaut = false;
             rope.enabled = Bound;
@@ -118,6 +139,8 @@ namespace Igruha.Core.Player
             second = null;
             firstBody = null;
             secondBody = null;
+            firstNet = null;
+            secondNet = null;
             IsTaut = false;
             rope.enabled = false;
         }
@@ -161,10 +184,23 @@ namespace Igruha.Core.Player
             float strength = Mathf.Clamp01(overstretch / rampDistance) * maxPullAcceleration;
             float impulsePerTick = strength * Time.fixedDeltaTime;
 
-            first.ApplyImpulse(direction * (impulsePerTick * firstBody.mass));
-            second.ApplyImpulse(-direction * (impulsePerTick * secondBody.mass));
+            // Только своего: чужое тело ведёт его машина, и всё, что мы ему
+            // напишем, тут же перетрёт сетевой транспорт. Вторую половину
+            // натяжения приложит машина напарника — по тем же двум позициям.
+            bool driveFirst = WorldAuthority.DrivenHere(firstNet);
+            bool driveSecond = WorldAuthority.DrivenHere(secondNet);
 
-            ApplyHardLimit(direction, distance);
+            if (driveFirst)
+            {
+                first.ApplyImpulse(direction * (impulsePerTick * firstBody.mass));
+            }
+
+            if (driveSecond)
+            {
+                second.ApplyImpulse(-direction * (impulsePerTick * secondBody.mass));
+            }
+
+            ApplyHardLimit(direction, distance, driveFirst, driveSecond);
         }
 
         /// <summary>
@@ -175,7 +211,7 @@ namespace Igruha.Core.Player
         /// проскакивает любое притяжение за пару тактов, и трос «рвётся» на
         /// вид, хотя рваться ему нельзя.
         /// </summary>
-        private void ApplyHardLimit(Vector3 direction, float distance)
+        private void ApplyHardLimit(Vector3 direction, float distance, bool driveFirst, bool driveSecond)
         {
             float excess = distance - (maxLength + hardLimit);
             if (excess <= 0f)
@@ -184,16 +220,23 @@ namespace Igruha.Core.Player
             }
 
             float separation = Vector3.Dot(secondBody.linearVelocity - firstBody.linearVelocity, direction);
-            if (separation > 0f)
+            Vector3 correction = separation > 0f ? direction * (separation * 0.5f) : Vector3.zero;
+            Vector3 pull = direction * (excess * 0.5f);
+
+            // Своё тело правится напрямую, чужое не трогается вовсе: запись
+            // в его Rigidbody не доедет ни до кого и только подерётся
+            // с интерполяцией сетевого транспорта.
+            if (driveFirst)
             {
-                Vector3 correction = direction * (separation * 0.5f);
                 firstBody.linearVelocity += correction;
-                secondBody.linearVelocity -= correction;
+                firstBody.position += pull;
             }
 
-            Vector3 pull = direction * (excess * 0.5f);
-            firstBody.position += pull;
-            secondBody.position -= pull;
+            if (driveSecond)
+            {
+                secondBody.linearVelocity -= correction;
+                secondBody.position -= pull;
+            }
         }
 
         private void LateUpdate()

@@ -4638,6 +4638,7 @@ GameObject:
   - component: {fileID: 756139783}
   - component: {fileID: 756139782}
   - component: {fileID: 756139781}
+  - component: {fileID: 756139785}
   m_Layer: 0
   m_Name: MinigameManager
   m_TagString: Untagged
@@ -4802,6 +4803,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 31ab994a3f5cf4530b6c0cdd359e0081, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Minigame.MinigameStageState
+--- !u!114 &756139785
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 756139773}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 89aa6f77878308a45a61d8c53617992f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.HoleInWall.HoleInWallNetwork
 --- !u!21 &763279677
 Material:
   serializedVersion: 8

@@ -21,5 +21,18 @@ namespace Igruha.Core.Session
 
         /// <summary>Может ли эта машина менять состояние мира.</summary>
         public static bool HasAuthority => !IsNetworkSession || NetworkManager.Singleton.IsServer;
+
+        /// <summary>
+        /// Ведёт ли это тело сама эта машина. Вне сети — всегда: мотор здесь же.
+        ///
+        /// Вопрос отдельный от <see cref="HasAuthority"/> и задаётся о другом.
+        /// Авторитет решает, <b>что произошло</b>, — и это сервер. Владелец
+        /// двигает тело, и всё, что напишет в чужую копию любая другая машина,
+        /// включая сервер, тут же перетрёт сетевой транспорт. Поэтому
+        /// непрерывную силу и чтение ввода спрашивают здесь, а не у авторитета:
+        /// иначе выбор был бы между полусотней пакетов в секунду и ничем.
+        /// </summary>
+        public static bool DrivenHere(NetworkObject body) =>
+            body == null || !body.IsSpawned || body.IsOwner;
     }
 }

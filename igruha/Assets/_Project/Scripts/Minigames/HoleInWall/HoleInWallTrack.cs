@@ -73,6 +73,12 @@ namespace Igruha.Minigames.HoleInWall
         /// <summary>Сколько стен дорожка прошла. Это же очко каждому её участнику.</summary>
         public int Score { get; private set; }
 
+        /// <summary>
+        /// Трос этой пары. У одиночки его нет. Живёт здесь, а не общим списком:
+        /// снимать его приходится и поштучно — когда пара теряет одного.
+        /// </summary>
+        public PlayerTether Tether { get; set; }
+
         /// <summary>На дорожке один человек: вырез один, стена быстрее.</summary>
         public bool Solo => members.Count == 1;
 
@@ -98,6 +104,9 @@ namespace Igruha.Minigames.HoleInWall
             members.Clear();
             patterns.Clear();
             Score = 0;
+            Tether = null;
+            WallLaunched = false;
+            WallResolved = false;
 
             if (soloBanner != null)
             {
@@ -118,10 +127,40 @@ namespace Igruha.Minigames.HoleInWall
             }
         }
 
+        /// <summary>
+        /// Снять участника: он вышел из матча. Дорожка остаётся в раунде —
+        /// её номер держит раскладку у клиента, — но играет тем составом,
+        /// что остался.
+        /// </summary>
+        /// <returns>Истина — участник был на дорожке и снят.</returns>
+        public bool RemoveMember(int playerId)
+        {
+            int slot = IndexOfMember(playerId);
+            if (slot < 0)
+            {
+                return false;
+            }
+
+            members.RemoveAt(slot);
+
+            if (soloBanner != null)
+            {
+                soloBanner.SetActive(Solo);
+            }
+
+            return true;
+        }
+
         /// <summary>Стена пройдена: очко каждому участнику дорожки.</summary>
         public void AwardWall()
         {
             Score++;
+        }
+
+        /// <summary>Счёт, объявленный сервером. Клиент его только применяет — считает всегда сервер.</summary>
+        public void ApplyScore(int value)
+        {
+            Score = Mathf.Max(0, value);
         }
 
         /// <summary>

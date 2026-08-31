@@ -1,6 +1,8 @@
 using System;
+using Unity.Netcode;
 using UnityEngine;
 using Igruha.Core.Player;
+using Igruha.Core.Session;
 
 namespace Igruha.Minigames.HoleInWall
 {
@@ -20,10 +22,13 @@ namespace Igruha.Minigames.HoleInWall
     /// перемещаться в позе до последнего кадра.
     ///
     /// <b>Сеть.</b> Важное состояние меняет ровно один метод —
-    /// <see cref="SetPose"/>. Ввод в него не попадает напрямую: он идёт через
-    /// <see cref="RequestPose"/>, которое в фазе 3 станет
-    /// <c>SetPoseServerRpc(byte)</c> с проверкой диапазона на сервере, а сама
-    /// поза уедет в <c>NetworkVariable</c>. Логика ниже от этого не изменится.
+    /// <see cref="SetPose"/>, — и зовёт его не ввод, а мини-игра: ввод уходит
+    /// намерением в <see cref="HoleInWallMinigame.SubmitPoseIntent"/>, сервер
+    /// проверяет диапазон и рассылает подтверждённую позу. Способность
+    /// компонентом <c>NetworkBehaviour</c> быть не может — её навешивают
+    /// на уже заспавненный аватар в начале раунда, а <c>NetworkObject</c>
+    /// набирает свои <c>NetworkBehaviour</c> при спавне и позже не добирает.
+    /// Отсюда и маршрут через мини-игру, у которой сетевая половина есть.
     /// </remarks>
     [RequireComponent(typeof(PlayerController))]
     public sealed class PlayerPoseAbility : MonoBehaviour
@@ -53,8 +58,16 @@ namespace Igruha.Minigames.HoleInWall
         public event Action<HoleInWallPose> PoseChanged;
 
         private HoleInWallConfig config;
+        private HoleInWallMinigame owner;
+        private int playerId = -1;
         private PlayerController motor;
         private PlayerInputReader reader;
+
+        /// <summary>
+        /// Сетевой объект аватара. По нему видно, ведёт ли этого персонажа
+        /// сама эта машина: чужую копию нельзя ни двигать, ни читать за неё ввод.
+        /// </summary>
+        private NetworkObject body;
         private Transform silhouette;
         private Transform icon;
         private Renderer silhouetteRenderer;
@@ -68,6 +81,7 @@ namespace Igruha.Minigames.HoleInWall
         {
             motor = GetComponent<PlayerController>();
             reader = GetComponent<PlayerInputReader>();
+            body = GetComponent<NetworkObject>();
 
             if (TryGetComponent(out CapsuleCollider capsule))
             {
@@ -96,18 +110,22 @@ namespace Igruha.Minigames.HoleInWall
             DestroyVisuals();
         }
 
-        /// <summary>Выдать числа игры. Зовётся сразу после навешивания компонента.</summary>
-        public void Configure(HoleInWallConfig gameConfig)
+        /// <summary>
+        /// Выдать числа игры и того, кому уходят намерения. Зовётся сразу после
+        /// навешивания компонента.
+        /// </summary>
+        public void Configure(HoleInWallConfig gameConfig, HoleInWallMinigame game, int id)
         {
             config = gameConfig;
+            owner = game;
+            playerId = id;
             BuildVisuals();
             ApplyVisuals();
         }
 
         /// <summary>
-        /// Намерение игрока встать в позу. В фазе 3 отсюда уйдёт
-        /// <c>SetPoseServerRpc</c>: клиент шлёт номер, сервер проверяет диапазон
-        /// и применяет. Пока сервера нет — применяем на месте.
+        /// Намерение игрока встать в позу. Само по себе оно ничего не меняет:
+        /// решение принимает мини-игра, а в сетевой катке — её сервер.
         /// </summary>
         public void RequestPose(HoleInWallPose pose)
         {
@@ -116,12 +134,29 @@ namespace Igruha.Minigames.HoleInWall
                 return;
             }
 
-            SetPose(pose);
+            // Клавиша зажата, а не нажата: ридер отдаёт номер каждый кадр, пока
+            // её держат. Без этой проверки каждая зажатая цифра давала бы
+            // шестьдесят пакетов в секунду вместо одного на смену позы.
+            if (CurrentPose == pose)
+            {
+                return;
+            }
+
+            if (owner == null)
+            {
+                // Способность живёт без мини-игры только в редакторских
+                // проверках самой способности. Играть в это нельзя, но и падать
+                // незачем.
+                SetPose(pose);
+                return;
+            }
+
+            owner.SubmitPoseIntent(playerId, pose);
         }
 
         /// <summary>
-        /// Единственная точка, меняющая позу. В фазе 3 уйдёт за <c>IsServer</c>
-        /// и станет записью в <c>NetworkVariable</c>.
+        /// Единственная точка, меняющая позу. В сетевой катке её зовёт только
+        /// мини-игра — с подтверждённым сервером значением.
         /// </summary>
         public void SetPose(HoleInWallPose pose)
         {
@@ -143,7 +178,13 @@ namespace Igruha.Minigames.HoleInWall
 
         private void Update()
         {
-            if (reader == null)
+            // 🔴 Ввод читается только у персонажа, которого ведёт эта машина.
+            // У чужой копии ридер отобран, но погонщик болванок умеет подать
+            // в него значение напрямую — и тогда эта копия попросила бы позу,
+            // а сервер, берущий отправителя из пакета, поставил бы её НАМ.
+            // То есть болванка играла бы за живого человека его единственным
+            // действием.
+            if (reader == null || !WorldAuthority.DrivenHere(body))
             {
                 return;
             }
