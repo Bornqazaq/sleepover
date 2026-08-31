@@ -20,6 +20,14 @@ namespace Igruha.Core.Player
         [Tooltip("Тот же Look, что крутит камеру: пока открыто колесо, его дельта водит курсор по секторам")]
         [SerializeField] private InputActionReference lookAction;
         [SerializeField] private InputActionReference crouchAction;
+        [Tooltip("Позы на клавишах 1–4 («Дырка в стене»). Одно действие на все четыре: значение действия и есть номер позы")]
+        [SerializeField] private InputActionReference poseAction;
+
+        /// <summary>
+        /// Сколько поз различает действие <c>Pose</c>: столько же, сколько
+        /// у него привязок в <c>InputSystem_Actions</c> — четыре, клавиши 1–4.
+        /// </summary>
+        private const int MaxPose = 4;
 
         /// <summary>
         /// InputActionReference указывает на общий ассет: один InputAction на всю сцену.
@@ -40,6 +48,19 @@ namespace Igruha.Core.Player
 
         /// <summary>Приседание — удержание, а не нажатие: отпустил кнопку, встал.</summary>
         public bool CrouchHeld { get; private set; }
+
+        /// <summary>
+        /// Какую позу просит игрок прямо сейчас: 1…4, ноль — ни одной клавиши
+        /// не зажато. Именно <b>просит</b>, а не «стоит в ней»: позу защёлкивает
+        /// способность игрока, и отпущенная клавиша её не снимает.
+        ///
+        /// Одно действие на четыре клавиши, а не четыре действия: номер позы —
+        /// это значение действия, и он приезжает вместе с ним. Привязки несут
+        /// процессор <c>scale</c>, у аналоговых триггеров — ещё и
+        /// <c>axisDeadzone</c>, чтобы наполовину нажатый триггер не давал
+        /// дробное значение и с ним чужую позу.
+        /// </summary>
+        public int PoseRequest { get; private set; }
 
         /// <summary>
         /// Кнопка взаимодействия зажата. Отдельно от <see cref="InteractPressed"/>:
@@ -151,6 +172,25 @@ namespace Igruha.Core.Player
             InteractHeld = held;
         }
 
+        /// <summary>
+        /// Поза извне: болванке соло-теста. Состояние, а не нажатие, — как
+        /// и у живого игрока, который держит клавишу; снимать его обязан тот,
+        /// кто поставил.
+        ///
+        /// Путь тот же, что у человека: болванка не зовёт способность напрямую,
+        /// а подаёт ввод. Короткого пути в обход правил нет — иначе проверка
+        /// перестанет проверять то, что делает живой игрок.
+        /// </summary>
+        public void DrivePose(int pose)
+        {
+            if (LocallyControlled && !Autopilot)
+            {
+                return;
+            }
+
+            PoseRequest = Mathf.Clamp(pose, 0, MaxPose);
+        }
+
         private void OnEnable()
         {
             Acquire(moveAction);
@@ -160,6 +200,7 @@ namespace Igruha.Core.Player
             Acquire(emoteAction);
             Acquire(lookAction);
             Acquire(crouchAction);
+            Acquire(poseAction);
         }
 
         private void OnDisable()
@@ -171,6 +212,7 @@ namespace Igruha.Core.Player
             Release(emoteAction);
             Release(lookAction);
             Release(crouchAction);
+            Release(poseAction);
             ClearInput();
         }
 
@@ -203,6 +245,7 @@ namespace Igruha.Core.Player
             JumpPressed = PushPressed = InteractPressed = EmoteHeld = false;
             CrouchHeld = false;
             InteractHeld = false;
+            PoseRequest = 0;
         }
 
         private void Update()
@@ -231,6 +274,26 @@ namespace Igruha.Core.Player
             InteractPressed |= WasPressed(interactAction);
             CrouchHeld = crouchAction != null && crouchAction.action.IsPressed();
             InteractHeld = interactAction != null && interactAction.action.IsPressed();
+            PoseRequest = ReadPose();
+        }
+
+        /// <summary>
+        /// Номер позы под зажатой клавишей: 1…4, ноль — ничего не зажато.
+        ///
+        /// Значение действия уже несёт номер: привязки масштабированы
+        /// процессорами в самом ассете, а не разбираются здесь по имени
+        /// клавиши. Так раскладка остаётся данными и правится в редакторе
+        /// ввода, а не кодом.
+        /// </summary>
+        private int ReadPose()
+        {
+            if (poseAction == null || poseAction.action == null)
+            {
+                return 0;
+            }
+
+            float raw = poseAction.action.ReadValue<float>();
+            return raw < 0.5f ? 0 : Mathf.Clamp(Mathf.RoundToInt(raw), 1, MaxPose);
         }
 
         /// <summary>Сбросить одноразовые нажатия — вызывается потребителем после обработки.</summary>
