@@ -240,8 +240,17 @@ namespace Igruha.Minigames.HoleInWall
         /// <b>Не по флагу</b> <c>enabled</c> у ридера: в автопрогоне на восьми
         /// процессах персонаж у каждой машины свой, то есть локально
         /// управляемый и с живым ридером, — там болванку взводит <c>--bot</c>.
+        ///
+        /// 🔴 <b>В сетевой катке — только свой, и только под</b> <c>--bot</c>.
+        /// Чужая копия выглядит как «этой машиной не управляется», и без этой
+        /// развилки болванка подавала бы ввод в неё: способность позы на той
+        /// копии попросила бы позу, а сервер, берущий отправителя из пакета,
+        /// поставил бы её нам самим. То есть болванка играла бы за живого
+        /// человека — ровно то, чего избегает вся проверка в <c>Update</c>.
         /// </summary>
         private static bool IsDriveable(PlayerInputReader reader) =>
-            reader.Autopilot || !reader.LocallyControlled;
+            WorldAuthority.IsNetworkSession
+                ? reader.Autopilot
+                : reader.Autopilot || !reader.LocallyControlled;
     }
 }
