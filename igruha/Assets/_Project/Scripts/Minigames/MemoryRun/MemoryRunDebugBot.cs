@@ -110,6 +110,9 @@ namespace Igruha.Minigames.MemoryRun
         private int plannedLane = -1;
         private bool networkNoticed;
 
+        /// <summary>Про отданного автопилоту своего персонажа уже сказано в консоль.</summary>
+        private bool autopilotNoticed;
+
         /// <summary>Автопилот своему персонажу уже отдан — искать его больше не надо.</summary>
         private bool autopilotEngaged;
         private PlayerController lastWalker;
@@ -216,6 +219,21 @@ namespace Igruha.Minigames.MemoryRun
             }
             else if (autopilotLocalPlayer)
             {
+                // 🔴 Галка говорит вслух. Оставленная включённой после
+                // автопрогона, она отбирает персонажа у человека за
+                // клавиатурой: тот жмёт WASD, ничего не происходит, а потом
+                // персонаж уходит сам. Выглядит это как «игра сломалась», и
+                // так и было понято на прогоне 31.08 — галка стояла с приёмки
+                // каркаса 26.08. Молча включённый автопилот дороже строчки
+                // в консоли.
+                if (!autopilotNoticed)
+                {
+                    autopilotNoticed = true;
+                    Debug.LogWarning(
+                        $"{name}: 🤖 автопилот ведёт ТВОЕГО персонажа — снять галку " +
+                        "autopilotLocalPlayer на MemoryRunDebugBot, иначе руками не поиграть", this);
+                }
+
                 EngageLocalAutopilot();
             }
 

@@ -1,7 +1,9 @@
+using TMPro;
 using UnityEditor;
 using UnityEngine;
 using Igruha.Core.Arena;
 using Igruha.Core.Player;
+using Igruha.Core.UI;
 using Igruha.Minigames.MemoryRun;
 
 namespace Igruha.EditorTools
@@ -52,6 +54,7 @@ namespace Igruha.EditorTools
             BuildPlates(arena, config);
             BuildExit(arena, config);
             BuildKillZone(bounds, config);
+            EnsureHudStatusLine();
 
             Debug.Log(
                 $"🧨 Арена «Рейса на память» построена: цех {config.HallWidth:F1}×{config.HallDepth:F1} м, " +
@@ -185,16 +188,42 @@ namespace Igruha.EditorTools
         /// информация о шаге пропала бы — а вся игра на том, что информация
         /// копится честно.
         ///
-        /// Лежит на <c>PlayerBarrier</c> — это слой сплошной геометрии из маски
-        /// камеры, то есть камера через барьер не пройдёт.
+        /// <b>Барьер обязан быть прозрачным и обязан пропускать камеру.</b>
+        /// Глухим и на <c>PlayerBarrier</c> он ломает мини-игру целиком, и это
+        /// найдено ручным прогоном 31.08: при высоте 2.16 м верхняя грань стоит
+        /// на 2.88 м, глаза стоящего в поднятой стартовой зоне — на 2.32 м.
+        /// Ждущие не видели ни плит, ни идущего — только жёлтую стену, — а вся
+        /// игра построена на «смотри и запоминай, пока идут другие». Стартовая
+        /// зона поднята на 1 ШИ ровно ради обзора (спека, раздел 3), и глухой
+        /// барьер этот подъём обесценивал.
+        ///
+        /// Слой <c>Ignore Raycast</c>, а не <c>PlayerBarrier</c>: барьер должен
+        /// останавливать тело и пропускать камеру. На <c>PlayerBarrier</c> он
+        /// входит в маску деокклюдера (`igruha/CLAUDE.md`, 2a), и камера
+        /// каждого, кто подошёл посмотреть, ныряла ему в затылок — а подходят
+        /// смотреть все и всегда. Наружу камера при этом не выходит: за
+        /// стартовой зоной стоит <c>Wall_Near</c> на <c>Ground</c>. Тот же
+        /// приём уже применён к барьеру стола в «Верю / не верю» (спека 4.5)
+        /// и к внешней стене клетки в «Порядке банок» (STATE 3.7).
+        ///
+        /// Проходимость барьера при этом не меняется ничем: <see cref="TurnGate"/>
+        /// снимает коллизию адресно через <c>Physics.IgnoreCollision</c>,
+        /// а она от слоя не зависит.
         /// </summary>
         private static void BuildGate(Transform parent, MemoryRunConfig config)
         {
             var gate = CreateBox(parent, "TurnGate",
                 new Vector3(config.HallWidth, config.GateHeight, WallThickness),
                 new Vector3(0f, config.StartZoneLift + config.GateHeight * 0.5f, config.GateZ),
-                new Color(0.75f, 0.62f, 0.20f));
-            SetLayer(gate, "PlayerBarrier");
+                GateColor);
+
+            Renderer renderer = gate.GetComponent<Renderer>();
+            if (renderer != null)
+            {
+                renderer.sharedMaterial = GetGlassMaterial(GateColor);
+            }
+
+            SetLayer(gate, "Ignore Raycast");
         }
 
         /// <summary>
@@ -309,6 +338,131 @@ namespace Igruha.EditorTools
             }
 
             return go;
+        }
+
+        /// <summary>
+        /// Дать HUD строку статуса, если её нет.
+        ///
+        /// Найдено ручным прогоном 31.08: <c>MemoryRunLocalHud</c> каждый кадр
+        /// собирает строку «Ход: имя — 37 с · очередь · Попыток: 2 / 10» и
+        /// отдаёт её в <c>RoundHud.ShowStatus</c>, а тот с пустой ссылкой
+        /// молча выходит. То есть чей ход, сколько осталось на ход, очередь и
+        /// свой счётчик попыток не выводились **ни разу за всё время**.
+        ///
+        /// Ровно тот же класс и ровно та же причина, что в «Верю / не верю»
+        /// 25.08 (STATE 3.14): поле <c>statusText</c> в шаблоне сцены пустое,
+        /// а пустое место на экране выглядит как «нечего показывать», а не как
+        /// поломка. Глазами такое не ловится, только чтением поля.
+        ///
+        /// ⚠️ Холст берётся <b>от самого HUD</b>, а не поиском первого попавшегося
+        /// <c>Canvas</c> в сцене. Поиск первого — это и есть та поломка, которая
+        /// 28.08 сделала «Верю / не верю» нечитаемой целиком (STATE 3.26):
+        /// в сцене нашёлся мировой холст пузыря реплики, и весь интерфейс игры
+        /// уехал внутрь него зеркальными буквами в сантиметр.
+        /// </summary>
+        private static void EnsureHudStatusLine()
+        {
+            var hud = Object.FindFirstObjectByType<RoundHud>(FindObjectsInactive.Include);
+            if (hud == null)
+            {
+                Debug.LogWarning("В сцене нет RoundHud — строку статуса вешать не на что");
+                return;
+            }
+
+            var so = new SerializedObject(hud);
+            SerializedProperty property = so.FindProperty("statusText");
+            if (property == null || property.objectReferenceValue != null)
+            {
+                return;
+            }
+
+            var canvas = hud.GetComponentInParent<Canvas>();
+            if (canvas == null)
+            {
+                Debug.LogError("RoundHud не лежит под Canvas — строку статуса некуда положить", hud);
+                return;
+            }
+
+            Transform existing = canvas.transform.Find("StatusLine");
+            if (existing != null)
+            {
+                Object.DestroyImmediate(existing.gameObject);
+            }
+
+            var go = new GameObject("StatusLine", typeof(RectTransform), typeof(TextMeshProUGUI));
+            var rect = (RectTransform)go.transform;
+            rect.SetParent(canvas.transform, false);
+            rect.anchorMin = new Vector2(0.5f, 1f);
+            rect.anchorMax = new Vector2(0.5f, 1f);
+            rect.pivot = new Vector2(0.5f, 1f);
+            rect.sizeDelta = new Vector2(1100f, 68f);
+
+            // Под таймером раунда, а не поверх него: TimerText стоит на -30 при
+            // высоте 80, то есть занимает полосу до -110. Первая версия строки
+            // встала на -52 и легла ровно на цифры таймера — видно на кадре
+            // прогона, читались обе строки плохо.
+            rect.anchoredPosition = new Vector2(0f, -118f);
+
+            var text = go.GetComponent<TextMeshProUGUI>();
+            text.fontSize = 24f;
+            text.color = Color.white;
+            text.alignment = TextAlignmentOptions.Top;
+            text.textWrappingMode = TextWrappingModes.Normal;
+            text.raycastTarget = false;
+
+            // Обводка, а не подложка. Строка висит над ареной, а она светлая:
+            // серый текст на ней читался с трудом. Подложку сюда поставить
+            // нельзя — RoundHud.ShowStatus гасит именно объект текста, и
+            // отдельная панель осталась бы висеть пустой плашкой.
+            text.outlineColor = new Color32(0, 0, 0, 210);
+            text.outlineWidth = 0.2f;
+
+            property.objectReferenceValue = text;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            Debug.Log("HUD получил строку статуса: чей ход, таймер хода, очередь и счётчик попыток", text);
+        }
+
+        /// <summary>Цвет барьера очереди — тот же, но теперь сквозь него видно.</summary>
+        private static readonly Color GateColor = new Color(0.75f, 0.62f, 0.20f, 0.22f);
+
+        private static Material glassMaterial;
+
+        /// <summary>
+        /// Прозрачный вариант блокаутного материала — для барьера очереди.
+        ///
+        /// URP Lit не становится прозрачным от одной альфы в цвете: нужны и
+        /// <c>_Surface</c>, и режим смешивания, и очередь отрисовки, и ключевое
+        /// слово шейдера. Выставить что-то одно — получить непрозрачный куб
+        /// и потратить прогон на выяснение, почему.
+        /// </summary>
+        private static Material GetGlassMaterial(Color color)
+        {
+            if (glassMaterial == null)
+            {
+                Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+                if (shader == null)
+                {
+                    Debug.LogError("Шейдер 'Universal Render Pipeline/Lit' не найден — барьер будет фиолетовым в сборке");
+                    return null;
+                }
+
+                glassMaterial = new Material(shader);
+                glassMaterial.SetFloat("_Surface", 1f);           // Transparent
+                glassMaterial.SetFloat("_Blend", 0f);             // Alpha
+                glassMaterial.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                glassMaterial.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                glassMaterial.SetFloat("_ZWrite", 0f);
+                glassMaterial.SetFloat("_Smoothness", 0.7f);
+                glassMaterial.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+                glassMaterial.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+                glassMaterial.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            }
+
+            var instance = new Material(glassMaterial);
+            instance.SetColor("_BaseColor", color);
+            instance.color = color;
+            return instance;
         }
 
         private static Material blockoutMaterial;
