@@ -27,6 +27,20 @@ namespace Igruha.Core.Player
         /// </summary>
         public event Action PlayerUnstuck;
 
+        /// <summary>
+        /// Трос, который может держать этого игрока. Пока он натянут, детектор
+        /// молчит.
+        ///
+        /// ⚠️ Без этой оговорки страховка вредит вместо того, чтобы спасать.
+        /// Игрок, которого держит натянутый трос, выглядит для детектора ровно
+        /// как застрявший: жмёт вперёд три секунды и не едет. В «Дырке в стене»
+        /// его телепортировало бы в центр платформы посреди правильно занятой
+        /// позиции — то есть страховка сама бы и проваливала стену.
+        ///
+        /// Пусто — троса нет, детектор работает как обычно.
+        /// </summary>
+        public PlayerTether Tether { get; set; }
+
         private PlayerController motor;
         private PlayerInputReader inputReader;
         private float stuckTimer;
@@ -93,6 +107,13 @@ namespace Igruha.Core.Player
             // Нокдаун и «замри» тоже держат персонажа на месте, но это не застревание:
             // иначе замороженный с зажатым W улетал бы на старт сам собой.
             if (motor.IsKnockedDown || motor.MovementLocked || inputReader == null || motor.Config == null)
+            {
+                return false;
+            }
+
+            // Натянутый трос держит так же намертво, как геометрия, — но это
+            // не застревание, а работающая механика. См. <see cref="Tether"/>.
+            if (Tether != null && Tether.IsTaut)
             {
                 return false;
             }

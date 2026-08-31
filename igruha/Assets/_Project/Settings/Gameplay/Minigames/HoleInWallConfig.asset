@@ -1,0 +1,73 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5af2e7d16b225cb45a15daca90f0eabc, type: 3}
+  m_Name: HoleInWallConfig
+  m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.HoleInWall.HoleInWallConfig
+  unitsPerWidth: 0.72
+  trackCount: 4
+  platformWidth: 12
+  platformDepth: 5
+  platformThickness: 1
+  trackGap: 3
+  sideMargin: 1.5
+  platformHeightOverWater: 4
+  poolDepth: 3
+  cameraClearance: 8
+  farMargin: 2
+  wallTravel: 30
+  wallHeight: 5
+  wallThickness: 1
+  wallExitDistance: 8
+  cutoutBridge: 0.4
+  hitTolerance: 0.8
+  groundedTolerance: 0.4
+  pairSpread: 2
+  spreadMin: 2
+  spreadMax: 5
+  earlySpreadMax: 3
+  wideSpreadMin: 4
+  easyWallCount: 2
+  wideWallCount: 2
+  poseSilhouettes:
+  - Width: 1.6
+    Height: 3.7
+  - Width: 3.6
+    Height: 3.4
+  - Width: 2.2
+    Height: 1.9
+  - Width: 3
+    Height: 3
+  tetherLength: 6
+  tetherRamp: 1
+  tetherPullAcceleration: 25
+  tetherHardLimit: 1.5
+  wallApproachSeconds:
+  - 6
+  - 6
+  - 5
+  - 5
+  - 4
+  - 4
+  - 3.5
+  - 3
+  pauseAfterHit: 2
+  soloSpeedBonus: 0.25
+  roundEndDelay: 5
+  mirrorWall: 7
+  morphWall: 8
+  mirrorLead: 1
+  morphLead: 1.5
+  warningLead: 1
+  sweepImpulse: 16
+  sweepUpward: 0.35
+  fallSeconds: 1.5
+  splashSeconds: 3

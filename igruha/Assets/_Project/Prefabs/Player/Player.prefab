@@ -264,6 +264,7 @@ MonoBehaviour:
   emoteAction: {fileID: 387294884226814714, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   lookAction: {fileID: 6940538419726410420, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   crouchAction: {fileID: 7040659881675835329, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+  poseAction: {fileID: 6279419679594090732, guid: 052faaac586de48259a63d0c4782560b, type: 3}
 --- !u!114 &4182226869964336341
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -492,6 +493,13 @@ MonoBehaviour:
     TransitionDuration: 0.15
     TriggerNameHash: -1117975810
     TransitionIndex: 1
+  - IsCrossFadeExit: 0
+    Layer: 1
+    OriginatingState: 352090402
+    DestinationState: 1780740576
+    TransitionDuration: 0.02
+    TriggerNameHash: -118708495
+    TransitionIndex: 0
   m_Animator: {fileID: 8153474272100534532}
 --- !u!114 &6104822510058981082
 MonoBehaviour:

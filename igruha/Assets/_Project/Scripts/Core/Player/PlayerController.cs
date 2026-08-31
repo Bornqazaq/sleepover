@@ -61,6 +61,20 @@ namespace Igruha.Core.Player
         public bool IsCrouched { get; private set; }
 
         /// <summary>
+        /// Ctrl-присед отключён: приседанием распоряжается мини-игра через
+        /// <see cref="SetCrouched"/>, а клавиша молчит.
+        ///
+        /// Нужен там, где присед — это не отдельная кнопка, а одна из поз:
+        /// в «Дырке в стене» в позу «присед» ведут два пути (Ctrl и клавиша 3),
+        /// и вопрос «какая сейчас поза» получает два источника правды. Спека
+        /// игры, раздел 4.
+        ///
+        /// ⚠️ Роль обязана сниматься в конце раунда: персонаж переезжает между
+        /// сценами живым, и незакрытый флаг увезёт в хаб неработающий Ctrl.
+        /// </summary>
+        public bool CrouchInputSuppressed { get; set; }
+
+        /// <summary>
         /// «Замри»: ввод движения и прыжка обрублен, тело гасит бег и стоит.
         /// В отличие от нокдауна персонаж не падает и не отыгрывает клип, а
         /// камера остаётся управляемой — это состояние держит внешняя логика
@@ -91,6 +105,26 @@ namespace Igruha.Core.Player
                 MovementLockChanged?.Invoke(value);
             }
         }
+        /// <summary>
+        /// Фиксированный фронт: пока задан, тело смотрит только туда, а ввод
+        /// на разворот не влияет вовсе — движение становится боковым (strafe).
+        /// Пусто — штатное поведение: персонаж разворачивается туда, куда идёт.
+        ///
+        /// Нужен любой игре с фиксированной ориентацией к сцене. В «Дырке в
+        /// стене» на этом стоит вся механика: игрок читает силуэт на
+        /// подъезжающей стене, и шаг вбок не должен отворачивать его от неё —
+        /// иначе подстраиваться под вырез приходится вслепую.
+        ///
+        /// Направление мировое, вертикаль игнорируется. Разворот идёт с той же
+        /// скоростью <c>RotationSpeed</c>, что и обычно: мгновенный доворот
+        /// выглядел бы рывком.
+        ///
+        /// ⚠️ Роль обязана сниматься в конце раунда: персонаж переезжает между
+        /// сценами живым, и незакрытый фронт увезёт в хаб персонажа, ходящего
+        /// боком.
+        /// </summary>
+        public Vector3? FacingOverride { get; set; }
+
         /// <summary>0..1 — доля от максимальной скорости, для анимаций.</summary>
         public float NormalizedSpeed { get; private set; }
 
@@ -123,6 +157,17 @@ namespace Igruha.Core.Player
         /// а по этому направлению решается, в лицо прилетело или в спину.
         /// </summary>
         public Vector3 Facing => rb != null ? rb.rotation * Vector3.forward : transform.forward;
+
+        /// <summary>
+        /// Авторитетное положение тела по Rigidbody.
+        ///
+        /// Transform отстаёт от физики на кадр после <see cref="TeleportTo"/>:
+        /// в тот же кадр он всё ещё показывает старое место. Всякий, кто решает
+        /// исход по позиции — попал ли игрок в вырез, вылез ли он из воды, —
+        /// обязан спрашивать здесь, иначе один кадр после каждого переноса
+        /// он считает по прошлому.
+        /// </summary>
+        public Vector3 Position => rb != null ? rb.position : transform.position;
 
         /// <summary>
         /// Вправе ли эта машина решать, что произошло с персонажем. В сетевой игре
@@ -480,7 +525,12 @@ namespace Igruha.Core.Player
             // Ввод читаем только у ридера, который реально управляет этой копией.
             // У выключенного CrouchHeld всегда false, и он затирал бы внешнее
             // решение — в сетевой фазе сервер не смог бы посадить персонажа.
-            if (inputReader != null && inputReader.enabled && !MovementLocked)
+            //
+            // CrouchInputSuppressed выключает эту ветку целиком, а не подменяет
+            // её значение: иначе UpdateCrouch каждый такт клал бы crouchRequested
+            // в false, а мини-игра каждый кадр возвращала бы true, и кто победит
+            // зависело бы от порядка выполнения скриптов.
+            if (inputReader != null && inputReader.enabled && !MovementLocked && !CrouchInputSuppressed)
             {
                 SetCrouched(inputReader.CrouchHeld);
             }
@@ -650,7 +700,19 @@ namespace Igruha.Core.Player
 
             NormalizedSpeed = config.MaxSpeed > 0f ? newHorizontal.magnitude / config.MaxSpeed : 0f;
 
-            if (accelerating)
+            // Ветка в существующем контуре разворота, а не второй контур:
+            // фиксированный фронт просто перебивает направление движения как
+            // источник цели, а сам доворот остаётся один на всех.
+            if (FacingOverride.HasValue)
+            {
+                Vector3 front = FacingOverride.Value;
+                front.y = 0f;
+                if (front.sqrMagnitude > 0.0001f)
+                {
+                    targetRotation = Quaternion.LookRotation(front, Vector3.up);
+                }
+            }
+            else if (accelerating)
             {
                 targetRotation = Quaternion.LookRotation(desiredDirection, Vector3.up);
             }
