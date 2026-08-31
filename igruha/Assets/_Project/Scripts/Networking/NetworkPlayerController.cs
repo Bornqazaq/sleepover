@@ -239,7 +239,7 @@ namespace Igruha.Networking
         /// </summary>
         public bool HasAuthority => !IsSpawned || IsServer;
 
-        public bool TryRelayImpulse(Vector3 impulse)
+        public bool TryRelayImpulse(Vector3 impulse, KnockdownType knockdownType)
         {
             if (!IsSpawned)
             {
@@ -248,7 +248,7 @@ namespace Igruha.Networking
 
             if (IsServer)
             {
-                ApplyImpulseRpc(impulse);
+                ApplyImpulseRpc(impulse, knockdownType);
             }
 
             return true;
@@ -273,7 +273,11 @@ namespace Igruha.Networking
         /// Сервер: отправить импульс персонажу. Вызывать только на сервере —
         /// применит его владелец, у которого авторитет над трансформом.
         /// </summary>
-        public void ServerApplyImpulse(Vector3 impulse)
+        public void ServerApplyImpulse(Vector3 impulse) =>
+            ServerApplyImpulse(impulse, KnockdownType.FallForward);
+
+        /// <summary>То же с явным видом падения — им распоряжается источник импульса, а не владелец.</summary>
+        public void ServerApplyImpulse(Vector3 impulse, KnockdownType knockdownType)
         {
             if (!IsServer)
             {
@@ -281,18 +285,18 @@ namespace Igruha.Networking
                 return;
             }
 
-            ApplyImpulseRpc(impulse);
+            ApplyImpulseRpc(impulse, knockdownType);
         }
 
         [Rpc(SendTo.Owner)]
-        private void ApplyImpulseRpc(Vector3 impulse)
+        private void ApplyImpulseRpc(Vector3 impulse, KnockdownType knockdownType)
         {
             if (playerController == null)
             {
                 return;
             }
 
-            playerController.ApplyImpulse(impulse);
+            playerController.ApplyImpulse(impulse, knockdownType);
             Debug.Log($"💫 [{name}] Импульс применён: {impulse.magnitude:F2}");
         }
 

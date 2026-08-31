@@ -998,14 +998,22 @@ namespace Igruha.Core.Player
         /// Мировым источникам следует вызывать этот метод, а не ApplyImpulse:
         /// прямой вызов на чужой копии персонажа будет перетёрт сетевым состоянием.
         /// </summary>
-        public void ApplyWorldImpulse(Vector3 impulse)
+        public void ApplyWorldImpulse(Vector3 impulse) =>
+            ApplyWorldImpulse(impulse, KnockdownType.FallForward);
+
+        /// <summary>
+        /// То же, но с явным видом падения. Нужен там, где мир бьёт в лицо:
+        /// стена «Дырки в стене» идёт навстречу взгляду, и сметённый обязан
+        /// улетать назад, а не падать вперёд.
+        /// </summary>
+        public void ApplyWorldImpulse(Vector3 impulse, KnockdownType knockdownType)
         {
-            if (worldEffectRelay != null && worldEffectRelay.TryRelayImpulse(impulse))
+            if (worldEffectRelay != null && worldEffectRelay.TryRelayImpulse(impulse, knockdownType))
             {
                 return;
             }
 
-            ApplyImpulse(impulse);
+            ApplyImpulse(impulse, knockdownType);
         }
 
         /// <summary>
