@@ -5266,7 +5266,7 @@ MonoBehaviour:
   game: {fileID: 756139781}
   config: {fileID: 11400000, guid: c750d1f85c0e08f4eb0f993595d6f8d5, type: 2}
   logJumps: 0
-  autopilotLocalPlayer: 1
+  autopilotLocalPlayer: 0
 --- !u!114 &756139783
 MonoBehaviour:
   m_ObjectHideFlags: 0
