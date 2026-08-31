@@ -157,6 +157,7 @@ namespace Igruha.Minigames.HoleInWall
         protected override void OnEnable()
         {
             base.OnEnable();
+            ResultsReported += LogResults;
 
             if (stageState != null)
             {
@@ -167,6 +168,8 @@ namespace Igruha.Minigames.HoleInWall
 
         protected override void OnDisable()
         {
+            ResultsReported -= LogResults;
+
             if (stageState != null)
             {
                 stageState.StageStarted -= HandleStageStarted;
@@ -174,6 +177,102 @@ namespace Igruha.Minigames.HoleInWall
             }
 
             base.OnDisable();
+        }
+
+        /// <summary>
+        /// Итоговая таблица в лог — <b>на каждой машине</b>, ровно та, которую
+        /// эта машина показывает.
+        ///
+        /// Пишется по событию шаблона, а не из <see cref="CollectResults"/>:
+        /// места считает сервер, и лог из подсчёта был бы только у него. Чтобы
+        /// приёмка сверяла восемь таблиц построчно, а не на глаз, каждая машина
+        /// обязана назвать свою. Тот же приём в «Рейсе на память».
+        ///
+        /// Дорожка и её счёт идут рядом с местом: исход здесь парный, и без
+        /// номера дорожки нельзя увидеть, что двое разделили место не случайно.
+        ///
+        /// ⚠️ Побуквенно строки сходятся у всех, <b>пока никто не выходил</b>.
+        /// У ушедшего дорожки на клиентах уже нет, а замороженный счёт знает
+        /// только сервер — его строка будет полнее. Это не рассинхрон: место
+        /// ушедшего считает сервер и рассылает готовым, и вот оно совпадает
+        /// у всех.
+        /// </summary>
+        private void LogResults(MinigameResults results)
+        {
+            var report = new System.Text.StringBuilder("[Дырка] итог: ");
+            IReadOnlyList<MinigameResults.PlayerResult> entries = results.Entries;
+
+            for (int i = 0; i < entries.Count; i++)
+            {
+                MinigameResults.PlayerResult entry = entries[i];
+                HoleInWallTrack track = TrackOf(entry.PlayerId);
+
+                report.Append(entry.Place).Append(". id=").Append(entry.PlayerId)
+                      .Append(" дорожка=").Append(track != null ? track.Index.ToString() : "нет")
+                      .Append(" стен=").Append(ScoreOf(entry.PlayerId))
+                      .Append(frozenScores.ContainsKey(entry.PlayerId) ? " (вышел)" : string.Empty)
+                      .Append("; ");
+            }
+
+            Debug.Log(report.ToString());
+        }
+
+        /// <summary>
+        /// Проверка снятия ролей — <b>на каждой машине</b>, отдельной строкой
+        /// и сразу после того, как роли сняты.
+        ///
+        /// Почему не вместе с таблицей мест: у клиента места приезжают
+        /// отдельным <c>Rpc</c>, и он рассылается <b>раньше</b>, чем публикуется
+        /// смена фазы. Значит, на клиенте таблица печатается ещё до
+        /// <see cref="OnRoundEnded"/> — то есть до снятия ролей, — и проверка
+        /// оттуда врала бы «не снято» на каждом прогоне.
+        ///
+        /// Проверять это глазами нельзя вовсе: незакрытая роль уезжает в хаб
+        /// вместе с живым <c>NetworkObject</c> персонажа и даёт симптом
+        /// «не работает у одного человека из всех», а он и означает, что
+        /// состояние привязано к машине и на одной его не увидеть.
+        /// </summary>
+        private void LogRoleAudit()
+        {
+            int checkedMembers = 0;
+            int stuckRoles = 0;
+
+            for (int i = 0; i < playingTracks.Count; i++)
+            {
+                HoleInWallTrack track = playingTracks[i];
+                IReadOnlyList<HoleInWallTrack.Member> members = track.Members;
+
+                for (int m = 0; m < members.Count; m++)
+                {
+                    PlayerController avatar = members[m].Avatar;
+                    if (avatar == null)
+                    {
+                        continue;
+                    }
+
+                    checkedMembers++;
+
+                    // Сам компонент позы здесь ещё жив — Destroy у Unity
+                    // отложенный, — поэтому спрашиваем не «есть ли он», а
+                    // «работает ли»: выключенный уже снял с персонажа всё,
+                    // что вешал.
+                    PlayerPoseAbility pose = avatar.GetComponent<PlayerPoseAbility>();
+
+                    if (avatar.FacingOverride.HasValue || avatar.CrouchInputSuppressed ||
+                        (pose != null && pose.enabled) || track.Tether != null)
+                    {
+                        stuckRoles++;
+                    }
+                }
+            }
+
+            Debug.Log($"[Дырка] роли сняты у {checkedMembers - stuckRoles} из {checkedMembers}");
+
+            if (stuckRoles > 0)
+            {
+                Debug.LogError($"{name}: {stuckRoles} участников уезжают в хаб с ролью раунда — " +
+                               "фиксированный фронт, запрет Ctrl, поза или трос не сняты", this);
+            }
         }
 
         // ========== ПОДГОТОВКА РАУНДА ==========
@@ -187,7 +286,6 @@ namespace Igruha.Minigames.HoleInWall
             }
 
             ClearRound();
-            roundStartKnown = false;
 
             // Состав делит сервер один раз и объявляет готовым. Клиент его
             // не пересчитывает: тот же сид у него сошёлся бы в ту же раскладку
@@ -195,9 +293,16 @@ namespace Igruha.Minigames.HoleInWall
             // сходится всегда.
             if (!HasAuthority)
             {
+                // ⚠️ Момент начала раунда здесь НЕ сбрасывается, и это важно.
+                // Сервер объявляет его, как только начал раунд, а ростер
+                // у клиента собирается своим темпом: объявление вполне
+                // приезжает раньше, чем сюда дойдёт очередь. Сбросив его,
+                // мы получили бы клиента, у которого стены не едут вовсе,
+                // — а второй раз объявление не придёт, оно уже не меняется.
                 return;
             }
 
+            roundStartKnown = false;
             roundSeed = UnityEngine.Random.Range(int.MinValue, int.MaxValue);
 
             PairAssignment.Assign(Players, roundSeed, pairs);
@@ -834,6 +939,8 @@ namespace Igruha.Minigames.HoleInWall
             stageState?.StopSequence();
             currentWall = -1;
             roundStartKnown = false;
+
+            LogRoleAudit();
         }
 
         private static void ReleaseMember(HoleInWallTrack.Member member)
@@ -854,9 +961,16 @@ namespace Igruha.Minigames.HoleInWall
 
             member.Avatar.FacingOverride = null;
 
-            // Способность сама снимает и позу, и запрет Ctrl-приседа в OnDisable.
             if (member.Pose != null)
             {
+                // ⚠️ Сначала выключаем, и только потом уничтожаем. Способность
+                // снимает позу и запрет Ctrl-приседа в OnDisable, а Destroy
+                // у Unity отложенный: до конца кадра компонент жив, и всё это
+                // время персонаж стоит с отключённым приседом. Кадр — мелочь,
+                // но роль обязана сниматься там, где написано, а не когда-то
+                // потом: иначе проверить это нечем, а симптом «не работает
+                // у одного человека из всех» ищут потом сутки.
+                member.Pose.enabled = false;
                 Destroy(member.Pose);
             }
         }

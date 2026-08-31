@@ -80,6 +80,7 @@ namespace Igruha.Minigames.HoleInWall
         private bool scheduleDirty;
         private bool posesDirty;
         private bool stageDirty;
+        private bool roundStartDirty;
 
         /// <summary>
         /// Состав, под который состояние уже разобрано. Порядок спавна этого
@@ -140,7 +141,7 @@ namespace Igruha.Minigames.HoleInWall
             scheduleDirty = true;
             posesDirty = true;
             stageDirty = true;
-            ApplyRoundStart();
+            roundStartDirty = true;
         }
 
         public override void OnNetworkDespawn()
@@ -216,7 +217,44 @@ namespace Igruha.Minigames.HoleInWall
             };
         }
 
-        private void OnTracksChanged(NetworkListEvent<HoleInWallTrackNetState> change) => tracksDirty = true;
+        /// <summary>
+        /// Состав и счёт разбираются <b>сразу</b>, а не отложенно в
+        /// <see cref="LateUpdate"/>.
+        ///
+        /// Итоговые места приезжают отдельным каналом и применяются в тот же
+        /// кадр, но раньше отложенного разбора: порядок доставки разных каналов
+        /// не гарантирован. Отложить разбор значит показать состояние на кадр
+        /// назад ровно в тот момент, когда его читают, — и итоговая таблица
+        /// напечаталась бы по вчерашнему счёту. На восьми процессах это уже
+        /// ловили в «Рейсе на память»: места сошлись у всех, а счётчик смертей
+        /// у одного отставал на единицу.
+        /// </summary>
+        private void OnTracksChanged(NetworkListEvent<HoleInWallTrackNetState> change)
+        {
+            if (IsServer)
+            {
+                return;
+            }
+
+            if (ApplyTracks())
+            {
+                scheduleDirty = posesDirty = stageDirty = true;
+            }
+        }
+
+        /// <summary>Разложить приехавший состав по дорожкам. Истина — дорожки пересобраны.</summary>
+        private bool ApplyTracks()
+        {
+            tracksDirty = false;
+
+            trackBuffer.Clear();
+            for (int i = 0; i < trackStates.Count; i++)
+            {
+                trackBuffer.Add(trackStates[i]);
+            }
+
+            return game != null && game.ApplyNetworkTracks(trackBuffer);
+        }
 
         // ========== РАСПИСАНИЕ СТЕН ==========
 
@@ -284,7 +322,7 @@ namespace Igruha.Minigames.HoleInWall
         {
             if (!IsServer)
             {
-                ApplyRoundStart();
+                roundStartDirty = true;
             }
         }
 
@@ -436,27 +474,30 @@ namespace Igruha.Minigames.HoleInWall
             if (game.RosterCount != appliedRoster)
             {
                 appliedRoster = game.RosterCount;
-                tracksDirty = scheduleDirty = posesDirty = stageDirty = true;
+                tracksDirty = scheduleDirty = posesDirty = stageDirty = roundStartDirty = true;
             }
 
-            // Порядок обязателен. Дорожки первыми: расписание кладётся в них,
-            // позы навешиваются на их участников, а стадия перебирает их же.
-            if (tracksDirty)
+            // Момент начала раунда — первым: без него не считается ни одно
+            // расписание, а объявлен он бывает раньше, чем у клиента собрался
+            // ростер. Второй раз это объявление не приедет — оно больше
+            // не меняется, — поэтому применяется по флагу, а не по событию.
+            if (roundStartDirty)
             {
-                tracksDirty = false;
+                roundStartDirty = false;
+                ApplyRoundStart();
+            }
 
-                trackBuffer.Clear();
-                for (int i = 0; i < trackStates.Count; i++)
-                {
-                    trackBuffer.Add(trackStates[i]);
-                }
-
-                if (game.ApplyNetworkTracks(trackBuffer))
-                {
-                    // Дорожки пересобраны — расписание, позы и стадию надо
-                    // разложить по ним заново.
-                    scheduleDirty = posesDirty = stageDirty = true;
-                }
+            // Дорожки остаются здесь ради одного случая: состав приехал раньше
+            // ростера, и раскладывать его было некуда. Обычный приезд
+            // разбирается сразу, в OnTracksChanged.
+            //
+            // Дальше порядок обязателен: расписание кладётся в дорожки, позы
+            // навешиваются на их участников, а стадия перебирает их же.
+            if (tracksDirty && ApplyTracks())
+            {
+                // Дорожки пересобраны — расписание, позы и стадию надо
+                // разложить по ним заново.
+                scheduleDirty = posesDirty = stageDirty = true;
             }
 
             if (scheduleDirty)
