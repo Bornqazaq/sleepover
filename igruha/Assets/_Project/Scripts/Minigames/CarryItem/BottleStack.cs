@@ -6,6 +6,7 @@ using Igruha.Core.Interaction;
 using Igruha.Core.Items;
 using Igruha.Core.Player;
 using Igruha.Core.Session;
+using Igruha.Core.UI;
 
 namespace Igruha.Minigames.CarryItem
 {
@@ -40,6 +41,8 @@ namespace Igruha.Minigames.CarryItem
         [SerializeField] private GameObject readyIndicator;
         [Tooltip("Подсказка над штабелем")]
         [SerializeField] private string prompt = "Взять бутыль (держать E)";
+        [Tooltip("Что красится в цвет команды: ящик штабеля и прочие метки принадлежности")]
+        [SerializeField] private Renderer[] teamTint;
         [Tooltip("С какого расстояния можно браться, м. Запас над радиусом взаимодействия: у сервера позиция клиента отстаёт")]
         [SerializeField] private float takeReach = 2.7f;
 
@@ -68,6 +71,9 @@ namespace Igruha.Minigames.CarryItem
         }
 
         private TeamSide team = TeamSide.None;
+        private MaterialPropertyBlock materialBlock;
+        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+        private static readonly int ColorId = Shader.PropertyToID("_Color");
         private int handleCount = 1;
         private float voidLevel = float.NegativeInfinity;
 
@@ -116,6 +122,8 @@ namespace Igruha.Minigames.CarryItem
 
         private void Awake()
         {
+            materialBlock = new MaterialPropertyBlock();
+
             if (spawnPoint == null)
             {
                 spawnPoint = transform;
@@ -136,6 +144,35 @@ namespace Igruha.Minigames.CarryItem
             handleCount = Mathf.Max(1, teamSize);
             voidLevel = voidY;
             ApplyReadyVisual();
+            ApplyTeamTint();
+        }
+
+        /// <summary>
+        /// Цвет команды на ящике. Штабели стоят в зеркальных стартовых зонах,
+        /// и на возврате налегке игрок бежит к тому, который узнал издалека.
+        /// </summary>
+        private void ApplyTeamTint()
+        {
+            if (teamTint == null || teamTint.Length == 0)
+            {
+                return;
+            }
+
+            Color color = TeamPalette.ColorOf(team);
+
+            for (int i = 0; i < teamTint.Length; i++)
+            {
+                Renderer target = teamTint[i];
+                if (target == null)
+                {
+                    continue;
+                }
+
+                target.GetPropertyBlock(materialBlock);
+                materialBlock.SetColor(BaseColorId, color);
+                materialBlock.SetColor(ColorId, color);
+                target.SetPropertyBlock(materialBlock);
+            }
         }
 
         /// <summary>Сколько рук у выдаваемых бутылей. Меняется, когда команда теряет игрока.</summary>

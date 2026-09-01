@@ -5,6 +5,7 @@ using Igruha.Core.Items;
 using Igruha.Core.Minigame;
 using Igruha.Core.Session;
 using Igruha.Core.Traps;
+using Igruha.Core.UI;
 
 namespace Igruha.Minigames.CarryItem
 {
@@ -74,6 +75,10 @@ namespace Igruha.Minigames.CarryItem
         [Tooltip("С какой доли порога наклона начинается тревога. 0.5 — с половины")]
         [Range(0f, 1f)]
         [SerializeField] private float alarmStartFraction = 0.5f;
+        [Tooltip("Струя из горлышка. Бьёт ровно тогда, когда вода уходит от перекоса")]
+        [SerializeField] private ParticleSystem pourJet;
+        [Tooltip("Что красится в цвет команды: крышка бутыли и прочие метки принадлежности")]
+        [SerializeField] private Renderer[] teamTint;
 
         [Header("Звук")]
         [Tooltip("Нарастающий плеск: громкость и тон растут вместе с наклоном")]
@@ -104,6 +109,8 @@ namespace Igruha.Minigames.CarryItem
         private float voidLevel = float.NegativeInfinity;
         private int shownStep = -1;
         private bool gone;
+        private bool pouringShown;
+        private TeamSide paintedTeam = (TeamSide)byte.MaxValue;
 
         /// <summary>Клиент уже разобрал эту бутыль по штабелю своей команды.</summary>
         private bool adopted;
@@ -237,6 +244,7 @@ namespace Igruha.Minigames.CarryItem
 
             PublishState();
             ApplyLevelVisual();
+            ApplyTeamTint();
         }
 
         /// <summary>
@@ -401,6 +409,7 @@ namespace Igruha.Minigames.CarryItem
         {
             Team = (TeamSide)state.Team;
             Water = state.Water;
+            ApplyTeamTint();
         }
 
         /// <summary>
@@ -610,7 +619,9 @@ namespace Igruha.Minigames.CarryItem
             UpdateSloshSound(Mathf.Clamp01(tilt / Mathf.Max(threshold, 0.01f)));
 
             // Струя слышна там же, где видна: наклон за порогом и вода ещё есть.
-            SetLeakSound(carry.BeyondTiltThreshold && Water > 0);
+            bool pouring = carry.BeyondTiltThreshold && Water > 0;
+            SetPourJet(pouring);
+            SetLeakSound(pouring);
         }
 
         private void ApplyIndicatorColor(Color color)
@@ -626,6 +637,62 @@ namespace Igruha.Minigames.CarryItem
             materialBlock.SetColor(BaseColorId, color);
             materialBlock.SetColor(ColorId, color);
             tiltIndicator.SetPropertyBlock(materialBlock);
+        }
+
+        /// <summary>
+        /// Струя из горлышка. Единственное, по чему видно <b>куда</b> уходит
+        /// вода: цвет говорит «плохо», а льётся она вот отсюда и вот туда.
+        /// Считает каждая машина сама — наклон приезжает поворотом, и повод
+        /// для струи у всех одинаковый.
+        /// </summary>
+        private void SetPourJet(bool pouring)
+        {
+            if (pourJet == null || pouringShown == pouring)
+            {
+                return;
+            }
+
+            pouringShown = pouring;
+
+            if (pouring)
+            {
+                pourJet.Play(true);
+            }
+            else
+            {
+                // Останавливаем только выпуск: уже вылетевшие капли обязаны
+                // долететь и упасть, иначе струя пропадает в воздухе.
+                pourJet.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+            }
+        }
+
+        /// <summary>
+        /// Цвет команды на крышке. Своя бутыль от чужой иначе не отличается
+        /// вовсе: в горлышке их две, и обе синие от воды.
+        /// </summary>
+        private void ApplyTeamTint()
+        {
+            if (teamTint == null || teamTint.Length == 0 || paintedTeam == Team)
+            {
+                return;
+            }
+
+            paintedTeam = Team;
+            Color color = TeamPalette.ColorOf(Team);
+
+            for (int i = 0; i < teamTint.Length; i++)
+            {
+                Renderer target = teamTint[i];
+                if (target == null)
+                {
+                    continue;
+                }
+
+                target.GetPropertyBlock(materialBlock);
+                materialBlock.SetColor(BaseColorId, color);
+                materialBlock.SetColor(ColorId, color);
+                target.SetPropertyBlock(materialBlock);
+            }
         }
 
         private void UpdateSloshSound(float intensity)

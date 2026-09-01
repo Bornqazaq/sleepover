@@ -82,10 +82,20 @@ namespace Igruha.EditorTools
         private const float StashOffsetZ = 6f;
 
         /// <summary>
-        /// По какой полосе горлышка идёт команда, ШИ от осевой. Больше размаха
-        /// балки (половина её длины, 2 ШИ), меньше половины прохода (4 ШИ).
+        /// По какой полосе горлышка идёт команда, ШИ от осевой. Свободная
+        /// полоса лежит между размахом балки (2 ШИ) и стеной завала (4 ШИ),
+        /// поэтому полоса — ровно её середина, 3 ШИ.
+        ///
+        /// Было 2.5, и это стоило клиентам матча. При 2.5 внутренний край
+        /// персонажа (радиус 0.5 ШИ) попадал точно на кончик балки: зазор
+        /// нулевой. У хоста позиция точная, и он проходил; позицию клиента
+        /// сервер видит через интерполяцию, ошибка в считанные сантиметры —
+        /// и клиента сшибало. На стенде 1 на 1 это давало 5 нокдаунов у
+        /// клиента против нуля у хоста, а нокдаун несущего-одиночки — это
+        /// сразу уроненная бутыль. При 3 ШИ с каждой стороны остаётся
+        /// по 0.5 ШИ запаса, и интерполяция перестаёт решать исход.
         /// </summary>
-        private const float NeckLaneZ = 2.5f;
+        private const float NeckLaneZ = 3f;
 
         private const float FloorThickness = 1f;
         private const float PlankThickness = 0.4f;
@@ -142,6 +152,12 @@ namespace Igruha.EditorTools
             BuildPickups(pickups.transform, config);
             BuildProgressBar(config);
             WireManager(config);
+
+            // Строки интерфейса раунда. Пустые ссылки на них ломали игру уже
+            // трижды и всегда молча — см. MinigameHudLines.
+            var hud = Object.FindFirstObjectByType<Igruha.Core.UI.RoundHud>(FindObjectsInactive.Include);
+            MinigameHudLines.EnsureStatusLine(hud);
+            MinigameHudLines.EnsureCountdownLine(hud);
 
             Physics.SyncTransforms();
             Report(config);
