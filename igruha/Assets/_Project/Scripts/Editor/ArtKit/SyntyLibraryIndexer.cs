@@ -88,8 +88,14 @@ namespace Igruha.EditorTools
                 return null;
             }
 
-            var renderers = prefab.GetComponentsInChildren<MeshRenderer>(true);
-            if (renderers.Length == 0)
+            var renderers = prefab.GetComponentsInChildren<Renderer>(true);
+            var particles = prefab.GetComponentsInChildren<ParticleSystem>(true);
+
+            // Эффекты индексируются наравне с моделями. Раньше запись требовала
+            // MeshRenderer, и весь пак Particle FX — 180 префабов, купленный ради
+            // подфазы 4.4, — не попадал в индекс вовсе: у партикла рендерер свой,
+            // а меша нет. Инструмент подбора его не видел.
+            if (renderers.Length == 0 && particles.Length == 0)
             {
                 return null;
             }
@@ -122,7 +128,9 @@ namespace Igruha.EditorTools
                 }
             }
 
-            if (!initialized)
+            // У эффекта мешей может не быть вовсе — это не повод его терять:
+            // габариты тогда нулевые, а подбор идёт по полям эффекта ниже.
+            if (!initialized && particles.Length == 0)
             {
                 return null;
             }
@@ -150,7 +158,36 @@ namespace Igruha.EditorTools
                 Renderers = renderers.Length,
                 HasCollider = prefab.GetComponentInChildren<Collider>(true) != null,
                 Materials = materials.OrderBy(m => m).ToArray(),
+                Effect = MeasureEffect(particles),
             };
+        }
+
+        /// <summary>
+        /// Что нужно знать об эффекте при подборе на подфазе 4.4. Габарит для него
+        /// вторичен, а решают другие числа: зациклен ли (партиклы паков приходят
+        /// с автостартом и зацикливанием, и их положено переводить в ручной запуск),
+        /// сколько длится и сколько частиц стоит.
+        /// </summary>
+        private static EffectEntry MeasureEffect(ParticleSystem[] particles)
+        {
+            if (particles.Length == 0)
+            {
+                return null;
+            }
+
+            var effect = new EffectEntry { Systems = particles.Length };
+            foreach (var system in particles)
+            {
+                var main = system.main;
+                effect.Loop |= main.loop;
+                effect.PlayOnAwake |= main.playOnAwake;
+                effect.Duration = Mathf.Max(effect.Duration, main.duration);
+                effect.Lifetime = Mathf.Max(effect.Lifetime, main.startLifetime.constantMax);
+                effect.StartSize = Mathf.Max(effect.StartSize, main.startSize.constantMax);
+                effect.MaxParticles += main.maxParticles;
+            }
+
+            return effect;
         }
 
         /// <summary>Габариты меша в системе координат корня префаба.</summary>
@@ -208,6 +245,19 @@ namespace Igruha.EditorTools
                 builder.Append($"\"triangles\": {e.Triangles}, ");
                 builder.Append($"\"renderers\": {e.Renderers}, ");
                 builder.Append($"\"hasCollider\": {(e.HasCollider ? "true" : "false")}, ");
+                builder.Append($"\"kind\": \"{(e.Effect != null ? "vfx" : "mesh")}\", ");
+                if (e.Effect != null)
+                {
+                    builder.Append("\"effect\": {" +
+                                   $"\"systems\": {e.Effect.Systems}, " +
+                                   $"\"loop\": {(e.Effect.Loop ? "true" : "false")}, " +
+                                   $"\"playOnAwake\": {(e.Effect.PlayOnAwake ? "true" : "false")}, " +
+                                   $"\"duration\": {F(e.Effect.Duration)}, " +
+                                   $"\"lifetime\": {F(e.Effect.Lifetime)}, " +
+                                   $"\"startSize\": {F(e.Effect.StartSize)}, " +
+                                   $"\"maxParticles\": {e.Effect.MaxParticles}}}, ");
+                }
+
                 builder.Append($"\"materials\": [{materials}]");
                 builder.AppendLine(i == entries.Count - 1 ? "}" : "},");
             }
@@ -235,6 +285,19 @@ namespace Igruha.EditorTools
             internal int Renderers;
             internal bool HasCollider;
             internal string[] Materials;
+            internal EffectEntry Effect;
+        }
+
+        /// <summary>Параметры партикл-эффекта. У модели их нет — поле остаётся пустым.</summary>
+        private sealed class EffectEntry
+        {
+            internal int Systems;
+            internal bool Loop;
+            internal bool PlayOnAwake;
+            internal float Duration;
+            internal float Lifetime;
+            internal float StartSize;
+            internal int MaxParticles;
         }
     }
 }
