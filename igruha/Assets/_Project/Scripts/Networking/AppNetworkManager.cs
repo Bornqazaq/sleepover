@@ -34,6 +34,7 @@ public class AppNetworkManager : MonoBehaviour
     private float giveUpTime;
     private bool isConnected;
     private bool isSubscribedToClientEvents;
+    private BootStatusScreen statusScreen;
 
     /// <summary>Кадров в секунду у headless-инстанса: физике и сети хватает, ядро не жжётся.</summary>
     private const int HeadlessFrameRate = 60;
@@ -53,7 +54,14 @@ public class AppNetworkManager : MonoBehaviour
         {
             Application.targetFrameRate = HeadlessFrameRate;
             Debug.Log($"🖥️ headless-инстанс: частота кадров ограничена {HeadlessFrameRate}");
+            return;
         }
+
+        // Экран статуса заводим кодом, а не объектом в сцене: он нужен любому
+        // инстансу без исключений, а Boot — единственная сцена, которую человек
+        // видит до того, как игра вообще заработала.
+        statusScreen = gameObject.AddComponent<BootStatusScreen>();
+        statusScreen.Show("Комната запускается", "Поднимаю сеть…");
     }
 
     private void Start()
@@ -61,6 +69,7 @@ public class AppNetworkManager : MonoBehaviour
         if (NetworkManager.Singleton == null)
         {
             Debug.LogError("❌ NetworkManager.Singleton is NULL!");
+            ShowError("Игра собрана неправильно", "В сцене Boot нет NetworkManager — сеть поднять нечем.");
             return;
         }
 
@@ -76,6 +85,7 @@ public class AppNetworkManager : MonoBehaviour
             ApplyEndpointArguments();
             Debug.Log($"🟢 Роль CLIENT ({reason}) — подключаюсь к {DescribeTarget()}");
             giveUpTime = Time.realtimeSinceStartup + connectionTimeout;
+            ShowStatus("Подключаюсь к хосту", $"{DescribeTarget()}\nХост должен запустить игру первым.");
             SubscribeToClientEvents();
             StartClient();
             return;
@@ -86,9 +96,42 @@ public class AppNetworkManager : MonoBehaviour
         // Сцену грузим только после того, как сервер реально поднялся:
         // до этого SceneManager ещё не готов принимать запросы
         NetworkManager.Singleton.OnServerStarted += HandleServerStarted;
-        NetworkManager.Singleton.StartHost();
         Debug.Log($"🟢 Роль HOST ({reason}) — слушаю {DescribeListen()} (с Connection Approval)");
+        ShowStatus("Поднимаю хост", $"{DescribeListen()}");
+
+        // Результат StartHost проверяем: занятый порт валит старт молча для
+        // игрока — сеть не поднялась, сцена не грузится, на экране пусто.
+        if (!NetworkManager.Singleton.StartHost())
+        {
+            NetworkManager.Singleton.OnServerStarted -= HandleServerStarted;
+            Debug.LogError($"❌ HOST: сеть не поднялась на {DescribeListen()} — порт занят или недоступен");
+            ShowError(
+                "Не удалось занять порт",
+                $"{DescribeListen()} уже занят.\n\n" +
+                "Скорее всего игра уже запущена в другом окне — закройте её и запустите заново.\n\n" +
+                "Esc — выйти");
+            return;
+        }
+
         WarnIfListenAddressIsLocal();
+    }
+
+    // ========== ЭКРАН СТАТУСА ==========
+
+    private void ShowStatus(string title, string details)
+    {
+        if (statusScreen != null)
+        {
+            statusScreen.Show(title, details);
+        }
+    }
+
+    private void ShowError(string title, string details)
+    {
+        if (statusScreen != null)
+        {
+            statusScreen.ShowError(title, details);
+        }
     }
 
     /// <summary>
@@ -210,6 +253,7 @@ public class AppNetworkManager : MonoBehaviour
         if (!NetworkManager.Singleton.StartClient())
         {
             Debug.LogError("❌ CLIENT: NetworkManager отказался стартовать — проверь транспорт в сцене Boot");
+            ShowError("Сеть не запустилась", "Клиент не смог стартовать.\n\nEsc — выйти");
         }
     }
 
@@ -246,6 +290,7 @@ public class AppNetworkManager : MonoBehaviour
 
         isConnected = true;
         Debug.Log($"✅ CLIENT: подключился к хосту (заходов: {failedAttempts + 1})");
+        ShowStatus("Подключился к хосту", "Жду комнату…");
         UnsubscribeFromClientEvents();
     }
 
@@ -266,6 +311,7 @@ public class AppNetworkManager : MonoBehaviour
         {
             // Сервер ответил и отказал — повторять бессмысленно, причина не пройдёт и в следующий раз
             Debug.LogError($"❌ CLIENT: хост отклонил подключение — «{reason}»");
+            ShowError("Хост отклонил подключение", $"«{reason}»\n\nEsc — выйти");
             UnsubscribeFromClientEvents();
             return;
         }
@@ -274,6 +320,11 @@ public class AppNetworkManager : MonoBehaviour
         if (Time.realtimeSinceStartup >= giveUpTime)
         {
             Debug.LogError($"❌ CLIENT: хост не отозвался за {connectionTimeout:F0} сек ({failedAttempts} заходов) — сеть не запущена");
+            ShowError(
+                "Хост не отвечает",
+                $"{DescribeTarget()} молчит уже {connectionTimeout:F0} сек.\n\n" +
+                "Проверьте, что организатор запустил хост и что включён Tailscale.\n\n" +
+                "Esc — выйти");
             UnsubscribeFromClientEvents();
             return;
         }
@@ -284,6 +335,10 @@ public class AppNetworkManager : MonoBehaviour
         {
             float left = giveUpTime - Time.realtimeSinceStartup;
             Debug.Log($"⏳ CLIENT: хост ещё не поднялся (заход {failedAttempts}), жду ещё {left:F0} сек");
+            ShowStatus(
+                "Жду хоста",
+                $"{DescribeTarget()} пока не отвечает.\nБуду пробовать ещё {left:F0} сек.\n\n" +
+                "Хост должен запустить игру первым.");
         }
         StartCoroutine(RestartClientAfterShutdown());
     }
@@ -341,13 +396,17 @@ public class AppNetworkManager : MonoBehaviour
         if (!BuildSceneCatalog.TryResolvePath(gameplaySceneName, out string scenePath))
         {
             Debug.LogError($"❌ Сцены '{gameplaySceneName}' нет в Build Settings — по сети она не загрузится");
+            ShowError("Комнаты нет в сборке", $"Сцены «{gameplaySceneName}» нет в Build Settings.\n\nEsc — выйти");
             return;
         }
+
+        ShowStatus("Загружаю комнату", "Секунду…");
 
         var status = NetworkManager.Singleton.SceneManager.LoadScene(scenePath, LoadSceneMode.Single);
         if (status != SceneEventProgressStatus.Started)
         {
             Debug.LogError($"❌ Не удалось загрузить сцену '{gameplaySceneName}': {status}");
+            ShowError("Комната не загрузилась", $"Сцена «{gameplaySceneName}»: {status}\n\nEsc — выйти");
             return;
         }
 
