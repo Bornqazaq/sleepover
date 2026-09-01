@@ -30,8 +30,8 @@ namespace Igruha.Core.UI
         [SerializeField] private Graphic frameB;
 
         [Header("Цвета")]
-        [SerializeField] private Color teamAColor = new Color(0.25f, 0.55f, 1f);
-        [SerializeField] private Color teamBColor = new Color(1f, 0.45f, 0.2f);
+        [SerializeField] private Color teamAColor = TeamPalette.TeamA;
+        [SerializeField] private Color teamBColor = TeamPalette.TeamB;
         [Tooltip("Подложка своей команды. Тёмная и плотная: на ней читается подпись")]
         [SerializeField] private Color ownFrameColor = new Color(0.05f, 0.05f, 0.05f, 0.8f);
         [Tooltip("Подложка чужой команды — та же, но бледнее")]

@@ -466,6 +466,20 @@ namespace Igruha.Core.Items
             return origin + HandleDirection(slot) * (settings.handleRadius + settings.carrierStandoff);
         }
 
+        /// <summary>
+        /// Где сама ручка — точка на объекте, за которую держатся. Не путать
+        /// со <see cref="StationOf"/>: там стоит несущий, на полкорпуса
+        /// дальше, а здесь берётся рука. Наклон учтён — на кренящейся бутыли
+        /// ручки едут вместе с ней.
+        ///
+        /// Нужна показу: маркеру свободной ручки и подсказке, куда вставать.
+        /// </summary>
+        public Vector3 HandleAnchor(int slot)
+        {
+            Vector3 origin = BasePosition;
+            return slot >= 0 && slot < handleCount ? origin + HandleOffsetWorld(slot) : origin;
+        }
+
         /// <summary>Натяжение связи на этом слоте, м. Ноль — слот свободен или несущий стоит на месте.</summary>
         public float StretchOf(int slot)
         {
