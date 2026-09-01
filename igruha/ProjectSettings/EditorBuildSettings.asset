@@ -14,7 +14,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/_Project/Scenes/Hub.unity
     guid: 0c50ccfcaa2a0954590dd5ded98d5141
-  - enabled: 0
+  - enabled: 1
     path: Assets/_Project/Scenes/Minigames/DuckHunt.unity
     guid: a36a8ae5cf011234aa1464373c035416
   - enabled: 1
