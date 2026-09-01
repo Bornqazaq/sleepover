@@ -74,6 +74,11 @@ namespace Igruha.Minigames.CarryItem
         [Tooltip("Слои, которые болванки соло-теста считают препятствием")]
         [SerializeField] private LayerMask botObstacles;
 
+        private int shownWater = int.MinValue;
+        private bool shownPouring;
+        private bool shownCarried;
+        private bool statusShown;
+
         private readonly List<Entry> entries = new List<Entry>(8);
         private readonly List<TeamRanking.Entry> rankingBuffer = new List<TeamRanking.Entry>(8);
         private readonly List<CarryItemDebugBot> bots = new List<CarryItemDebugBot>(8);
@@ -445,6 +450,96 @@ namespace Igruha.Minigames.CarryItem
 
         /// <summary>Сколько воды команда потеряла по этой причине за раунд, единиц.</summary>
         public int SpentBy(TeamSide side, WaterLossReason reason) => spentByReason[(int)side, (int)reason];
+
+        // ========== СТРОКА СОСТОЯНИЯ ==========
+
+        /// <summary>
+        /// Что сейчас со своей бутылью — числом, а не догадкой.
+        ///
+        /// Зачем. Уровень воды виден только столбиком внутри тары, а тара на
+        /// бегу стоит к игроку боком или спиной: на плейтесте раунд читался
+        /// как «что-то происходит, вода куда-то девается». Строка отвечает
+        /// ровно на три вопроса: сколько осталось, льётся ли прямо сейчас и
+        /// что делать дальше.
+        ///
+        /// Это <b>показ</b>: считается на каждой машине по своему участнику,
+        /// ничего не решает и в сеть не уходит. Строка собирается только на
+        /// смене значений — уровень меняется ступенями по пять, так что за
+        /// ходку это единицы вызовов, а не кадровый мусор.
+        /// </summary>
+        private void Update()
+        {
+            if (Hud == null)
+            {
+                return;
+            }
+
+            if (Phase != MinigamePhase.Round || config == null)
+            {
+                ClearStatus();
+                return;
+            }
+
+            TeamSide side = TeamOfPlayer(SessionScoreboard.Current?.LocalPlayer?.Id ?? -1);
+            if (side == TeamSide.None)
+            {
+                ClearStatus();
+                return;
+            }
+
+            WaterBottle bottle = StackOf(side)?.LiveBottle;
+            int water = bottle != null ? bottle.Water : -1;
+            bool pouring = bottle != null && water > 0 && bottle.Carry.BeyondTiltThreshold;
+            bool carried = bottle != null && bottle.Carry.IsCarried;
+
+            if (statusShown && water == shownWater && pouring == shownPouring && carried == shownCarried)
+            {
+                return;
+            }
+
+            shownWater = water;
+            shownPouring = pouring;
+            shownCarried = carried;
+            statusShown = true;
+
+            if (bottle == null)
+            {
+                Hud.ShowStatus("Тары нет — держи E у своего штабеля");
+                return;
+            }
+
+            if (pouring)
+            {
+                Hud.ShowStatus($"ПЕРЕКОС, ЛЬЁТСЯ! Осталось {water} из {config.BottleCapacity} — выровняйте бутыль");
+                return;
+            }
+
+            // Пустую нести некуда: в баке она засчитается нулём. Её бросают, и
+            // через отсчёт штабель выдаёт новую (спека 5.1).
+            if (water == 0)
+            {
+                Hud.ShowStatus(carried
+                    ? "Бутыль пуста — отпустите её (E), штабель выдаст новую"
+                    : "Бутыль пуста — отойдите, штабель выдаст новую");
+                return;
+            }
+
+            Hud.ShowStatus(carried
+                ? $"В бутыли {water} из {config.BottleCapacity} — несите к своему баку"
+                : $"Бутыль стоит: {water} из {config.BottleCapacity} — берись за ручку (E)");
+        }
+
+        private void ClearStatus()
+        {
+            if (!statusShown)
+            {
+                return;
+            }
+
+            statusShown = false;
+            shownWater = int.MinValue;
+            Hud.HideStatus();
+        }
 
         // ========== РАУНД ==========
 

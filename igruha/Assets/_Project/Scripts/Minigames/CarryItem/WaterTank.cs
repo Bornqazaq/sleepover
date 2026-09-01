@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Igruha.Core.Session;
+using Igruha.Core.UI;
 
 namespace Igruha.Minigames.CarryItem
 {
@@ -20,6 +21,8 @@ namespace Igruha.Minigames.CarryItem
         [SerializeField] private CarryItemConfig config;
         [Tooltip("Меш воды в баке. Растягивается по уровню ступенями")]
         [SerializeField] private Transform waterMesh;
+        [Tooltip("Что красится в цвет команды: обод бака и прочие метки принадлежности")]
+        [SerializeField] private Renderer[] teamTint;
 
         /// <summary>Команда долила порцию: сколько единиц и в какой момент общих часов.</summary>
         public event Action<int, double> Delivered;
@@ -30,6 +33,9 @@ namespace Igruha.Minigames.CarryItem
         private readonly List<WaterBottle> insideZone = new List<WaterBottle>(4);
 
         private TeamSide team = TeamSide.None;
+        private MaterialPropertyBlock materialBlock;
+        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+        private static readonly int ColorId = Shader.PropertyToID("_Color");
         private int water;
         private float pourAccumulator;
         private int shownStep = -1;
@@ -43,6 +49,7 @@ namespace Igruha.Minigames.CarryItem
         private void Awake()
         {
             GetComponent<Collider>().isTrigger = true;
+            materialBlock = new MaterialPropertyBlock();
         }
 
         /// <summary>Подключить бак к команде. Зовут правила раунда на старте.</summary>
@@ -55,6 +62,36 @@ namespace Igruha.Minigames.CarryItem
             shownStep = -1;
             insideZone.Clear();
             ApplyLevelVisual();
+            ApplyTeamTint();
+        }
+
+        /// <summary>
+        /// Цвет команды на ободе. Баков на арене два, стоят они симметрично, и
+        /// без цвета «свой» от «чужого» отличается только памятью игрока —
+        /// а бежать к чужому баку с полной бутылью очень обидно.
+        /// </summary>
+        private void ApplyTeamTint()
+        {
+            if (teamTint == null || teamTint.Length == 0)
+            {
+                return;
+            }
+
+            Color color = TeamPalette.ColorOf(team);
+
+            for (int i = 0; i < teamTint.Length; i++)
+            {
+                Renderer target = teamTint[i];
+                if (target == null)
+                {
+                    continue;
+                }
+
+                target.GetPropertyBlock(materialBlock);
+                materialBlock.SetColor(BaseColorId, color);
+                materialBlock.SetColor(ColorId, color);
+                target.SetPropertyBlock(materialBlock);
+            }
         }
 
         private void OnTriggerEnter(Collider other)
