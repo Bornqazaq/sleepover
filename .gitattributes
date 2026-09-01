@@ -50,3 +50,11 @@
 *.cs text diff=csharp eol=lf
 *.shader text eol=lf
 *.md text eol=lf
+
+# Раздатка под Windows: cmd.exe нестабильно разбирает батник с LF-концами —
+# первым разваливается блок for /f с отложенным раскрытием, и переменная
+# приезжает пустой. Ровно на этом 01.09 клиент ушёл на 127.0.0.1 вместо
+# адреса из host.txt. Файлы делаются на маке, поэтому CRLF задан явно.
+*.bat text eol=crlf
+tools/dist-windows/host.txt   text eol=crlf
+tools/dist-windows/README.txt text eol=crlf
