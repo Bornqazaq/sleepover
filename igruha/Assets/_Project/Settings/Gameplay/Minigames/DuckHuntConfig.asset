@@ -33,7 +33,7 @@ MonoBehaviour:
   cameraPitchLimit: 55
   cameraTurnSpeed: 720
   cameraOffset: {x: 0, y: 0.35, z: 1.4}
-  rifleProp: {fileID: 1343913474093690, guid: 5b777d2389fa4194db76d1d12b1dca56, type: 3}
+  rifleProp: {fileID: 1343913474093690, guid: d3cc4fc2eca3c45c182b2a97bb04a99f, type: 3}
   rifleGripOffset: {x: 0.14, y: -0.02, z: 0.12}
   rifleTilt: {x: 0, y: 0, z: 0}
   rifleGripPoint: 0.055
