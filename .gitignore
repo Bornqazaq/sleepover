@@ -159,3 +159,6 @@ Builds/
 # Список паков и пути — в STATE.md, раздел 3a.
 igruha/Assets/Synty/
 igruha/Assets/Synty.meta
+
+# Кэш превью паков Synty — качается инструментом, в репозиторий не идёт
+docs/art/.cache/
