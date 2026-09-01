@@ -26,6 +26,16 @@ namespace Igruha.Networking
                 return;
             }
 
+            // SceneManager существует только у поднятой сети. Если хост не
+            // стартовал — занят порт, отказал транспорт, — здесь лежал
+            // NullReferenceException поверх и без того непонятного экрана.
+            if (networkManager.SceneManager == null)
+            {
+                networkManager = null;
+                Debug.LogWarning("⚠️ NetworkScenePlayerPlacer: сеть не поднята — расставлять игроков нечем");
+                return;
+            }
+
             networkManager.SceneManager.OnLoadEventCompleted += OnLoadCompleted;
             networkManager.OnClientConnectedCallback += OnClientConnected;
         }
