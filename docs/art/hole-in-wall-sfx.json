@@ -1,0 +1,138 @@
+{
+  "game": "Дырки в стене",
+  "source": "docs/minigames/hole-in-wall.md — раздел 8.6, таблица «Звук»",
+  "output_folder": "Assets/_Project/Audio/HoleInWall",
+  "provider": "fal",
+  "models": {
+    "sfx": "cassetteai/sound-effects-generator",
+    "music": "cassetteai/music-generator",
+    "sting": "fal-ai/stable-audio-25/text-to-audio"
+  },
+  "slots": [
+    {
+      "id": "wall_start_gong",
+      "event": "Старт стены",
+      "model": "sfx",
+      "duration": 3,
+      "loop": false,
+      "volume": 0.9,
+      "spatial": false,
+      "prompt": "bright metallic game show gong, single clean strike, TV studio announcement, natural decay, no music, no voices"
+    },
+    {
+      "id": "wall_move_loop",
+      "event": "Подъезд стены (громкость и питч растут со скоростью)",
+      "model": "sfx",
+      "duration": 10,
+      "loop": true,
+      "volume": 0.7,
+      "spatial": true,
+      "prompt": "low mechanical rumble of a huge sliding wall, continuous seamless drone, deep industrial hum, steady, no music, no melody",
+      "note": "Луп. В игре питч и громкость гонятся кодом от скорости стены."
+    },
+    {
+      "id": "impact_warning",
+      "event": "За 1.0 с до удара",
+      "model": "sfx",
+      "duration": 1,
+      "loop": false,
+      "volume": 0.85,
+      "spatial": false,
+      "prompt": "short sharp electronic warning beep, single high pitched alert tone, game show buzzer, dry, no reverb"
+    },
+    {
+      "id": "pass_success_ding",
+      "event": "Успешный проход — звонкий «дзынь»",
+      "model": "sfx",
+      "duration": 2,
+      "loop": false,
+      "volume": 0.9,
+      "spatial": true,
+      "prompt": "bright cheerful ding, single sparkling bell chime, correct answer success sound, clean, no music"
+    },
+    {
+      "id": "crowd_cheer",
+      "event": "Успешный проход — рёв студийной публики",
+      "model": "sfx",
+      "duration": 5,
+      "loop": false,
+      "volume": 0.8,
+      "spatial": false,
+      "prompt": "large studio audience cheering and applauding, sudden burst of excitement, live TV show crowd, energetic",
+      "note": "Отдельным слотом от «дзынь»: у дзыня атака мгновенная, у публики длинный хвост. Играются двумя источниками."
+    },
+    {
+      "id": "fail_body_hit",
+      "event": "Провал — удар пластика по телу",
+      "model": "sfx",
+      "duration": 2,
+      "loop": false,
+      "volume": 1.0,
+      "spatial": true,
+      "prompt": "dull plastic panel slamming into a body, muffled thud with light rattle, comedic impact, dry, close mic"
+    },
+    {
+      "id": "fall_whoosh",
+      "event": "Провал — свист полёта",
+      "model": "sfx",
+      "duration": 2,
+      "loop": false,
+      "volume": 0.8,
+      "spatial": true,
+      "prompt": "fast air whoosh of a body flying through the air, comedic falling swoosh, doppler, no music"
+    },
+    {
+      "id": "water_splash",
+      "event": "Падение в воду",
+      "model": "sfx",
+      "duration": 3,
+      "loop": false,
+      "volume": 1.0,
+      "spatial": true,
+      "prompt": "big water splash, heavy body falling into a pool, impact splash with scattering droplets, close perspective"
+    },
+    {
+      "id": "underwater_loop",
+      "event": "Барахтанье в воде (3 с приглушённого слоя)",
+      "model": "sfx",
+      "duration": 5,
+      "loop": true,
+      "volume": 0.6,
+      "spatial": true,
+      "prompt": "muffled underwater ambience, submerged bubbles and low pass filtered hum, seamless loop, no music",
+      "note": "Луп поверх основного микса на время барахтанья."
+    },
+    {
+      "id": "mirror_whoosh",
+      "event": "Зеркальный переворот (7-я стена)",
+      "model": "sfx",
+      "duration": 2,
+      "loop": false,
+      "volume": 0.9,
+      "spatial": true,
+      "prompt": "sharp reverse whoosh transition, quick swirling air sweep, snappy sci-fi flip, no music"
+    },
+    {
+      "id": "round_end_jingle",
+      "event": "Конец раунда — финальный джингл шоу",
+      "model": "sting",
+      "duration": 6,
+      "loop": false,
+      "volume": 1.0,
+      "spatial": false,
+      "prompt": "upbeat game show ending fanfare, celebratory brass and synth finale sting, retro TV competition, resolving on a bright major chord",
+      "note": "Stable Audio ($0.20): музыкальный джингл SFX-модели не даётся."
+    },
+    {
+      "id": "round_theme",
+      "event": "Тема раунда (фон всей катки)",
+      "model": "music",
+      "duration": 60,
+      "loop": true,
+      "volume": 0.35,
+      "spatial": false,
+      "prompt": "energetic retro game show background loop, driving percussion, playful synth brass stabs, tense but fun TV competition bed, no vocals",
+      "note": "Луп на 65 с раунда (8.5). Микшируется тише SFX."
+    }
+  ]
+}
