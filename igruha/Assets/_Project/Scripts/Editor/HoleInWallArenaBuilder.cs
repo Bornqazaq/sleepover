@@ -42,8 +42,13 @@ namespace Igruha.EditorTools
 
         private static System.Random dressRandom;
 
-        /// <summary>Насколько бортик бассейна торчит над водой, м.</summary>
-        private const float PoolRimHeight = 0.72f;
+        /// <summary>
+        /// Насколько бортик бассейна торчит над водой, м. Открыто павильону
+        /// (<see cref="HoleInWallEnvironment"/>): по верху бортика выложен пол
+        /// студии, и считать эту высоту второй раз означало бы завести второй
+        /// источник правды на одну и ту же кромку.
+        /// </summary>
+        internal const float PoolRimHeight = 0.72f;
 
         /// <summary>
         /// Толщина накладок, делящих пол платформы на половины пары, м.
@@ -57,6 +62,23 @@ namespace Igruha.EditorTools
         /// полосой — так граница читается и на розовой половине, и на голубой.
         /// </summary>
         private const float FloorMarkSeam = 0.12f;
+
+        /// <summary>Высота светящейся кромки дорожки, м.</summary>
+        private const float TrimHeight = 0.14f;
+
+        /// <summary>Толщина кромки, м: она выступает наружу от грани платформы.</summary>
+        private const float TrimThickness = 0.1f;
+
+        /// <summary>
+        /// Отступ кромки вниз от пола платформы, м.
+        ///
+        /// Ноль: верх кромки вровень с полом. Утопленную на четыре сантиметра
+        /// собственная же платформа закрывала от игрока — он смотрит на свой
+        /// настил сверху, и всё, что ниже его кромки, уходит за неё. Вровень
+        /// она читается каймой вокруг настила, а на сам настил не заходит:
+        /// полоса целиком снаружи габарита платформы.
+        /// </summary>
+        private const float TrimGap = 0f;
 
         [MenuItem("Igruha/Дырка в стене/Построить арену")]
         public static void Build()
@@ -87,6 +109,10 @@ namespace Igruha.EditorTools
             BuildWaterZone(bounds, config);
             BuildSpawns(config);
             WireController(tracks);
+
+            // Павильон — последним: табло берут ссылки на уже собранные дорожки.
+            HoleInWallEnvironment.Build(arena, config, tracks, dressRandom);
+
             EnsureHudStatusLine();
             VerifyLayout(config);
             ReportMissingModels();
@@ -96,7 +122,8 @@ namespace Igruha.EditorTools
             Debug.Log(
                 $"🧱 Арена «Дырки в стене» построена: {config.TrackCount} дорожек, " +
                 $"арена {config.ArenaWidth:F1}×{config.ArenaDepth:F1} м, путь стены {config.WallTravel:F1} м, " +
-                $"платформа {config.PlatformWidth:F2}×{config.PlatformDepth:F2} м на {config.PlatformHeightOverWater:F2} м над водой",
+                $"платформа {config.PlatformWidth:F2}×{config.PlatformDepth:F2} м на {config.PlatformHeightOverWater:F2} м над водой, " +
+                $"павильон студии на {config.TrackCount} софитов",
                 arena);
 
             Selection.activeGameObject = arena.gameObject;
@@ -188,6 +215,7 @@ namespace Igruha.EditorTools
                 "Ground", HoleInWallDress.Kind.PlatformDeck);
 
             BuildFloorHalves(root.transform, config);
+            BuildLaneTrim(root.transform, config, index);
 
             float supportHeight = config.PlatformHeightOverWater - config.PlatformThickness;
             CreateDressedBox(root.transform, "Support",
@@ -265,6 +293,56 @@ namespace Igruha.EditorTools
         }
 
         /// <summary>
+        /// Светящаяся кромка платформы цветом своей дорожки — подфаза 4.3.
+        ///
+        /// <b>Зачем, если дорожку называет софит.</b> Софит светит на воду,
+        /// а вода бирюзовая, и она красит его собственным цветом: янтарь на
+        /// ней читается зелёным, фиолетовый — синим, и четыре дорожки сходятся
+        /// в две. На белом настиле цвет не врал бы, но туда его нельзя вовсе —
+        /// он увёл бы в свой тон обе половины пола, а «своё место / место
+        /// партнёра» игрок обязан различать первым. Кромка платформы решает
+        /// обе задачи разом: поверхность нейтральная, цвет не искажается,
+        /// и она у игрока прямо перед глазами.
+        ///
+        /// <b>Почему это не «неон по краю платформы» из брифа.</b> Бриф
+        /// предлагал развести дорожки двумя неонами палитры, а их не хватает
+        /// на четыре, не сломав чтение половин пола. Здесь взяты четыре
+        /// собственных цвета дорожек (<see cref="HoleInWallPalette.LaneAccent"/>),
+        /// и вопрос снимается.
+        ///
+        /// Полоса лежит <b>ниже</b> пола платформы и коллайдера не имеет:
+        /// между игроком и стеной выше пола не должно быть ничего.
+        /// </summary>
+        private static void BuildLaneTrim(Transform root, HoleInWallConfig config, int index)
+        {
+            Material paint = HoleInWallPaletteAssets.Get(HoleInWallPaletteAssets.LaneTone(index));
+            float halfWidth = config.PlatformWidth * 0.5f;
+            float halfDepth = config.PlatformDepth * 0.5f;
+            float y = -TrimHeight * 0.5f - TrimGap;
+
+            CreateTrim(root, "Trim_Front",
+                new Vector3(config.PlatformWidth + TrimThickness * 2f, TrimHeight, TrimThickness),
+                new Vector3(0f, y, halfDepth + TrimThickness * 0.5f), paint);
+            CreateTrim(root, "Trim_Back",
+                new Vector3(config.PlatformWidth + TrimThickness * 2f, TrimHeight, TrimThickness),
+                new Vector3(0f, y, -halfDepth - TrimThickness * 0.5f), paint);
+            CreateTrim(root, "Trim_Left",
+                new Vector3(TrimThickness, TrimHeight, config.PlatformDepth),
+                new Vector3(-halfWidth - TrimThickness * 0.5f, y, 0f), paint);
+            CreateTrim(root, "Trim_Right",
+                new Vector3(TrimThickness, TrimHeight, config.PlatformDepth),
+                new Vector3(halfWidth + TrimThickness * 0.5f, y, 0f), paint);
+        }
+
+        private static void CreateTrim(Transform root, string trimName, Vector3 size, Vector3 position,
+            Material paint)
+        {
+            GameObject trim = CreateBox(root, trimName, size, position, paint);
+            Object.DestroyImmediate(trim.GetComponent<Collider>());
+            SetLayer(trim, "Default");
+        }
+
+        /// <summary>
         /// Надпись над дорожкой одиночки. Подача — шутка, а не сглаживание:
         /// неравенство составов в проекте подаётся как повод посмеяться
         /// (спека 5.1).
@@ -275,8 +353,12 @@ namespace Igruha.EditorTools
             banner.transform.SetParent(parent, false);
             banner.transform.localPosition = new Vector3(0f, config.WallHeight + 1.2f, 0f);
 
-            // Лицом к камере: та стоит за спиной игрока, со стороны бассейна.
-            banner.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+            // ⚠️ Без разворота: текст TextMeshPro в мире уже повёрнут лицом
+            // к тому, кто смотрит вдоль +Z, а камера стоит за спиной игрока,
+            // со стороны бассейна, и смотрит именно туда. Разворот «лицом
+            // к камере» её же и отзеркаливал — надпись читалась справа налево.
+            // Поймано рендерами 4.3 на табло дорожек, здесь та же ошибка.
+            banner.transform.localRotation = Quaternion.identity;
 
             var text = banner.AddComponent<TextMeshPro>();
             text.text = "ОСТАЛСЯ БЕЗ ДРУЗЕЙ";

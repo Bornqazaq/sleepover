@@ -53,7 +53,33 @@ namespace Igruha.EditorTools
             NeonCyan,
 
             /// <summary>Вода бассейна.</summary>
-            Water
+            Water,
+
+            /// <summary>Светодиодные панели по бокам арены — подфаза 4.3.</summary>
+            Led,
+
+            /// <summary>Светофильтр софита и рамка табло нулевой дорожки — подфаза 4.3.</summary>
+            Lane0,
+
+            /// <summary>То же для первой дорожки.</summary>
+            Lane1,
+
+            /// <summary>То же для второй дорожки.</summary>
+            Lane2,
+
+            /// <summary>То же для третьей дорожки.</summary>
+            Lane3
+        }
+
+        /// <summary>
+        /// Тон дорожки по её номеру. Номер заворачивается по кругу вместе
+        /// с <see cref="HoleInWallPalette.LaneAccent"/>: сколько дорожек
+        /// строит арена — дело конфига, а не палитры.
+        /// </summary>
+        internal static Tone LaneTone(int track)
+        {
+            int count = HoleInWallPalette.LaneAccents.Length;
+            return Tone.Lane0 + ((track % count) + count) % count;
         }
 
         private const string MaterialsRoot = "Assets/_Project/Materials";
@@ -79,7 +105,7 @@ namespace Igruha.EditorTools
         private const float MinRimLift = 1f;
         private const float MaxRimLift = 4f;
 
-        private static readonly Dictionary<Tone, Material> cache = new Dictionary<Tone, Material>(9);
+        private static readonly Dictionary<Tone, Material> cache = new Dictionary<Tone, Material>(14);
 
         private static float rimLift = FallbackRimLift;
 
@@ -137,6 +163,11 @@ namespace Igruha.EditorTools
                 case Tone.NeonPink: return HoleInWallPalette.NeonPink;
                 case Tone.NeonCyan: return HoleInWallPalette.NeonCyan;
                 case Tone.Water: return HoleInWallPalette.Water;
+                case Tone.Led: return HoleInWallPalette.Led;
+                case Tone.Lane0: return HoleInWallPalette.LaneAccent(0);
+                case Tone.Lane1: return HoleInWallPalette.LaneAccent(1);
+                case Tone.Lane2: return HoleInWallPalette.LaneAccent(2);
+                case Tone.Lane3: return HoleInWallPalette.LaneAccent(3);
                 default: return Color.magenta;
             }
         }
@@ -205,6 +236,21 @@ namespace Igruha.EditorTools
                 case Tone.NeonPink:
                 case Tone.NeonCyan:
                     HoleInWallMaterials.ConfigureEmissive(material, color, HoleInWallPalette.NeonEmission);
+                    break;
+
+                // Светящиеся поверхности студии светятся слабее контура выреза,
+                // и это не оттенок настройки, а требование чтения: контур —
+                // единственное, что обязано читаться с 30 ШП, и всё остальное
+                // светящееся в кадре обязано быть тише него.
+                case Tone.Led:
+                    HoleInWallMaterials.ConfigureEmissive(material, color, HoleInWallPalette.LedEmission);
+                    break;
+
+                case Tone.Lane0:
+                case Tone.Lane1:
+                case Tone.Lane2:
+                case Tone.Lane3:
+                    HoleInWallMaterials.ConfigureEmissive(material, color, HoleInWallPalette.LaneAccentEmission);
                     break;
 
                 case Tone.Water:
