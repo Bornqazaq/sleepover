@@ -32,7 +32,31 @@ namespace Igruha.EditorTools
             /// по высоте коробки, число копий — по её длине. Так тюк остаётся
             /// тюком, а не растянутым по коридору бревном.
             /// </summary>
-            Row
+            Row,
+
+            /// <summary>
+            /// Сетка копий по полу коробки: повтор по X и Z, высота — своя.
+            /// Для настилов и площадок. Масштаб берётся <b>из самой модели</b>,
+            /// а не из высоты коробки, как в <see cref="Row"/>: настил толщиной
+            /// 0.1 м, отмасштабированный по высоте коробки, вырастает в плиту
+            /// шириной с дорожку.
+            /// </summary>
+            Tile,
+
+            /// <summary>
+            /// Стенка: повтор вдоль длинной горизонтальной оси и по высоте.
+            /// Тонкая ось модели сама разворачивается к тонкой оси коробки,
+            /// поэтому один и тот же каталог годится и для бортика вдоль X,
+            /// и для бортика вдоль Z.
+            /// </summary>
+            Wall,
+
+            /// <summary>
+            /// Столбик копий по высоте. Для вертикальных предметов, которые
+            /// выше своей модели: лесенка в 7 ШП собирается из трёхметровых,
+            /// а не растягивается втрое вместе с перекладинами.
+            /// </summary>
+            Column
         }
 
         /// <summary>Одна модель каталога: что ставим и как сажаем.</summary>
@@ -122,13 +146,19 @@ namespace Igruha.EditorTools
             holder.transform.localScale = Vector3.one;
 
             Vector3 boxScale = box.transform.lossyScale;
-            if (entry.Fit == Fit.Row)
+            switch (entry.Fit)
             {
-                PlaceRow(holder.transform, prefab, entry, local, boxScale, rng);
-            }
-            else
-            {
-                PlaceSingle(holder.transform, prefab, entry, local, boxScale);
+                case Fit.Row:
+                    PlaceRow(holder.transform, prefab, entry, local, boxScale, rng);
+                    break;
+                case Fit.Tile:
+                case Fit.Wall:
+                case Fit.Column:
+                    PlaceRepeat(holder.transform, prefab, entry, local, boxScale, rng);
+                    break;
+                default:
+                    PlaceSingle(holder.transform, prefab, entry, local, boxScale);
+                    break;
             }
 
             ClampToBox(holder.transform, box.transform);
@@ -258,6 +288,109 @@ namespace Igruha.EditorTools
 
                 ApplyTransform(go.transform, yaw, local, boxScale, world, offset01);
             }
+        }
+
+        /// <summary>
+        /// Копии в натуральном масштабе, повторённые по осям, которые задаёт
+        /// <see cref="Fit"/>: пол — по X и Z, стенка — вдоль длинной горизонтали
+        /// и вверх, столбик — только вверх.
+        ///
+        /// Отличие от <see cref="PlaceRow"/> в одном, и оно принципиальное:
+        /// масштаб здесь берётся из модели, а не из коробки. Ряд задуман для
+        /// укрытий, где высота коробки — геймплейный смысл, и ради неё модель
+        /// можно тянуть. У настила, бортика и лесенки смысл ровно обратный:
+        /// доска обязана остаться доской своего размера, а коробка добирается
+        /// числом копий. По осям, где повтора нет, модель не растягивается
+        /// никогда — только ужимается, если не влезает.
+        /// </summary>
+        private static void PlaceRepeat(Transform parent, GameObject prefab, Entry entry, Bounds local,
+            Vector3 boxScale, System.Random rng)
+        {
+            Vector3 box = new Vector3(Mathf.Abs(boxScale.x), Mathf.Abs(boxScale.y), Mathf.Abs(boxScale.z));
+
+            bool alongX = box.x >= box.z;
+            bool repeatX = entry.Fit == Fit.Tile || (entry.Fit == Fit.Wall && alongX);
+            bool repeatZ = entry.Fit == Fit.Tile || (entry.Fit == Fit.Wall && !alongX);
+            bool repeatY = entry.Fit != Fit.Tile;
+
+            // Стенка сама доворачивается тонкой стороной к тонкой стороне
+            // коробки. Иначе каталог пришлось бы писать дважды — отдельно для
+            // бортика вдоль X и отдельно для того же бортика вдоль Z, и первая
+            // же перепутанная четверть ужала бы панель до шестой доли размера.
+            int yawSteps = entry.YawSteps + (entry.Fit == Fit.Wall && !alongX ? 1 : 0);
+            Vector3 model = SwapForYaw(local.size, yawSteps);
+            if (model.x <= Mathf.Epsilon || model.y <= Mathf.Epsilon || model.z <= Mathf.Epsilon)
+            {
+                return;
+            }
+
+            // Масштаб общий на три оси: по отдельности он расплющил бы модель.
+            float shrink = 1f;
+            if (!repeatX) shrink = Mathf.Min(shrink, box.x / model.x);
+            if (!repeatY) shrink = Mathf.Min(shrink, box.y / model.y);
+            if (!repeatZ) shrink = Mathf.Min(shrink, box.z / model.z);
+            shrink = Mathf.Min(shrink, 1f);
+
+            int countX, countY, countZ;
+            float fillX, fillY, fillZ;
+            CountPieces(box.x, model.x * shrink, repeatX, out countX, out fillX);
+            CountPieces(box.y, model.y * shrink, repeatY, out countY, out fillY);
+            CountPieces(box.z, model.z * shrink, repeatZ, out countZ, out fillZ);
+
+            var scale = new Vector3(shrink * fillX, shrink * fillY, shrink * fillZ);
+
+            // По оси без повтора модель прижимается к верхней грани, если она
+            // тоньше коробки: настил видно сверху, и висеть ему посреди толщи
+            // нельзя — по нему ходят.
+            float restY = repeatY ? 0f : 0.5f - model.y * scale.y / (2f * Mathf.Max(0.0001f, box.y));
+
+            for (int x = 0; x < countX; x++)
+            {
+                for (int y = 0; y < countY; y++)
+                {
+                    for (int z = 0; z < countZ; z++)
+                    {
+                        var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
+                        StripColliders(go);
+
+                        // Разворот через раз — но только на пол-оборота: четверть
+                        // поменяла бы оси местами, и посчитанный масштаб ушёл бы
+                        // не туда.
+                        int yaw = yawSteps + (rng.Next(2) == 0 ? 0 : 2);
+                        var offset = new Vector3(
+                            repeatX ? (x + 0.5f) / countX - 0.5f : 0f,
+                            repeatY ? (y + 0.5f) / countY - 0.5f : restY,
+                            repeatZ ? (z + 0.5f) / countZ - 0.5f : 0f);
+
+                        ApplyTransform(go.transform, yaw, local, boxScale, SwapForYaw(scale, yaw), offset);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Сколько копий влезает в длину и насколько их приходится подтянуть.
+        /// Подтяжка ограничена <see cref="StretchLimit"/> — за ним ставится
+        /// лишняя копия, а не тянется существующая.
+        /// </summary>
+        private static void CountPieces(float boxLength, float pieceLength, bool repeat, out int count, out float fill)
+        {
+            if (!repeat || pieceLength <= 0.0001f)
+            {
+                count = 1;
+                fill = 1f;
+                return;
+            }
+
+            count = Mathf.Max(1, Mathf.RoundToInt(boxLength / pieceLength));
+            fill = boxLength / (count * pieceLength);
+            if (fill > StretchLimit)
+            {
+                count += 1;
+                fill = boxLength / (count * pieceLength);
+            }
+
+            fill = Mathf.Clamp(fill, 1f / StretchLimit, StretchLimit);
         }
 
         /// <summary>
