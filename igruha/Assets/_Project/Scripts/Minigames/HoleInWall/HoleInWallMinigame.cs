@@ -143,6 +143,18 @@ namespace Igruha.Minigames.HoleInWall
         /// <summary>Сколько участников в раунде. Сетевой половине — понять, собрался ли уже ростер.</summary>
         public int RosterCount => Players.Count;
 
+        /// <summary>
+        /// Вердикт стены объявлен: дорожка и её исход. Поднимается <b>на каждой
+        /// машине</b> ровно один раз — на сервере в момент подсчёта, на клиенте
+        /// в момент приёма оповещения, — поэтому подписчик получает его у всех
+        /// участников, а не только у того, кто считал.
+        ///
+        /// Точка привязки арта: эффекты подфазы 4.4 и звук 4.5. Своего
+        /// состояния событие не несёт и ничего не решает — исход уже правда,
+        /// здесь его только показывают.
+        /// </summary>
+        public event Action<HoleInWallTrack, bool> WallResolved;
+
         /// <summary>Дорожка этого участника. Пусто — участника в раунде нет.</summary>
         public HoleInWallTrack TrackOf(int playerId) =>
             trackByPlayer.TryGetValue(playerId, out HoleInWallTrack track) ? track : null;
@@ -731,6 +743,12 @@ namespace Igruha.Minigames.HoleInWall
             // событие, и уезжает оповещением: правдой он уже стал здесь.
             network?.PublishTracks(playingTracks);
             network?.AnnounceWallResolved(track.Index, currentWall, passed);
+
+            // И только теперь — тем, кто на исход смотрит. Порядок не случаен:
+            // сначала правда уходит по сети, потом её показывают. Иначе
+            // сервер успел бы поднять брызги раньше, чем клиенты узнали,
+            // из-за чего они.
+            WallResolved?.Invoke(track, passed);
         }
 
         /// <summary>
@@ -746,10 +764,17 @@ namespace Igruha.Minigames.HoleInWall
             }
 
             HoleInWallTrack track = TrackByIndex(trackIndex);
-            if (track != null)
+            if (track == null)
             {
-                track.WallResolved = true;
+                return;
             }
+
+            track.WallResolved = true;
+
+            // Вторая половина той же точки: у сервера вердикт объявляется
+            // подсчётом, у клиента — приёмом. Дальше подписчик один и тот же,
+            // и различать эти две половины ему не нужно.
+            WallResolved?.Invoke(track, passed);
         }
 
         /// <summary>

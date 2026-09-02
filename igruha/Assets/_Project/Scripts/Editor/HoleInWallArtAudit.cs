@@ -34,6 +34,7 @@ namespace Igruha.EditorTools
 
         private const string ArenaRoot = "_Arena";
         private const string StudioRoot = "_Studio";
+        private const string EffectsRoot = "_Effects";
         private const string LightingRoot = "_Lighting";
         private const string LightingGroup = "HoleInWallStudio";
 
@@ -77,6 +78,7 @@ namespace Igruha.EditorTools
 
             MeasureDress(roots, report);
             MeasureScenery(config, report);
+            MeasureEffects(config, report);
             MeasureColliders(roots, config, report);
             MeasureMeshes(roots, report);
 
@@ -276,6 +278,121 @@ namespace Igruha.EditorTools
             return new Bounds(
                 new Vector3(0f, (top + bottom) * 0.5f, (far + near) * 0.5f),
                 new Vector3(config.ArenaWidth - ZoneInset * 2f, top - bottom, far - near));
+        }
+
+        // ========== ЭФФЕКТЫ ==========
+
+        /// <summary>
+        /// Эффекты подфазы 4.4. Мерится не «красиво ли», а четыре вещи,
+        /// которые ломаются молча и которых глазами не видно.
+        ///
+        /// <b>Коллайдеры и свет.</b> Первые ловили бы сметённого игрока и лучи
+        /// деокклюдера камеры; второй съел бы один из четырёх дополнительных
+        /// источников арены — предел URP-ассета, — и одна из дорожек молча
+        /// потеряла бы свой цвет.
+        ///
+        /// <b>Автостарт.</b> Партиклы пака приходят зацикленными и с
+        /// автостартом. Оставленный автостарт означает всплеск посреди сухой
+        /// воды и удар в пустоту — причём с первого же кадра и навсегда.
+        /// Норма здесь единица, а не ноль: туман над водой обязан идти всегда,
+        /// он воздух студии, а не событие.
+        ///
+        /// <b>Верх постоянного эффекта.</b> Правило брифа — между игроком и
+        /// стеной не должно быть ничего выше пола платформы, иначе перекрыт
+        /// вырез, а вырез здесь и есть игра. Одноразовых эффектов это не
+        /// касается: вспышка в вырезе и есть его подсветка, и она гаснет за
+        /// секунду. А вот туман идёт постоянно, и его потолок обязан лежать
+        /// <b>под</b> полом платформы — не на глаз, а числом.
+        /// </summary>
+        private static void MeasureEffects(HoleInWallConfig config, StringBuilder report)
+        {
+            GameObject arena = GameObject.Find(ArenaRoot);
+            Transform effects = arena == null ? null : arena.transform.Find(EffectsRoot);
+
+            if (effects == null)
+            {
+                report.Append("\n— эффектов в сцене нет: VFX не построены");
+                return;
+            }
+
+            int emitters = 0;
+            int systems = 0;
+            int autoStart = 0;
+            int looping = 0;
+            float ceiling = float.NegativeInfinity;
+            string ceilingName = null;
+
+            foreach (ParticleSystem particles in effects.GetComponentsInChildren<ParticleSystem>(true))
+            {
+                systems++;
+
+                // Эффект — это корневая система префаба пака; вложенные в неё
+                // считаются системами, но не эффектами: у всплеска их три,
+                // и три всплеска в отчёте были бы неправдой.
+                if (particles.transform.parent == null ||
+                    particles.transform.parent.GetComponent<ParticleSystem>() == null)
+                {
+                    emitters++;
+                }
+
+                ParticleSystem.MainModule main = particles.main;
+
+                if (main.loop)
+                {
+                    looping++;
+                }
+
+                if (!main.playOnAwake)
+                {
+                    continue;
+                }
+
+                autoStart++;
+
+                float top = TopReach(particles);
+                if (top > ceiling)
+                {
+                    ceiling = top;
+                    ceilingName = particles.name;
+                }
+            }
+
+            report.Append("\n— эффектов: ").Append(emitters).Append(", систем в них: ").Append(systems);
+            report.Append("\n— коллайдеров в эффектах: ")
+                .Append(effects.GetComponentsInChildren<Collider>(true).Length).Append(" (норма 0)");
+            report.Append("\n— источников света в эффектах: ")
+                .Append(effects.GetComponentsInChildren<Light>(true).Length).Append(" (норма 0)");
+            report.Append("\n— систем с автостартом: ").Append(autoStart).Append(" (норма 1 — только туман)");
+            report.Append("\n— зацикленных систем: ").Append(looping).Append(" (туман и разряд на тросе)");
+
+            if (ceilingName != null)
+            {
+                report.Append("\n— верх постоянного эффекта «").Append(ceilingName).Append("»: ")
+                    .Append(ceiling.ToString("F2")).Append(" м при поле платформы ")
+                    .Append(config.PlatformSurfaceY.ToString("F2")).Append(" (обязан быть ниже)");
+            }
+        }
+
+        /// <summary>
+        /// Докуда достаёт эффект по высоте: верх места рождения плюс всплывание
+        /// за полную жизнь плюс половина самого крупного клока.
+        ///
+        /// Считается по настройкам, а не по <c>bounds</c> рендерера: в редакторе
+        /// системы не идут, и границы у них пустые — замер показал бы ноль
+        /// и молча одобрил бы туман по пояс.
+        /// </summary>
+        private static float TopReach(ParticleSystem particles)
+        {
+            ParticleSystem.MainModule main = particles.main;
+            ParticleSystem.ShapeModule shape = particles.shape;
+
+            float spawn = !shape.enabled ? 0f
+                : shape.shapeType == ParticleSystemShapeType.Box ? shape.scale.y * 0.5f
+                : shape.radius;
+
+            float rise = Mathf.Max(0f, main.startSpeed.constantMax) * Mathf.Max(0f, main.startLifetime.constantMax);
+
+            return particles.transform.position.y + spawn + rise + main.startSize.constantMax * 0.5f;
         }
 
         // ========== КОЛЛАЙДЕРЫ И ТРИГГЕРЫ ==========

@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using Igruha.Core.Minigame;
 
@@ -58,6 +59,20 @@ namespace Igruha.Minigames.HoleInWall
         private float speed;
         private bool running;
         private bool trickShown;
+
+        /// <summary>
+        /// Подвох этой стены только что сработал: вырезы уже поменялись.
+        ///
+        /// Поднимается <b>на каждой машине сама</b>, без единого пакета: момент
+        /// срабатывания объявлен вместе с рисунком, и до него каждая машина
+        /// доходит по общим часам. Отсюда же и единственность — ровно один раз
+        /// за проезд, там же, где перестраивается форма и моргает контур.
+        ///
+        /// Точка привязки арта: след подвоха в подфазе 4.4, свуш переворота
+        /// в 4.5. Стену передаём первым доводом, чтобы подписчик знал, чья
+        /// она, не заводя по обработчику на дорожку.
+        /// </summary>
+        public event Action<SweepingWall, WallTrick> TrickTriggered;
 
         /// <summary>Стена едет прямо сейчас.</summary>
         public bool Running => running;
@@ -175,6 +190,13 @@ namespace Igruha.Minigames.HoleInWall
             {
                 RebuildShape(trickActive);
                 BlinkCutouts();
+
+                // Только на включении: обратно подвох не выключается, а сброс
+                // отметки при Retire — это уже другая стена, и след ей не нужен.
+                if (trickActive)
+                {
+                    TrickTriggered?.Invoke(this, pattern.Trick);
+                }
             }
 
             UpdateTransform();

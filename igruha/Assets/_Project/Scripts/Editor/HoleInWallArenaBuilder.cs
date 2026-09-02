@@ -113,6 +113,10 @@ namespace Igruha.EditorTools
             // Павильон — последним: табло берут ссылки на уже собранные дорожки.
             HoleInWallEnvironment.Build(arena, config, tracks, dressRandom);
 
+            // Эффекты — после павильона: они не декорация, а реакция на события
+            // игры, и вешаются на уже собранные дорожки и их стены.
+            HoleInWallVfx.Build(arena, config, tracks);
+
             EnsureHudStatusLine();
             VerifyLayout(config);
             ReportMissingModels();
