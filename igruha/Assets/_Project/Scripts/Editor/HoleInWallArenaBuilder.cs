@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
@@ -28,6 +29,16 @@ namespace Igruha.EditorTools
 
         private const float SlabThickness = 0.4f;
 
+        /// <summary>
+        /// Зерно генератора дресса. Своё, а не общее с билдером: билдер
+        /// раскладывает арену детерминированно, и подмешивать в его
+        /// последовательность выбор моделей нельзя — смена модели сдвинула бы
+        /// проверенную планировку (правило подфазы 4.1).
+        /// </summary>
+        private const int DressSeed = 20260902;
+
+        private static System.Random dressRandom;
+
         /// <summary>Насколько бортик бассейна торчит над водой, м.</summary>
         private const float PoolRimHeight = 0.72f;
 
@@ -50,6 +61,9 @@ namespace Igruha.EditorTools
                 return;
             }
 
+            dressRandom = new System.Random(DressSeed);
+            HoleInWallDress.Begin();
+
             ReplaceRoot(ArenaRoot, out Transform arena);
             ReplaceRoot(BoundsRoot, out Transform bounds);
 
@@ -67,6 +81,7 @@ namespace Igruha.EditorTools
             WireController(tracks);
             EnsureHudStatusLine();
             VerifyLayout(config);
+            ReportMissingModels();
 
             Debug.Log(
                 $"🧱 Арена «Дырки в стене» построена: {config.TrackCount} дорожек, " +
@@ -104,14 +119,14 @@ namespace Igruha.EditorTools
             float rimCenterY = config.PoolBottomY + rimHeight * 0.5f;
             float halfWidth = width * 0.5f;
 
-            SetLayer(CreateBox(pool, "Rim_Far", new Vector3(width, rimHeight, SlabThickness),
-                new Vector3(0f, rimCenterY, config.ArenaFarZ), RimColor), "Ground");
-            SetLayer(CreateBox(pool, "Rim_Near", new Vector3(width, rimHeight, SlabThickness),
-                new Vector3(0f, rimCenterY, config.ArenaNearZ), RimColor), "Ground");
-            SetLayer(CreateBox(pool, "Rim_Left", new Vector3(SlabThickness, rimHeight, depth),
-                new Vector3(-halfWidth, rimCenterY, centerZ), RimColor), "Ground");
-            SetLayer(CreateBox(pool, "Rim_Right", new Vector3(SlabThickness, rimHeight, depth),
-                new Vector3(halfWidth, rimCenterY, centerZ), RimColor), "Ground");
+            CreateDressedBox(pool, "Rim_Far", new Vector3(width, rimHeight, SlabThickness),
+                new Vector3(0f, rimCenterY, config.ArenaFarZ), RimColor, "Ground", HoleInWallDress.Kind.PoolRim);
+            CreateDressedBox(pool, "Rim_Near", new Vector3(width, rimHeight, SlabThickness),
+                new Vector3(0f, rimCenterY, config.ArenaNearZ), RimColor, "Ground", HoleInWallDress.Kind.PoolRim);
+            CreateDressedBox(pool, "Rim_Left", new Vector3(SlabThickness, rimHeight, depth),
+                new Vector3(-halfWidth, rimCenterY, centerZ), RimColor, "Ground", HoleInWallDress.Kind.PoolRim);
+            CreateDressedBox(pool, "Rim_Right", new Vector3(SlabThickness, rimHeight, depth),
+                new Vector3(halfWidth, rimCenterY, centerZ), RimColor, "Ground", HoleInWallDress.Kind.PoolRim);
 
             // Вода — только вид. Коллайдера нет: в неё падают, а не стоят на ней,
             // и камере она должна быть прозрачна.
@@ -140,9 +155,9 @@ namespace Igruha.EditorTools
             for (int i = 0; i < config.TrackCount; i++)
             {
                 float x = config.TrackCenterX(i) + config.PlatformWidth * 0.5f + config.TrackGap * 0.5f;
-                SetLayer(CreateBox(ladders, $"Ladder_{i}",
+                CreateDressedBox(ladders, $"Ladder_{i}",
                     new Vector3(config.TrackGap * 0.5f, height, SlabThickness),
-                    new Vector3(x, centerY, z), LadderColor), "Ground");
+                    new Vector3(x, centerY, z), LadderColor, "Ground", HoleInWallDress.Kind.Ladder);
             }
         }
 
@@ -158,16 +173,16 @@ namespace Igruha.EditorTools
             root.transform.localPosition =
                 new Vector3(config.TrackCenterX(index), config.PlatformSurfaceY, config.CheckLineZ);
 
-            SetLayer(CreateBox(root.transform, "Platform",
+            CreateDressedBox(root.transform, "Platform",
                 new Vector3(config.PlatformWidth, config.PlatformThickness, config.PlatformDepth),
                 new Vector3(0f, -config.PlatformThickness * 0.5f, 0f),
-                PlatformColor), "Ground");
+                PlatformColor, "Ground", HoleInWallDress.Kind.PlatformDeck);
 
             float supportHeight = config.PlatformHeightOverWater - config.PlatformThickness;
-            SetLayer(CreateBox(root.transform, "Support",
+            CreateDressedBox(root.transform, "Support",
                 new Vector3(config.PlatformWidth * 0.6f, supportHeight, config.PlatformDepth * 0.6f),
                 new Vector3(0f, -config.PlatformThickness - supportHeight * 0.5f, 0f),
-                SupportColor), "Ground");
+                SupportColor, "Ground", HoleInWallDress.Kind.Support);
 
             var slots = new Transform[2];
             for (int i = 0; i < slots.Length; i++)
@@ -539,6 +554,49 @@ namespace Igruha.EditorTools
             }
 
             root = new GameObject(rootName).transform;
+        }
+
+        /// <summary>
+        /// Коробка блокаута, одетая в модель пака. Геометрия, коллайдер и слой
+        /// те же, что на сером блокауте: гаснет только рендерер коробки, модель
+        /// садится внутрь по её габаритам. Поэтому выверенная фазами 2–3
+        /// планировка не может сдвинуться от арта.
+        ///
+        /// Слой ставится <b>до</b> дресса: <see cref="SetLayer"/> красит и детей,
+        /// и модели пака уехали бы на <c>Ground</c> вместе с коробкой.
+        /// </summary>
+        private static GameObject CreateDressedBox(Transform parent, string boxName, Vector3 size, Vector3 position,
+            Color color, string layerName, HoleInWallDress.Kind kind)
+        {
+            GameObject box = CreateBox(parent, boxName, size, position, color);
+            SetLayer(box, layerName);
+            HoleInWallDress.Apply(box, kind, dressRandom);
+            return box;
+        }
+
+        /// <summary>
+        /// Модели, которых не нашлось в проекте, — списком и всегда. Паки Synty
+        /// в репозиторий не входят, и на машине без них арена соберётся серой:
+        /// без этой строки разница читалась бы как «арт не сделан».
+        /// </summary>
+        private static void ReportMissingModels()
+        {
+            IReadOnlyList<string> missing = HoleInWallDress.Missing;
+            if (missing.Count == 0)
+            {
+                return;
+            }
+
+            var paths = new string[missing.Count];
+            for (int i = 0; i < missing.Count; i++)
+            {
+                paths[i] = missing[i];
+            }
+
+            Debug.LogWarning(
+                $"«Дырка в стене»: не найдено моделей паков — {missing.Count}. Там, где их нет, арена осталась блокаутом. " +
+                "Поставь паки Synty (POLYGON Nightclubs, POLYGON Generic) и пересобери.\n— " +
+                string.Join("\n— ", paths));
         }
 
         private static GameObject CreateBox(Transform parent, string boxName, Vector3 size, Vector3 position, Color color)
