@@ -162,3 +162,8 @@ igruha/Assets/Synty.meta
 
 # Кэш превью паков Synty — качается инструментом, в репозиторий не идёт
 docs/art/.cache/
+
+# Пробные варианты звука (подфаза 4.5): слушаются на приёмке и удаляются перед
+# запеканием. В LFS им делать нечего — финальным считается клип в папке игры.
+igruha/[Aa]ssets/_Project/Audio/**/Probe/
+igruha/[Aa]ssets/_Project/Audio/**/Probe.meta

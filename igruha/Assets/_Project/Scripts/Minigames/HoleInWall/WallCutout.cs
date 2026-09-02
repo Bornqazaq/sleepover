@@ -34,8 +34,19 @@ namespace Igruha.Minigames.HoleInWall
         /// <summary>Сколько раз в секунду моргает контур после подвоха.</summary>
         private const float BlinkRate = 6f;
 
-        private static readonly Color OutlineColor = new Color(1f, 0.92f, 0.25f);
-        private static readonly Color BlinkColor = new Color(1f, 0.25f, 0.20f);
+        /// <summary>
+        /// Цвет контура. Голубой неон палитры (бриф: «край выреза обведён
+        /// неоном»), а не жёлтый блокаута: на белой глянцевой плите стены жёлтое
+        /// теряется, а голубое — единственное холодное пятно в кадре.
+        /// </summary>
+        private static readonly Color OutlineColor = HoleInWallPalette.NeonCyan;
+
+        /// <summary>
+        /// Цвет моргания после подвоха. Второй неон палитры: он на другом конце
+        /// круга от контура, и подмена рисунка читается сменой холодного на
+        /// горячее, а не только частотой мигания.
+        /// </summary>
+        private static readonly Color BlinkColor = HoleInWallPalette.NeonPink;
 
         [Tooltip("Левая стойка контура")]
         [SerializeField] private Transform leftPost;
@@ -177,7 +188,9 @@ namespace Igruha.Minigames.HoleInWall
 
         private void SetColor(Color color)
         {
-            Material material = HoleInWallMaterials.Opaque(color);
+            // Светящийся, а не просто крашеный: контур обязан читаться
+            // с 30 ШП — с максимальной дистанции подъезда стены (бриф).
+            Material material = HoleInWallMaterials.Emissive(color);
             for (int i = 0; i < frames.Length; i++)
             {
                 if (frames[i] != null)

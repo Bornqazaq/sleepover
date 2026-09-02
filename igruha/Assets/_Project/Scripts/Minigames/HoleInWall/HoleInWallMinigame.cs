@@ -57,12 +57,6 @@ namespace Igruha.Minigames.HoleInWall
         /// <summary>Первая стадия подраунда. Номер стадии = номер стены, с единицы.</summary>
         private const byte FirstStage = 1;
 
-        /// <summary>Частота сигнала перед ударом, Гц. Заглушка каркаса — настоящий звук в фазе 4.</summary>
-        private const int WarningToneHz = 880;
-
-        /// <summary>Длительность сигнала перед ударом, с.</summary>
-        private const float WarningToneSeconds = 0.18f;
-
         /// <summary>Шаг сида между дорожками. Простое число, чтобы соседние дорожки не попадали в одну последовательность.</summary>
         private const int TrackSeedStride = 7919;
 
@@ -90,8 +84,6 @@ namespace Igruha.Minigames.HoleInWall
         private readonly List<WallPattern> soloPatterns = new List<WallPattern>(8);
 
         private HoleInWallNetwork network;
-        private AudioSource warningSource;
-        private AudioClip warningClip;
         private double roundStartTime;
 
         /// <summary>
@@ -143,6 +135,36 @@ namespace Igruha.Minigames.HoleInWall
         /// <summary>Сколько участников в раунде. Сетевой половине — понять, собрался ли уже ростер.</summary>
         public int RosterCount => Players.Count;
 
+        /// <summary>
+        /// Вердикт стены объявлен: дорожка и её исход. Поднимается <b>на каждой
+        /// машине</b> ровно один раз — на сервере в момент подсчёта, на клиенте
+        /// в момент приёма оповещения, — поэтому подписчик получает его у всех
+        /// участников, а не только у того, кто считал.
+        ///
+        /// Точка привязки арта: эффекты подфазы 4.4 и звук 4.5. Своего
+        /// состояния событие не несёт и ничего не решает — исход уже правда,
+        /// здесь его только показывают.
+        /// </summary>
+        public event Action<HoleInWallTrack, bool> WallResolved;
+
+        /// <summary>
+        /// До удара текущей стены осталась <see cref="HoleInWallConfig.WarningLead"/>
+        /// секунда — единственная подсказка в игре, и она нужна по механике:
+        /// на последней стене подъезд короче, чем разворот камеры (спека 8.8).
+        ///
+        /// Поднимается <b>один раз на стену и на каждой машине</b>: момент
+        /// удара считается от объявленного начала раунда по общим часам,
+        /// поэтому сигнал звучит у всех одновременно и без единого пакета.
+        /// Один на стену, а не на дорожку, — момент у всех дорожек общий,
+        /// и четыре источника дали бы четырёхкратную громкость вместо
+        /// подсказки.
+        ///
+        /// Точка привязки арта: слот <c>impact_warning</c> подфазы 4.5.
+        /// На каркасе здесь стоял синтезированный тон 880 Гц — заглушка,
+        /// снятая вместе с приходом настоящего звука.
+        /// </summary>
+        public event Action WallWarning;
+
         /// <summary>Дорожка этого участника. Пусто — участника в раунде нет.</summary>
         public HoleInWallTrack TrackOf(int playerId) =>
             trackByPlayer.TryGetValue(playerId, out HoleInWallTrack track) ? track : null;
@@ -151,7 +173,6 @@ namespace Igruha.Minigames.HoleInWall
         {
             base.Awake();
             network = GetComponent<HoleInWallNetwork>();
-            BuildWarningSound();
         }
 
         protected override void OnEnable()
@@ -626,7 +647,7 @@ namespace Igruha.Minigames.HoleInWall
             if (!wallWarned && elapsed >= stageHitTime - config.WarningLead)
             {
                 wallWarned = true;
-                PlayWarning();
+                WallWarning?.Invoke();
             }
 
             for (int i = 0; i < playingTracks.Count; i++)
@@ -731,6 +752,12 @@ namespace Igruha.Minigames.HoleInWall
             // событие, и уезжает оповещением: правдой он уже стал здесь.
             network?.PublishTracks(playingTracks);
             network?.AnnounceWallResolved(track.Index, currentWall, passed);
+
+            // И только теперь — тем, кто на исход смотрит. Порядок не случаен:
+            // сначала правда уходит по сети, потом её показывают. Иначе
+            // сервер успел бы поднять брызги раньше, чем клиенты узнали,
+            // из-за чего они.
+            WallResolved?.Invoke(track, passed);
         }
 
         /// <summary>
@@ -746,10 +773,17 @@ namespace Igruha.Minigames.HoleInWall
             }
 
             HoleInWallTrack track = TrackByIndex(trackIndex);
-            if (track != null)
+            if (track == null)
             {
-                track.WallResolved = true;
+                return;
             }
+
+            track.WallResolved = true;
+
+            // Вторая половина той же точки: у сервера вердикт объявляется
+            // подсчётом, у клиента — приёмом. Дальше подписчик один и тот же,
+            // и различать эти две половины ему не нужно.
+            WallResolved?.Invoke(track, passed);
         }
 
         /// <summary>
@@ -1414,46 +1448,6 @@ namespace Igruha.Minigames.HoleInWall
                 {
                     track.Patterns.Add(states[i].ToPattern());
                 }
-            }
-        }
-
-        // ========== ЗВУК ==========
-
-        /// <summary>
-        /// Сигнал за секунду до удара — единственная подсказка в игре, и она
-        /// нужна по механике: на последней стене подъезд короче, чем разворот
-        /// камеры (спека 8.8).
-        ///
-        /// На каркасе это синтезированный тон: настоящий звук приезжает
-        /// в фазе 4, и менять для этого код не придётся — достаточно положить
-        /// клип в <see cref="warningSource"/>.
-        /// </summary>
-        private void BuildWarningSound()
-        {
-            warningSource = gameObject.AddComponent<AudioSource>();
-            warningSource.playOnAwake = false;
-            warningSource.spatialBlend = 0f;
-            warningSource.volume = 0.5f;
-
-            int samples = Mathf.RoundToInt(AudioSettings.outputSampleRate * WarningToneSeconds);
-            var data = new float[samples];
-            for (int i = 0; i < samples; i++)
-            {
-                float t = i / (float)AudioSettings.outputSampleRate;
-                // Затухание к концу: щелчок обрыва слышен сильнее самого тона.
-                float envelope = 1f - i / (float)samples;
-                data[i] = Mathf.Sin(2f * Mathf.PI * WarningToneHz * t) * envelope;
-            }
-
-            warningClip = AudioClip.Create("HoleInWallWarning", samples, 1, AudioSettings.outputSampleRate, false);
-            warningClip.SetData(data, 0);
-        }
-
-        private void PlayWarning()
-        {
-            if (warningSource != null && warningClip != null)
-            {
-                warningSource.PlayOneShot(warningClip);
             }
         }
     }

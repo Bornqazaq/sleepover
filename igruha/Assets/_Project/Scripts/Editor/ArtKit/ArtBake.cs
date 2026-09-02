@@ -219,15 +219,24 @@ namespace Igruha.EditorTools
         /// Копирует файлы паков в папку игры, сохраняя путь относительно
         /// <see cref="PacksRoot"/>. Возвращает карту «GUID исходника → GUID копии»
         /// и, отдельно, карту объектов для правки компонентов сцены.
+        ///
+        /// <b>Карта объектов ключуется по <c>GetInstanceID()</c>, а не по самому
+        /// объекту.</b> Словарь с ключом-объектом зовёт <c>GetHashCode()</c> у
+        /// каждого встреченного значения, а часть типов Unity его переопределяет:
+        /// <c>VolumeProfile.GetHashCode()</c> перебирает свои компоненты и падает
+        /// с <c>NullReferenceException</c>. На DuckHunt этого не было видно —
+        /// в сцене не было Volume; на «Дырке в стене» (02.09) запекание валилось
+        /// на профиле студии посреди правки компонентов, оставляя сцену
+        /// наполовину переписанной. Instance ID не трогает переопределения вовсе.
         /// </summary>
         private static Dictionary<string, string> CopyAssets(
             HashSet<string> sourcePaths,
             string target,
             out int copied,
-            out Dictionary<UnityEngine.Object, UnityEngine.Object> objectMap)
+            out Dictionary<int, UnityEngine.Object> objectMap)
         {
             var guidMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            objectMap = new Dictionary<UnityEngine.Object, UnityEngine.Object>();
+            objectMap = new Dictionary<int, UnityEngine.Object>();
             copied = 0;
 
             foreach (var source in sourcePaths.OrderBy(p => p, StringComparer.OrdinalIgnoreCase))
@@ -266,13 +275,13 @@ namespace Igruha.EditorTools
         /// сопоставляем их по типу и имени, чтобы компоненты сцены переехали на копии.
         /// </summary>
         private static void MapSubAssets(
-            string source, string destination, Dictionary<UnityEngine.Object, UnityEngine.Object> objectMap)
+            string source, string destination, Dictionary<int, UnityEngine.Object> objectMap)
         {
             var oldAssets = AssetDatabase.LoadAllAssetsAtPath(source);
             var newAssets = AssetDatabase.LoadAllAssetsAtPath(destination);
             foreach (var oldAsset in oldAssets)
             {
-                if (oldAsset == null || objectMap.ContainsKey(oldAsset))
+                if (oldAsset == null || objectMap.ContainsKey(oldAsset.GetInstanceID()))
                 {
                     continue;
                 }
@@ -281,7 +290,7 @@ namespace Igruha.EditorTools
                     a => a != null && a.name == oldAsset.name && a.GetType() == oldAsset.GetType());
                 if (match != null)
                 {
-                    objectMap[oldAsset] = match;
+                    objectMap[oldAsset.GetInstanceID()] = match;
                 }
             }
         }
@@ -378,7 +387,7 @@ namespace Igruha.EditorTools
         }
 
         /// <summary>Переписывает ссылки во всех компонентах сцены.</summary>
-        private static int RemapScene(Scene scene, Dictionary<UnityEngine.Object, UnityEngine.Object> map)
+        private static int RemapScene(Scene scene, Dictionary<int, UnityEngine.Object> map)
         {
             var remapped = 0;
             foreach (var root in scene.GetRootGameObjects())
@@ -402,7 +411,7 @@ namespace Igruha.EditorTools
         }
 
         private static bool RemapProperties(
-            SerializedObject serialized, Dictionary<UnityEngine.Object, UnityEngine.Object> map)
+            SerializedObject serialized, Dictionary<int, UnityEngine.Object> map)
         {
             var property = serialized.GetIterator();
             var changed = false;
@@ -414,7 +423,7 @@ namespace Igruha.EditorTools
                 }
 
                 var value = property.objectReferenceValue;
-                if (value != null && map.TryGetValue(value, out var replacement))
+                if (value != null && map.TryGetValue(value.GetInstanceID(), out var replacement))
                 {
                     property.objectReferenceValue = replacement;
                     changed = true;
