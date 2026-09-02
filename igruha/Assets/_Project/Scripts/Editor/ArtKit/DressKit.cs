@@ -99,6 +99,32 @@ namespace Igruha.EditorTools
         }
 
         /// <summary>
+        /// Загрузить модель пака, записав ненайденную в общий список.
+        ///
+        /// Нужен тем, кто ставит модель мимо коробки блокаута — окружению
+        /// подфазы 4.3, где трибуна и телекамера садятся на пол студии
+        /// по замеру, а не в габарит коробки. Список ненайденного при этом
+        /// обязан остаться одним: пересборка печатает его целиком, и модель,
+        /// потерянная в декорациях, не имеет права молчать только потому, что
+        /// её ставили другим методом.
+        /// </summary>
+        internal static bool TryLoad(string path, out GameObject prefab)
+        {
+            prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (prefab != null)
+            {
+                return true;
+            }
+
+            if (!missing.Contains(path))
+            {
+                missing.Add(path);
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Одеть коробку блокаута одной из моделей набора. Рендерер коробки
         /// гаснет, модель садится внутрь по её габаритам. Коллайдер и слой
         /// коробки не трогаются.
@@ -165,7 +191,7 @@ namespace Igruha.EditorTools
             }
 
             ClampToBox(holder.transform, box.transform);
-            Repaint(holder.transform, paint);
+            Repaint(holder, paint);
             return holder;
         }
 
@@ -181,15 +207,19 @@ namespace Igruha.EditorTools
         /// Плоский цвет на всю модель здесь не обеднение, а требование:
         /// «белый глянцевый пластик» из брифа — это отсутствие рисунка, а форму
         /// подиума держат геометрия и свет, а не текстура.
+        ///
+        /// Тем же красится и декор окружения (подфаза 4.3), который ставится
+        /// мимо коробки блокаута: трибуна приезжает из «Карнавала» в своей
+        /// ярмарочной раскраске, и в тёмной студии она кричала бы громче арены.
         /// </summary>
-        private static void Repaint(Transform holder, Material paint)
+        internal static void Repaint(GameObject go, Material paint)
         {
-            if (paint == null)
+            if (go == null || paint == null)
             {
                 return;
             }
 
-            var renderers = holder.GetComponentsInChildren<Renderer>(true);
+            var renderers = go.GetComponentsInChildren<Renderer>(true);
             for (int i = 0; i < renderers.Length; i++)
             {
                 Material[] slots = renderers[i].sharedMaterials;
