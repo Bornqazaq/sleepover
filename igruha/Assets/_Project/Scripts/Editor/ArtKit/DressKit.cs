@@ -107,8 +107,11 @@ namespace Igruha.EditorTools
         /// дресса: общий с билдером сдвинет последовательность, по которой
         /// раскладываются геймплейные объекты, и проверенная планировка поедет
         /// от одной лишь смены модели.
+        ///
+        /// <paramref name="paint"/> — материал палитры мини-игры (подфаза 4.2).
+        /// Пусто — модель остаётся с родными материалами пака.
         /// </summary>
-        internal static GameObject Apply(GameObject box, Entry[] entries, System.Random rng)
+        internal static GameObject Apply(GameObject box, Entry[] entries, System.Random rng, Material paint = null)
         {
             if (box == null || entries == null || entries.Length == 0)
             {
@@ -162,7 +165,51 @@ namespace Igruha.EditorTools
             }
 
             ClampToBox(holder.transform, box.transform);
+            Repaint(holder.transform, paint);
             return holder;
+        }
+
+        /// <summary>
+        /// Перекрасить модель пака в материал палитры мини-игры — подфаза 4.2.
+        ///
+        /// Меняются <b>все слоты всех рендереров</b> копии, а не первый. Модели
+        /// Synty собраны из нескольких подмешей с разными материалами атласа:
+        /// у сценического подиума это тёмный корпус, шахматный верх и серая
+        /// обвязка, у тумбы — ещё и зебра на борту. Покрасить первый слот —
+        /// значит оставить узор ровно там, где бриф его запрещает.
+        ///
+        /// Плоский цвет на всю модель здесь не обеднение, а требование:
+        /// «белый глянцевый пластик» из брифа — это отсутствие рисунка, а форму
+        /// подиума держат геометрия и свет, а не текстура.
+        /// </summary>
+        private static void Repaint(Transform holder, Material paint)
+        {
+            if (paint == null)
+            {
+                return;
+            }
+
+            var renderers = holder.GetComponentsInChildren<Renderer>(true);
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                Material[] slots = renderers[i].sharedMaterials;
+                bool changed = false;
+                for (int slot = 0; slot < slots.Length; slot++)
+                {
+                    if (slots[slot] == paint)
+                    {
+                        continue;
+                    }
+
+                    slots[slot] = paint;
+                    changed = true;
+                }
+
+                if (changed)
+                {
+                    renderers[i].sharedMaterials = slots;
+                }
+            }
         }
 
         /// <summary>
