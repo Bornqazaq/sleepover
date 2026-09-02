@@ -7,13 +7,16 @@ using Igruha.Core.Player;
 using Igruha.Core.Spawning;
 using Igruha.Core.UI;
 using Igruha.Minigames.HoleInWall;
+using Tone = Igruha.EditorTools.HoleInWallPaletteAssets.Tone;
 
 namespace Igruha.EditorTools
 {
     /// <summary>
     /// Строит арену «Дырки в стене» из примитивов: общий бассейн, четыре
     /// платформы над ним, по стене на дорожку, точки спавна и зону воды.
-    /// Геометрия серая — арт приезжает в фазе 4.
+    /// Геометрия одевается моделями пака и красится палитрой прямо здесь
+    /// (фаза 4): дресс — слой поверх коробок, сами коробки, их коллайдеры
+    /// и слои остаются теми же, что были на сером блокауте.
     ///
     /// Всё строится кодом по той же причине, что арены «Экзамена», цирка и
     /// «Рейса на память»: размеры живут в <see cref="HoleInWallConfig"/>, и
@@ -42,13 +45,18 @@ namespace Igruha.EditorTools
         /// <summary>Насколько бортик бассейна торчит над водой, м.</summary>
         private const float PoolRimHeight = 0.72f;
 
-        private static readonly Color PlatformColor = new Color(0.62f, 0.64f, 0.66f);
-        private static readonly Color SupportColor = new Color(0.40f, 0.42f, 0.45f);
-        private static readonly Color PoolColor = new Color(0.16f, 0.18f, 0.22f);
-        private static readonly Color RimColor = new Color(0.52f, 0.54f, 0.56f);
-        private static readonly Color WaterColor = new Color(0.20f, 0.55f, 0.85f, 0.45f);
-        private static readonly Color WallColor = new Color(0.78f, 0.76f, 0.70f);
-        private static readonly Color LadderColor = new Color(0.45f, 0.36f, 0.26f);
+        /// <summary>
+        /// Толщина накладок, делящих пол платформы на половины пары, м.
+        /// Это разметка, а не ступенька: два сантиметра персонаж не замечает,
+        /// а коллайдера у накладок нет вовсе.
+        /// </summary>
+        private const float FloorMarkThickness = 0.02f;
+
+        /// <summary>
+        /// Шов между половинами пола, м. Белый пластик настила виден в нём
+        /// полосой — так граница читается и на розовой половине, и на голубой.
+        /// </summary>
+        private const float FloorMarkSeam = 0.12f;
 
         [MenuItem("Igruha/Дырка в стене/Построить арену")]
         public static void Build()
@@ -82,6 +90,8 @@ namespace Igruha.EditorTools
             EnsureHudStatusLine();
             VerifyLayout(config);
             ReportMissingModels();
+            Debug.Log(HoleInWallDress.MeasurementReport(), arena);
+            HoleInWallPaletteAssets.Flush();
 
             Debug.Log(
                 $"🧱 Арена «Дырки в стене» построена: {config.TrackCount} дорожек, " +
@@ -110,7 +120,7 @@ namespace Igruha.EditorTools
             SetLayer(CreateBox(pool, "PoolFloor",
                 new Vector3(width, SlabThickness, depth),
                 new Vector3(0f, config.PoolBottomY - SlabThickness * 0.5f, centerZ),
-                PoolColor), "Ground");
+                HoleInWallPaletteAssets.Get(Tone.Stage)), "Ground");
 
             // Бортики: из бассейна не выплыть за пределы арены. Стоят от дна
             // до метра над водой — выше незачем, а вплотную за платформой их
@@ -120,21 +130,20 @@ namespace Igruha.EditorTools
             float halfWidth = width * 0.5f;
 
             CreateDressedBox(pool, "Rim_Far", new Vector3(width, rimHeight, SlabThickness),
-                new Vector3(0f, rimCenterY, config.ArenaFarZ), RimColor, "Ground", HoleInWallDress.Kind.PoolRim);
+                new Vector3(0f, rimCenterY, config.ArenaFarZ), "Ground", HoleInWallDress.Kind.PoolRim);
             CreateDressedBox(pool, "Rim_Near", new Vector3(width, rimHeight, SlabThickness),
-                new Vector3(0f, rimCenterY, config.ArenaNearZ), RimColor, "Ground", HoleInWallDress.Kind.PoolRim);
+                new Vector3(0f, rimCenterY, config.ArenaNearZ), "Ground", HoleInWallDress.Kind.PoolRim);
             CreateDressedBox(pool, "Rim_Left", new Vector3(SlabThickness, rimHeight, depth),
-                new Vector3(-halfWidth, rimCenterY, centerZ), RimColor, "Ground", HoleInWallDress.Kind.PoolRim);
+                new Vector3(-halfWidth, rimCenterY, centerZ), "Ground", HoleInWallDress.Kind.PoolRim);
             CreateDressedBox(pool, "Rim_Right", new Vector3(SlabThickness, rimHeight, depth),
-                new Vector3(halfWidth, rimCenterY, centerZ), RimColor, "Ground", HoleInWallDress.Kind.PoolRim);
+                new Vector3(halfWidth, rimCenterY, centerZ), "Ground", HoleInWallDress.Kind.PoolRim);
 
             // Вода — только вид. Коллайдера нет: в неё падают, а не стоят на ней,
             // и камере она должна быть прозрачна.
             GameObject water = CreateBox(pool, "Water",
                 new Vector3(width - SlabThickness, 0.05f, depth - SlabThickness),
-                new Vector3(0f, config.WaterSurfaceY, centerZ), WaterColor);
+                new Vector3(0f, config.WaterSurfaceY, centerZ), HoleInWallPaletteAssets.Get(Tone.Water));
             Object.DestroyImmediate(water.GetComponent<Collider>());
-            water.GetComponent<Renderer>().sharedMaterial = HoleInWallMaterials.Transparent(WaterColor);
             SetLayer(water, "Default");
         }
 
@@ -157,7 +166,7 @@ namespace Igruha.EditorTools
                 float x = config.TrackCenterX(i) + config.PlatformWidth * 0.5f + config.TrackGap * 0.5f;
                 CreateDressedBox(ladders, $"Ladder_{i}",
                     new Vector3(config.TrackGap * 0.5f, height, SlabThickness),
-                    new Vector3(x, centerY, z), LadderColor, "Ground", HoleInWallDress.Kind.Ladder);
+                    new Vector3(x, centerY, z), "Ground", HoleInWallDress.Kind.Ladder);
             }
         }
 
@@ -176,13 +185,15 @@ namespace Igruha.EditorTools
             CreateDressedBox(root.transform, "Platform",
                 new Vector3(config.PlatformWidth, config.PlatformThickness, config.PlatformDepth),
                 new Vector3(0f, -config.PlatformThickness * 0.5f, 0f),
-                PlatformColor, "Ground", HoleInWallDress.Kind.PlatformDeck);
+                "Ground", HoleInWallDress.Kind.PlatformDeck);
+
+            BuildFloorHalves(root.transform, config);
 
             float supportHeight = config.PlatformHeightOverWater - config.PlatformThickness;
             CreateDressedBox(root.transform, "Support",
                 new Vector3(config.PlatformWidth * 0.6f, supportHeight, config.PlatformDepth * 0.6f),
                 new Vector3(0f, -config.PlatformThickness - supportHeight * 0.5f, 0f),
-                SupportColor, "Ground", HoleInWallDress.Kind.Support);
+                "Ground", HoleInWallDress.Kind.Support);
 
             var slots = new Transform[2];
             for (int i = 0; i < slots.Length; i++)
@@ -213,6 +224,47 @@ namespace Igruha.EditorTools
         }
 
         /// <summary>
+        /// Пол платформы, разделённый цветом на половину свою и половину
+        /// партнёра — бриф требует, чтобы игрок за полсекунды понимал, где его
+        /// место, а где место напарника.
+        ///
+        /// <b>Сделано накладками, а не правкой платформы.</b> Коробка настила
+        /// одна на дорожку, её коллайдер и слой выверены фазами 2–3; разрезать
+        /// её надвое ради цвета — значит менять проверенную геометрию ради
+        /// вида. Накладки не держат ничего: коллайдер снят, слой
+        /// <c>Default</c>, толщина два сантиметра.
+        ///
+        /// Порядок половин совпадает с порядком мест на платформе
+        /// (<see cref="HoleInWallTrack.ArrangeSlots"/>): нулевое место левее
+        /// центра, первое — правее.
+        /// </summary>
+        private static void BuildFloorHalves(Transform root, HoleInWallConfig config)
+        {
+            float halfWidth = config.PlatformWidth * 0.5f;
+            float markWidth = halfWidth - FloorMarkSeam * 0.5f;
+            if (markWidth <= 0f)
+            {
+                Debug.LogWarning(
+                    $"«Дырка в стене»: платформа {config.PlatformWidth:F2} м уже шва разметки — половины пола не построены");
+                return;
+            }
+
+            for (int i = 0; i < 2; i++)
+            {
+                float sign = i == 0 ? -1f : 1f;
+                Tone tone = i == 0 ? Tone.FloorOwn : Tone.FloorPartner;
+
+                GameObject mark = CreateBox(root, $"FloorHalf_{i}",
+                    new Vector3(markWidth, FloorMarkThickness, config.PlatformDepth),
+                    new Vector3(sign * (halfWidth + FloorMarkSeam * 0.5f) * 0.5f, FloorMarkThickness * 0.5f, 0f),
+                    HoleInWallPaletteAssets.Get(tone));
+
+                Object.DestroyImmediate(mark.GetComponent<Collider>());
+                SetLayer(mark, "Default");
+            }
+        }
+
+        /// <summary>
         /// Надпись над дорожкой одиночки. Подача — шутка, а не сглаживание:
         /// неравенство составов в проекте подаётся как повод посмеяться
         /// (спека 5.1).
@@ -230,7 +282,7 @@ namespace Igruha.EditorTools
             text.text = "ОСТАЛСЯ БЕЗ ДРУЗЕЙ";
             text.fontSize = 5f;
             text.alignment = TextAlignmentOptions.Center;
-            text.color = new Color(1f, 0.85f, 0.2f);
+            text.color = HoleInWallPalette.NeonPink;
             text.rectTransform.sizeDelta = new Vector2(config.PlatformWidth, 1.5f);
 
             banner.SetActive(false);
@@ -285,7 +337,8 @@ namespace Igruha.EditorTools
         private static Transform CreatePanel(Transform parent, string panelName, HoleInWallConfig config)
         {
             GameObject panel = CreateBox(parent, panelName,
-                new Vector3(1f, config.WallHeight, config.WallThickness), Vector3.zero, WallColor);
+                new Vector3(1f, config.WallHeight, config.WallThickness), Vector3.zero,
+                HoleInWallPaletteAssets.Get(Tone.Plastic));
 
             // ⚠️ Коллайдер снимаем: проверка в игре дискретная, и сплошная
             // панель вернула бы в неё габариты капсулы — толстый персонаж
@@ -320,7 +373,8 @@ namespace Igruha.EditorTools
         private static Transform CreateOutline(Transform parent, string outlineName)
         {
             GameObject box = CreateBox(parent, outlineName,
-                Vector3.one * WallCutout.FrameThickness, Vector3.zero, new Color(1f, 0.92f, 0.25f));
+                Vector3.one * WallCutout.FrameThickness, Vector3.zero,
+                HoleInWallPaletteAssets.Get(Tone.NeonCyan));
             Object.DestroyImmediate(box.GetComponent<Collider>());
             return box.transform;
         }
@@ -566,9 +620,9 @@ namespace Igruha.EditorTools
         /// и модели пака уехали бы на <c>Ground</c> вместе с коробкой.
         /// </summary>
         private static GameObject CreateDressedBox(Transform parent, string boxName, Vector3 size, Vector3 position,
-            Color color, string layerName, HoleInWallDress.Kind kind)
+            string layerName, HoleInWallDress.Kind kind)
         {
-            GameObject box = CreateBox(parent, boxName, size, position, color);
+            GameObject box = CreateBox(parent, boxName, size, position, HoleInWallDress.PaintOf(kind));
             SetLayer(box, layerName);
             HoleInWallDress.Apply(box, kind, dressRandom);
             return box;
@@ -599,14 +653,15 @@ namespace Igruha.EditorTools
                 string.Join("\n— ", paths));
         }
 
-        private static GameObject CreateBox(Transform parent, string boxName, Vector3 size, Vector3 position, Color color)
+        private static GameObject CreateBox(Transform parent, string boxName, Vector3 size, Vector3 position,
+            Material material)
         {
             GameObject go = GameObject.CreatePrimitive(PrimitiveType.Cube);
             go.name = boxName;
             go.transform.SetParent(parent, false);
             go.transform.localPosition = position;
             go.transform.localScale = size;
-            go.GetComponent<Renderer>().sharedMaterial = HoleInWallMaterials.Opaque(color);
+            go.GetComponent<Renderer>().sharedMaterial = material;
             return go;
         }
 
