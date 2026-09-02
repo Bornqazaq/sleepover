@@ -103,6 +103,17 @@
       "note": "Луп поверх основного микса на время барахтанья."
     },
     {
+      "id": "tether_strain_loop",
+      "event": "Трос между парой натянут",
+      "model": "sfx",
+      "duration": 4,
+      "loop": true,
+      "volume": 0.55,
+      "spatial": true,
+      "prompt": "taut rope creaking under strain, fibrous hemp fibres stretching, continuous seamless tension loop, close mic, no music, no voices",
+      "note": "Сверх таблицы «Звук» в спеке: у натяжения троса звука там нет, а событие в игре есть и уже озвучено эффектом 4.4 (разряд). Луп поверх микса, пока трос тугой."
+    },
+    {
       "id": "mirror_whoosh",
       "event": "Зеркальный переворот (7-я стена)",
       "model": "sfx",
@@ -111,6 +122,17 @@
       "volume": 0.9,
       "spatial": true,
       "prompt": "sharp reverse whoosh transition, quick swirling air sweep, snappy sci-fi flip, no music"
+    },
+    {
+      "id": "morph_whoosh",
+      "event": "Смена формы вырезов (подвох)",
+      "model": "sfx",
+      "duration": 2,
+      "loop": false,
+      "volume": 0.9,
+      "spatial": true,
+      "prompt": "morphing transformation whoosh, shape shifting warble with a quick pitch bend, snappy magical reshape, no music",
+      "note": "Сверх таблицы «Звук»: в ней назван только зеркальный переворот, но подвохов в игре два, и у смены формы свой эффект с 4.4. Один свуш на оба читался бы как один и тот же подвох."
     },
     {
       "id": "round_end_jingle",

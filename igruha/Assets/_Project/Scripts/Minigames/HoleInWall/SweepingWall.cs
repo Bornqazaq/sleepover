@@ -77,6 +77,16 @@ namespace Igruha.Minigames.HoleInWall
         /// <summary>Стена едет прямо сейчас.</summary>
         public bool Running => running;
 
+        /// <summary>
+        /// Скорость едущей стены, м/с. Ноль — стена стоит.
+        ///
+        /// Не состояние, а объявленное число: его задаёт расписание подъездов
+        /// на старте (<see cref="HoleInWallConfig.WallSpeed"/>), и оно одно
+        /// на всех машинах. Звук подфазы 4.5 гонит по нему тон и громкость
+        /// гула — стены раунда разгоняются от первой к восьмой.
+        /// </summary>
+        public float Speed => running ? speed : 0f;
+
         /// <summary>Сколько вырезов на этой стене: два у пары, один у одиночки.</summary>
         public int CutoutCount => running ? pattern.CutoutCount : 0;
 

@@ -43,12 +43,24 @@ namespace Igruha.EditorTools
         }
 
         [MenuItem("Igruha/Арт/Собрать библиотеку звука")]
-        private static void Build()
+        private static void Pick()
         {
             string startDir = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "..", "docs", "art"));
             string manifestPath = EditorUtility.OpenFilePanel("Манифест звука мини-игры", startDir, "json");
             if (string.IsNullOrEmpty(manifestPath)) return;
 
+            Build(manifestPath);
+        }
+
+        /// <summary>
+        /// Собрать библиотеку по конкретному манифесту.
+        ///
+        /// Отделено от пункта меню намеренно: выбор файла — модальное окно,
+        /// а его нельзя открыть ни из пересборки арены, ни из сессии агента.
+        /// Человеку остаётся меню, всему остальному — путь доводом.
+        /// </summary>
+        internal static void Build(string manifestPath)
+        {
             Manifest manifest;
             try
             {

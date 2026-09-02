@@ -117,6 +117,10 @@ namespace Igruha.EditorTools
             // игры, и вешаются на уже собранные дорожки и их стены.
             HoleInWallVfx.Build(arena, config, tracks);
 
+            // Звук — за эффектами и по той же причине: он реакция на те же
+            // события игры, и ему нужны уже собранные дорожки и их стены.
+            HoleInWallSfx.Build(arena, config, tracks);
+
             EnsureHudStatusLine();
             VerifyLayout(config);
             ReportMissingModels();
