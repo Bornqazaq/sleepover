@@ -7,8 +7,16 @@ CassetteAI): пики разъехались на 25 дБ — от -32.8 до -7
 характер.
 
 Что делает: приводит пик каждого файла к целевому (-1 dBFS по умолчанию) и
-предупреждает о клиппинге внутри исходника — его нормализацией уже не вылечить,
-такой клип надо перегенерировать.
+отбраковывает то, что нормализацией не чинится, — такие клипы надо
+перегенерировать, а не выравнивать:
+
+* КЛИППИНГ в исходнике: верхушки уже срезаны, поднимать нечего.
+* ТИШИНА и ГЛУХОЙ клип: пик или RMS ниже -30 dBFS. Это второй вид брака,
+  и он опаснее первого, потому что выглядит починенным. Замер 02.09.2026
+  (57 клипов «Дырки в стене»): пять пришли практически тишиной, до
+  -54.6 dBFS. Нормализация «чинит» их, поднимая пик до -1 dBFS вместе
+  с шумовой полкой, — на выходе шипение вместо звука. Поэтому такие файлы
+  скрипт НЕ трогает: тихий брак слышно, поднятый — уже нет.
 
 Команды:
     python tools/sfx_normalize.py <папка>              — нормализовать до -1 dBFS
@@ -35,14 +43,17 @@ DEFAULT_PEAK_DB = -1.0
 CLIP_THRESHOLD_DB = -0.1
 # Flat factor выше этого — длинные плоские участки, надёжный признак срезанных верхушек.
 FLAT_FACTOR_LIMIT = 10.0
+# Пик или RMS ниже этого — клип пришёл пустым. Порог снят с прогона 4.5:
+# годные клипы легли в -12…-20 dBFS RMS, брак — в -34…-54.
+USABLE_LEVEL_DB = -30.0
 
 
 def ffmpeg_missing() -> bool:
     return shutil.which("ffmpeg") is None
 
 
-def measure(path: Path) -> tuple[float, float]:
-    """Возвращает (пик в dBFS, flat factor) одного файла."""
+def measure(path: Path) -> tuple[float, float, float]:
+    """Возвращает (пик в dBFS, flat factor, RMS в dBFS) одного файла."""
     out = subprocess.run(
         ["ffmpeg", "-hide_banner", "-i", str(path), "-af", "volumedetect,astats", "-f", "null", "-"],
         capture_output=True, text=True,
@@ -52,7 +63,13 @@ def measure(path: Path) -> tuple[float, float]:
     peak = float(peak_match.group(1)) if peak_match else 0.0
 
     flats = [float(m) for m in re.findall(r"Flat factor:\s*([\d.]+)", out)]
-    return peak, max(flats) if flats else 0.0
+
+    # astats печатает RMS по каналу и общий; берём худший — брак хотя бы в одном
+    # канале остаётся браком.
+    rms_values = [float(m) for m in re.findall(r"RMS level dB:\s*(-?[\d.]+)", out)]
+    rms = max(rms_values) if rms_values else -99.0
+
+    return peak, max(flats) if flats else 0.0, rms
 
 
 def apply_gain(path: Path, gain_db: float) -> None:
@@ -82,27 +99,41 @@ def main() -> int:
         print(f"В {folder} нет .wav")
         return 1
 
-    print(f"{'файл':<24}{'пик было':>10}{'поправка':>10}   примечание")
+    print(f"{'файл':<24}{'пик было':>10}{'RMS':>8}{'поправка':>10}   примечание")
     clipped = []
+    empty = []
+    normalized = 0
 
     for path in files:
-        peak, flat = measure(path)
+        peak, flat, rms = measure(path)
         gain = round(args.peak - peak, 2)
 
         note = ""
+        skip = False
+
         if peak >= CLIP_THRESHOLD_DB and flat >= FLAT_FACTOR_LIMIT:
             note = f"КЛИППИНГ в исходнике (flat {flat:.1f}) — перегенерировать"
             clipped.append(path.name)
+        elif peak < USABLE_LEVEL_DB or rms < USABLE_LEVEL_DB:
+            what = "ТИШИНА" if peak < USABLE_LEVEL_DB else "ГЛУХОЙ"
+            note = f"{what} (пик {peak:.1f}, RMS {rms:.1f}) — перегенерировать, НЕ поднят"
+            empty.append(path.name)
+            skip = True
 
-        if not args.dry_run:
+        if not args.dry_run and not skip:
             apply_gain(path, gain)
+            normalized += 1
 
-        print(f"{path.name:<24}{peak:>9.1f}{gain:>+10.1f}   {note}")
+        shown = "  —  " if skip else f"{gain:>+10.1f}"
+        print(f"{path.name:<24}{peak:>9.1f}{rms:>8.1f}{shown:>10}   {note}")
 
-    print(f"\nОбработано: {len(files)}, целевой пик {args.peak} dBFS"
+    print(f"\nФайлов: {len(files)}, нормализовано: {normalized}, целевой пик {args.peak} dBFS"
           + (" (dry-run, файлы не тронуты)" if args.dry_run else ""))
     if clipped:
         print("Перегенерировать из-за клиппинга: " + ", ".join(clipped))
+    if empty:
+        print("Перегенерировать из-за пустоты (подъём только поднял бы шум): "
+              + ", ".join(empty))
     return 0
 
 
