@@ -65,14 +65,47 @@ SAMPLE_SECONDS="${UNITY_GUARD_SAMPLE:-6}"
 
 die() { echo "$*" >&2; exit 1; }
 
-editor_pid() {
-    # Только сам редактор: не Hub, не лицензионный клиент, не UnityPackageManager,
-    # и не наши собственные шеллы, у которых путь редактора попал в командную строку.
+# Кандидаты в редакторы: сам Unity, а не Hub, не лицензионный клиент,
+# не UnityPackageManager, не импортёры и не наши собственные шеллы,
+# у которых путь редактора попал в командную строку.
+editor_candidates() {
     pgrep -f "Unity\.app/Contents/MacOS/Unity" 2>/dev/null | while read -r p; do
         cmd=$(ps -o command= -p "$p" 2>/dev/null)
         case "$cmd" in
-            *"/bin/"*|*zsh*|*bash*|*pgrep*) continue ;;
-            *"Contents/MacOS/Unity "*|*"Contents/MacOS/Unity") echo "$p"; return ;;
+            *"/bin/"*|*zsh*|*bash*|*pgrep*|*AssetImportWorker*) continue ;;
+            *"Contents/MacOS/Unity "*|*"Contents/MacOS/Unity") echo "$p" ;;
+        esac
+    done
+}
+
+# ⚠️ Редактором считается тот инстанс, у которого В КОМАНДНОЙ СТРОКЕ наш
+# проект, а не первый попавшийся Unity.
+#
+# Стоило часа 03.09. Рядом крутился второй Unity, запущенный без проекта —
+# с окном выбора «Launch Unity». Его pid оказался меньше, и guard всё время
+# показывал именно его: пустой инстанс ничего не делает, поэтому давал 0 % CPU,
+# ноль слушающих сокетов и замерший лог. Агент прочитал это как «редактор
+# упал», хотя настоящий редактор рядом спокойно работал и ждал ответа
+# на свой диалог.
+editor_pid() {
+    local p cmd
+    for p in $(editor_candidates); do
+        cmd=$(ps -o command= -p "$p" 2>/dev/null)
+        case "$cmd" in
+            *"-projectpath $PROJECT"*|*"-projectPath $PROJECT"*) echo "$p"; return ;;
+        esac
+    done
+}
+
+# Инстансы Unity без нашего проекта. Они не ломают работу, но путают
+# диагностику, поэтому status про них говорит вслух.
+stray_editors() {
+    local p cmd
+    for p in $(editor_candidates); do
+        cmd=$(ps -o command= -p "$p" 2>/dev/null)
+        case "$cmd" in
+            *"-projectpath $PROJECT"*|*"-projectPath $PROJECT"*) ;;
+            *) echo "$p" ;;
         esac
     done
 }
@@ -114,6 +147,13 @@ cmd_status() {
     trusted=$(osascript -e 'tell application "System Events" to return (UI elements enabled)' 2>/dev/null)
 
     echo "проект:              $PROJECT"
+
+    # Лишние инстансы — вслух: именно они сбивают чтение вердикта.
+    strays=$(stray_editors | tr '\n' ' ')
+    if [ -n "${strays// /}" ]; then
+        echo "ЛИШНИЕ Unity:        pid ${strays%% } — без нашего проекта, окно выбора."
+        echo "                     Закрыть: они путают диагностику, но работе не мешают"
+    fi
     echo "права на управление: ${trusted:-НЕТ (включить Accessibility для терминала)}"
 
     if [ -z "$pid" ]; then
