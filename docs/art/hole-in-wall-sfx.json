@@ -15,7 +15,7 @@
       "model": "sfx",
       "duration": 3,
       "loop": false,
-      "volume": 0.9,
+      "volume": 0.7994,
       "spatial": false,
       "prompt": "bright metallic game show gong, single clean strike, TV studio announcement, natural decay, no music, no voices"
     },
@@ -25,7 +25,7 @@
       "model": "sfx",
       "duration": 10,
       "loop": true,
-      "volume": 0.85,
+      "volume": 0.9729,
       "spatial": true,
       "prompt": "low mechanical rumble of a huge sliding wall, continuous seamless drone, deep industrial hum, steady, no music, no melody",
       "note": "Луп. В игре питч и громкость гонятся кодом от скорости стены. Правка 03.09: Было 0.70. Вместе с полом громкости в коде давало 0.15 на старте стены при теме раунда 0.35. Правка 03.09: у клипа срезан подъём в 1.2 с — внутри лупа он повторялся каждые 10 с, и стена начинала ехать в самый тихий его момент. Длина 10.0 → 8.79 с, шов 0.8 дБ."
@@ -57,7 +57,7 @@
       "model": "sfx",
       "duration": 5,
       "loop": false,
-      "volume": 1.0,
+      "volume": 0.8496,
       "spatial": false,
       "prompt": "large studio audience cheering and applauding, sudden burst of excitement, live TV show crowd, energetic",
       "note": "Отдельным слотом от «дзынь»: у дзыня атака мгновенная, у публики длинный хвост. Играются двумя источниками. Правка 03.09: Было 0.80 и почти не слышалось. Рёв один на стену и конкурирует с четырьмя дорожками ударов и всплесков — 1× против 4×."
@@ -74,23 +74,12 @@
       "note": "Правка 03.09: Было 1.00. Освобождает место рёву публики: удар звучит на каждой дорожке, рёв — один на стену."
     },
     {
-      "id": "fall_whoosh",
-      "event": "Провал — свист полёта",
-      "model": "sfx",
-      "duration": 2,
-      "loop": false,
-      "volume": 0.65,
-      "spatial": true,
-      "prompt": "fast air whoosh of a body flying through the air, comedic falling swoosh, doppler, no music",
-      "note": "Правка 03.09: Было 0.80. По той же причине, что удар."
-    },
-    {
       "id": "water_splash",
       "event": "Падение в воду",
       "model": "sfx",
       "duration": 3,
       "loop": false,
-      "volume": 0.85,
+      "volume": 0.5714,
       "spatial": true,
       "prompt": "big water splash, heavy body falling into a pool, impact splash with scattering droplets, close perspective",
       "note": "Правка 03.09, второй круг: генерированный всплеск был жёстким — «просто предмет упал в воду». Заменён принесённым файлом brief-heavy-water-splash.wav: 1.70 с вместо 3.00, RMS -21.1 вместо -16.1, короткий хвост. ⚠️ КЛИП НЕ ГЕНЕРИРУЕТСЯ — не перезаписывать генерацией по prompt ниже, он оставлен как история. Громкость поднята 0.55 → 0.85: новый клип на 5 дБ тише старого по RMS, и на 0.55 всплеск не стал бы мягче, а просто пропал бы.",
@@ -156,7 +145,7 @@
       "model": "music",
       "duration": 60,
       "loop": true,
-      "volume": 0.35,
+      "volume": 0.737,
       "spatial": false,
       "prompt": "energetic retro game show background loop, driving percussion, playful synth brass stabs, tense but fun TV competition bed, no vocals",
       "note": "Луп на 65 с раунда (8.5). Микшируется тише SFX."
@@ -169,6 +158,13 @@
       "round_theme",
       "round_end_jingle"
     ],
-    "note": "Разбор показал, что дело было не в клипах: по RMS wall_move_loop и crowd_cheer — самые громкие файлы набора (-12 dBFS), а слышно их было хуже всего. Виноваты множители громкости в коде и удвоение всплеска на паре."
-  }
+    "note": "Разбор показал, что дело было не в клипах: по RMS wall_move_loop и crowd_cheer — самые громкие файлы набора (-12 dBFS), а слышно их было хуже всего. Виноваты множители громкости в коде и удвоение всплеска на паре. Правка 03.09, второй круг: громкости выставлены геймдизайнером в пульте (Igruha/Арт/Пульт звука) на слух и перенесены сюда из ассета."
+  },
+  "removed": [
+    {
+      "id": "fall_whoosh",
+      "date": "2026-09-03",
+      "why": "Убран по слуху геймдизайнера: мешал удару по телу, а не дополнял его. Генератор на нём был слаб с самого начала — три тишины из пяти вариантов, слот стоял на единственном годном (STATE 3.44). Провал озвучивают удар по телу, всплеск и подводный слой."
+    }
+  ]
 }

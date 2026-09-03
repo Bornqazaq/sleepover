@@ -8,9 +8,16 @@ namespace Igruha.Minigames.HoleInWall
 {
     /// <summary>
     /// Звук «Дырки в стене» — подфаза 4.5. Гонг и гул стены, сигнал перед
-    /// ударом, «дзынь» с рёвом публики на проходе, удар и свист полёта на
-    /// провале, всплеск с подводным слоем, натянутый трос, свуши подвохов,
-    /// тема раунда и финальный джингл.
+    /// ударом, «дзынь» с рёвом публики на проходе, удар по телу на провале,
+    /// всплеск с подводным слоем, натянутый трос, свуши подвохов, тема раунда
+    /// и финальный джингл.
+    ///
+    /// <b>Свиста полёта здесь больше нет, и это решение, а не пропуск.</b>
+    /// Слот <c>fall_whoosh</c> был в 4.5 и убран 03.09 по слуху геймдизайнера:
+    /// он мешал удару, а не дополнял его. Генератор на нём был слаб с самого
+    /// начала — три тишины из пяти вариантов, слот стоял на единственном годном
+    /// (см. STATE 3.44). Момент провала озвучивает удар по телу, всплеск и,
+    /// если пара падает, подводный слой; свист поверх них был лишним слоем.
     ///
     /// <b>Своего состояния и своих RPC здесь нет</b> — ровно как у
     /// <see cref="HoleInWallEffects"/> подфазы 4.4, и по той же причине.
@@ -30,7 +37,7 @@ namespace Igruha.Minigames.HoleInWall
     /// уже живёт сигнал перед ударом с каркаса. Поэтому на стену приходится
     /// один гонг, один гул и один рёв публики, а по дорожкам разведено
     /// только то, что игрок обязан отличить у себя от соседского: «дзынь»
-    /// прохода, удар по телу, свист полёта, всплеск и свуш подвоха.
+    /// прохода, удар по телу, всплеск и свуш подвоха.
     /// Они трёхмерные, и дорожки разносит затухание по расстоянию.
     ///
     /// <b>Провал звучит раз на дорожку, а не раз на человека.</b> Пара стоит
@@ -58,7 +65,6 @@ namespace Igruha.Minigames.HoleInWall
         private const string SlotDing = "pass_success_ding";
         private const string SlotCheer = "crowd_cheer";
         private const string SlotBodyHit = "fail_body_hit";
-        private const string SlotFallWhoosh = "fall_whoosh";
         private const string SlotSplash = "water_splash";
         private const string SlotUnderwater = "underwater_loop";
         private const string SlotTether = "tether_strain_loop";
@@ -553,7 +559,6 @@ namespace Igruha.Minigames.HoleInWall
 
             Vector3 point = SweptPoint(track);
             audioPlayer.PlayAt(SlotBodyHit, point);
-            audioPlayer.PlayAt(SlotFallWhoosh, point);
         }
 
         /// <summary>
