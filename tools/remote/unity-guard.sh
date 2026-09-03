@@ -287,7 +287,7 @@ cmd_shot() {
     front=$(osascript -e 'tell application "System Events" to get name of first process whose frontmost is true' 2>/dev/null)
     case "$front" in
         Unity|"") ;;
-        *) echo "ВНИМАНИЕ: впереди «$front», Unity закрыт им — на снимке диалога может не быть" ;;
+        *) echo "ВНИМАНИЕ: впереди «${front}», Unity закрыт им — на снимке диалога может не быть" ;;
     esac
 }
 
