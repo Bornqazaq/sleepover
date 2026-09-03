@@ -422,6 +422,11 @@ namespace Igruha.EditorTools
             // приседа (разбор в STATE.md за 15.08).
             HunterRifleLayerBuilder.Build(controller, HunterRifleLayerBuilder.LoadRifleClip());
 
+            // Слой поз «Дырки в стене» — по той же причине и тем же способом, что
+            // слой ружья: пересборка контроллера иначе молча теряла бы четыре позы,
+            // и мини-игра доезжала бы до плейтеста с персонажем-манекеном.
+            HoleInWallPoseLayerBuilder.Build(controller, set.CharacterName);
+
             AssetDatabase.SaveAssets();
 
             float frontDuration = (flyBack.length + standUpBack.length) / KnockdownSpeed;

@@ -45,6 +45,22 @@ namespace Igruha.Minigames.HoleInWall
         /// <summary>Высота иконки над головой, м. Ширина считается по пропорции силуэта.</summary>
         private const float IconHeight = 0.35f;
 
+        /// <summary>
+        /// Имя слоя поз в Animator Controller. Слой строит
+        /// <c>Editor/HoleInWallPoseLayerBuilder</c>; строка продублирована здесь,
+        /// потому что Editor-сборка недоступна из рантайма.
+        /// </summary>
+        private const string PoseLayerName = "Pose";
+
+        /// <summary>Вес слоя поз, когда игрок в позе. Слой перекрывает основной целиком: поза — это весь силуэт, а не только руки.</summary>
+        private const float PoseLayerWeight = 1f;
+
+        /// <summary>Номер позы для Animator. Тот же параметр, что заводит билдер слоя.</summary>
+        private static readonly int PoseParameterHash = Animator.StringToHash("Pose");
+
+        /// <summary>Слоя поз в контроллере нет — у этого персонажа его просто не собрали.</summary>
+        private const int NoLayer = -1;
+
         /// <summary>Цвета поз. Порядок — позы 1…4; на каркасе это единственное, чем они различаются на вид.</summary>
         private static readonly Color[] PoseColors =
         {
@@ -74,6 +90,15 @@ namespace Igruha.Minigames.HoleInWall
         private Renderer iconRenderer;
         private float headHeight = 1.8f;
 
+        /// <summary>
+        /// Аниматор модели. Позу отыгрывает он, а не плашка: настоящие клипы поз
+        /// приехали в арт-фазе (спека 9.5).
+        /// </summary>
+        private Animator animator;
+
+        /// <summary>Индекс слоя поз. Ищется один раз: поиск идёт по строке.</summary>
+        private int poseLayer = NoLayer;
+
         /// <summary>Поза, в которой игрок стоит прямо сейчас. <see cref="HoleInWallPose.None"/> — ещё ни одной не нажал.</summary>
         public HoleInWallPose CurrentPose { get; private set; } = HoleInWallPose.None;
 
@@ -82,6 +107,10 @@ namespace Igruha.Minigames.HoleInWall
             motor = GetComponent<PlayerController>();
             reader = GetComponent<PlayerInputReader>();
             body = GetComponent<NetworkObject>();
+
+            // Аниматор живёт на модели — она ребёнок аватара, а не он сам.
+            animator = GetComponentInChildren<Animator>(true);
+            poseLayer = animator != null ? animator.GetLayerIndex(PoseLayerName) : NoLayer;
 
             if (TryGetComponent(out CapsuleCollider capsule))
             {
@@ -107,6 +136,7 @@ namespace Igruha.Minigames.HoleInWall
             motor.ForceStand();
 
             CurrentPose = HoleInWallPose.None;
+            ApplyPoseToAnimator();
             DestroyVisuals();
         }
 
@@ -172,12 +202,44 @@ namespace Igruha.Minigames.HoleInWall
             // высоту выреза именно по нему (абсолютные 0.8 м).
             motor.SetCrouched(pose == HoleInWallPose.Crouch);
 
+            ApplyPoseToAnimator();
             ApplyVisuals();
             PoseChanged?.Invoke(pose);
         }
 
+        /// <summary>
+        /// Отдать позу аниматору: номер в параметр, вес — слою.
+        ///
+        /// Зовётся на КАЖДОЙ машине, а не только у владельца: <see cref="SetPose"/>
+        /// приходит всем подтверждённым с сервера, а <c>CharacterAnimatorDriver</c>
+        /// у чужих копий выключен и позу за нас не покажет.
+        /// </summary>
+        private void ApplyPoseToAnimator()
+        {
+            if (animator == null || poseLayer == NoLayer)
+            {
+                return;
+            }
+
+            animator.SetInteger(PoseParameterHash, (int)CurrentPose);
+            animator.SetLayerWeight(poseLayer, PoseLayerVisible ? PoseLayerWeight : 0f);
+        }
+
+        /// <summary>
+        /// Показывать ли позу прямо сейчас. Сбитого с ног показываем лежащим:
+        /// провал в этой игре парный, и партнёр обязан видеть, что случилось,
+        /// а не читать позу на теле, которое уже летит в воду.
+        /// </summary>
+        private bool PoseLayerVisible => CurrentPose != HoleInWallPose.None && !motor.IsKnockedDown;
+
         private void Update()
         {
+            // Нокдаун начинается и кончается не по нашему событию, поэтому вес
+            // слоя сверяется каждый кадр. SetLayerWeight с тем же значением
+            // ничего не стоит и не аллоцирует.
+            ApplyPoseToAnimator();
+
+
             // 🔴 Ввод читается только у персонажа, которого ведёт эта машина.
             // У чужой копии ридер отобран, но погонщик болванок умеет подать
             // в него значение напрямую — и тогда эта копия попросила бы позу,
@@ -199,14 +261,13 @@ namespace Igruha.Minigames.HoleInWall
         // ========== ВИЗУАЛ КАРКАСА ==========
 
         /// <summary>
-        /// Заглушка на время каркаса: плашка ростом с вырез вокруг персонажа и
-        /// та же фигура иконкой над головой. Настоящие клипы поз — фаза 4
-        /// (спека 9.5): добавлять состояния в восемь замороженных
-        /// <c>.controller</c> на каркасе нельзя и не нужно.
+        /// Габаритная рамка вокруг персонажа и та же фигура иконкой над головой.
+        /// Саму позу с арт-фазы отыгрывает клип на слое <c>Pose</c>, а рамка
+        /// осталась подсказкой: она ровно того же размера, что вырез на стене,
+        /// и отвечает на вопрос «влезу ли», пока стена ещё далеко.
         ///
-        /// Габарит берётся из таблицы силуэтов, то есть ровно тот же, что
-        /// у выреза на стене: игрок видит, войдёт он в дырку или нет, ещё
-        /// на подъезде.
+        /// Держится полупрозрачной намеренно: сквозь неё обязана быть видна
+        /// поза, иначе рамка съедает то, ради чего фаза 4 и делалась.
         /// </summary>
         private void BuildVisuals()
         {

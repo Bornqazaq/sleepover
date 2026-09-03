@@ -102,14 +102,14 @@ namespace Igruha.Minigames.HoleInWall
         [SerializeField] private int wideWallCount = 2;
 
         [Header("Силуэты вырезов, ШП — порядок соответствует позам 1…4")]
-        [Tooltip("Эталон габаритов — самый высокий персонаж ростера (Шланга, 2.00 м = 2.78 ШП) плюс запас 0.3 ШП по контуру")]
+        [Tooltip("Замерено по клипам поз на всех восьми персонажах плюс запас 0.3 ШП по контуру. Пересчитать: Igruha/Player/Rebuild Hole In Wall Pose Clips — билдер печатает габариты в консоль")]
         [SerializeField]
         private PoseSilhouette[] poseSilhouettes =
         {
-            new PoseSilhouette { Width = 1.6f, Height = 3.7f },
-            new PoseSilhouette { Width = 3.6f, Height = 3.4f },
-            new PoseSilhouette { Width = 2.2f, Height = 1.9f },
-            new PoseSilhouette { Width = 3.0f, Height = 3.0f }
+            new PoseSilhouette { Width = 1.85f, Height = 3.6f },
+            new PoseSilhouette { Width = 3.4f, Height = 2.9f },
+            new PoseSilhouette { Width = 1.9f, Height = 2.25f },
+            new PoseSilhouette { Width = 2.85f, Height = 3.15f }
         };
 
         [Header("Трос")]
