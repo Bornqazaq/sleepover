@@ -175,11 +175,14 @@ namespace Igruha.EditorTools
 
             // Вода — только вид. Коллайдера нет: в неё падают, а не стоят на ней,
             // и камере она должна быть прозрачна.
-            GameObject water = CreateBox(pool, "Water",
-                new Vector3(width - SlabThickness, 0.05f, depth - SlabThickness),
-                new Vector3(0f, config.WaterSurfaceY, centerZ), HoleInWallPaletteAssets.Get(Tone.Water));
-            Object.DestroyImmediate(water.GetComponent<Collider>());
+            //
+            // Сетку и материал ставит HoleInWallWater: у примитива четыре
+            // вершины на грань, и никакие волны на нём невозможны в принципе.
+            // Объект здесь только заводится и кладётся на слой.
+            var water = new GameObject("Water");
+            water.transform.SetParent(pool, false);
             SetLayer(water, "Default");
+            HoleInWallWater.Dress(water, config);
         }
 
         /// <summary>
