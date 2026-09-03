@@ -35,7 +35,7 @@ MonoBehaviour:
     Spatial: 1
   - Id: crowd_cheer
     Clip: {fileID: 8300000, guid: f8df7737b08654ca5823dfa9500e5041, type: 3}
-    Volume: 0.8495671
+    Volume: 1
     Loop: 0
     Spatial: 0
   - Id: fail_body_hit
