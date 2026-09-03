@@ -53,6 +53,11 @@
 set -uo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
+# Сколько секунд считаем стартом. Дольше — редактор уже не стартует, а стоит:
+# холодный старт этого проекта укладывается в минуту с небольшим даже после
+# полного импорта.
+STARTUP_GRACE=${STARTUP_GRACE:-180}
 PROJECT="$REPO/igruha"
 EDITOR_APP="${UNITY_EDITOR_APP:-$HOME/Unity/Hub/Editor/6000.3.11f1/Unity.app}"
 LOG="$HOME/Library/Logs/Unity/Editor.log"
@@ -138,10 +143,29 @@ cmd_status() {
         echo "вердикт:             БЛОКИРОВАН ДИАЛОГОМ — нажать кнопку:"
         echo "$dlg" | sed 's/^/                     /'
         echo "                     жать так: tools/remote/unity-guard.sh click «имя кнопки»"
+    elif [ "$socks" -eq 0 ] && [ "$(uptime_seconds "$pid")" -gt "$STARTUP_GRACE" ]; then
+        # ⚠️ Сокетов нет, но редактор живёт дольше любого разумного старта —
+        # значит он не стартует, а СТОИТ. Почти всегда это собственный
+        # модальный диалог Unity (EditorUtility.DisplayDialog).
+        #
+        # Его не видит ни dialogs, ни click: Unity рисует такие окна своим
+        # IMGUI, и для accessibility-API их кнопок не существует. Больше того,
+        # заблокированный редактор не отвечает и на activate, и список его
+        # окон пуст — прокачивать события ему нечем. Снять окно можно только
+        # рукой.
+        #
+        # Стоило десяти минут 03.09: агент увидел «ЕЩЁ СТАРТУЕТ», поверил
+        # и ждал, пока геймдизайнер не показал скриншот с диалогом запекания.
+        echo "вердикт:             СТОИТ, А НЕ СТАРТУЕТ — живёт $(uptime_seconds "$pid") с без сокетов"
+        echo "                     Почти наверняка собственный модальный диалог Unity."
+        echo "                     Его НЕ видно через dialogs/click: это IMGUI, а не окно macOS,"
+        echo "                     и заблокированный редактор не отвечает даже на activate."
+        echo "                     Посмотреть глазами и нажать рукой — снять программно нельзя."
     elif [ "$socks" -eq 0 ]; then
         echo "вердикт:             ЕЩЁ СТАРТУЕТ — сокеты не открыты, моста нет"
-        echo "                     03.09 такой старт занял 10 минут и вышел сам."
-        echo "                     Ждать, а не перезапускать: повторный запуск ничего не ускоряет"
+        echo "                     Ждать, а не перезапускать: повторный запуск ничего не ускоряет."
+        echo "                     Если через $STARTUP_GRACE с не поднимется — вердикт сменится"
+        echo "                     на «СТОИТ»: это уже диалог, а не старт"
     elif [ "$grew" -gt 0 ] || [ "${cpu%%.*}" -ge 20 ] 2>/dev/null; then
         echo "вердикт:             РАБОТАЕТ"
     else
@@ -230,6 +254,17 @@ end tell
 AS
 }
 
+# Сколько секунд живёт процесс. Нужно, чтобы отличить долгий старт от
+# редактора, вставшего на диалоге: снаружи они выглядят одинаково.
+uptime_seconds() {
+    ps -o etime= -p "$1" 2>/dev/null | tr -d ' ' | awk -F'[-:]' '{
+        if (NF == 4) print $1*86400 + $2*3600 + $3*60 + $4;
+        else if (NF == 3) print $1*3600 + $2*60 + $3;
+        else if (NF == 2) print $1*60 + $2;
+        else print 0
+    }'
+}
+
 cmd_key() {
     local k="${1:-return}" code
     case "$k" in
@@ -245,6 +280,15 @@ cmd_key() {
 cmd_shot() {
     local out="${1:-$REPO/../unity-guard-shot.png}"
     screencapture -x "$out" && echo "скриншот: $out"
+
+    # Снимок берёт весь экран, а Unity может быть закрыт другими окнами —
+    # тогда на картинке будет редактор кода, а не диалог, который ищут.
+    local front
+    front=$(osascript -e 'tell application "System Events" to get name of first process whose frontmost is true' 2>/dev/null)
+    case "$front" in
+        Unity|"") ;;
+        *) echo "ВНИМАНИЕ: впереди «$front», Unity закрыт им — на снимке диалога может не быть" ;;
+    esac
 }
 
 cmd_start() {
