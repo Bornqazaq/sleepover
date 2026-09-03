@@ -49,6 +49,28 @@ namespace Igruha.Minigames.HoleInWall
         [SerializeField] private Transform lintelSecond;
 
         [Header("Вырезы")]
+        /// <summary>
+        /// Насколько коллайдер плиты утоплен назад от её видимой передней
+        /// грани, м.
+        ///
+        /// ⚠️ Не косметика, а разрешение конфликта, из-за которого коллайдеров
+        /// у стены не было вовсе. Допуск попадания 0.576 м равен половине
+        /// самого узкого выреза, а радиус капсулы игрока — 0.36 м: игрок
+        /// на границе допуска, которого проверка считает <b>прошедшим</b>,
+        /// касается плиты боком. Передняя грань доходит до его капсулы
+        /// на 0.36/скорость раньше вердикта — при 9 м/с это 40 мс, три шага
+        /// физики, и стена успевала бы вытолкнуть его из допуска ДО проверки.
+        ///
+        /// Утопленный коллайдер отдаёт эти сорок миллисекунд вердикту: он
+        /// касается только того, кто уже провалился. При этом прыжок в стену
+        /// снаружи упирается в неё, а не проходит сквозь — ради чего
+        /// коллайдеры и появились.
+        /// </summary>
+        private const float ColliderRecess = 0.45f;
+
+        private Collider[] panelColliders = System.Array.Empty<Collider>();
+        private Rigidbody body;
+
         [SerializeField] private WallCutout firstCutout;
         [SerializeField] private WallCutout secondCutout;
 
@@ -122,7 +144,90 @@ namespace Igruha.Minigames.HoleInWall
 
         private void Awake()
         {
+            BuildPanelColliders();
+            BuildBody();
             SetVisible(false);
+        }
+
+        /// <summary>
+        /// Кинематическое тело на корне стены.
+        ///
+        /// ⚠️ Обязательно ровно с того момента, как у плит появились
+        /// коллайдеры. Без <c>Rigidbody</c> PhysX считает стену статикой,
+        /// а переставленный трансформ видит как телепорт: расталкивание
+        /// получается рывками, игрока выбивает непредсказуемо, и каждый кадр
+        /// перестраивается broadphase. Кинематическое тело двигают
+        /// <c>MovePosition</c> — это перемещение с развёрткой, а интерполяция
+        /// возвращает гладкость картинке при кадре чаще шага физики.
+        /// </summary>
+        private void BuildBody()
+        {
+            body = GetComponent<Rigidbody>();
+            if (body == null)
+            {
+                body = gameObject.AddComponent<Rigidbody>();
+            }
+
+            body.isKinematic = true;
+            body.useGravity = false;
+            body.interpolation = RigidbodyInterpolation.Interpolate;
+        }
+
+        /// <summary>
+        /// Навесить и настроить коллайдеры плит.
+        ///
+        /// Делается кодом, а не в сцене: плит пять на каждой из четырёх стен,
+        /// и настройка у них одна. Руками её пришлось бы повторить двадцать
+        /// раз и держать в синхроне при каждой правке толщины.
+        /// </summary>
+        private void BuildPanelColliders()
+        {
+            Transform[] panels = { panelLeft, panelMiddle, panelRight, lintelFirst, lintelSecond };
+            var found = new System.Collections.Generic.List<Collider>(panels.Length);
+
+            for (int i = 0; i < panels.Length; i++)
+            {
+                if (panels[i] == null)
+                {
+                    continue;
+                }
+
+                var box = panels[i].GetComponent<BoxCollider>();
+                if (box == null)
+                {
+                    box = panels[i].gameObject.AddComponent<BoxCollider>();
+                }
+
+                // Плита — единичный куб, растянутый масштабом, поэтому размер
+                // коллайдера единичный, а смещение считается в долях толщины.
+                box.size = Vector3.one;
+                float thickness = Mathf.Max(0.001f, panels[i].localScale.z);
+                box.center = new Vector3(0f, 0f, ColliderRecess / thickness);
+
+                found.Add(box);
+            }
+
+            panelColliders = found.ToArray();
+        }
+
+        /// <summary>
+        /// Снять с плит столкновения до конца прохода.
+        ///
+        /// Зовётся ровно в одном случае — когда вердикт по дорожке уже вынесен
+        /// и он <b>«прошли»</b>. Пара стоит в вырезах, но у самого узкого
+        /// выреза допуск шире физического зазора, и оставленный коллайдер
+        /// толкнул бы прошедшего за успешный проход. Провалившимся плиты
+        /// остаются: их стена и обязана ударить.
+        /// </summary>
+        public void DisableCollision()
+        {
+            for (int i = 0; i < panelColliders.Length; i++)
+            {
+                if (panelColliders[i] != null)
+                {
+                    panelColliders[i].enabled = false;
+                }
+            }
         }
 
         /// <summary>Привязать к дорожке. Зовётся один раз при старте раунда.</summary>
@@ -158,7 +263,17 @@ namespace Igruha.Minigames.HoleInWall
             // порядок зажёг бы обратно и те, что RebuildShape только что убрал.
             SetVisible(true);
             RebuildShape(false);
-            UpdateTransform();
+
+            // Новая стена — снова твёрдая: прошлая могла снять плиты вердиктом.
+            for (int i = 0; i < panelColliders.Length; i++)
+            {
+                if (panelColliders[i] != null)
+                {
+                    panelColliders[i].enabled = true;
+                }
+            }
+
+            UpdateTransform(snap: true);
         }
 
         /// <summary>Убрать стену: доехала или раунд кончился.</summary>
@@ -188,7 +303,16 @@ namespace Igruha.Minigames.HoleInWall
             return pose != HoleInWallPose.None;
         }
 
-        private void Update()
+        /// <summary>
+        /// Ход стены. В <c>FixedUpdate</c>, а не в <c>Update</c>: стена несёт
+        /// коллайдеры, а физику проекта разрешено двигать только шагом физики
+        /// (igruha/CLAUDE.md, раздел 2). Гладкость кадра даёт интерполяция
+        /// тела, а не частота вызовов.
+        ///
+        /// Подвох переключается здесь же: он меняет размеры плит, то есть
+        /// те же коллайдеры.
+        /// </summary>
+        private void FixedUpdate()
         {
             if (!running)
             {
@@ -209,7 +333,7 @@ namespace Igruha.Minigames.HoleInWall
                 }
             }
 
-            UpdateTransform();
+            UpdateTransform(snap: false);
         }
 
         /// <summary>
@@ -241,13 +365,29 @@ namespace Igruha.Minigames.HoleInWall
             }
         }
 
-        private void UpdateTransform()
+        /// <summary>
+        /// Поставить стену по расписанию. Позиция считается по формуле,
+        /// а не накапливается: центр стены отстоит от передней грани
+        /// на половину толщины.
+        /// </summary>
+        /// <param name="snap">
+        /// Телепорт вместо хода. Нужен только на старте: <c>MovePosition</c>
+        /// перемещает с развёрткой, и на старте оно протащило бы стену через
+        /// всю арену, расталкивая всё по пути.
+        /// </param>
+        private void UpdateTransform(bool snap)
         {
-            // Трансформ ставится по формуле, а не наоборот: центр стены отстоит
-            // от передней грани на половину толщины.
-            Vector3 position = transform.localPosition;
-            position.z = FrontZ + config.WallThickness * 0.5f;
-            transform.localPosition = position;
+            Vector3 local = transform.localPosition;
+            local.z = FrontZ + config.WallThickness * 0.5f;
+
+            if (snap || body == null)
+            {
+                transform.localPosition = local;
+                return;
+            }
+
+            Transform parent = transform.parent;
+            body.MovePosition(parent != null ? parent.TransformPoint(local) : local);
         }
 
         // ========== ГЕОМЕТРИЯ ==========

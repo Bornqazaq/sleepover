@@ -742,6 +742,12 @@ namespace Igruha.Minigames.HoleInWall
             if (passed)
             {
                 track.AwardWall();
+
+                // Плиты снимаются только у прошедших. Пара стоит в вырезах,
+                // но у самого узкого выреза допуск попадания шире физического
+                // зазора: оставленный коллайдер толкнул бы игрока за успешный
+                // проход. Разбор с числами — в SweepingWall.ColliderRecess.
+                track.Wall.DisableCollision();
             }
             else
             {

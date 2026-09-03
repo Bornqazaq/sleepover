@@ -81,6 +81,10 @@ namespace Igruha.Core.Player
         private LineRenderer rope;
         private PlayerController first;
         private PlayerController second;
+        /// <summary>За что верёвка держится у каждого — кисть, а не корень тела.</summary>
+        private Transform firstAnchor;
+        private Transform secondAnchor;
+
         private Rigidbody firstBody;
         private Rigidbody secondBody;
 
@@ -171,6 +175,9 @@ namespace Igruha.Core.Player
             firstNet = a != null ? a.GetComponent<NetworkObject>() : null;
             secondNet = b != null ? b.GetComponent<NetworkObject>() : null;
 
+            firstAnchor = ResolveAnchor(a);
+            secondAnchor = ResolveAnchor(b);
+
             IsTaut = false;
             rope.enabled = Bound;
 
@@ -178,8 +185,45 @@ namespace Igruha.Core.Player
             {
                 // Иначе первый кадр верёвка тянется из точки, где висела
                 // с прошлого раунда, и хлещет через всю арену.
-                ResetRope(first.CameraTarget.position, second.CameraTarget.position);
+                ResetRope(firstAnchor.position, secondAnchor.position);
             }
+        }
+
+        /// <summary>
+        /// Где верёвка держится за персонажа.
+        ///
+        /// <b>Кисть, а не точка камеры.</b> Раньше концы висели на
+        /// <c>CameraTarget</c> — это цель наведения камеры на высоте груди,
+        /// но в центре тела и ни к чему не привязанная визуально. Верёвка
+        /// выходила из воздуха рядом с персонажем, и на приёмке это прочли
+        /// ровно так: «прикреплён просто в пустоту».
+        ///
+        /// Кость ищется через <c>Animator</c>, а не задаётся ссылкой
+        /// в инспекторе: префабы персонажей заморожены (igruha/CLAUDE.md, 0),
+        /// и добавить в них поле нельзя. Гуманоидный аватар отдаёт кисть сам,
+        /// причём у каждого персонажа свою и с его собственным ростом.
+        ///
+        /// Если аватар не гуманоидный — остаётся прежняя точка: верёвка
+        /// из центра груди хуже кисти, но лучше отсутствующей.
+        /// </summary>
+        private static Transform ResolveAnchor(PlayerController player)
+        {
+            if (player == null)
+            {
+                return null;
+            }
+
+            Animator animator = player.GetComponentInChildren<Animator>();
+            if (animator != null && animator.isHuman)
+            {
+                Transform hand = animator.GetBoneTransform(HumanBodyBones.RightHand);
+                if (hand != null)
+                {
+                    return hand;
+                }
+            }
+
+            return player.CameraTarget;
         }
 
         /// <summary>
@@ -194,6 +238,8 @@ namespace Igruha.Core.Player
             secondBody = null;
             firstNet = null;
             secondNet = null;
+            firstAnchor = null;
+            secondAnchor = null;
             IsTaut = false;
             rope.enabled = false;
         }
@@ -301,10 +347,8 @@ namespace Igruha.Core.Player
                 return;
             }
 
-            // Верёвка идёт от груди к груди: CameraTarget стоит именно там и
-            // уже выставлен по росту каждого персонажа.
-            Vector3 head = first.CameraTarget.position;
-            Vector3 tail = second.CameraTarget.position;
+            Vector3 head = firstAnchor.position;
+            Vector3 tail = secondAnchor.position;
 
             // Телепорт — это возврат из воды и расстановка пары по местам.
             // Догонять его симуляцией нельзя: цепочка растянута через всю арену

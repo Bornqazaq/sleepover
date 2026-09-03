@@ -54,18 +54,36 @@ namespace Igruha.EditorTools
 
         private const string PackModels = "Assets/Synty/PolygonNightclubs/Models/";
 
+        /// <summary>Куда запекание 4.6 переносит использованное из этого пака.</summary>
+        private const string BakedModels = "Assets/_Project/Art/HoleInWall/PolygonNightclubs/Models/";
+
         /// <summary>Восемь персонажей одним FBX — из них набирается зал.</summary>
-        private const string CrowdPath = PackModels + "Characters.fbx";
-        private const string SpeakerPath = PackModels + "SM_Prop_Speaker_Large_01.fbx";
-        private const string SpeakerTallPath = PackModels + "SM_Prop_Speaker_Large_02.fbx";
-        private const string ScreenPath = PackModels + "SM_Prop_Screen_01.fbx";
-        private static readonly string[] SignPaths =
+        private const string CrowdModel = "Characters.fbx";
+        private const string SpeakerModel = "SM_Prop_Speaker_Large_01.fbx";
+        private const string SpeakerTallModel = "SM_Prop_Speaker_Large_02.fbx";
+        private const string ScreenModel = "SM_Prop_Screen_01.fbx";
+        private static readonly string[] SignModels =
         {
-            PackModels + "SM_Prop_Sign_Club_01.fbx",
-            PackModels + "SM_Prop_Sign_Club_02.fbx",
-            PackModels + "SM_Prop_Sign_Red_01.fbx",
-            PackModels + "SM_Prop_Sign_Bar_01.fbx"
+            "SM_Prop_Sign_Club_01.fbx",
+            "SM_Prop_Sign_Club_02.fbx",
+            "SM_Prop_Sign_Red_01.fbx",
+            "SM_Prop_Sign_Bar_01.fbx"
         };
+
+        /// <summary>
+        /// Путь к модели: сначала уже перенесённая копия, и только потом пак.
+        ///
+        /// ⚠️ Иначе каждая пересборка декора заново ломает запекание 4.6.
+        /// Инструмент тянул модели прямо из <c>Assets/Synty/**</c>, и после
+        /// любого повторного прогона в сцене снова появлялись ссылки на паки —
+        /// то есть запекать приходилось после КАЖДОЙ правки декора, иначе
+        /// напарник получал сцену с дырами.
+        /// </summary>
+        private static string ModelPath(string fileName)
+        {
+            string baked = BakedModels + fileName;
+            return AssetDatabase.LoadAssetAtPath<GameObject>(baked) != null ? baked : PackModels + fileName;
+        }
 
         private const string CameraBodyPath =
             "Assets/_Project/Art/HoleInWall/PolygonShops/Models/SM_Prop_Computer_Camera_DSLR_01.fbx";
@@ -93,6 +111,13 @@ namespace Igruha.EditorTools
         /// <summary>На сколько огонёк вынесен к арене и поднят над сиденьем, м.</summary>
         private const float PhoneReach = 0.35f;
         private const float PhoneHeight = 1.25f;
+
+        /// <summary>Путь к запечённым в позе мешам зала.</summary>
+        private const string CrowdMeshPath = "Assets/_Project/Art/HoleInWall/HIW_Crowd.asset";
+
+        /// <summary>Насколько довернуть руку от позы привязки: вниз — почти до конца, вверх — сильнее.</summary>
+        private const float ArmDownBlend = 0.82f;
+        private const float ArmUpBlend = 0.55f;
 
         /// <summary>Разброс роста зрителя множителем к модели пака.</summary>
         private const float FanScaleMin = 0.92f;
@@ -264,39 +289,172 @@ namespace Igruha.EditorTools
         }
 
         /// <summary>
-        /// Достать из пака меши персонажей — <b>именно меши, а не объекты</b>.
+        /// Меши зрителей — <b>запечённые в позе</b>, а не в позе привязки.
         ///
-        /// ⚠️ Первым прогоном зрители копировались как дети FBX целиком,
-        /// и это <b>уронило редактор на запекании</b>. Персонажи пака скинненые:
-        /// их <c>SkinnedMeshRenderer</c> ссылается на кости, лежащие в ветке
-        /// <c>Root</c> того же FBX. Скопировав одного персонажа без скелета,
-        /// получаешь рендерер с висячим массивом костей: в кадре он
-        /// отрисовывается случайно, в позе привязки, а обходчик зависимостей
-        /// на нём падает.
+        /// ⚠️ Первым прогоном брался готовый <c>sharedMesh</c>, то есть поза
+        /// привязки: сорок человек стояли с раскинутыми руками. На приёмке это
+        /// прочли сразу — «что за болванки слева справа стоят». T-поза
+        /// на трибуне читается не зрителем, а манекеном.
         ///
-        /// Зал статичен и анимировать его незачем, поэтому берётся
-        /// <c>sharedMesh</c> и ставится обычным <c>MeshRenderer</c>: поза
-        /// привязки та же, зависимости — только сам меш, и запекание проходит.
+        /// Здесь скелет разворачивается в сцене, руки опускаются или
+        /// поднимаются, и меш снимается <c>BakeMesh</c> уже в этом виде.
+        /// Дальше он живёт обычным <c>MeshRenderer</c>: анимировать зал незачем,
+        /// а зависимость остаётся только на сам меш — запекание арта проходит.
+        ///
+        /// <b>Поворот считается по направлению руки, а не по оси кости.</b>
+        /// У кости своя система координат, и «повернуть на 60° вокруг Z» даёт
+        /// у разных ригов разное. Здесь берётся текущее направление
+        /// плечо→кисть и доворачивается к нужному: работает независимо
+        /// от соглашений рига.
         /// </summary>
         private static Mesh[] LoadCrowdMeshes()
         {
-            var source = AssetDatabase.LoadAssetAtPath<GameObject>(CrowdPath);
-            if (source == null)
+            var existing = AssetDatabase.LoadAllAssetsAtPath(CrowdMeshPath);
+            if (existing != null && existing.Length > 0)
             {
-                Debug.LogWarning($"Персонажей пака нет ({CrowdPath}) — зал будет капсулами");
-                return System.Array.Empty<Mesh>();
-            }
-
-            var meshes = new System.Collections.Generic.List<Mesh>(8);
-            foreach (SkinnedMeshRenderer skin in source.GetComponentsInChildren<SkinnedMeshRenderer>(true))
-            {
-                if (skin.sharedMesh != null)
+                var cached = new System.Collections.Generic.List<Mesh>(existing.Length);
+                for (int i = 0; i < existing.Length; i++)
                 {
-                    meshes.Add(skin.sharedMesh);
+                    if (existing[i] is Mesh mesh)
+                    {
+                        cached.Add(mesh);
+                    }
+                }
+
+                if (cached.Count > 0)
+                {
+                    return cached.ToArray();
                 }
             }
 
-            return meshes.ToArray();
+            return BakeCrowdMeshes();
+        }
+
+        /// <summary>
+        /// Развернуть персонажей пака, поставить им руки и снять меши.
+        /// На каждого — две позы, чтобы зал не читался штампом.
+        /// </summary>
+        private static Mesh[] BakeCrowdMeshes()
+        {
+            var source = AssetDatabase.LoadAssetAtPath<GameObject>(ModelPath(CrowdModel));
+            if (source == null)
+            {
+                Debug.LogWarning($"Персонажей нет ни в паке, ни в запечённом арте ({CrowdModel}) — зал будет капсулами");
+                return System.Array.Empty<Mesh>();
+            }
+
+            var template = (GameObject)PrefabUtility.InstantiatePrefab(source);
+            var baked = new System.Collections.Generic.List<Mesh>(16);
+
+            try
+            {
+                foreach (SkinnedMeshRenderer skin in template.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+                {
+                    if (skin.sharedMesh == null)
+                    {
+                        continue;
+                    }
+
+                    // Две позы на персонажа: руки вниз — спокойный зритель,
+                    // руки вверх — болеет. Смесь читается живой трибуной.
+                    baked.Add(BakePose(skin, Vector3.down, ArmDownBlend));
+                    baked.Add(BakePose(skin, Vector3.up, ArmUpBlend));
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(template);
+            }
+
+            if (baked.Count == 0)
+            {
+                return System.Array.Empty<Mesh>();
+            }
+
+            AssetDatabase.CreateAsset(baked[0], CrowdMeshPath);
+            for (int i = 1; i < baked.Count; i++)
+            {
+                AssetDatabase.AddObjectToAsset(baked[i], CrowdMeshPath);
+            }
+
+            AssetDatabase.SaveAssets();
+            return baked.ToArray();
+        }
+
+        /// <summary>
+        /// Довернуть обе руки к заданному направлению и снять меш.
+        /// </summary>
+        /// <param name="towards">Куда тянуть руку: вниз или вверх</param>
+        /// <param name="blend">Насколько довернуть, 0…1 от исходного к цели</param>
+        private static Mesh BakePose(SkinnedMeshRenderer skin, Vector3 towards, float blend)
+        {
+            // ⚠️ Поза сбрасывается после каждого снятия. Персонажи пака сидят
+            // в одном FBX на общем скелете, поэтому поворот плеча, сделанный
+            // для одного, виден всем остальным. Без сброса повороты
+            // НАКАПЛИВАЮТСЯ: первый зритель получал верную позу, второй —
+            // двойную, а «руки вверх» доворачивались от уже опущенных.
+            // На трибуне это вышло половиной зала с одной торчащей рукой.
+            Transform left = FindBone(skin, "Shoulder_L");
+            Transform right = FindBone(skin, "Shoulder_R");
+            Quaternion leftWas = left != null ? left.localRotation : Quaternion.identity;
+            Quaternion rightWas = right != null ? right.localRotation : Quaternion.identity;
+
+            SwingArm(left, FindBone(skin, "Hand_L"), towards, blend);
+            SwingArm(right, FindBone(skin, "Hand_R"), towards, blend);
+
+            var mesh = new Mesh { name = skin.sharedMesh.name + (towards == Vector3.up ? "_Cheer" : "_Idle") };
+            skin.BakeMesh(mesh);
+            mesh.RecalculateBounds();
+
+            if (left != null)
+            {
+                left.localRotation = leftWas;
+            }
+
+            if (right != null)
+            {
+                right.localRotation = rightWas;
+            }
+
+            return mesh;
+        }
+
+        /// <summary>Кость по имени в скелете этого рендерера.</summary>
+        private static Transform FindBone(SkinnedMeshRenderer skin, string boneName)
+        {
+            Transform[] bones = skin.bones;
+            for (int i = 0; i < bones.Length; i++)
+            {
+                if (bones[i] != null && bones[i].name == boneName)
+                {
+                    return bones[i];
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Повернуть плечо так, чтобы рука пошла к <paramref name="towards"/>.
+        /// Ищет кости по имени в массиве самого рендерера: свой скелет
+        /// у каждого персонажа, и общего <c>Animator</c> тут не хватило бы.
+        /// </summary>
+        private static void SwingArm(Transform shoulder, Transform hand, Vector3 towards, float blend)
+        {
+            if (shoulder == null || hand == null)
+            {
+                return;
+            }
+
+            Vector3 current = hand.position - shoulder.position;
+            if (current.sqrMagnitude < 0.0001f)
+            {
+                return;
+            }
+
+            current.Normalize();
+            Vector3 target = Vector3.Slerp(current, towards, blend).normalized;
+            shoulder.rotation = Quaternion.FromToRotation(current, target) * shoulder.rotation;
         }
 
         /// <summary>
@@ -595,9 +753,9 @@ namespace Igruha.EditorTools
             float nearZ = config.ArenaNearZ - config.CameraClearance - BackstageNearGap;
             float farZ = config.ArenaFarZ + BackstageFarGap;
 
-            var speaker = AssetDatabase.LoadAssetAtPath<GameObject>(SpeakerPath);
-            var speakerTall = AssetDatabase.LoadAssetAtPath<GameObject>(SpeakerTallPath);
-            var screen = AssetDatabase.LoadAssetAtPath<GameObject>(ScreenPath);
+            var speaker = AssetDatabase.LoadAssetAtPath<GameObject>(ModelPath(SpeakerModel));
+            var speakerTall = AssetDatabase.LoadAssetAtPath<GameObject>(ModelPath(SpeakerTallModel));
+            var screen = AssetDatabase.LoadAssetAtPath<GameObject>(ModelPath(ScreenModel));
 
             // Колонки стоят ВДОЛЬ арены, а не за ней. Первым прогоном их
             // расставили по дальнему и ближнему краю пола — и обе группы
@@ -671,9 +829,9 @@ namespace Igruha.EditorTools
             float nearWallZ = config.ArenaNearZ - config.CameraClearance - SignWallGap;
             float halfWidth = config.ArenaWidth * 0.5f + SignSideOut;
 
-            for (int i = 0; i < SignPaths.Length; i++)
+            for (int i = 0; i < SignModels.Length; i++)
             {
-                var sign = AssetDatabase.LoadAssetAtPath<GameObject>(SignPaths[i]);
+                var sign = AssetDatabase.LoadAssetAtPath<GameObject>(ModelPath(SignModels[i]));
                 if (sign == null)
                 {
                     continue;
