@@ -9,7 +9,7 @@ namespace Igruha.Minigames.HoleInWall
     /// <summary>
     /// Звук «Дырки в стене» — подфаза 4.5. Гонг и гул стены, сигнал перед
     /// ударом, «дзынь» с рёвом публики на проходе, удар по телу на провале,
-    /// всплеск с подводным слоем, натянутый трос, свуши подвохов, тема раунда
+    /// всплеск с подводным слоем, свуши подвохов, тема раунда
     /// и финальный джингл.
     ///
     /// <b>Свиста полёта здесь больше нет, и это решение, а не пропуск.</b>
@@ -67,7 +67,6 @@ namespace Igruha.Minigames.HoleInWall
         private const string SlotBodyHit = "fail_body_hit";
         private const string SlotSplash = "water_splash";
         private const string SlotUnderwater = "underwater_loop";
-        private const string SlotTether = "tether_strain_loop";
         private const string SlotMirror = "mirror_whoosh";
         private const string SlotMorph = "morph_whoosh";
         private const string SlotJingle = "round_end_jingle";
@@ -110,14 +109,16 @@ namespace Igruha.Minigames.HoleInWall
         /// <summary>
         /// Сколько луп держится после того, как его состояние пропало, с.
         ///
-        /// <b>Замер прогона, а не запас на всякий случай.</b> Натяжение троса
-        /// дёргается: пара шагает, и <see cref="PlayerTether.IsTaut"/> моргает
-        /// по несколько раз в секунду. На ленте прогона это дало десяток
-        /// включений лупа очередями по 0.2–1.3 с — скрип не звучал, а трещал
-        /// заеданием. Глазу такое мерцание почти незаметно (искры 4.4 живут
-        /// с ним же), уху — нет: любой перезапуск лупа слышен щелчком.
-        /// Задержка гасит дребезг и не мешает честному отпусканию: трос
-        /// расслабляется надолго, а не на треть секунды.
+        /// <b>Замер прогона, а не запас на всякий случай.</b> Состояние, которое
+        /// держит луп, дребезжит: на ленте прогона 4.5 это дало десяток включений
+        /// очередями по 0.2–1.3 с — луп не звучал, а трещал заеданием. Глазу такое
+        /// мерцание почти незаметно (искры 4.4 живут с ним же), уху — нет: любой
+        /// перезапуск лупа слышен щелчком. Задержка гасит дребезг и не мешает
+        /// честному отпусканию: состояние пропадает надолго, а не на треть секунды.
+        ///
+        /// Замерено на скрипе троса, который дёргался от <c>PlayerTether.IsTaut</c>;
+        /// сам скрип убран 03.09 (его было не слышно), а константа осталась —
+        /// подводный слой дребезжит так же.
         /// </summary>
         private const float LoopReleaseHold = 0.35f;
 
@@ -136,8 +137,6 @@ namespace Igruha.Minigames.HoleInWall
         /// <summary>Кто сейчас под водой. По ключу «дорожка × место»: всплеск поднимается на входе, а не каждый кадр.</summary>
         private bool[] submerged = System.Array.Empty<bool>();
 
-        /// <summary>У какой дорожки трос сейчас натянут.</summary>
-        private bool[] taut = System.Array.Empty<bool>();
 
         /// <summary>Фаза прошлого кадра: тема и джингл вешаются на переход, а не на состояние.</summary>
         private MinigamePhase lastPhase = MinigamePhase.Idle;
@@ -148,14 +147,10 @@ namespace Igruha.Minigames.HoleInWall
         /// <summary>Подводный слой звучит. Считается по всем местам сразу — источник один.</summary>
         private bool underwater;
 
-        /// <summary>Трос звучит хоть у кого-то. Источник тоже один.</summary>
-        private bool tetherStrained;
 
         /// <summary>Когда глушить подводный слой, если состояние так и не вернётся. Ноль — глушить не собирались.</summary>
         private float underwaterReleaseAt;
 
-        /// <summary>То же для троса.</summary>
-        private float tetherReleaseAt;
 
         /// <summary>На какой стене публика уже отревела. Рёв один на стену, а не на дорожку.</summary>
         private int cheeredWall = -1;
@@ -169,7 +164,6 @@ namespace Igruha.Minigames.HoleInWall
         private void Awake()
         {
             submerged = new bool[Mathf.Max(0, tracks.Length) * SlotsPerTrack];
-            taut = new bool[Mathf.Max(0, tracks.Length)];
             MeasureWallSpeeds();
         }
 
@@ -270,8 +264,6 @@ namespace Igruha.Minigames.HoleInWall
             IReadOnlyList<HoleInWallTrack> playing = game.PlayingTracks;
             bool anySubmerged = false;
             Vector3 underwaterPoint = Vector3.zero;
-            bool anyTaut = false;
-            Vector3 tetherPoint = Vector3.zero;
 
             for (int i = 0; i < playing.Count; i++)
             {
@@ -282,11 +274,9 @@ namespace Igruha.Minigames.HoleInWall
                 }
 
                 WatchWater(track, ref anySubmerged, ref underwaterPoint);
-                WatchTether(track, ref anyTaut, ref tetherPoint);
             }
 
             DriveLoop(SlotUnderwater, anySubmerged, underwaterPoint, ref underwater, ref underwaterReleaseAt);
-            DriveLoop(SlotTether, anyTaut, tetherPoint, ref tetherStrained, ref tetherReleaseAt);
         }
 
         /// <summary>
@@ -436,44 +426,6 @@ namespace Igruha.Minigames.HoleInWall
                     point = surface;
                 }
             }
-        }
-
-        /// <summary>
-        /// Скрип троса, пока пара тянет друг друга. Натяжение спрашивается
-        /// у самого троса: оно считается на каждой машине из двух позиций,
-        /// поэтому звучит у всех одновременно.
-        /// </summary>
-        private void WatchTether(HoleInWallTrack track, ref bool anyTaut, ref Vector3 point)
-        {
-            int index = track.Index;
-            if (index < 0 || index >= taut.Length)
-            {
-                return;
-            }
-
-            PlayerTether tether = track.Tether;
-            IReadOnlyList<HoleInWallTrack.Member> members = track.Members;
-            bool tight = tether != null && tether.Bound && tether.IsTaut && members.Count >= SlotsPerTrack;
-
-            if (tight)
-            {
-                PlayerController first = members[0].Avatar;
-                PlayerController second = members[1].Avatar;
-
-                if (first == null || second == null)
-                {
-                    tight = false;
-                }
-                else if (!anyTaut)
-                {
-                    anyTaut = true;
-                    // Середина отрезка — единственная точка, которая остаётся
-                    // на тросе при любом развороте пары.
-                    point = (first.CameraTarget.position + second.CameraTarget.position) * 0.5f;
-                }
-            }
-
-            taut[index] = tight;
         }
 
         /// <summary>
@@ -644,23 +596,15 @@ namespace Igruha.Minigames.HoleInWall
             audioPlayer.StopLoop(SlotTheme);
             audioPlayer.StopLoop(SlotWallMove);
             audioPlayer.StopLoop(SlotUnderwater);
-            audioPlayer.StopLoop(SlotTether);
 
             wallsRunning = false;
             underwater = false;
-            tetherStrained = false;
             underwaterReleaseAt = 0f;
-            tetherReleaseAt = 0f;
             cheeredWall = -1;
 
             for (int i = 0; i < submerged.Length; i++)
             {
                 submerged[i] = false;
-            }
-
-            for (int i = 0; i < taut.Length; i++)
-            {
-                taut[i] = false;
             }
         }
 

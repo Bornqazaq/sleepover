@@ -53,11 +53,6 @@ MonoBehaviour:
     Volume: 0.6
     Loop: 1
     Spatial: 1
-  - Id: tether_strain_loop
-    Clip: {fileID: 8300000, guid: 2785216bdb7354af2a100d247c2d3d2c, type: 3}
-    Volume: 0.55
-    Loop: 1
-    Spatial: 1
   - Id: mirror_whoosh
     Clip: {fileID: 8300000, guid: 9d1ba87c313a94595a5109754e577414, type: 3}
     Volume: 0.9
