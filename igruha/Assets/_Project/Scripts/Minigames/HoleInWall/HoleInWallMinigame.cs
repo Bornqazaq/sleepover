@@ -870,8 +870,13 @@ namespace Igruha.Minigames.HoleInWall
         /// </summary>
         private void SweepTrack(HoleInWallTrack track)
         {
-            Vector3 impulse = (SweepingWall.TravelDirection + Vector3.up * config.SweepUpward).normalized
-                              * config.SweepImpulse;
+            // Импульс считается от скорости ЭТОЙ стены, а не берётся постоянным:
+            // подъезд к концу раунда короче, стена быстрее, и заданных 16
+            // перестаёт хватать, чтобы её обогнать. Разбор с числами —
+            // в HoleInWallConfig.SweepImpulseFor.
+            float wallSpeed = config.WallSpeed(currentWall, track.Solo);
+            Vector3 direction =
+                (SweepingWall.TravelDirection + Vector3.up * config.SweepUpward).normalized;
 
             IReadOnlyList<HoleInWallTrack.Member> members = track.Members;
             for (int i = 0; i < members.Count; i++)
@@ -888,7 +893,13 @@ namespace Igruha.Minigames.HoleInWall
                 // Через ApplyWorldImpulse, а не напрямую: решает сервер, но
                 // телом распоряжается машина владельца, и прямой вызов на
                 // чужой копии тут же перетёрло бы сетевым транспортом.
-                member.Avatar.ApplyWorldImpulse(impulse, KnockdownType.FlyBack);
+                // Масса берётся у самого тела, а не из общего конфига: если
+                // персонажи когда-нибудь разойдутся по массе, обгон стены
+                // обязан считаться каждому свой.
+                float mass = member.Avatar.TryGetComponent(out Rigidbody avatarBody) ? avatarBody.mass : 1f;
+
+                member.Avatar.ApplyWorldImpulse(
+                    direction * config.SweepImpulseFor(wallSpeed, mass), KnockdownType.FlyBack);
                 ScheduleReturn(member, config.SweptReturnSeconds, config.SweptReturnMinSeconds);
             }
         }

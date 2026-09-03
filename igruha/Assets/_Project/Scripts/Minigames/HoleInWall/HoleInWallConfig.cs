@@ -154,6 +154,8 @@ namespace Igruha.Minigames.HoleInWall
         [SerializeField] private float sweepUpward = 0.35f;
         [Tooltip("Полёт и падение в воду")]
         [SerializeField] private float fallSeconds = 1.5f;
+        [Tooltip("Насколько быстрее стены обязан лететь сметённый, м/с. Меньше — стена догоняет его и волочёт перед собой, и он оказывается внутри плиты")]
+        [SerializeField] private float sweepClearanceSpeed = 2.5f;
         [Tooltip("Барахтанье в воде до автовозврата на платформу")]
         [SerializeField] private float splashSeconds = 3f;
         [Tooltip("Минимум барахтанья, когда расписание требует вернуть раньше срока. Ниже него провал перестаёт читаться: игрок вылетает из воды тем же кадром, каким в неё вошёл")]
@@ -408,6 +410,46 @@ namespace Igruha.Minigames.HoleInWall
 
         public float SweepImpulse => sweepImpulse;
         public float SweepUpward => sweepUpward;
+        public float SweepClearanceSpeed => Mathf.Max(0f, sweepClearanceSpeed);
+
+        /// <summary>
+        /// Импульс сметания под конкретную стену, Н·с.
+        ///
+        /// <b>Постоянного импульса тут мало, и это арифметика.</b> При массе 2
+        /// импульс 16 даёт 8.00 м/с, из которых по горизонтали — 7.55: доля
+        /// <see cref="SweepUpward"/> уходит вверх. Скорость же стены растёт
+        /// вместе с укорочением подъезда и на последних стенах доходит до
+        /// 7.20 м/с у пары и <b>9.00 м/с у одиночки</b>. То есть стена летит
+        /// быстрее, чем отбрасывает: её передняя грань проходит сквозь
+        /// сметённого, и тело остаётся внутри плиты весь ход за линию —
+        /// отсюда жалоба «проваливаюсь в стену». На стенах 7 и 8 обгон был
+        /// отрицательным: −0.16 и −1.45 м/с.
+        ///
+        /// <b>Почему это лечится импульсом, а не коллайдером.</b> Плиты стены
+        /// намеренно без коллайдеров, и вернуть их нельзя: допуск попадания
+        /// <see cref="HitTolerance"/> = 0.576 м равен половине самого узкого
+        /// выреза, а радиус капсулы игрока — 0.36 м. Игрок на границе допуска,
+        /// которого проверка считает <b>прошедшим</b>, перекрывал бы плиту на
+        /// треть метра и получал бы толчок за успешный проход. Поэтому
+        /// «не быть внутри стены» достигается тем, что сметённый всегда
+        /// улетает быстрее неё.
+        ///
+        /// Здесь импульс поднимается ровно настолько, чтобы горизонтальная
+        /// составляющая обгоняла стену на <see cref="SweepClearanceSpeed"/>.
+        /// На ранних стенах ничего не меняется: там заданные 16 и так с запасом.
+        /// </summary>
+        /// <param name="wallSpeed">Скорость этой стены, м/с</param>
+        /// <param name="mass">Масса тела, кг</param>
+        public float SweepImpulseFor(float wallSpeed, float mass)
+        {
+            // Импульс уходит под углом, поэтому по горизонтали приходит
+            // не весь: множитель — косинус того же наклона, что задаёт
+            // sweepUpward. Без него «обогнать стену» считалось бы по модулю,
+            // и по горизонтали отлёт всё равно отставал бы.
+            float horizontalShare = 1f / Mathf.Sqrt(1f + sweepUpward * sweepUpward);
+            float needed = mass * (wallSpeed + SweepClearanceSpeed) / horizontalShare;
+            return Mathf.Max(sweepImpulse, needed);
+        }
         public float FallSeconds => fallSeconds;
         public float SplashSeconds => splashSeconds;
 

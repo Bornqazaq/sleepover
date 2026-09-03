@@ -96,6 +96,25 @@ namespace Igruha.Minigames.HoleInWall
         /// <summary>У какой дорожки трос сейчас натянут. Искры включаются на переходе, а не перезапускаются кадрово.</summary>
         private bool[] taut = System.Array.Empty<bool>();
 
+        // ========== ПОД ВОДОЙ ==========
+
+        [Header("Под водой")]
+        [Tooltip("Цвет толщи воды. Им же красится туман, когда камера уходит под поверхность")]
+        [SerializeField] private Color underwaterColor = new Color(0.05f, 0.32f, 0.42f);
+        [Tooltip("Плотность тумана под водой. Чем выше, тем мутнее и теснее кажется толща")]
+        [SerializeField] private float underwaterFogDensity = 0.12f;
+        /// <summary>Камера, по которой судим о погружении. Берётся один раз: в Update её искать нельзя.</summary>
+        private Camera viewCamera;
+
+        /// <summary>Экран сейчас под водой. Переход — редкое событие, поэтому настройки трогаем только на нём.</summary>
+        private bool viewSubmerged;
+
+        /// <summary>Каким туман был до погружения — чтобы вернуть его в точности, а не «примерно».</summary>
+        private bool savedFog;
+        private Color savedFogColor;
+        private float savedFogDensity;
+        private FogMode savedFogMode;
+
         private void Awake()
         {
             submerged = new bool[Mathf.Max(0, tracks.Length) * SlotsPerTrack];
@@ -136,6 +155,78 @@ namespace Igruha.Minigames.HoleInWall
             }
 
             Quiet();
+            SetSubmerged(false);
+        }
+
+        // ========== ПОД ВОДОЙ ==========
+
+        /// <summary>
+        /// Вид из-под воды.
+        ///
+        /// Упавший уходит под поверхность вместе с камерой, и до этого там
+        /// не было <b>ничего</b>: вода — плоскость без задней стороны, поэтому
+        /// снизу кадр становился пустым провалом, по которому не понять даже,
+        /// что ты в воде. Полторы-четыре секунды барахтанья игрок смотрел
+        /// в пустоту.
+        ///
+        /// Лечится двумя вещами, и обе дешёвые. Первая живёт в шейдере воды:
+        /// поверхность переведена на <c>Cull Off</c>, и теперь она видна
+        /// СНИЗУ — раньше её оттуда не рисовало вовсе, отсюда и провал.
+        /// Вторая здесь: <b>туман</b> цвета воды красит толщу и прячет даль,
+        /// давая объём вместо пустоты.
+        ///
+        /// <b>Камеру не трогаем.</b> Риг заморожен (igruha/CLAUDE.md, 2a),
+        /// поэтому ни дочерних объектов на него, ни правок его настроек:
+        /// заливка живёт своим экранным холстом, туман — глобальный. Судим
+        /// по позиции камеры и тем же <c>WaterSurfaceY</c>, что и всплеск.
+        /// </summary>
+        private void WatchView()
+        {
+            if (viewCamera == null)
+            {
+                viewCamera = Camera.main;
+                if (viewCamera == null)
+                {
+                    return;
+                }
+            }
+
+            SetSubmerged(viewCamera.transform.position.y < config.WaterSurfaceY);
+        }
+
+        /// <summary>
+        /// Включить или снять подводный вид. Настройки тумана глобальные,
+        /// поэтому прежние запоминаются и возвращаются в точности: иначе
+        /// мини-игра увезла бы свой туман в хаб.
+        /// </summary>
+        private void SetSubmerged(bool submergedNow)
+        {
+            if (submergedNow == viewSubmerged)
+            {
+                return;
+            }
+
+            viewSubmerged = submergedNow;
+
+            if (submergedNow)
+            {
+                savedFog = RenderSettings.fog;
+                savedFogColor = RenderSettings.fogColor;
+                savedFogDensity = RenderSettings.fogDensity;
+                savedFogMode = RenderSettings.fogMode;
+
+                RenderSettings.fog = true;
+                RenderSettings.fogMode = FogMode.ExponentialSquared;
+                RenderSettings.fogColor = underwaterColor;
+                RenderSettings.fogDensity = underwaterFogDensity;
+            }
+            else
+            {
+                RenderSettings.fog = savedFog;
+                RenderSettings.fogMode = savedFogMode;
+                RenderSettings.fogColor = savedFogColor;
+                RenderSettings.fogDensity = savedFogDensity;
+            }
         }
 
         // ========== НАБЛЮДЕНИЕ ==========
@@ -154,8 +245,11 @@ namespace Igruha.Minigames.HoleInWall
             if (game.Phase != MinigamePhase.Round)
             {
                 Quiet();
+                SetSubmerged(false);
                 return;
             }
+
+            WatchView();
 
             IReadOnlyList<HoleInWallTrack> playing = game.PlayingTracks;
             for (int i = 0; i < playing.Count; i++)
