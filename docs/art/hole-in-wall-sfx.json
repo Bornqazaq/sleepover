@@ -47,9 +47,11 @@
       "model": "sfx",
       "duration": 2,
       "loop": false,
-      "volume": 0.9,
+      "volume": 1.0,
       "spatial": true,
-      "prompt": "bright cheerful ding, single sparkling bell chime, correct answer success sound, clean, no music"
+      "prompt": "bright cheerful ding, single sparkling bell chime, correct answer success sound, clean, no music",
+      "source": "внешний файл, не генерация",
+      "note": "Правка 03.09, второй круг: генерированный «дзынь» заменён файлом pobeda--byistroe-opoveschenie.wav от геймдизайнера. 1.00 с вместо 2.00: короткий сигнал с резкой атакой и быстрым спадом вместо тянущегося колокольчика. ⚠️ КЛИП НЕ ГЕНЕРИРУЕТСЯ — не перезаписывать по prompt ниже. Сравнивался по АТАКЕ (RMS первых 0.3 с), а не по среднему RMS: у короткого стинга почти вся энергия в первых 0.2 с, и среднее по файлу занижает его слышимость на 6 дБ. Громкость 1.00 — потолок; атака ложится на 1.7 дБ тише прежнего дзыня. Если понадобится громче — лимитер на клип, а не ползунок."
     },
     {
       "id": "crowd_cheer",

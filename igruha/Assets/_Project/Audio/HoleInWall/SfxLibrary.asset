@@ -30,7 +30,7 @@ MonoBehaviour:
     Spatial: 0
   - Id: pass_success_ding
     Clip: {fileID: 8300000, guid: 170a57f68ca42438dbfe8ae5a1b459b9, type: 3}
-    Volume: 0.9
+    Volume: 1
     Loop: 0
     Spatial: 1
   - Id: crowd_cheer
