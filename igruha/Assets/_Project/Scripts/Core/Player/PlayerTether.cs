@@ -25,6 +25,15 @@ namespace Igruha.Core.Player
     /// каждый успешный проход. Трос — это визуальная верёвка плюс сила,
     /// и ничего больше.
     ///
+    /// <b>Отсюда же и способ рисовать провис.</b> Верёвка провисает и качается
+    /// цепочкой Верле по <see cref="ropeSegments"/> точкам — без коллайдеров,
+    /// без Rigidbody и без суставов. Цепочка на суставах выглядела бы так же,
+    /// но цеплялась бы за стену, то есть нарушала бы правило абзацем выше.
+    /// Симуляция чисто визуальная: на игроков она не действует никак, силу
+    /// по-прежнему считает <see cref="FixedUpdate"/> по двум позициям.
+    /// Поэтому её не нужно синхронизировать — у каждой машины своя, и разойтись
+    /// им нечем, кроме кадра качания.
+    ///
     /// <b>Считается по горизонтали.</b> Вертикаль в длину не входит и в
     /// направление тяги тоже: иначе сбитый партнёр, летящий в воду, утягивал бы
     /// второго вниз сквозь пол, а поднятый ловушкой — вверх. Игра горизонтальная,
@@ -50,6 +59,25 @@ namespace Igruha.Core.Player
         [SerializeField] private float ropeWidth = 0.07f;
         [SerializeField] private Color ropeColor = new Color(0.85f, 0.72f, 0.45f);
 
+        [Header("Провис")]
+        [Tooltip("Из скольких точек состоит верёвка. Больше — плавнее дуга, дороже LateUpdate")]
+        [SerializeField] private int ropeSegments = 20;
+        [Tooltip("Затухание качания за шаг: 1 — верёвка не успокаивается никогда, 0 — висит мёртвой дугой")]
+        [Range(0f, 1f)]
+        [SerializeField] private float ropeDamping = 0.92f;
+        [Tooltip("Сколько раз за шаг подтягивать звенья к длине. Мало — верёвка тянется как резина")]
+        [SerializeField] private int ropeIterations = 14;
+
+        /// <summary>
+        /// Шаг симуляции верёвки, с. Фиксированный, а не <c>deltaTime</c>:
+        /// на просадке кадра переменный шаг раздувает Верле и верёвка
+        /// взрывается — классические грабли этого метода.
+        /// </summary>
+        private const float RopeStep = 1f / 60f;
+
+        /// <summary>Больше шагов за кадр не догоняем: после долгой паузы верёвка просто встаёт по месту.</summary>
+        private const int RopeMaxStepsPerFrame = 3;
+
         private LineRenderer rope;
         private PlayerController first;
         private PlayerController second;
@@ -69,6 +97,14 @@ namespace Igruha.Core.Player
         private float maxPullAcceleration = 25f;
         private float hardLimit = 1.08f;
 
+        /// <summary>Точки верёвки в мире. Переиспользуются каждый кадр — в <c>LateUpdate</c> не аллоцируем.</summary>
+        private Vector3[] ropePoints;
+
+        /// <summary>Те же точки шагом раньше: в Верле скорость хранится разностью, а не полем.</summary>
+        private Vector3[] ropePrevious;
+
+        private float ropeStepDebt;
+
         /// <summary>Трос натянут: пара разошлась дальше предельной длины и её тянет назад.</summary>
         public bool IsTaut { get; private set; }
 
@@ -77,12 +113,22 @@ namespace Igruha.Core.Player
 
         private void Awake()
         {
+            ropeSegments = Mathf.Max(2, ropeSegments);
+            ropePoints = new Vector3[ropeSegments];
+            ropePrevious = new Vector3[ropeSegments];
+
             rope = GetComponent<LineRenderer>();
-            rope.positionCount = 2;
+            rope.positionCount = ropeSegments;
             rope.useWorldSpace = true;
             rope.startWidth = ropeWidth;
             rope.endWidth = ropeWidth;
             rope.textureMode = LineTextureMode.Tile;
+
+            // Скругление: без него провисшая верёвка на изгибах читается
+            // гранёной лентой, а не верёвкой.
+            rope.numCapVertices = 4;
+            rope.numCornerVertices = 4;
+
             rope.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             rope.receiveShadows = false;
             rope.enabled = false;
@@ -127,6 +173,13 @@ namespace Igruha.Core.Player
 
             IsTaut = false;
             rope.enabled = Bound;
+
+            if (Bound)
+            {
+                // Иначе первый кадр верёвка тянется из точки, где висела
+                // с прошлого раунда, и хлещет через всю арену.
+                ResetRope(first.CameraTarget.position, second.CameraTarget.position);
+            }
         }
 
         /// <summary>
@@ -239,6 +292,8 @@ namespace Igruha.Core.Player
             }
         }
 
+        // ========== ВЕРЁВКА: ПРОВИС И КАЧАНИЕ ==========
+
         private void LateUpdate()
         {
             if (!Bound)
@@ -248,8 +303,110 @@ namespace Igruha.Core.Player
 
             // Верёвка идёт от груди к груди: CameraTarget стоит именно там и
             // уже выставлен по росту каждого персонажа.
-            rope.SetPosition(0, first.CameraTarget.position);
-            rope.SetPosition(1, second.CameraTarget.position);
+            Vector3 head = first.CameraTarget.position;
+            Vector3 tail = second.CameraTarget.position;
+
+            // Телепорт — это возврат из воды и расстановка пары по местам.
+            // Догонять его симуляцией нельзя: цепочка растянута через всю арену
+            // и, распрямляясь, хлещет так, что читается сбоем рендера.
+            if (Teleported(head, tail))
+            {
+                ResetRope(head, tail);
+            }
+            else
+            {
+                SimulateRope(head, tail);
+            }
+
+            rope.SetPositions(ropePoints);
+        }
+
+        /// <summary>
+        /// Концы уехали дальше, чем верёвка может дотянуться. Это не движение,
+        /// а перестановка: <c>RequestTeleport</c> при возврате из воды или
+        /// расстановка пары в начале стены.
+        /// </summary>
+        private bool Teleported(Vector3 head, Vector3 tail)
+        {
+            float reach = maxLength + hardLimit;
+            return (head - ropePoints[0]).sqrMagnitude > reach * reach
+                || (tail - ropePoints[ropeSegments - 1]).sqrMagnitude > reach * reach;
+        }
+
+        /// <summary>Разложить верёвку прямой между концами и погасить качание.</summary>
+        private void ResetRope(Vector3 head, Vector3 tail)
+        {
+            for (int i = 0; i < ropeSegments; i++)
+            {
+                Vector3 point = Vector3.Lerp(head, tail, i / (float)(ropeSegments - 1));
+                ropePoints[i] = point;
+                ropePrevious[i] = point;
+            }
+
+            ropeStepDebt = 0f;
+        }
+
+        /// <summary>
+        /// Шаг Верле плюс подтяжка звеньев. Звено умеет только <b>сокращаться</b>:
+        /// верёвка не сопротивляется сближению, поэтому на близкой паре она
+        /// провисает сама, а на разошедшейся выпрямляется в струну — ровно тот
+        /// признак, по которому игрок читает, что трос уже держит.
+        /// </summary>
+        private void SimulateRope(Vector3 head, Vector3 tail)
+        {
+            ropeStepDebt = Mathf.Min(ropeStepDebt + Time.deltaTime, RopeStep * RopeMaxStepsPerFrame);
+
+            float restLength = maxLength / (ropeSegments - 1);
+            Vector3 gravityStep = Physics.gravity * (RopeStep * RopeStep);
+
+            // Провисшая верёвка обязана лечь на ту же опору, на которой стоят
+            // двое, а не утонуть в платформе. Опора берётся у самого низкого
+            // из пары: пока оба на платформе — это её пол, а как только одного
+            // сметает в воду, пол уезжает вместе с ним и верёвка повисает.
+            float floorY = Mathf.Min(first.Position.y, second.Position.y) + ropeWidth;
+
+            while (ropeStepDebt >= RopeStep)
+            {
+                ropeStepDebt -= RopeStep;
+
+                for (int i = 1; i < ropeSegments - 1; i++)
+                {
+                    Vector3 current = ropePoints[i];
+                    ropePoints[i] = current + (current - ropePrevious[i]) * ropeDamping + gravityStep;
+                    ropePrevious[i] = current;
+                }
+
+                for (int pass = 0; pass < ropeIterations; pass++)
+                {
+                    ropePoints[0] = head;
+                    ropePoints[ropeSegments - 1] = tail;
+
+                    for (int i = 0; i < ropeSegments - 1; i++)
+                    {
+                        Vector3 delta = ropePoints[i + 1] - ropePoints[i];
+                        float distance = delta.magnitude;
+                        if (distance <= restLength || distance < 0.0001f)
+                        {
+                            continue;
+                        }
+
+                        Vector3 shift = delta * ((distance - restLength) / distance * 0.5f);
+                        ropePoints[i] += shift;
+                        ropePoints[i + 1] -= shift;
+                    }
+
+                    for (int i = 1; i < ropeSegments - 1; i++)
+                    {
+                        if (ropePoints[i].y < floorY)
+                        {
+                            ropePoints[i].y = floorY;
+                        }
+                    }
+                }
+
+                ropePoints[0] = head;
+                ropePoints[ropeSegments - 1] = tail;
+            }
         }
     }
 }
