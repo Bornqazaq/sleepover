@@ -52,6 +52,21 @@ namespace Igruha.EditorTools
         private const string StudioRoot = "_Studio";
         private const string DecorGroup = "Decor";
 
+        private const string PackModels = "Assets/Synty/PolygonNightclubs/Models/";
+
+        /// <summary>Восемь персонажей одним FBX — из них набирается зал.</summary>
+        private const string CrowdPath = PackModels + "Characters.fbx";
+        private const string SpeakerPath = PackModels + "SM_Prop_Speaker_Large_01.fbx";
+        private const string SpeakerTallPath = PackModels + "SM_Prop_Speaker_Large_02.fbx";
+        private const string ScreenPath = PackModels + "SM_Prop_Screen_01.fbx";
+        private static readonly string[] SignPaths =
+        {
+            PackModels + "SM_Prop_Sign_Club_01.fbx",
+            PackModels + "SM_Prop_Sign_Club_02.fbx",
+            PackModels + "SM_Prop_Sign_Red_01.fbx",
+            PackModels + "SM_Prop_Sign_Bar_01.fbx"
+        };
+
         private const string CameraBodyPath =
             "Assets/_Project/Art/HoleInWall/PolygonShops/Models/SM_Prop_Computer_Camera_DSLR_01.fbx";
         private const string CameraTripodPath =
@@ -60,7 +75,7 @@ namespace Igruha.EditorTools
         // ========== ПУБЛИКА ==========
 
         /// <summary>Сколько зрителей на одной секции трибуны.</summary>
-        private const int CrowdPerBleacher = 3;
+        private const int CrowdPerBleacher = 5;
 
         /// <summary>Рост зрителя, м. Ниже игрока: публика не должна читаться как участник.</summary>
         private const float CrowdHeightMin = 0.95f;
@@ -70,10 +85,18 @@ namespace Igruha.EditorTools
         private const float CrowdWidth = 0.42f;
 
         /// <summary>Доля зрителей, подсвеченных «телефоном». Живой зал снимает на телефоны.</summary>
-        private const float CrowdPhoneShare = 0.28f;
+        private const float CrowdPhoneShare = 0.40f;
 
         /// <summary>Размер огонька телефона, м.</summary>
         private const float PhoneSize = 0.12f;
+
+        /// <summary>На сколько огонёк вынесен к арене и поднят над сиденьем, м.</summary>
+        private const float PhoneReach = 0.35f;
+        private const float PhoneHeight = 1.25f;
+
+        /// <summary>Разброс роста зрителя множителем к модели пака.</summary>
+        private const float FanScaleMin = 0.92f;
+        private const float FanScaleMax = 1.06f;
 
         // ========== ШАХТЫ СВЕТА ==========
 
@@ -155,6 +178,7 @@ namespace Igruha.EditorTools
             BuildCrowd(decor, studio, rng);
             BuildLightShafts(decor, config);
             BuildBroadcast(decor, config);
+            BuildBackstage(decor, config, rng);
 
             Strip(decor);
             return decor.GetComponentsInChildren<Renderer>(true).Length;
@@ -179,8 +203,17 @@ namespace Igruha.EditorTools
             var group = new GameObject("Crowd").transform;
             group.SetParent(parent, false);
 
-            Material body = HoleInWallPaletteAssets.Get(Tone.Stage);
+            // ⚠️ Не Tone.Stage. Первым прогоном зал покрасили именно им —
+            // это самый тёмный тон палитры, тот же, что у трибуны и у стен
+            // студии. Зрители слились с фоном, и в кадре их не было вовсе:
+            // сорок человек, которых не видно. Сталь читается силуэтом
+            // и на тёмной трибуне, и против светодиодного борта.
+            Material body = HoleInWallPaletteAssets.Get(Tone.Metal);
             Material phone = HoleInWallPaletteAssets.Get(Tone.NeonCyan);
+
+            // Восемь персонажей лежат в одном FBX; берутся их меши — почему
+            // именно меши, а не объекты, разобрано в LoadCrowdMeshes.
+            Mesh[] kinds = LoadCrowdMeshes();
 
             for (int i = 0; i < stands.childCount; i++)
             {
@@ -204,14 +237,12 @@ namespace Igruha.EditorTools
                     float alongZ = (p + 0.5f) / CrowdPerBleacher;
                     float z = Mathf.Lerp(b.min.z, b.max.z, alongZ) + Jitter(rng, 0.25f);
                     float x = b.center.x + Jitter(rng, b.size.x * 0.22f);
-                    float height = Mathf.Lerp(CrowdHeightMin, CrowdHeightMax, (float)rng.NextDouble());
+                    var at = new Vector3(x, standY, z);
 
-                    var person = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-                    person.name = $"Fan_{i}_{p}";
-                    person.transform.SetParent(group, true);
-                    person.transform.position = new Vector3(x, standY + height * 0.5f, z);
-                    person.transform.localScale = new Vector3(CrowdWidth, height * 0.5f, CrowdWidth);
-                    person.GetComponent<Renderer>().sharedMaterial = body;
+                    // Зритель смотрит на арену: она в середине по X, трибуны
+                    // по краям, поэтому разворот — от знака X, а не наугад.
+                    float yaw = (x < 0f ? 90f : -90f) + Jitter(rng, 18f);
+                    SpawnFan(group, kinds, body, at, yaw, i, p, rng);
 
                     if (rng.NextDouble() >= CrowdPhoneShare)
                     {
@@ -223,13 +254,82 @@ namespace Igruha.EditorTools
                     var light = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     light.name = $"Phone_{i}_{p}";
                     light.transform.SetParent(group, true);
-                    float toArena = Mathf.Sign(-x) * (CrowdWidth * 0.5f + PhoneSize);
                     light.transform.position =
-                        new Vector3(x + toArena, standY + height * 0.82f, z);
+                        new Vector3(x + Mathf.Sign(-x) * PhoneReach, standY + PhoneHeight, z);
                     light.transform.localScale = Vector3.one * PhoneSize;
                     light.GetComponent<Renderer>().sharedMaterial = phone;
                 }
             }
+
+        }
+
+        /// <summary>
+        /// Достать из пака меши персонажей — <b>именно меши, а не объекты</b>.
+        ///
+        /// ⚠️ Первым прогоном зрители копировались как дети FBX целиком,
+        /// и это <b>уронило редактор на запекании</b>. Персонажи пака скинненые:
+        /// их <c>SkinnedMeshRenderer</c> ссылается на кости, лежащие в ветке
+        /// <c>Root</c> того же FBX. Скопировав одного персонажа без скелета,
+        /// получаешь рендерер с висячим массивом костей: в кадре он
+        /// отрисовывается случайно, в позе привязки, а обходчик зависимостей
+        /// на нём падает.
+        ///
+        /// Зал статичен и анимировать его незачем, поэтому берётся
+        /// <c>sharedMesh</c> и ставится обычным <c>MeshRenderer</c>: поза
+        /// привязки та же, зависимости — только сам меш, и запекание проходит.
+        /// </summary>
+        private static Mesh[] LoadCrowdMeshes()
+        {
+            var source = AssetDatabase.LoadAssetAtPath<GameObject>(CrowdPath);
+            if (source == null)
+            {
+                Debug.LogWarning($"Персонажей пака нет ({CrowdPath}) — зал будет капсулами");
+                return System.Array.Empty<Mesh>();
+            }
+
+            var meshes = new System.Collections.Generic.List<Mesh>(8);
+            foreach (SkinnedMeshRenderer skin in source.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                if (skin.sharedMesh != null)
+                {
+                    meshes.Add(skin.sharedMesh);
+                }
+            }
+
+            return meshes.ToArray();
+        }
+
+        /// <summary>
+        /// Поставить одного зрителя. Персонаж пака, а при его отсутствии —
+        /// капсула того же роста.
+        /// </summary>
+        private static void SpawnFan(Transform parent, Mesh[] kinds, Material body,
+            Vector3 at, float yaw, int bench, int seat, System.Random rng)
+        {
+            if (kinds.Length == 0)
+            {
+                float height = Mathf.Lerp(CrowdHeightMin, CrowdHeightMax, (float)rng.NextDouble());
+                var capsule = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                capsule.name = $"Fan_{bench}_{seat}";
+                capsule.transform.SetParent(parent, true);
+                capsule.transform.position = at + Vector3.up * height * 0.5f;
+                capsule.transform.localScale = new Vector3(CrowdWidth, height * 0.5f, CrowdWidth);
+                capsule.GetComponent<Renderer>().sharedMaterial = body;
+                return;
+            }
+
+            var fan = new GameObject($"Fan_{bench}_{seat}");
+            fan.transform.SetParent(parent, false);
+            fan.transform.position = at;
+            fan.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+
+            // Рост чуть разный, иначе зал читается штампом. Ниже игрока
+            // намеренно: публика не должна путаться с участником.
+            float scale = Mathf.Lerp(FanScaleMin, FanScaleMax, (float)rng.NextDouble());
+            fan.transform.localScale = Vector3.one * scale;
+
+            fan.AddComponent<MeshFilter>().sharedMesh = kinds[rng.Next(kinds.Length)];
+            fan.AddComponent<MeshRenderer>().sharedMaterial = body;
         }
 
         private static float Jitter(System.Random rng, float amount) =>
@@ -442,6 +542,18 @@ namespace Igruha.EditorTools
             instance.transform.localPosition = offset;
             instance.transform.localRotation = Quaternion.identity;
 
+            Paint(instance, material);
+        }
+
+        /// <summary>
+        /// Перекрасить модель пака в палитру игры.
+        ///
+        /// Обязательно, а не для красоты: со своими материалами модель тянет
+        /// за собой текстуры пака, и запекание 4.6 перестаёт давать ноль
+        /// ссылок на <c>Assets/Synty/**</c>. Палитра у игры одна.
+        /// </summary>
+        private static void Paint(GameObject instance, Material material)
+        {
             foreach (Renderer renderer in instance.GetComponentsInChildren<Renderer>(true))
             {
                 var materials = new Material[renderer.sharedMaterials.Length];
@@ -453,6 +565,155 @@ namespace Igruha.EditorTools
                 renderer.sharedMaterials = materials;
             }
         }
+
+        // ========== ЗАКУЛИСЬЕ ==========
+
+        /// <summary>
+        /// Наполнение пустого пола студии — за камерой и за стеной.
+        ///
+        /// Между бассейном и стенами павильона лежало по десять с лишним метров
+        /// голого пола: у ближнего края за отходом камеры и у дальнего за
+        /// стартом стены. В кадре при обороте камеры это читалось пустотой,
+        /// в которой студия просто кончается.
+        ///
+        /// <b>Обе запретные зоны обойдены числами.</b> Полоса перед камерой
+        /// занимает Z от <c>ArenaNearZ − CameraClearance</c> до
+        /// <c>ArenaNearZ</c>, то есть −13.3…−7.6 — закулисье ставится ЗА ней,
+        /// от <see cref="BackstageNearZ"/>. Пятно арены кончается на
+        /// <c>ArenaFarZ</c> = 23.0, поэтому дальняя группа начинается с
+        /// <see cref="BackstageFarZ"/>.
+        /// </summary>
+        private static void BuildBackstage(Transform parent, HoleInWallConfig config, System.Random rng)
+        {
+            var group = new GameObject("Backstage").transform;
+            group.SetParent(parent, false);
+
+            Material metal = HoleInWallPaletteAssets.Get(Tone.Metal);
+            Material stage = HoleInWallPaletteAssets.Get(Tone.Stage);
+
+            float floorY = config.WaterSurfaceY - config.PoolDepth + FloorLift;
+            float nearZ = config.ArenaNearZ - config.CameraClearance - BackstageNearGap;
+            float farZ = config.ArenaFarZ + BackstageFarGap;
+
+            var speaker = AssetDatabase.LoadAssetAtPath<GameObject>(SpeakerPath);
+            var speakerTall = AssetDatabase.LoadAssetAtPath<GameObject>(SpeakerTallPath);
+            var screen = AssetDatabase.LoadAssetAtPath<GameObject>(ScreenPath);
+
+            // Колонки стоят ВДОЛЬ арены, а не за ней. Первым прогоном их
+            // расставили по дальнему и ближнему краю пола — и обе группы
+            // оказались за стенами павильона, то есть невидимы из игры.
+            // Место, которое видно всегда, — торцы боковых настилов.
+            float deckX = config.ArenaWidth * 0.5f + config.SideMargin + DeckSpeakerOut;
+            float[] deckZ = { config.PlatformBackZ - 2f, config.ArenaFarZ - 6f };
+
+            for (int side = 0; side < 2; side++)
+            {
+                float x = side == 0 ? -deckX : deckX;
+                for (int i = 0; i < deckZ.Length; i++)
+                {
+                    StackSpeakers(group, speaker, speakerTall, metal,
+                        new Vector3(x, config.WaterSurfaceY + DeckTopLift, deckZ[i]),
+                        side == 0 ? 90f : -90f, rng);
+                }
+            }
+
+            // И ещё пара у дальнего торца — чтобы задник не обрывался пустотой.
+            StackSpeakers(group, speaker, speakerTall, metal, new Vector3(-9f, floorY, farZ), 180f, rng);
+            StackSpeakers(group, speaker, speakerTall, metal, new Vector3(9f, floorY, farZ), 180f, rng);
+
+            // Экраны у дальней стены: задник светодиодный и ровный, а экран
+            // на стойке ломает его плоскость.
+            if (screen != null)
+            {
+                float[] screenX = { -13f, 13f };
+                for (int i = 0; i < screenX.Length; i++)
+                {
+                    var rig = new GameObject("Screen_" + i).transform;
+                    rig.SetParent(group, false);
+                    rig.position = new Vector3(screenX[i], floorY + ScreenLift, farZ + 3f);
+                    rig.rotation = Quaternion.Euler(0f, 180f, 0f);
+                    rig.localScale = Vector3.one * ScreenScale;
+                    Place(screen, rig, Vector3.zero, stage);
+                }
+            }
+
+            BuildSigns(group, config, floorY);
+        }
+
+        /// <summary>Стопка из двух колонок: широкая снизу, узкая сверху.</summary>
+        private static void StackSpeakers(Transform parent, GameObject wide, GameObject tall,
+            Material material, Vector3 at, float yaw, System.Random rng)
+        {
+            if (wide == null)
+            {
+                return;
+            }
+
+            var rig = new GameObject("Speakers_" + at.x.ToString("0") + "_" + at.z.ToString("0")).transform;
+            rig.SetParent(parent, false);
+            rig.position = at;
+            rig.rotation = Quaternion.Euler(0f, yaw + Jitter(rng, 6f), 0f);
+
+            Place(wide, rig, Vector3.zero, material);
+            Place(tall != null ? tall : wide, rig, new Vector3(0f, SpeakerStackLift, 0f), material);
+        }
+
+        /// <summary>
+        /// Неоновые вывески пака на стенах павильона. Красятся неоном палитры,
+        /// а не своими материалами: собственные притащили бы за собой текстуры
+        /// пака, а палитра у игры одна.
+        /// </summary>
+        private static void BuildSigns(Transform parent, HoleInWallConfig config, float floorY)
+        {
+            Material pink = HoleInWallPaletteAssets.Get(Tone.NeonPink);
+            Material cyan = HoleInWallPaletteAssets.Get(Tone.NeonCyan);
+
+            float nearWallZ = config.ArenaNearZ - config.CameraClearance - SignWallGap;
+            float halfWidth = config.ArenaWidth * 0.5f + SignSideOut;
+
+            for (int i = 0; i < SignPaths.Length; i++)
+            {
+                var sign = AssetDatabase.LoadAssetAtPath<GameObject>(SignPaths[i]);
+                if (sign == null)
+                {
+                    continue;
+                }
+
+                bool left = i % 2 == 0;
+                var rig = new GameObject("Sign_" + i).transform;
+                rig.SetParent(parent, false);
+                rig.position = new Vector3(
+                    left ? -halfWidth : halfWidth,
+                    floorY + SignLift + i * SignStep,
+                    nearWallZ + (i < 2 ? 0f : SignRowStep));
+                rig.rotation = Quaternion.Euler(0f, left ? 90f : -90f, 0f);
+                rig.localScale = Vector3.one * SignScale;
+
+                Place(sign, rig, Vector3.zero, i % 2 == 0 ? pink : cyan);
+            }
+        }
+
+        /// <summary>Насколько закулисье поднято над дном бассейна: пол студии лежит выше дна.</summary>
+        private const float FloorLift = 2.16f;
+
+        /// <summary>Отступ закулисья за полосой перед камерой и за пятном арены, м.</summary>
+        private const float BackstageNearGap = 2.5f;
+        private const float BackstageFarGap = 2.5f;
+
+        private const float SpeakerStackLift = 2.1f;
+
+        /// <summary>Насколько колонки вынесены наружу за край арены и подняты на настил, м.</summary>
+        private const float DeckSpeakerOut = 1.2f;
+        private const float DeckTopLift = 1.6f;
+        private const float ScreenLift = 3.5f;
+        private const float ScreenScale = 3f;
+
+        private const float SignWallGap = 5f;
+        private const float SignSideOut = 3f;
+        private const float SignLift = 4f;
+        private const float SignStep = 1.6f;
+        private const float SignRowStep = 6f;
+        private const float SignScale = 2f;
 
         // ========== ПРАВИЛА ПАВИЛЬОНА ==========
 
