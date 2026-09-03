@@ -889,7 +889,7 @@ namespace Igruha.Minigames.HoleInWall
                 // телом распоряжается машина владельца, и прямой вызов на
                 // чужой копии тут же перетёрло бы сетевым транспортом.
                 member.Avatar.ApplyWorldImpulse(impulse, KnockdownType.FlyBack);
-                ScheduleReturn(member, config.SweptReturnSeconds);
+                ScheduleReturn(member, config.SweptReturnSeconds, config.SweptReturnMinSeconds);
             }
         }
 
@@ -915,7 +915,7 @@ namespace Igruha.Minigames.HoleInWall
                 if (!member.Returning && member.Avatar.Position.y < config.WaterSurfaceY)
                 {
                     // Сам сошёл с платформы: полёта не было, только барахтанье.
-                    ScheduleReturn(member, config.SplashSeconds);
+                    ScheduleReturn(member, config.SplashSeconds, config.MinSplashSeconds);
                 }
 
                 if (member.Returning && now >= member.ReturnAt)
@@ -925,15 +925,32 @@ namespace Igruha.Minigames.HoleInWall
             }
         }
 
-        private static void ScheduleReturn(HoleInWallTrack.Member member, float delay)
+        /// <summary>
+        /// Назначить возврат. Задержку считает <see cref="HoleInWallConfig.ReturnDelay"/>
+        /// по расписанию, а не по одному числу: <paramref name="ceiling"/> и
+        /// <paramref name="floor"/> — границы этого пути падения, внутри них
+        /// момент выбирает ближайший удар.
+        ///
+        /// Зовётся только под авторитетом — и сметание, и разбор воды серверные,
+        /// — поэтому <c>roundStartTime</c> здесь заведомо свой, а не приехавший.
+        /// </summary>
+        private void ScheduleReturn(HoleInWallTrack.Member member, float ceiling, float floor)
         {
             if (member.Returning)
             {
                 return;
             }
 
+            double now = NetworkClock.Now;
+
+            // Без объявленного начала раунда расписания нет вовсе: тогда
+            // работает прежнее поведение — полная задержка пути.
+            float delay = roundStartKnown
+                ? config.ReturnDelay((float)(now - roundStartTime), ceiling, floor)
+                : ceiling;
+
             member.Returning = true;
-            member.ReturnAt = NetworkClock.Now + delay;
+            member.ReturnAt = now + delay;
         }
 
         private void ReturnMember(HoleInWallTrack track, HoleInWallTrack.Member member)

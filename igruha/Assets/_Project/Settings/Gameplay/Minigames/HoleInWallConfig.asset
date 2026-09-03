@@ -60,6 +60,7 @@ MonoBehaviour:
   - 3.5
   - 3
   pauseAfterHit: 2
+  poseWindowSeconds: 2.5
   soloSpeedBonus: 0.25
   roundEndDelay: 5
   mirrorWall: 7
@@ -71,3 +72,4 @@ MonoBehaviour:
   sweepUpward: 0.35
   fallSeconds: 1.5
   splashSeconds: 3
+  minSplashSeconds: 1

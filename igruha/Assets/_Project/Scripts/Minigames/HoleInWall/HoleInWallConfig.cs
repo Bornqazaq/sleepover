@@ -127,6 +127,8 @@ namespace Igruha.Minigames.HoleInWall
         [SerializeField] private float[] wallApproachSeconds = { 6f, 6f, 5f, 5f, 4f, 4f, 3.5f, 3f };
         [Tooltip("Пауза между ударом одной стены и стартом следующей")]
         [SerializeField] private float pauseAfterHit = 2f;
+        [Tooltip("КРИТИЧЕСКИЙ ДЛЯ ПЛЕЙТЕСТА. Сколько секунд игрок обязан простоять на платформе перед ударом. По этому числу возвращают из воды: раньше — можно, позже — нельзя")]
+        [SerializeField] private float poseWindowSeconds = 2.5f;
         [Tooltip("Насколько быстрее едет стена на дорожке одиночки. Момент удара при этом общий: стена просто стартует позже")]
         [SerializeField] private float soloSpeedBonus = 0.25f;
         [Tooltip("Сколько секунд после последнего удара держать раунд, чтобы провалившиеся успели вылезти из воды")]
@@ -154,6 +156,8 @@ namespace Igruha.Minigames.HoleInWall
         [SerializeField] private float fallSeconds = 1.5f;
         [Tooltip("Барахтанье в воде до автовозврата на платформу")]
         [SerializeField] private float splashSeconds = 3f;
+        [Tooltip("Минимум барахтанья, когда расписание требует вернуть раньше срока. Ниже него провал перестаёт читаться: игрок вылетает из воды тем же кадром, каким в неё вошёл")]
+        [SerializeField] private float minSplashSeconds = 1f;
 
         // ========== МАСШТАБ ==========
 
@@ -295,6 +299,10 @@ namespace Igruha.Minigames.HoleInWall
         public int WallCount => wallApproachSeconds != null ? wallApproachSeconds.Length : 0;
 
         public float PauseAfterHit => pauseAfterHit;
+
+        /// <summary>Гарантированное окно на выбор позы перед ударом, с.</summary>
+        public float PoseWindowSeconds => Mathf.Max(0f, poseWindowSeconds);
+
         public float SoloSpeedBonus => Mathf.Max(0f, soloSpeedBonus);
         public float RoundEndDelay => roundEndDelay;
         public float MirrorLead => mirrorLead;
@@ -344,6 +352,32 @@ namespace Igruha.Minigames.HoleInWall
             return time;
         }
 
+        /// <summary>
+        /// Момент ближайшего удара, до которого остаётся больше
+        /// <paramref name="minLead"/> секунд. Минус один — таких ударов
+        /// в раунде уже нет.
+        ///
+        /// Считается по таблице, а не по номеру текущей стадии: стадия
+        /// переключается через <see cref="PauseAfterHit"/> после удара, и в эту
+        /// паузу «текущая» стена уже отыграла. Функция от одного времени
+        /// такой дырки не знает.
+        /// </summary>
+        /// <param name="elapsed">Сколько прошло с начала раунда, с</param>
+        /// <param name="minLead">Сколько до удара обязано остаться, с</param>
+        public float NextHitTime(float elapsed, float minLead)
+        {
+            for (int wall = 0; wall < WallCount; wall++)
+            {
+                float hit = HitTime(wall);
+                if (hit - elapsed > minLead)
+                {
+                    return hit;
+                }
+            }
+
+            return -1f;
+        }
+
         /// <summary>Момент старта стены от начала раунда, с. У одиночки позже — см. <see cref="ApproachSeconds(int,bool)"/>.</summary>
         public float StartTime(int wall, bool solo) => HitTime(wall) - ApproachSeconds(wall, solo);
 
@@ -377,7 +411,50 @@ namespace Igruha.Minigames.HoleInWall
         public float FallSeconds => fallSeconds;
         public float SplashSeconds => splashSeconds;
 
+        /// <summary>Минимум барахтанья, с. Меньше — и провала не видно.</summary>
+        public float MinSplashSeconds => Mathf.Max(0f, minSplashSeconds);
+
         /// <summary>Сколько всего проходит от сметания до возвращения на платформу, с.</summary>
         public float SweptReturnSeconds => fallSeconds + splashSeconds;
+
+        /// <summary>Тот же путь по нижней границе: полёт всё равно занимает своё время.</summary>
+        public float SweptReturnMinSeconds => fallSeconds + MinSplashSeconds;
+
+        /// <summary>
+        /// Через сколько секунд вернуть упавшего на платформу.
+        ///
+        /// <b>Возврат привязан к расписанию, а не к фиксированной задержке.</b>
+        /// Фиксированная задержка давала окно на позу, которое плавало вместе
+        /// с подъездом: 3.5 с после первой стены и 0.5 с после седьмой, то есть
+        /// к концу раунда игрок возвращался позже сигнала за
+        /// <see cref="WarningLead"/> до удара и стена решала за него. Здесь
+        /// возврат назначается за <see cref="PoseWindowSeconds"/> до удара,
+        /// и окно перестаёт зависеть от того, какая стена следующая.
+        ///
+        /// <b>Целимся в первый удар, к которому вообще можно успеть</b> — тот,
+        /// до которого осталось больше <paramref name="floor"/>. Иначе торопить
+        /// возврат незачем: игрок вынырнет в кадр удара, потеряет стену всё
+        /// равно и вдобавок не отбарахтается. Пропущенный так удар — не потеря:
+        /// он был потерян в момент падения.
+        ///
+        /// Границы у каждого пути падения свои: <paramref name="ceiling"/> —
+        /// полная задержка пути, дольше неё не держим никогда;
+        /// <paramref name="floor"/> — минимум, ниже которого провал перестаёт
+        /// читаться и на глаз, и на слух.
+        /// </summary>
+        /// <param name="elapsed">Сколько прошло с начала раунда, с</param>
+        /// <param name="ceiling">Полная задержка этого пути падения, с</param>
+        /// <param name="floor">Минимальная задержка этого пути падения, с</param>
+        public float ReturnDelay(float elapsed, float ceiling, float floor)
+        {
+            float hit = NextHitTime(elapsed, floor);
+            if (hit < 0f)
+            {
+                // Удары кончились: держит только RoundEndDelay, спешить некуда.
+                return ceiling;
+            }
+
+            return Mathf.Clamp(hit - PoseWindowSeconds - elapsed, floor, ceiling);
+        }
     }
 }
