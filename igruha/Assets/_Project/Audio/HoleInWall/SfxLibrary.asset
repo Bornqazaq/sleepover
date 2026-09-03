@@ -20,12 +20,12 @@ MonoBehaviour:
     Spatial: 0
   - Id: wall_move_loop
     Clip: {fileID: 8300000, guid: 790090dfb308e4e26ab4392dda47e734, type: 3}
-    Volume: 0.7
+    Volume: 0.85
     Loop: 1
     Spatial: 1
   - Id: impact_warning
     Clip: {fileID: 8300000, guid: d17b6ba93283947408630ca247d594ed, type: 3}
-    Volume: 0.85
+    Volume: 0.95
     Loop: 0
     Spatial: 0
   - Id: pass_success_ding
@@ -35,22 +35,22 @@ MonoBehaviour:
     Spatial: 1
   - Id: crowd_cheer
     Clip: {fileID: 8300000, guid: f8df7737b08654ca5823dfa9500e5041, type: 3}
-    Volume: 0.8
+    Volume: 1
     Loop: 0
     Spatial: 0
   - Id: fail_body_hit
     Clip: {fileID: 8300000, guid: 1a6245f701b854246a0f689f870b4e59, type: 3}
-    Volume: 1
+    Volume: 0.8
     Loop: 0
     Spatial: 1
   - Id: fall_whoosh
     Clip: {fileID: 8300000, guid: d7f336cf9268545099fc6f198ae93833, type: 3}
-    Volume: 0.8
+    Volume: 0.65
     Loop: 0
     Spatial: 1
   - Id: water_splash
     Clip: {fileID: 8300000, guid: f58db2583bd0444bca3833ad2d994adb, type: 3}
-    Volume: 1
+    Volume: 0.55
     Loop: 0
     Spatial: 1
   - Id: underwater_loop

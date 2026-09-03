@@ -25,10 +25,10 @@
       "model": "sfx",
       "duration": 10,
       "loop": true,
-      "volume": 0.7,
+      "volume": 0.85,
       "spatial": true,
       "prompt": "low mechanical rumble of a huge sliding wall, continuous seamless drone, deep industrial hum, steady, no music, no melody",
-      "note": "Луп. В игре питч и громкость гонятся кодом от скорости стены."
+      "note": "Луп. В игре питч и громкость гонятся кодом от скорости стены. Правка 03.09: Было 0.70. Вместе с полом громкости в коде давало 0.15 на старте стены при теме раунда 0.35. Правка 03.09: у клипа срезан подъём в 1.2 с — внутри лупа он повторялся каждые 10 с, и стена начинала ехать в самый тихий его момент. Длина 10.0 → 8.79 с, шов 0.8 дБ."
     },
     {
       "id": "impact_warning",
@@ -36,9 +36,10 @@
       "model": "sfx",
       "duration": 1,
       "loop": false,
-      "volume": 0.85,
+      "volume": 0.95,
       "spatial": false,
-      "prompt": "short sharp electronic warning beep, single high pitched alert tone, game show buzzer, dry, no reverb"
+      "prompt": "loud emergency buzzer blast, harsh electric alarm honk, factory press about to slam, warning of imminent crush, strong and clear, no music, no voices",
+      "note": "Правка 03.09: Было 0.85. Это сигнал безопасности, он обязан пробиваться."
     },
     {
       "id": "pass_success_ding",
@@ -56,10 +57,10 @@
       "model": "sfx",
       "duration": 5,
       "loop": false,
-      "volume": 0.8,
+      "volume": 1.0,
       "spatial": false,
       "prompt": "large studio audience cheering and applauding, sudden burst of excitement, live TV show crowd, energetic",
-      "note": "Отдельным слотом от «дзынь»: у дзыня атака мгновенная, у публики длинный хвост. Играются двумя источниками."
+      "note": "Отдельным слотом от «дзынь»: у дзыня атака мгновенная, у публики длинный хвост. Играются двумя источниками. Правка 03.09: Было 0.80 и почти не слышалось. Рёв один на стену и конкурирует с четырьмя дорожками ударов и всплесков — 1× против 4×."
     },
     {
       "id": "fail_body_hit",
@@ -67,9 +68,10 @@
       "model": "sfx",
       "duration": 2,
       "loop": false,
-      "volume": 1.0,
+      "volume": 0.8,
       "spatial": true,
-      "prompt": "dull plastic panel slamming into a body, muffled thud with light rattle, comedic impact, dry, close mic"
+      "prompt": "dull plastic panel slamming into a body, muffled thud with light rattle, comedic impact, dry, close mic",
+      "note": "Правка 03.09: Было 1.00. Освобождает место рёву публики: удар звучит на каждой дорожке, рёв — один на стену."
     },
     {
       "id": "fall_whoosh",
@@ -77,9 +79,10 @@
       "model": "sfx",
       "duration": 2,
       "loop": false,
-      "volume": 0.8,
+      "volume": 0.65,
       "spatial": true,
-      "prompt": "fast air whoosh of a body flying through the air, comedic falling swoosh, doppler, no music"
+      "prompt": "fast air whoosh of a body flying through the air, comedic falling swoosh, doppler, no music",
+      "note": "Правка 03.09: Было 0.80. По той же причине, что удар."
     },
     {
       "id": "water_splash",
@@ -87,9 +90,10 @@
       "model": "sfx",
       "duration": 3,
       "loop": false,
-      "volume": 1.0,
+      "volume": 0.55,
       "spatial": true,
-      "prompt": "big water splash, heavy body falling into a pool, impact splash with scattering droplets, close perspective"
+      "prompt": "big water splash, heavy body falling into a pool, impact splash with scattering droplets, close perspective",
+      "note": "Правка 03.09: Было 1.00 — слишком громко и жёстко на слух. Плюс всплеск теперь один на дорожку, а не на человека: пара падала в одну точку и давала +6 дБ."
     },
     {
       "id": "underwater_loop",
@@ -156,5 +160,14 @@
       "prompt": "energetic retro game show background loop, driving percussion, playful synth brass stabs, tense but fun TV competition bed, no vocals",
       "note": "Луп на 65 с раунда (8.5). Микшируется тише SFX."
     }
-  ]
+  ],
+  "mix_review": {
+    "date": "2026-09-03",
+    "by": "геймдизайнер, на слух",
+    "kept": [
+      "round_theme",
+      "round_end_jingle"
+    ],
+    "note": "Разбор показал, что дело было не в клипах: по RMS wall_move_loop и crowd_cheer — самые громкие файлы набора (-12 dBFS), а слышно их было хуже всего. Виноваты множители громкости в коде и удвоение всплеска на паре."
+  }
 }

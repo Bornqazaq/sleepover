@@ -69,8 +69,15 @@ namespace Igruha.Minigames.HoleInWall
 
         // ========== ГУЛ СТЕНЫ ==========
 
-        /// <summary>Громкость гула на самой медленной стене. Ниже — гул пропадает под остальным миксом.</summary>
-        private const float SlowRumbleVolume = 0.55f;
+        /// <summary>
+        /// Громкость гула на самой медленной стене.
+        ///
+        /// ⚠️ <b>Было 0.55 и оказалось глухо.</b> Множители перемножаются:
+        /// слот 0.85 × этот × <see cref="FarRumbleVolume"/>, — и на старте
+        /// стены давали 0.15 при теме раунда 0.35. Подъезжающая стена звучала
+        /// вдвое тише фоновой музыки, то есть подсказки не было вовсе.
+        /// </summary>
+        private const float SlowRumbleVolume = 0.8f;
 
         /// <summary>Тон гула на самой медленной стене. Ниже единицы — стена «тяжелее».</summary>
         private const float SlowRumblePitch = 0.9f;
@@ -78,8 +85,15 @@ namespace Igruha.Minigames.HoleInWall
         /// <summary>Тон гула на самой быстрой стене.</summary>
         private const float FastRumblePitch = 1.25f;
 
-        /// <summary>Доля громкости гула в момент старта стены. К линии проверки она дорастает до полной.</summary>
-        private const float FarRumbleVolume = 0.4f;
+        /// <summary>
+        /// Доля громкости гула в момент старта стены. К линии проверки она дорастает до полной.
+        ///
+        /// ⚠️ <b>Было 0.4.</b> Смысл множителя — «далёкая стена тише близкой»,
+        /// но вместе с полом громкости он же и делал старт неслышным. Слышать
+        /// стену игрок обязан с первой секунды: на это у него уходит выбор позы.
+        /// Разница между далёкой и близкой остаётся, но начинается не с шёпота.
+        /// </summary>
+        private const float FarRumbleVolume = 0.75f;
 
         /// <summary>На этой высоте над полом платформы стоит источник гула — на уровне корпуса стены.</summary>
         private const float RumbleHeightFactor = 0.5f;
@@ -375,6 +389,7 @@ namespace Igruha.Minigames.HoleInWall
         private void WatchWater(HoleInWallTrack track, ref bool anySubmerged, ref Vector3 point)
         {
             IReadOnlyList<HoleInWallTrack.Member> members = track.Members;
+            bool splashed = false;
 
             for (int slot = 0; slot < members.Count && slot < SlotsPerTrack; slot++)
             {
@@ -396,8 +411,14 @@ namespace Igruha.Minigames.HoleInWall
                 // Всплеск звучит с зеркала воды, а не с головы ушедшего под неё.
                 var surface = new Vector3(position.x, config.WaterSurfaceY, position.z);
 
-                if (under && !submerged[key])
+                // Всплеск — один на дорожку, а не на человека, тем же правилом,
+                // которым живёт удар по телу. Пара падает в одну точку в один
+                // кадр, и два одинаковых всплеска там дают не «плюхнулись двое»,
+                // а вдвое более громкий всплеск: +6 дБ на самом громком звуке
+                // игры. Геймдизайнер услышал это первым же, что сказал про звук.
+                if (under && !submerged[key] && !splashed)
                 {
+                    splashed = true;
                     audioPlayer.PlayAt(SlotSplash, surface);
                 }
 
