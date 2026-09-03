@@ -71,6 +71,9 @@ namespace Igruha.EditorTools
         /// <summary>Уровень клипа в дБ. Считается один раз: GetData на минутной теме недёшев.</summary>
         private readonly Dictionary<int, float> levelCache = new Dictionary<int, float>();
 
+        /// <summary>Слот, который надо сыграть, когда отпустят ползунок. Играть на каждом кадре перетаскивания — каша.</summary>
+        private string pendingPlay;
+
         private bool playOnRelease = true;
         private Vector2 scroll;
         private string status = string.Empty;
@@ -109,6 +112,13 @@ namespace Igruha.EditorTools
             IReadOnlyList<MinigameSfxLibrary.Entry> entries = library.Entries;
             for (int i = 0; i < entries.Count; i++) DrawRow(i, entries[i]);
             EditorGUILayout.EndScrollView();
+
+            // Ждём отпускания мыши, а не играем на каждом кадре перетаскивания.
+            if (pendingPlay != null && Event.current.type == EventType.MouseUp)
+            {
+                if (playOnRelease) PlayById(pendingPlay);
+                pendingPlay = null;
+            }
 
             DrawFooter();
         }
@@ -182,18 +192,19 @@ namespace Igruha.EditorTools
             if (GUILayout.Button("▶", GUILayout.Width(PlayWidth))) PlayOne(entry);
             GUI.enabled = true;
 
+            // Писать можно ТОЛЬКО внутри EndChangeCheck, и это не придирка к стилю.
+            // Первая версия сравнивала возвращённое значение с текущим и писала при
+            // расхождении — а слайдер отдаёт значение из позиции мыши на каждом
+            // проходе GUI. Стоило окну перерисоваться с курсором над строками, как
+            // все громкости разом принимали координату мыши: 03.09 так и вышло,
+            // библиотека уехала в 0.187 / 0.001 / 0.363 и восстанавливалась из git.
             EditorGUI.BeginChangeCheck();
             float volume = GUILayout.HorizontalSlider(entry.Volume, 0f, 1f);
-            bool released = EditorGUI.EndChangeCheck() == false
-                            && Event.current.type == EventType.MouseUp;
-
             float typed = EditorGUILayout.FloatField(volume, GUILayout.Width(ValueWidth));
-            volume = Mathf.Clamp01(typed);
-
-            if (!Mathf.Approximately(volume, entry.Volume))
+            if (EditorGUI.EndChangeCheck())
             {
-                SetVolume(index, volume);
-                if (playOnRelease && released) PlayOne(library.Entries[index]);
+                SetVolume(index, Mathf.Clamp01(typed));
+                pendingPlay = entry.Id;
             }
 
             DrawLevelBar(entry);
@@ -356,6 +367,12 @@ namespace Igruha.EditorTools
         }
 
         // ========== ПРОСЛУШИВАНИЕ ==========
+
+        private void PlayById(string id)
+        {
+            foreach (MinigameSfxLibrary.Entry entry in library.Entries)
+                if (entry.Id == id) { PlayOne(entry); return; }
+        }
 
         private void PlayOne(MinigameSfxLibrary.Entry entry)
         {

@@ -50,7 +50,7 @@ MonoBehaviour:
     Spatial: 1
   - Id: water_splash
     Clip: {fileID: 8300000, guid: f58db2583bd0444bca3833ad2d994adb, type: 3}
-    Volume: 0.55
+    Volume: 0.85
     Loop: 0
     Spatial: 1
   - Id: underwater_loop
