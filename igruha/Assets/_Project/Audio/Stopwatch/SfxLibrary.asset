@@ -1,0 +1,90 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2574025c1373412bb9b8283feb02ca7, type: 3}
+  m_Name: SfxLibrary
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.MinigameSfxLibrary
+  entries:
+  - Id: round_gong
+    Clip: {fileID: 8300000, guid: 5bf14912e4e934d798c2e262954858ba, type: 3}
+    Volume: 0.85
+    Loop: 0
+    Spatial: 0
+  - Id: tick
+    Clip: {fileID: 8300000, guid: 8767f215504764412ad5e8f943341726, type: 3}
+    Volume: 0.7
+    Loop: 0
+    Spatial: 0
+  - Id: button_start
+    Clip: {fileID: 8300000, guid: 75a64c6ce552d41a79b9265cf5fef99b, type: 3}
+    Volume: 0.9
+    Loop: 0
+    Spatial: 1
+  - Id: button_stop
+    Clip: {fileID: 8300000, guid: 494408c9f25784e059323f7ae06451f1, type: 3}
+    Volume: 0.9
+    Loop: 0
+    Spatial: 1
+  - Id: drumroll
+    Clip: {fileID: 8300000, guid: 57788919df57845eca37d0c03db6e553, type: 3}
+    Volume: 0.75
+    Loop: 0
+    Spatial: 0
+  - Id: cymbal
+    Clip: {fileID: 8300000, guid: 71abc5ba4151b47bbb7528430a1f4fb2, type: 3}
+    Volume: 0.8
+    Loop: 0
+    Spatial: 0
+  - Id: cage_winch
+    Clip: {fileID: 8300000, guid: a797a3ba1ae964935b2133a7a382163c, type: 3}
+    Volume: 0.85
+    Loop: 0
+    Spatial: 1
+  - Id: hatch_open
+    Clip: {fileID: 8300000, guid: 7ea4cee496f0b43489cb8cc33f99e4ac, type: 3}
+    Volume: 0.95
+    Loop: 0
+    Spatial: 1
+  - Id: bear_roar
+    Clip: {fileID: 8300000, guid: a3f51d1321d7b44d3a6796e6fba8dfcc, type: 3}
+    Volume: 0.9
+    Loop: 0
+    Spatial: 1
+  - Id: bear_paw
+    Clip: {fileID: 8300000, guid: ccb616b817e644356ba436a69f9dd80d, type: 3}
+    Volume: 0.85
+    Loop: 0
+    Spatial: 1
+  - Id: crowd_gasp
+    Clip: {fileID: 8300000, guid: 0c53f7ec57f4f41f799faeb17785fe21, type: 3}
+    Volume: 0.7
+    Loop: 0
+    Spatial: 0
+  - Id: crowd_laugh
+    Clip: {fileID: 8300000, guid: e2704d0eb1e8149a2b512cd364605b3e, type: 3}
+    Volume: 0.7
+    Loop: 0
+    Spatial: 0
+  - Id: crowd_ambience
+    Clip: {fileID: 8300000, guid: 22272ae93c0e24505acf2999a710e1a8, type: 3}
+    Volume: 0.35
+    Loop: 1
+    Spatial: 0
+  - Id: fanfare
+    Clip: {fileID: 8300000, guid: 772883cbd0c144d3da2249fbcc8f3bdf, type: 3}
+    Volume: 0.85
+    Loop: 0
+    Spatial: 0
+  - Id: applause
+    Clip: {fileID: 8300000, guid: 72415787c69e14bb487a70e09500894c, type: 3}
+    Volume: 0.7
+    Loop: 0
+    Spatial: 0

@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Text;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
@@ -44,17 +46,34 @@ namespace Igruha.EditorTools
                 return;
             }
 
+            MemoryRunDress.Begin();
+            MemoryRunPalette.Begin();
+
             ReplaceRoot(ArenaRoot, out Transform arena);
             ReplaceRoot(BoundsRoot, out Transform bounds);
 
             BuildHall(arena, config);
             BuildPit(arena, config);
             BuildStartZone(arena, config);
-            BuildGate(arena, config);
+            TurnGate gate = BuildGate(arena, config);
             BuildPlates(arena, config);
             BuildExit(arena, config);
             BuildKillZone(bounds, config);
+            MemoryRunEnvironment.Build(arena, config);
+            GameObject manager = GameObject.Find("MinigameManager");
+            WireManager(manager, gate);
+            MemoryRunVfx.Build(arena, manager);
+            MemoryRunSfx.Build(arena, config, manager);
             EnsureHudStatusLine();
+
+            MemoryRunPalette.Flush();
+
+            Debug.Log(MemoryRunDress.Report(), arena);
+            Debug.Log(MemoryRunPalette.Report(), arena);
+            Debug.Log(MemoryRunEnvironment.Report(), arena);
+            Debug.Log(MemoryRunVfx.Report(), arena);
+            Debug.Log(MemoryRunSfx.Report(), arena);
+            ReportMissingModels();
 
             Debug.Log(
                 $"🧨 Арена «Рейса на память» построена: цех {config.HallWidth:F1}×{config.HallDepth:F1} м, " +
@@ -125,14 +144,15 @@ namespace Igruha.EditorTools
 
             // ⚠️ Стены обязаны лежать на Ground: геометрия на Default для камеры
             // прозрачна, и деоклюдер выпустит её наружу (igruha/CLAUDE.md, 2a).
+            Material wall = MemoryRunPalette.Get(MemoryRunPalette.Tone.Wall);
             SetLayer(CreateBox(parent, "Wall_Far", new Vector3(config.HallWidth, h, WallThickness),
-                new Vector3(0f, h * 0.5f, halfD), Color.white), "Ground");
+                new Vector3(0f, h * 0.5f, halfD), wall), "Ground");
             SetLayer(CreateBox(parent, "Wall_Near", new Vector3(config.HallWidth, h, WallThickness),
-                new Vector3(0f, h * 0.5f, -halfD), Color.white), "Ground");
+                new Vector3(0f, h * 0.5f, -halfD), wall), "Ground");
             SetLayer(CreateBox(parent, "Wall_Left", new Vector3(WallThickness, h, config.HallDepth),
-                new Vector3(-halfW, h * 0.5f, 0f), Color.white), "Ground");
+                new Vector3(-halfW, h * 0.5f, 0f), wall), "Ground");
             SetLayer(CreateBox(parent, "Wall_Right", new Vector3(WallThickness, h, config.HallDepth),
-                new Vector3(halfW, h * 0.5f, 0f), Color.white), "Ground");
+                new Vector3(halfW, h * 0.5f, 0f), wall), "Ground");
         }
 
         /// <summary>
@@ -149,7 +169,7 @@ namespace Igruha.EditorTools
             var pit = CreateBox(parent, "PitFloor",
                 new Vector3(config.HallWidth, WallThickness, depth),
                 new Vector3(0f, -config.PitDepth, from + depth * 0.5f),
-                new Color(0.10f, 0.10f, 0.12f));
+                MemoryRunPalette.Get(MemoryRunPalette.Tone.Pit));
             SetLayer(pit, "Ground");
         }
 
@@ -172,8 +192,10 @@ namespace Igruha.EditorTools
             var floor = CreateBox(parent, "StartZone",
                 new Vector3(config.HallWidth, WallThickness, depth),
                 new Vector3(0f, lift - WallThickness * 0.5f, centerZ),
-                new Color(0.62f, 0.66f, 0.70f));
+                MemoryRunPalette.Get(MemoryRunPalette.Tone.Deck));
             SetLayer(floor, "Ground");
+            MemoryRunDress.Apply(floor, MemoryRunDress.Kind.Deck);
+            BuildPitRim(parent, config, config.GateZ - RimWidth * 0.5f, lift);
 
             // Метка для расстановки точек спавна и для возврата погибших.
             var marker = new GameObject("StartPoint");
@@ -210,20 +232,30 @@ namespace Igruha.EditorTools
         /// снимает коллизию адресно через <c>Physics.IgnoreCollision</c>,
         /// а она от слоя не зависит.
         /// </summary>
-        private static void BuildGate(Transform parent, MemoryRunConfig config)
+        private static TurnGate BuildGate(Transform parent, MemoryRunConfig config)
         {
             var gate = CreateBox(parent, "TurnGate",
                 new Vector3(config.HallWidth, config.GateHeight, WallThickness),
                 new Vector3(0f, config.StartZoneLift + config.GateHeight * 0.5f, config.GateZ),
-                GateColor);
-
-            Renderer renderer = gate.GetComponent<Renderer>();
-            if (renderer != null)
-            {
-                renderer.sharedMaterial = GetGlassMaterial(GateColor);
-            }
+                MemoryRunPalette.Get(MemoryRunPalette.Tone.Gate));
 
             SetLayer(gate, "Ignore Raycast");
+
+            // 🔴 Компонент вешается здесь, а не живёт в сцене руками.
+            //
+            // До 04.09 он был поставлен вручную на фазе 2, и первая же
+            // пересборка арены его снесла вместе с группой _Arena. Снаружи это
+            // выглядит не как «пропал компонент», а как «болванки топчутся на
+            // старте»: ссылка gate у менеджера становится NULL, OpenFor не
+            // зовётся никем, барьер не открывается никому, и маршрут
+            // недостижим вообще. Игра при этом исправно крутит очередь и
+            // считает ходы по таймауту — в консоли ни одной ошибки.
+            //
+            // Тот же класс, что и «Переноска предмета» 3.62: то, что не
+            // воспроизводится пересборкой, теряется при первой же пересборке.
+            // Здесь цена выше — там игра становилась нечитаемой, тут
+            // неиграбельной.
+            return gate.AddComponent<TurnGate>();
         }
 
         /// <summary>
@@ -242,10 +274,17 @@ namespace Igruha.EditorTools
                     var plate = CreateBox(root.transform, $"Plate_{step:00}_{lane}",
                         new Vector3(config.PlateSize, config.PlateThickness, config.PlateSize),
                         new Vector3(config.LaneX(lane), -config.PlateThickness * 0.5f, config.StepZ(step)),
-                        new Color(0.55f, 0.56f, 0.58f));
+                        MemoryRunPalette.Get(MemoryRunPalette.Tone.Plate));
                     SetLayer(plate, "Ground");
+
+                    // 🔴 Все тридцать одеваются одним мешем и одним материалом,
+                    // без поворота и без вариаций. Это правило игры, а не вкус:
+                    // любая примета на плите заменяет память приметой.
+                    MemoryRunDress.ApplyPlate(plate);
                 }
             }
+
+            MemoryRunDress.BuildRowStructure(root.transform, config);
         }
 
         /// <summary>Сплошная безопасная площадка и дверь: понятная цель, видимая от первого ряда.</summary>
@@ -256,21 +295,24 @@ namespace Igruha.EditorTools
             var pad = CreateBox(parent, "ExitPad",
                 new Vector3(config.HallWidth, WallThickness, config.ExitPadDepth),
                 new Vector3(0f, -WallThickness * 0.5f, centerZ),
-                new Color(0.58f, 0.62f, 0.58f));
+                MemoryRunPalette.Get(MemoryRunPalette.Tone.Deck));
             SetLayer(pad, "Ground");
+            MemoryRunDress.Apply(pad, MemoryRunDress.Kind.Deck);
+            BuildPitRim(parent, config, config.ExitPadZ + RimWidth * 0.5f, 0f);
 
             float doorHeight = 3f * config.UnitsPerWidth;
             float doorWidth = 2.4f * config.UnitsPerWidth;
             var door = CreateBox(parent, "ExitDoor",
                 new Vector3(doorWidth, doorHeight, WallThickness),
                 new Vector3(0f, doorHeight * 0.5f, config.HallDepth * 0.5f - WallThickness),
-                new Color(0.30f, 0.33f, 0.36f));
+                MemoryRunPalette.Get(MemoryRunPalette.Tone.Door));
             SetLayer(door, "Ground");
+            MemoryRunDress.Apply(door, MemoryRunDress.Kind.ExitDoor);
 
             var lamp = CreateBox(parent, "ExitLamp",
                 new Vector3(doorWidth * 0.3f, 0.15f, 0.15f),
                 new Vector3(0f, doorHeight + 0.3f, config.HallDepth * 0.5f - WallThickness),
-                new Color(0.25f, 0.95f, 0.35f));
+                MemoryRunPalette.Get(MemoryRunPalette.Tone.ExitLamp));
             SetLayer(lamp, "Ground");
 
             // Триггер прохода — на Default: маска камеры этот слой не включает,
@@ -309,6 +351,68 @@ namespace Igruha.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
+        /// <summary>
+        /// Вписать менеджеру то, что живёт внутри пересобираемой группы.
+        ///
+        /// Ссылка на барьер — единственная такая: всё прочее, на что смотрит
+        /// <see cref="MemoryRunMinigame"/>, лежит вне <c>_Arena</c> и
+        /// пересборку переживает. Барьер лежит внутри, и без этого шага
+        /// пересборка каждый раз оставляла бы игру без проходимого барьера.
+        ///
+        /// Молчать при ненайденном менеджере нельзя: немая потеря этой ссылки
+        /// и есть та поломка, ради которой метод написан.
+        /// </summary>
+        private static void WireManager(GameObject manager, TurnGate gate)
+        {
+            if (manager == null)
+            {
+                Debug.LogError("MinigameManager не найден — барьер очереди останется не привязан, "
+                               + "и ходящий не выйдет из стартовой зоны");
+                return;
+            }
+
+            var game = manager.GetComponent<MemoryRunMinigame>();
+            if (game == null)
+            {
+                Debug.LogError("На MinigameManager нет MemoryRunMinigame — барьер привязать не к чему");
+                return;
+            }
+
+            var so = new SerializedObject(game);
+            SerializedProperty property = so.FindProperty("gate");
+            if (property == null)
+            {
+                Debug.LogError("У MemoryRunMinigame нет поля gate — барьер привязать некуда");
+                return;
+            }
+
+            property.objectReferenceValue = gate;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// Назвать модели, которых не оказалось в проекте. Паки Synty каждый
+        /// ставит себе сам и в репозиторий не кладутся, поэтому промах пути
+        /// обязан быть громким: молча пропущенная модель выглядит в сцене как
+        /// пустое место, а не как ошибка.
+        /// </summary>
+        private static void ReportMissingModels()
+        {
+            IReadOnlyList<string> missing = MemoryRunDress.Missing;
+            if (missing.Count == 0)
+            {
+                return;
+            }
+
+            var text = new StringBuilder("Модели не найдены — пересборка прошла с замечаниями:");
+            for (int i = 0; i < missing.Count; i++)
+            {
+                text.Append("\n— ").Append(missing[i]);
+            }
+
+            Debug.LogWarning(text.ToString());
+        }
+
         private static void ReplaceRoot(string name, out Transform root)
         {
             var existing = GameObject.Find(name);
@@ -320,7 +424,20 @@ namespace Igruha.EditorTools
             root = new GameObject(name).transform;
         }
 
-        private static GameObject CreateBox(Transform parent, string name, Vector3 size, Vector3 position, Color color)
+        /// <summary>
+        /// Коробка блокаута с материалом палитры.
+        ///
+        /// ⚠️ Материал <b>обязателен</b>: <c>CreatePrimitive</c> вешает
+        /// встроенный Default-Material, шейдер которого не из URP и в сборку не
+        /// попадает — в билде объект стал бы фиолетовым, хотя в редакторе
+        /// выглядит нормально (STATE 3.9).
+        ///
+        /// Материал приходит <b>ассетом с диска</b>, а не создаётся здесь. До
+        /// подфазы 4.2 он создавался на лету, уезжал в YAML сцены и множился
+        /// при каждой пересборке; настроить тон в таком виде было негде.
+        /// </summary>
+        private static GameObject CreateBox(Transform parent, string name, Vector3 size, Vector3 position,
+            Material material)
         {
             var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
             go.name = name;
@@ -328,16 +445,45 @@ namespace Igruha.EditorTools
             go.transform.localPosition = position;
             go.transform.localScale = size;
 
-            // ⚠️ CreatePrimitive вешает встроенный Default-Material, шейдер
-            // которого не из URP и в сборку не попадает: в билде объект стал бы
-            // фиолетовым, хотя в редакторе выглядит нормально (STATE 3.9).
             var renderer = go.GetComponent<Renderer>();
             if (renderer != null)
             {
-                renderer.sharedMaterial = GetBlockoutMaterial(color);
+                renderer.sharedMaterial = material;
             }
 
             return go;
+        }
+
+        /// <summary>Ширина предупреждающей кромки вдоль края провала.</summary>
+        private const float RimWidth = 0.6f;
+
+        /// <summary>
+        /// Кромка провала: красная полоса вдоль обоих его краёв.
+        ///
+        /// Плоский примитив, десяток треугольников. Единственное место в игре,
+        /// где живёт предупреждающий красный: на плитах его быть не может по
+        /// правилу неразличимости, а других опасных объектов здесь нет.
+        ///
+        /// Коллайдера у полосы нет и слой у неё <c>Default</c>: она лежит на
+        /// самом краю площадки, и лишняя поверхность там ловила бы шаг перед
+        /// прыжком.
+        ///
+        /// <paramref name="z"/> — центр полосы, и он обязан лежать <b>на
+        /// площадке</b>, а не за её краем. Первая версия отмеряла полширины не
+        /// в ту сторону на обоих краях, и обе полосы висели в воздухе над
+        /// пропастью: числами это не ловится ничем — ни аудит дресса, ни
+        /// проверка зоны выбывания сюда не смотрят, только глаз на кадре.
+        /// </summary>
+        private static void BuildPitRim(Transform parent, MemoryRunConfig config, float z, float surfaceY)
+        {
+            var rim = CreateBox(parent, "PitRim",
+                new Vector3(config.HallWidth, 0.06f, RimWidth),
+                new Vector3(0f, surfaceY + 0.01f, z),
+                MemoryRunPalette.Get(MemoryRunPalette.Tone.PitRim));
+
+            Object.DestroyImmediate(rim.GetComponent<Collider>());
+            rim.GetComponent<Renderer>().shadowCastingMode =
+                UnityEngine.Rendering.ShadowCastingMode.Off;
         }
 
         /// <summary>
@@ -421,67 +567,6 @@ namespace Igruha.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
 
             Debug.Log("HUD получил строку статуса: чей ход, таймер хода, очередь и счётчик попыток", text);
-        }
-
-        /// <summary>Цвет барьера очереди — тот же, но теперь сквозь него видно.</summary>
-        private static readonly Color GateColor = new Color(0.75f, 0.62f, 0.20f, 0.22f);
-
-        private static Material glassMaterial;
-
-        /// <summary>
-        /// Прозрачный вариант блокаутного материала — для барьера очереди.
-        ///
-        /// URP Lit не становится прозрачным от одной альфы в цвете: нужны и
-        /// <c>_Surface</c>, и режим смешивания, и очередь отрисовки, и ключевое
-        /// слово шейдера. Выставить что-то одно — получить непрозрачный куб
-        /// и потратить прогон на выяснение, почему.
-        /// </summary>
-        private static Material GetGlassMaterial(Color color)
-        {
-            if (glassMaterial == null)
-            {
-                Shader shader = Shader.Find("Universal Render Pipeline/Lit");
-                if (shader == null)
-                {
-                    Debug.LogError("Шейдер 'Universal Render Pipeline/Lit' не найден — барьер будет фиолетовым в сборке");
-                    return null;
-                }
-
-                glassMaterial = new Material(shader);
-                glassMaterial.SetFloat("_Surface", 1f);           // Transparent
-                glassMaterial.SetFloat("_Blend", 0f);             // Alpha
-                glassMaterial.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
-                glassMaterial.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-                glassMaterial.SetFloat("_ZWrite", 0f);
-                glassMaterial.SetFloat("_Smoothness", 0.7f);
-                glassMaterial.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
-                glassMaterial.DisableKeyword("_ALPHAPREMULTIPLY_ON");
-                glassMaterial.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
-            }
-
-            var instance = new Material(glassMaterial);
-            instance.SetColor("_BaseColor", color);
-            instance.color = color;
-            return instance;
-        }
-
-        private static Material blockoutMaterial;
-
-        private static Material GetBlockoutMaterial(Color color)
-        {
-            if (blockoutMaterial == null)
-            {
-                Shader shader = Shader.Find("Universal Render Pipeline/Lit");
-                if (shader == null)
-                {
-                    Debug.LogError("Шейдер 'Universal Render Pipeline/Lit' не найден — блокаут будет фиолетовым в сборке");
-                    return null;
-                }
-
-                blockoutMaterial = new Material(shader);
-            }
-
-            return new Material(blockoutMaterial) { color = color };
         }
 
         private static void SetLayer(GameObject go, string layerName)

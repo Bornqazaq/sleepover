@@ -1,0 +1,191 @@
+{
+  "game": "Секундомер",
+  "source": "docs/minigames/stopwatch.md — раздел 14.8, арт-бриф; периоды — 8.5",
+  "output_folder": "Assets/_Project/Audio/Stopwatch",
+  "provider": "fal",
+  "models": {
+    "sfx": "cassetteai/sound-effects-generator",
+    "music": "cassetteai/music-generator",
+    "sting": "fal-ai/stable-audio-25/text-to-audio"
+  },
+  "note": "Арена общая с «Порядком банок», но звук — нет: у той игры свои события (взял банку, поставил, подтвердил расстановку). Общими остаются только те слоты, что описывают саму арену: лебёдка, створки, медведь, толпа. При работе над EPIC 9 их брать отсюда, а не генерировать заново.",
+  "slots": [
+    {
+      "id": "round_gong",
+      "event": "Старт подраунда, показ задания (стадия 1)",
+      "model": "sfx",
+      "duration": 3,
+      "loop": false,
+      "spatial": false,
+      "volume": 0.85,
+      "prompt": "single deep circus gong strike, brass, warm low resonance with natural decay, announcing the start of an act, no music, no voices",
+      "picked": "v1"
+    },
+    {
+      "id": "tick",
+      "event": "Тикающий звук в неправильном ритме (спека 8.5, период 0.75–1.35 с)",
+      "model": "sfx",
+      "duration": 2,
+      "loop": false,
+      "spatial": false,
+      "volume": 0.7,
+      "prompt": "single dry mechanical metronome tick, one short wooden click, close-up, no reverb tail, no music, no rhythm",
+      "note": "Один удар, а не дорожка. Период задаёт сервер через DistractionDirector — если бы в клипе был свой ритм, он спорил бы с назначенным и подраунд перестал бы быть честным. Вариантов сделано четыре. v2 пришёл тишиной (пик −31.4 dBFS), v3 и v4 — с клиппингом в исходнике, а его нормализацией не чинят. Взят v1: он единственный чистый, пик после нормализации −1.0 dBFS. Окно 0.25 с у него тихое (−25.2), но для щелчка это норма — весь звук в транзиенте.",
+      "picked": "v1"
+    },
+    {
+      "id": "button_start",
+      "event": "Первое нажатие кнопки — запуск отсчёта",
+      "model": "sfx",
+      "duration": 1,
+      "loop": false,
+      "spatial": true,
+      "volume": 0.9,
+      "prompt": "heavy industrial relay switch clicking down, thick metal contact, single decisive clack, dry close-up, no music",
+      "picked": "v4",
+      "note": "v1 и v2 пришли глухими (−13.3 и −28.3 dBFS), v3 — с клиппингом. Взят v4: чистый, лучшее окно −10.1 dBFS."
+    },
+    {
+      "id": "button_stop",
+      "event": "Второе нажатие кнопки — остановка отсчёта",
+      "model": "sfx",
+      "duration": 1,
+      "loop": false,
+      "spatial": true,
+      "volume": 0.9,
+      "prompt": "heavy industrial relay switch releasing, lower pitched metal clunk, single dull clack, dry close-up, no music",
+      "note": "Тоном ниже старта: по звуку слышно, что отсчёт кончился, а не начался. v1 глухой (−12.3 dBFS), взят v2.",
+      "picked": "v2"
+    },
+    {
+      "id": "drumroll",
+      "event": "Показ результатов (стадия 3), нарастание",
+      "model": "sfx",
+      "duration": 4,
+      "loop": false,
+      "spatial": false,
+      "volume": 0.75,
+      "prompt": "circus snare drum roll building tension, steady crescendo, no cymbal at the end, no music",
+      "picked": "v2",
+      "note": "v1 глухой (−12.3 dBFS), взят v2."
+    },
+    {
+      "id": "cymbal",
+      "event": "Показ результатов — удар в конце дроби",
+      "model": "sfx",
+      "duration": 2,
+      "loop": false,
+      "spatial": false,
+      "volume": 0.8,
+      "prompt": "single crash cymbal hit, bright brass splash with long shimmering decay, circus punchline, no drums, no music",
+      "note": "Отдельным слотом от дроби: у них разная длина хвоста, и склеенным файлом их уже не развести по времени.",
+      "picked": "v2"
+    },
+    {
+      "id": "cage_winch",
+      "event": "Опускание клетки на ступень (стадия 4, 2 с)",
+      "model": "sfx",
+      "duration": 3,
+      "loop": false,
+      "spatial": true,
+      "volume": 0.85,
+      "prompt": "old iron winch creaking as it lowers a load, heavy chain links clanking and paying out, rusty mechanical groan, no music",
+      "picked": "v1",
+      "note": "v2 глухой (−17.5 dBFS), взят v1."
+    },
+    {
+      "id": "hatch_open",
+      "event": "Открытие створок дна клетки (стадия 5)",
+      "model": "sfx",
+      "duration": 2,
+      "loop": false,
+      "spatial": true,
+      "volume": 0.95,
+      "prompt": "heavy metal latch snapping open followed by rusty hinges swinging down fast, trapdoor releasing, sharp clang then creak, no music",
+      "picked": "v6",
+      "note": "🔴 Единственный слот, который cassetteai не смог: все четыре попытки дали −22…−47 dBFS в лучшем окне при том, что удар лапой на той же модели даёт −6.7. Помогла смена модели на fal-ai/stable-audio-25 — v6 даёт −11.0 dBFS и 2.25 с звучания."
+    },
+    {
+      "id": "bear_roar",
+      "event": "Рёв медведя (спека 8.5, интервал 6–12 с)",
+      "model": "sfx",
+      "duration": 3,
+      "loop": false,
+      "spatial": true,
+      "volume": 0.9,
+      "prompt": "cartoon bear roar, grumpy and comical rather than frightening, short rounded growl, family friendly animated film, no music",
+      "note": "Тональность из спеки 8.4: мультяшно и нестрашно, медведь отмахивается лапой как кот от игрушки. v1 и v2 пришли с клиппингом (22 и 20 срезанных верхушек). Помогло переписать промпт на «distant, moderate volume, plenty of headroom» — v3 и v4 чистые. Взят v3.",
+      "picked": "v3"
+    },
+    {
+      "id": "bear_paw",
+      "event": "Удар лапой по решётчатому полу нижней клетки",
+      "model": "sfx",
+      "duration": 2,
+      "loop": false,
+      "spatial": true,
+      "volume": 0.85,
+      "prompt": "dull heavy thud against metal grating followed by iron bars rattling and ringing, single impact, no music",
+      "picked": "v1",
+      "note": "v2 пришёл тишиной, взят v1."
+    },
+    {
+      "id": "crowd_gasp",
+      "event": "Гибель в яме — вздох публики",
+      "model": "sfx",
+      "duration": 2,
+      "loop": false,
+      "spatial": false,
+      "volume": 0.7,
+      "prompt": "small crowd gasping in surprise, sharp collective intake of breath, indoor circus tent, no words, no music",
+      "picked": "v3"
+    },
+    {
+      "id": "crowd_laugh",
+      "event": "Гибель в яме — смех публики следом за вздохом",
+      "model": "sfx",
+      "duration": 4,
+      "loop": false,
+      "spatial": false,
+      "volume": 0.7,
+      "prompt": "small crowd bursting into good natured laughter, indoor circus tent, warm and amused not mocking, no words, no music",
+      "note": "Отдельный слот от вздоха: они играют подряд двумя источниками, и склеенным файлом паузу между ними уже не подобрать.",
+      "picked": "v1"
+    },
+    {
+      "id": "crowd_ambience",
+      "event": "Шум толпы фоном с третьего подраунда (спека 8.5)",
+      "model": "sfx",
+      "duration": 20,
+      "loop": true,
+      "spatial": false,
+      "volume": 0.35,
+      "prompt": "steady murmur of a small indoor crowd waiting, distant chatter and shuffling, no distinct words, no applause, no music, seamless ambience",
+      "picked": "v1"
+    },
+    {
+      "id": "fanfare",
+      "event": "Победа — фанфары",
+      "model": "sting",
+      "duration": 6,
+      "loop": false,
+      "spatial": false,
+      "volume": 0.85,
+      "prompt": "short triumphant circus brass fanfare, bright trumpets and tuba, celebratory ta-da ending, vintage big top band, no vocals",
+      "picked": "v1"
+    },
+    {
+      "id": "applause",
+      "event": "Победа — аплодисменты вслед за фанфарами",
+      "model": "sfx",
+      "duration": 5,
+      "loop": false,
+      "spatial": false,
+      "volume": 0.7,
+      "prompt": "enthusiastic applause from a small indoor audience, clapping and a few cheers, circus tent, no music",
+      "note": "Отдельно от фанфар: аплодисменты обязаны пережить их хвост и дотянуть до конца экрана итогов. v2 глухой (−16.8 dBFS), взят v1.",
+      "picked": "v1"
+    }
+  ],
+  "picked_note": "Выбор 04.09 сделан ЗАМЕРОМ, не на слух: у геймдизайнера приёмка ещё впереди. Правило отбора — сначала отбрасывается всё с клиппингом в исходнике (нормализацией он не чинится) и всё глухое, из оставшегося берётся самое громкое по лучшему окну 0.25 с. Поменять вариант можно копированием нужного файла из Probe/ поверх <id>.wav — связь слота с клипом держится именем файла."
+}
