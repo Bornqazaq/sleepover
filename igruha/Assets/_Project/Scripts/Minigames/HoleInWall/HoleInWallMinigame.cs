@@ -1002,6 +1002,31 @@ namespace Igruha.Minigames.HoleInWall
 
             member.Returning = true;
             member.ReturnAt = now + delay;
+
+            // Полетел — позы больше нет. Поза это стойка на платформе, и в воде
+            // ей взяться неоткуда: сметённый обязан лететь и плыть обычным
+            // телом, а не ехать в позе, в которой не пролез.
+            //
+            // Здесь, а не в SweepTrack: сюда сходятся оба пути в воду — и снос
+            // стеной, и сход с платформы своими ногами, — и оба серверные
+            // (см. заметку о HasAuthority выше).
+            ClearPose(member);
+        }
+
+        /// <summary>
+        /// Снять позу под авторитетом и объявить снятие всем. Отдельный метод,
+        /// а не вызов <see cref="ApplyPose"/>: тот отсеивает участников не этого
+        /// раунда поиском по дорожкам, а здесь участник уже в руках.
+        /// </summary>
+        private void ClearPose(HoleInWallTrack.Member member)
+        {
+            if (member.Pose == null || member.Pose.CurrentPose == HoleInWallPose.None)
+            {
+                return;
+            }
+
+            member.Pose.SetPose(HoleInWallPose.None);
+            network?.PublishPose(member.PlayerId, HoleInWallPose.None);
         }
 
         private void ReturnMember(HoleInWallTrack track, HoleInWallTrack.Member member)
@@ -1235,6 +1260,15 @@ namespace Igruha.Minigames.HoleInWall
         ///
         /// Диапазон проверяется здесь, а не у отправителя: из сети приезжает
         /// байт, и он может быть любым.
+        ///
+        /// <b>Сброс ходит этим же маршрутом.</b> <see cref="HoleInWallPose.None"/>
+        /// здесь законное значение, и отдельного намерения под него не заведено
+        /// намеренно: транспорт уже возит номер позы байтом и ноль в нём
+        /// помещается, а второй маршрут пришлось бы дублировать целиком —
+        /// RPC, проверку, публикацию. Проверять его строже, чем обычную позу,
+        /// не за что: подделать отправителя нельзя (номер берётся из пакета,
+        /// см. <c>HoleInWallNetwork.SetPoseRpc</c>), а снять позу можно только
+        /// себе — и это чистый проигрыш, а не преимущество.
         /// </summary>
         public void ApplyPose(int playerId, HoleInWallPose pose)
         {
@@ -1243,7 +1277,7 @@ namespace Igruha.Minigames.HoleInWall
                 return;
             }
 
-            if (pose == HoleInWallPose.None || (int)pose > HoleInWallConfig.PoseCount)
+            if ((int)pose > HoleInWallConfig.PoseCount)
             {
                 return;
             }
