@@ -137,14 +137,24 @@ namespace Igruha.EditorTools
         /// <paramref name="paint"/> — материал палитры мини-игры (подфаза 4.2).
         /// Пусто — модель остаётся с родными материалами пака.
         /// </summary>
-        internal static GameObject Apply(GameObject box, Entry[] entries, System.Random rng, Material paint = null)
+        internal static GameObject Apply(GameObject box, Entry[] entries, System.Random rng,
+            Material paint = null, bool mixEntries = false)
         {
             if (box == null || entries == null || entries.Length == 0)
             {
                 return null;
             }
 
-            Entry entry = entries[rng.Next(entries.Length)];
+            // Обычно каталог — это варианты «одно из», и на коробку берётся один.
+            // mixEntries переключает выбор с коробки на копию: фасад в полсотни
+            // панелей, собранный из одной модели, читается обоями, а не домом.
+            //
+            // Геометрия при этом считается по первой записи, поэтому пул обязан
+            // быть <b>одного габарита</b>: панели стены пака идут ровно 2.50 ×
+            // 2.90 и отличаются только проёмом. Разнокалиберный пул сдвинул бы
+            // сетку копий относительно посчитанного шага.
+            Entry entry = mixEntries ? entries[0] : entries[rng.Next(entries.Length)];
+            GameObject[] variants = mixEntries ? LoadAll(entries) : null;
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(entry.Prefab);
             if (prefab == null)
             {
@@ -183,7 +193,7 @@ namespace Igruha.EditorTools
                 case Fit.Tile:
                 case Fit.Wall:
                 case Fit.Column:
-                    PlaceRepeat(holder.transform, prefab, entry, local, boxScale, rng);
+                    PlaceRepeat(holder.transform, prefab, entry, local, boxScale, rng, variants);
                     break;
                 default:
                     PlaceSingle(holder.transform, prefab, entry, local, boxScale);
@@ -381,7 +391,7 @@ namespace Igruha.EditorTools
         /// никогда — только ужимается, если не влезает.
         /// </summary>
         private static void PlaceRepeat(Transform parent, GameObject prefab, Entry entry, Bounds local,
-            Vector3 boxScale, System.Random rng)
+            Vector3 boxScale, System.Random rng, GameObject[] variants = null)
         {
             Vector3 box = new Vector3(Mathf.Abs(boxScale.x), Mathf.Abs(boxScale.y), Mathf.Abs(boxScale.z));
 
@@ -427,7 +437,10 @@ namespace Igruha.EditorTools
                 {
                     for (int z = 0; z < countZ; z++)
                     {
-                        var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
+                        GameObject source = variants != null && variants.Length > 0
+                            ? variants[rng.Next(variants.Length)]
+                            : prefab;
+                        var go = (GameObject)PrefabUtility.InstantiatePrefab(source, parent);
                         StripColliders(go);
 
                         // Разворот через раз — но только на пол-оборота: четверть
@@ -443,6 +456,26 @@ namespace Igruha.EditorTools
                     }
                 }
             }
+        }
+
+        /// <summary>Загрузить весь пул моделей, молча пропустив ненайденные.</summary>
+        private static GameObject[] LoadAll(Entry[] entries)
+        {
+            var loaded = new List<GameObject>(entries.Length);
+            foreach (Entry entry in entries)
+            {
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(entry.Prefab);
+                if (prefab != null)
+                {
+                    loaded.Add(prefab);
+                }
+                else if (!missing.Contains(entry.Prefab))
+                {
+                    missing.Add(entry.Prefab);
+                }
+            }
+
+            return loaded.ToArray();
         }
 
         /// <summary>
