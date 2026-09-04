@@ -440,36 +440,17 @@ namespace Igruha.EditorTools
             return panel.transform;
         }
 
+        /// <summary>
+        /// Вырез — это пустой объект с компонентом: контур он строит себе сам
+        /// мешем по форме позы (<see cref="WallCutout"/>). Трёх кубов рамки
+        /// здесь больше нет — прямоугольный контур ушёл вместе с прямоугольной
+        /// дыркой.
+        /// </summary>
         private static WallCutout CreateCutout(Transform parent, string cutoutName)
         {
             var root = new GameObject(cutoutName);
             root.transform.SetParent(parent, false);
-
-            Transform left = CreateOutline(root.transform, "Outline_Left");
-            Transform right = CreateOutline(root.transform, "Outline_Right");
-            Transform top = CreateOutline(root.transform, "Outline_Top");
-
-            var cutout = root.AddComponent<WallCutout>();
-            var so = new SerializedObject(cutout);
-            so.FindProperty("leftPost").objectReferenceValue = left;
-            so.FindProperty("rightPost").objectReferenceValue = right;
-            so.FindProperty("lintel").objectReferenceValue = top;
-            so.ApplyModifiedPropertiesWithoutUndo();
-
-            left.gameObject.SetActive(false);
-            right.gameObject.SetActive(false);
-            top.gameObject.SetActive(false);
-
-            return cutout;
-        }
-
-        private static Transform CreateOutline(Transform parent, string outlineName)
-        {
-            GameObject box = CreateBox(parent, outlineName,
-                Vector3.one * WallCutout.FrameThickness, Vector3.zero,
-                HoleInWallPaletteAssets.Get(Tone.NeonCyan));
-            Object.DestroyImmediate(box.GetComponent<Collider>());
-            return box.transform;
+            return root.AddComponent<WallCutout>();
         }
 
         // ========== ГРАНИЦЫ И СПАВНЫ ==========

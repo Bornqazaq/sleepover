@@ -46,6 +46,7 @@ MonoBehaviour:
     Height: 2.25
   - Width: 2.85
     Height: 3.15
+  poseShapes: {fileID: 11400000, guid: 889bff395df224ff3953ee73199e6993, type: 2}
   tetherLength: 6
   tetherRamp: 1
   tetherPullAcceleration: 25
@@ -71,5 +72,6 @@ MonoBehaviour:
   sweepImpulse: 16
   sweepUpward: 0.35
   fallSeconds: 1.5
+  sweepClearanceSpeed: 2.5
   splashSeconds: 3
   minSplashSeconds: 1
