@@ -4327,6 +4327,7 @@ GameObject:
   m_Component:
   - component: {fileID: 211380032}
   - component: {fileID: 211380033}
+  - component: {fileID: 211380034}
   m_Layer: 0
   m_Name: WindowLight_-11
   m_TagString: Untagged
@@ -4414,6 +4415,35 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!114 &211380034
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 211380031}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1 &223816390
 GameObject:
   m_ObjectHideFlags: 0
@@ -8158,6 +8188,7 @@ GameObject:
   m_Component:
   - component: {fileID: 440337777}
   - component: {fileID: 440337778}
+  - component: {fileID: 440337779}
   m_Layer: 0
   m_Name: WindowLight_-8
   m_TagString: Untagged
@@ -8245,6 +8276,35 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!114 &440337779
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 440337776}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1 &445322698
 GameObject:
   m_ObjectHideFlags: 0
@@ -9734,6 +9794,7 @@ GameObject:
   m_Component:
   - component: {fileID: 564651578}
   - component: {fileID: 564651579}
+  - component: {fileID: 564651580}
   m_Layer: 0
   m_Name: WindowLight_-11
   m_TagString: Untagged
@@ -9821,6 +9882,35 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!114 &564651580
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 564651577}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1 &566450427
 GameObject:
   m_ObjectHideFlags: 0
@@ -22914,6 +23004,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1320050884}
   - component: {fileID: 1320050885}
+  - component: {fileID: 1320050886}
   m_Layer: 0
   m_Name: WindowLight_-8
   m_TagString: Untagged
@@ -23001,6 +23092,35 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!114 &1320050886
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1320050883}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!21 &1320383724
 Material:
   serializedVersion: 8
@@ -40868,7 +40988,7 @@ ParticleSystem:
   ringBufferLoopRange: {x: 0, y: 1}
   emitterVelocityMode: 0
   looping: 0
-  prewarm: 1
+  prewarm: 0
   playOnAwake: 0
   useUnscaledTime: 0
   autoRandomSeed: 1
@@ -41796,7 +41916,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -45625,7 +45745,7 @@ ParticleSystem:
   ringBufferLoopRange: {x: 0, y: 1}
   emitterVelocityMode: 0
   looping: 0
-  prewarm: 1
+  prewarm: 0
   playOnAwake: 0
   useUnscaledTime: 0
   autoRandomSeed: 1
@@ -46553,7 +46673,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -55081,7 +55201,7 @@ ParticleSystem:
   ringBufferLoopRange: {x: 0, y: 1}
   emitterVelocityMode: 0
   looping: 0
-  prewarm: 1
+  prewarm: 0
   playOnAwake: 0
   useUnscaledTime: 0
   autoRandomSeed: 1
@@ -56009,7 +56129,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -59838,7 +59958,7 @@ ParticleSystem:
   ringBufferLoopRange: {x: 0, y: 1}
   emitterVelocityMode: 0
   looping: 0
-  prewarm: 1
+  prewarm: 0
   playOnAwake: 0
   useUnscaledTime: 0
   autoRandomSeed: 1
@@ -60766,7 +60886,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -64595,7 +64715,7 @@ ParticleSystem:
   ringBufferLoopRange: {x: 0, y: 1}
   emitterVelocityMode: 0
   looping: 0
-  prewarm: 1
+  prewarm: 0
   playOnAwake: 0
   useUnscaledTime: 0
   autoRandomSeed: 1
@@ -65523,7 +65643,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -69352,7 +69472,7 @@ ParticleSystem:
   ringBufferLoopRange: {x: 0, y: 1}
   emitterVelocityMode: 0
   looping: 0
-  prewarm: 1
+  prewarm: 0
   playOnAwake: 0
   useUnscaledTime: 0
   autoRandomSeed: 1
@@ -70280,7 +70400,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
