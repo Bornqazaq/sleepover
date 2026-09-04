@@ -1,0 +1,144 @@
+{
+  "game": "Верю / не верю",
+  "source": "docs/minigames/believe-or-not.md — раздел 14.6, арт-бриф",
+  "output_folder": "Assets/_Project/Audio/BelieveOrNot",
+  "provider": "fal",
+  "models": {
+    "sfx": "cassetteai/sound-effects-generator",
+    "music": "cassetteai/music-generator",
+    "sting": "fal-ai/stable-audio-25/text-to-audio"
+  },
+  "slots": [
+    {
+      "id": "round_gong",
+      "event": "Начало кона, рассадка (стадия Seating)",
+      "model": "sfx",
+      "duration": 3,
+      "loop": false,
+      "spatial": false,
+      "volume": 0.8,
+      "prompt": "deep single gong strike in a closed room, low brass resonance, slow natural decay, intimate not ceremonial, no music, no voices"
+    },
+    {
+      "id": "peek_latch",
+      "event": "Показ карточки Знающему (стадия Peek)",
+      "model": "sfx",
+      "duration": 2,
+      "loop": false,
+      "spatial": false,
+      "volume": 0.9,
+      "prompt": "single small brass latch clicking open on a wooden box, dry crisp close-up, tiny metal ring, no reverb tail, no music",
+      "note": "Слышен всем и содержимого не выдаёт: это щелчок замка, а не подсказка. Поэтому не трёхмерный — иначе зрители у дальней стены его не услышат и решат, что показа не было."
+    },
+    {
+      "id": "phrase_knower",
+      "event": "Реплика Знающего (пузырь над местом 0)",
+      "model": "sfx",
+      "duration": 1,
+      "loop": false,
+      "spatial": true,
+      "volume": 0.6,
+      "prompt": "soft short synth blip, warm low tone, single note, speech bubble notification, dry, no music"
+    },
+    {
+      "id": "phrase_decider",
+      "event": "Реплика Решающего (пузырь над местом 1)",
+      "model": "sfx",
+      "duration": 1,
+      "loop": false,
+      "spatial": true,
+      "volume": 0.6,
+      "prompt": "soft short synth blip, bright high tone, single note, speech bubble notification, dry, no music",
+      "note": "Тон выше, чем у Знающего, намеренно: по звуку слышно, кто из двоих заговорил, даже если не смотришь на пузырь."
+    },
+    {
+      "id": "tick_last",
+      "event": "Последние 5 с уговоров",
+      "model": "sfx",
+      "duration": 6,
+      "loop": true,
+      "spatial": false,
+      "volume": 0.5,
+      "prompt": "quiet mechanical clock ticking, steady one second intervals, dry close-up wooden case, seamless loop, no music, no alarm"
+    },
+    {
+      "id": "box_swap",
+      "event": "Обмен коробок местами (стадия Reveal, решение «Поменять»)",
+      "model": "sfx",
+      "duration": 3,
+      "loop": false,
+      "spatial": true,
+      "volume": 0.9,
+      "prompt": "two heavy wooden boxes sliding and scraping across green felt card table, short muffled wood on cloth, no music"
+    },
+    {
+      "id": "lids_open",
+      "event": "Одновременное раскрытие крышек (стадия Reveal)",
+      "model": "sfx",
+      "duration": 3,
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "prompt": "two wooden chest lids thrown open at once, brass hinges creak, hollow wooden knock at the end, close-up, no music"
+    },
+    {
+      "id": "outcome_win",
+      "event": "Решающий угадал",
+      "model": "sting",
+      "duration": 3,
+      "loop": false,
+      "spatial": false,
+      "volume": 0.85,
+      "prompt": "short triumphant brass chord, warm casino jackpot flourish, two seconds, clean ending, no drums, no voices"
+    },
+    {
+      "id": "outcome_fail",
+      "event": "Решающего обманули",
+      "model": "sting",
+      "duration": 3,
+      "loop": false,
+      "spatial": false,
+      "volume": 0.85,
+      "prompt": "short descending brass chord, deflating failure sting, two seconds, clean ending, no drums, no voices",
+      "note": "Победа и провал обязаны различаться на слух без взгляда на экран — это требование тикета 19.24. Поэтому два слота, а не один «аккорд исхода»."
+    },
+    {
+      "id": "gag_puff",
+      "event": "Облачко в лицо проигравшему (стадия Reaction)",
+      "model": "sfx",
+      "duration": 2,
+      "loop": false,
+      "spatial": true,
+      "volume": 0.8,
+      "prompt": "short soft puff of smoke and dust bursting out of a small wooden box, airy pop, close-up, no music"
+    },
+    {
+      "id": "crowd_react",
+      "event": "Реакция зала на раскрытие",
+      "model": "sfx",
+      "duration": 4,
+      "loop": false,
+      "spatial": false,
+      "volume": 0.7,
+      "prompt": "small indoor crowd of six people reacting at once: sharp gasp, scattered laughter, a whistle and shouts, dry room, short burst, no music",
+      "note": "⚠️ Ставить в пробу первым. Генератор слаб на плотной толпе — на «Дырке в стене» из пяти вариантов годным вышел один (STATE 3.44). Если не выйдет, берём из купленного пака."
+    },
+    {
+      "id": "hall_ambience",
+      "event": "Фон зала весь матч",
+      "model": "sfx",
+      "duration": 20,
+      "loop": true,
+      "spatial": false,
+      "volume": 0.35,
+      "prompt": "quiet private casino lounge room tone, distant indistinct murmur, occasional glass clink at a bar, low air hum, seamless loop, no music, no intelligible speech",
+      "note": "Тихо и без разборчивых слов: зал звучит присутствием, а не разговором. Разборчивая речь спорила бы с репликами за столом, а они и есть игра."
+    }
+  ],
+  "mix_review": {
+    "date": null,
+    "by": null,
+    "note": "Приёмка на слух не проводилась: ключ fal.ai в редакторе не заведён, генерация не запускалась. Слоты и промпты готовы, разводка по событиям сделана."
+  },
+  "removed": []
+}
