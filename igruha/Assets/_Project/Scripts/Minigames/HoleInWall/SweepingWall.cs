@@ -27,14 +27,13 @@ namespace Igruha.Minigames.HoleInWall
     /// контроллер считает вердикт. Бросать подвох в рантайме нельзя: в фазе 3
     /// это пришлось бы переписывать.
     ///
-    /// <b>У стены нет коллайдеров, и это решение, а не экономия.</b> Проверка
-    /// в игре дискретная: сравниваются номер позы и одно число по горизонтали,
-    /// а габариты капсулы не участвуют вовсе (спека 5.3). Сплошная панель
-    /// вернула бы их обратно — краем выреза она толкала бы вбок того, кто стоит
-    /// верно, но чуть шире прочих, и толстый персонаж перестал бы проходить
-    /// там, где проходит тонкий. Непроходимость обеспечивают правила: прыжок
-    /// и промах мимо выреза — это провал, а перелезть стену высотой 5 ШП
-    /// прыжком на 2.3 ШП всё равно нельзя.
+    /// <b>Коллайдеры у стены есть, но утоплены.</b> Полгода их не было вовсе:
+    /// проверка в игре дискретная (спека 5.3), а сплошная плита вернула бы
+    /// в неё габариты капсулы — краем выреза она толкала бы вбок того, кто
+    /// стоит верно, но чуть шире прочих. Конфликт снят геометрией, а не отказом
+    /// от физики: коллайдер утоплен на <see cref="ColliderRecess"/> и касается
+    /// только того, кто уже провалился, а прошедшим плиты снимает вердикт
+    /// (<see cref="DisableCollision"/>). Разбор — STATE.md, раздел 3.52.
     /// </remarks>
     public sealed class SweepingWall : MonoBehaviour
     {
@@ -68,7 +67,30 @@ namespace Igruha.Minigames.HoleInWall
         /// </summary>
         private const float ColliderRecess = 0.45f;
 
-        private Collider[] panelColliders = System.Array.Empty<Collider>();
+        /// <summary>
+        /// На сколько горизонтальных полос режется стена, когда вырез
+        /// повторяет силуэт позы.
+        ///
+        /// 24 полосы на 3.6 м — это 15 см на ступеньку. С максимальной
+        /// дистанции подъезда (30 ШП) она занимает около десяти пикселей:
+        /// контур читается позой, а не лесенкой. Полосы с одинаковым пролётом
+        /// склеиваются, поэтому плит выходит вдвое-втрое меньше числа полос.
+        /// </summary>
+        private const int ShapeBands = 24;
+
+        /// <summary>Плиты стены. Первые пять пришли из сцены, остальные клонируются от них по мере надобности.</summary>
+        private readonly System.Collections.Generic.List<Transform> panelPool =
+            new System.Collections.Generic.List<Transform>(ShapeBands);
+
+        /// <summary>Сколько плит занято действующим рисунком. Остальные погашены.</summary>
+        private int usedPanels;
+
+        /// <summary>Границы дырок на разбираемой полосе, м от центра стены. Поля, а не локальные: перестройка идёт в кадре подвоха.</summary>
+        private readonly float[] bandFrom = new float[2];
+        private readonly float[] bandTo = new float[2];
+        private readonly float[] previousFrom = new float[2];
+        private readonly float[] previousTo = new float[2];
+
         private Rigidbody body;
 
         [SerializeField] private WallCutout firstCutout;
@@ -144,7 +166,7 @@ namespace Igruha.Minigames.HoleInWall
 
         private void Awake()
         {
-            BuildPanelColliders();
+            SeedPanelPool();
             BuildBody();
             SetVisible(false);
         }
@@ -174,40 +196,92 @@ namespace Igruha.Minigames.HoleInWall
         }
 
         /// <summary>
-        /// Навесить и настроить коллайдеры плит.
+        /// Собрать пул плит из того, что построила арена.
         ///
-        /// Делается кодом, а не в сцене: плит пять на каждой из четырёх стен,
-        /// и настройка у них одна. Руками её пришлось бы повторить двадцать
-        /// раз и держать в синхроне при каждой правке толщины.
+        /// Плит в сцене пять — этого хватало прямоугольным вырезам. Вырез
+        /// по силуэту режет стену полосами, и плит нужно больше: недостающие
+        /// клонируются от первой, потому что материал, слой и настройки
+        /// коллайдера у них одинаковые. Клонируем в рантайме, а не в сцене,
+        /// чтобы не пересобирать одетую и запечённую арену ради геометрии.
         /// </summary>
-        private void BuildPanelColliders()
+        private void SeedPanelPool()
         {
-            Transform[] panels = { panelLeft, panelMiddle, panelRight, lintelFirst, lintelSecond };
-            var found = new System.Collections.Generic.List<Collider>(panels.Length);
-
-            for (int i = 0; i < panels.Length; i++)
+            Transform[] fromScene = { panelLeft, panelMiddle, panelRight, lintelFirst, lintelSecond };
+            for (int i = 0; i < fromScene.Length; i++)
             {
-                if (panels[i] == null)
+                if (fromScene[i] != null)
+                {
+                    panelPool.Add(fromScene[i]);
+                    EnsureCollider(fromScene[i]);
+                }
+            }
+
+            if (panelPool.Count == 0)
+            {
+                Debug.LogError($"{name}: у стены нет ни одной плиты — построить арену заново пунктом меню", this);
+            }
+        }
+
+        /// <summary>
+        /// Навесить и настроить коллайдер плиты.
+        ///
+        /// Делается кодом, а не в сцене: плит на каждой из четырёх стен теперь
+        /// десятки, и настройка у них одна. Руками её пришлось бы повторять
+        /// при каждой правке толщины стены.
+        /// </summary>
+        private static void EnsureCollider(Transform panel)
+        {
+            var box = panel.GetComponent<BoxCollider>();
+            if (box == null)
+            {
+                box = panel.gameObject.AddComponent<BoxCollider>();
+            }
+
+            // Плита — единичный куб, растянутый масштабом, поэтому размер
+            // коллайдера единичный, а смещение считается в долях толщины.
+            box.size = Vector3.one;
+            float thickness = Mathf.Max(0.001f, panel.localScale.z);
+            box.center = new Vector3(0f, 0f, ColliderRecess / thickness);
+        }
+
+        /// <summary>Взять следующую свободную плиту, доклонировав её, если пул кончился.</summary>
+        private Transform TakePanel()
+        {
+            if (usedPanels < panelPool.Count)
+            {
+                return panelPool[usedPanels++];
+            }
+
+            Transform template = panelPool.Count > 0 ? panelPool[0] : null;
+            if (template == null)
+            {
+                return null;
+            }
+
+            Transform clone = Instantiate(template.gameObject, template.parent).transform;
+            clone.name = $"Panel_{panelPool.Count:00}";
+            EnsureCollider(clone);
+            panelPool.Add(clone);
+            usedPanels++;
+            return clone;
+        }
+
+        /// <summary>Зажечь или погасить столкновения у всех плит разом.</summary>
+        private void SetCollidersEnabled(bool enabled)
+        {
+            for (int i = 0; i < panelPool.Count; i++)
+            {
+                if (panelPool[i] == null)
                 {
                     continue;
                 }
 
-                var box = panels[i].GetComponent<BoxCollider>();
-                if (box == null)
+                var box = panelPool[i].GetComponent<BoxCollider>();
+                if (box != null)
                 {
-                    box = panels[i].gameObject.AddComponent<BoxCollider>();
+                    box.enabled = enabled;
                 }
-
-                // Плита — единичный куб, растянутый масштабом, поэтому размер
-                // коллайдера единичный, а смещение считается в долях толщины.
-                box.size = Vector3.one;
-                float thickness = Mathf.Max(0.001f, panels[i].localScale.z);
-                box.center = new Vector3(0f, 0f, ColliderRecess / thickness);
-
-                found.Add(box);
             }
-
-            panelColliders = found.ToArray();
         }
 
         /// <summary>
@@ -219,16 +293,7 @@ namespace Igruha.Minigames.HoleInWall
         /// толкнул бы прошедшего за успешный проход. Провалившимся плиты
         /// остаются: их стена и обязана ударить.
         /// </summary>
-        public void DisableCollision()
-        {
-            for (int i = 0; i < panelColliders.Length; i++)
-            {
-                if (panelColliders[i] != null)
-                {
-                    panelColliders[i].enabled = false;
-                }
-            }
-        }
+        public void DisableCollision() => SetCollidersEnabled(false);
 
         /// <summary>Привязать к дорожке. Зовётся один раз при старте раунда.</summary>
         public void Configure(HoleInWallConfig gameConfig)
@@ -265,13 +330,7 @@ namespace Igruha.Minigames.HoleInWall
             RebuildShape(false);
 
             // Новая стена — снова твёрдая: прошлая могла снять плиты вердиктом.
-            for (int i = 0; i < panelColliders.Length; i++)
-            {
-                if (panelColliders[i] != null)
-                {
-                    panelColliders[i].enabled = true;
-                }
-            }
+            SetCollidersEnabled(true);
 
             UpdateTransform(snap: true);
         }
@@ -393,11 +452,20 @@ namespace Igruha.Minigames.HoleInWall
         // ========== ГЕОМЕТРИЯ ==========
 
         /// <summary>
-        /// Пересобрать панели и контуры под действующий рисунок.
+        /// Пересобрать плиты и контуры под действующий рисунок.
         ///
-        /// Стена — это не дырявый меш, а пять плит вокруг дырок: две-три стойки
-        /// во всю высоту и перемычки над вырезами. На каркасе этого достаточно,
-        /// а в фазе 4 на их место приезжает готовая панель с отверстиями.
+        /// Стена — это не дырявый меш, а набор плит вокруг дырок. Пока вырезы
+        /// были прямоугольными, плит хватало пяти. Теперь дырка повторяет
+        /// силуэт позы, поэтому стена режется горизонтальными полосами:
+        /// на каждой полосе известно, докуда достаёт силуэт, и между дырками
+        /// остаются куски сплошной стены. Соседние полосы с одинаковым
+        /// пролётом склеиваются в одну плиту — иначе на ровном месте выходило
+        /// бы под сотню кубов на стену.
+        ///
+        /// Ошибаемся всегда в большую сторону: пролёт полосы берётся самый
+        /// широкий из попавших в неё (<c>TryWidestSpan</c>), а полоса,
+        /// зацепившая верх выреза, считается дырявой целиком. Лишний сантиметр
+        /// дырки не видно, а недостающий — это застрявший в стене игрок.
         /// </summary>
         private void RebuildShape(bool trickActive)
         {
@@ -420,31 +488,46 @@ namespace Igruha.Minigames.HoleInWall
             // Зеркальный переворот меняет вырезы местами по X, поэтому «левый»
             // и «правый» пересортировываются каждый раз, а не берутся по номеру.
             bool swap = hasSecond && secondOffset < firstOffset;
+            HoleInWallPose leftPose = swap ? secondPose : firstPose;
             float leftOffset = swap ? secondOffset : firstOffset;
             Vector2 leftSize = swap ? secondSize : firstSize;
+            HoleInWallPose rightPose = swap ? firstPose : secondPose;
             float rightOffset = swap ? firstOffset : secondOffset;
             Vector2 rightSize = swap ? firstSize : secondSize;
 
-            float halfWall = config.WallWidth * 0.5f;
-            float height = config.WallHeight;
+            usedPanels = 0;
             float thickness = config.WallThickness;
+            float bandHeight = config.WallHeight / ShapeBands;
+            int bandStart = 0;
 
-            if (hasSecond)
+            for (int band = 0; band <= ShapeBands; band++)
             {
-                SetPanel(panelLeft, -halfWall, leftOffset - leftSize.x * 0.5f, 0f, height, thickness);
-                SetPanel(panelMiddle, leftOffset + leftSize.x * 0.5f, rightOffset - rightSize.x * 0.5f, 0f, height, thickness);
-                SetPanel(panelRight, rightOffset + rightSize.x * 0.5f, halfWall, 0f, height, thickness);
-                SetPanel(lintelFirst, leftOffset - leftSize.x * 0.5f, leftOffset + leftSize.x * 0.5f, leftSize.y, height, thickness);
-                SetPanel(lintelSecond, rightOffset - rightSize.x * 0.5f, rightOffset + rightSize.x * 0.5f, rightSize.y, height, thickness);
+                if (band < ShapeBands)
+                {
+                    ResolveBand(band, bandHeight, leftPose, leftOffset, leftSize, 0);
+                    ResolveBand(band, bandHeight, hasSecond ? rightPose : HoleInWallPose.None,
+                        rightOffset, rightSize, 1);
+                }
+
+                bool last = band == ShapeBands;
+                if (!last && band > bandStart && SameAsPrevious())
+                {
+                    continue;
+                }
+
+                if (band > bandStart)
+                {
+                    EmitBand(bandStart * bandHeight, band * bandHeight, thickness);
+                }
+
+                bandStart = band;
+                previousFrom[0] = bandFrom[0];
+                previousTo[0] = bandTo[0];
+                previousFrom[1] = bandFrom[1];
+                previousTo[1] = bandTo[1];
             }
-            else
-            {
-                SetPanel(panelLeft, -halfWall, firstOffset - firstSize.x * 0.5f, 0f, height, thickness);
-                SetPanel(panelMiddle, 0f, 0f, 0f, 0f, thickness);
-                SetPanel(panelRight, firstOffset + firstSize.x * 0.5f, halfWall, 0f, height, thickness);
-                SetPanel(lintelFirst, firstOffset - firstSize.x * 0.5f, firstOffset + firstSize.x * 0.5f, firstSize.y, height, thickness);
-                SetPanel(lintelSecond, 0f, 0f, 0f, 0f, thickness);
-            }
+
+            HidePanelsFrom(usedPanels);
 
             firstCutout.Apply(config, firstPose, firstOffset, thickness);
 
@@ -455,6 +538,95 @@ namespace Igruha.Minigames.HoleInWall
             else
             {
                 secondCutout.Hide();
+            }
+        }
+
+        /// <summary>
+        /// Границы дырки на полосе. Пустая дырка — <c>to</c> не больше
+        /// <c>from</c>: так же читается и полоса выше выреза, и второй вырез
+        /// у одиночки.
+        /// </summary>
+        private void ResolveBand(int band, float bandHeight, HoleInWallPose pose, float offset, Vector2 size, int slot)
+        {
+            bandFrom[slot] = 0f;
+            bandTo[slot] = 0f;
+
+            if (pose == HoleInWallPose.None || size.x <= 0f || size.y <= 0f)
+            {
+                return;
+            }
+
+            float from = band * bandHeight;
+            if (from >= size.y)
+            {
+                return;
+            }
+
+            float to = (band + 1) * bandHeight;
+            float halfWidth = size.x * 0.5f;
+            HoleInWallPoseShapes shapes = config.PoseShapes;
+
+            if (shapes == null || !shapes.TryWidestSpan(pose, from / size.y, to / size.y,
+                    out float spanLeft, out float spanRight))
+            {
+                // Ассета формы нет — вырез остаётся прямоугольным, как до арта.
+                bandFrom[slot] = offset - halfWidth;
+                bandTo[slot] = offset + halfWidth;
+                return;
+            }
+
+            bandFrom[slot] = offset + spanLeft * halfWidth;
+            bandTo[slot] = offset + spanRight * halfWidth;
+        }
+
+        /// <summary>Пролёты на этой полосе совпали с предыдущей — плиту можно не резать.</summary>
+        private bool SameAsPrevious()
+        {
+            const float Epsilon = 0.001f;
+            for (int i = 0; i < bandFrom.Length; i++)
+            {
+                if (Mathf.Abs(bandFrom[i] - previousFrom[i]) > Epsilon ||
+                    Mathf.Abs(bandTo[i] - previousTo[i]) > Epsilon)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Поставить сплошные куски стены на полосе высот: слева от первой
+        /// дырки, между дырками и справа от второй.
+        /// </summary>
+        private void EmitBand(float fromY, float toY, float thickness)
+        {
+            float halfWall = config.WallWidth * 0.5f;
+            float cursor = -halfWall;
+
+            for (int i = 0; i < previousFrom.Length; i++)
+            {
+                if (previousTo[i] <= previousFrom[i])
+                {
+                    continue;
+                }
+
+                SetPanel(TakePanel(), cursor, previousFrom[i], fromY, toY, thickness);
+                cursor = Mathf.Max(cursor, previousTo[i]);
+            }
+
+            SetPanel(TakePanel(), cursor, halfWall, fromY, toY, thickness);
+        }
+
+        /// <summary>Погасить плиты, не занятые действующим рисунком.</summary>
+        private void HidePanelsFrom(int first)
+        {
+            for (int i = first; i < panelPool.Count; i++)
+            {
+                if (panelPool[i] != null)
+                {
+                    panelPool[i].gameObject.SetActive(false);
+                }
             }
         }
 

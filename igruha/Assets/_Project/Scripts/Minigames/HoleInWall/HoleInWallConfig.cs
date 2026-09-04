@@ -112,6 +112,9 @@ namespace Igruha.Minigames.HoleInWall
             new PoseSilhouette { Width = 2.85f, Height = 3.15f }
         };
 
+        [Tooltip("Форма вырезов по позам. Генерируется билдером клипов поз; без ассета вырез остаётся прямоугольным")]
+        [SerializeField] private HoleInWallPoseShapes poseShapes;
+
         [Header("Трос")]
         [Tooltip("ВЫСОКИЙ ПРИОРИТЕТ ПЛЕЙТЕСТА. Максимальная длина троса, ШП")]
         [SerializeField] private float tetherLength = 6f;
@@ -252,6 +255,13 @@ namespace Igruha.Minigames.HoleInWall
         public float WideSpreadMin => wideSpreadMin * unitsPerWidth;
         public int EasyWallCount => Mathf.Max(0, easyWallCount);
         public int WideWallCount => Mathf.Max(0, wideWallCount);
+
+        /// <summary>
+        /// Форма вырезов: контур позы по полосам. <c>null</c> — ассет не собран,
+        /// и вырезы остаются прямоугольными по <see cref="SilhouetteSize"/>.
+        /// Собрать: <c>Igruha/Player/Rebuild Hole In Wall Pose Clips</c>.
+        /// </summary>
+        public HoleInWallPoseShapes PoseShapes => poseShapes;
 
         /// <summary>Габариты силуэта позы, м. Для <see cref="HoleInWallPose.None"/> — ноль.</summary>
         public Vector2 SilhouetteSize(HoleInWallPose pose)
