@@ -118,8 +118,8 @@ namespace Igruha.Minigames.HoleInWall
         [Header("Трос")]
         [Tooltip("ВЫСОКИЙ ПРИОРИТЕТ ПЛЕЙТЕСТА. Максимальная длина троса, ШП")]
         [SerializeField] private float tetherLength = 6f;
-        [Tooltip("На каком перетяге (ШП) притяжение выходит на полную силу")]
-        [SerializeField] private float tetherRamp = 1f;
+        [Tooltip("На каком перетяге (ШП) притяжение выходит на полную силу. 0.4, а не 1: на метре нарастания рывок читался задержкой — трос уже натянут, а не тянет")]
+        [SerializeField] private float tetherRamp = 0.4f;
         [Tooltip("Максимальное ускорение притяжения, м/с²")]
         [SerializeField] private float tetherPullAcceleration = 25f;
         [Tooltip("Жёсткий предел сверх длины, ШП. Дальше позиция стопорится")]

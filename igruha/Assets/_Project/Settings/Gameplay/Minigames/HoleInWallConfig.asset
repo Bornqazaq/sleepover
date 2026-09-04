@@ -48,7 +48,7 @@ MonoBehaviour:
     Height: 3.15
   silhouettes: {fileID: 11400000, guid: eb2cea0272c4f490c8797e686e170960, type: 2}
   tetherLength: 6
-  tetherRamp: 1
+  tetherRamp: 0.4
   tetherPullAcceleration: 25
   tetherHardLimit: 1.5
   wallApproachSeconds:
