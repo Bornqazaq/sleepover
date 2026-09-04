@@ -60,7 +60,9 @@ namespace Igruha.EditorTools
             BuildExit(arena, config);
             BuildKillZone(bounds, config);
             MemoryRunEnvironment.Build(arena, config);
-            MemoryRunVfx.Build(arena, GameObject.Find("MinigameManager"));
+            GameObject manager = GameObject.Find("MinigameManager");
+            MemoryRunVfx.Build(arena, manager);
+            MemoryRunSfx.Build(arena, config, manager);
             EnsureHudStatusLine();
 
             MemoryRunPalette.Flush();
@@ -69,6 +71,7 @@ namespace Igruha.EditorTools
             Debug.Log(MemoryRunPalette.Report(), arena);
             Debug.Log(MemoryRunEnvironment.Report(), arena);
             Debug.Log(MemoryRunVfx.Report(), arena);
+            Debug.Log(MemoryRunSfx.Report(), arena);
             ReportMissingModels();
 
             Debug.Log(
