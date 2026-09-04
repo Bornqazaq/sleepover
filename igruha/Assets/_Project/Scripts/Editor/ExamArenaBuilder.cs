@@ -179,6 +179,7 @@ namespace Igruha.EditorTools
             Debug.Log(ExamPalette.Report(), root);
             Debug.Log(ExamEnvironment.Report(), root);
             Debug.Log(ExamVfx.Report(), root);
+            Debug.Log(ExamSfx.Build(root, config), root);
 
             Selection.activeGameObject = root;
         }

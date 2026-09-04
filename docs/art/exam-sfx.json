@@ -1,0 +1,163 @@
+{
+  "game": "Экзамен",
+  "source": "docs/minigames/exam.md — раздел 14.6, арт-бриф",
+  "output_folder": "Assets/_Project/Audio/Exam",
+  "provider": "fal",
+  "models": {
+    "sfx": "cassetteai/sound-effects-generator",
+    "music": "cassetteai/music-generator",
+    "sting": "fal-ai/stable-audio-25/text-to-audio"
+  },
+  "note": "Промпты описывают предмет, материал и помещение, а не настроение: генератор попадает в физический звук и мажет по абстрактному. Каждый заканчивается списком того, чего быть не должно — без этого в короткий эффект приезжает музыкальная подложка. Поле role задаёт, какой формы огибающая ожидается от слота: по нему tools/wav_probe.py отбраковывает технически чистые файлы, которые роли не отвечают.",
+  "slots": [
+    {
+      "id": "typing_loop",
+      "event": "Фаза печати: Ведущий набирает вопрос",
+      "model": "sfx",
+      "duration": 8,
+      "loop": true,
+      "spatial": false,
+      "volume": 0.55,
+      "prompt": "continuous fast typing on an old mechanical keyboard, hard plastic keys clacking, uneven human rhythm, close dry recording in a small room, steady throughout with no pauses, no music, no voices, no bell, no room reverb",
+      "note": "Луп: ведётся StartLoop/StopLoop из Core/Audio, а не Play в цикле. Ровный по всей длине — иначе стык петли слышен. Первые два: у v1 шов петли 21.8 дБ (слышен каждый круг), у v2 клиппинг. У v3 шов 0.3 дБ, разброс 9.1 дБ, тишины 8% — печать идёт ровно.",
+      "role": "loop",
+      "picked": "v3"
+    },
+    {
+      "id": "question_posted",
+      "event": "Фаза показа: вопрос лёг на доску",
+      "model": "sfx",
+      "duration": 2,
+      "loop": false,
+      "spatial": false,
+      "volume": 0.9,
+      "prompt": "one confident stroke of chalk writing on a slate blackboard ending with a short tap, dry close recording in a classroom, single gesture, no music, no voices, no bell, no long reverb tail",
+      "note": "Мел, а не звонок. Звонок отдан фанфаре итогов: один и тот же звук на двух событиях перестаёт что-либо значить. Атака на 27% длины, наклон −0.1 дБ. Один штрих мелом, как и просили.",
+      "role": "impact",
+      "picked": "v1"
+    },
+    {
+      "id": "choice_start",
+      "event": "Пошли восемь секунд выбора",
+      "model": "sfx",
+      "duration": 1,
+      "loop": false,
+      "spatial": false,
+      "volume": 0.85,
+      "prompt": "single short referee whistle blip, one sharp pea whistle chirp, dry indoor gymnasium, very short, no crowd, no music, no echo",
+      "note": "Свисток, а не гудок: в школьном зале он читается сигналом «побежали» без объяснений. У v1 свисток приходил на 88% длины — в игре он прозвучал бы после старта бега. У v2 атака на 1%.",
+      "role": "impact",
+      "picked": "v2"
+    },
+    {
+      "id": "tension_drum",
+      "event": "Нагнетание: три секунды до створок",
+      "model": "sting",
+      "duration": 3,
+      "loop": false,
+      "spatial": false,
+      "volume": 0.8,
+      "prompt": "solo concert snare drum roll growing louder over three seconds and cutting off abruptly at the end, dry stage recording, single snare only, no cymbals, no orchestra, no music bed, no voices",
+      "note": "Один из двух сложных слотов. Отбирается по огибающей: у дроби громкость обязана расти к концу, а не быть ровной. Наклон +18.4 дБ: дробь растёт к концу. У v2 наклон −6.5 — она гаснет, то есть нагнетания не даёт.",
+      "role": "rise",
+      "picked": "v1"
+    },
+    {
+      "id": "hatch_open",
+      "event": "Створки пошли вниз",
+      "model": "sfx",
+      "duration": 2,
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "prompt": "heavy wooden trapdoor unlatching and swinging open fast, metal bolt snapping first then large wooden panel creaking and rushing air, big empty stone hall, one event, no music, no voices, no impact at the end",
+      "note": "Трёхмерный: у платформ А и Б он звучит из разных мест, и это часть того, какая из них раскрылась. Три первых попытки cassetteai: одна тишиной, две с ударом в середине файла. Взят stable-audio: атака на 0%, наклон −36.4 дБ.",
+      "role": "impact",
+      "picked": "v4"
+    },
+    {
+      "id": "hatch_close",
+      "event": "Створки встали на место",
+      "model": "sfx",
+      "duration": 2,
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "prompt": "heavy wooden trapdoor slamming shut onto a stone floor, one solid low wooden thud with a metal latch click right after, short hall reverb, single impact, no music, no voices, no creak before",
+      "note": "Отбирается по атаке: удар обязан начаться в первой пятой файла, иначе он приходит с опозданием к анимации. Атака на 30%, наклон −1.8 дБ. У v2 удар на 89% длины.",
+      "role": "impact",
+      "picked": "v1"
+    },
+    {
+      "id": "fall_scream",
+      "event": "Провал в темноту",
+      "model": "sfx",
+      "duration": 3,
+      "loop": false,
+      "spatial": true,
+      "volume": 0.95,
+      "prompt": "long descending whoosh falling down a deep shaft, air rushing past and pitch dropping steadily, sound receding into the distance, ending quiet and far below, no impact, no music, no voices",
+      "note": "Свист падения, а не крик. Генератор голос делает плохо и непредсказуемо, а комичный вопль — это работа для актёра, не для модели. Записано вслух: имя слота осталось от брифа. Три попытки уходили в рост громкости — падение звучало приближением. У v4 наклон −24.1 дБ: уходит вниз и затихает.",
+      "role": "descend",
+      "picked": "v4"
+    },
+    {
+      "id": "respawn_pop",
+      "event": "Провалившиеся вернулись в зону старта",
+      "model": "sfx",
+      "duration": 1,
+      "loop": false,
+      "spatial": true,
+      "volume": 0.8,
+      "prompt": "short soft airy pop of something appearing out of nowhere, one gentle puff of air with a light tonal blip, dry and close, no music, no voices, no sparkle tail, no reverb",
+      "role": "impact",
+      "picked": "v4",
+      "note": "v1 тишиной, v2 с клиппингом, v3 с хлопком на 56% длины. У v4 атака на 0%."
+    },
+    {
+      "id": "lonely_bonus",
+      "event": "Одиночка угадал верно",
+      "model": "sfx",
+      "duration": 2,
+      "loop": false,
+      "spatial": false,
+      "volume": 0.8,
+      "prompt": "single bright triangle chime struck once, clean metallic bell tone with a short shimmering decay, dry close recording, one strike only, no music, no other instruments, no voices",
+      "note": "Отдельный звоночек, а не часть фанфары: бонус за одиночество начисляется посреди раунда и обязан читаться сам по себе. Атака 17%, наклон −1.5 дБ — колокольчик звенит и гаснет. У v2 атака раньше, но наклон +4.0: он нарастает, а это уже не удар по треугольнику.",
+      "role": "impact",
+      "picked": "v1"
+    },
+    {
+      "id": "question_skipped",
+      "event": "Ведущий не успел — вопрос не состоялся",
+      "model": "sfx",
+      "duration": 2,
+      "loop": false,
+      "spatial": false,
+      "volume": 0.85,
+      "prompt": "short dry electric buzzer, two low honks in quick succession, game show wrong answer sound, close and flat, no music, no voices, no reverb, no applause",
+      "role": "impact",
+      "picked": "v2",
+      "note": "Один зуммер вместо двойного: у v1 второй гудок громче первого, и атака уезжала на 52% длины."
+    },
+    {
+      "id": "match_fanfare",
+      "event": "Итоги матча",
+      "model": "sting",
+      "duration": 5,
+      "loop": false,
+      "spatial": false,
+      "volume": 0.9,
+      "prompt": "short triumphant brass fanfare for a school assembly, three ascending trumpet notes resolving into a held major chord, small brass ensemble in a dry hall, ending cleanly, no drums, no cymbals, no voices, no applause",
+      "note": "Второй сложный слот. Отбирается по огибающей: у фанфары энергия держится всю длину, а не гаснет после первой ноты. Наклон −8.1 дБ против −9.7 у v1 и тише тишины: фанфара держит энергию почти всю длину.",
+      "role": "sustain",
+      "picked": "v2"
+    }
+  ],
+  "probe": {
+    "variants": 28,
+    "rejected": "тишина 3, клиппинг 3",
+    "tool": "tools/wav_probe.py — замер и обрезка без ffmpeg",
+    "note": "Все клипы обрезаны по краям и выровнены по пику до −1 dBFS, срезанных сэмплов ноль. Отбор шёл по форме огибающей под роль слота, а не по громкости: технически чистый файл нужной роли может не отвечать."
+  }
+}

@@ -22,15 +22,22 @@ namespace Igruha.Minigames.Exam
     /// </summary>
     public sealed class ExamMinigame : MinigameControllerBase
     {
-        private const byte StageTyping = 1;
-        private const byte StageReveal = 2;
-        private const byte StageChoice = 3;
-        private const byte StageTension = 4;
-        private const byte StageHatch = 5;
+        /// <summary>
+        /// Бонус за одиночество начислен. Локальное событие: поднимается
+        /// у сервера в момент начисления и у клиента в момент, когда
+        /// выросшее число приехало в составе. Своего пакета не имеет.
+        /// </summary>
+        public event System.Action LonelyBonusAwarded;
+
+        internal const byte StageTyping = 1;
+        internal const byte StageReveal = 2;
+        internal const byte StageChoice = 3;
+        internal const byte StageTension = 4;
+        internal const byte StageHatch = 5;
 
         /// <summary>Ниже этой высоты игрок считается провалившимся в яму.</summary>
         private const float FallenBelowHeight = -1f;
-        private const byte StageRespawn = 6;
+        internal const byte StageRespawn = 6;
 
         [Header("Конфиг и контент")]
         [SerializeField] private ExamConfig config;
@@ -1093,6 +1100,16 @@ namespace Igruha.Minigames.Exam
             }
 
             ExamEntry e = entries[index];
+
+            // Бонус за одиночество приезжает клиенту тем же составом, что и
+            // счёт: отдельного пакета под него нет и заводить его незачем.
+            // Рост числа одиночных попаданий и есть событие «кто-то пошёл
+            // против толпы и угадал» — на нём висит звук (подфаза 4.5).
+            if (lonelyHits > e.LonelyHits)
+            {
+                LonelyBonusAwarded?.Invoke();
+            }
+
             e.Score = score;
             e.LonelyHits = lonelyHits;
             e.CorrectAnswers = correctAnswers;
@@ -1192,6 +1209,7 @@ namespace Igruha.Minigames.Exam
                 {
                     e.Score += config.LonelyBonus;
                     e.LonelyHits++;
+                    LonelyBonusAwarded?.Invoke();
                 }
 
                 e.LastScoredAt = now;

@@ -74,8 +74,16 @@ namespace Igruha.Minigames.Exam
         }
 
         /// <summary>Вопрос не состоялся: Ведущий не успел напечатать.</summary>
+        /// <summary>
+        /// Вопрос не состоялся. Локальное событие: доска показывает это
+        /// у всех — и у сервера, и у клиента, — поэтому звуку хватает его
+        /// и своего пакета не нужно (подфаза 4.5).
+        /// </summary>
+        public event System.Action Skipped;
+
         public void ShowSkipped(int questionNumber, int totalQuestions)
         {
+            Skipped?.Invoke();
             SetHeader(questionNumber, totalQuestions, 0);
             SetText(questionText, "Вопрос не состоялся");
             SetText(optionAText, string.Empty);
