@@ -128,6 +128,9 @@ namespace Igruha.EditorTools
         /// <summary>Высота бака, ШИ. Выше прежнего обода: бак — табло команды, и его должно быть видно издали.</summary>
         private const float TankHeight = 2.15f;
 
+        /// <summary>Сколько слоёв брызг рисует струя прорванной трубы.</summary>
+        private const int JetLayers = 3;
+
         private static System.Random dressRandom;
 
         [MenuItem("Igruha/Minigames/Rebuild Carry Item Arena")]
@@ -176,6 +179,7 @@ namespace Igruha.EditorTools
             BuildBounds(bounds.transform, config);
             BuildTraps(traps.transform, config, ground);
             BuildPickups(pickups.transform, config);
+            CarryItemEnvironment.Build(arena.transform, config, dressRandom);
             BuildProgressBar(config);
             WireManager(config);
 
@@ -608,13 +612,35 @@ namespace Igruha.EditorTools
         /// </summary>
         private static void BuildPipeVisuals(Transform group, CarryItemConfig config, GameObject pipe, Vector3 size)
         {
-            var volume = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            volume.name = "JetVolume";
-            volume.transform.SetParent(pipe.transform, false);
-            volume.transform.localPosition = Vector3.zero;
-            volume.transform.localScale = size;
-            Object.DestroyImmediate(volume.GetComponent<Collider>());
-            Paint(volume, Mat("CI_PushZone"));
+            // Струя — три слоя брызг разной высоты, а не один куб во весь объём.
+            //
+            // Куб честно показывал, где толкает, но читался «прозрачной штукой»
+            // непонятного назначения. Слои идут от излома поперёк прохода,
+            // сужаясь книзу, и под ними лужа: получается вода, а не блок.
+            // На 4.4 всё это заменят частицы, здесь — чтобы не было сыро.
+            Material spray = Mat("CI_PushZone");
+            var jet = new GameObject("Jet");
+            jet.transform.SetParent(pipe.transform, false);
+            jet.transform.localPosition = Vector3.zero;
+
+            for (int i = 0; i < JetLayers; i++)
+            {
+                float t = (i + 0.5f) / JetLayers;
+                var layer = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                layer.name = $"Spray_{i + 1}";
+                layer.transform.SetParent(jet.transform, false);
+                layer.transform.localPosition = new Vector3(0f, size.y * (t - 0.5f), 0f);
+                layer.transform.localScale = new Vector3(
+                    size.x * Mathf.Lerp(0.95f, 0.45f, t),
+                    size.y / JetLayers * 0.55f,
+                    size.z);
+                Object.DestroyImmediate(layer.GetComponent<Collider>());
+                Paint(layer, spray);
+            }
+
+            GameObject puddle = Cylinder(pipe.transform, "Puddle",
+                -config.ToMeters(1f) + 0.02f, 0.01f, size.x * 1.35f, spray);
+            puddle.transform.localPosition = new Vector3(0f, -config.ToMeters(1f) + 0.02f, -size.z * 0.2f);
 
             // Стояк — у кромки свободной полосы, со стороны команды A. Высота
             // приведена к высоте завалов: труба выше них перекрыла бы обзор

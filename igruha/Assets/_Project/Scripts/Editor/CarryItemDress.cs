@@ -211,8 +211,15 @@ namespace Igruha.EditorTools
         /// модели; ноль оставляет натуральную. Предмет ставится <b>основанием
         /// в точку</b>, а не центром: тачка обязана стоять на полу.
         /// </summary>
+        /// <param name="byPivot">
+        /// Ставить по пивоту модели, а не по центру её габарита. Нужно крупным
+        /// несимметричным предметам: у башенного крана габарит на 45 м вытянут
+        /// стрелой, и посадка по центру уводит саму мачту на два десятка метров
+        /// от заданной точки — кран уезжает в кадр вместо того, чтобы стоять
+        /// за стеной.
+        /// </param>
         internal static GameObject Prop(Transform parent, string propName, string prefabPath, Vector3 position,
-            float yaw, float targetHeight = 0f, bool castShadows = true)
+            float yaw, float targetHeight = 0f, bool castShadows = true, bool byPivot = false)
         {
             if (!DressKit.TryLoad(prefabPath, out GameObject prefab))
             {
@@ -240,8 +247,11 @@ namespace Igruha.EditorTools
 
             // Смещение от корня до низа габарита: пивоты моделей пака стоят
             // где угодно, и ставить по корню значит закапывать половину.
-            Vector3 footOffset = go.transform.position - new Vector3(bounds.center.x, bounds.min.y, bounds.center.z);
-            go.transform.position = position + footOffset;
+            Vector3 anchor = byPivot
+                ? new Vector3(go.transform.position.x, bounds.min.y, go.transform.position.z)
+                : new Vector3(bounds.center.x, bounds.min.y, bounds.center.z);
+
+            go.transform.position = position + (go.transform.position - anchor);
             return go;
         }
 
