@@ -56,11 +56,16 @@ namespace Igruha.EditorTools
         private const float ChestYaw = -90f;
 
         /// <summary>
-        /// Доворот модели стула вокруг Y, градусы: у <c>SM_Prop_Chair_04</c>
-        /// спинка смотрит по собственной оси +Z, а стул обязан стоять спинкой
-        /// от стола.
+        /// Доворот модели стула вокруг Y, градусы.
+        ///
+        /// Ноль, а не полповорота: у <c>SM_Prop_Chair_04</c> спинка выступает
+        /// в собственный −Z (габарит модели смещён туда на 4.8 см), то есть
+        /// «лицо» стула смотрит в +Z — ровно туда, куда его разворачивает
+        /// <c>LookRotation</c>. Полповорота, поставленные по первому
+        /// впечатлению, развернули оба стула спинками к столу, и на рендере
+        /// это читалось как разный цвет двух одинаковых стульев.
         /// </summary>
-        private const float ChairYaw = 180f;
+        private const float ChairYaw = 0f;
 
         /// <summary>Толщина шнура подвеса, м. Тоньше сантиметра он пропадает в темноте зала.</summary>
         private const float CordDiameter = 0.03f;
@@ -77,7 +82,7 @@ namespace Igruha.EditorTools
         internal static void Begin()
         {
             DressKit.Begin();
-            BelieveOrNotPaletteAssets.ClearCache();
+            BelieveOrNotPaletteAssets.Measure();
             notes.Clear();
         }
 
@@ -291,11 +296,23 @@ namespace Igruha.EditorTools
         /// </summary>
         internal static string Report(GameObject arena)
         {
-            var report = new StringBuilder("🪑 Дресс стола «Верю / не верю» (подфаза 4.1)");
+            var report = new StringBuilder("🪑 Арт «Верю / не верю» (подфазы 4.1–4.3)");
             for (int i = 0; i < notes.Count; i++)
             {
                 report.Append("\n— ").Append(notes[i]);
             }
+
+            IReadOnlyList<string> hall = BelieveOrNotHall.Notes;
+            for (int i = 0; i < hall.Count; i++)
+            {
+                report.Append("\n— ").Append(hall[i]);
+            }
+
+            report.Append("\n— палитра: ").Append(BelieveOrNotPaletteAssets.Source)
+                .Append("\n  пол ").Append(Hex(Tone.Floor))
+                .Append(", стены ").Append(Hex(Tone.Wall))
+                .Append(", дерево ").Append(Hex(Tone.Wood))
+                .Append(", сукно ").Append(Hex(Tone.Felt));
 
             int colliders = 0;
             int meshes = 0;
@@ -542,6 +559,12 @@ namespace Igruha.EditorTools
             {
                 renderer.enabled = false;
             }
+        }
+
+        /// <summary>Тон палитры в шестнадцатеричном виде — в этом же виде цвета записаны в брифе.</summary>
+        private static string Hex(Tone tone)
+        {
+            return SyntyPalette.Hex(BelieveOrNotPaletteAssets.ColorOf(tone));
         }
 
         private static Vector3 Divide(Vector3 value, Vector3 by)

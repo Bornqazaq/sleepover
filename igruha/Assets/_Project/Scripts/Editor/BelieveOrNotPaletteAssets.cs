@@ -8,33 +8,40 @@ namespace Igruha.EditorTools
     /// Материалы «Верю / не верю» — по одному ассету на тон палитры
     /// (бриф, раздел 14.2 спеки).
     ///
-    /// Тонов здесь ровно столько, сколько нужно собранным из примитивов
-    /// предметам: сукно, дерево и матовый металл шнура. Реквизит пака
-    /// (сундук, стул, абажур) приезжает в собственных материалах и в них
-    /// и остаётся — бордо обивки и латунь защёлок уже те, что просит бриф.
-    /// Остальные тона заводятся тогда, когда появится, чему их назначить.
-    ///
     /// Ассеты, а не материалы в памяти: материал, созданный кодом и не
     /// записанный на диск, теряется при первом же перезапуске редактора, и
     /// сцена приходит с розовыми предметами. Тот же вывод уже сделан на
     /// «Дырке в стене» (STATE.md, 3.40).
     ///
-    /// <b>Цвета здесь — рабочие, снятые с концепта геймдизайнера.</b> На
-    /// подфазе 4.2 они пересчитываются усреднением по UV мешей пака, чтобы
-    /// блокаут сел в тон реквизиту и стык не читался; имена тонов и пути
-    /// ассетов при этом не меняются, поэтому пересчёт не тронет ни дресс,
-    /// ни сцену.
+    /// <b>Цвета не выбраны, а сняты с пака — подфаза 4.2.</b> Дерево стола
+    /// берёт средний цвет сундука, стены — средний цвет бархатной шторы: это
+    /// те самые предметы, что стоят с ними рядом в кадре, и стык блокаута
+    /// с реквизитом обязан не читаться. Замер идёт усреднением по UV
+    /// (<see cref="SyntyPalette"/>), а не пипеткой по атласу: у модели нет
+    /// «цвета», у неё есть кусок общей картинки.
+    ///
+    /// Своими остаются два тона, которых в паке нет вовсе: зелёное сукно
+    /// и матовый металл шнура. Их задаёт бриф словами, и брать их неоткуда.
     /// </summary>
     internal static class BelieveOrNotPaletteAssets
     {
         /// <summary>Тон палитры. Один тон — один материал в проекте.</summary>
         internal enum Tone
         {
-            /// <summary>Сукно столешницы.</summary>
+            /// <summary>Сукно столешницы — единственная светлая поверхность в кадре.</summary>
             Felt,
 
-            /// <summary>Тёмное лакированное дерево: борт стола, царга, нога.</summary>
+            /// <summary>Тёмное лакированное дерево: борт стола, царга, нога. Снято с сундука.</summary>
             Wood,
+
+            /// <summary>Пол зала: тон сукна, уведённый в темноту.</summary>
+            Floor,
+
+            /// <summary>Стены зала: тон бархата, уведённый в тень.</summary>
+            Wall,
+
+            /// <summary>Потолок: темнее стен, в кадре виден только у лампы.</summary>
+            Ceiling,
 
             /// <summary>Матовый тёмный металл: шнур подвеса лампы.</summary>
             Shade
@@ -45,16 +52,106 @@ namespace Igruha.EditorTools
         private const string Prefix = "BON_";
         private const string LitShaderName = "Universal Render Pipeline/Lit";
 
+        /// <summary>
+        /// Источник тона дерева — барная тумба, а не сундук на столе.
+        ///
+        /// Сундук напрашивался: он стоит к столу ближе всех. Но у него ровно
+        /// половина площади — железная оковка, и усреднение по UV даёт серый
+        /// (#474142 на прогоне 04.09), то есть «дерево с железом», а не дерево.
+        /// Борт стола, покрашенный этим числом, стал бы бетонным. Тумба бара —
+        /// сплошное тёмное дерево, и она же стоит в зале самой большой
+        /// деревянной поверхностью.
+        /// </summary>
+        internal const string WoodSource = "Assets/Synty/PolygonCasino/Prefabs/Props/SM_Prop_Minibar_01.prefab";
+
+        /// <summary>Сундук — замеряется для отчёта: с ним борт стола обязан не спорить.</summary>
+        internal const string ChestSource = "Assets/Synty/PolygonGeneric/Prefabs/Props/SM_Gen_Prop_Chest_01.prefab";
+
+        /// <summary>Бархатная штора: ею закрыты все четыре стены зала.</summary>
+        internal const string VelvetSource = "Assets/Synty/PolygonCasino/Prefabs/Buildings/SM_Bld_Curtain_Closed_01.prefab";
+
+        /// <summary>
+        /// Цвета, снятые с пака на прогоне 04.09. Подставляются, когда паков
+        /// на машине нет: иначе цвет в <c>.mat</c> зависел бы от того, у кого
+        /// открыт проект, и сцена приезжала бы разной.
+        /// </summary>
+        private static readonly Color FallbackWood = new Color32(0x6A, 0x51, 0x3C, 0xFF);
+
+        private static readonly Color FallbackVelvet = new Color32(0x86, 0x2A, 0x2E, 0xFF);
+
+        /// <summary>Сукно: в паках зелёного сукна нет, тон задан брифом.</summary>
+        private static readonly Color FeltColour = new Color32(0x1F, 0x50, 0x33, 0xFF);
+
+        /// <summary>Матовый металл шнура: тон задан брифом.</summary>
+        private static readonly Color ShadeColour = new Color32(0x24, 0x21, 0x1E, 0xFF);
+
+        /// <summary>
+        /// Во сколько раз пол темнее сукна. Пол — вся нижняя половина кадра
+        /// зрителя, и в тоне сукна он спорил бы со столом: светлое пятно
+        /// в кадре обязано быть ровно одно.
+        /// </summary>
+        private const float FloorDrop = 0.22f;
+
+        /// <summary>
+        /// Во сколько раз стена темнее бархата шторы. Шторы висят прямо на
+        /// стене, и стена обязана читаться той же тканью в тени, а не другой
+        /// поверхностью.
+        /// </summary>
+        private const float WallDrop = 0.30f;
+
+        /// <summary>Потолок относительно стены: он вне круга света и в кадр попадает только у лампы.</summary>
+        private const float CeilingDrop = 0.5f;
+
+        /// <summary>
+        /// Насколько альбедо дерева стола ниже замера тумбы. Это не вкус,
+        /// а арифметика света: у столешницы освещённость единица (лампа даёт
+        /// 4 канделы с 1.8 м), а у тумбы в углу зала — около четверти. Одно
+        /// и то же дерево под лампой выглядит вчетверо светлее, и борт,
+        /// покрашенный замером как есть, читался бухтой бетона рядом с тёмным
+        /// сундуком. Проверено рендером 04.09.
+        /// </summary>
+        private const float LitDrop = 0.30f;
+
         private static readonly Dictionary<Tone, Material> cache = new Dictionary<Tone, Material>(8);
 
-        /// <summary>Цвет тона. Значения — с концепта; 4.2 пересчитает их замером.</summary>
+        private static Color wood = FallbackWood;
+        private static Color velvet = FallbackVelvet;
+
+        /// <summary>Чем снят цвет: замером или сохранённым значением. Печатается отчётом дресса.</summary>
+        internal static string Source { get; private set; } = "паков нет, взяты сохранённые значения";
+
+        /// <summary>
+        /// Снять цвета пака заново. Вызывается пересборкой до того, как
+        /// кто-либо попросит материал.
+        /// </summary>
+        internal static void Measure()
+        {
+            cache.Clear();
+            SyntyPalette.ClearCache();
+
+            bool measuredWood = SyntyPalette.TryAverage(WoodSource, out Color packWood);
+            bool measuredVelvet = SyntyPalette.TryAverage(VelvetSource, out Color packVelvet);
+            bool measuredChest = SyntyPalette.TryAverage(ChestSource, out Color packChest);
+
+            wood = measuredWood ? packWood : FallbackWood;
+            velvet = measuredVelvet ? packVelvet : FallbackVelvet;
+            Source = measuredWood && measuredVelvet
+                ? $"замер по UV: тумба {SyntyPalette.Hex(wood)}, штора {SyntyPalette.Hex(velvet)}" +
+                  (measuredChest ? $", сундук {SyntyPalette.Hex(packChest)} (для сверки)" : string.Empty)
+                : "паков нет, взяты сохранённые значения";
+        }
+
+        /// <summary>Цвет тона.</summary>
         internal static Color ColorOf(Tone tone)
         {
             switch (tone)
             {
-                case Tone.Felt: return new Color32(0x1F, 0x50, 0x33, 0xFF);
-                case Tone.Wood: return new Color32(0x3A, 0x22, 0x18, 0xFF);
-                case Tone.Shade: return new Color32(0x24, 0x21, 0x1E, 0xFF);
+                case Tone.Felt: return FeltColour;
+                case Tone.Wood: return Dim(wood, LitDrop);
+                case Tone.Floor: return Dim(FeltColour, FloorDrop);
+                case Tone.Wall: return Dim(velvet, WallDrop);
+                case Tone.Ceiling: return Dim(velvet, WallDrop * CeilingDrop);
+                case Tone.Shade: return ShadeColour;
                 default: return Color.magenta;
             }
         }
@@ -93,12 +190,6 @@ namespace Igruha.EditorTools
             return material;
         }
 
-        /// <summary>Сбросить кэш перед пересборкой: ассеты могли переехать или быть удалены.</summary>
-        internal static void ClearCache()
-        {
-            cache.Clear();
-        }
-
         /// <summary>Дописать заведённые материалы на диск. Вызывать в конце пересборки.</summary>
         internal static void Flush()
         {
@@ -110,9 +201,9 @@ namespace Igruha.EditorTools
         ///
         /// Гладкость задаётся вручную у каждого тона, а не берётся по умолчанию:
         /// в зале ровно один источник света, и весь объём предметов читается
-        /// бликом от него. Сукно обязано быть матовым (0.05), иначе оно
-        /// бликует тканью, которой не бывает; лакированное дерево борта, —
-        /// наоборот, полуглянцевым, иначе стол в кадре плоская заливка.
+        /// бликом от него. Сукно обязано быть матовым (0.05), иначе оно бликует
+        /// тканью, которой не бывает; лакированное дерево борта — наоборот,
+        /// полуглянцевым, иначе стол в кадре плоская заливка.
         /// </summary>
         private static void Apply(Material material, Tone tone)
         {
@@ -123,13 +214,39 @@ namespace Igruha.EditorTools
                 case Tone.Felt:
                     Opaque(material, color, 0.05f, 0f);
                     break;
+                // Лак борта пришлось убавить с 0.45 до 0.18. Лампа над столом
+                // одна и висит прямо над бортом, поэтому широкий блик ложится
+                // ровно на кольцо целиком: борт с альбедо 0.21 светился в кадре
+                // как белый камень, и его яркость задавал блик, а не цвет.
+                // Проверено рендером 04.09.
                 case Tone.Wood:
-                    Opaque(material, color, 0.45f, 0f);
+                    Opaque(material, color, 0.18f, 0f);
+                    break;
+                // Пол матовый: при 0.20 холодная заливка зала ложилась на него
+                // скользящим бликом во весь кадр, и тёмно-зелёный пол читался
+                // светло-синим. Ковровый пол блика и не должен давать.
+                case Tone.Floor:
+                    Opaque(material, color, 0.03f, 0f);
+                    break;
+                case Tone.Wall:
+                case Tone.Ceiling:
+                    Opaque(material, color, 0.10f, 0f);
                     break;
                 case Tone.Shade:
                     Opaque(material, color, 0.25f, 0.6f);
                     break;
             }
+        }
+
+        /// <summary>
+        /// Увести тон в темноту. Умножение идёт в линейном пространстве:
+        /// «вчетверо темнее» — это про свет, а не про коды цветов, и в sRGB
+        /// то же умножение дало бы заметно более светлый результат.
+        /// </summary>
+        private static Color Dim(Color srgb, float factor)
+        {
+            Color linear = srgb.linear;
+            return new Color(linear.r * factor, linear.g * factor, linear.b * factor, 1f).gamma;
         }
 
         private static readonly int BaseColor = Shader.PropertyToID("_BaseColor");

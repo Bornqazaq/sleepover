@@ -98,7 +98,12 @@ namespace Igruha.Minigames.BelieveOrNot
         [Header("Свет")]
         [Tooltip("Угол конуса лампы над столом")]
         [SerializeField] private float lampSpotAngle = 110f;
-        [SerializeField] private float lampIntensity = 25f;
+        [Tooltip("Яркость лампы в канделах. Точечный свет падает как интенсивность делить на квадрат " +
+                 "расстояния, а от лампы до сукна 1.8 м: 6 даёт на столешнице 1.85 — тёплое пятно, " +
+                 "в котором материалы читаются своим цветом, а не выгорают. На прежних 25 выходило " +
+                 "семь с половиной, и тёмное дерево борта читалось лососёвым. " +
+                 "Найдено на арте, подфаза 4.1")]
+        [SerializeField] private float lampIntensity = 6f;
         [Tooltip("Цвет лампы: тёплый, ~3000 K")]
         [SerializeField] private Color lampColor = new Color(1f, 0.85f, 0.65f);
         [Tooltip("Общий свет зала. Тёмный — темнота здесь механика фокуса, а не украшение, — " +
