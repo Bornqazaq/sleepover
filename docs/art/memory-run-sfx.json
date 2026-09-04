@@ -1,0 +1,225 @@
+{
+  "game": "Рейс на память",
+  "source": "docs/minigames/memory-run.md — раздел 14, таблица «Звук»",
+  "output_folder": "Assets/_Project/Audio/MemoryRun",
+  "probe_folder": "Assets/_Project/Audio/MemoryRun/Probe",
+  "provider": "fal",
+  "models": {
+    "sfx": "cassetteai/sound-effects-generator",
+    "music": "cassetteai/music-generator",
+    "sting": "fal-ai/stable-audio-25/text-to-audio"
+  },
+  "prompt_rules": [
+    "Каждый SFX-промпт заканчивается требованием близкой записи: close-miked, loud and present, dry. Без него генератор понимает событие как далёкий звук и отдаёт почти тишину — на «Переноске предмета» так пришли пустыми первые три варианта подряд у четырёх слотов.",
+    "Событие описывается материалом и действием, а не игровым смыслом: не «игрок приземлился», а «ботинок бьёт по толстому полому стальному листу».",
+    "Каждый слот генерируется тремя РАЗНЫМИ формулировками, а не одной трижды. Три прогона одного промпта дают три близких промаха; три угла зрения дают шанс, что хотя бы один попадёт.",
+    "Музыкальный джингл SFX-модели не даётся вовсе — он идёт на Stable Audio.",
+    "Толпа и джингл — самые ненадёжные слоты у генератора. На «Дырке в стене» оба пришлось заменять живыми записями геймдизайнера. Ставятся в пробу первыми."
+  ],
+  "slots": [
+    {
+      "id": "hall_ambience",
+      "event": "Фон цеха: низкий гул вентиляции и капель",
+      "model": "sfx",
+      "duration": 20,
+      "loop": true,
+      "volume": 0.32,
+      "spatial": false,
+      "prompt": "continuous low industrial room tone inside a large empty steel factory hall, deep ventilation hum, faint distant water drips, steady and unchanging level, seamless loop, close and present, dry, no music, no voices",
+      "variants": [
+        "continuous low industrial room tone inside a large empty steel factory hall, deep ventilation hum, faint distant water drips, steady and unchanging level, seamless loop, close and present, dry, no music, no voices",
+        "abandoned factory interior ambience, constant low frequency air handler drone with subtle metallic resonance and an occasional single water drip, flat and even throughout, seamless loop, no music, no voices",
+        "deep steady hum of large ventilation fans in a concrete industrial hall, low rumble bed with soft metal creaks, unchanging level, loopable, recorded up close, dry, no music, no speech"
+      ],
+      "note": "🔴 Гул обязан быть РОВНЫМ по всей длине маршрута. Звук, меняющийся от ряда к ряду, — такая же подсказка, как царапина на плите: спека 9.4 запрещает показывать номер шага кому бы то ни было."
+    },
+    {
+      "id": "round_start",
+      "event": "Старт раунда: сирена смены",
+      "model": "sfx",
+      "duration": 4,
+      "loop": false,
+      "volume": 0.85,
+      "spatial": false,
+      "prompt": "single loud factory shift horn blast, deep air horn honk inside a steel hall, sharp attack, short decay, close-miked, loud and present, dry, no music, no voices",
+      "variants": [
+        "single loud factory shift horn blast, deep air horn honk inside a steel hall, sharp attack, short decay, close-miked, loud and present, dry, no music, no voices",
+        "industrial klaxon signal, one short deep blast announcing the start of a work shift, metallic edge, close and loud, dry, no music, no speech",
+        "old factory steam whistle, one short powerful blast, hollow metallic tone, immediate attack, recorded close, dry, no music, no voices"
+      ]
+    },
+    {
+      "id": "turn_announce",
+      "event": "Объявление хода: щелчок реле и гудок",
+      "model": "sfx",
+      "duration": 2,
+      "loop": false,
+      "volume": 0.75,
+      "spatial": false,
+      "prompt": "short electric buzzer beep in a factory, single flat tone half a second long, moderate level without distortion, close and dry, no music, no voices",
+      "variants": [
+        "short electric buzzer beep in a factory, single flat tone half a second long, moderate level without distortion, close and dry, no music, no voices",
+        "one metallic switch click followed by a short low beep, warehouse public address signal, clean and moderate volume, dry, no music, no speech",
+        "single industrial door buzzer, short low honk, mechanical and dry, moderate loudness, recorded close, no music, no voices"
+      ],
+      "note": "Слышен всем в зоне ожидания: объявление хода — общее событие, а не личное сообщение идущему. Второй круг 04.09. Первые три формулировки провалились все: «relay clunk» дал клиппинг на 531 отсчёте, «knife switch» и «contactor» — тишину. Генератор не знает этих слов как звуков. Второй круг говорит проще: buzzer, beep, click."
+    },
+    {
+      "id": "plate_land",
+      "event": "Приземление на плиту",
+      "model": "sfx",
+      "duration": 2,
+      "loop": false,
+      "volume": 0.8,
+      "spatial": true,
+      "prompt": "one heavy footstep on a steel plate, solid metallic thud, moderate level, no distortion, close and dry, no music, no voices",
+      "variants": [
+        "one heavy footstep on a steel plate, solid metallic thud, moderate level, no distortion, close and dry, no music, no voices",
+        "single stomp on a thick metal sheet, deep clank with quick decay, clean recording without clipping, close-miked, no music, no voices",
+        "heavy shoe hits a steel floor panel once, dull metal impact with a short ring, dry and clean, no music, no speech"
+      ],
+      "note": "🔴 ОДИН И ТОТ ЖЕ звук на любой плите — и на безопасной, и на мине. Это звук приземления, а не сигнал «верно». Отдельного «ты угадал» быть не должно: игроку он не добавляет ничего сверх отсутствия взрыва, но превращает память в аудио-подсказку для зрителей, которые смотрят в сторону (спека 9.4). Второй круг 04.09. Это самый слышимый звук игры — он играет на каждом шаге каждого хода, — и первый круг дал клиппинг, тишину и тихий вариант. Второй круг убран из описания весь пафос («hollow», «suspended», «manhole») и добавлено требование не перегружать."
+    },
+    {
+      "id": "mine_blast",
+      "event": "Детонация плиты",
+      "model": "sfx",
+      "duration": 3,
+      "loop": false,
+      "volume": 1.0,
+      "spatial": true,
+      "prompt": "sharp dry explosive pop of a small charge under a steel plate, hard crack with an immediate metallic clang, no rolling rumble, no fire roar, short tail, close-miked, loud and present, no music, no voices",
+      "variants": [
+        "sharp dry explosive pop of a small charge under a steel plate, hard crack with an immediate metallic clang, no rolling rumble, no fire roar, short tail, close-miked, loud and present, no music, no voices",
+        "single blasting cap detonation on sheet metal, tight percussive bang followed by ringing steel, dry and abrupt, no long echo, close and loud, no music, no voices",
+        "cartoon style explosion pop, punchy dry bang with a metallic clatter, comedic and short, no fire crackle, no rumble tail, recorded close, no music, no speech"
+      ],
+      "note": "Без раската и без огня — по той же причине, по которой в VFX нет ни одной огненной частицы: спека просит смешную смерть, а не страшную. Слышен с дальнего конца зоны ожидания, это главный ориентир зрителя."
+    },
+    {
+      "id": "ragdoll_launch",
+      "event": "Рагдолл-отлёт после взрыва",
+      "model": "sfx",
+      "duration": 2,
+      "loop": false,
+      "volume": 0.6,
+      "spatial": true,
+      "prompt": "body thrown through the air, fast fabric and air whoosh passing the microphone, single sweep, close and present, dry, no music, no voices",
+      "variants": [
+        "body thrown through the air, fast fabric and air whoosh passing the microphone, single sweep, close and present, dry, no music, no voices",
+        "heavy object launched upward, sharp airy whoosh with a slight doppler, one pass only, dry, close-miked, no music, no speech",
+        "cartoon whoosh of a character flung backwards, quick swish of air and clothing, single motion, dry and close, no music, no voices"
+      ]
+    },
+    {
+      "id": "ragdoll_land",
+      "event": "Падение тела после отлёта",
+      "model": "sfx",
+      "duration": 2,
+      "loop": false,
+      "volume": 0.7,
+      "spatial": true,
+      "prompt": "heavy human body landing flat on a concrete floor, dull thud with a slight bounce, single impact, close-miked, loud and present, dry, no music, no voices",
+      "variants": [
+        "heavy human body landing flat on a concrete floor, dull thud with a slight bounce, single impact, close-miked, loud and present, dry, no music, no voices",
+        "sack of sand dropped onto concrete from height, deep soft thump, one impact, no debris, close and dry, no music, no voices",
+        "comedic body flop onto a hard floor, muffled heavy slap, single hit, dry and close, no music, no speech"
+      ],
+      "note": "Отдельно от свиста полёта: у них разная длина хвоста, и склеенным файлом их уже не развести."
+    },
+    {
+      "id": "crowd_gasp",
+      "event": "Вздох публики на взрыв",
+      "model": "sfx",
+      "duration": 2,
+      "loop": false,
+      "volume": 0.65,
+      "spatial": false,
+      "prompt": "small group of seven people gasping in unison, sharp collective intake of breath then instant silence, close and present, dry, no music, no words",
+      "variants": [
+        "small group of seven people gasping in unison, sharp collective intake of breath then instant silence, close and present, dry, no music, no words",
+        "group reaction gasp, several voices inhale sharply together in surprise, very short, no cheering, no words, recorded close, dry, no music",
+        "seven adults react with a short shocked oh in unison, brief and dry, no applause, no music, no spoken words"
+      ],
+      "note": "⚠️ Самый ненадёжный слот. На «Дырке в стене» толпу пришлось заменять живой записью геймдизайнера — генератор дважды не справился. Если и здесь не выйдет, берётся файл, а не третий круг генерации."
+    },
+    {
+      "id": "pit_fall",
+      "event": "Падение в пропасть",
+      "model": "sfx",
+      "duration": 4,
+      "loop": false,
+      "volume": 0.7,
+      "spatial": true,
+      "prompt": "man falling into a deep shaft, single startled shout receding rapidly into the distance, volume and pitch dropping away, no impact at the end, no echo return, starts close then goes far, no music",
+      "variants": [
+        "man falling into a deep shaft, single startled shout receding rapidly into the distance, volume and pitch dropping away, no impact at the end, no echo return, starts close then goes far, no music",
+        "cartoon falling scream fading down a deep hole, one continuous cry getting quieter and lower, never lands, dry start, no music, no words",
+        "person plummets down an industrial pit, short yell doppler shifting away into silence, no landing thud, no reverb slap, no music, no speech"
+      ],
+      "note": "🔴 Удара в конце быть не должно: по спеке дна не видно и не слышно. Звук приземления на дне сказал бы игрокам, какой глубины провал, а он бездонный."
+    },
+    {
+      "id": "turn_tick",
+      "event": "Один щелчок отсчёта. Ритм задаёт код по остатку таймера хода",
+      "model": "sfx",
+      "duration": 0.38,
+      "loop": false,
+      "volume": 0.5,
+      "spatial": false,
+      "prompt": "single short dry mechanical click, one crisp tick of a metal relay, very short, close-miked, clean, no reverb, no music, no voices",
+      "variants": [
+        "single short dry mechanical click, one crisp tick of a metal relay, very short, close-miked, clean, no reverb, no music, no voices",
+        "one sharp wooden block tick, single short percussive click, dry and close, no reverb tail, no music, no voices",
+        "single metallic tick of a countdown timer, one crisp click only, dry and close, no music, no speech"
+      ],
+      "note": "Слышен только тому, чей ход: это его таймер, а не общее событие. 🔴 Слот переделан 04.09 из пятисекундной дорожки в ОДИН щелчок. Три сгенерированные дорожки дали дробь по 18 щелчков в секунду — генератор не держит ритм. Но чинить это генерацией и не надо: интервал тика — игровое состояние, а не свойство файла. Запечённая дорожка на 5 секунд ещё и разъезжается с настоящим дедлайном, который живёт по NetworkClock. Код играет один щелчок на каждую секунду с сокращающимся интервалом, и попадает в дедлайн точно. Файл обрезан по щелчку до 0.38 с и выровнен по ПИКУ вручную, а не штатным tools/sfx_normalize.py: тот меряет RMS по всей длине файла и всякий одиночный щелчок считает пустым. У удара громкость — это пик, а не среднее; тот же вывод уже записан у «Дырки в стене» про короткий дзынь. Инструмент будет ругаться на этот файл и дальше, и это его правило, а не брак клипа."
+    },
+    {
+      "id": "exit_door",
+      "event": "Проход в дверь",
+      "model": "sfx",
+      "duration": 3,
+      "loop": false,
+      "volume": 0.8,
+      "spatial": true,
+      "prompt": "heavy steel factory door bolt thrown back with a loud clank then the door sliding open with a metallic rumble, close-miked, loud and present, dry, no music, no voices",
+      "variants": [
+        "heavy steel factory door bolt thrown back with a loud clank then the door sliding open with a metallic rumble, close-miked, loud and present, dry, no music, no voices",
+        "large industrial roller door latch clunks and the corrugated metal door rolls up, heavy metal scrape, close and dry, no music, no voices",
+        "massive metal bolt slams open, hollow steel door groans and swings wide, single motion, recorded close, dry, no music, no speech"
+      ]
+    },
+    {
+      "id": "exit_fanfare",
+      "event": "Фанфара прохода",
+      "model": "sting",
+      "duration": 4,
+      "loop": false,
+      "volume": 0.85,
+      "spatial": false,
+      "prompt": "short triumphant brass fanfare sting, four bright notes rising, celebratory party game style, ends abruptly, clean and punchy, no vocals",
+      "variants": [
+        "short triumphant brass fanfare sting, four bright notes rising, celebratory party game style, ends abruptly, clean and punchy, no vocals",
+        "quick victory jingle, bright horns with a cymbal accent, two seconds of melody then silence, upbeat party game style, no vocals",
+        "cheerful arcade success fanfare, short ascending brass and a bell hit, punchy and bright, no vocals, no long reverb"
+      ],
+      "note": "Stable Audio ($0.20 за прогон): музыкальный джингл SFX-модели не даётся вовсе — проверено на «Дырке в стене». Второй по ненадёжности слот после толпы."
+    },
+    {
+      "id": "round_end",
+      "event": "Конец раунда: отбой сирены",
+      "model": "sfx",
+      "duration": 4,
+      "loop": false,
+      "volume": 0.8,
+      "spatial": false,
+      "prompt": "factory end of shift siren winding down, deep horn tone falling in pitch and fading out, single blast, close and present, dry, no music, no voices",
+      "variants": [
+        "factory end of shift siren winding down, deep horn tone falling in pitch and fading out, single blast, close and present, dry, no music, no voices",
+        "industrial klaxon powering down, long low descending horn, one continuous tone dying away, close and dry, no music, no speech",
+        "old siren decelerating to a stop, pitch dropping slowly, single sweep, recorded close, dry, no music, no voices"
+      ]
+    }
+  ]
+}
