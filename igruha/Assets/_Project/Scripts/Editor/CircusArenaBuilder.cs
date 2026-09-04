@@ -157,9 +157,14 @@ namespace Igruha.EditorTools
 
             // Эффекты после всего: им нужны готовые клетки и медведь, чтобы
             // повеситься на их события.
-            CircusVfx.Build(arenaRoot.transform, config,
-                arenaRoot.GetComponentsInChildren<CageStation>(true),
-                arenaRoot.GetComponentInChildren<PitBear>(true));
+            CageStation[] builtCages = arenaRoot.GetComponentsInChildren<CageStation>(true);
+            PitBear builtBear = arenaRoot.GetComponentInChildren<PitBear>(true);
+            CircusVfx.Build(arenaRoot.transform, config, builtCages, builtBear);
+
+            // Звук — после эффектов и по тем же событиям. Кнопки на этот
+            // момент ещё не расставлены (их ставит билдер реквизита), поэтому
+            // он зовёт CircusSfx повторно и дозаполняет их.
+            CircusSfx.Build(arenaRoot.transform, builtCages, builtBear);
 
             Validate(config);
 

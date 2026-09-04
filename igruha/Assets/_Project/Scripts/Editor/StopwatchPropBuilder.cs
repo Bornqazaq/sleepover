@@ -81,6 +81,17 @@ namespace Igruha.EditorTools
 
             int faces = BuildScreenHud();
 
+            // Кнопки только что появились — перевязываем звук, чтобы
+            // StopwatchAudio получил их ссылки. Ставить звук раньше нечего:
+            // до этой строки кнопок в сцене нет.
+            GameObject arena = GameObject.Find("_Arena");
+            if (arena != null)
+            {
+                CircusSfx.Build(arena.transform,
+                    arena.GetComponentsInChildren<CageStation>(true),
+                    arena.GetComponentInChildren<PitBear>(true));
+            }
+
             var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(scene);
             UnityEditor.SceneManagement.EditorSceneManager.SaveScene(scene);
