@@ -473,7 +473,7 @@ namespace Igruha.Minigames.HoleInWall
                 pose = avatar.gameObject.AddComponent<PlayerPoseAbility>();
             }
 
-            pose.Configure(config, this, playerId);
+            pose.Configure(this, playerId);
 
             avatar.TryGetComponent(out StuckDetector stuck);
             avatar.TryGetComponent(out PlayerRespawner respawner);
