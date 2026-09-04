@@ -837,6 +837,18 @@ namespace Igruha.Minigames.HoleInWall
         /// Габариты капсулы не участвуют вовсе — сравниваются номер позы и одно
         /// число по горизонтали. Поэтому толстый персонаж и тонкий проходят
         /// абсолютно одинаково, и подгонять их замороженные капсулы не нужно.
+        ///
+        /// <b>Проверка осталась дискретной сознательно.</b> Геометрическая
+        /// («силуэт внутри контура») выглядит честнее, но вырез — это силуэт
+        /// плюс 0.11 м, то есть допуск в ней вышел бы ±0.11 м вместо нынешних
+        /// ±0.58. Это впятеро строже и совсем другая игра; прогон 01.09 прошёл
+        /// на нынешних числах, и менять их вслепую нельзя. Плюс дискретную
+        /// проверку игрок понимает, а «почему не засчитало» в геометрической
+        /// объяснить нечем: поза дрожит, и попадание начало бы зависеть
+        /// от фазы дрожи.
+        ///
+        /// Допуск при этом берётся у форм дорожки, а не у конфига: шире своего
+        /// выреза он быть не может — см. <c>CutoutShapes.Tolerance</c>.
         /// </summary>
         private bool MemberFits(HoleInWallTrack track, HoleInWallTrack.Member member, int cutoutIndex)
         {
@@ -861,7 +873,7 @@ namespace Igruha.Minigames.HoleInWall
             Vector3 position = member.Avatar.Position;
 
             float cutoutX = track.transform.position.x + offset;
-            if (Mathf.Abs(position.x - cutoutX) > config.HitTolerance)
+            if (Mathf.Abs(position.x - cutoutX) > track.Shapes.Tolerance(pose))
             {
                 return false;
             }

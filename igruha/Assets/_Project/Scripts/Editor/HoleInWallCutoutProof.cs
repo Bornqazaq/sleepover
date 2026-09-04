@@ -75,7 +75,7 @@ namespace Igruha.EditorTools
 
             var report = new System.Text.StringBuilder();
             report.AppendLine("HoleInWallCutoutProof: вырез против силуэта, м");
-            report.AppendLine("  персонаж поза       вырез Ш×В, м    кожа в полотне, px");
+            report.AppendLine("  персонаж поза       вырез Ш×В, м   допуск  кожа в полотне, px");
 
             int failures = 0;
             GameObject wall = null;
@@ -117,6 +117,8 @@ namespace Igruha.EditorTools
                 ? "  ✅ ни один силуэт не задевает полотно"
                 : $"  ❌ силуэт задевает полотно в {failures} случаях из {names.Length * poses}");
             report.AppendLine($"  лист: {path}");
+            report.AppendLine($"  * — допуск ужат до полуширины выреза: настроенный ±{config.HitTolerance:F2} м " +
+                              "шире всей дырки, и игрок проходил бы, стоя на сплошной плите");
 
             string pairs = PairSheet(config, report);
             report.AppendLine($"  стена пары: {pairs}");
@@ -324,9 +326,12 @@ namespace Igruha.EditorTools
                         failures++;
                     }
 
+                    float tolerance = shapes.Tolerance(pose);
                     report.AppendLine(
                         $"  {characterName,-8} {HoleInWallPoseClipBuilder.PoseTitles[p],-9} " +
-                        $"{size.x,5:F2} × {size.y,5:F2}   {cells[p].Overlap,6}" +
+                        $"{size.x,5:F2} × {size.y,5:F2}   ±{tolerance:F2}" +
+                        (tolerance < config.HitTolerance - 0.001f ? "*" : " ") +
+                        $"  {cells[p].Overlap,6}" +
                         (cells[p].Overlap > 0 ? "   ❌" : "   ✅") + $"   {surfaceFacts}");
                 }
 

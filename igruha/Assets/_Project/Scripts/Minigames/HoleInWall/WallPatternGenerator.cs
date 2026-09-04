@@ -260,9 +260,16 @@ namespace Igruha.Minigames.HoleInWall
         private static float WidestWidth(CutoutShapes shapes, HoleInWallPose a, HoleInWallPose b) =>
             Mathf.Max(shapes.Size(a).x, shapes.Size(b).x);
 
-        /// <summary>Насколько далеко от центра дорожки может стоять вырез такой ширины, м.</summary>
+        /// <summary>
+        /// Насколько далеко от центра дорожки может стоять вырез такой ширины, м.
+        ///
+        /// Ограничение одно — вырез целиком внутри платформы. Раньше их было
+        /// два, вторым шёл допуск попадания; теперь он по построению не шире
+        /// полувыреза (<c>CutoutShapes.Tolerance</c>), и отдельным условием
+        /// быть перестал.
+        /// </summary>
         private static float OffsetLimit(HoleInWallConfig config, float width) =>
-            Mathf.Max(0f, config.PlatformWidth * 0.5f - Mathf.Max(config.HitTolerance, width * 0.5f));
+            Mathf.Max(0f, (config.PlatformWidth - width) * 0.5f);
 
         private static float NextFloat(System.Random random, float min, float max) =>
             max <= min ? min : min + (float)random.NextDouble() * (max - min);
