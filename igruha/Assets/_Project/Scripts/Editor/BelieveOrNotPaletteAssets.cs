@@ -71,13 +71,24 @@ namespace Igruha.EditorTools
         internal const string VelvetSource = "Assets/Synty/PolygonCasino/Prefabs/Buildings/SM_Bld_Curtain_Closed_01.prefab";
 
         /// <summary>
-        /// Цвета, снятые с пака на прогоне 04.09. Подставляются, когда паков
-        /// на машине нет: иначе цвет в <c>.mat</c> зависел бы от того, у кого
-        /// открыт проект, и сцена приезжала бы разной.
+        /// Цвета, снятые с пака замером 04.09: тумба #63564F, штора #85352A.
+        /// Подставляются, когда замерить не удалось, — иначе цвет в <c>.mat</c>
+        /// зависел бы от того, у кого открыт проект, и сцена приезжала бы разной.
+        ///
+        /// ⚠️ <b>Сейчас подставляются всегда, и это не наша поломка.</b>
+        /// 04.09 в общий <see cref="SyntyPalette"/> приехала проверка
+        /// <c>mesh.isReadable</c>: меш с выключенным Read/Write замер пропускает.
+        /// У всех мешей паков Synty этот флаг снят (проверено на тумбе, шторе
+        /// и сундуке), но <b>в редакторе они читаются</b> — тем же утром замер
+        /// по ним отработал и дал разные цвета по предметам. То есть проверка
+        /// отсекает рабочий путь, и палитра любой игры молча уезжает на запасные
+        /// значения. Здесь это ничего не меняет: запасные числа и есть замер.
+        /// Разбираться с самой проверкой — напарнику, он её автор, и его игры
+        /// зависят от неё так же.
         /// </summary>
-        private static readonly Color FallbackWood = new Color32(0x6A, 0x51, 0x3C, 0xFF);
+        private static readonly Color FallbackWood = new Color32(0x63, 0x56, 0x4F, 0xFF);
 
-        private static readonly Color FallbackVelvet = new Color32(0x86, 0x2A, 0x2E, 0xFF);
+        private static readonly Color FallbackVelvet = new Color32(0x85, 0x35, 0x2A, 0xFF);
 
         /// <summary>Сукно: в паках зелёного сукна нет, тон задан брифом.</summary>
         private static readonly Color FeltColour = new Color32(0x1F, 0x50, 0x33, 0xFF);
