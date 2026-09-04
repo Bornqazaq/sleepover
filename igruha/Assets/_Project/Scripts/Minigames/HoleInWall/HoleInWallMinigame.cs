@@ -432,6 +432,7 @@ namespace Igruha.Minigames.HoleInWall
 
                 track.ArrangeSlots(config);
                 track.Wall.Configure(config, track.ShapesOf(0), track.ShapesOf(1));
+                track.AimFunnels(config);
                 playingTracks.Add(track);
 
                 PlaceMembers(track);
@@ -474,6 +475,14 @@ namespace Igruha.Minigames.HoleInWall
 
             pose.Configure(this, playerId);
 
+            // Воронка вешается тем же порядком: она доводит игрока до его
+            // выреза в последние полсекунды. Номер выреза совпадает с местом
+            // на платформе и проставляется, когда состав дорожки собран.
+            if (!avatar.TryGetComponent(out WallFunnel funnel))
+            {
+                funnel = avatar.gameObject.AddComponent<WallFunnel>();
+            }
+
             avatar.TryGetComponent(out StuckDetector stuck);
             avatar.TryGetComponent(out PlayerRespawner respawner);
             avatar.TryGetComponent(out PlayerInputReader input);
@@ -489,7 +498,7 @@ namespace Igruha.Minigames.HoleInWall
                                  "Испечь: Igruha/Дырка в стене/Испечь силуэты вырезов", this);
             }
 
-            return new HoleInWallTrack.Member(playerId, avatar, pose, stuck, respawner, input, shapes);
+            return new HoleInWallTrack.Member(playerId, avatar, pose, stuck, respawner, input, shapes, funnel);
         }
 
         /// <summary>
@@ -1066,6 +1075,15 @@ namespace Igruha.Minigames.HoleInWall
                 member.Pose.enabled = false;
                 Destroy(member.Pose);
             }
+
+            // Воронка тем же порядком: сначала перестаёт доводить, потом
+            // уходит. Оставленная, она тянула бы игрока к вырезу уже в хабе —
+            // стены там нет, но ссылка на неё пережила бы выгрузку сцены.
+            if (member.Funnel != null)
+            {
+                member.Funnel.Release();
+                Destroy(member.Funnel);
+            }
         }
 
         private void ReleaseTethers()
@@ -1345,6 +1363,12 @@ namespace Igruha.Minigames.HoleInWall
             // респавна переезжают туда же.
             track.ArrangeSlots(config);
             RebindSlots(track);
+
+            // ⚠️ Места пересчитались: ушедший мог быть нулевым, и оставшийся
+            // с первого места переехал на нулевое. Воронка целится по номеру
+            // места, и без этого она осталась бы наведённой на вырез, которого
+            // у одиночки больше нет.
+            track.AimFunnels(config);
         }
 
         /// <summary>

@@ -32,6 +32,9 @@ namespace Igruha.Minigames.HoleInWall
             /// </summary>
             public CutoutShapes Shapes { get; }
 
+            /// <summary>Воронка его выреза: край дырки доводит его в последние полсекунды.</summary>
+            public WallFunnel Funnel { get; }
+
             /// <summary>Точка респавна, с которой участник пришёл. Возвращается в конце раунда.</summary>
             public Transform OriginalRespawnPoint { get; }
 
@@ -43,7 +46,7 @@ namespace Igruha.Minigames.HoleInWall
 
             public Member(int playerId, PlayerController avatar, PlayerPoseAbility pose,
                 StuckDetector stuck, PlayerRespawner respawner, PlayerInputReader input,
-                CutoutShapes shapes)
+                CutoutShapes shapes, WallFunnel funnel)
             {
                 PlayerId = playerId;
                 Avatar = avatar;
@@ -52,6 +55,7 @@ namespace Igruha.Minigames.HoleInWall
                 Respawner = respawner;
                 Input = input;
                 Shapes = shapes;
+                Funnel = funnel;
                 OriginalRespawnPoint = respawner != null ? respawner.RespawnPoint : null;
             }
         }
@@ -206,6 +210,30 @@ namespace Igruha.Minigames.HoleInWall
             if (soloBanner != null)
             {
                 soloBanner.SetActive(Solo);
+            }
+        }
+
+        /// <summary>
+        /// Указать каждой воронке её вырез. Зовётся, когда состав дорожки
+        /// собран: номер выреза совпадает с местом на платформе, и до конца
+        /// раунда не меняется — даже зеркальный переворот двигает вырез,
+        /// а не его принадлежность.
+        /// </summary>
+        public void AimFunnels(HoleInWallConfig config)
+        {
+            float trackX = transform.position.x;
+            for (int i = 0; i < members.Count; i++)
+            {
+                members[i].Funnel?.Configure(config, wall, i, trackX);
+            }
+        }
+
+        /// <summary>Снять воронки: раунд кончился, доводить больше некуда.</summary>
+        public void ReleaseFunnels()
+        {
+            for (int i = 0; i < members.Count; i++)
+            {
+                members[i].Funnel?.Release();
             }
         }
 

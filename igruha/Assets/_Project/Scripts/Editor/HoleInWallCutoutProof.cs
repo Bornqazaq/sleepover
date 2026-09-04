@@ -78,7 +78,8 @@ namespace Igruha.EditorTools
 
             var report = new System.Text.StringBuilder();
             report.AppendLine("HoleInWallCutoutProof: вырез против силуэта, м");
-            report.AppendLine("  персонаж поза       вырез Ш×В, м   допуск  кожа в полотне, px");
+            report.AppendLine("  персонаж поза       вырез Ш×В, м   допуск  кожа в полотне, px   " +
+                              "доля тела в плите при сдвиге, %: 0.05 0.10 0.15 0.20 0.30 0.576");
 
             int failures = 0;
             GameObject wall = null;
@@ -336,7 +337,18 @@ namespace Igruha.EditorTools
             public bool[] Body;
             public bool[] Collider;
             public int Overlap;
+
+            /// <summary>Сколько пикселей кожи всего. По нему считается доля утонувшего в полотне.</summary>
+            public int Skin;
         }
+
+        /// <summary>
+        /// Смещения от центра выреза, на которых меряется утопание в полотне, м.
+        ///
+        /// Последнее — настроенный допуск попадания: игрок на нём считается
+        /// ПРОШЕДШИМ, и ровно его видно проходящим сквозь плиту.
+        /// </summary>
+        private static readonly float[] SweepOffsets = { 0.05f, 0.10f, 0.15f, 0.20f, 0.30f, 0.576f };
 
         /// <summary>
         /// Собрать стену так, как её собирает арена: пять плит, два выреза.
@@ -439,7 +451,8 @@ namespace Igruha.EditorTools
                         $"{size.x,5:F2} × {size.y,5:F2}   ±{tolerance:F2}" +
                         (tolerance < config.HitTolerance - 0.001f ? "*" : " ") +
                         $"  {cells[p].Overlap,6}" +
-                        (cells[p].Overlap > 0 ? "   ❌" : "   ✅") + $"   {surfaceFacts}");
+                        (cells[p].Overlap > 0 ? "   ❌" : "   ✅") +
+                        "   " + Sweep(cells[p]));
                 }
 
                 return true;
@@ -448,6 +461,51 @@ namespace Igruha.EditorTools
             {
                 UnityEditor.SceneManagement.EditorSceneManager.ClosePreviewScene(preview);
             }
+        }
+
+        /// <summary>
+        /// Насколько глубоко кожа утопает в полотне, если игрок стоит
+        /// не по центру выреза. Доля тела в процентах на каждом смещении
+        /// из <see cref="SweepOffsets"/>.
+        ///
+        /// Кожа снята один раз и просто сдвигается по пикселям: горизонтальный
+        /// сдвиг в мире это ровно сдвиг в битмапе, и пересчитывать миллион
+        /// вершин на каждое смещение незачем.
+        /// </summary>
+        private static string Sweep(Cell cell)
+        {
+            int width = Mathf.CeilToInt(2f * CellHalfWidth / PixelSize);
+            int height = Mathf.CeilToInt(CellHeight / PixelSize);
+            var text = new System.Text.StringBuilder();
+
+            for (int i = 0; i < SweepOffsets.Length; i++)
+            {
+                int shift = Mathf.RoundToInt(SweepOffsets[i] / PixelSize);
+                int sunk = 0;
+
+                for (int y = 0; y < height; y++)
+                {
+                    int row = y * width;
+                    for (int x = 0; x < width; x++)
+                    {
+                        if (!cell.Body[row + x])
+                        {
+                            continue;
+                        }
+
+                        int moved = x + shift;
+                        if (moved >= width || cell.Wall[row + moved])
+                        {
+                            sunk++;
+                        }
+                    }
+                }
+
+                float share = cell.Skin > 0 ? 100f * sunk / cell.Skin : 0f;
+                text.Append($"{share,5:F1}");
+            }
+
+            return text.ToString();
         }
 
         /// <summary>
@@ -484,7 +542,12 @@ namespace Igruha.EditorTools
                 }
 
                 int index = y * width + x;
-                cell.Body[index] = true;
+                if (!cell.Body[index])
+                {
+                    cell.Body[index] = true;
+                    cell.Skin++;
+                }
+
                 if (cell.Wall[index])
                 {
                     cell.Overlap++;
