@@ -34,6 +34,14 @@ namespace Igruha.Core.Player
         /// </summary>
         private const string RifleLayerName = "Rifle";
 
+        /// <summary>
+        /// Имя слоя сидячей позы. Слой тоже отдельный и тоже поверх основного:
+        /// пока его вес ноль, персонаж анимируется ровно как раньше. Слоёв два,
+        /// но одновременно они не включаются никогда — ружьё живёт в Duck Hunt,
+        /// посадка в «Верю / не верю», сцены разные.
+        /// </summary>
+        private const string SitLayerName = "Sit";
+
         /// <summary>Слой ружья не найден — у этого персонажа его просто нет.</summary>
         private const int NoLayer = -1;
 
@@ -44,6 +52,10 @@ namespace Igruha.Core.Player
         /// <summary>Индекс слоя ружья. Считается один раз: поиск по имени идёт строкой.</summary>
         private int rifleLayer = NoLayer;
         private bool rifleLayerResolved;
+
+        /// <summary>Индекс слоя посадки. Считается так же один раз.</summary>
+        private int sitLayer = NoLayer;
+        private bool sitLayerResolved;
         private Vector3 visualBaseScale = Vector3.one;
         private float standingHeight = 1f;
 
@@ -180,6 +192,38 @@ namespace Igruha.Core.Player
             }
 
             animator.SetTrigger(FireParameterHash);
+        }
+
+        /// <summary>
+        /// Сесть или встать. Это вес слоя, а не параметр: слой либо перекрывает
+        /// позу целиком, либо не существует для персонажа вовсе.
+        ///
+        /// Публичный вход нужен так же, как <see cref="SetRifleAiming"/>:
+        /// у чужих копий этот компонент выключен, чтобы не затирать параметры
+        /// из NetworkAnimator, — но посадку показать надо, и кто сидит,
+        /// известно на каждой машине.
+        /// </summary>
+        public void SetSitting(bool sitting)
+        {
+            int layer = ResolveSitLayer();
+            if (layer == NoLayer)
+            {
+                return;
+            }
+
+            animator.SetLayerWeight(layer, sitting ? 1f : 0f);
+        }
+
+        private int ResolveSitLayer()
+        {
+            if (sitLayerResolved)
+            {
+                return sitLayer;
+            }
+
+            sitLayerResolved = true;
+            sitLayer = animator != null ? animator.GetLayerIndex(SitLayerName) : NoLayer;
+            return sitLayer;
         }
 
         private int ResolveRifleLayer()

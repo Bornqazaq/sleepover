@@ -128,11 +128,16 @@ namespace Igruha.EditorTools
             }
 
             StripTemplate();
+            BelieveOrNotDress.Begin();
             BelieveTable table = BuildArena(config);
             PlaceSpawnPoints(config);
             ApplyLighting(config);
             WireManager(config, table);
             RegisterInBuildSettings();
+
+            GameObject arena = GameObject.Find(ArenaRoot);
+            Debug.Log(BelieveOrNotDress.Report(arena), arena);
+            BelieveOrNotPaletteAssets.Flush();
 
             EditorSceneManager.MarkAllScenesDirty();
             EditorSceneManager.SaveOpenScenes();
@@ -197,6 +202,7 @@ namespace Igruha.EditorTools
             GameObject table = BuildTable(parent, config);
             BuildBarrier(parent, config);
             BuildLamp(parent, config);
+            BelieveOrNotHall.Build(parent, config, config.HallWidth * 0.5f - WallThickness * 0.5f);
 
             return SetUpTable(table, parent, config);
         }
@@ -209,23 +215,28 @@ namespace Igruha.EditorTools
             float halfW = w * 0.5f;
             float halfD = d * 0.5f;
 
+            // Цвета зала приходят палитрой подфазы 4.2, а не числами по месту:
+            // пол снят с сукна, стены — с бархата шторы, которая на них висит.
+            Material floor = BelieveOrNotPaletteAssets.Get(BelieveOrNotPaletteAssets.Tone.Floor);
+            Material ceiling = BelieveOrNotPaletteAssets.Get(BelieveOrNotPaletteAssets.Tone.Ceiling);
+            Material walls = BelieveOrNotPaletteAssets.Get(BelieveOrNotPaletteAssets.Tone.Wall);
+
             SetLayer(CreateBox(parent, "Floor", new Vector3(w, WallThickness, d),
-                new Vector3(0f, -WallThickness * 0.5f, 0f), new Color(0.10f, 0.12f, 0.11f)), "Ground");
+                new Vector3(0f, -WallThickness * 0.5f, 0f), floor), "Ground");
 
             SetLayer(CreateBox(parent, "Ceiling", new Vector3(w, WallThickness, d),
-                new Vector3(0f, h, 0f), new Color(0.06f, 0.06f, 0.07f)), "Ground");
+                new Vector3(0f, h, 0f), ceiling), "Ground");
 
             // ⚠️ Стены обязаны лежать на Ground: геометрия на Default для камеры
             // прозрачна, и деоклюдер выпустит её наружу (igruha/CLAUDE.md, 2a).
-            var wallColor = new Color(0.14f, 0.10f, 0.13f);
             SetLayer(CreateBox(parent, "Wall_North", new Vector3(w, h, WallThickness),
-                new Vector3(0f, h * 0.5f, halfD), wallColor), "Ground");
+                new Vector3(0f, h * 0.5f, halfD), walls), "Ground");
             SetLayer(CreateBox(parent, "Wall_South", new Vector3(w, h, WallThickness),
-                new Vector3(0f, h * 0.5f, -halfD), wallColor), "Ground");
+                new Vector3(0f, h * 0.5f, -halfD), walls), "Ground");
             SetLayer(CreateBox(parent, "Wall_West", new Vector3(WallThickness, h, d),
-                new Vector3(-halfW, h * 0.5f, 0f), wallColor), "Ground");
+                new Vector3(-halfW, h * 0.5f, 0f), walls), "Ground");
             SetLayer(CreateBox(parent, "Wall_East", new Vector3(WallThickness, h, d),
-                new Vector3(halfW, h * 0.5f, 0f), wallColor), "Ground");
+                new Vector3(halfW, h * 0.5f, 0f), walls), "Ground");
         }
 
         private static GameObject BuildTable(Transform parent, BelieveOrNotConfig config)
@@ -255,6 +266,7 @@ namespace Igruha.EditorTools
             box.size = new Vector3(inscribed, 1f, inscribed);
 
             SetLayer(top, "Ground");
+            BelieveOrNotDress.DressTable(top, config);
 
             for (int seat = 0; seat < BelieveTable.SeatCount; seat++)
             {
@@ -271,6 +283,7 @@ namespace Igruha.EditorTools
                     new Color(0.18f, 0.08f, 0.09f));
                 Object.DestroyImmediate(chair.GetComponent<Collider>());
                 SetLayer(chair, "Ground");
+                BelieveOrNotDress.DressChair(chair, direction, config.SeatDistance);
             }
 
             return table;
@@ -334,6 +347,8 @@ namespace Igruha.EditorTools
                 new Vector3(0f, config.LampHeight + 0.2f, 0f),
                 new Color(0.05f, 0.04f, 0.04f));
             SetLayer(shade, "Ground");
+            BelieveOrNotDress.DressLamp(shade, config);
+            BelieveOrNotEffects.BeamDust(parent, config);
         }
 
         /// <summary>
@@ -431,8 +446,14 @@ namespace Igruha.EditorTools
             root.transform.localRotation = Quaternion.LookRotation(-SeatDirection(seat), Vector3.up);
 
             var boxColor = new Color(0.34f, 0.22f, 0.12f);
+
+            // Корпус ставится по нижней грани номинального куба, а не по его
+            // центру: куб — это габарит коробки из спеки (0.8 ШП), корпус
+            // занимает по высоте 0.7 от него, и центрированный корпус висел бы
+            // над столешницей на 8.6 см. В блокауте это не читалось — серый
+            // ящик в тёмном зале, — а под сундуком фазы 4 стало бы видно сразу.
             GameObject body = CreateBox(root.transform, "Body", new Vector3(size, size * 0.7f, size * 0.75f),
-                Vector3.zero, boxColor);
+                new Vector3(0f, size * (0.7f * 0.5f - 0.5f), 0f), boxColor);
             Object.DestroyImmediate(body.GetComponent<Collider>());
 
             // Петля сбоку, а не сзади. Откинутая назад крышка ближней коробки
@@ -488,6 +509,8 @@ namespace Igruha.EditorTools
             so.FindProperty("revealLift").floatValue = size * 0.95f;
             so.ApplyModifiedPropertiesWithoutUndo();
 
+            BelieveOrNotDress.DressBox(component, body, hinge.transform, lid, size);
+
             return component;
         }
 
@@ -542,6 +565,8 @@ namespace Igruha.EditorTools
                 Object.DestroyImmediate(collider);
             }
 
+            BelieveOrNotEffects.CardGlow(root.transform, plate, win);
+
             root.SetActive(false);
             return root;
         }
@@ -553,6 +578,16 @@ namespace Igruha.EditorTools
         /// </summary>
         private static ParticleSystem BuildGagPuff(Transform parent, float size)
         {
+            // Сначала эффект пака (подфаза 4.4), и только если паков на машине
+            // нет — заглушка фазы 2 ниже. Она остаётся не «на всякий случай»:
+            // паки в репозиторий не кладутся, и у напарника без них коробка
+            // обязана пыхать хоть чем-то.
+            ParticleSystem packPuff = BelieveOrNotEffects.GagPuff(parent, size);
+            if (packPuff != null)
+            {
+                return packPuff;
+            }
+
             var go = new GameObject("GagPuff");
             go.transform.SetParent(parent, false);
             go.transform.localPosition = new Vector3(0f, size * 0.45f, 0f);
@@ -1184,12 +1219,32 @@ namespace Igruha.EditorTools
 
         private static GameObject CreateBox(Transform parent, string name, Vector3 size, Vector3 position, Color color)
         {
+            GameObject go = CreateBox(parent, name, size, position);
+            Paint(go, color);
+            return go;
+        }
+
+        /// <summary>Коробка блокаута под готовым материалом палитры (подфаза 4.2).</summary>
+        private static GameObject CreateBox(Transform parent, string name, Vector3 size, Vector3 position,
+            Material material)
+        {
+            GameObject go = CreateBox(parent, name, size, position);
+            var renderer = go.GetComponent<MeshRenderer>();
+            if (renderer != null && material != null)
+            {
+                renderer.sharedMaterial = material;
+            }
+
+            return go;
+        }
+
+        private static GameObject CreateBox(Transform parent, string name, Vector3 size, Vector3 position)
+        {
             var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
             go.name = name;
             go.transform.SetParent(parent, false);
             go.transform.localPosition = position;
             go.transform.localScale = size;
-            Paint(go, color);
             return go;
         }
 
