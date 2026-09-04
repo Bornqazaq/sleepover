@@ -50,9 +50,6 @@ namespace Igruha.EditorTools
             /// <summary>Доска через пропасть. Единственный путь на ту сторону.</summary>
             Plank,
 
-            /// <summary>Ящик штабеля, откуда команда берёт тару. Красится в цвет команды.</summary>
-            StackCrate,
-
             /// <summary>Кучка метательного: кирпичи по краям маршрута.</summary>
             Stash,
 
@@ -84,6 +81,18 @@ namespace Igruha.EditorTools
 
         /// <summary>Стояк прорванной трубы. Ставится рядом со струёй, а не в неё.</summary>
         internal const string StandpipePath = Props + "SM_Prop_Pipe_Concrete_02.prefab";
+
+        /// <summary>Излом прорванной трубы: из него бьёт струя.</summary>
+        internal const string SpoutPath = Props + "SM_Prop_Pipe_Concrete_Large_03.prefab";
+
+        /// <summary>Поддон под тарой штабеля.</summary>
+        internal const string PalletPath = Props + "SM_Prop_Pallet_01.prefab";
+
+        /// <summary>Лестница на бак: она и объясняет, что это резервуар, а не бочка.</summary>
+        internal const string LadderPath = Props + "SM_Prop_Ladder_01.prefab";
+
+        /// <summary>Обвязка у основания бака.</summary>
+        internal const string OutletPath = Props + "SM_Prop_Watertank_01.prefab";
 
         private static readonly Dictionary<Kind, Wear> Catalog = new Dictionary<Kind, Wear>
         {
@@ -117,20 +126,6 @@ namespace Igruha.EditorTools
                 // выглядел бы разрывом ровно там, где по нему идут.
                 Kind.Plank,
                 new Wear("доска", new Entry(Props + "SM_Prop_Plank_Long_Stack_02.prefab", Fit.Stretch))
-            },
-            {
-                // Ящик штабеля — 2.5 × 1.5 × 2.5 ШИ. Штабель поддонов
-                // 1.68 × 0.94 × 1.64 м садится растяжением 1.07 / 1.15 / 1.10,
-                // то есть почти в натуральном масштабе.
-                //
-                // Цвет команды на самой коробке не живёт, и это проверено
-                // рендером: дресс растягивает модель ровно в габарит коробки,
-                // и оставленный включённым белый куб закрывает поддоны целиком
-                // — на кадре 04.09 от штабеля осталась голая белая коробка с
-                // зелёным шариком. Цвет команды переехал на тент поверх ящика
-                // (см. StackCrate в билдере), а коробка гаснет, как везде.
-                Kind.StackCrate,
-                new Wear("ящик штабеля", new Entry(Props + "SM_Prop_PalletStack_02.prefab", Fit.Stretch))
             },
             {
                 // Кучка кирпича — куб 1.5 ШИ (1.08 м). Четыре штабеля пака

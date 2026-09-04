@@ -118,6 +118,16 @@ namespace Igruha.EditorTools
         /// </summary>
         private const int DressSeed = 20260904;
 
+        /// <summary>Высота поддона под тарой, ШИ.</summary>
+        private const float PalletHeight = 0.35f;
+
+        /// <summary>Сколько бутылей стоит на поддоне штабеля: ряды и столбцы.</summary>
+        private const int StackRows = 2;
+        private const int StackColumns = 3;
+
+        /// <summary>Высота бака, ШИ. Выше прежнего обода: бак — табло команды, и его должно быть видно издали.</summary>
+        private const float TankHeight = 2.15f;
+
         private static System.Random dressRandom;
 
         [MenuItem("Igruha/Minigames/Rebuild Carry Item Arena")]
@@ -613,6 +623,14 @@ namespace Igruha.EditorTools
             CarryItemDress.Prop(group, "Standpipe", CarryItemDress.StandpipePath,
                 new Vector3(pipe.transform.position.x, 0f, config.ToMeters(edgeZ)),
                 0f, config.ToMeters(config.RubbleHeight));
+
+            // Излом со срезанным концом на высоте струи. Без него объём струи
+            // висит в воздухе ничем: до разбора 01.09 игрока сносило вообще
+            // невидимой силой, а полупрозрачная коробка одна отвечает на
+            // вопрос «где толкает», но не на вопрос «откуда».
+            CarryItemDress.Prop(group, "PipeSpout", CarryItemDress.SpoutPath,
+                new Vector3(pipe.transform.position.x, pipe.transform.position.y, config.ToMeters(edgeZ - 0.6f)),
+                90f, config.ToMeters(0.5f));
         }
 
         private static void BuildPickups(Transform root, CarryItemConfig config)
@@ -800,21 +818,7 @@ namespace Igruha.EditorTools
             float height = config.HandleHeight * 1.25f;
             float radius = config.HandleRadius * 0.7f;
 
-            Renderer capRenderer = null;
-            for (int i = 0; i < BottleSilhouette.Length; i++)
-            {
-                BottleSection section = BottleSilhouette[i];
-                GameObject part = Cylinder(root.transform, section.Name,
-                    (section.Bottom + section.Top) * 0.5f * height,
-                    (section.Top - section.Bottom) * 0.5f * height,
-                    radius * 2f * section.Diameter,
-                    Mat(section.Material));
-
-                if (section.Name == "Cap")
-                {
-                    capRenderer = part.GetComponent<Renderer>();
-                }
-            }
+            Renderer capRenderer = BuildBottleShape(root.transform, height, radius);
 
             // Уровень воды растёт от дна, поэтому масштабируется пустышка-пивот,
             // а не сам цилиндр: у примитива пивот в середине, и он рос бы в обе
@@ -878,6 +882,78 @@ namespace Igruha.EditorTools
 
             PrefabUtility.SaveAsPrefabAsset(root, BottlePrefabPath);
             Object.DestroyImmediate(root);
+        }
+
+        /// <summary>
+        /// Полотнище старта на двух стойках — метка команды, видная от самого
+        /// бака. Стоит <b>сбоку</b> от штабеля: позади него камере нужны 4.5 м,
+        /// а поперёк маршрута полотнище было бы препятствием на старте.
+        /// </summary>
+        private static GameObject BuildStartBanner(Transform root, CarryItemConfig config, float side)
+        {
+            var group = new GameObject("StartBanner");
+            group.transform.SetParent(root, false);
+            group.transform.localPosition = new Vector3(0f, 0f, config.ToMeters(side * 0.95f));
+
+            float postHeight = config.ToMeters(2f);
+            float span = config.ToMeters(side * 0.8f);
+
+            for (int i = 0; i < 2; i++)
+            {
+                float z = i == 0 ? -span * 0.5f : span * 0.5f;
+                GameObject post = Cylinder(group.transform, $"Post_{i + 1}",
+                    postHeight * 0.5f, postHeight * 0.5f, config.ToMeters(0.12f), Mat("CI_TankRim"));
+                post.transform.localPosition = new Vector3(0f, postHeight * 0.5f, z);
+            }
+
+            var cloth = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            cloth.name = "Cloth";
+            cloth.transform.SetParent(group.transform, false);
+            cloth.transform.localPosition = new Vector3(0f, postHeight * 0.78f, 0f);
+            cloth.transform.localScale = new Vector3(
+                config.ToMeters(0.08f), postHeight * 0.36f, span);
+            Object.DestroyImmediate(cloth.GetComponent<Collider>());
+            Paint(cloth, Mat("CI_Crate"));
+            return cloth;
+        }
+
+        /// <summary>
+        /// Силуэт бутыли пятью поясами. Отдельным методом потому, что бутыль
+        /// стоит не только в руках: тем же силуэтом набран штабель, откуда её
+        /// берут. Две разные модели одного и того же предмета читались бы как
+        /// два разных предмета.
+        /// </summary>
+        /// <param name="shellOverride">
+        /// Чем закрыть корпус вместо прозрачного стекла. Носимая бутыль обязана
+        /// показывать уровень воды насквозь, а стоящая на штабеле — наоборот,
+        /// полная, и прозрачной она читается пустой стекляшкой. Полная бутыль
+        /// синяя, потому что в ней вода, а не потому что так покрасили.
+        /// </param>
+        /// <returns>Рендерер крышки — он красится в цвет команды.</returns>
+        private static Renderer BuildBottleShape(Transform parent, float height, float radius,
+            Material shellOverride = null)
+        {
+            Renderer cap = null;
+            for (int i = 0; i < BottleSilhouette.Length; i++)
+            {
+                BottleSection section = BottleSilhouette[i];
+                Material material = section.Name == "Cap" || shellOverride == null
+                    ? Mat(section.Material)
+                    : shellOverride;
+
+                GameObject part = Cylinder(parent, section.Name,
+                    (section.Bottom + section.Top) * 0.5f * height,
+                    (section.Top - section.Bottom) * 0.5f * height,
+                    radius * 2f * section.Diameter,
+                    material);
+
+                if (section.Name == "Cap")
+                {
+                    cap = part.GetComponent<Renderer>();
+                }
+            }
+
+            return cap;
         }
 
         /// <summary>
@@ -1064,33 +1140,43 @@ namespace Igruha.EditorTools
 
             int ground = LayerMask.NameToLayer("Ground");
             float side = 4f;
-            float rim = 1.2f;
-            Material rimMaterial = Mat("CI_TankRim");
-            var rims = new Object[4];
+            float height = TankHeight;
 
-            // Борта: и вид бака, и то, во что упирается камера. На Ground,
-            // иначе она пройдёт их насквозь.
-            for (int i = 0; i < 4; i++)
-            {
-                bool alongX = i < 2;
-                float sign = i % 2 == 0 ? 1f : -1f;
+            // Корпус — цельный цилиндр, а не четыре борта коробкой.
+            //
+            // Коробка была подпоркой блокаута: она держала коллайдер и
+            // показывала уровень воды сверху. Настоящий бак на стройке круглый
+            // и закрытый, и на референсе геймдизайнера он именно такой.
+            // Коллайдер при этом остаётся ровно тем же пятном 4 × 4 ШИ — только
+            // круглым: выпуклый меш-коллайдер цилиндра. Внутрь бака игрок
+            // по-прежнему не попадает, камера сквозь него не проходит.
+            GameObject shell = Cylinder(root.transform, "Shell",
+                config.ToMeters(height * 0.5f), config.ToMeters(height * 0.5f),
+                config.ToMeters(side), Mat("CI_TankRim"));
+            shell.layer = ground;
+            var body = shell.AddComponent<MeshCollider>();
+            body.convex = true;
 
-                var wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                wall.name = $"Rim_{i + 1}";
-                wall.layer = ground;
-                wall.transform.SetParent(root.transform, false);
-                wall.transform.localPosition = new Vector3(
-                    alongX ? config.ToMeters(side * 0.5f * sign) : 0f,
-                    config.ToMeters(rim * 0.5f),
-                    alongX ? 0f : config.ToMeters(side * 0.5f * sign));
-                wall.transform.localScale = new Vector3(
-                    config.ToMeters(alongX ? 0.3f : side),
-                    config.ToMeters(rim),
-                    config.ToMeters(alongX ? side : 0.3f));
+            // Крышка с ободом: обод и есть метка команды. На закрытом баке она
+            // видна с любой стороны, тогда как борт коробки — только с двух.
+            GameObject lid = Cylinder(root.transform, "Lid",
+                config.ToMeters(height + 0.12f), config.ToMeters(0.12f),
+                config.ToMeters(side * 0.82f), Mat("CI_TankRim"));
+            lid.layer = ground;
 
-                Paint(wall, rimMaterial);
-                rims[i] = wall.GetComponent<Renderer>();
-            }
+            GameObject band = Cylinder(root.transform, "TeamBand",
+                config.ToMeters(height - 0.18f), config.ToMeters(0.18f),
+                config.ToMeters(side * 1.03f), Mat("CI_TankRim"));
+            band.layer = ground;
+
+            // Смотровое стекло: столбик воды снаружи, во всю высоту бака.
+            //
+            // Закрытый бак прячет уровень, а уровень — это счёт команды. Мерное
+            // стекло на стройке вещь обычная и читается лучше, чем взгляд
+            // сверху в открытую бочку: столбик виден с подхода, а не только
+            // когда стоишь вплотную. Смотрит на маршрут, то есть в −X.
+            float gaugeX = -config.ToMeters(side * 0.5f);
+            float gaugeHeight = config.ToMeters(height * 0.86f);
 
             var waterPivot = new GameObject("WaterPivot");
             waterPivot.transform.SetParent(root.transform, false);
@@ -1098,11 +1184,29 @@ namespace Igruha.EditorTools
             var water = GameObject.CreatePrimitive(PrimitiveType.Cube);
             water.name = "WaterMesh";
             water.transform.SetParent(waterPivot.transform, false);
-            water.transform.localPosition = new Vector3(0f, config.ToMeters(rim * 0.5f), 0f);
+            water.transform.localPosition = new Vector3(gaugeX, gaugeHeight * 0.5f, 0f);
             water.transform.localScale = new Vector3(
-                config.ToMeters(side * 0.9f), config.ToMeters(rim), config.ToMeters(side * 0.9f));
+                config.ToMeters(0.22f), gaugeHeight, config.ToMeters(side * 0.34f));
             Object.DestroyImmediate(water.GetComponent<Collider>());
             Paint(water, Mat("CI_TankWater"));
+
+            var glass = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            glass.name = "GaugeGlass";
+            glass.transform.SetParent(root.transform, false);
+            glass.transform.localPosition = new Vector3(gaugeX - config.ToMeters(0.06f), gaugeHeight * 0.5f, 0f);
+            glass.transform.localScale = new Vector3(
+                config.ToMeters(0.12f), gaugeHeight, config.ToMeters(side * 0.4f));
+            Object.DestroyImmediate(glass.GetComponent<Collider>());
+            Paint(glass, Mat("CI_TankGlass"));
+
+            // Лестница на бак и труба у основания — то, из-за чего резервуар
+            // читается резервуаром, а не бочкой. Декор, коллайдеров нет.
+            CarryItemDress.Prop(root.transform, "Ladder", CarryItemDress.LadderPath,
+                root.transform.position + new Vector3(config.ToMeters(side * 0.46f), 0f, 0f),
+                90f, config.ToMeters(height));
+            CarryItemDress.Prop(root.transform, "Outlet", CarryItemDress.OutletPath,
+                root.transform.position + new Vector3(0f, 0f, config.ToMeters(side * 0.5f)),
+                0f, config.ToMeters(0.9f));
 
             // Зона приёма заметно шире бортов и выше их.
             //
@@ -1124,7 +1228,7 @@ namespace Igruha.EditorTools
 
             // Обод — цветом команды: бак это её табло, и с середины площадки
             // должно быть видно, чей он, а не только сколько в нём.
-            SetArray(so.FindProperty("teamTint"), rims);
+            SetArray(so.FindProperty("teamTint"), new Object[] { band.GetComponent<Renderer>() });
             so.ApplyModifiedPropertiesWithoutUndo();
 
             PrefabUtility.SaveAsPrefabAsset(root, TankPrefabPath);
@@ -1145,6 +1249,8 @@ namespace Igruha.EditorTools
             float side = 2.5f;
             float height = 1.5f;
 
+            // Коробка блокаута остаётся коллайдером и гаснет: на неё игрок
+            // натыкается, но видит он поддон с тарой, а не куб.
             var crate = GameObject.CreatePrimitive(PrimitiveType.Cube);
             crate.name = "Crate";
             crate.layer = LayerMask.NameToLayer("Ground");
@@ -1152,32 +1258,55 @@ namespace Igruha.EditorTools
             crate.transform.localPosition = new Vector3(0f, config.ToMeters(height * 0.5f), 0f);
             crate.transform.localScale = new Vector3(
                 config.ToMeters(side), config.ToMeters(height), config.ToMeters(side));
-            Paint(crate, Mat("CI_Crate"));
-            CarryItemDress.Apply(crate, CarryItemDress.Kind.StackCrate, dressRandom);
+            crate.GetComponent<MeshRenderer>().enabled = false;
 
-            // Тент поверх ящика — он и несёт цвет команды.
-            //
-            // Раньше цвет держала сама коробка блокаута, и рендер 04.09 показал,
-            // почему так нельзя: дресс растягивает модель точно в габарит
-            // коробки, и оставленный включённым белый куб закрыл поддоны
-            // целиком — от штабеля остался белый ящик с зелёным шариком.
-            // Тент лежит выше ящика, шире его и ничего не прячет.
-            var band = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            band.name = "TeamBand";
-            band.transform.SetParent(root.transform, false);
-            band.transform.localPosition = new Vector3(0f, config.ToMeters(height + 0.1f), 0f);
-            band.transform.localScale = new Vector3(
-                config.ToMeters(side * 1.1f), config.ToMeters(0.2f), config.ToMeters(side * 1.1f));
-            Object.DestroyImmediate(band.GetComponent<Collider>());
-            Paint(band, Mat("CI_Crate"));
+            CarryItemDress.Prop(root.transform, "Pallet", CarryItemDress.PalletPath,
+                root.transform.position, 0f, config.ToMeters(PalletHeight));
 
-            var indicator = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            indicator.name = "ReadyIndicator";
+            // Тара на поддоне. Тем же силуэтом, что и носимая бутыль: две разные
+            // модели одного предмета читались бы как два разных предмета.
+            Material fullBottle = Mat("CI_BottleWater");
+            float bottleHeight = config.ToMeters(height - PalletHeight);
+            float bottleRadius = bottleHeight * (config.HandleRadius * 0.7f) / (config.HandleHeight * 1.25f);
+            var tinted = new List<Object>(8);
+
+            for (int i = 0; i < StackRows * StackColumns; i++)
+            {
+                float u = StackColumns == 1 ? 0.5f : i % StackColumns / (float)(StackColumns - 1);
+                float v = StackRows == 1 ? 0.5f : i / StackColumns / (float)(StackRows - 1);
+                float spread = config.ToMeters(side) * 0.5f - bottleRadius * 1.15f;
+
+                var slot = new GameObject($"Bottle_{i + 1}");
+                slot.transform.SetParent(root.transform, false);
+                slot.transform.localPosition = new Vector3(
+                    Mathf.Lerp(-spread, spread, u),
+                    config.ToMeters(PalletHeight),
+                    Mathf.Lerp(-spread, spread, v));
+
+                Renderer cap = BuildBottleShape(slot.transform, bottleHeight, bottleRadius, fullBottle);
+                if (cap != null)
+                {
+                    tinted.Add(cap);
+                }
+            }
+
+            // Готовность — не шарик над ящиком, а стоящая с краю бутыль: она
+            // есть, когда её можно взять, и её нет, пока команда несёт свою.
+            var indicator = new GameObject("ReadyIndicator");
             indicator.transform.SetParent(root.transform, false);
-            indicator.transform.localPosition = new Vector3(0f, config.ToMeters(height + 0.4f), 0f);
-            indicator.transform.localScale = Vector3.one * config.ToMeters(0.5f);
-            Object.DestroyImmediate(indicator.GetComponent<Collider>());
-            Paint(indicator, Mat("CI_StackReady"));
+            indicator.transform.localPosition = new Vector3(
+                config.ToMeters(side * 0.42f), config.ToMeters(PalletHeight), 0f);
+            Renderer readyCap = BuildBottleShape(
+                indicator.transform, bottleHeight * 1.3f, bottleRadius * 1.3f, fullBottle);
+            if (readyCap != null)
+            {
+                tinted.Add(readyCap);
+            }
+
+            // Полотнище старта на стойке — как на референсе геймдизайнера. Стоит
+            // сбоку от штабеля, а не позади: позади нужны 4.5 м камере.
+            GameObject banner = BuildStartBanner(root.transform, config, side);
+            tinted.Add(banner.GetComponent<Renderer>());
 
             // Тара появляется перед ящиком, со стороны маршрута: взявший
             // сразу оказывается лицом туда, куда её нести.
@@ -1193,7 +1322,7 @@ namespace Igruha.EditorTools
             so.FindProperty("spawnPoint").objectReferenceValue = spawnPoint.transform;
             so.FindProperty("readyIndicator").objectReferenceValue = indicator;
             so.FindProperty("prompt").stringValue = "Взять бутыль (держать E)";
-            SetArray(so.FindProperty("teamTint"), new Object[] { band.GetComponent<Renderer>() });
+            SetArray(so.FindProperty("teamTint"), tinted.ToArray());
             so.ApplyModifiedPropertiesWithoutUndo();
 
             PrefabUtility.SaveAsPrefabAsset(root, StackPrefabPath);

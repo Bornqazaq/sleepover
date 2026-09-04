@@ -156,7 +156,7 @@ namespace Igruha.EditorTools
                 Transform[] all = roots[r].GetComponentsInChildren<Transform>(true);
                 for (int i = 0; i < all.Length; i++)
                 {
-                    if (all[i].name.StartsWith("Wheelbarrow_") || all[i].name == "Standpipe")
+                    if (IsProp(all[i].name))
                     {
                         props.Add(all[i].gameObject);
                     }
@@ -170,7 +170,7 @@ namespace Igruha.EditorTools
             for (int i = 0; i < props.Count; i++)
             {
                 colliders += props[i].GetComponentsInChildren<Collider>(true).Length;
-                if (!TryWorldBounds(props[i], out Bounds bounds))
+                if (!StandsOnFloor(props[i].name) || !TryWorldBounds(props[i], out Bounds bounds))
                 {
                     continue;
                 }
@@ -311,6 +311,27 @@ namespace Igruha.EditorTools
                 .Append(Mark(brick.GetComponent<Unity.Netcode.NetworkObject>() != null));
             report.Append("\n          NetworkTransform  ")
                 .Append(Mark(brick.GetComponent<Unity.Netcode.Components.NetworkTransform>() != null));
+        }
+
+        /// <summary>
+        /// Модели пака, поставленные мимо коробок блокаута. Список именной, а не
+        /// по признаку: декор ставится в разные группы и разными методами, и
+        /// пропущенное имя означает непроверенный коллайдер посреди арены.
+        /// </summary>
+        private static bool IsProp(string name)
+        {
+            return name.StartsWith("Wheelbarrow_") || name == "Standpipe" || name == "PipeSpout"
+                   || name == "Pallet" || name == "Ladder" || name == "Outlet";
+        }
+
+        /// <summary>
+        /// Кому положено стоять на полу. Исключение ровно одно и осмысленное:
+        /// излом прорванной трубы висит на высоте струи — труба, лежащая на
+        /// полу, не объясняла бы, откуда бьёт.
+        /// </summary>
+        private static bool StandsOnFloor(string name)
+        {
+            return name != "PipeSpout";
         }
 
         private static string Mark(bool ok)
