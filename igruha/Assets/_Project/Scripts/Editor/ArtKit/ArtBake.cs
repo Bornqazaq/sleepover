@@ -42,6 +42,7 @@ namespace Igruha.EditorTools
     {
         private const string PacksRoot = "Assets/Synty/";
         private const string ArtRoot = "Assets/_Project/Art";
+        private const string GamePrefabRoot = "Assets/_Project/Prefabs/Minigames";
 
         /// <summary>Расширения, внутри которых ссылки лежат текстом и поддаются подмене GUID.</summary>
         private static readonly HashSet<string> TextualAssets = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -106,26 +107,59 @@ namespace Igruha.EditorTools
             AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
 
             var remappedComponents = RemapScene(scene, objectMap);
+            var bakedPrefabs = BakeGamePrefabs(scene.name, objectMap, guidMap);
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             AssetDatabase.SaveAssets();
 
             var left = CollectPackAssets(scene, target).Count;
+            var leftInPrefabs = PackRefsInGamePrefabs(scene.name);
             return
                 $"[Запекание] {scene.name}: распаковано инстансов {unpacked}, " +
                 $"перенесено файлов {copied} (всего в карте {guidMap.Count}), " +
                 $"переписано файлов копий {rewritten}, ассетов проекта {rewrittenHolders}, " +
-                $"компонентов сцены {remappedComponents}. " +
-                $"Осталось ссылок на паки: {left}." +
-                (left == 0 ? " Сцена самодостаточна." : " ⚠️ Разобрать остаток вручную.");
+                $"компонентов сцены {remappedComponents}, префабов игры {bakedPrefabs}. " +
+                $"Осталось ссылок на паки: в сцене {left}, в префабах игры {leftInPrefabs}." +
+                (left + leftInPrefabs == 0
+                    ? " Сцена самодостаточна."
+                    : " ⚠️ Разобрать остаток вручную.");
         }
 
-        /// <summary>Инстанс префаба пака нельзя перенаправить на копию — его надо распаковать.</summary>
+        /// <summary>
+        /// Инстанс префаба пака нельзя перенаправить на копию — его надо распаковать.
+        ///
+        /// <b>Распаковывается всегда внешний корень, а не найденный объект.</b>
+        /// <c>UnpackPrefabInstance</c> принимает только корень инстанса верхнего
+        /// уровня и на вложенном бросает <c>ArgumentException</c>. Модель пака
+        /// оказывается вложенной, как только её сажают внутрь собственного
+        /// префаба игры: поддон внутри штабеля, лестница внутри бака. До
+        /// «Переноски» такого не было ни у одной игры, и запекание падало на
+        /// первом же таком предмете.
+        ///
+        /// Внешний корень при этом может быть нашим собственным префабом, и он
+        /// тоже распакуется — это правильно. После запекания сцена обязана быть
+        /// самодостаточной, а связь с префабом ей для этого не нужна: порядок
+        /// «дресс → запекание» и так запрещает пересобирать арену после.
+        ///
+        /// Корни собираются заранее и без повторов: два разных внешних корня по
+        /// определению не вложены друг в друга, поэтому одного прохода хватает.
+        /// </summary>
         private static int UnpackPackInstances(Scene scene)
         {
-            var unpacked = 0;
-            foreach (var root in scene.GetRootGameObjects())
+            return UnpackPackInstancesIn(scene.GetRootGameObjects());
+        }
+
+        /// <summary>
+        /// Та же распаковка по произвольным корням: сцена отдаёт свои, а
+        /// содержимое префаба — один корень, загруженный
+        /// <c>PrefabUtility.LoadPrefabContents</c>.
+        /// </summary>
+        private static int UnpackPackInstancesIn(IEnumerable<GameObject> hierarchy)
+        {
+            var roots = new List<GameObject>();
+
+            foreach (var root in hierarchy)
             {
                 foreach (var transform in root.GetComponentsInChildren<Transform>(true))
                 {
@@ -141,20 +175,116 @@ namespace Igruha.EditorTools
                         continue;
                     }
 
-                    PrefabUtility.UnpackPrefabInstance(
-                        go, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
-                    unpacked++;
+                    var outermost = PrefabUtility.GetOutermostPrefabInstanceRoot(go) ?? go;
+                    if (!roots.Contains(outermost))
+                    {
+                        roots.Add(outermost);
+                    }
                 }
             }
 
-            return unpacked;
+            for (int i = 0; i < roots.Count; i++)
+            {
+                PrefabUtility.UnpackPrefabInstance(
+                    roots[i], PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+            }
+
+            return roots.Count;
+        }
+
+        /// <summary>
+        /// Запекание собственных префабов игры — вторая половина проблемы держателей.
+        ///
+        /// Билдер арены сохраняет свои префабы уже одетыми, то есть с моделями пака
+        /// внутри, и только потом ставит их в сцену. Запекание сцены такой префаб не
+        /// видит: распаковка инстанса рвёт связь сцены с префабом, и он выпадает из
+        /// зависимостей ещё до того, как собираются держатели. В репозитории остаётся
+        /// файл, который у напарника без паков открывается пустым, а любая новая сцена
+        /// с ним возвращает зависимость от пака целиком. На «Переноске» так осталось
+        /// 15 ссылок при нуле в самой сцене: бак держал модель бака и лестницу,
+        /// штабель — поддон.
+        ///
+        /// Берётся папка <c>Prefabs/Minigames/&lt;Сцена&gt;</c> — то же именование по
+        /// сцене, что и у <c>Art/&lt;Сцена&gt;</c>. Внутри каждого префаба вложенные
+        /// инстансы паков распаковываются, а ссылки на меши и материалы переводятся на
+        /// копии, уже сделанные для сцены: эти префабы в ней и стоят, поэтому копировать
+        /// заново нечего.
+        /// </summary>
+        private static int BakeGamePrefabs(
+            string sceneName, Dictionary<int, UnityEngine.Object> objectMap,
+            Dictionary<string, string> guidMap)
+        {
+            var folder = $"{GamePrefabRoot}/{sceneName}";
+            if (!AssetDatabase.IsValidFolder(folder))
+            {
+                return 0;
+            }
+
+            var baked = new List<string>();
+            foreach (var guid in AssetDatabase.FindAssets("t:Prefab", new[] { folder }))
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                if (!AssetDatabase.GetDependencies(path, true)
+                        .Any(d => d.StartsWith(PacksRoot, StringComparison.Ordinal)))
+                {
+                    continue;
+                }
+
+                var contents = PrefabUtility.LoadPrefabContents(path);
+                try
+                {
+                    UnpackPackInstancesIn(new[] { contents });
+                    foreach (var component in contents.GetComponentsInChildren<Component>(true))
+                    {
+                        if (component != null)
+                        {
+                            RemapProperties(new SerializedObject(component), objectMap);
+                        }
+                    }
+
+                    PrefabUtility.SaveAsPrefabAsset(contents, path);
+                    baked.Add(path);
+                }
+                finally
+                {
+                    PrefabUtility.UnloadPrefabContents(contents);
+                }
+            }
+
+            if (baked.Count > 0)
+            {
+                RewriteGuids(baked, guidMap);
+                AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
+            }
+
+            return baked.Count;
+        }
+
+        /// <summary>Сколько ссылок на паки осталось у собственных префабов игры.</summary>
+        private static int PackRefsInGamePrefabs(string sceneName)
+        {
+            var folder = $"{GamePrefabRoot}/{sceneName}";
+            if (!AssetDatabase.IsValidFolder(folder))
+            {
+                return 0;
+            }
+
+            return AssetDatabase.FindAssets("t:Prefab", new[] { folder })
+                .Select(AssetDatabase.GUIDToAssetPath)
+                .SelectMany(p => AssetDatabase.GetDependencies(p, true))
+                .Count(d => d.StartsWith(PacksRoot, StringComparison.Ordinal));
         }
 
         /// <summary>
         /// Все файлы паков, от которых зависит сцена — транзитивно, включая то,
-        /// что тянут за собой уже сделанные копии в <paramref name="target"/>.
-        /// Второе обязательно: копия префаба продолжает смотреть на FBX пака, и
-        /// без этого шага запекание останавливается на первом уровне.
+        /// что тянут за собой уже сделанные копии в <paramref name="target"/> и
+        /// собственные префабы игры.
+        ///
+        /// Копии обязательны: копия префаба продолжает смотреть на FBX пака, и без
+        /// этого шага запекание останавливается на первом уровне. Префабы игры
+        /// обязательны по другой причине: сцену можно запечь начисто, а её префабы
+        /// останутся с моделями пака внутри — тогда сбор вернёт ноль, запекание
+        /// решит, что работы нет, и до префабов дело не дойдёт вовсе.
         /// </summary>
         private static HashSet<string> CollectPackAssets(Scene scene, string target)
         {
@@ -186,6 +316,22 @@ namespace Igruha.EditorTools
                     }
 
                     foreach (var dependency in AssetDatabase.GetDependencies(copy, true))
+                    {
+                        if (dependency.StartsWith(PacksRoot, StringComparison.Ordinal))
+                        {
+                            AddWithDependencies(dependency, found);
+                        }
+                    }
+                }
+            }
+
+            var gamePrefabs = $"{GamePrefabRoot}/{scene.name}";
+            if (AssetDatabase.IsValidFolder(gamePrefabs))
+            {
+                foreach (var guid in AssetDatabase.FindAssets("t:Prefab", new[] { gamePrefabs }))
+                {
+                    var prefab = AssetDatabase.GUIDToAssetPath(guid);
+                    foreach (var dependency in AssetDatabase.GetDependencies(prefab, true))
                     {
                         if (dependency.StartsWith(PacksRoot, StringComparison.Ordinal))
                         {
