@@ -59,12 +59,14 @@ namespace Igruha.EditorTools
             BuildPlates(arena, config);
             BuildExit(arena, config);
             BuildKillZone(bounds, config);
+            MemoryRunEnvironment.Build(arena, config);
             EnsureHudStatusLine();
 
             MemoryRunPalette.Flush();
 
             Debug.Log(MemoryRunDress.Report(), arena);
             Debug.Log(MemoryRunPalette.Report(), arena);
+            Debug.Log(MemoryRunEnvironment.Report(), arena);
             ReportMissingModels();
 
             Debug.Log(

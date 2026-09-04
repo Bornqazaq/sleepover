@@ -45,6 +45,18 @@ namespace Igruha.EditorTools
             /// <summary>Стены и торцы цеха.</summary>
             Wall,
 
+            /// <summary>Панель по низу стены: цоколь, без которого стена читается пустым листом.</summary>
+            Wainscot,
+
+            /// <summary>Перекрытие цеха. Темнее стен: верх кадра не должен спорить с маршрутом.</summary>
+            Ceiling,
+
+            /// <summary>Стены провала. Светлее дна, темнее цеха — по ним и считывается глубина.</summary>
+            PitWall,
+
+            /// <summary>Грязь и пыль на настилах. Темнее бетона, иначе это не грязь, а песок.</summary>
+            Grime,
+
             /// <summary>Дно пропасти. Самое тёмное в кадре.</summary>
             Pit,
 
@@ -70,6 +82,10 @@ namespace Igruha.EditorTools
             { Tone.Structure, "MR_Structure" },
             { Tone.Deck, "MR_Deck" },
             { Tone.Wall, "MR_Wall" },
+            { Tone.Wainscot, "MR_Wainscot" },
+            { Tone.Ceiling, "MR_Ceiling" },
+            { Tone.PitWall, "MR_PitWall" },
+            { Tone.Grime, "MR_Grime" },
             { Tone.Pit, "MR_Pit" },
             { Tone.PitRim, "MR_PitRim" },
             { Tone.Door, "MR_Door" },
@@ -150,6 +166,18 @@ namespace Igruha.EditorTools
         /// <summary>У стали цветности остаётся ещё меньше: холодный металл против тёплого бетона.</summary>
         private const float SteelChroma = 0.12f;
 
+        /// <summary>Во сколько раз цоколь темнее стены.</summary>
+        private const float WainscotFactor = 0.72f;
+
+        /// <summary>Во сколько раз перекрытие темнее стен: верх кадра уходит в тень.</summary>
+        private const float CeilingFactor = 0.40f;
+
+        /// <summary>Во сколько раз стена провала темнее цеха. Между ней и дном остаётся ступенька.</summary>
+        private const float PitWallFactor = 0.34f;
+
+        /// <summary>Во сколько раз грязь темнее настила, на котором лежит.</summary>
+        private const float GrimeFactor = 0.74f;
+
         private static readonly Dictionary<Tone, Material> cache = new Dictionary<Tone, Material>(12);
         private static readonly Dictionary<Tone, Color> measured = new Dictionary<Tone, Color>(8);
         private static readonly List<string> unmeasured = new List<string>(4);
@@ -209,6 +237,25 @@ namespace Igruha.EditorTools
                 case Tone.Pit:
                     return Dim(ColorOf(Tone.Wall), PitFactor);
 
+                case Tone.Wainscot:
+                    return Dim(ColorOf(Tone.Wall), WainscotFactor);
+
+                case Tone.Ceiling:
+                    return Dim(ColorOf(Tone.Wall), CeilingFactor);
+
+                // Между цехом и дном обязана быть ступенька: стена провала
+                // светлее дна и темнее цеха, и ровно эта разница читается
+                // глубиной. Одним тоном с дном провал становится чёрной дырой,
+                // одним тоном с цехом — перестаёт быть провалом вовсе.
+                case Tone.PitWall:
+                    return Dim(ColorOf(Tone.Wall), PitWallFactor);
+
+                // Пятно на полу обязано быть темнее пола. Модель пыли из пака
+                // идёт песочной и светлее бетона, и на кадре 4.3 восемь таких
+                // пятен читались лужами песка посреди цеха, а не грязью.
+                case Tone.Grime:
+                    return Dim(ColorOf(Tone.Deck), GrimeFactor);
+
                 case Tone.Door:
                     return Dim(Desaturate(Raw(Tone.Door), SteelChroma), DoorFactor);
 
@@ -225,7 +272,7 @@ namespace Igruha.EditorTools
                 // уводил всю арену за собой в оливковый — а смотрят сквозь него
                 // весь раунд.
                 case Tone.Gate:
-                    return new Color(0.78f, 0.84f, 0.90f, 0.10f);
+                    return new Color(0.78f, 0.84f, 0.90f, 0.09f);
 
                 default:
                     return Color.white;
@@ -313,8 +360,13 @@ namespace Igruha.EditorTools
 
             switch (tone)
             {
+                // Стекло барьера намеренно матовое. На 0.75 оно ловило блик от
+                // каждого плафона и на кадре сбоку читалось сплошной белёсой
+                // плоскостью поперёк арены — то есть делало ровно то, от чего
+                // его спасали прозрачностью. Смотреть сквозь барьер обязаны все
+                // и весь раунд.
                 case Tone.Gate:
-                    HoleInWallMaterials.ConfigureTransparent(material, color, 0.75f);
+                    HoleInWallMaterials.ConfigureTransparent(material, color, 0.18f);
                     break;
 
                 case Tone.ExitLamp:

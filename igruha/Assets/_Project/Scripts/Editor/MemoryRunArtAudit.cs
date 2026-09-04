@@ -64,6 +64,7 @@ namespace Igruha.EditorTools
             MeasurePlates(arena, config, report);
             MeasureDress(arena, report);
             MeasureScenery(arena, report);
+            MeasureEnvironment(arena, config, report);
             MeasurePit(arena, report);
             MeasureColliders(report);
             MeasureMeshes(arena, report);
@@ -284,6 +285,95 @@ namespace Igruha.EditorTools
             // разная — это метка ряда, то есть та же подсказка, что царапина.
             report.Append("\n  балок под рядами:         ").Append(beams).Append(Mark(beams == 10));
             report.Append("\n  уникальных сечений балки: ").Append(sizes.Count).Append(Mark(sizes.Count == 1));
+        }
+
+        /// <summary>
+        /// Цех целиком: всё, что построила подфаза 4.3. Три свойства обязаны
+        /// держаться на каждом предмете без исключений — ноль коллайдеров,
+        /// слой <c>Default</c>, теней не отбрасывает.
+        ///
+        /// Коллайдер здесь ловил бы прыжок и толчок; слой <c>Ground</c> заставил
+        /// бы камеру цепляться за трубу под потолком; тень от перекрытия
+        /// погасила бы тени самих плит, ради которых направленный свет и
+        /// включён.
+        ///
+        /// Отдельно считается свет: он обязан быть <b>одинаковым над всеми
+        /// десятью рядами</b>. Ярче подсвеченный ряд запоминается сам собой,
+        /// и это та же подсказка, что царапина на плите.
+        /// </summary>
+        private static void MeasureEnvironment(GameObject arena, MemoryRunConfig config, StringBuilder report)
+        {
+            report.Append("\n\n— Цех —");
+
+            Transform environment = arena.transform.Find("_Environment");
+            if (environment == null)
+            {
+                report.Append("\n  группы _Environment нет ✘");
+                return;
+            }
+
+            int parts = 0;
+            int offDefault = 0;
+            int shadows = 0;
+            long triangles = 0;
+
+            foreach (var renderer in environment.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                parts++;
+                if (renderer.gameObject.layer != LayerMask.NameToLayer("Default"))
+                {
+                    offDefault++;
+                }
+
+                if (renderer.shadowCastingMode != UnityEngine.Rendering.ShadowCastingMode.Off)
+                {
+                    shadows++;
+                }
+
+                var filter = renderer.GetComponent<MeshFilter>();
+                if (filter != null && filter.sharedMesh != null)
+                {
+                    triangles += filter.sharedMesh.triangles.Length / 3;
+                }
+            }
+
+            int colliders = environment.GetComponentsInChildren<Collider>(true).Length;
+
+            // Лампы над маршрутом сравниваются по яркости между собой: разница
+            // здесь означает, что один ряд подсвечен сильнее соседнего.
+            var routeLights = new List<float>();
+            var lights = environment.GetComponentsInChildren<Light>(true);
+            foreach (var light in lights)
+            {
+                float z = light.transform.position.z;
+                if (z > config.GateZ && z < config.ExitPadZ)
+                {
+                    routeLights.Add(light.intensity);
+                }
+            }
+
+            bool evenLight = true;
+            for (int i = 1; i < routeLights.Count; i++)
+            {
+                if (!Mathf.Approximately(routeLights[i], routeLights[0]))
+                {
+                    evenLight = false;
+                    break;
+                }
+            }
+
+            int expectedRouteLights = config.Steps * 2;
+
+            report.Append("\n  видимых предметов:        ").Append(parts);
+            report.Append("\n  треугольников:            ").Append(triangles);
+            report.Append("\n  коллайдеров:              ").Append(colliders).Append(Mark(colliders == 0));
+            report.Append("\n  не на Default:            ").Append(offDefault).Append(Mark(offDefault == 0));
+            report.Append("\n  отбрасывают тень:         ").Append(shadows).Append(Mark(shadows == 0));
+            report.Append("\n  источников света:         ").Append(lights.Length);
+            report.Append("\n  ламп над маршрутом:       ").Append(routeLights.Count)
+                .Append(Mark(routeLights.Count == expectedRouteLights));
+            report.Append("\n  свет над рядами ровный:   ").Append(evenLight ? "да" : "НЕТ")
+                .Append(Mark(evenLight));
         }
 
         /// <summary>
