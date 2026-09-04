@@ -34,22 +34,16 @@ namespace Igruha.EditorTools
         /// <summary>Папка для генерируемых клипов. Отдельная, чтобы их нельзя было спутать с купленными.</summary>
         private const string OutputFolder = "Assets/_Project/Art/Animations/Poses";
 
-        /// <summary>Ассет формы вырезов. Печётся теми же обмерами, что и габариты.</summary>
-        private const string ShapesPath = "Assets/_Project/Settings/Gameplay/Minigames/HoleInWallPoseShapes.asset";
-
-        /// <summary>Конфиг игры: в него билдер сам проставляет ссылку на форму, чтобы её не таскали мышью.</summary>
-        private const string ConfigPath = "Assets/_Project/Settings/Gameplay/Minigames/HoleInWallConfig.asset";
-
-        private const string PlayerPrefabFolder = "Assets/_Project/Prefabs/Player/";
+        internal const string PlayerPrefabFolder = "Assets/_Project/Prefabs/Player/";
 
         /// <summary>Имена файлов персонажей. Karlan живёт в Player.prefab — это исторический корень ростера.</summary>
-        private static readonly string[] PrefabNames =
+        internal static readonly string[] PrefabNames =
         {
             "Player", "Aza", "Boss", "Fat", "Girl", "Milez", "MyBoy", "Shlanga"
         };
 
         /// <summary>Имена персонажей в том же порядке. Совпадают с <c>CharacterAnimationSet.CharacterName</c>.</summary>
-        private static readonly string[] CharacterNames =
+        internal static readonly string[] CharacterNames =
         {
             "Karlan", "Aza", "Boss", "Fat", "Girl", "Milez", "MyBoy", "Shlanga"
         };
@@ -61,7 +55,7 @@ namespace Igruha.EditorTools
         };
 
         /// <summary>Русские названия для логов и разговора с геймдизайнером.</summary>
-        private static readonly string[] PoseTitles =
+        internal static readonly string[] PoseTitles =
         {
             "Свечка", "Титаник", "Казачок", "Чайник"
         };
@@ -114,9 +108,6 @@ namespace Igruha.EditorTools
 
         /// <summary>Сколько раз уточняется посадка на пол. Сдвиг тела по высоте линеен, так что двух проходов хватает.</summary>
         private const int GroundSolveIterations = 3;
-
-        /// <summary>Полупролёт полосы, в которую не попало ни одной вершины. Доля полуширины выреза.</summary>
-        private const float MinRowSpan = 0.15f;
 
         // ================= ПОЗЫ =================
         //
@@ -207,7 +198,7 @@ namespace Igruha.EditorTools
             .Sym("Lower Leg Stretch", 0.6f)
             .Muscles;
 
-        private static float[] MusclesOf(int poseIndex)
+        internal static float[] MusclesOf(int poseIndex)
         {
             switch (poseIndex)
             {
@@ -269,123 +260,27 @@ namespace Igruha.EditorTools
             var report = new System.Text.StringBuilder();
             report.AppendLine("HoleInWallPoseClipBuilder: габариты поз, м (высота × ширина, x от…до)");
 
-            // Профиль силуэта копится по всему ростеру: вырез один на всех,
-            // и его форма — объединение силуэтов восьмерых. Полосы у каждого
-            // свои по метрам, но общие по доле высоты его же позы, поэтому
-            // складываются между собой без пересчёта.
-            var rowMin = new float[PoseCount][];
-            var rowMax = new float[PoseCount][];
-            for (int p = 0; p < PoseCount; p++)
-            {
-                rowMin[p] = new float[HoleInWallPoseShapes.RowCount];
-                rowMax[p] = new float[HoleInWallPoseShapes.RowCount];
-                for (int r = 0; r < HoleInWallPoseShapes.RowCount; r++)
-                {
-                    rowMin[p][r] = float.MaxValue;
-                    rowMax[p][r] = float.MinValue;
-                }
-            }
-
             int built = 0;
             for (int c = 0; c < CharacterNames.Length; c++)
             {
-                if (BuildOne(PrefabNames[c], CharacterNames[c], report, rowMin, rowMax))
+                if (BuildOne(PrefabNames[c], CharacterNames[c], report))
                 {
                     built++;
                 }
             }
 
-            int shaped = built > 0 ? BakeShapes(rowMin, rowMax, report) : 0;
-
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             Debug.Log($"HoleInWallPoseClipBuilder: собрано персонажей — {built} из {CharacterNames.Length}, " +
-                      $"клипов — {built * PoseCount}, форм вырезов — {shaped}.\n{report}");
-        }
+                      $"клипов — {built * PoseCount}.\n{report}");
 
-        /// <summary>
-        /// Сложить обмеры в ассет формы вырезов и привязать его к конфигу.
-        ///
-        /// Нормируем обе границы <b>одним</b> числом — самым дальним вылетом
-        /// позы в любую сторону. Оно же лежит в основе полуширины выреза
-        /// в конфиге, поэтому форма растягивается по вырезу один в один,
-        /// а асимметрия «Чайника» остаётся асимметрией.
-        /// </summary>
-        private static int BakeShapes(float[][] rowMin, float[][] rowMax, System.Text.StringBuilder report)
-        {
-            var shapes = AssetDatabase.LoadAssetAtPath<HoleInWallPoseShapes>(ShapesPath);
-            if (shapes == null)
+            // Контуры вырезов считаются по тем же позам, что и клипы, поэтому
+            // пересобираются здесь же: разъехавшись, они дали бы дырку не под
+            // ту позу, которую персонаж принимает.
+            if (built > 0)
             {
-                shapes = ScriptableObject.CreateInstance<HoleInWallPoseShapes>();
-                AssetDatabase.CreateAsset(shapes, ShapesPath);
+                HoleInWallSilhouetteBaker.BakeAll();
             }
-
-            int rows = HoleInWallPoseShapes.RowCount;
-            var left = new float[rows];
-            var right = new float[rows];
-            int baked = 0;
-
-            for (int p = 0; p < PoseCount; p++)
-            {
-                float extent = 0f;
-                for (int r = 0; r < rows; r++)
-                {
-                    if (rowMax[p][r] < rowMin[p][r])
-                    {
-                        continue;
-                    }
-
-                    extent = Mathf.Max(extent, Mathf.Max(Mathf.Abs(rowMin[p][r]), Mathf.Abs(rowMax[p][r])));
-                }
-
-                if (extent <= 0.001f)
-                {
-                    report.AppendLine($"  форма позы {PoseTitles[p]} не посчитана — обмеров нет");
-                    continue;
-                }
-
-                for (int r = 0; r < rows; r++)
-                {
-                    // Полоса без вершин достаётся только вырожденной позе;
-                    // на всякий случай оставляем её проходимой, а не заросшей.
-                    bool empty = rowMax[p][r] < rowMin[p][r];
-                    left[r] = empty ? -MinRowSpan : rowMin[p][r] / extent;
-                    right[r] = empty ? MinRowSpan : rowMax[p][r] / extent;
-                }
-
-                shapes.Bake((HoleInWallPose)(p + 1), left, right);
-                baked++;
-            }
-
-            EditorUtility.SetDirty(shapes);
-            LinkShapesToConfig(shapes);
-            return baked;
-        }
-
-        /// <summary>
-        /// Проставить конфигу ссылку на форму. Иначе её пришлось бы таскать
-        /// мышью в инспекторе, а генерируемый ассет — не то, что должен
-        /// подключать человек.
-        /// </summary>
-        private static void LinkShapesToConfig(HoleInWallPoseShapes shapes)
-        {
-            var config = AssetDatabase.LoadAssetAtPath<HoleInWallConfig>(ConfigPath);
-            if (config == null)
-            {
-                Debug.LogWarning($"HoleInWallPoseClipBuilder: конфига нет по пути {ConfigPath} — форму вырезов подключить некуда.");
-                return;
-            }
-
-            var so = new SerializedObject(config);
-            SerializedProperty property = so.FindProperty("poseShapes");
-            if (property == null)
-            {
-                return;
-            }
-
-            property.objectReferenceValue = shapes;
-            so.ApplyModifiedPropertiesWithoutUndo();
-            EditorUtility.SetDirty(config);
         }
 
         private static void EnsureFolder()
@@ -396,8 +291,7 @@ namespace Igruha.EditorTools
             }
         }
 
-        private static bool BuildOne(string prefabName, string characterName, System.Text.StringBuilder report,
-            float[][] rowMin, float[][] rowMax)
+        private static bool BuildOne(string prefabName, string characterName, System.Text.StringBuilder report)
         {
             string prefabPath = PlayerPrefabFolder + prefabName + ".prefab";
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
@@ -433,27 +327,12 @@ namespace Igruha.EditorTools
                 }
 
                 var measurer = new PoseMeasurer(animator, skin);
-                int rows = HoleInWallPoseShapes.RowCount;
-                var ownMin = new float[rows];
-                var ownMax = new float[rows];
 
                 for (int p = 0; p < PoseCount; p++)
                 {
                     float[] muscles = MusclesOf(p);
                     PoseBounds bounds = measurer.PlaceOnGround(muscles);
                     WriteClip(ClipPath(characterName, p), $"{characterName}_{PoseFileSuffix[p]}", muscles, bounds.RootHeight);
-
-                    measurer.MeasureRows(bounds.Height, ownMin, ownMax);
-                    for (int r = 0; r < rows; r++)
-                    {
-                        if (ownMax[r] < ownMin[r])
-                        {
-                            continue;
-                        }
-
-                        rowMin[p][r] = Mathf.Min(rowMin[p][r], ownMin[r]);
-                        rowMax[p][r] = Mathf.Max(rowMax[p][r], ownMax[r]);
-                    }
 
                     report.AppendLine(
                         $"  {characterName,-8} {PoseTitles[p],-9} " +
@@ -624,14 +503,14 @@ namespace Igruha.EditorTools
         private static readonly string[] FingerNames = { "Thumb", "Index", "Middle", "Ring", "Little" };
 
         /// <summary>Габарит позы, посчитанный по коже конкретного персонажа.</summary>
-        private readonly struct PoseBounds
+        internal readonly struct PoseBounds
         {
             public readonly float RootHeight;
             public readonly float Height;
             public readonly float MinX;
             public readonly float MaxX;
 
-            public PoseBounds(float rootHeight, float height, float minX, float maxX)
+            internal PoseBounds(float rootHeight, float height, float minX, float maxX)
             {
                 RootHeight = rootHeight;
                 Height = height;
@@ -650,7 +529,7 @@ namespace Igruha.EditorTools
         /// Скиннинг считаем сами — <c>BakeMesh</c> внутри одного кадра редактора
         /// отдаёт кэш предыдущей позы и врёт.
         /// </summary>
-        private sealed class PoseMeasurer
+        internal sealed class PoseMeasurer
         {
             private readonly Vector3[] vertices;
             private readonly BoneWeight[] weights;
@@ -662,7 +541,10 @@ namespace Igruha.EditorTools
             /// <summary>Метры мира на единицу <c>RootT</c>: тело хранится нормированным по росту аватара.</summary>
             private readonly float rootToWorld;
 
-            public PoseMeasurer(Animator animator, SkinnedMeshRenderer skin)
+            /// <summary>Сколько вершин у меша. Пекарю силуэтов нужны все, а не каждая одиннадцатая.</summary>
+            internal int VertexCount => vertices.Length;
+
+            internal PoseMeasurer(Animator animator, SkinnedMeshRenderer skin)
             {
                 Mesh mesh = skin.sharedMesh;
                 vertices = mesh.vertices;
@@ -674,7 +556,7 @@ namespace Igruha.EditorTools
                 rootToWorld = animator.humanScale * animator.transform.localScale.y;
             }
 
-            public PoseBounds PlaceOnGround(float[] muscles)
+            internal PoseBounds PlaceOnGround(float[] muscles)
             {
                 var pose = new HumanPose();
                 handler.GetHumanPose(ref pose);
@@ -697,41 +579,19 @@ namespace Igruha.EditorTools
             }
 
             /// <summary>
-            /// Обмерить силуэт по горизонтальным полосам: докуда он достаёт
-            /// влево и вправо на каждой доле своей высоты. Зовётся после
-            /// <see cref="PlaceOnGround"/> — по уже поставленной позе.
-            ///
-            /// Полоса без вершин остаётся помеченной пустой (max меньше min):
-            /// складывать её с другими персонажами нельзя, у них там может быть
-            /// тело.
+            /// Пересчитать матрицы костей под уже поставленную позу. Звать
+            /// перед обходом вершин: <see cref="WorldVertex"/> ими и продавливает.
             /// </summary>
-            public void MeasureRows(float height, float[] rowMin, float[] rowMax)
+            internal void RefreshBones()
             {
-                int rows = rowMin.Length;
-                for (int r = 0; r < rows; r++)
-                {
-                    rowMin[r] = float.MaxValue;
-                    rowMax[r] = float.MinValue;
-                }
-
-                if (height <= 0.001f)
-                {
-                    return;
-                }
-
                 for (int b = 0; b < bones.Length; b++)
                 {
                     boneMatrices[b] = bones[b].localToWorldMatrix * bindPoses[b];
                 }
-
-                for (int v = 0; v < vertices.Length; v += MeasureVertexStride)
-                {
-                    Vector3 world = Skin(v);
-                    int row = Mathf.Clamp(Mathf.FloorToInt(world.y / height * rows), 0, rows - 1);
-                    if (world.x < rowMin[row]) rowMin[row] = world.x;
-                    if (world.x > rowMax[row]) rowMax[row] = world.x;
-                }
             }
+
+            /// <summary>Вершина кожи в мире. Перед первой звать <see cref="RefreshBones"/>.</summary>
+            internal Vector3 WorldVertex(int vertex) => Skin(vertex);
 
             /// <summary>Одна вершина, продавленная костями в мир. Скиннинг считаем сами — BakeMesh внутри кадра отдаёт кэш прошлой позы.</summary>
             private Vector3 Skin(int vertex)

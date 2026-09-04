@@ -60,6 +60,9 @@ namespace Igruha.Minigames.HoleInWall
         /// <summary>Шаг сида между дорожками. Простое число, чтобы соседние дорожки не попадали в одну последовательность.</summary>
         private const int TrackSeedStride = 7919;
 
+        /// <summary>Запас за габаритом арены, дальше которого человек считается вылетевшим, м.</summary>
+        private const float ArenaMargin = 0.5f;
+
         [Header("Дырка в стене")]
         [SerializeField] private HoleInWallConfig config;
         [Tooltip("Все дорожки арены. Заполняется построителем арены")]
@@ -185,6 +188,8 @@ namespace Igruha.Minigames.HoleInWall
                 stageState.StageStarted += HandleStageStarted;
                 stageState.StageElapsed += HandleStageElapsed;
             }
+
+            SubscribeWalls(true);
         }
 
         protected override void OnDisable()
@@ -197,7 +202,79 @@ namespace Igruha.Minigames.HoleInWall
                 stageState.StageElapsed -= HandleStageElapsed;
             }
 
+            SubscribeWalls(false);
+
             base.OnDisable();
+        }
+
+        /// <summary>
+        /// Подписка на удар стеной. По всем дорожкам арены, а не только по
+        /// играющим: состав меняется дисконнектом посреди раунда, а стены
+        /// в сцене одни и те же от начала до конца.
+        /// </summary>
+        private void SubscribeWalls(bool subscribe)
+        {
+            for (int i = 0; i < tracks.Length; i++)
+            {
+                SweepingWall wall = tracks[i] != null ? tracks[i].Wall : null;
+                if (wall == null)
+                {
+                    continue;
+                }
+
+                wall.PlayerStruck -= HandleWallStrike;
+                if (subscribe)
+                {
+                    wall.PlayerStruck += HandleWallStrike;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Стена задела человека физически. <b>Это удар, и он решает стену
+        /// немедленно</b> — не дожидаясь линии проверки.
+        ///
+        /// До 04.09 удара не было вовсе: прыгнувший стене навстречу упирался
+        /// в её коробку и ехал перед ней до вердикта, вместо того чтобы
+        /// улететь. Теперь исход считается тем же <see cref="ResolveWall"/>,
+        /// что и на линии: задетый в вырез не влез, значит дорожка провалила
+        /// стену, значит летят оба — правило парного провала не меняется
+        /// оттого, что провал случился раньше.
+        ///
+        /// <b>Влезшего не бьём.</b> Коробки строятся по контуру с ошибкой
+        /// в бо́льшую сторону, но капсула игрока шире тела на уровне бёдер,
+        /// и краем она плиты коснуться может. Поэтому касание — только повод
+        /// спросить вердикт по этому участнику, а не сам вердикт.
+        /// </summary>
+        private void HandleWallStrike(SweepingWall wall, PlayerController victim)
+        {
+            if (!HasAuthority || !RoundActive || currentWall < 0 || victim == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < playingTracks.Count; i++)
+            {
+                HoleInWallTrack track = playingTracks[i];
+                if (track.Wall != wall || !track.WallLaunched || track.WallResolved)
+                {
+                    continue;
+                }
+
+                IReadOnlyList<HoleInWallTrack.Member> members = track.Members;
+                for (int m = 0; m < members.Count; m++)
+                {
+                    if (members[m].Avatar != victim || MemberFits(track, members[m], m))
+                    {
+                        continue;
+                    }
+
+                    ResolveWall(track);
+                    return;
+                }
+
+                return;
+            }
         }
 
         /// <summary>
@@ -431,7 +508,8 @@ namespace Igruha.Minigames.HoleInWall
                 }
 
                 track.ArrangeSlots(config);
-                track.Wall.Configure(config);
+                track.Wall.Configure(config, track.ShapesOf(0), track.ShapesOf(1));
+                track.AimFunnels(config);
                 playingTracks.Add(track);
 
                 PlaceMembers(track);
@@ -472,13 +550,43 @@ namespace Igruha.Minigames.HoleInWall
                 pose = avatar.gameObject.AddComponent<PlayerPoseAbility>();
             }
 
-            pose.Configure(config, this, playerId);
+            pose.Configure(this, playerId);
+
+            // Воронка вешается тем же порядком: она доводит игрока до его
+            // выреза в последние полсекунды. Номер выреза совпадает с местом
+            // на платформе и проставляется, когда состав дорожки собран.
+            if (!avatar.TryGetComponent(out WallFunnel funnel))
+            {
+                funnel = avatar.gameObject.AddComponent<WallFunnel>();
+            }
+
+            // Вода — третья роль того же порядка: она поднимает упавшего
+            // на поверхность и гасит его, чтобы он не ходил по дну бассейна
+            // и не уезжал по нему за борт.
+            if (!avatar.TryGetComponent(out PlayerBuoyancy buoyancy))
+            {
+                buoyancy = avatar.gameObject.AddComponent<PlayerBuoyancy>();
+            }
+
+            buoyancy.Configure(config);
 
             avatar.TryGetComponent(out StuckDetector stuck);
             avatar.TryGetComponent(out PlayerRespawner respawner);
             avatar.TryGetComponent(out PlayerInputReader input);
 
-            return new HoleInWallTrack.Member(playerId, avatar, pose, stuck, respawner, input);
+            // Вырез закреплён за игроком, значит и контур у него собственный.
+            // Персонаж опознаётся по имени контроллера аниматора: префабы
+            // персонажей заморожены, метки на них не повесить.
+            var shapes = new CutoutShapes(config, CutoutShapes.KeyOf(avatar.gameObject));
+            if (!shapes.Exact)
+            {
+                Debug.LogWarning($"{name}: персонаж «{shapes.Character}» не найден в ассете силуэтов — " +
+                                 "вырез берётся на весь ростер и будет выглядеть кляксой. " +
+                                 "Испечь: Igruha/Дырка в стене/Испечь силуэты вырезов", this);
+            }
+
+            return new HoleInWallTrack.Member(playerId, avatar, pose, stuck, respawner, input, shapes,
+                funnel, buoyancy);
         }
 
         /// <summary>
@@ -545,7 +653,8 @@ namespace Igruha.Minigames.HoleInWall
             for (int i = 0; i < playingTracks.Count; i++)
             {
                 HoleInWallTrack track = playingTracks[i];
-                generator.Generate(config, TrackSeed(track), track.Solo, track.Patterns);
+                generator.Generate(config, track.ShapesOf(0), track.ShapesOf(1),
+                    TrackSeed(track), track.Solo, track.Patterns);
             }
         }
 
@@ -825,9 +934,10 @@ namespace Igruha.Minigames.HoleInWall
                 return false;
             }
 
-            bool straight = MemberFits(track, members[0], 0) && MemberFits(track, members[1], 1);
-            bool crossed = MemberFits(track, members[0], 1) && MemberFits(track, members[1], 0);
-            return straight || crossed;
+            // Крест-накрест больше не считается: вырез вырезан по силуэту
+            // конкретного игрока, и чужой ему просто не по фигуре. Кто чей,
+            // видно по цвету контура — он совпадает с цветом половины пола.
+            return MemberFits(track, members[0], 0) && MemberFits(track, members[1], 1);
         }
 
         /// <summary>
@@ -836,6 +946,18 @@ namespace Igruha.Minigames.HoleInWall
         /// Габариты капсулы не участвуют вовсе — сравниваются номер позы и одно
         /// число по горизонтали. Поэтому толстый персонаж и тонкий проходят
         /// абсолютно одинаково, и подгонять их замороженные капсулы не нужно.
+        ///
+        /// <b>Проверка осталась дискретной сознательно.</b> Геометрическая
+        /// («силуэт внутри контура») выглядит честнее, но вырез — это силуэт
+        /// плюс 0.11 м, то есть допуск в ней вышел бы ±0.11 м вместо нынешних
+        /// ±0.58. Это впятеро строже и совсем другая игра; прогон 01.09 прошёл
+        /// на нынешних числах, и менять их вслепую нельзя. Плюс дискретную
+        /// проверку игрок понимает, а «почему не засчитало» в геометрической
+        /// объяснить нечем: поза дрожит, и попадание начало бы зависеть
+        /// от фазы дрожи.
+        ///
+        /// Допуск при этом берётся у форм дорожки, а не у конфига: шире своего
+        /// выреза он быть не может — см. <c>CutoutShapes.Tolerance</c>.
         /// </summary>
         private bool MemberFits(HoleInWallTrack track, HoleInWallTrack.Member member, int cutoutIndex)
         {
@@ -860,7 +982,7 @@ namespace Igruha.Minigames.HoleInWall
             Vector3 position = member.Avatar.Position;
 
             float cutoutX = track.transform.position.x + offset;
-            if (Mathf.Abs(position.x - cutoutX) > config.HitTolerance)
+            if (Mathf.Abs(position.x - cutoutX) > member.Shapes.Tolerance(pose))
             {
                 return false;
             }
@@ -929,7 +1051,21 @@ namespace Igruha.Minigames.HoleInWall
                     continue;
                 }
 
-                if (!member.Returning && member.Avatar.Position.y < config.WaterSurfaceY)
+                Vector3 position = member.Avatar.Position;
+
+                // ⚠️ Улетел за арену — возвращаем немедленно, без барахтанья.
+                // Бассейн ловит только тех, кто упал в него; вылетевшего за
+                // борт ловить нечем, и обычная задержка означала бы три
+                // секунды падения в чёрную пустоту. Такого падения не должно
+                // видеть вообще, поэтому здесь не расписание, а сразу.
+                if (OutsideArena(position))
+                {
+                    ClearPose(member);
+                    ReturnMember(track, member);
+                    continue;
+                }
+
+                if (!member.Returning && position.y < config.WaterSurfaceY)
                 {
                     // Сам сошёл с платформы: полёта не было, только барахтанье.
                     ScheduleReturn(member, config.SplashSeconds, config.MinSplashSeconds);
@@ -968,6 +1104,53 @@ namespace Igruha.Minigames.HoleInWall
 
             member.Returning = true;
             member.ReturnAt = now + delay;
+
+            // Полетел — позы больше нет. Поза это стойка на платформе, и в воде
+            // ей взяться неоткуда: сметённый обязан лететь и плыть обычным
+            // телом, а не ехать в позе, в которой не пролез.
+            //
+            // Здесь, а не в SweepTrack: сюда сходятся оба пути в воду — и снос
+            // стеной, и сход с платформы своими ногами, — и оба серверные
+            // (см. заметку о HasAuthority выше).
+            ClearPose(member);
+        }
+
+        /// <summary>
+        /// Снять позу под авторитетом и объявить снятие всем. Отдельный метод,
+        /// а не вызов <see cref="ApplyPose"/>: тот отсеивает участников не этого
+        /// раунда поиском по дорожкам, а здесь участник уже в руках.
+        /// </summary>
+        private void ClearPose(HoleInWallTrack.Member member)
+        {
+            if (member.Pose == null || member.Pose.CurrentPose == HoleInWallPose.None)
+            {
+                return;
+            }
+
+            member.Pose.SetPose(HoleInWallPose.None);
+            network?.PublishPose(member.PlayerId, HoleInWallPose.None);
+        }
+
+        /// <summary>
+        /// Человек вне арены: ниже дна бассейна или за его бортами.
+        ///
+        /// Границы берутся с запасом в полметра, чтобы обычное барахтанье
+        /// у самого борта не считалось вылетом. Ниже дна оказаться нельзя
+        /// вовсе — дно сплошное, — но проверка стоит: провалиться сквозь
+        /// коллайдер на скорости 13 м/с физике по силам, и тогда падение
+        /// уже ничем не кончится.
+        /// </summary>
+        private bool OutsideArena(Vector3 position)
+        {
+            if (position.y < config.PoolBottomY - ArenaMargin)
+            {
+                return true;
+            }
+
+            float halfWidth = config.ArenaWidth * 0.5f + ArenaMargin;
+            return Mathf.Abs(position.x) > halfWidth ||
+                   position.z < config.ArenaNearZ - ArenaMargin ||
+                   position.z > config.ArenaFarZ + ArenaMargin;
         }
 
         private void ReturnMember(HoleInWallTrack track, HoleInWallTrack.Member member)
@@ -1040,6 +1223,23 @@ namespace Igruha.Minigames.HoleInWall
                 // у одного человека из всех» ищут потом сутки.
                 member.Pose.enabled = false;
                 Destroy(member.Pose);
+            }
+
+            // Воронка тем же порядком: сначала перестаёт доводить, потом
+            // уходит. Оставленная, она тянула бы игрока к вырезу уже в хабе —
+            // стены там нет, но ссылка на неё пережила бы выгрузку сцены.
+            if (member.Funnel != null)
+            {
+                member.Funnel.Release();
+                Destroy(member.Funnel);
+            }
+
+            // Вода тем же порядком. Оставленная, она увезла бы в хаб потолок
+            // скорости 1.6 м/с: там воды нет, а медленный персонаж есть.
+            if (member.Buoyancy != null)
+            {
+                member.Buoyancy.Release();
+                Destroy(member.Buoyancy);
             }
         }
 
@@ -1192,6 +1392,15 @@ namespace Igruha.Minigames.HoleInWall
         ///
         /// Диапазон проверяется здесь, а не у отправителя: из сети приезжает
         /// байт, и он может быть любым.
+        ///
+        /// <b>Сброс ходит этим же маршрутом.</b> <see cref="HoleInWallPose.None"/>
+        /// здесь законное значение, и отдельного намерения под него не заведено
+        /// намеренно: транспорт уже возит номер позы байтом и ноль в нём
+        /// помещается, а второй маршрут пришлось бы дублировать целиком —
+        /// RPC, проверку, публикацию. Проверять его строже, чем обычную позу,
+        /// не за что: подделать отправителя нельзя (номер берётся из пакета,
+        /// см. <c>HoleInWallNetwork.SetPoseRpc</c>), а снять позу можно только
+        /// себе — и это чистый проигрыш, а не преимущество.
         /// </summary>
         public void ApplyPose(int playerId, HoleInWallPose pose)
         {
@@ -1200,7 +1409,7 @@ namespace Igruha.Minigames.HoleInWall
                 return;
             }
 
-            if (pose == HoleInWallPose.None || (int)pose > HoleInWallConfig.PoseCount)
+            if ((int)pose > HoleInWallConfig.PoseCount)
             {
                 return;
             }
@@ -1309,7 +1518,7 @@ namespace Igruha.Minigames.HoleInWall
         /// </summary>
         private void RedrawAsSolo(HoleInWallTrack track)
         {
-            generator.Generate(config, TrackSeed(track), true, soloPatterns);
+            generator.Generate(config, track.ShapesOf(0), null, TrackSeed(track), true, soloPatterns);
 
             for (int wall = currentWall + 1; wall < track.Patterns.Count && wall < soloPatterns.Count; wall++)
             {
@@ -1320,6 +1529,12 @@ namespace Igruha.Minigames.HoleInWall
             // респавна переезжают туда же.
             track.ArrangeSlots(config);
             RebindSlots(track);
+
+            // ⚠️ Места пересчитались: ушедший мог быть нулевым, и оставшийся
+            // с первого места переехал на нулевое. Воронка целится по номеру
+            // места, и без этого она осталась бы наведённой на вырез, которого
+            // у одиночки больше нет.
+            track.AimFunnels(config);
         }
 
         /// <summary>

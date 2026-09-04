@@ -25,6 +25,19 @@ namespace Igruha.Minigames.HoleInWall
             /// <summary>Ввод участника. Им же водит болванку соло-прогона.</summary>
             public PlayerInputReader Input { get; }
 
+            /// <summary>
+            /// Формы вырезов этого участника: вырез закреплён за игроком, и
+            /// контур у него собственный. Считается один раз при сборке
+            /// дорожки и до конца раунда не меняется.
+            /// </summary>
+            public CutoutShapes Shapes { get; }
+
+            /// <summary>Воронка его выреза: край дырки доводит его в последние полсекунды.</summary>
+            public WallFunnel Funnel { get; }
+
+            /// <summary>Вода: поднимает его на поверхность и гасит, пока он в бассейне.</summary>
+            public PlayerBuoyancy Buoyancy { get; }
+
             /// <summary>Точка респавна, с которой участник пришёл. Возвращается в конце раунда.</summary>
             public Transform OriginalRespawnPoint { get; }
 
@@ -35,7 +48,8 @@ namespace Igruha.Minigames.HoleInWall
             public double ReturnAt { get; set; }
 
             public Member(int playerId, PlayerController avatar, PlayerPoseAbility pose,
-                StuckDetector stuck, PlayerRespawner respawner, PlayerInputReader input)
+                StuckDetector stuck, PlayerRespawner respawner, PlayerInputReader input,
+                CutoutShapes shapes, WallFunnel funnel, PlayerBuoyancy buoyancy)
             {
                 PlayerId = playerId;
                 Avatar = avatar;
@@ -43,6 +57,9 @@ namespace Igruha.Minigames.HoleInWall
                 Stuck = stuck;
                 Respawner = respawner;
                 Input = input;
+                Shapes = shapes;
+                Funnel = funnel;
+                Buoyancy = buoyancy;
                 OriginalRespawnPoint = respawner != null ? respawner.RespawnPoint : null;
             }
         }
@@ -199,6 +216,37 @@ namespace Igruha.Minigames.HoleInWall
                 soloBanner.SetActive(Solo);
             }
         }
+
+        /// <summary>
+        /// Указать каждой воронке её вырез. Зовётся, когда состав дорожки
+        /// собран: номер выреза совпадает с местом на платформе, и до конца
+        /// раунда не меняется — даже зеркальный переворот двигает вырез,
+        /// а не его принадлежность.
+        /// </summary>
+        public void AimFunnels(HoleInWallConfig config)
+        {
+            float trackX = transform.position.x;
+            for (int i = 0; i < members.Count; i++)
+            {
+                members[i].Funnel?.Configure(config, wall, i, trackX);
+            }
+        }
+
+        /// <summary>Снять воронки: раунд кончился, доводить больше некуда.</summary>
+        public void ReleaseFunnels()
+        {
+            for (int i = 0; i < members.Count; i++)
+            {
+                members[i].Funnel?.Release();
+            }
+        }
+
+        /// <summary>
+        /// Формы вырезов участника по номеру места. Пусто — на этом месте
+        /// никого нет: у одиночки занято только нулевое.
+        /// </summary>
+        public CutoutShapes ShapesOf(int memberIndex) =>
+            memberIndex >= 0 && memberIndex < members.Count ? members[memberIndex].Shapes : null;
 
         /// <summary>Точка участника на платформе. Пусто — такого места на дорожке нет.</summary>
         public Transform SlotOf(int memberIndex) =>

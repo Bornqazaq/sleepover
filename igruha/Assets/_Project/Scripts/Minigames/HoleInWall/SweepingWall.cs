@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using Igruha.Core.Minigame;
+using Igruha.Core.Player;
 
 namespace Igruha.Minigames.HoleInWall
 {
@@ -34,6 +35,14 @@ namespace Igruha.Minigames.HoleInWall
     /// от физики: коллайдер утоплен на <see cref="ColliderRecess"/> и касается
     /// только того, кто уже провалился, а прошедшим плиты снимает вердикт
     /// (<see cref="DisableCollision"/>). Разбор — STATE.md, раздел 3.52.
+    ///
+    /// <b>Видит игрок меш, а упирается в коробки.</b> Полотно с вырезом по
+    /// контуру позы собирает <see cref="WallSurface"/> одним мешем, а плиты
+    /// из сцены остались коробками столкновений с погашенными рендерерами.
+    /// Так сделано намеренно: точность физики здесь ничего не решает —
+    /// коллайдер и так утоплен, и прошедшим он снимается, — а невыпуклый
+    /// <c>MeshCollider</c> на кинематическом теле стоил бы куда дороже
+    /// любой выгоды.
     /// </remarks>
     public sealed class SweepingWall : MonoBehaviour
     {
@@ -68,15 +77,24 @@ namespace Igruha.Minigames.HoleInWall
         private const float ColliderRecess = 0.45f;
 
         /// <summary>
-        /// На сколько горизонтальных полос режется стена, когда вырез
-        /// повторяет силуэт позы.
+        /// На сколько горизонтальных полос режется <b>коллизия</b> стены.
         ///
-        /// 24 полосы на 3.6 м — это 15 см на ступеньку. С максимальной
-        /// дистанции подъезда (30 ШП) она занимает около десяти пикселей:
-        /// контур читается позой, а не лесенкой. Полосы с одинаковым пролётом
-        /// склеиваются, поэтому плит выходит вдвое-втрое меньше числа полос.
+        /// Картинки это больше не касается: полотно режется по настоящей
+        /// ломаной. Полосы остались только под коробки столкновений, где
+        /// ступенька невидима, и ошибаться ими разрешено лишь в большую
+        /// сторону — лишний сантиметр дырки не заметен, недостающий это
+        /// застрявший в стене игрок.
+        ///
+        /// 24 полосы на 3.6 м — это 15 см на полосу. Число проверено прогоном
+        /// и оставлено как есть: с погашенными рендерерами плит их количество
+        /// перестало стоить кадра.
         /// </summary>
         private const int ShapeBands = 24;
+
+        /// <summary>Полотно стены: меш с вырезами по контуру позы.</summary>
+        private readonly WallSurface surface = new WallSurface();
+
+        private Mesh surfaceMesh;
 
         /// <summary>Плиты стены. Первые пять пришли из сцены, остальные клонируются от них по мере надобности.</summary>
         private readonly System.Collections.Generic.List<Transform> panelPool =
@@ -97,6 +115,15 @@ namespace Igruha.Minigames.HoleInWall
         [SerializeField] private WallCutout secondCutout;
 
         private HoleInWallConfig config;
+
+        /// <summary>
+        /// Формы вырезов по номеру выреза. Вырез закреплён за игроком: нулевой
+        /// принадлежит нулевому месту на платформе, первый — первому, и контур
+        /// у каждого свой. Зеркальный переворот меняет их местами по X,
+        /// но не по принадлежности.
+        /// </summary>
+        private readonly CutoutShapes[] shapes = new CutoutShapes[2];
+
         private WallPattern pattern;
         private double startTime;
         private double trickTime;
@@ -117,6 +144,17 @@ namespace Igruha.Minigames.HoleInWall
         /// она, не заводя по обработчику на дорожку.
         /// </summary>
         public event Action<SweepingWall, WallTrick> TrickTriggered;
+
+        /// <summary>
+        /// Стена задела человека. Плита касается только того, кто в вырез
+        /// не влез, — значит это удар, и разбирать его должен тот, кто решает
+        /// исход.
+        ///
+        /// Событие, а не решение: коллизия приходит на каждой машине, а бить
+        /// вправе только сервер. Кто именно задет, разбирает
+        /// <c>HoleInWallMinigame</c> — у него состав дорожек.
+        /// </summary>
+        public event Action<SweepingWall, PlayerController> PlayerStruck;
 
         /// <summary>Стена едет прямо сейчас.</summary>
         public bool Running => running;
@@ -167,8 +205,17 @@ namespace Igruha.Minigames.HoleInWall
         private void Awake()
         {
             SeedPanelPool();
+            BuildSurface();
             BuildBody();
             SetVisible(false);
+        }
+
+        private void OnDestroy()
+        {
+            if (surfaceMesh != null)
+            {
+                Destroy(surfaceMesh);
+            }
         }
 
         /// <summary>
@@ -198,11 +245,11 @@ namespace Igruha.Minigames.HoleInWall
         /// <summary>
         /// Собрать пул плит из того, что построила арена.
         ///
-        /// Плит в сцене пять — этого хватало прямоугольным вырезам. Вырез
-        /// по силуэту режет стену полосами, и плит нужно больше: недостающие
-        /// клонируются от первой, потому что материал, слой и настройки
-        /// коллайдера у них одинаковые. Клонируем в рантайме, а не в сцене,
-        /// чтобы не пересобирать одетую и запечённую арену ради геометрии.
+        /// Плиты остались от прямоугольных вырезов, и в сцене их пять.
+        /// Теперь это <b>коробки столкновений</b>, а не картинка: полос
+        /// коллизии до двух десятков, недостающие плиты клонируются от первой.
+        /// Клонируем в рантайме, а не в сцене, чтобы не пересобирать одетую
+        /// и запечённую арену ради геометрии.
         /// </summary>
         private void SeedPanelPool()
         {
@@ -212,7 +259,7 @@ namespace Igruha.Minigames.HoleInWall
                 if (fromScene[i] != null)
                 {
                     panelPool.Add(fromScene[i]);
-                    EnsureCollider(fromScene[i]);
+                    PreparePanel(fromScene[i]);
                 }
             }
 
@@ -223,13 +270,47 @@ namespace Igruha.Minigames.HoleInWall
         }
 
         /// <summary>
-        /// Навесить и настроить коллайдер плиты.
+        /// Завести полотно стены — меш, в котором и живут вырезы по контуру.
         ///
-        /// Делается кодом, а не в сцене: плит на каждой из четырёх стен теперь
-        /// десятки, и настройка у них одна. Руками её пришлось бы повторять
-        /// при каждой правке толщины стены.
+        /// Материал, тени и слой снимаются с плиты из сцены, а не задаются
+        /// здесь: полотно обязано выглядеть ровно так же, как выглядела стена
+        /// после арт-фазы, а сцена одета и запечена подфазами 4.1–4.6.
         /// </summary>
-        private static void EnsureCollider(Transform panel)
+        private void BuildSurface()
+        {
+            var holder = new GameObject("Surface");
+            holder.transform.SetParent(transform, false);
+
+            surfaceMesh = new Mesh { name = "WallSurface" };
+            surfaceMesh.MarkDynamic();
+            holder.AddComponent<MeshFilter>().sharedMesh = surfaceMesh;
+            var surfaceRenderer = holder.AddComponent<MeshRenderer>();
+
+            Renderer sample = panelPool.Count > 0 && panelPool[0] != null
+                ? panelPool[0].GetComponent<Renderer>()
+                : null;
+
+            if (sample == null)
+            {
+                Debug.LogError($"{name}: у плиты стены нет рендерера — полотну неоткуда взять материал", this);
+                return;
+            }
+
+            holder.layer = panelPool[0].gameObject.layer;
+            surfaceRenderer.sharedMaterial = sample.sharedMaterial;
+            surfaceRenderer.shadowCastingMode = sample.shadowCastingMode;
+            surfaceRenderer.receiveShadows = sample.receiveShadows;
+        }
+
+        /// <summary>
+        /// Настроить плиту: коллайдер по месту, рендерер погашен.
+        ///
+        /// Рендерер гасится, а не удаляется вместе с плитой: плиты пришли
+        /// из одетой сцены, и вернуть их обратно должно быть можно снятием
+        /// одной строки. Показывать их нельзя — прямоугольные плиты и есть
+        /// та самая лесенка вместо контура.
+        /// </summary>
+        private static void PreparePanel(Transform panel)
         {
             var box = panel.GetComponent<BoxCollider>();
             if (box == null)
@@ -242,6 +323,12 @@ namespace Igruha.Minigames.HoleInWall
             box.size = Vector3.one;
             float thickness = Mathf.Max(0.001f, panel.localScale.z);
             box.center = new Vector3(0f, 0f, ColliderRecess / thickness);
+
+            var panelRenderer = panel.GetComponent<Renderer>();
+            if (panelRenderer != null)
+            {
+                panelRenderer.enabled = false;
+            }
         }
 
         /// <summary>Взять следующую свободную плиту, доклонировав её, если пул кончился.</summary>
@@ -260,7 +347,7 @@ namespace Igruha.Minigames.HoleInWall
 
             Transform clone = Instantiate(template.gameObject, template.parent).transform;
             clone.name = $"Panel_{panelPool.Count:00}";
-            EnsureCollider(clone);
+            PreparePanel(clone);
             panelPool.Add(clone);
             usedPanels++;
             return clone;
@@ -295,10 +382,59 @@ namespace Igruha.Minigames.HoleInWall
         /// </summary>
         public void DisableCollision() => SetCollidersEnabled(false);
 
-        /// <summary>Привязать к дорожке. Зовётся один раз при старте раунда.</summary>
-        public void Configure(HoleInWallConfig gameConfig)
+        /// <summary>
+        /// Плита коснулась тела. Коллизия прилетает сюда, а не на плиту:
+        /// коробки лежат на детях без своих <c>Rigidbody</c>, и PhysX
+        /// адресует контакт телу стены.
+        ///
+        /// ⚠️ <b>До 04.09 удара не существовало вовсе.</b> Стена была
+        /// кинематическим телом без единого обработчика, и прыгнувший ей
+        /// навстречу просто упирался в невидимую коробку и ехал перед ней,
+        /// пока где-то через секунду не доезжала линия проверки. Выглядело
+        /// это поломкой, и было ею: игра про стену, которая сметает, а стена
+        /// не сметала.
+        ///
+        /// Ложных срабатываний тут ждать неоткуда: коробки строятся по
+        /// контуру выреза с ошибкой в бо́льшую сторону, то есть дырка в физике
+        /// шире нарисованной. Влезшего плита не касается — а если всё же
+        /// коснулась краем капсулы, вердикт по нему считает мини-игра,
+        /// и удар она отменит.
+        /// </summary>
+        private void OnCollisionEnter(Collision collision) => ReportContact(collision);
+
+        /// <summary>
+        /// Контакт длится. Нужен вместе с <c>OnCollisionEnter</c>: тот приходит
+        /// один раз, а влезший в вырез может выйти из него, не отлипая от
+        /// плиты, — и тогда первый и единственный контакт был законным,
+        /// а всё, что после, стена бы уже не заметила.
+        /// </summary>
+        private void OnCollisionStay(Collision collision) => ReportContact(collision);
+
+        private void ReportContact(Collision collision)
+        {
+            if (!running || PlayerStruck == null || collision.rigidbody == null)
+            {
+                return;
+            }
+
+            var victim = collision.rigidbody.GetComponent<PlayerController>();
+            if (victim != null)
+            {
+                PlayerStruck.Invoke(this, victim);
+            }
+        }
+
+        /// <summary>
+        /// Привязать к дорожке. Зовётся один раз при старте раунда.
+        ///
+        /// Форм две, по одной на вырез: каждый вырез режется под своего игрока.
+        /// У одиночки вторая пустая.
+        /// </summary>
+        public void Configure(HoleInWallConfig gameConfig, CutoutShapes first, CutoutShapes second)
         {
             config = gameConfig;
+            shapes[0] = first;
+            shapes[1] = second;
         }
 
         /// <summary>
@@ -452,51 +588,110 @@ namespace Igruha.Minigames.HoleInWall
         // ========== ГЕОМЕТРИЯ ==========
 
         /// <summary>
-        /// Пересобрать плиты и контуры под действующий рисунок.
+        /// Один вырез в разобранном виде: чей контур, какая поза и где по
+        /// ширине стены. Заводится на каждой перестройке, поэтому структура,
+        /// а не класс.
+        /// </summary>
+        private readonly struct Cutout
+        {
+            public CutoutShapes Shapes { get; }
+            public HoleInWallPose Pose { get; }
+            public float Offset { get; }
+
+            public Cutout(CutoutShapes shapes, HoleInWallPose pose, float offset)
+            {
+                Shapes = shapes;
+                Pose = pose;
+                Offset = offset;
+            }
+
+            public bool Valid => Shapes != null && Pose != HoleInWallPose.None;
+
+            public Vector2[] Outline => Valid ? Shapes.Outline(Pose) : null;
+        }
+
+        /// <summary>Вырезы, отсортированные слева направо. Полотно и коробки читают только их.</summary>
+        private readonly Cutout[] sorted = new Cutout[2];
+
+        /// <summary>
+        /// Пересобрать полотно, коробки столкновений и контуры под действующий
+        /// рисунок.
         ///
-        /// Стена — это не дырявый меш, а набор плит вокруг дырок. Пока вырезы
-        /// были прямоугольными, плит хватало пяти. Теперь дырка повторяет
-        /// силуэт позы, поэтому стена режется горизонтальными полосами:
-        /// на каждой полосе известно, докуда достаёт силуэт, и между дырками
-        /// остаются куски сплошной стены. Соседние полосы с одинаковым
-        /// пролётом склеиваются в одну плиту — иначе на ровном месте выходило
-        /// бы под сотню кубов на стену.
+        /// Картинка и физика строятся по одному и тому же контуру, но разными
+        /// способами. Полотно — меш: прямоугольник стены с вырезами по
+        /// настоящей ломаной позы. Столкновения — коробки: стена режется
+        /// на <see cref="ShapeBands"/> полос, на каждой известен самый широкий
+        /// пролёт выреза, и между дырками ставятся плиты. Соседние полосы
+        /// с одинаковым пролётом склеиваются.
         ///
-        /// Ошибаемся всегда в большую сторону: пролёт полосы берётся самый
-        /// широкий из попавших в неё (<c>TryWidestSpan</c>), а полоса,
-        /// зацепившая верх выреза, считается дырявой целиком. Лишний сантиметр
-        /// дырки не видно, а недостающий — это застрявший в стене игрок.
+        /// Ошибаемся коробками всегда в большую сторону: пролёт полосы берётся
+        /// самый широкий из попавших в неё, а полоса, зацепившая верх выреза,
+        /// считается дырявой целиком. Лишний сантиметр дырки не виден вовсе —
+        /// её рисует меш, — а недостающий это застрявший в стене игрок.
         /// </summary>
         private void RebuildShape(bool trickActive)
         {
             trickShown = trickActive;
 
             ResolveCutout(0, trickActive, out HoleInWallPose firstPose, out float firstOffset);
-            Vector2 firstSize = config.SilhouetteSize(firstPose);
 
             bool hasSecond = pattern.CutoutCount > 1;
             HoleInWallPose secondPose = HoleInWallPose.None;
             float secondOffset = 0f;
-            Vector2 secondSize = Vector2.zero;
 
             if (hasSecond)
             {
                 ResolveCutout(1, trickActive, out secondPose, out secondOffset);
-                secondSize = config.SilhouetteSize(secondPose);
             }
+
+            var first = new Cutout(shapes[0], firstPose, firstOffset);
+            var second = hasSecond ? new Cutout(shapes[1], secondPose, secondOffset) : default;
 
             // Зеркальный переворот меняет вырезы местами по X, поэтому «левый»
             // и «правый» пересортировываются каждый раз, а не берутся по номеру.
+            // Принадлежность при этом не едет: форма закреплена за вырезом,
+            // а вырез — за игроком, и после переворота ему просто придётся
+            // перебежать на другую сторону.
             bool swap = hasSecond && secondOffset < firstOffset;
-            HoleInWallPose leftPose = swap ? secondPose : firstPose;
-            float leftOffset = swap ? secondOffset : firstOffset;
-            Vector2 leftSize = swap ? secondSize : firstSize;
-            HoleInWallPose rightPose = swap ? firstPose : secondPose;
-            float rightOffset = swap ? firstOffset : secondOffset;
-            Vector2 rightSize = swap ? firstSize : secondSize;
+            sorted[0] = swap ? second : first;
+            sorted[1] = swap ? first : second;
 
-            usedPanels = 0;
             float thickness = config.WallThickness;
+            BuildSurfaceMesh(thickness);
+            BuildColliders(thickness);
+
+            firstCutout.Apply(config, shapes[0], 0, firstPose, firstOffset, thickness);
+
+            if (hasSecond)
+            {
+                secondCutout.Apply(config, shapes[1], 1, secondPose, secondOffset, thickness);
+            }
+            else
+            {
+                secondCutout.Hide();
+            }
+        }
+
+        /// <summary>Сложить полотно из прямоугольника стены и одной-двух ломаных вырезов.</summary>
+        private void BuildSurfaceMesh(float thickness)
+        {
+            if (surfaceMesh == null)
+            {
+                return;
+            }
+
+            surface.Build(surfaceMesh, config.WallWidth, config.WallHeight, thickness,
+                new WallSurface.Cutout(sorted[0].Outline, sorted[0].Offset),
+                new WallSurface.Cutout(sorted[1].Outline, sorted[1].Offset));
+        }
+
+        /// <summary>
+        /// Расставить коробки столкновений по полосам высоты. Плиты невидимы:
+        /// стену рисует полотно, а они только держат тех, кто не влез.
+        /// </summary>
+        private void BuildColliders(float thickness)
+        {
+            usedPanels = 0;
             float bandHeight = config.WallHeight / ShapeBands;
             int bandStart = 0;
 
@@ -504,9 +699,8 @@ namespace Igruha.Minigames.HoleInWall
             {
                 if (band < ShapeBands)
                 {
-                    ResolveBand(band, bandHeight, leftPose, leftOffset, leftSize, 0);
-                    ResolveBand(band, bandHeight, hasSecond ? rightPose : HoleInWallPose.None,
-                        rightOffset, rightSize, 1);
+                    ResolveBand(band, bandHeight, 0);
+                    ResolveBand(band, bandHeight, 1);
                 }
 
                 bool last = band == ShapeBands;
@@ -528,17 +722,6 @@ namespace Igruha.Minigames.HoleInWall
             }
 
             HidePanelsFrom(usedPanels);
-
-            firstCutout.Apply(config, firstPose, firstOffset, thickness);
-
-            if (hasSecond)
-            {
-                secondCutout.Apply(config, secondPose, secondOffset, thickness);
-            }
-            else
-            {
-                secondCutout.Hide();
-            }
         }
 
         /// <summary>
@@ -546,37 +729,20 @@ namespace Igruha.Minigames.HoleInWall
         /// <c>from</c>: так же читается и полоса выше выреза, и второй вырез
         /// у одиночки.
         /// </summary>
-        private void ResolveBand(int band, float bandHeight, HoleInWallPose pose, float offset, Vector2 size, int slot)
+        private void ResolveBand(int band, float bandHeight, int slot)
         {
             bandFrom[slot] = 0f;
             bandTo[slot] = 0f;
 
-            if (pose == HoleInWallPose.None || size.x <= 0f || size.y <= 0f)
+            Cutout cutout = sorted[slot];
+            if (!cutout.Valid || !cutout.Shapes.TrySpan(cutout.Pose, band * bandHeight,
+                    (band + 1) * bandHeight, out float spanLeft, out float spanRight))
             {
                 return;
             }
 
-            float from = band * bandHeight;
-            if (from >= size.y)
-            {
-                return;
-            }
-
-            float to = (band + 1) * bandHeight;
-            float halfWidth = size.x * 0.5f;
-            HoleInWallPoseShapes shapes = config.PoseShapes;
-
-            if (shapes == null || !shapes.TryWidestSpan(pose, from / size.y, to / size.y,
-                    out float spanLeft, out float spanRight))
-            {
-                // Ассета формы нет — вырез остаётся прямоугольным, как до арта.
-                bandFrom[slot] = offset - halfWidth;
-                bandTo[slot] = offset + halfWidth;
-                return;
-            }
-
-            bandFrom[slot] = offset + spanLeft * halfWidth;
-            bandTo[slot] = offset + spanRight * halfWidth;
+            bandFrom[slot] = cutout.Offset + spanLeft;
+            bandTo[slot] = cutout.Offset + spanRight;
         }
 
         /// <summary>Пролёты на этой полосе совпали с предыдущей — плиту можно не резать.</summary>
@@ -596,7 +762,7 @@ namespace Igruha.Minigames.HoleInWall
         }
 
         /// <summary>
-        /// Поставить сплошные куски стены на полосе высот: слева от первой
+        /// Поставить коробки столкновений на полосе высот: слева от первой
         /// дырки, между дырками и справа от второй.
         /// </summary>
         private void EmitBand(float fromY, float toY, float thickness)
@@ -618,7 +784,7 @@ namespace Igruha.Minigames.HoleInWall
             SetPanel(TakePanel(), cursor, halfWall, fromY, toY, thickness);
         }
 
-        /// <summary>Погасить плиты, не занятые действующим рисунком.</summary>
+        /// <summary>Погасить коробки, не занятые действующим рисунком.</summary>
         private void HidePanelsFrom(int first)
         {
             for (int i = first; i < panelPool.Count; i++)
@@ -630,7 +796,7 @@ namespace Igruha.Minigames.HoleInWall
             }
         }
 
-        /// <summary>Поставить плиту от одной границы по X до другой и от одной высоты до другой.</summary>
+        /// <summary>Поставить коробку от одной границы по X до другой и от одной высоты до другой.</summary>
         private static void SetPanel(Transform panel, float fromX, float toX, float fromY, float toY, float thickness)
         {
             if (panel == null)
@@ -641,8 +807,9 @@ namespace Igruha.Minigames.HoleInWall
             float width = toX - fromX;
             float height = toY - fromY;
 
-            // Вырез, упёршийся в край стены, оставляет плиту нулевой ширины —
-            // такую просто гасим: масштаб в ноль даёт вывернутый меш.
+            // Вырез, упёршийся в край стены, оставляет коробку нулевой
+            // ширины — такую просто гасим: нулевой масштаб на коллайдере
+            // PhysX не любит.
             if (width <= 0.001f || height <= 0.001f)
             {
                 panel.gameObject.SetActive(false);
