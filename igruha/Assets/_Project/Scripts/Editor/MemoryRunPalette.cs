@@ -303,8 +303,28 @@ namespace Igruha.EditorTools
                 AssetDatabase.CreateAsset(material, path);
             }
 
+            // Грязным материал помечается только при настоящем изменении:
+            // безусловный SetDirty переписывал файл каждой пересборкой при
+            // тех же самых числах, а сходятся в репозитории три ветки.
+            Color before = material.HasProperty("_BaseColor") ? material.GetColor("_BaseColor") : Color.clear;
+            float smoothBefore = material.HasProperty("_Smoothness") ? material.GetFloat("_Smoothness") : -1f;
+            float metalBefore = material.HasProperty("_Metallic") ? material.GetFloat("_Metallic") : -1f;
+
             Apply(material, tone);
-            EditorUtility.SetDirty(material);
+
+            Color after = material.HasProperty("_BaseColor") ? material.GetColor("_BaseColor") : Color.clear;
+            float smoothAfter = material.HasProperty("_Smoothness") ? material.GetFloat("_Smoothness") : -1f;
+            float metalAfter = material.HasProperty("_Metallic") ? material.GetFloat("_Metallic") : -1f;
+
+            bool changed = before != after
+                || !Mathf.Approximately(smoothBefore, smoothAfter)
+                || !Mathf.Approximately(metalBefore, metalAfter);
+
+            if (changed)
+            {
+                EditorUtility.SetDirty(material);
+            }
+
             cache[tone] = material;
             return material;
         }

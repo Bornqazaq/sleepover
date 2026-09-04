@@ -538,17 +538,33 @@ namespace Igruha.EditorTools
             Mesh existing = AssetDatabase.LoadAssetAtPath<Mesh>(PlateMeshPath);
             if (existing != null)
             {
-                // Перезаписываем содержимое, а не сам ассет: GUID остаётся тем
-                // же, и ссылки из сцены не рвутся при каждой пересборке.
-                existing.Clear();
-                existing.SetVertices(new List<Vector3>(mesh.vertices));
-                existing.SetNormals(new List<Vector3>(mesh.normals));
-                existing.SetUVs(0, new List<Vector2>(mesh.uv));
-                existing.SetTriangles(mesh.triangles, 0);
-                existing.RecalculateBounds();
-                EditorUtility.SetDirty(existing);
-                Object.DestroyImmediate(mesh);
-                plateMesh = existing;
+                // ⚠️ Ассет переписывается, только если геометрия правда другая.
+                //
+                // Проверено 04.09: безусловная перезапись меняет байты файла
+                // при неизменной геометрии, и каждая пересборка арены помечала
+                // меш изменённым. В репозитории, где сходятся три ветки, это
+                // лишний конфликт на ровном месте — файл двоичный и слияние
+                // его не переживает.
+                //
+                // Содержимое, а не сам ассет: GUID остаётся тем же, и ссылки
+                // из сцены не рвутся.
+                if (SameGeometry(existing, mesh))
+                {
+                    Object.DestroyImmediate(mesh);
+                    plateMesh = existing;
+                }
+                else
+                {
+                    existing.Clear();
+                    existing.SetVertices(new List<Vector3>(mesh.vertices));
+                    existing.SetNormals(new List<Vector3>(mesh.normals));
+                    existing.SetUVs(0, new List<Vector2>(mesh.uv));
+                    existing.SetTriangles(mesh.triangles, 0);
+                    existing.RecalculateBounds();
+                    EditorUtility.SetDirty(existing);
+                    Object.DestroyImmediate(mesh);
+                    plateMesh = existing;
+                }
             }
             else
             {
@@ -558,6 +574,47 @@ namespace Igruha.EditorTools
 
             plateTriangles = plateMesh.triangles.Length / 3;
             return plateMesh;
+        }
+
+        /// <summary>
+        /// Совпадает ли геометрия двух мешей. Сравниваются число вершин,
+        /// число треугольников и сами координаты с точностью до десятой доли
+        /// миллиметра: разница мельче этого невидима и переписывать ассет
+        /// ради неё незачем.
+        /// </summary>
+        private static bool SameGeometry(Mesh a, Mesh b)
+        {
+            if (a == null || b == null || a.vertexCount != b.vertexCount)
+            {
+                return false;
+            }
+
+            int[] at = a.triangles;
+            int[] bt = b.triangles;
+            if (at.Length != bt.Length)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < at.Length; i++)
+            {
+                if (at[i] != bt[i])
+                {
+                    return false;
+                }
+            }
+
+            Vector3[] av = a.vertices;
+            Vector3[] bv = b.vertices;
+            for (int i = 0; i < av.Length; i++)
+            {
+                if ((av[i] - bv[i]).sqrMagnitude > 1e-8f)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private static void Add(List<CombineInstance> parts, Mesh mesh, Vector3 position, Quaternion rotation,
