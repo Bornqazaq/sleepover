@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text;
 using Igruha.Minigames.HoleInWall;
 using UnityEditor;
@@ -314,8 +314,15 @@ namespace Igruha.EditorTools
                 case Tone.SignPlate:
                     return new Color(0.93f, 0.92f, 0.88f);
 
+                // Экран монитора Ведущего. Первый замес — насыщенный зелёный
+                // `#47B866` — снят рендером кадра кафедры: экран 0.42 × 0.32 м
+                // стоит ровно в центре того, что Ведущий видит всю фазу печати,
+                // и ярко-зелёный прямоугольник в тёмном корпусе читался не
+                // включённым монитором, а незакрашенной заглушкой блокаута.
+                // Взят тёмный люминофор: корпус остаётся тёмным, свечение даёт
+                // эмиссия. «Монитор включён» — это подсветка, а не заливка.
                 case Tone.ScreenGlow:
-                    return new Color(0.28f, 0.72f, 0.40f);
+                    return new Color(0.11f, 0.26f, 0.16f);
 
                 // Дневной свет за окном. Холодный и почти белый: зал освещён
                 // тёплыми лампами, и разница температур — единственное, чем
@@ -350,8 +357,15 @@ namespace Igruha.EditorTools
                     HoleInWallMaterials.ConfigureEmissive(material, color, EdgeEmission);
                     break;
 
+                // Экран светит с множителем больше кромочного, хотя в кадре
+                // он темнее её. Причина в том, что эмиссия считается от цвета
+                // в линейном пространстве: тёмный цвет уходит в линейном
+                // в тридцать раз ниже светлого, и тот же множитель дал бы
+                // выключенный монитор. Итог по замеру — эмиссия примерно
+                // вдвое ниже прежней зелёной заливки: экран светится, но
+                // пятном в кадре не становится.
                 case Tone.ScreenGlow:
-                    HoleInWallMaterials.ConfigureEmissive(material, color, EdgeEmission * 0.7f);
+                    HoleInWallMaterials.ConfigureEmissive(material, color, EdgeEmission * 3.4f);
                     break;
 
                 // Окно светит заметно сильнее кромки платформы: оно изображает
