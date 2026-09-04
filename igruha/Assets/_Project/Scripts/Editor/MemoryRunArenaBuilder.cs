@@ -55,12 +55,13 @@ namespace Igruha.EditorTools
             BuildHall(arena, config);
             BuildPit(arena, config);
             BuildStartZone(arena, config);
-            BuildGate(arena, config);
+            TurnGate gate = BuildGate(arena, config);
             BuildPlates(arena, config);
             BuildExit(arena, config);
             BuildKillZone(bounds, config);
             MemoryRunEnvironment.Build(arena, config);
             GameObject manager = GameObject.Find("MinigameManager");
+            WireManager(manager, gate);
             MemoryRunVfx.Build(arena, manager);
             MemoryRunSfx.Build(arena, config, manager);
             EnsureHudStatusLine();
@@ -231,7 +232,7 @@ namespace Igruha.EditorTools
         /// снимает коллизию адресно через <c>Physics.IgnoreCollision</c>,
         /// а она от слоя не зависит.
         /// </summary>
-        private static void BuildGate(Transform parent, MemoryRunConfig config)
+        private static TurnGate BuildGate(Transform parent, MemoryRunConfig config)
         {
             var gate = CreateBox(parent, "TurnGate",
                 new Vector3(config.HallWidth, config.GateHeight, WallThickness),
@@ -239,6 +240,22 @@ namespace Igruha.EditorTools
                 MemoryRunPalette.Get(MemoryRunPalette.Tone.Gate));
 
             SetLayer(gate, "Ignore Raycast");
+
+            // 🔴 Компонент вешается здесь, а не живёт в сцене руками.
+            //
+            // До 04.09 он был поставлен вручную на фазе 2, и первая же
+            // пересборка арены его снесла вместе с группой _Arena. Снаружи это
+            // выглядит не как «пропал компонент», а как «болванки топчутся на
+            // старте»: ссылка gate у менеджера становится NULL, OpenFor не
+            // зовётся никем, барьер не открывается никому, и маршрут
+            // недостижим вообще. Игра при этом исправно крутит очередь и
+            // считает ходы по таймауту — в консоли ни одной ошибки.
+            //
+            // Тот же класс, что и «Переноска предмета» 3.62: то, что не
+            // воспроизводится пересборкой, теряется при первой же пересборке.
+            // Здесь цена выше — там игра становилась нечитаемой, тут
+            // неиграбельной.
+            return gate.AddComponent<TurnGate>();
         }
 
         /// <summary>
@@ -331,6 +348,45 @@ namespace Igruha.EditorTools
                 mode.enumValueIndex = (int)KillZone.ZoneMode.EventOnly;
             }
 
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// Вписать менеджеру то, что живёт внутри пересобираемой группы.
+        ///
+        /// Ссылка на барьер — единственная такая: всё прочее, на что смотрит
+        /// <see cref="MemoryRunMinigame"/>, лежит вне <c>_Arena</c> и
+        /// пересборку переживает. Барьер лежит внутри, и без этого шага
+        /// пересборка каждый раз оставляла бы игру без проходимого барьера.
+        ///
+        /// Молчать при ненайденном менеджере нельзя: немая потеря этой ссылки
+        /// и есть та поломка, ради которой метод написан.
+        /// </summary>
+        private static void WireManager(GameObject manager, TurnGate gate)
+        {
+            if (manager == null)
+            {
+                Debug.LogError("MinigameManager не найден — барьер очереди останется не привязан, "
+                               + "и ходящий не выйдет из стартовой зоны");
+                return;
+            }
+
+            var game = manager.GetComponent<MemoryRunMinigame>();
+            if (game == null)
+            {
+                Debug.LogError("На MinigameManager нет MemoryRunMinigame — барьер привязать не к чему");
+                return;
+            }
+
+            var so = new SerializedObject(game);
+            SerializedProperty property = so.FindProperty("gate");
+            if (property == null)
+            {
+                Debug.LogError("У MemoryRunMinigame нет поля gate — барьер привязать некуда");
+                return;
+            }
+
+            property.objectReferenceValue = gate;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 

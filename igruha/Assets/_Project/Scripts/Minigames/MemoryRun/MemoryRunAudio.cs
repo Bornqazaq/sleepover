@@ -68,6 +68,13 @@ namespace Igruha.Minigames.MemoryRun
         private MinigamePhase lastPhase = MinigamePhase.Idle;
         private int lastWalkerId = TurnQueue.NoPlayer;
         private PlayerController walker;
+
+        /// <summary>
+        /// Ридер ввода идущего. Кэшируется вместе с ним, а не спрашивается
+        /// каждый кадр: <c>GetComponent</c> в <c>Update</c> правила проекта
+        /// запрещают, а спрашивать его приходилось бы всё время, пока идёт ход.
+        /// </summary>
+        private PlayerInputReader walkerInput;
         private bool walkerWasGrounded = true;
         private bool pitFallPlayed;
         private bool exitPlayed;
@@ -164,7 +171,7 @@ namespace Igruha.Minigames.MemoryRun
             if (walkerId != lastWalkerId)
             {
                 lastWalkerId = walkerId;
-                walker = game.CurrentWalker;
+                BindWalker(game.CurrentWalker);
                 walkerWasGrounded = true;
                 pitFallPlayed = false;
                 exitPlayed = false;
@@ -178,12 +185,14 @@ namespace Igruha.Minigames.MemoryRun
                 return;
             }
 
+            // Аватар может приехать позже номера: на клиенте объект игрока
+            // появляется своим порядком, и в кадре смены хода его ещё нет.
             if (walker == null)
             {
-                walker = game.CurrentWalker;
+                BindWalker(game.CurrentWalker);
             }
 
-            if (!game.TurnArmed || !IsLocalWalker())
+            if (!game.TurnArmed || walkerInput == null || !walkerInput.LocallyControlled)
             {
                 return;
             }
@@ -286,10 +295,11 @@ namespace Igruha.Minigames.MemoryRun
             audioPlayer.PlayAt(SlotRagdollLaunch, center);
             audioPlayer.Play(SlotCrowdGasp);
 
-            PlayerChanged();
+            WatchRagdollLanding();
         }
 
-        private void PlayerChanged()
+        /// <summary>Взять подорванного под наблюдение: следующее касание земли — это падение тела.</summary>
+        private void WatchRagdollLanding()
         {
             PlayerController victim = game != null ? game.CurrentWalker : null;
             if (victim == null)
@@ -305,19 +315,16 @@ namespace Igruha.Minigames.MemoryRun
         }
 
         /// <summary>
-        /// Идёт ли сейчас тот, кем управляет эта машина. Признак берётся
-        /// у <see cref="PlayerInputReader"/> — тем же способом, что и в HUD:
-        /// владение персонажем живёт там, а не в контроллере.
+        /// Запомнить идущего и его ридер ввода разом.
+        ///
+        /// Владение персонажем живёт в <see cref="PlayerInputReader"/>, а не в
+        /// контроллере — тем же способом его находит HUD. Берётся здесь один
+        /// раз на ход, а не каждый кадр.
         /// </summary>
-        private bool IsLocalWalker()
+        private void BindWalker(PlayerController next)
         {
-            if (walker == null)
-            {
-                return false;
-            }
-
-            var reader = walker.GetComponent<PlayerInputReader>();
-            return reader != null && reader.LocallyControlled;
+            walker = next;
+            walkerInput = next != null ? next.GetComponent<PlayerInputReader>() : null;
         }
     }
 }
