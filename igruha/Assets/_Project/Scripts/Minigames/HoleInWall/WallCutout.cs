@@ -18,9 +18,11 @@ namespace Igruha.Minigames.HoleInWall
     /// и запечена, пересобирать её ради них значит потерять арт
     /// подфаз 4.1–4.6.
     ///
-    /// <b>Поза 4 в зеркале отыгрывается сама.</b> Асимметричный силуэт
-    /// отражается вместе с вырезом, потому что отражается всё содержимое
-    /// дорожки; отдельной клавиши «выпад влево» не появляется.
+    /// <b>Вырез принадлежит игроку, и это видно цветом.</b> Контур красится
+    /// в цвет половины пола, на которой игрок стоит: розовый — нулевое место,
+    /// голубой — первое. Зеркальный переворот 7-й стены меняет вырезы местами,
+    /// но не цветами, — значит паре придётся перебежать крест-накрест
+    /// на тросе, и видно это заранее, ещё на подъезде.
     /// </remarks>
     public sealed class WallCutout : MonoBehaviour
     {
@@ -34,18 +36,32 @@ namespace Igruha.Minigames.HoleInWall
         private const float BlinkRate = 6f;
 
         /// <summary>
-        /// Цвет контура. Голубой неон палитры (бриф: «край выреза обведён
-        /// неоном»), а не жёлтый блокаута: на белой глянцевой плите стены жёлтое
-        /// теряется, а голубое — единственное холодное пятно в кадре.
+        /// Цвета контура по номеру выреза — они же цвета половин пола
+        /// платформы (<c>HoleInWallPalette.FloorOwn</c> и <c>FloorPartner</c>).
+        ///
+        /// ⚠️ Это не украшение, а вся подача принадлежности: вырез закреплён
+        /// за игроком, и узнаёт он свой по тому, что контур того же цвета,
+        /// что пол под ногами. Нулевое место на платформе розовое, первое —
+        /// голубое (<c>HoleInWallArenaBuilder.BuildFloorHalves</c>). Разойдутся
+        /// эти два места — игрок побежит не в свою дырку.
+        ///
+        /// Неон здесь чистый, а не подмешанный как у пола: контур обязан
+        /// читаться с 30 ШП, разметка под ногами — нет.
         /// </summary>
-        private static readonly Color OutlineColor = HoleInWallPalette.NeonCyan;
+        private static readonly Color[] OutlineColors =
+        {
+            HoleInWallPalette.NeonPink,
+            HoleInWallPalette.NeonCyan
+        };
 
         /// <summary>
-        /// Цвет моргания после подвоха. Второй неон палитры: он на другом конце
-        /// круга от контура, и подмена рисунка читается сменой холодного на
-        /// горячее, а не только частотой мигания.
+        /// Цвет моргания после подвоха — белый.
+        ///
+        /// Оба неона заняты принадлежностью, и мигать одним из них значит
+        /// сказать «вырез сменил хозяина», чего не происходит. Белый ничей
+        /// и читается вспышкой на обоих.
         /// </summary>
-        private static readonly Color BlinkColor = HoleInWallPalette.NeonPink;
+        private static readonly Color BlinkColor = Color.white;
 
         [Tooltip("Левая стойка прямоугольного контура. Осталась от каркаса — см. шапку класса")]
         [SerializeField] private Transform leftPost;
@@ -57,6 +73,9 @@ namespace Igruha.Minigames.HoleInWall
         private Renderer outlineRenderer;
         private Mesh outlineMesh;
         private float blinkUntil;
+
+        /// <summary>Номер выреза. Им же выбирается цвет: вырез принадлежит месту на платформе.</summary>
+        private int slot;
 
         private static readonly System.Collections.Generic.List<Vector3> Vertices =
             new System.Collections.Generic.List<Vector3>(1024);
@@ -117,8 +136,11 @@ namespace Igruha.Minigames.HoleInWall
             outlineRenderer = go.AddComponent<MeshRenderer>();
             outlineRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             outlineRenderer.receiveShadows = false;
-            outlineRenderer.sharedMaterial = HoleInWallMaterials.Emissive(OutlineColor);
+            outlineRenderer.sharedMaterial = HoleInWallMaterials.Emissive(OwnColor);
         }
+
+        /// <summary>Цвет этого выреза: по его номеру, он же место на платформе.</summary>
+        private Color OwnColor => OutlineColors[Mathf.Clamp(slot, 0, OutlineColors.Length - 1)];
 
         private void HideLegacyFrames()
         {
@@ -138,13 +160,18 @@ namespace Igruha.Minigames.HoleInWall
             }
         }
 
-        /// <summary>Поставить вырез: поза и место. Контур и габарит берутся у форм дорожки.</summary>
-        public void Apply(HoleInWallConfig config, CutoutShapes shapes, HoleInWallPose pose,
-            float offset, float wallThickness)
+        /// <summary>
+        /// Поставить вырез: чей он, какая поза и где. Контур и габарит берутся
+        /// у форм этого игрока.
+        /// </summary>
+        /// <param name="cutoutSlot">Номер выреза: он же место на платформе, он же цвет контура</param>
+        public void Apply(HoleInWallConfig config, CutoutShapes shapes, int cutoutSlot,
+            HoleInWallPose pose, float offset, float wallThickness)
         {
             EnsureOutline();
             HideLegacyFrames();
 
+            slot = cutoutSlot;
             Pose = pose;
             Offset = offset;
             Size = shapes != null ? shapes.Size(pose) : config.SilhouetteSize(pose);
@@ -164,7 +191,7 @@ namespace Igruha.Minigames.HoleInWall
             BuildOutlineMesh(outline);
 
             blinkUntil = 0f;
-            SetColor(OutlineColor);
+            SetColor(OwnColor);
         }
 
         /// <summary>
@@ -262,14 +289,14 @@ namespace Igruha.Minigames.HoleInWall
                 if (blinkUntil > 0f)
                 {
                     blinkUntil = 0f;
-                    SetColor(OutlineColor);
+                    SetColor(OwnColor);
                 }
 
                 return;
             }
 
             bool bright = Mathf.Repeat(Time.time * BlinkRate, 1f) < 0.5f;
-            SetColor(bright ? BlinkColor : OutlineColor);
+            SetColor(bright ? BlinkColor : OwnColor);
         }
 
         private void SetColor(Color color)

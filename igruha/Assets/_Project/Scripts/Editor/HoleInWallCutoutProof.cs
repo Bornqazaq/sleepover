@@ -49,6 +49,9 @@ namespace Igruha.EditorTools
         private static readonly Color PassColor = new Color(0.20f, 0.70f, 0.30f);
         private static readonly Color FailColor = new Color(0.90f, 0.10f, 0.10f);
 
+        /// <summary>Цвета хозяев вырезов на парном листе — те же, что у контуров и половин пола.</summary>
+        private static readonly Color[] OwnerColors = { HoleInWallPalette.NeonPink, HoleInWallPalette.NeonCyan };
+
         [MenuItem("Igruha/Дырка в стене/Стенд: проверить вырезы")]
         internal static void Run()
         {
@@ -134,12 +137,13 @@ namespace Igruha.EditorTools
 
         /// <summary>
         /// Второй лист: стена пары целиком — обычная, после зеркального
-        /// переворота и после смены формы.
+        /// переворота и после смены формы, с обоими силуэтами на месте.
         ///
-        /// Одиночная стена режется одним вырезом, и триангуляция полотна с
-        /// двумя выемками в кромке остаётся непроверенной — а это самый
-        /// опасный случай: два контура в одном обходе. Здесь он и проверяется,
-        /// вместе с обоими подвохами.
+        /// Одиночная стена режется одним вырезом, и два случая остаются
+        /// непроверенными: триангуляция полотна с двумя выемками в кромке
+        /// и то, ради чего вырезы вообще закрепили за игроками — что <b>каждый
+        /// лезет в свою</b> дырку, а не в общую кляксу на двоих. Берём худшую
+        /// пару ростера: самый широкий против самого высокого.
         /// </summary>
         private static string PairSheet(HoleInWallConfig config, System.Text.StringBuilder report)
         {
@@ -149,31 +153,40 @@ namespace Igruha.EditorTools
             var sheet = new Texture2D(stripWidth, stripHeight * 3, TextureFormat.RGB24, false);
 
             GameObject wall = null;
+            UnityEngine.SceneManagement.Scene first = default;
+            UnityEngine.SceneManagement.Scene second = default;
 
             try
             {
                 wall = BuildWall(config);
                 var sweeping = wall.GetComponent<SweepingWall>();
 
-                // Fat и Шланга: самый широкий против самого высокого. Их
-                // объединение — худший случай для контура пары.
-                var shapes = new CutoutShapes(config, CutoutShapes.Compose("FatAnimator", "ShlangaAnimator"));
-                sweeping.Configure(config, shapes);
+                var measurers = new HoleInWallPoseClipBuilder.PoseMeasurer[2];
+                var shapes = new CutoutShapes[2];
+                measurers[0] = Open("Fat", config, out shapes[0], out first);
+                measurers[1] = Open("Shlanga", config, out shapes[1], out second);
 
-                float spread = (shapes.Size(HoleInWallPose.HandsWide).x + shapes.Size(HoleInWallPose.Crouch).x)
-                               * 0.5f + config.CutoutBridge;
+                if (measurers[0] == null || measurers[1] == null)
+                {
+                    return string.Empty;
+                }
 
-                var pattern = new WallPattern(
+                sweeping.Configure(config, shapes[0], shapes[1]);
+
+                float spread = (shapes[0].Size(HoleInWallPose.HandsWide).x +
+                                shapes[1].Size(HoleInWallPose.Crouch).x) * 0.5f + config.CutoutBridge;
+
+                var mirror = new WallPattern(
                     new WallCutoutSpec(HoleInWallPose.HandsWide, -spread * 0.5f),
                     new WallCutoutSpec(HoleInWallPose.Crouch, spread * 0.5f),
                     true, WallTrick.Mirror, HoleInWallPose.HandsUp, HoleInWallPose.SideLunge);
 
-                sweeping.Launch(pattern, NetworkClock.Now, 1f, double.MaxValue);
-                PaintStrip(sheet, sweeping, config, stripWidth, stripHeight, 2, PairPixel);
+                sweeping.Launch(mirror, NetworkClock.Now, 1f, double.MaxValue);
+                PaintStrip(sheet, sweeping, config, measurers, stripWidth, stripHeight, 2, PairPixel, false);
                 report.AppendLine($"  пара Fat+Шланга, обычная стена     разнос {spread:F2} м, {surfaceFacts}");
 
                 Invoke(sweeping, "RebuildShape", true);
-                PaintStrip(sheet, sweeping, config, stripWidth, stripHeight, 1, PairPixel);
+                PaintStrip(sheet, sweeping, config, measurers, stripWidth, stripHeight, 1, PairPixel, true);
                 report.AppendLine($"  та же стена после переворота       {surfaceFacts}");
 
                 var morph = new WallPattern(
@@ -183,7 +196,7 @@ namespace Igruha.EditorTools
 
                 sweeping.Launch(morph, NetworkClock.Now, 1f, double.MaxValue);
                 Invoke(sweeping, "RebuildShape", true);
-                PaintStrip(sheet, sweeping, config, stripWidth, stripHeight, 0, PairPixel);
+                PaintStrip(sheet, sweeping, config, measurers, stripWidth, stripHeight, 0, PairPixel, true);
                 report.AppendLine($"  та же стена после смены формы      {surfaceFacts}");
             }
             finally
@@ -192,6 +205,9 @@ namespace Igruha.EditorTools
                 {
                     Object.DestroyImmediate(wall);
                 }
+
+                Close(first);
+                Close(second);
             }
 
             string path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "HoleInWallCutoutProofPair.png");
@@ -200,23 +216,114 @@ namespace Igruha.EditorTools
             return path;
         }
 
-        /// <summary>Положить на лист одну полосу: стена целиком по своей ширине.</summary>
+        /// <summary>Поднять персонажа в свою сцену и отдать его обмерщик вместе с формами вырезов.</summary>
+        private static HoleInWallPoseClipBuilder.PoseMeasurer Open(string prefabName, HoleInWallConfig config,
+            out CutoutShapes shapes, out UnityEngine.SceneManagement.Scene scene)
+        {
+            shapes = null;
+            scene = UnityEditor.SceneManagement.EditorSceneManager.NewPreviewScene();
+
+            string path = HoleInWallPoseClipBuilder.PlayerPrefabFolder + prefabName + ".prefab";
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (prefab == null)
+            {
+                Debug.LogError($"HoleInWallCutoutProof: нет префаба {path}.");
+                return null;
+            }
+
+            var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, scene);
+            instance.transform.position = Vector3.zero;
+            instance.transform.rotation = Quaternion.identity;
+
+            var animator = instance.GetComponentInChildren<Animator>(true);
+            var skin = instance.GetComponentInChildren<SkinnedMeshRenderer>(true);
+            if (animator == null || skin == null)
+            {
+                Debug.LogError($"HoleInWallCutoutProof ({prefabName}): нет аватара или скиннед-меша.");
+                return null;
+            }
+
+            shapes = new CutoutShapes(config, CutoutShapes.KeyOf(instance));
+            return new HoleInWallPoseClipBuilder.PoseMeasurer(animator, skin);
+        }
+
+        private static void Close(UnityEngine.SceneManagement.Scene scene)
+        {
+            if (scene.IsValid())
+            {
+                UnityEditor.SceneManagement.EditorSceneManager.ClosePreviewScene(scene);
+            }
+        }
+
+        /// <summary>Какой вырез действует сейчас — спрашиваем у самой стены, чтобы не повторять правило подвоха.</summary>
+        private static void ResolveCutout(SweepingWall wall, int index, bool trick,
+            out HoleInWallPose pose, out float offset)
+        {
+            var args = new object[] { index, trick, null, null };
+            typeof(SweepingWall).GetMethod("ResolveCutout", Private).Invoke(wall, args);
+            pose = (HoleInWallPose)args[2];
+            offset = (float)args[3];
+        }
+
+        /// <summary>
+        /// Положить на лист одну полосу: стена целиком по своей ширине,
+        /// и в каждом вырезе — его собственный хозяин.
+        ///
+        /// Хозяева красятся в цвета своих контуров, розовый и голубой, — те же,
+        /// которыми игра метит половины пола. Красный поверх любого из них
+        /// значил бы кожу внутри полотна.
+        /// </summary>
         private static void PaintStrip(Texture2D sheet, SweepingWall wall, HoleInWallConfig config,
-            int width, int height, int row, float pixel)
+            HoleInWallPoseClipBuilder.PoseMeasurer[] measurers,
+            int width, int height, int row, float pixel, bool trick)
         {
             var grid = new bool[width * height];
             var boxes = new bool[width * height];
+            var bodies = new int[width * height];
             float half = config.WallWidth * 0.5f;
 
             FillWall(wall, grid, width, height, half, pixel);
             FillColliders(wall, boxes, width, height, half, pixel);
+
+            for (int slot = 0; slot < measurers.Length; slot++)
+            {
+                ResolveCutout(wall, slot, trick, out HoleInWallPose pose, out float offset);
+                if (pose == HoleInWallPose.None)
+                {
+                    continue;
+                }
+
+                measurers[slot].PlaceOnGround(HoleInWallPoseClipBuilder.MusclesOf((int)pose - 1));
+                measurers[slot].RefreshBones();
+
+                for (int v = 0; v < measurers[slot].VertexCount; v++)
+                {
+                    Vector3 world = measurers[slot].WorldVertex(v);
+                    int x = Mathf.FloorToInt((world.x + offset + half) / pixel);
+                    int y = Mathf.FloorToInt(world.y / pixel);
+                    if (x >= 0 && x < width && y >= 0 && y < height)
+                    {
+                        bodies[y * width + x] = slot + 1;
+                    }
+                }
+            }
 
             for (int y = 0; y < height; y++)
             {
                 for (int x = 0; x < width; x++)
                 {
                     int index = y * width + x;
-                    Color color = boxes[index] ? ColliderColor : grid[index] ? WallColor : HoleColor;
+                    Color color;
+
+                    if (bodies[index] > 0)
+                    {
+                        color = grid[index] ? BodyInWallColor : OwnerColors[bodies[index] - 1];
+                    }
+                    else
+                    {
+                        color = boxes[index] ? ColliderColor : grid[index] ? WallColor : HoleColor;
+                    }
+
                     sheet.SetPixel(x, row * height + y, color);
                 }
             }
@@ -305,7 +412,7 @@ namespace Igruha.EditorTools
                 }
 
                 var shapes = new CutoutShapes(config, CutoutShapes.KeyOf(instance));
-                wall.Configure(config, shapes);
+                wall.Configure(config, shapes, null);
 
                 var measurer = new HoleInWallPoseClipBuilder.PoseMeasurer(animator, skin);
 

@@ -409,10 +409,12 @@ namespace Igruha.Minigames.HoleInWall
                     continue;
                 }
 
-                // Высота берётся у форм дорожки: вырез посчитан под её состав,
-                // и вспышка обязана оказаться посередине именно его.
-                float height = track.Shapes != null
-                    ? track.Shapes.Size(pose).y
+                // Высота берётся у форм владельца выреза: он вырезан под
+                // конкретного игрока, и вспышка обязана оказаться посередине
+                // именно его дырки.
+                CutoutShapes shapes = track.ShapesOf(cutout);
+                float height = shapes != null
+                    ? shapes.Size(pose).y
                     : config.SilhouetteSize(pose).y;
 
                 var point = new Vector3(trackX + offset,

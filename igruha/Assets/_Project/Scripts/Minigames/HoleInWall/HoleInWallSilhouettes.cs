@@ -28,8 +28,8 @@ namespace Igruha.Minigames.HoleInWall
     [Serializable]
     public sealed class CutoutSilhouette
     {
-        [Tooltip("Состав дорожки, для которого посчитан контур: ключ персонажа или пары")]
-        [SerializeField] private string composition = string.Empty;
+        [Tooltip("Ключ персонажа, для которого посчитан контур")]
+        [SerializeField] private string character = string.Empty;
 
         [Tooltip("Номер позы, 1…4")]
         [SerializeField] private int pose;
@@ -46,7 +46,7 @@ namespace Igruha.Minigames.HoleInWall
         [Tooltip("Самый дальний вылет вправо от центра тела, м")]
         [SerializeField] private float rightReach;
 
-        public string Composition => composition;
+        public string Character => character;
 
         public int Pose => pose;
 
@@ -70,10 +70,10 @@ namespace Igruha.Minigames.HoleInWall
         public bool Valid => outline != null && outline.Length >= 3 && height > 0.01f;
 
         /// <summary>Заполнить контур. Зовётся только пекарем: ассет генерируемый.</summary>
-        public void Bake(string trackComposition, int poseNumber, Vector2[] points, float poseHeight,
+        public void Bake(string characterKey, int poseNumber, Vector2[] points, float poseHeight,
             float left, float right)
         {
-            composition = trackComposition;
+            character = characterKey;
             pose = poseNumber;
             outline = points;
             height = poseHeight;
@@ -88,18 +88,17 @@ namespace Igruha.Minigames.HoleInWall
     /// <b>Почему не один контур на всех.</b> Персонажи разного роста и ширины —
     /// Карлан 1.61 м, Шланга 1.96 м, Fat самый широкий, — и вырез, посчитанный
     /// объединением всех восьмерых, был велик каждому: в него пролезали все,
-    /// и он ни с кем не совпадал. Теперь контур считается под состав дорожки,
-    /// а дорожек с разными составами столько, сколько бывает пар.
+    /// и он ни с кем не совпадал.
     ///
-    /// <b>Состав, а не персонаж.</b> В вырез на дорожке пары лезут двое,
-    /// и заранее не известно, кто в какой: пара договаривается сама, а на
-    /// 7-й стене вырезы ещё и меняются местами. Поэтому у пары контур —
-    /// объединение силуэтов обоих, посчитанное на этапе сборки ассета одним
-    /// битмапом. У одиночки состав из одного, и контур — ровно его.
+    /// <b>Контур на персонажа, и объединять их нельзя.</b> Короткое время
+    /// у пары вырез пёкся объединением двух силуэтов, чтобы в него лезли оба.
+    /// На вид это провалилось: у высокого и низкого руки на разной высоте,
+    /// объединение даёт дырку с четырьмя руками, и в стене она читается
+    /// кляксой, а не позой. Вырез закреплён за игроком — по одному контуру
+    /// на каждого, кто на дорожке.
     ///
-    /// <b>Ключ состава — имя контроллера аниматора</b>, у пары два имени
-    /// по алфавиту через плюс. Персонажу не нужно ничего добавлять: контроллер
-    /// у каждого свой, а префабы персонажей заморожены
+    /// <b>Ключ — имя контроллера аниматора.</b> Персонажу не нужно ничего
+    /// добавлять: контроллер у каждого свой, а префабы персонажей заморожены
     /// (igruha/CLAUDE.md, раздел 🔒 0).
     ///
     /// Ассет генерируется — <c>Editor/HoleInWallSilhouetteBaker</c>. Руками
@@ -109,20 +108,21 @@ namespace Igruha.Minigames.HoleInWall
     public sealed class HoleInWallSilhouettes : ScriptableObject
     {
         /// <summary>
-        /// Ключ состава, к которому откатываемся, когда персонаж на дорожке
-        /// не опознан. Это объединение всего ростера — тот самый вырез
-        /// «на самого большого», который был единственным до 04.09.
+        /// Ключ, к которому откатываемся, когда персонаж не опознан. Это
+        /// объединение всего ростера — тот самый вырез «на самого большого»,
+        /// который был единственным до 04.09. В игре его быть не должно:
+        /// увидели кляксу вместо позы — значит ключ персонажа не нашёлся.
         /// </summary>
-        public const string RosterComposition = "*";
+        public const string RosterCharacter = "*";
 
         [Tooltip("Запас по контуру, м. Записан пекарем — тем же числом, которым он раздул силуэт")]
         [SerializeField] private float margin;
 
-        [Tooltip("Контуры: состав × поза. Генерируется, руками не править")]
+        [Tooltip("Контуры: персонаж × поза. Генерируется, руками не править")]
         [SerializeField] private CutoutSilhouette[] silhouettes = Array.Empty<CutoutSilhouette>();
 
-        /// <summary>Контуры по составам: ключ — состав, значение — массив по номеру позы минус один.</summary>
-        private Dictionary<string, CutoutSilhouette[]> byComposition;
+        /// <summary>Контуры по персонажам: ключ — персонаж, значение — массив по номеру позы минус один.</summary>
+        private Dictionary<string, CutoutSilhouette[]> byCharacter;
 
         /// <summary>Запас по контуру, м: на столько вырез больше силуэта.</summary>
         public float Margin => margin;
@@ -130,22 +130,22 @@ namespace Igruha.Minigames.HoleInWall
         /// <summary>Сколько контуров в ассете. Для отчёта пекаря и проверок.</summary>
         public int Count => silhouettes != null ? silhouettes.Length : 0;
 
-        private void OnEnable() => byComposition = null;
+        private void OnEnable() => byCharacter = null;
 
         /// <summary>
-        /// Контур позы для этого состава. Пусто — состава в ассете нет,
+        /// Контур позы для этого персонажа. Пусто — персонажа в ассете нет,
         /// и звать надо <see cref="Roster"/>.
         /// </summary>
-        public CutoutSilhouette Find(string composition, HoleInWallPose pose)
+        public CutoutSilhouette Find(string character, HoleInWallPose pose)
         {
-            if (string.IsNullOrEmpty(composition) || pose == HoleInWallPose.None)
+            if (string.IsNullOrEmpty(character) || pose == HoleInWallPose.None)
             {
                 return null;
             }
 
             EnsureIndex();
 
-            if (!byComposition.TryGetValue(composition, out CutoutSilhouette[] poses))
+            if (!byCharacter.TryGetValue(character, out CutoutSilhouette[] poses))
             {
                 return null;
             }
@@ -155,37 +155,37 @@ namespace Igruha.Minigames.HoleInWall
         }
 
         /// <summary>Контур позы на весь ростер: запасной вариант для неопознанного состава.</summary>
-        public CutoutSilhouette Roster(HoleInWallPose pose) => Find(RosterComposition, pose);
+        public CutoutSilhouette Roster(HoleInWallPose pose) => Find(RosterCharacter, pose);
 
         /// <summary>Записать всё разом. Зовётся только пекарем.</summary>
         public void Bake(CutoutSilhouette[] baked, float bakedMargin)
         {
             silhouettes = baked ?? Array.Empty<CutoutSilhouette>();
             margin = bakedMargin;
-            byComposition = null;
+            byCharacter = null;
         }
 
         private void EnsureIndex()
         {
-            if (byComposition != null)
+            if (byCharacter != null)
             {
                 return;
             }
 
-            byComposition = new Dictionary<string, CutoutSilhouette[]>(silhouettes.Length);
+            byCharacter = new Dictionary<string, CutoutSilhouette[]>(silhouettes.Length);
 
             for (int i = 0; i < silhouettes.Length; i++)
             {
                 CutoutSilhouette shape = silhouettes[i];
-                if (shape == null || string.IsNullOrEmpty(shape.Composition))
+                if (shape == null || string.IsNullOrEmpty(shape.Character))
                 {
                     continue;
                 }
 
-                if (!byComposition.TryGetValue(shape.Composition, out CutoutSilhouette[] poses))
+                if (!byCharacter.TryGetValue(shape.Character, out CutoutSilhouette[] poses))
                 {
                     poses = new CutoutSilhouette[HoleInWallConfig.PoseCount];
-                    byComposition.Add(shape.Composition, poses);
+                    byCharacter.Add(shape.Character, poses);
                 }
 
                 int index = shape.Pose - 1;

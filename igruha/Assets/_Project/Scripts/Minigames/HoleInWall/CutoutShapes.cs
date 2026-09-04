@@ -3,26 +3,30 @@ using UnityEngine;
 namespace Igruha.Minigames.HoleInWall
 {
     /// <summary>
-    /// Формы вырезов одной дорожки: контур на каждую из четырёх поз, готовый
+    /// Формы вырезов одного игрока: контур на каждую из четырёх поз, готовый
     /// к употреблению стеной.
     ///
-    /// Заводится один раз на раунд, когда известен состав дорожки, и дальше
+    /// <b>Вырез закреплён за игроком.</b> На дорожке пары их два, и каждый —
+    /// точный силуэт своего. Объединять два силуэта в один вырез пробовали
+    /// 04.09 и отказались: у высокого и низкого руки на разной высоте, и
+    /// объединение даёт в стене дырку с четырьмя руками — кляксу вместо позы.
+    /// Кто чей, видно по цвету контура: он совпадает с цветом половины пола,
+    /// на которой игрок стоит.
+    ///
+    /// Заводится один раз на раунд, когда известен персонаж, и дальше
     /// только читается. Вся тяжёлая работа с силуэтом — скиннинг, растеризация,
     /// объединение пары — сделана на этапе сборки ассета: меши персонажей
     /// в рантайме нечитаемы (<c>isReadable = false</c>), да и миллион вершин
     /// в кадре никто не ждёт.
     /// </summary>
     /// <remarks>
-    /// <b>Контур всегда есть.</b> Не нашёлся состав — берётся ростерный,
+    /// <b>Контур всегда есть.</b> Не нашёлся персонаж — берётся ростерный,
     /// не нашёлся и он — строится прямоугольник по <c>HoleInWallConfig</c>,
     /// как было до настоящих силуэтов. Поэтому у стены нет ветки «формы нет»:
     /// она всегда режет полотно по ломаной.
     /// </remarks>
     public sealed class CutoutShapes
     {
-        /// <summary>Разделитель имён в ключе пары.</summary>
-        private const char CompositionSeparator = '+';
-
         private readonly HoleInWallConfig config;
 
         /// <summary>Контуры по номеру позы минус один. Пусто в ячейке — поза считается прямоугольником.</summary>
@@ -31,16 +35,16 @@ namespace Igruha.Minigames.HoleInWall
         /// <summary>Прямоугольные запасные ломаные. Строятся по требованию и живут до конца раунда.</summary>
         private readonly Vector2[][] fallbackOutlines = new Vector2[HoleInWallConfig.PoseCount][];
 
-        /// <summary>Ключ состава, по которому нашлись контуры. Для отчёта в логе.</summary>
-        public string Composition { get; }
+        /// <summary>Ключ персонажа, по которому нашлись контуры. Для отчёта в логе.</summary>
+        public string Character { get; }
 
-        /// <summary>Контуры нашлись под сам состав, а не под ростер и не прямоугольником.</summary>
+        /// <summary>Контуры нашлись под самого персонажа, а не под ростер и не прямоугольником.</summary>
         public bool Exact { get; }
 
-        public CutoutShapes(HoleInWallConfig gameConfig, string composition)
+        public CutoutShapes(HoleInWallConfig gameConfig, string character)
         {
             config = gameConfig;
-            Composition = composition;
+            Character = character;
 
             HoleInWallSilhouettes asset = gameConfig != null ? gameConfig.Silhouettes : null;
             if (asset == null)
@@ -48,16 +52,16 @@ namespace Igruha.Minigames.HoleInWall
                 return;
             }
 
-            bool exact = !string.IsNullOrEmpty(composition);
+            bool exact = !string.IsNullOrEmpty(character);
 
             for (int i = 0; i < shapes.Length; i++)
             {
                 var pose = (HoleInWallPose)(i + 1);
-                CutoutSilhouette shape = asset.Find(composition, pose);
+                CutoutSilhouette shape = asset.Find(character, pose);
 
                 if (shape == null || !shape.Valid)
                 {
-                    // Состава нет в ассете — падаем на ростерный контур: он
+                    // Персонажа нет в ассете — падаем на ростерный контур: он
                     // велик каждому, но пролезть в него может любой.
                     shape = asset.Roster(pose);
                     exact = false;
@@ -88,27 +92,6 @@ namespace Igruha.Minigames.HoleInWall
             var animator = avatar.GetComponentInChildren<Animator>(true);
             RuntimeAnimatorController controller = animator != null ? animator.runtimeAnimatorController : null;
             return controller != null ? controller.name : null;
-        }
-
-        /// <summary>
-        /// Ключ состава из ключей участников. Порядок не значим — пара
-        /// сама решает, кто в какой вырез, — поэтому имена сортируются.
-        /// </summary>
-        public static string Compose(string first, string second)
-        {
-            if (string.IsNullOrEmpty(first))
-            {
-                return second;
-            }
-
-            if (string.IsNullOrEmpty(second))
-            {
-                return first;
-            }
-
-            return string.CompareOrdinal(first, second) <= 0
-                ? first + CompositionSeparator + second
-                : second + CompositionSeparator + first;
         }
 
         /// <summary>Контур позы: от левой ступни вверх и вниз к правой, метры от места игрока.</summary>

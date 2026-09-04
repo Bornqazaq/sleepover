@@ -30,10 +30,13 @@ namespace Igruha.EditorTools
     /// здесь. Низ силуэта заодно замыкается по нижней строке: пол платформы
     /// сплошной, и вырез обязан доходить до него целиком.
     ///
-    /// <b>Пара печётся объединением.</b> В вырез на дорожке пары лезут двое,
-    /// и кто в какой — они решают сами. Объединение считается тем же битмапом:
-    /// два силуэта ИЛИ, дальше та же дилатация и обводка. Восемь персонажей
-    /// дают 28 пар, 8 одиночек и ростер — 37 составов, по четыре позы каждый.
+    /// <b>Пары здесь нет и быть не должно.</b> Короткое время вырез пары
+    /// пёкся объединением двух силуэтов — и это оказалось нерабочим на вид:
+    /// у высокого и низкого руки оказываются на разной высоте, объединение
+    /// даёт дырку с четырьмя руками, и в стене это читается как клякса, а не
+    /// как поза. Вырез закреплён за игроком, и контур ему нужен ровно один —
+    /// собственный. Восемь персонажей плюс ростерный запасной, по четыре
+    /// позы каждый.
     /// </remarks>
     internal static class HoleInWallSilhouetteBaker
     {
@@ -94,25 +97,14 @@ namespace Igruha.EditorTools
                 raw[c] = CaptureCharacter(prefabs[c], names[c], pipeline, poses, out keys[c], report);
             }
 
-            var shapes = new List<CutoutSilhouette>(160);
+            var shapes = new List<CutoutSilhouette>(64);
             var union = new bool[pipeline.Length];
 
             for (int c = 0; c < names.Length; c++)
             {
-                if (raw[c] == null)
+                if (raw[c] != null)
                 {
-                    continue;
-                }
-
-                Emit(shapes, pipeline, keys[c], raw[c], null, poses, report);
-
-                for (int other = c + 1; other < names.Length; other++)
-                {
-                    if (raw[other] != null)
-                    {
-                        Emit(shapes, pipeline, CutoutShapes.Compose(keys[c], keys[other]),
-                            raw[c], raw[other], poses, report);
-                    }
+                    Emit(shapes, pipeline, keys[c], raw[c], poses, report);
                 }
             }
 
@@ -215,26 +207,23 @@ namespace Igruha.EditorTools
             }
         }
 
-        /// <summary>Испечь четыре позы одного состава: одного персонажа или пары.</summary>
-        private static void Emit(List<CutoutSilhouette> shapes, SilhouettePipeline pipeline, string composition,
-            bool[][] first, bool[][] second, int poses, System.Text.StringBuilder report)
+        /// <summary>Испечь четыре позы одного персонажа.</summary>
+        private static void Emit(List<CutoutSilhouette> shapes, SilhouettePipeline pipeline, string character,
+            bool[][] raw, int poses, System.Text.StringBuilder report)
         {
             for (int p = 0; p < poses; p++)
             {
-                pipeline.LoadRaw(first[p]);
-                if (second != null)
-                {
-                    pipeline.AddRaw(second[p]);
-                }
-
-                Append(shapes, pipeline, composition, p, report);
+                pipeline.LoadRaw(raw[p]);
+                Append(shapes, pipeline, character, p, report);
             }
         }
 
         /// <summary>
-        /// Испечь ростерный состав: объединение всех восьмерых. Это запасной
+        /// Испечь ростерный вырез: объединение всех восьмерых. Это запасной
         /// вырез — тот самый «на самого большого», который до 04.09 был
-        /// единственным. Достаётся дорожке, чей состав не опознан.
+        /// единственным. Достаётся игроку, чей персонаж не опознан. Кляксой
+        /// он и выглядит, поэтому в игре его быть не должно: увидели —
+        /// значит ключ персонажа не нашёлся, и это ошибка, а не оформление.
         /// </summary>
         private static void EmitRoster(List<CutoutSilhouette> shapes, SilhouettePipeline pipeline, bool[][][] raw,
             bool[] union, int poses, System.Text.StringBuilder report)
@@ -262,18 +251,18 @@ namespace Igruha.EditorTools
                 if (any)
                 {
                     pipeline.LoadRaw(union);
-                    Append(shapes, pipeline, HoleInWallSilhouettes.RosterComposition, p, report);
+                    Append(shapes, pipeline, HoleInWallSilhouettes.RosterCharacter, p, report);
                 }
             }
         }
 
-        private static void Append(List<CutoutSilhouette> shapes, SilhouettePipeline pipeline, string composition,
+        private static void Append(List<CutoutSilhouette> shapes, SilhouettePipeline pipeline, string character,
             int poseIndex, System.Text.StringBuilder report)
         {
             Vector2[] chain = pipeline.Extract(out float clearance);
             if (chain == null)
             {
-                Debug.LogError($"HoleInWallSilhouetteBaker: контур состава «{composition}», " +
+                Debug.LogError($"HoleInWallSilhouetteBaker: контур персонажа «{character}», " +
                                $"поза {HoleInWallPoseClipBuilder.PoseTitles[poseIndex]} не построен.");
                 return;
             }
@@ -289,23 +278,23 @@ namespace Igruha.EditorTools
             }
 
             var shape = new CutoutSilhouette();
-            shape.Bake(composition, poseIndex + 1, chain, height, left, right);
+            shape.Bake(character, poseIndex + 1, chain, height, left, right);
             shapes.Add(shape);
 
             // Ростерный состав печатаем всегда, остальные — только если запас
             // не выдержан: 148 строк в консоли не читает никто.
             bool suspicious = clearance < Margin - SimplifyTolerance;
-            if (suspicious || composition == HoleInWallSilhouettes.RosterComposition)
+            if (suspicious || character == HoleInWallSilhouettes.RosterCharacter)
             {
                 report.AppendLine(
-                    $"  {composition,-34} {HoleInWallPoseClipBuilder.PoseTitles[poseIndex],-9} " +
+                    $"  {character,-18} {HoleInWallPoseClipBuilder.PoseTitles[poseIndex],-9} " +
                     $"точек {chain.Length,3} H={height:F3} x[{left:F2}…{right:F2}] запас {clearance:F3}" +
                     (suspicious ? " ⚠️" : string.Empty));
             }
 
             if (suspicious)
             {
-                Debug.LogWarning($"HoleInWallSilhouetteBaker: у состава «{composition}» " +
+                Debug.LogWarning($"HoleInWallSilhouetteBaker: у персонажа «{character}» " +
                                  $"поза {HoleInWallPoseClipBuilder.PoseTitles[poseIndex]} прошла с запасом " +
                                  $"{clearance:F3} м вместо {Margin:F2} — контур где-то поджат.");
             }

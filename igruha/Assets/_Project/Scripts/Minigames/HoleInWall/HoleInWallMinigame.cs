@@ -431,8 +431,7 @@ namespace Igruha.Minigames.HoleInWall
                 }
 
                 track.ArrangeSlots(config);
-                track.ResolveShapes(config);
-                track.Wall.Configure(config, track.Shapes);
+                track.Wall.Configure(config, track.ShapesOf(0), track.ShapesOf(1));
                 playingTracks.Add(track);
 
                 PlaceMembers(track);
@@ -479,7 +478,18 @@ namespace Igruha.Minigames.HoleInWall
             avatar.TryGetComponent(out PlayerRespawner respawner);
             avatar.TryGetComponent(out PlayerInputReader input);
 
-            return new HoleInWallTrack.Member(playerId, avatar, pose, stuck, respawner, input);
+            // Вырез закреплён за игроком, значит и контур у него собственный.
+            // Персонаж опознаётся по имени контроллера аниматора: префабы
+            // персонажей заморожены, метки на них не повесить.
+            var shapes = new CutoutShapes(config, CutoutShapes.KeyOf(avatar.gameObject));
+            if (!shapes.Exact)
+            {
+                Debug.LogWarning($"{name}: персонаж «{shapes.Character}» не найден в ассете силуэтов — " +
+                                 "вырез берётся на весь ростер и будет выглядеть кляксой. " +
+                                 "Испечь: Igruha/Дырка в стене/Испечь силуэты вырезов", this);
+            }
+
+            return new HoleInWallTrack.Member(playerId, avatar, pose, stuck, respawner, input, shapes);
         }
 
         /// <summary>
@@ -546,7 +556,8 @@ namespace Igruha.Minigames.HoleInWall
             for (int i = 0; i < playingTracks.Count; i++)
             {
                 HoleInWallTrack track = playingTracks[i];
-                generator.Generate(config, track.Shapes, TrackSeed(track), track.Solo, track.Patterns);
+                generator.Generate(config, track.ShapesOf(0), track.ShapesOf(1),
+                    TrackSeed(track), track.Solo, track.Patterns);
             }
         }
 
@@ -826,9 +837,10 @@ namespace Igruha.Minigames.HoleInWall
                 return false;
             }
 
-            bool straight = MemberFits(track, members[0], 0) && MemberFits(track, members[1], 1);
-            bool crossed = MemberFits(track, members[0], 1) && MemberFits(track, members[1], 0);
-            return straight || crossed;
+            // Крест-накрест больше не считается: вырез вырезан по силуэту
+            // конкретного игрока, и чужой ему просто не по фигуре. Кто чей,
+            // видно по цвету контура — он совпадает с цветом половины пола.
+            return MemberFits(track, members[0], 0) && MemberFits(track, members[1], 1);
         }
 
         /// <summary>
@@ -873,7 +885,7 @@ namespace Igruha.Minigames.HoleInWall
             Vector3 position = member.Avatar.Position;
 
             float cutoutX = track.transform.position.x + offset;
-            if (Mathf.Abs(position.x - cutoutX) > track.Shapes.Tolerance(pose))
+            if (Mathf.Abs(position.x - cutoutX) > member.Shapes.Tolerance(pose))
             {
                 return false;
             }
@@ -1322,7 +1334,7 @@ namespace Igruha.Minigames.HoleInWall
         /// </summary>
         private void RedrawAsSolo(HoleInWallTrack track)
         {
-            generator.Generate(config, track.Shapes, TrackSeed(track), true, soloPatterns);
+            generator.Generate(config, track.ShapesOf(0), null, TrackSeed(track), true, soloPatterns);
 
             for (int wall = currentWall + 1; wall < track.Patterns.Count && wall < soloPatterns.Count; wall++)
             {

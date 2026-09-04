@@ -115,8 +115,13 @@ namespace Igruha.Minigames.HoleInWall
 
         private HoleInWallConfig config;
 
-        /// <summary>Формы вырезов этой дорожки: контур на каждую позу под её состав.</summary>
-        private CutoutShapes shapes;
+        /// <summary>
+        /// Формы вырезов по номеру выреза. Вырез закреплён за игроком: нулевой
+        /// принадлежит нулевому месту на платформе, первый — первому, и контур
+        /// у каждого свой. Зеркальный переворот меняет их местами по X,
+        /// но не по принадлежности.
+        /// </summary>
+        private readonly CutoutShapes[] shapes = new CutoutShapes[2];
 
         private WallPattern pattern;
         private double startTime;
@@ -368,13 +373,14 @@ namespace Igruha.Minigames.HoleInWall
         /// <summary>
         /// Привязать к дорожке. Зовётся один раз при старте раунда.
         ///
-        /// Формы вырезов приходят вместе с конфигом, потому что они у каждой
-        /// дорожки свои: вырез режется под состав, который на ней стоит.
+        /// Форм две, по одной на вырез: каждый вырез режется под своего игрока.
+        /// У одиночки вторая пустая.
         /// </summary>
-        public void Configure(HoleInWallConfig gameConfig, CutoutShapes cutoutShapes)
+        public void Configure(HoleInWallConfig gameConfig, CutoutShapes first, CutoutShapes second)
         {
             config = gameConfig;
-            shapes = cutoutShapes;
+            shapes[0] = first;
+            shapes[1] = second;
         }
 
         /// <summary>
@@ -528,6 +534,32 @@ namespace Igruha.Minigames.HoleInWall
         // ========== ГЕОМЕТРИЯ ==========
 
         /// <summary>
+        /// Один вырез в разобранном виде: чей контур, какая поза и где по
+        /// ширине стены. Заводится на каждой перестройке, поэтому структура,
+        /// а не класс.
+        /// </summary>
+        private readonly struct Cutout
+        {
+            public CutoutShapes Shapes { get; }
+            public HoleInWallPose Pose { get; }
+            public float Offset { get; }
+
+            public Cutout(CutoutShapes shapes, HoleInWallPose pose, float offset)
+            {
+                Shapes = shapes;
+                Pose = pose;
+                Offset = offset;
+            }
+
+            public bool Valid => Shapes != null && Pose != HoleInWallPose.None;
+
+            public Vector2[] Outline => Valid ? Shapes.Outline(Pose) : null;
+        }
+
+        /// <summary>Вырезы, отсортированные слева направо. Полотно и коробки читают только их.</summary>
+        private readonly Cutout[] sorted = new Cutout[2];
+
+        /// <summary>
         /// Пересобрать полотно, коробки столкновений и контуры под действующий
         /// рисунок.
         ///
@@ -558,23 +590,27 @@ namespace Igruha.Minigames.HoleInWall
                 ResolveCutout(1, trickActive, out secondPose, out secondOffset);
             }
 
+            var first = new Cutout(shapes[0], firstPose, firstOffset);
+            var second = hasSecond ? new Cutout(shapes[1], secondPose, secondOffset) : default;
+
             // Зеркальный переворот меняет вырезы местами по X, поэтому «левый»
             // и «правый» пересортировываются каждый раз, а не берутся по номеру.
+            // Принадлежность при этом не едет: форма закреплена за вырезом,
+            // а вырез — за игроком, и после переворота ему просто придётся
+            // перебежать на другую сторону.
             bool swap = hasSecond && secondOffset < firstOffset;
-            HoleInWallPose leftPose = swap ? secondPose : firstPose;
-            float leftOffset = swap ? secondOffset : firstOffset;
-            HoleInWallPose rightPose = swap ? firstPose : secondPose;
-            float rightOffset = swap ? firstOffset : secondOffset;
+            sorted[0] = swap ? second : first;
+            sorted[1] = swap ? first : second;
 
             float thickness = config.WallThickness;
-            BuildSurfaceMesh(leftPose, leftOffset, hasSecond ? rightPose : HoleInWallPose.None, rightOffset, thickness);
-            BuildColliders(leftPose, leftOffset, hasSecond ? rightPose : HoleInWallPose.None, rightOffset, thickness);
+            BuildSurfaceMesh(thickness);
+            BuildColliders(thickness);
 
-            firstCutout.Apply(config, shapes, firstPose, firstOffset, thickness);
+            firstCutout.Apply(config, shapes[0], 0, firstPose, firstOffset, thickness);
 
             if (hasSecond)
             {
-                secondCutout.Apply(config, shapes, secondPose, secondOffset, thickness);
+                secondCutout.Apply(config, shapes[1], 1, secondPose, secondOffset, thickness);
             }
             else
             {
@@ -583,8 +619,7 @@ namespace Igruha.Minigames.HoleInWall
         }
 
         /// <summary>Сложить полотно из прямоугольника стены и одной-двух ломаных вырезов.</summary>
-        private void BuildSurfaceMesh(HoleInWallPose leftPose, float leftOffset,
-            HoleInWallPose rightPose, float rightOffset, float thickness)
+        private void BuildSurfaceMesh(float thickness)
         {
             if (surfaceMesh == null)
             {
@@ -592,20 +627,15 @@ namespace Igruha.Minigames.HoleInWall
             }
 
             surface.Build(surfaceMesh, config.WallWidth, config.WallHeight, thickness,
-                new WallSurface.Cutout(OutlineOf(leftPose), leftOffset),
-                new WallSurface.Cutout(OutlineOf(rightPose), rightOffset));
+                new WallSurface.Cutout(sorted[0].Outline, sorted[0].Offset),
+                new WallSurface.Cutout(sorted[1].Outline, sorted[1].Offset));
         }
-
-        /// <summary>Ломаная выреза под эту позу. Пусто — выреза нет: у одиночки второго не бывает.</summary>
-        private Vector2[] OutlineOf(HoleInWallPose pose) =>
-            pose == HoleInWallPose.None || shapes == null ? null : shapes.Outline(pose);
 
         /// <summary>
         /// Расставить коробки столкновений по полосам высоты. Плиты невидимы:
         /// стену рисует полотно, а они только держат тех, кто не влез.
         /// </summary>
-        private void BuildColliders(HoleInWallPose leftPose, float leftOffset,
-            HoleInWallPose rightPose, float rightOffset, float thickness)
+        private void BuildColliders(float thickness)
         {
             usedPanels = 0;
             float bandHeight = config.WallHeight / ShapeBands;
@@ -615,8 +645,8 @@ namespace Igruha.Minigames.HoleInWall
             {
                 if (band < ShapeBands)
                 {
-                    ResolveBand(band, bandHeight, leftPose, leftOffset, 0);
-                    ResolveBand(band, bandHeight, rightPose, rightOffset, 1);
+                    ResolveBand(band, bandHeight, 0);
+                    ResolveBand(band, bandHeight, 1);
                 }
 
                 bool last = band == ShapeBands;
@@ -645,24 +675,20 @@ namespace Igruha.Minigames.HoleInWall
         /// <c>from</c>: так же читается и полоса выше выреза, и второй вырез
         /// у одиночки.
         /// </summary>
-        private void ResolveBand(int band, float bandHeight, HoleInWallPose pose, float offset, int slot)
+        private void ResolveBand(int band, float bandHeight, int slot)
         {
             bandFrom[slot] = 0f;
             bandTo[slot] = 0f;
 
-            if (pose == HoleInWallPose.None || shapes == null)
+            Cutout cutout = sorted[slot];
+            if (!cutout.Valid || !cutout.Shapes.TrySpan(cutout.Pose, band * bandHeight,
+                    (band + 1) * bandHeight, out float spanLeft, out float spanRight))
             {
                 return;
             }
 
-            if (!shapes.TrySpan(pose, band * bandHeight, (band + 1) * bandHeight,
-                    out float spanLeft, out float spanRight))
-            {
-                return;
-            }
-
-            bandFrom[slot] = offset + spanLeft;
-            bandTo[slot] = offset + spanRight;
+            bandFrom[slot] = cutout.Offset + spanLeft;
+            bandTo[slot] = cutout.Offset + spanRight;
         }
 
         /// <summary>Пролёты на этой полосе совпали с предыдущей — плиту можно не резать.</summary>

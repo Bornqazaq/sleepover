@@ -85,11 +85,11 @@ namespace Igruha.Minigames.HoleInWall
     /// не помещаются. Верхнего предела 5 ШП это не задевает: самый широкий
     /// вынужденный разнос — 4.0 ШП.
     ///
-    /// <b>Ширина берётся у форм дорожки, а не у конфига.</b> Вырез режется под
-    /// состав, который на дорожке стоит, и у Карлана он уже, чем у Шланги.
-    /// Значит и разнос, и предельное смещение считаются по этой самой дорожке:
-    /// одним числом на всех они либо разводили бы вырезы шире нужного, либо —
-    /// что хуже — позволили бы им налезть друг на друга.
+    /// <b>Ширина берётся у форм игрока, а не у конфига.</b> Вырез закреплён
+    /// за конкретным игроком, и у Карлана он уже, чем у Шланги. Значит
+    /// и разнос, и предельное смещение считаются по этим двоим: одним числом
+    /// на всех они либо разводили бы вырезы шире нужного, либо — что хуже —
+    /// позволили бы им налезть друг на друга.
     /// </remarks>
     public sealed class WallPatternGenerator
     {
@@ -103,12 +103,13 @@ namespace Igruha.Minigames.HoleInWall
         /// Разложить восемь стен по сиду. Заполняет переданный список: рисунок
         /// считается раз в раунд, но плодить мусор незачем.
         /// </summary>
-        /// <param name="shapes">Формы вырезов этой дорожки — по ним считаются ширины</param>
+        /// <param name="first">Формы нулевого выреза — по ним считается его ширина</param>
+        /// <param name="second">Формы первого выреза. У одиночки не нужны</param>
         /// <param name="solo">Дорожка одиночки: вырез один</param>
-        public void Generate(HoleInWallConfig config, CutoutShapes shapes, int seed, bool solo,
-            List<WallPattern> destination)
+        public void Generate(HoleInWallConfig config, CutoutShapes first, CutoutShapes second,
+            int seed, bool solo, List<WallPattern> destination)
         {
-            if (config == null || shapes == null || destination == null)
+            if (config == null || first == null || destination == null || (!solo && second == null))
             {
                 return;
             }
@@ -121,7 +122,8 @@ namespace Igruha.Minigames.HoleInWall
 
             for (int wall = 0; wall < config.WallCount; wall++)
             {
-                WallPattern pattern = BuildWall(config, shapes, random, wall, solo, previousFirst, previousSecond);
+                WallPattern pattern = BuildWall(config, first, second, random, wall, solo,
+                    previousFirst, previousSecond);
                 destination.Add(pattern);
 
                 previousFirst = pattern.First.Pose;
@@ -129,8 +131,9 @@ namespace Igruha.Minigames.HoleInWall
             }
         }
 
-        private WallPattern BuildWall(HoleInWallConfig config, CutoutShapes shapes, System.Random random,
-            int wall, bool solo, HoleInWallPose previousFirst, HoleInWallPose previousSecond)
+        private WallPattern BuildWall(HoleInWallConfig config, CutoutShapes firstShapes,
+            CutoutShapes secondShapes, System.Random random, int wall, bool solo,
+            HoleInWallPose previousFirst, HoleInWallPose previousSecond)
         {
             bool easy = wall < config.EasyWallCount;
             int poseLimit = easy ? EasyPoseCount : HoleInWallConfig.PoseCount;
@@ -157,8 +160,8 @@ namespace Igruha.Minigames.HoleInWall
             // Габарит, под который считаются и разнос, и предельное смещение,
             // берётся по самому широкому состоянию выреза: после смены формы
             // позиции не двигаются, и новый силуэт обязан поместиться там же.
-            float firstWidth = WidestWidth(shapes, first, morphFirst);
-            float secondWidth = solo ? 0f : WidestWidth(shapes, second, morphSecond);
+            float firstWidth = WidestWidth(firstShapes, first, morphFirst);
+            float secondWidth = solo ? 0f : WidestWidth(secondShapes, second, morphSecond);
 
             if (solo)
             {
