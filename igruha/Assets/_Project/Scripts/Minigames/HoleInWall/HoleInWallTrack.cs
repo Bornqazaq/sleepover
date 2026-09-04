@@ -35,6 +35,9 @@ namespace Igruha.Minigames.HoleInWall
             /// <summary>Воронка его выреза: край дырки доводит его в последние полсекунды.</summary>
             public WallFunnel Funnel { get; }
 
+            /// <summary>Вода: поднимает его на поверхность и гасит, пока он в бассейне.</summary>
+            public PlayerBuoyancy Buoyancy { get; }
+
             /// <summary>Точка респавна, с которой участник пришёл. Возвращается в конце раунда.</summary>
             public Transform OriginalRespawnPoint { get; }
 
@@ -46,7 +49,7 @@ namespace Igruha.Minigames.HoleInWall
 
             public Member(int playerId, PlayerController avatar, PlayerPoseAbility pose,
                 StuckDetector stuck, PlayerRespawner respawner, PlayerInputReader input,
-                CutoutShapes shapes, WallFunnel funnel)
+                CutoutShapes shapes, WallFunnel funnel, PlayerBuoyancy buoyancy)
             {
                 PlayerId = playerId;
                 Avatar = avatar;
@@ -56,6 +59,7 @@ namespace Igruha.Minigames.HoleInWall
                 Input = input;
                 Shapes = shapes;
                 Funnel = funnel;
+                Buoyancy = buoyancy;
                 OriginalRespawnPoint = respawner != null ? respawner.RespawnPoint : null;
             }
         }

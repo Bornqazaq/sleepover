@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using Igruha.Core.Arena;
 using Igruha.Core.Player;
 using Igruha.Core.Spawning;
@@ -49,6 +51,16 @@ namespace Igruha.EditorTools
         /// источник правды на одну и ту же кромку.
         /// </summary>
         internal const float PoolRimHeight = 0.72f;
+
+        /// <summary>
+        /// На сколько метров невидимый барьер поднимается над полом платформы.
+        /// Пять — с запасом: сметение подбрасывает на 0.27 м, прыжок на 1.64 м,
+        /// верх стены на 3.6 м.
+        /// </summary>
+        private const float BarrierHeightOverPlatform = 5f;
+
+        /// <summary>Толщина невидимого барьера, м. Достаточно, чтобы сквозь него не проскочили за такт.</summary>
+        private const float BarrierThickness = 1f;
 
         /// <summary>
         /// Толщина накладок, делящих пол платформы на половины пары, м.
@@ -107,6 +119,7 @@ namespace Igruha.EditorTools
             }
 
             BuildWaterZone(bounds, config);
+            BuildBarriers(bounds, config);
             BuildSpawns(config);
             WireController(tracks);
 
@@ -456,6 +469,33 @@ namespace Igruha.EditorTools
         // ========== ГРАНИЦЫ И СПАВНЫ ==========
 
         /// <summary>
+        /// Пересобрать только границы арены — зону воды и невидимые барьеры.
+        ///
+        /// Отдельным пунктом, потому что сцена «Дырки в стене» одета и
+        /// запечена подфазами 4.1–4.6: гонять по ней полный построитель нельзя,
+        /// он снёс бы весь арт. Границы же не декорация и ни на что не
+        /// ссылаются — их можно переложить в готовой сцене.
+        /// </summary>
+        [MenuItem("Igruha/Дырка в стене/Границы арены")]
+        public static void BuildBounds()
+        {
+            HoleInWallConfig config = FindConfig();
+            if (config == null)
+            {
+                EditorUtility.DisplayDialog("Дырка в стене", "Не найден HoleInWallConfig.", "Ок");
+                return;
+            }
+
+            ReplaceRoot(BoundsRoot, out Transform bounds);
+            BuildWaterZone(bounds, config);
+            BuildBarriers(bounds, config);
+
+            EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
+            Debug.Log($"HoleInWallArenaBuilder: границы арены пересобраны — зона воды и четыре барьера " +
+                      $"от {config.PoolBottomY:F2} до {config.PlatformSurfaceY + BarrierHeightOverPlatform:F2} м.");
+        }
+
+        /// <summary>
         /// Объём воды как зона события. Режим <c>EventOnly</c>: что делать
         /// с упавшим, решают правила игры — здесь это отсчёт до автовозврата,
         /// а не молчаливый респавн.
@@ -487,6 +527,71 @@ namespace Igruha.EditorTools
 
             so.ApplyModifiedPropertiesWithoutUndo();
             SetLayer(zone, "Default");
+        }
+
+        /// <summary>
+        /// Невидимые стены по периметру арены: за них человека не выпускает
+        /// ничто другое.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ <b>До 04.09 выше уровня воды по краям арены не было ничего.</b>
+        /// Бортики бассейна (<c>Rim_*</c>) кончаются на 2.16 м <b>ниже</b>
+        /// пола платформы, стены павильона — декорация без коллайдеров, и
+        /// сметённого со скоростью до 11.5 м/с просто уносило за арену
+        /// в пустоту. На прогоне это выглядело как «моделька улетает
+        /// в чёрное пространство», и это было ровно оно.
+        ///
+        /// <b>Слой — <c>Default</c>, и это не оплошность.</b> На нём барьер
+        /// держит игрока (его капсула тоже на <c>Default</c>) и при этом
+        /// не виден деокклюдеру камеры, маска которого — <c>Ground</c>,
+        /// <c>Cover</c>, <c>PlayerBarrier</c> (igruha/CLAUDE.md, 2a).
+        /// На <c>PlayerBarrier</c> камера упиралась бы в невидимую стену
+        /// в метре сбоку от крайних дорожек и прижималась бы к затылку.
+        ///
+        /// <b>Барьер — не единственная защита.</b> Он ставит физический предел,
+        /// а <c>HoleInWallMinigame.OutsideArena</c> ловит тех, кто всё же
+        /// оказался снаружи: проскочить коллайдер на 13 м/с физике по силам.
+        /// </remarks>
+        private static void BuildBarriers(Transform parent, HoleInWallConfig config)
+        {
+            float top = config.PlatformSurfaceY + BarrierHeightOverPlatform;
+            float bottom = config.PoolBottomY;
+            float height = top - bottom;
+            float centerY = (top + bottom) * 0.5f;
+            float centerZ = (config.ArenaFarZ + config.ArenaNearZ) * 0.5f;
+            float halfWidth = config.ArenaWidth * 0.5f;
+
+            CreateBarrier(parent, "Barrier_Left",
+                new Vector3(BarrierThickness, height, config.ArenaDepth),
+                new Vector3(-halfWidth - BarrierThickness * 0.5f, centerY, centerZ));
+
+            CreateBarrier(parent, "Barrier_Right",
+                new Vector3(BarrierThickness, height, config.ArenaDepth),
+                new Vector3(halfWidth + BarrierThickness * 0.5f, centerY, centerZ));
+
+            CreateBarrier(parent, "Barrier_Near",
+                new Vector3(config.ArenaWidth + 2f * BarrierThickness, height, BarrierThickness),
+                new Vector3(0f, centerY, config.ArenaNearZ - BarrierThickness * 0.5f));
+
+            CreateBarrier(parent, "Barrier_Far",
+                new Vector3(config.ArenaWidth + 2f * BarrierThickness, height, BarrierThickness),
+                new Vector3(0f, centerY, config.ArenaFarZ + BarrierThickness * 0.5f));
+        }
+
+        /// <summary>
+        /// Одна невидимая стена: коллайдер без картинки. Примитив не берём —
+        /// он тянет за собой меш и рендерер, которые тут же пришлось бы снимать.
+        /// </summary>
+        private static void CreateBarrier(Transform parent, string barrierName, Vector3 size, Vector3 position)
+        {
+            var barrier = new GameObject(barrierName);
+            barrier.transform.SetParent(parent, false);
+            barrier.transform.position = position;
+
+            var box = barrier.AddComponent<BoxCollider>();
+            box.size = size;
+
+            SetLayer(barrier, "Default");
         }
 
         /// <summary>

@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using Igruha.Core.Minigame;
+using Igruha.Core.Player;
 
 namespace Igruha.Minigames.HoleInWall
 {
@@ -143,6 +144,17 @@ namespace Igruha.Minigames.HoleInWall
         /// она, не заводя по обработчику на дорожку.
         /// </summary>
         public event Action<SweepingWall, WallTrick> TrickTriggered;
+
+        /// <summary>
+        /// Стена задела человека. Плита касается только того, кто в вырез
+        /// не влез, — значит это удар, и разбирать его должен тот, кто решает
+        /// исход.
+        ///
+        /// Событие, а не решение: коллизия приходит на каждой машине, а бить
+        /// вправе только сервер. Кто именно задет, разбирает
+        /// <c>HoleInWallMinigame</c> — у него состав дорожек.
+        /// </summary>
+        public event Action<SweepingWall, PlayerController> PlayerStruck;
 
         /// <summary>Стена едет прямо сейчас.</summary>
         public bool Running => running;
@@ -369,6 +381,48 @@ namespace Igruha.Minigames.HoleInWall
         /// остаются: их стена и обязана ударить.
         /// </summary>
         public void DisableCollision() => SetCollidersEnabled(false);
+
+        /// <summary>
+        /// Плита коснулась тела. Коллизия прилетает сюда, а не на плиту:
+        /// коробки лежат на детях без своих <c>Rigidbody</c>, и PhysX
+        /// адресует контакт телу стены.
+        ///
+        /// ⚠️ <b>До 04.09 удара не существовало вовсе.</b> Стена была
+        /// кинематическим телом без единого обработчика, и прыгнувший ей
+        /// навстречу просто упирался в невидимую коробку и ехал перед ней,
+        /// пока где-то через секунду не доезжала линия проверки. Выглядело
+        /// это поломкой, и было ею: игра про стену, которая сметает, а стена
+        /// не сметала.
+        ///
+        /// Ложных срабатываний тут ждать неоткуда: коробки строятся по
+        /// контуру выреза с ошибкой в бо́льшую сторону, то есть дырка в физике
+        /// шире нарисованной. Влезшего плита не касается — а если всё же
+        /// коснулась краем капсулы, вердикт по нему считает мини-игра,
+        /// и удар она отменит.
+        /// </summary>
+        private void OnCollisionEnter(Collision collision) => ReportContact(collision);
+
+        /// <summary>
+        /// Контакт длится. Нужен вместе с <c>OnCollisionEnter</c>: тот приходит
+        /// один раз, а влезший в вырез может выйти из него, не отлипая от
+        /// плиты, — и тогда первый и единственный контакт был законным,
+        /// а всё, что после, стена бы уже не заметила.
+        /// </summary>
+        private void OnCollisionStay(Collision collision) => ReportContact(collision);
+
+        private void ReportContact(Collision collision)
+        {
+            if (!running || PlayerStruck == null || collision.rigidbody == null)
+            {
+                return;
+            }
+
+            var victim = collision.rigidbody.GetComponent<PlayerController>();
+            if (victim != null)
+            {
+                PlayerStruck.Invoke(this, victim);
+            }
+        }
 
         /// <summary>
         /// Привязать к дорожке. Зовётся один раз при старте раунда.

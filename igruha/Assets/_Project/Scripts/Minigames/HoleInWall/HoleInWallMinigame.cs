@@ -60,6 +60,9 @@ namespace Igruha.Minigames.HoleInWall
         /// <summary>Шаг сида между дорожками. Простое число, чтобы соседние дорожки не попадали в одну последовательность.</summary>
         private const int TrackSeedStride = 7919;
 
+        /// <summary>Запас за габаритом арены, дальше которого человек считается вылетевшим, м.</summary>
+        private const float ArenaMargin = 0.5f;
+
         [Header("Дырка в стене")]
         [SerializeField] private HoleInWallConfig config;
         [Tooltip("Все дорожки арены. Заполняется построителем арены")]
@@ -185,6 +188,8 @@ namespace Igruha.Minigames.HoleInWall
                 stageState.StageStarted += HandleStageStarted;
                 stageState.StageElapsed += HandleStageElapsed;
             }
+
+            SubscribeWalls(true);
         }
 
         protected override void OnDisable()
@@ -197,7 +202,79 @@ namespace Igruha.Minigames.HoleInWall
                 stageState.StageElapsed -= HandleStageElapsed;
             }
 
+            SubscribeWalls(false);
+
             base.OnDisable();
+        }
+
+        /// <summary>
+        /// Подписка на удар стеной. По всем дорожкам арены, а не только по
+        /// играющим: состав меняется дисконнектом посреди раунда, а стены
+        /// в сцене одни и те же от начала до конца.
+        /// </summary>
+        private void SubscribeWalls(bool subscribe)
+        {
+            for (int i = 0; i < tracks.Length; i++)
+            {
+                SweepingWall wall = tracks[i] != null ? tracks[i].Wall : null;
+                if (wall == null)
+                {
+                    continue;
+                }
+
+                wall.PlayerStruck -= HandleWallStrike;
+                if (subscribe)
+                {
+                    wall.PlayerStruck += HandleWallStrike;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Стена задела человека физически. <b>Это удар, и он решает стену
+        /// немедленно</b> — не дожидаясь линии проверки.
+        ///
+        /// До 04.09 удара не было вовсе: прыгнувший стене навстречу упирался
+        /// в её коробку и ехал перед ней до вердикта, вместо того чтобы
+        /// улететь. Теперь исход считается тем же <see cref="ResolveWall"/>,
+        /// что и на линии: задетый в вырез не влез, значит дорожка провалила
+        /// стену, значит летят оба — правило парного провала не меняется
+        /// оттого, что провал случился раньше.
+        ///
+        /// <b>Влезшего не бьём.</b> Коробки строятся по контуру с ошибкой
+        /// в бо́льшую сторону, но капсула игрока шире тела на уровне бёдер,
+        /// и краем она плиты коснуться может. Поэтому касание — только повод
+        /// спросить вердикт по этому участнику, а не сам вердикт.
+        /// </summary>
+        private void HandleWallStrike(SweepingWall wall, PlayerController victim)
+        {
+            if (!HasAuthority || !RoundActive || currentWall < 0 || victim == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < playingTracks.Count; i++)
+            {
+                HoleInWallTrack track = playingTracks[i];
+                if (track.Wall != wall || !track.WallLaunched || track.WallResolved)
+                {
+                    continue;
+                }
+
+                IReadOnlyList<HoleInWallTrack.Member> members = track.Members;
+                for (int m = 0; m < members.Count; m++)
+                {
+                    if (members[m].Avatar != victim || MemberFits(track, members[m], m))
+                    {
+                        continue;
+                    }
+
+                    ResolveWall(track);
+                    return;
+                }
+
+                return;
+            }
         }
 
         /// <summary>
@@ -483,6 +560,16 @@ namespace Igruha.Minigames.HoleInWall
                 funnel = avatar.gameObject.AddComponent<WallFunnel>();
             }
 
+            // Вода — третья роль того же порядка: она поднимает упавшего
+            // на поверхность и гасит его, чтобы он не ходил по дну бассейна
+            // и не уезжал по нему за борт.
+            if (!avatar.TryGetComponent(out PlayerBuoyancy buoyancy))
+            {
+                buoyancy = avatar.gameObject.AddComponent<PlayerBuoyancy>();
+            }
+
+            buoyancy.Configure(config);
+
             avatar.TryGetComponent(out StuckDetector stuck);
             avatar.TryGetComponent(out PlayerRespawner respawner);
             avatar.TryGetComponent(out PlayerInputReader input);
@@ -498,7 +585,8 @@ namespace Igruha.Minigames.HoleInWall
                                  "Испечь: Igruha/Дырка в стене/Испечь силуэты вырезов", this);
             }
 
-            return new HoleInWallTrack.Member(playerId, avatar, pose, stuck, respawner, input, shapes, funnel);
+            return new HoleInWallTrack.Member(playerId, avatar, pose, stuck, respawner, input, shapes,
+                funnel, buoyancy);
         }
 
         /// <summary>
@@ -963,7 +1051,21 @@ namespace Igruha.Minigames.HoleInWall
                     continue;
                 }
 
-                if (!member.Returning && member.Avatar.Position.y < config.WaterSurfaceY)
+                Vector3 position = member.Avatar.Position;
+
+                // ⚠️ Улетел за арену — возвращаем немедленно, без барахтанья.
+                // Бассейн ловит только тех, кто упал в него; вылетевшего за
+                // борт ловить нечем, и обычная задержка означала бы три
+                // секунды падения в чёрную пустоту. Такого падения не должно
+                // видеть вообще, поэтому здесь не расписание, а сразу.
+                if (OutsideArena(position))
+                {
+                    ClearPose(member);
+                    ReturnMember(track, member);
+                    continue;
+                }
+
+                if (!member.Returning && position.y < config.WaterSurfaceY)
                 {
                     // Сам сошёл с платформы: полёта не было, только барахтанье.
                     ScheduleReturn(member, config.SplashSeconds, config.MinSplashSeconds);
@@ -1027,6 +1129,28 @@ namespace Igruha.Minigames.HoleInWall
 
             member.Pose.SetPose(HoleInWallPose.None);
             network?.PublishPose(member.PlayerId, HoleInWallPose.None);
+        }
+
+        /// <summary>
+        /// Человек вне арены: ниже дна бассейна или за его бортами.
+        ///
+        /// Границы берутся с запасом в полметра, чтобы обычное барахтанье
+        /// у самого борта не считалось вылетом. Ниже дна оказаться нельзя
+        /// вовсе — дно сплошное, — но проверка стоит: провалиться сквозь
+        /// коллайдер на скорости 13 м/с физике по силам, и тогда падение
+        /// уже ничем не кончится.
+        /// </summary>
+        private bool OutsideArena(Vector3 position)
+        {
+            if (position.y < config.PoolBottomY - ArenaMargin)
+            {
+                return true;
+            }
+
+            float halfWidth = config.ArenaWidth * 0.5f + ArenaMargin;
+            return Mathf.Abs(position.x) > halfWidth ||
+                   position.z < config.ArenaNearZ - ArenaMargin ||
+                   position.z > config.ArenaFarZ + ArenaMargin;
         }
 
         private void ReturnMember(HoleInWallTrack track, HoleInWallTrack.Member member)
@@ -1108,6 +1232,14 @@ namespace Igruha.Minigames.HoleInWall
             {
                 member.Funnel.Release();
                 Destroy(member.Funnel);
+            }
+
+            // Вода тем же порядком. Оставленная, она увезла бы в хаб потолок
+            // скорости 1.6 м/с: там воды нет, а медленный персонаж есть.
+            if (member.Buoyancy != null)
+            {
+                member.Buoyancy.Release();
+                Destroy(member.Buoyancy);
             }
         }
 
