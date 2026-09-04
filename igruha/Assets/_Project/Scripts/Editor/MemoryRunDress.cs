@@ -106,8 +106,6 @@ namespace Igruha.EditorTools
 
         private const string ArtFolder = "Assets/_Project/Art/MemoryRun";
         private const string PlateMeshPath = ArtFolder + "/MR_Plate.mesh";
-        private const string PlateMaterialPath = ArtFolder + "/MR_PlateSteel.mat";
-        private const string StructureMaterialPath = ArtFolder + "/MR_Structure.mat";
 
         /// <summary>Толщина настила, по которому ходят. Верх настила — ровно на нуле.</summary>
         private const float DeckThickness = 0.04f;
@@ -134,8 +132,6 @@ namespace Igruha.EditorTools
         private const float BoltHeight = 0.035f;
 
         private static Mesh plateMesh;
-        private static Material plateMaterial;
-        private static Material structureMaterial;
         private static int platesDressed;
         private static int plateTriangles;
 
@@ -144,8 +140,6 @@ namespace Igruha.EditorTools
         {
             DressKit.Begin();
             plateMesh = null;
-            plateMaterial = null;
-            structureMaterial = null;
             platesDressed = 0;
             plateTriangles = 0;
         }
@@ -174,9 +168,30 @@ namespace Igruha.EditorTools
 
             // Пустой генератор с постоянным зерном: DressKit просит его в
             // сигнатуре, но выбирать здесь не из чего — на вид одна модель.
-            GameObject dress = DressKit.Apply(box, wear.Entries, new System.Random(0));
+            GameObject dress = DressKit.Apply(box, wear.Entries, new System.Random(0), PaintOf(kind));
             ShrinkInsideBox(dress, box);
             return dress;
+        }
+
+        /// <summary>
+        /// Каким тоном палитры красится модель этого вида.
+        ///
+        /// Модели пака идут <b>не</b> в родных материалах, и это отличие от
+        /// «Переноски предмета». Там пак давал ровно тот цвет, что просил бриф;
+        /// здесь атлас Construction тёплый и песочный, и на кадрах 4.1 настил
+        /// площадок читался землёй, а не бетоном цеха.
+        /// </summary>
+        private static Material PaintOf(Kind kind)
+        {
+            switch (kind)
+            {
+                case Kind.Deck:
+                    return MemoryRunPalette.Get(MemoryRunPalette.Tone.Deck);
+                case Kind.ExitDoor:
+                    return MemoryRunPalette.Get(MemoryRunPalette.Tone.Door);
+                default:
+                    return null;
+            }
         }
 
         /// <summary>
@@ -289,7 +304,7 @@ namespace Igruha.EditorTools
             }
 
             Mesh mesh = GetPlateMesh();
-            Material material = GetPlateMaterial();
+            Material material = MemoryRunPalette.Get(MemoryRunPalette.Tone.Plate);
             if (mesh == null || material == null)
             {
                 return;
@@ -346,7 +361,7 @@ namespace Igruha.EditorTools
         /// </summary>
         internal static void BuildRowStructure(Transform parent, MemoryRunConfig config)
         {
-            Material material = GetStructureMaterial();
+            Material material = MemoryRunPalette.Get(MemoryRunPalette.Tone.Structure);
             if (parent == null || config == null || material == null)
             {
                 return;
@@ -403,80 +418,6 @@ namespace Igruha.EditorTools
             var renderer = go.GetComponent<MeshRenderer>();
             renderer.sharedMaterial = material;
             renderer.shadowCastingMode = ShadowCastingMode.Off;
-        }
-
-        /// <summary>Материал стали плит. Один экземпляр-ассет на все тридцать — этим и проверяется единообразие.</summary>
-        internal static Material GetPlateMaterial()
-        {
-            if (plateMaterial != null)
-            {
-                return plateMaterial;
-            }
-
-            plateMaterial = AssetDatabase.LoadAssetAtPath<Material>(PlateMaterialPath);
-            if (plateMaterial != null)
-            {
-                return plateMaterial;
-            }
-
-            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
-            if (shader == null)
-            {
-                Debug.LogError("Шейдер 'Universal Render Pipeline/Lit' не найден — плиты будут фиолетовыми в сборке");
-                return null;
-            }
-
-            EnsureArtFolder();
-            plateMaterial = new Material(shader) { name = "MR_PlateSteel" };
-
-            // Цвет из арт-брифа (раздел 14 спеки). Окончательный тон и стык
-            // с палитрой цеха — работа подфазы 4.2; здесь важно другое:
-            // экземпляр материала ровно один, и он лежит ассетом.
-            var steel = new Color32(0x6E, 0x73, 0x78, 0xFF);
-            plateMaterial.SetColor("_BaseColor", steel);
-            plateMaterial.color = steel;
-            plateMaterial.SetFloat("_Smoothness", 0.45f);
-            plateMaterial.SetFloat("_Metallic", 0.7f);
-
-            AssetDatabase.CreateAsset(plateMaterial, PlateMaterialPath);
-            return plateMaterial;
-        }
-
-        /// <summary>
-        /// Сталь несущей конструкции — тоном темнее плиты. Разделены
-        /// намеренно: одинаковый тон слил бы плиту с балкой под ней, а плита
-        /// обязана читаться силуэтом с сорока метров.
-        /// </summary>
-        internal static Material GetStructureMaterial()
-        {
-            if (structureMaterial != null)
-            {
-                return structureMaterial;
-            }
-
-            structureMaterial = AssetDatabase.LoadAssetAtPath<Material>(StructureMaterialPath);
-            if (structureMaterial != null)
-            {
-                return structureMaterial;
-            }
-
-            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
-            if (shader == null)
-            {
-                Debug.LogError("Шейдер 'Universal Render Pipeline/Lit' не найден — конструкция будет фиолетовой в сборке");
-                return null;
-            }
-
-            EnsureArtFolder();
-            structureMaterial = new Material(shader) { name = "MR_Structure" };
-            var steel = new Color32(0x56, 0x5D, 0x66, 0xFF);
-            structureMaterial.SetColor("_BaseColor", steel);
-            structureMaterial.color = steel;
-            structureMaterial.SetFloat("_Smoothness", 0.35f);
-            structureMaterial.SetFloat("_Metallic", 0.8f);
-
-            AssetDatabase.CreateAsset(structureMaterial, StructureMaterialPath);
-            return structureMaterial;
         }
 
         /// <summary>

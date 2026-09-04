@@ -27,18 +27,27 @@ namespace Igruha.EditorTools
         [MenuItem("Igruha/Рейс на память/Замеры арта")]
         private static void Measure()
         {
+            Debug.Log(Report());
+        }
+
+        /// <summary>
+        /// Отчёт строкой. Вынесен отдельно от пункта меню намеренно: замеры
+        /// снимаются мостом MCP, а <c>Debug.Log</c> не всегда доезжает до
+        /// читателя консоли — большие записи из буфера теряются. Возвращённую
+        /// строку не теряет ничто.
+        /// </summary>
+        internal static string Report()
+        {
             MemoryRunConfig config = FindConfig();
             if (config == null)
             {
-                Debug.LogError("Не найден MemoryRunConfig — замерять нечего");
-                return;
+                return "Не найден MemoryRunConfig — замерять нечего";
             }
 
             var arena = GameObject.Find("_Arena");
             if (arena == null)
             {
-                Debug.LogError("В сцене нет группы _Arena — сначала построй арену");
-                return;
+                return "В сцене нет группы _Arena — сначала построй арену";
             }
 
             // Замеры идут по габаритам рендереров, а те отстают от только что
@@ -59,7 +68,7 @@ namespace Igruha.EditorTools
             MeasureColliders(report);
             MeasureMeshes(arena, report);
 
-            Debug.Log(report.ToString(), arena);
+            return report.ToString();
         }
 
         /// <summary>
