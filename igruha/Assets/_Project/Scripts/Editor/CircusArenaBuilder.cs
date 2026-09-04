@@ -155,6 +155,12 @@ namespace Igruha.EditorTools
             BuildSpawns(spawnsRoot.transform, config);
             BuildBounds(config);
 
+            // Эффекты после всего: им нужны готовые клетки и медведь, чтобы
+            // повеситься на их события.
+            CircusVfx.Build(arenaRoot.transform, config,
+                arenaRoot.GetComponentsInChildren<CageStation>(true),
+                arenaRoot.GetComponentInChildren<PitBear>(true));
+
             Validate(config);
 
             CircusPalette.Flush();
