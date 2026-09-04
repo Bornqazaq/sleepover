@@ -88,6 +88,8 @@ namespace Igruha.EditorTools
             MeasureOverflow(arena, report);
             MeasureSupport(arena, report);
             MeasureSymmetry(arena, report);
+            MeasureMirror(arena, report);
+            MeasureEnvironment(arena, report);
             MeasureHatch(arena, report);
             MeasureMeshes(arena, report);
 
@@ -271,6 +273,140 @@ namespace Igruha.EditorTools
                 .Append(Mark(meshesA == meshesB));
             report.Append("\n  треугольников: ").Append(trianglesA).Append(" / ").Append(trianglesB)
                 .Append(Mark(trianglesA == trianglesB));
+        }
+
+        /// <summary>
+        /// Зеркальность зала целиком. Любой предмет, стоящий у А и
+        /// отсутствующий у Б, — это ориентир, по которому можно угадывать
+        /// ответ, поэтому половины зала обязаны совпадать до треугольника.
+        ///
+        /// Считается <b>вся арена</b>, а не одно окружение, и это важно.
+        /// Блокаут поставил шкаф слева, а вешалку справа; окружение добавило
+        /// зеркальных двойников — вешалку слева и шкаф справа. Порознь каждая
+        /// группа перекошена, вместе они сходятся, и осмысленно только целое.
+        /// </summary>
+        private static void MeasureMirror(GameObject arena, StringBuilder report)
+        {
+            report.Append("\n\n— Зеркальность зала");
+
+            int leftMeshes = 0, rightMeshes = 0, leftTriangles = 0, rightTriangles = 0, onAxis = 0;
+            foreach (MeshFilter filter in arena.GetComponentsInChildren<MeshFilter>(true))
+            {
+                var renderer = filter.GetComponent<MeshRenderer>();
+                if (renderer == null || !renderer.enabled || filter.sharedMesh == null)
+                {
+                    continue;
+                }
+
+                int triangles = filter.sharedMesh.triangles.Length / 3;
+                float x = renderer.bounds.center.x;
+                if (x < -0.05f)
+                {
+                    leftMeshes++;
+                    leftTriangles += triangles;
+                }
+                else if (x > 0.05f)
+                {
+                    rightMeshes++;
+                    rightTriangles += triangles;
+                }
+                else
+                {
+                    onAxis++;
+                }
+            }
+
+            report.Append("\n  мешей слева / справа: ").Append(leftMeshes).Append(" / ").Append(rightMeshes)
+                .Append(Mark(leftMeshes == rightMeshes));
+            report.Append("\n  треугольников: ").Append(leftTriangles).Append(" / ").Append(rightTriangles)
+                .Append(Mark(leftTriangles == rightTriangles));
+            report.Append("\n  на оси зала: ").Append(onAxis);
+        }
+
+        /// <summary>
+        /// Предметы окружения, которые обязаны стоять на полу. Висящее на
+        /// стенах и потолке сюда не входит — оно на то и висит.
+        ///
+        /// Глобуса здесь нет намеренно: он стоит на плинте, и его низ по
+        /// построению на метр выше пола. Проверка ловила его исправно —
+        /// исправно и не по делу.
+        /// </summary>
+        private static readonly string[] FloorStanding =
+        {
+            "Pew_", "Bin", "BackDesk", "Plinth", "Shelf", "Paper_", "Plane_", "Pen_"
+        };
+
+        /// <summary>Плотность и цена окружения: коллайдеров ноль, теней ноль, предметы посчитаны.</summary>
+        private static void MeasureEnvironment(GameObject arena, StringBuilder report)
+        {
+            Transform environment = arena.transform.Find("Environment");
+            report.Append("\n\n— Окружение");
+            if (environment == null)
+            {
+                report.Append("\n  группы Environment нет  ⚠️");
+                return;
+            }
+
+            int colliders = environment.GetComponentsInChildren<Collider>(true).Length;
+            int shadowCasters = 0;
+            int meshes = 0;
+            int triangles = 0;
+            foreach (MeshRenderer renderer in environment.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                if (!renderer.enabled)
+                {
+                    continue;
+                }
+
+                meshes++;
+                if (renderer.shadowCastingMode != UnityEngine.Rendering.ShadowCastingMode.Off)
+                {
+                    shadowCasters++;
+                }
+
+                var filter = renderer.GetComponent<MeshFilter>();
+                if (filter != null && filter.sharedMesh != null)
+                {
+                    triangles += filter.sharedMesh.triangles.Length / 3;
+                }
+            }
+
+            int lights = environment.GetComponentsInChildren<Light>(true).Length;
+
+            // Что обязано стоять на полу — стоит ли. Ловится тот же класс, что
+            // на Duck Hunt: декор, повисший в воздухе, читается забытым куском.
+            int grounded = 0;
+            int hovering = 0;
+            foreach (Transform item in environment.GetComponentsInChildren<Transform>(true))
+            {
+                bool onFloor = false;
+                for (int i = 0; i < FloorStanding.Length; i++)
+                {
+                    if (item.name.StartsWith(FloorStanding[i]))
+                    {
+                        onFloor = true;
+                        break;
+                    }
+                }
+
+                if (!onFloor || !TryWorldBounds(item.gameObject, out Bounds bounds))
+                {
+                    continue;
+                }
+
+                grounded++;
+                if (Mathf.Abs(bounds.min.y) > Tolerance)
+                {
+                    hovering++;
+                }
+            }
+
+            report.Append("\n  коллайдеров: ").Append(colliders).Append(Mark(colliders == 0));
+            report.Append("\n  стоят на полу: ").Append(grounded - hovering).Append(" из ").Append(grounded)
+                .Append(Mark(hovering == 0));
+            report.Append("\n  отбрасывают тень: ").Append(shadowCasters).Append(Mark(shadowCasters == 0));
+            report.Append("\n  предметов / треугольников: ").Append(meshes).Append(" / ").Append(triangles);
+            report.Append("\n  источников света: ").Append(lights);
         }
 
         /// <summary>

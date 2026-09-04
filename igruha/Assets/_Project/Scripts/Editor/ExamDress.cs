@@ -31,6 +31,13 @@ namespace Igruha.EditorTools
     /// 1.44 = 1. Настил этим шагом не режет шов посреди плиты, а кромка
     /// платформы всегда приходится на настоящий стык.
     ///
+    /// <b>Посадка моделей отсюда переиспользуется.</b> <see cref="Prop"/>,
+    /// <see cref="Spawn"/>, <see cref="SizeTo"/> и <see cref="Scenery"/>
+    /// вызывает и палитра 4.2, и окружение 4.3: «поставить модель основанием
+    /// в точку, привести к габариту, срезать коллайдеры» — задача одна на все
+    /// три подфазы, и решать её трижды значило бы завести три набора одних
+    /// и тех же ошибок.
+    ///
     /// <b>Чего здесь нет намеренно.</b> Пол, стены и потолок зала — большие
     /// плоскости, они уходят в палитру 4.2. Доска не одевается моделью вовсе:
     /// перед ней висит холст с текстом вопроса, и модель на её месте закрыла бы
@@ -521,9 +528,19 @@ namespace Igruha.EditorTools
 
             // Мел и тряпка на полке: без них полка читается просто ещё одним
             // карнизом, а с ними доска становится доской.
-            Prop(holder, "Duster", DusterPath, new Vector3(-1.10f, box.min.y, faceZ), 0f);
-            Prop(holder, "Chalk_1", ChalkPath, new Vector3(0.95f, box.min.y, faceZ), 90f);
-            Prop(holder, "Chalk_2", ChalkPath, new Vector3(1.12f, box.min.y, faceZ), 90f);
+            //
+            // Раскладываются парами. Сначала тряпка лежала слева, а мел справа,
+            // и замер зеркальности поймал ровно это: у половины зала оказалась
+            // примета, которой нет у второй. Восемьдесят треугольников тряпки
+            // подсказкой, конечно, не станут, но правило с исключениями
+            // перестаёт проверяться числом, а числом оно здесь и держится.
+            for (int side = 0; side < 2; side++)
+            {
+                float mirror = side == 0 ? -1f : 1f;
+                Prop(holder, $"Duster_{side}", DusterPath, new Vector3(mirror * 1.10f, box.min.y, faceZ), 0f);
+                Prop(holder, $"Chalk_{side}_1", ChalkPath, new Vector3(mirror * 0.95f, box.min.y, faceZ), 90f);
+                Prop(holder, $"Chalk_{side}_2", ChalkPath, new Vector3(mirror * 0.78f, box.min.y, faceZ), 90f);
+            }
 
             Record("доска", $"карниз, полка с мелом, две пилястры на {box.max.y:F2} м", TrimPath);
         }
@@ -799,7 +816,7 @@ namespace Igruha.EditorTools
         /// рост: мебель PolygonKids — детская, и парта 0.63 м рядом с нашим
         /// персонажем шириной 0.72 читается игрушечной.
         /// </summary>
-        private static GameObject Prop(Transform parent, string name, string path, Vector3 basePoint, float yaw,
+        internal static GameObject Prop(Transform parent, string name, string path, Vector3 basePoint, float yaw,
             float targetHeight = 0f)
         {
             if (!DressKit.TryLoad(path, out GameObject prefab))
@@ -855,7 +872,7 @@ namespace Igruha.EditorTools
             return holder;
         }
 
-        private static GameObject Spawn(Transform parent, string name, string path, int yawSteps)
+        internal static GameObject Spawn(Transform parent, string name, string path, int yawSteps)
         {
             if (parent == null || !DressKit.TryLoad(path, out GameObject prefab))
             {
@@ -875,7 +892,7 @@ namespace Igruha.EditorTools
         /// границам, поэтому доворот на 90° учитывается сам собой — не тем
         /// способом, которым он однажды положил стог поперёк этажа Duck Hunt.
         /// </summary>
-        private static void SizeTo(GameObject go, Vector3 worldSize)
+        internal static void SizeTo(GameObject go, Vector3 worldSize)
         {
             if (!WorldBounds(go, out Bounds bounds))
             {
@@ -893,7 +910,7 @@ namespace Igruha.EditorTools
                 s.z * Mathf.Abs(want.z) / Mathf.Max(1e-4f, Mathf.Abs(have.z)));
         }
 
-        private static void CenterAt(GameObject go, Vector3 worldCenter)
+        internal static void CenterAt(GameObject go, Vector3 worldCenter)
         {
             if (!WorldBounds(go, out Bounds bounds))
             {
@@ -904,7 +921,7 @@ namespace Igruha.EditorTools
             go.transform.position += worldCenter - bounds.center;
         }
 
-        private static Vector3 WorldSize(GameObject go)
+        internal static Vector3 WorldSize(GameObject go)
         {
             return WorldBounds(go, out Bounds bounds) ? bounds.size : Vector3.one;
         }
@@ -928,7 +945,7 @@ namespace Igruha.EditorTools
         }
 
         /// <summary>Плоская планка из примитива: рамка, шов, накладка петли.</summary>
-        private static void Bar(Transform parent, string name, Material tone, Vector3 center, Vector3 size)
+        internal static void Bar(Transform parent, string name, Material tone, Vector3 center, Vector3 size)
         {
             var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
             go.name = name;
@@ -949,7 +966,7 @@ namespace Igruha.EditorTools
         /// (<c>HingedFloorHatch.CacheDoorColliders</c>), и забытый коллайдер
         /// петли стал бы второй поверхностью прямо на оси вращения.
         /// </summary>
-        private static void Scenery(GameObject go, Material tone)
+        internal static void Scenery(GameObject go, Material tone)
         {
             foreach (Collider collider in go.GetComponentsInChildren<Collider>(true))
             {
@@ -1005,6 +1022,28 @@ namespace Igruha.EditorTools
             }
 
             renderer.sharedMaterials = slots;
+        }
+
+        /// <summary>
+        /// Перекрасить предмет целиком, вместе с детьми.
+        ///
+        /// Отдельный вход нужен потому, что у моделей Synty рендерер сидит
+        /// <b>не на корне</b>: у префаба корень пустой, а меш висит ребёнком.
+        /// Перекраска через <c>GetComponent</c> на таком предмете молча
+        /// не делает ничего — так зеркальные шкафчики остались синими после
+        /// того, как настоящие уже стали серыми.
+        /// </summary>
+        internal static void PaintTree(GameObject go, Material primary, Material extra = null)
+        {
+            if (go == null)
+            {
+                return;
+            }
+
+            foreach (Renderer renderer in go.GetComponentsInChildren<Renderer>(true))
+            {
+                PaintAll(renderer, primary, extra);
+            }
         }
 
         private static void HideRenderer(GameObject box)

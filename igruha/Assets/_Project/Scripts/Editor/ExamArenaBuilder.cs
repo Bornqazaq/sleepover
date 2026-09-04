@@ -167,6 +167,7 @@ namespace Igruha.EditorTools
             // сцены слияние не переживает.
             ExamDress.Build(root, config, dressRandom);
             ExamSurfaces.Apply(root, config, dressRandom);
+            ExamEnvironment.Build(root, config, dressRandom);
             ExamPalette.Flush();
 
             WireMinigameReferences(root);
@@ -175,6 +176,7 @@ namespace Igruha.EditorTools
                       $"платформы {config.PlatformWidth:F1}×{config.PlatformDepth:F1} м", root);
             Debug.Log(ExamDress.Report(), root);
             Debug.Log(ExamPalette.Report(), root);
+            Debug.Log(ExamEnvironment.Report(), root);
 
             Selection.activeGameObject = root;
         }
@@ -720,10 +722,16 @@ namespace Igruha.EditorTools
 
             CreateBox(desk.transform, "Stand", new Vector3(1.4f, 1.05f, 0.65f),
                 new Vector3(0f, 0.52f, 0f), new Color(0.5f, 0.36f, 0.25f));
+            // Монитор стоит по центру стола, а не сбоку. Сдвинут туда на 4.3:
+            // замер зеркальности зала показал его единственным предметом
+            // у оси, у которого нет пары, — а правило симметрии в этой игре
+            // проверяется числом и исключений не терпит. Коллайдеры декора
+            // при этом не появились и не исчезли, только переехали на 0.35 м
+            // на высоте двух метров над недоступным Ученику возвышением.
             CreateBox(desk.transform, "Monitor", new Vector3(0.55f, 0.45f, 0.5f),
-                new Vector3(-0.35f, 1.28f, 0f), new Color(0.78f, 0.76f, 0.7f));
+                new Vector3(0f, 1.28f, 0f), new Color(0.78f, 0.76f, 0.7f));
             CreateBox(desk.transform, "Screen", new Vector3(0.42f, 0.32f, 0.02f),
-                new Vector3(-0.35f, 1.3f, -0.26f), new Color(0.15f, 0.35f, 0.2f));
+                new Vector3(0f, 1.3f, -0.26f), new Color(0.15f, 0.35f, 0.2f));
         }
 
         /// <summary>Рамка доски — четыре бруска по периметру.</summary>

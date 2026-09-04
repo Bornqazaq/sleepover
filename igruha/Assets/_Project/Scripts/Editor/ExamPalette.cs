@@ -77,7 +77,13 @@ namespace Igruha.EditorTools
             SignPlate,
 
             /// <summary>Экран ретро-монитора на кафедре.</summary>
-            ScreenGlow
+            ScreenGlow,
+
+            /// <summary>Дневной свет за окном: пересвеченная плоскость, а не стекло.</summary>
+            Daylight,
+
+            /// <summary>Позолота рам портретов. Тусклая: яркое золото спорит с янтарным вариантом Б.</summary>
+            Gilt
         }
 
         private const string Folder = "Assets/_Project/Materials/Exam";
@@ -104,7 +110,9 @@ namespace Igruha.EditorTools
             { Tone.LockerBody, "Exam_Locker" },
             { Tone.Runner, "Exam_Runner" },
             { Tone.SignPlate, "Exam_SignPlate" },
-            { Tone.ScreenGlow, "Exam_Screen" }
+            { Tone.ScreenGlow, "Exam_Screen" },
+            { Tone.Daylight, "Exam_Daylight" },
+            { Tone.Gilt, "Exam_Gilt" }
         };
 
         /// <summary>С какого предмета пака снимается цвет тона.</summary>
@@ -177,6 +185,9 @@ namespace Igruha.EditorTools
         /// здесь — подсказкой, и полоса, которая жжёт кадр, спорит с буквой.
         /// </summary>
         private const float EdgeEmission = 0.9f;
+
+        /// <summary>Свечение плоскости за окном. Полдень за стеклом, а не подсветка витрины.</summary>
+        private const float DaylightEmission = 2.6f;
 
         private static readonly Dictionary<Tone, Material> cache = new Dictionary<Tone, Material>(16);
         private static readonly Dictionary<Tone, Color> measured = new Dictionary<Tone, Color>(4);
@@ -306,6 +317,20 @@ namespace Igruha.EditorTools
                 case Tone.ScreenGlow:
                     return new Color(0.28f, 0.72f, 0.40f);
 
+                // Дневной свет за окном. Холодный и почти белый: зал освещён
+                // тёплыми лампами, и разница температур — единственное, чем
+                // окно отличается от лампы, когда за ним нет улицы.
+                case Tone.Daylight:
+                    return new Color(0.88f, 0.93f, 1f);
+
+                // Позолота рам. Взята заметно темнее и глуше родной: рама пака
+                // приезжает ярко-оранжевой, а это почти цвет варианта Б
+                // (`#C78017`). Четыре ярких янтарных пятна на дальней стене
+                // спорили бы с тем единственным янтарным, которое в этой игре
+                // что-то значит.
+                case Tone.Gilt:
+                    return new Color(0.50f, 0.39f, 0.21f);
+
                 default:
                     return Color.white;
             }
@@ -329,6 +354,13 @@ namespace Igruha.EditorTools
                     HoleInWallMaterials.ConfigureEmissive(material, color, EdgeEmission * 0.7f);
                     break;
 
+                // Окно светит заметно сильнее кромки платформы: оно изображает
+                // улицу в полдень, и приглушённое читается не окном,
+                // а закрашенным белым стеклом.
+                case Tone.Daylight:
+                    HoleInWallMaterials.ConfigureEmissive(material, color, DaylightEmission);
+                    break;
+
                 // Грифель матовый до предела. Урок 3.70: в зале с точечными
                 // лампами гладкость материала решает больше, чем его цвет, —
                 // тёмно-зелёное полотно с бликом читается серым, а текст
@@ -345,6 +377,10 @@ namespace Igruha.EditorTools
 
                 case Tone.Metal:
                     HoleInWallMaterials.ConfigureOpaque(material, color, 0.42f, 0.55f);
+                    break;
+
+                case Tone.Gilt:
+                    HoleInWallMaterials.ConfigureOpaque(material, color, 0.55f, 0.75f);
                     break;
 
                 // Пол чуть глянцевее стен: натёртый камень зала. Выше 0.2 он
