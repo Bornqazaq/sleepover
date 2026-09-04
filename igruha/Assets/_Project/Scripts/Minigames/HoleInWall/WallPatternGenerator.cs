@@ -84,6 +84,45 @@ namespace Igruha.Minigames.HoleInWall
     /// поднимается до минимально возможного разноса, если иначе вырезы
     /// не помещаются. Верхнего предела 5 ШП это не задевает: самый широкий
     /// вынужденный разнос — 4.0 ШП.
+    ///
+    /// <b>Ширина берётся у форм игрока, а не у конфига.</b> Вырез закреплён
+    /// за конкретным игроком, и у Карлана он уже, чем у Шланги. Значит
+    /// и разнос, и предельное смещение считаются по этим двоим: одним числом
+    /// на всех они либо разводили бы вырезы шире нужного, либо — что хуже —
+    /// позволили бы им налезть друг на друга.
+    ///
+    /// <b>Каждый вырез стоит над половиной пола своего хозяина.</b> Нулевое
+    /// место на платформе левее центра, первое правее
+    /// (<c>HoleInWallTrack.ArrangeSlots</c>), и пол под ними покрашен теми же
+    /// двумя цветами, что контуры вырезов
+    /// (<c>HoleInWallArenaBuilder.BuildFloorHalves</c>). До 04.09 генератор
+    /// выбирал случайный центр пары по всей ширине платформы, и оба выреза
+    /// регулярно оказывались над одной половиной: розовый контур висел над
+    /// голубым полом, его хозяин бежал через всю платформу, тащил напарника
+    /// на тросе и не успевал. Это ломало не сложность, а сам способ читать
+    /// стену — цвет переставал что-либо значить.
+    ///
+    /// Замер стендом, 51 200 стен (100 сидов × 64 пары персонажей):
+    /// вырез залезал на чужую половину в <b>37 046</b> случаях из 51 200,
+    /// оба центра стояли по одну сторону от нуля в <b>18 500</b>. После правки
+    /// и то, и другое — ноль. Максимальный пробег до своего выреза упал
+    /// с 3.21 м до 2.26 м: на самой быстрой стене это 0.46 с бега при
+    /// подъезде 3 с.
+    ///
+    /// Правило действует <b>целиком</b>, а не по центру выреза: у самой широкой
+    /// позы 2.55 м, и вырез с центром у нуля залез бы на чужую половину
+    /// на 1.27 м. Отсюда у смещения появилась ближняя граница — полуширина
+    /// выреза; дальняя осталась прежней, и это то же число, потому что
+    /// половина платформы и есть половина её ширины.
+    ///
+    /// <b>Зеркальный переворот — единственное исключение, и оно намеренное.</b>
+    /// <see cref="WallTrick.Mirror"/> меняет вырезы местами уже в полёте
+    /// (<c>SweepingWall.ResolveCutout</c>), то есть нарушает это правило
+    /// на седьмой стене — ради чего он и заведён. После закрепления вырезов
+    /// за игроками это стало перебежкой крест-накрест на тросе: расстояние
+    /// между хозяевами при этом не меняется вовсе (оно равно разносу и всегда
+    /// короче троса), меняются стороны. Замеры — в стенде
+    /// <c>Igruha/Дырка в стене/Стенд: прогнать генератор</c>.
     /// </remarks>
     public sealed class WallPatternGenerator
     {
@@ -97,10 +136,13 @@ namespace Igruha.Minigames.HoleInWall
         /// Разложить восемь стен по сиду. Заполняет переданный список: рисунок
         /// считается раз в раунд, но плодить мусор незачем.
         /// </summary>
+        /// <param name="first">Формы нулевого выреза — по ним считается его ширина</param>
+        /// <param name="second">Формы первого выреза. У одиночки не нужны</param>
         /// <param name="solo">Дорожка одиночки: вырез один</param>
-        public void Generate(HoleInWallConfig config, int seed, bool solo, List<WallPattern> destination)
+        public void Generate(HoleInWallConfig config, CutoutShapes first, CutoutShapes second,
+            int seed, bool solo, List<WallPattern> destination)
         {
-            if (config == null || destination == null)
+            if (config == null || first == null || destination == null || (!solo && second == null))
             {
                 return;
             }
@@ -113,7 +155,8 @@ namespace Igruha.Minigames.HoleInWall
 
             for (int wall = 0; wall < config.WallCount; wall++)
             {
-                WallPattern pattern = BuildWall(config, random, wall, solo, previousFirst, previousSecond);
+                WallPattern pattern = BuildWall(config, first, second, random, wall, solo,
+                    previousFirst, previousSecond);
                 destination.Add(pattern);
 
                 previousFirst = pattern.First.Pose;
@@ -121,7 +164,8 @@ namespace Igruha.Minigames.HoleInWall
             }
         }
 
-        private WallPattern BuildWall(HoleInWallConfig config, System.Random random, int wall, bool solo,
+        private WallPattern BuildWall(HoleInWallConfig config, CutoutShapes firstShapes,
+            CutoutShapes secondShapes, System.Random random, int wall, bool solo,
             HoleInWallPose previousFirst, HoleInWallPose previousSecond)
         {
             bool easy = wall < config.EasyWallCount;
@@ -149,8 +193,8 @@ namespace Igruha.Minigames.HoleInWall
             // Габарит, под который считаются и разнос, и предельное смещение,
             // берётся по самому широкому состоянию выреза: после смены формы
             // позиции не двигаются, и новый силуэт обязан поместиться там же.
-            float firstWidth = WidestWidth(config, first, morphFirst);
-            float secondWidth = solo ? 0f : WidestWidth(config, second, morphSecond);
+            float firstWidth = WidestWidth(firstShapes, first, morphFirst);
+            float secondWidth = solo ? 0f : WidestWidth(secondShapes, second, morphSecond);
 
             if (solo)
             {
@@ -171,10 +215,20 @@ namespace Igruha.Minigames.HoleInWall
             float spread = NextFloat(random, Mathf.Max(bandMin, minSpread), Mathf.Max(bandMax, minSpread));
             spread = Mathf.Min(spread, firstLimit + secondLimit);
 
-            // Центр пары: оба выреза вместе с допуском обязаны лежать внутри
-            // платформы (спека 8.6, правило 4).
-            float centerMin = -firstLimit + spread * 0.5f;
-            float centerMax = secondLimit - spread * 0.5f;
+            // Центр пары. Ограничений на него два, и оба про место выреза
+            // целиком, а не про его центр:
+            //
+            //   нулевой вырез  — внутри платформы и не правее нуля:
+            //                    −firstLimit ≤ offset₀ ≤ −firstWidth/2
+            //   первый вырез   — внутри платформы и не левее нуля:
+            //                    +secondWidth/2 ≤ offset₁ ≤ +secondLimit
+            //
+            // offset₀ = center − spread/2, offset₁ = center + spread/2, отсюда
+            // и границы ниже. Полоса непуста при любом разносе не меньше
+            // minSpread — он как раз и складывается из двух полуширин плюс
+            // перемычка.
+            float centerMin = Mathf.Max(-firstLimit + spread * 0.5f, secondWidth * 0.5f - spread * 0.5f);
+            float centerMax = Mathf.Min(secondLimit - spread * 0.5f, spread * 0.5f - firstWidth * 0.5f);
             float center = centerMax > centerMin
                 ? NextFloat(random, centerMin, centerMax)
                 : (centerMin + centerMax) * 0.5f;
@@ -249,12 +303,19 @@ namespace Igruha.Minigames.HoleInWall
             return (HoleInWallPose)(index + 1);
         }
 
-        private static float WidestWidth(HoleInWallConfig config, HoleInWallPose a, HoleInWallPose b) =>
-            Mathf.Max(config.SilhouetteSize(a).x, config.SilhouetteSize(b).x);
+        private static float WidestWidth(CutoutShapes shapes, HoleInWallPose a, HoleInWallPose b) =>
+            Mathf.Max(shapes.Size(a).x, shapes.Size(b).x);
 
-        /// <summary>Насколько далеко от центра дорожки может стоять вырез такой ширины, м.</summary>
+        /// <summary>
+        /// Насколько далеко от центра дорожки может стоять вырез такой ширины, м.
+        ///
+        /// Ограничение одно — вырез целиком внутри платформы. Раньше их было
+        /// два, вторым шёл допуск попадания; теперь он по построению не шире
+        /// полувыреза (<c>CutoutShapes.Tolerance</c>), и отдельным условием
+        /// быть перестал.
+        /// </summary>
         private static float OffsetLimit(HoleInWallConfig config, float width) =>
-            Mathf.Max(0f, config.PlatformWidth * 0.5f - Mathf.Max(config.HitTolerance, width * 0.5f));
+            Mathf.Max(0f, (config.PlatformWidth - width) * 0.5f);
 
         private static float NextFloat(System.Random random, float min, float max) =>
             max <= min ? min : min + (float)random.NextDouble() * (max - min);

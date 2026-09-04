@@ -1,0 +1,251 @@
+using UnityEngine;
+
+namespace Igruha.Minigames.HoleInWall
+{
+    /// <summary>
+    /// Формы вырезов одного игрока: контур на каждую из четырёх поз, готовый
+    /// к употреблению стеной.
+    ///
+    /// <b>Вырез закреплён за игроком.</b> На дорожке пары их два, и каждый —
+    /// точный силуэт своего. Объединять два силуэта в один вырез пробовали
+    /// 04.09 и отказались: у высокого и низкого руки на разной высоте, и
+    /// объединение даёт в стене дырку с четырьмя руками — кляксу вместо позы.
+    /// Кто чей, видно по цвету контура: он совпадает с цветом половины пола,
+    /// на которой игрок стоит.
+    ///
+    /// Заводится один раз на раунд, когда известен персонаж, и дальше
+    /// только читается. Вся тяжёлая работа с силуэтом — скиннинг, растеризация,
+    /// объединение пары — сделана на этапе сборки ассета: меши персонажей
+    /// в рантайме нечитаемы (<c>isReadable = false</c>), да и миллион вершин
+    /// в кадре никто не ждёт.
+    /// </summary>
+    /// <remarks>
+    /// <b>Контур всегда есть.</b> Не нашёлся персонаж — берётся ростерный,
+    /// не нашёлся и он — строится прямоугольник по <c>HoleInWallConfig</c>,
+    /// как было до настоящих силуэтов. Поэтому у стены нет ветки «формы нет»:
+    /// она всегда режет полотно по ломаной.
+    /// </remarks>
+    public sealed class CutoutShapes
+    {
+        private readonly HoleInWallConfig config;
+
+        /// <summary>Контуры по номеру позы минус один. Пусто в ячейке — поза считается прямоугольником.</summary>
+        private readonly CutoutSilhouette[] shapes = new CutoutSilhouette[HoleInWallConfig.PoseCount];
+
+        /// <summary>Прямоугольные запасные ломаные. Строятся по требованию и живут до конца раунда.</summary>
+        private readonly Vector2[][] fallbackOutlines = new Vector2[HoleInWallConfig.PoseCount][];
+
+        /// <summary>Ключ персонажа, по которому нашлись контуры. Для отчёта в логе.</summary>
+        public string Character { get; }
+
+        /// <summary>Контуры нашлись под самого персонажа, а не под ростер и не прямоугольником.</summary>
+        public bool Exact { get; }
+
+        public CutoutShapes(HoleInWallConfig gameConfig, string character)
+        {
+            config = gameConfig;
+            Character = character;
+
+            HoleInWallSilhouettes asset = gameConfig != null ? gameConfig.Silhouettes : null;
+            if (asset == null)
+            {
+                return;
+            }
+
+            bool exact = !string.IsNullOrEmpty(character);
+
+            for (int i = 0; i < shapes.Length; i++)
+            {
+                var pose = (HoleInWallPose)(i + 1);
+                CutoutSilhouette shape = asset.Find(character, pose);
+
+                if (shape == null || !shape.Valid)
+                {
+                    // Персонажа нет в ассете — падаем на ростерный контур: он
+                    // велик каждому, но пролезть в него может любой.
+                    shape = asset.Roster(pose);
+                    exact = false;
+                }
+
+                shapes[i] = shape != null && shape.Valid ? shape : null;
+            }
+
+            Exact = exact;
+        }
+
+        /// <summary>
+        /// Ключ персонажа — имя его контроллера аниматора.
+        ///
+        /// Берём именно контроллер, а не имя объекта: у клона имя зависит от
+        /// того, кто его создал (сеть оставляет «Aza(Clone)», локальный спавн
+        /// переименовывает в «Player_1»), а контроллер у каждого персонажа
+        /// свой и переживает и то, и другое. Заводить на префабе новый
+        /// компонент нельзя: префабы персонажей заморожены.
+        /// </summary>
+        public static string KeyOf(GameObject avatar)
+        {
+            if (avatar == null)
+            {
+                return null;
+            }
+
+            var animator = avatar.GetComponentInChildren<Animator>(true);
+            RuntimeAnimatorController controller = animator != null ? animator.runtimeAnimatorController : null;
+            return controller != null ? controller.name : null;
+        }
+
+        /// <summary>Контур позы: от левой ступни вверх и вниз к правой, метры от места игрока.</summary>
+        public Vector2[] Outline(HoleInWallPose pose)
+        {
+            int index = (int)pose - 1;
+            if (index < 0 || index >= shapes.Length)
+            {
+                return null;
+            }
+
+            CutoutSilhouette shape = shapes[index];
+            return shape != null ? shape.Outline : FallbackOutline(pose, index);
+        }
+
+        /// <summary>Описанный прямоугольник выреза, м. По нему считается разнос вырезов и место на дорожке.</summary>
+        public Vector2 Size(HoleInWallPose pose)
+        {
+            int index = (int)pose - 1;
+            if (index < 0 || index >= shapes.Length)
+            {
+                return Vector2.zero;
+            }
+
+            CutoutSilhouette shape = shapes[index];
+            return shape != null ? shape.Size : config.SilhouetteSize(pose);
+        }
+
+        /// <summary>
+        /// Допуск попадания в этот вырез, м от его центра.
+        ///
+        /// <b>Равен запасу контура — то есть тому, при котором игрок влезает
+        /// по-настоящему.</b> Вырез это силуэт плюс запас, значит на смещении
+        /// больше запаса кожа уходит в сплошную плиту, и «прошёл» начинает
+        /// означать «прошёл сквозь стену».
+        ///
+        /// ⚠️ Раньше здесь стояло настроенное ±0.576 м, впятеро больше запаса,
+        /// и это было видно глазами. Замер стендом: при смещении 0.58 м
+        /// в полотне оказывалось <b>от 46 до 100 %</b> тела — у Шланги
+        /// на «Свечке» ровно сто, он целиком внутри плиты и засчитан прошедшим.
+        /// Чисто проходит только смещение не больше запаса: на 0.10 м в плите
+        /// ноль процентов у всех восьмерых.
+        ///
+        /// Точность, которую игра требует от человека, при этом не выросла:
+        /// прежние ±0.576 м стали дальнобойностью воронки
+        /// (<see cref="WallFunnel"/>) — край дырки доводит последние сантиметры
+        /// сам, как довёл бы настоящий край.
+        ///
+        /// Ограничение полушириной оставлено на случай, если запас когда-нибудь
+        /// перерастёт самую узкую дырку: допуск шире выреза не имеет смысла
+        /// ни при каких числах.
+        /// </summary>
+        public float Tolerance(HoleInWallPose pose)
+        {
+            HoleInWallSilhouettes asset = config != null ? config.Silhouettes : null;
+            float margin = asset != null ? asset.Margin : config.HitTolerance;
+            return Mathf.Min(margin, Size(pose).x * 0.5f);
+        }
+
+        /// <summary>
+        /// Самый широкий пролёт выреза на отрезке высоты, м от места игрока.
+        ///
+        /// Берётся именно самый широкий: по этим пролётам ставятся коробки
+        /// коллизии, и ошибка в большую сторону — лишний сантиметр дырки,
+        /// а в меньшую — застрявший в стене игрок.
+        /// </summary>
+        /// <returns>Ложь — на этой высоте выреза нет.</returns>
+        public bool TrySpan(HoleInWallPose pose, float fromY, float toY, out float left, out float right)
+        {
+            left = 0f;
+            right = 0f;
+
+            Vector2[] outline = Outline(pose);
+            if (outline == null || outline.Length < 2 || toY <= fromY)
+            {
+                return false;
+            }
+
+            left = float.MaxValue;
+            right = float.MinValue;
+
+            for (int i = 1; i < outline.Length; i++)
+            {
+                Accumulate(outline[i - 1], outline[i], fromY, toY, ref left, ref right);
+            }
+
+            return right > left;
+        }
+
+        /// <summary>
+        /// Отрезок контура, обрезанный полосой высот: чем он достаёт влево
+        /// и вправо. Обрезка честная — считаем x в точках пересечения с
+        /// границами полосы, а не берём вершины целиком.
+        /// </summary>
+        private static void Accumulate(Vector2 from, Vector2 to, float fromY, float toY,
+            ref float left, ref float right)
+        {
+            float lowY = Mathf.Min(from.y, to.y);
+            float highY = Mathf.Max(from.y, to.y);
+
+            if (highY < fromY || lowY > toY)
+            {
+                return;
+            }
+
+            float startX;
+            float endX;
+
+            if (Mathf.Approximately(from.y, to.y))
+            {
+                startX = from.x;
+                endX = to.x;
+            }
+            else
+            {
+                float startY = Mathf.Clamp(from.y, fromY, toY);
+                float endY = Mathf.Clamp(to.y, fromY, toY);
+                float slope = (to.x - from.x) / (to.y - from.y);
+                startX = from.x + (startY - from.y) * slope;
+                endX = from.x + (endY - from.y) * slope;
+            }
+
+            left = Mathf.Min(left, Mathf.Min(startX, endX));
+            right = Mathf.Max(right, Mathf.Max(startX, endX));
+        }
+
+        /// <summary>
+        /// Прямоугольная ломаная по габариту из конфига: контура нет вовсе,
+        /// а вырез в стене быть обязан. Ровно то, чем игра жила до настоящих
+        /// силуэтов.
+        /// </summary>
+        private Vector2[] FallbackOutline(HoleInWallPose pose, int index)
+        {
+            if (fallbackOutlines[index] != null)
+            {
+                return fallbackOutlines[index];
+            }
+
+            Vector2 size = config != null ? config.SilhouetteSize(pose) : Vector2.zero;
+            if (size.x <= 0f || size.y <= 0f)
+            {
+                return null;
+            }
+
+            float half = size.x * 0.5f;
+            fallbackOutlines[index] = new[]
+            {
+                new Vector2(-half, 0f),
+                new Vector2(-half, size.y),
+                new Vector2(half, size.y),
+                new Vector2(half, 0f)
+            };
+
+            return fallbackOutlines[index];
+        }
+    }
+}

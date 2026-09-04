@@ -17,9 +17,23 @@ namespace Igruha.Minigames.HoleInWall
     /// </summary>
     /// <remarks>
     /// <b>Поза защёлкивается, а не держится клавишей.</b> Нажал — стоишь в позе,
-    /// пока не нажал другую. Иначе подстраиваться под вырез пришлось бы с
-    /// зажатой цифрой и WASD одновременно, а спека прямо разрешает
-    /// перемещаться в позе до последнего кадра.
+    /// пока не нажал другую или пока не тронулся с места.
+    ///
+    /// <b>Поза — это стойка, а не режим передвижения.</b> Слой <c>Pose</c>
+    /// перекрывает локомоцию целиком, и до 04.09 идущий в позе персонаж ехал
+    /// по полу не перебирая ногами. Оставлять так — значит показывать в главной
+    /// игре скольжение; поэтому <b>собственный ввод движения позу снимает</b>,
+    /// и дальше человек идёт и бежит своими анимациями. Дошёл, нажал цифру —
+    /// снова стоит.
+    ///
+    /// ⚠️ <b>Снимает позу ввод, а не движение.</b> В этой игре персонажа двигают
+    /// три чужие силы, и ни одна не имеет права ронять позу: воронка выреза
+    /// (<see cref="WallFunnel"/>) специально подталкивает вбок в последние
+    /// полсекунды и работает только пока поза совпала с вырезом; трос
+    /// (<c>Core/Player/PlayerTether</c>) тянет постоянно, и пара живёт
+    /// на натянутом; страховка от застревания (<c>Core/Player/StuckDetector</c>)
+    /// телепортирует. Поэтому читается <c>PlayerInputReader.MoveInput</c>,
+    /// а не скорость тела.
     ///
     /// <b>Сеть.</b> Важное состояние меняет ровно один метод —
     /// <see cref="SetPose"/>, — и зовёт его не ввод, а мини-игра: ввод уходит
@@ -33,18 +47,6 @@ namespace Igruha.Minigames.HoleInWall
     [RequireComponent(typeof(PlayerController))]
     public sealed class PlayerPoseAbility : MonoBehaviour
     {
-        /// <summary>Толщина плашки-силуэта, м. Она стоит вокруг персонажа и не должна его загораживать.</summary>
-        private const float SilhouetteThickness = 0.06f;
-
-        /// <summary>Прозрачность силуэта: сквозь него обязан быть виден сам персонаж.</summary>
-        private const float SilhouetteAlpha = 0.35f;
-
-        /// <summary>На сколько метров иконка висит над макушкой.</summary>
-        private const float IconLift = 0.45f;
-
-        /// <summary>Высота иконки над головой, м. Ширина считается по пропорции силуэта.</summary>
-        private const float IconHeight = 0.35f;
-
         /// <summary>
         /// Имя слоя поз в Animator Controller. Слой строит
         /// <c>Editor/HoleInWallPoseLayerBuilder</c>; строка продублирована здесь,
@@ -61,19 +63,16 @@ namespace Igruha.Minigames.HoleInWall
         /// <summary>Слоя поз в контроллере нет — у этого персонажа его просто не собрали.</summary>
         private const int NoLayer = -1;
 
-        /// <summary>Цвета поз. Порядок — позы 1…4; на каркасе это единственное, чем они различаются на вид.</summary>
-        private static readonly Color[] PoseColors =
-        {
-            new Color(0.20f, 0.75f, 1.00f),
-            new Color(1.00f, 0.78f, 0.15f),
-            new Color(0.35f, 0.90f, 0.40f),
-            new Color(1.00f, 0.40f, 0.65f)
-        };
+        /// <summary>
+        /// Мёртвая зона хода на случай, когда у мотора нет конфига. Совпадает
+        /// со значением <c>CharacterConfig.inputDeadzone</c>: без конфига
+        /// персонажа не бывает, но молча считать любой шум ходом хуже.
+        /// </summary>
+        private const float DefaultInputDeadzone = 0.15f;
 
         /// <summary>Поза сменилась. Визуалу, звуку и строке статуса.</summary>
         public event Action<HoleInWallPose> PoseChanged;
 
-        private HoleInWallConfig config;
         private HoleInWallMinigame owner;
         private int playerId = -1;
         private PlayerController motor;
@@ -84,15 +83,13 @@ namespace Igruha.Minigames.HoleInWall
         /// сама эта машина: чужую копию нельзя ни двигать, ни читать за неё ввод.
         /// </summary>
         private NetworkObject body;
-        private Transform silhouette;
-        private Transform icon;
-        private Renderer silhouetteRenderer;
-        private Renderer iconRenderer;
-        private float headHeight = 1.8f;
 
         /// <summary>
-        /// Аниматор модели. Позу отыгрывает он, а не плашка: настоящие клипы поз
-        /// приехали в арт-фазе (спека 9.5).
+        /// Аниматор модели. Позу отыгрывает только он: настоящие клипы поз
+        /// приехали в арт-фазе (спека 9.5), и заглушки каркаса — полупрозрачная
+        /// плашка вокруг персонажа и цветная иконка над головой — сняты
+        /// 04.09 по просьбе геймдизайнера. Своей картинки у способности
+        /// больше нет вовсе.
         /// </summary>
         private Animator animator;
 
@@ -101,6 +98,20 @@ namespace Igruha.Minigames.HoleInWall
 
         /// <summary>Поза, в которой игрок стоит прямо сейчас. <see cref="HoleInWallPose.None"/> — ещё ни одной не нажал.</summary>
         public HoleInWallPose CurrentPose { get; private set; } = HoleInWallPose.None;
+
+        /// <summary>
+        /// Нажатая цифра, которая ещё не стала позой: игрок нажал на бегу.
+        ///
+        /// Защёлка нужна из-за человеческого порядка нажатий. К своему месту
+        /// бегут, и цифру жмут в ту же десятую долю секунды, что отпускают WASD,
+        /// — сплошь и рядом раньше. Без защёлки такое нажатие пропадало бы
+        /// молча, и клавиша выглядела бы сломанной; с ней персонаж встаёт
+        /// в позу ровно в тот кадр, в который остановился.
+        /// </summary>
+        private HoleInWallPose pendingPose = HoleInWallPose.None;
+
+        /// <summary>Номер позы под клавишей в прошлом кадре. Им ловится фронт нажатия, а не удержание.</summary>
+        private int previousPoseRequest;
 
         private void Awake()
         {
@@ -111,11 +122,6 @@ namespace Igruha.Minigames.HoleInWall
             // Аниматор живёт на модели — она ребёнок аватара, а не он сам.
             animator = GetComponentInChildren<Animator>(true);
             poseLayer = animator != null ? animator.GetLayerIndex(PoseLayerName) : NoLayer;
-
-            if (TryGetComponent(out CapsuleCollider capsule))
-            {
-                headHeight = capsule.center.y + capsule.height * 0.5f;
-            }
         }
 
         private void OnEnable()
@@ -136,37 +142,42 @@ namespace Igruha.Minigames.HoleInWall
             motor.ForceStand();
 
             CurrentPose = HoleInWallPose.None;
+            pendingPose = HoleInWallPose.None;
+            previousPoseRequest = 0;
             ApplyPoseToAnimator();
-            DestroyVisuals();
         }
 
         /// <summary>
-        /// Выдать числа игры и того, кому уходят намерения. Зовётся сразу после
-        /// навешивания компонента.
+        /// Указать, кому уходят намерения. Зовётся сразу после навешивания
+        /// компонента.
         /// </summary>
-        public void Configure(HoleInWallConfig gameConfig, HoleInWallMinigame game, int id)
+        public void Configure(HoleInWallMinigame game, int id)
         {
-            config = gameConfig;
             owner = game;
             playerId = id;
-            BuildVisuals();
-            ApplyVisuals();
         }
 
         /// <summary>
         /// Намерение игрока встать в позу. Само по себе оно ничего не меняет:
         /// решение принимает мини-игра, а в сетевой катке — её сервер.
+        ///
+        /// <see cref="HoleInWallPose.None"/> здесь — законное значение: это
+        /// намерение <b>снять</b> позу, и уходит оно тем же маршрутом. Отдельного
+        /// маршрута под сброс не заводим — разбор в
+        /// <see cref="HoleInWallMinigame.ApplyPose"/>.
         /// </summary>
         public void RequestPose(HoleInWallPose pose)
         {
-            if (pose == HoleInWallPose.None || (int)pose > HoleInWallConfig.PoseCount)
+            if ((int)pose > HoleInWallConfig.PoseCount)
             {
                 return;
             }
 
-            // Клавиша зажата, а не нажата: ридер отдаёт номер каждый кадр, пока
-            // её держат. Без этой проверки каждая зажатая цифра давала бы
-            // шестьдесят пакетов в секунду вместо одного на смену позы.
+            // Уже стоим в этой позе — просить нечего. Заодно это гасит и
+            // повтор: ридер отдаёт номер каждый кадр, пока клавишу держат,
+            // а снятие позы ходом просится каждый кадр, пока идёт ввод.
+            // Без проверки любой из двух давал бы шестьдесят пакетов в секунду
+            // вместо одного на смену.
             if (CurrentPose == pose)
             {
                 return;
@@ -203,7 +214,6 @@ namespace Igruha.Minigames.HoleInWall
             motor.SetCrouched(pose == HoleInWallPose.Crouch);
 
             ApplyPoseToAnimator();
-            ApplyVisuals();
             PoseChanged?.Invoke(pose);
         }
 
@@ -251,93 +261,69 @@ namespace Igruha.Minigames.HoleInWall
                 return;
             }
 
-            int requested = reader.PoseRequest;
-            if (requested > 0)
-            {
-                RequestPose((HoleInWallPose)requested);
-            }
+            ReadPoseInput();
         }
-
-        // ========== ВИЗУАЛ КАРКАСА ==========
 
         /// <summary>
-        /// Габаритная рамка вокруг персонажа и та же фигура иконкой над головой.
-        /// Саму позу с арт-фазы отыгрывает клип на слое <c>Pose</c>, а рамка
-        /// осталась подсказкой: она ровно того же размера, что вырез на стене,
-        /// и отвечает на вопрос «влезу ли», пока стена ещё далеко.
-        ///
-        /// Держится полупрозрачной намеренно: сквозь неё обязана быть видна
-        /// поза, иначе рамка съедает то, ради чего фаза 4 и делалась.
+        /// Разобрать ввод хозяина персонажа: цифра ставит позу, ход её снимает.
         /// </summary>
-        private void BuildVisuals()
+        private void ReadPoseInput()
         {
-            silhouette = CreateBox("PoseSilhouette", out silhouetteRenderer);
-            icon = CreateBox("PoseIcon", out iconRenderer);
-        }
-
-        private Transform CreateBox(string boxName, out Renderer boxRenderer)
-        {
-            GameObject box = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            box.name = boxName;
-            box.transform.SetParent(transform, false);
-
-            // Коллайдер снимаем сразу: силуэт — это картинка, а не тело.
-            // Оставленный, он ловил бы удары, толчки и лучи камеры.
-            Collider blocker = box.GetComponent<Collider>();
-            if (blocker != null)
+            // Сбитый с ног ничего не выбирает: и защёлку сносим, чтобы
+            // сметённый стеной не вставал из воды в позу, нажатую до удара.
+            if (motor.IsKnockedDown)
             {
-                Destroy(blocker);
+                pendingPose = HoleInWallPose.None;
+                return;
             }
 
-            boxRenderer = box.GetComponent<Renderer>();
-            boxRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            boxRenderer.sharedMaterial = HoleInWallMaterials.Transparent(Color.white);
+            int requested = reader.PoseRequest;
 
-            return box.transform;
-        }
+            // Фронт нажатия, а не удержание. Раньше повтор гасился сравнением
+            // с текущей позой, но теперь ход её снимает — и зажатая цифра
+            // ставила бы позу заново каждый кадр, отменяя ход.
+            if (requested > 0 && requested != previousPoseRequest)
+            {
+                pendingPose = (HoleInWallPose)requested;
+            }
 
-        private void ApplyVisuals()
-        {
-            if (config == null || silhouette == null || icon == null)
+            previousPoseRequest = requested;
+
+            if (Walking)
+            {
+                // Идёт сам — позы нет. Просьба уходит одна: RequestPose
+                // отсеивает повтор по текущей позе.
+                RequestPose(HoleInWallPose.None);
+                return;
+            }
+
+            if (pendingPose == HoleInWallPose.None)
             {
                 return;
             }
 
-            bool posed = CurrentPose != HoleInWallPose.None;
-            silhouette.gameObject.SetActive(posed);
-            icon.gameObject.SetActive(posed);
-
-            if (!posed)
-            {
-                return;
-            }
-
-            Vector2 size = config.SilhouetteSize(CurrentPose);
-            Color color = PoseColors[Mathf.Clamp((int)CurrentPose - 1, 0, PoseColors.Length - 1)];
-
-            silhouette.localScale = new Vector3(size.x, size.y, SilhouetteThickness);
-            silhouette.localPosition = new Vector3(0f, size.y * 0.5f, 0f);
-            silhouetteRenderer.sharedMaterial =
-                HoleInWallMaterials.Transparent(new Color(color.r, color.g, color.b, SilhouetteAlpha));
-
-            float aspect = size.y > 0.01f ? size.x / size.y : 1f;
-            icon.localScale = new Vector3(IconHeight * aspect, IconHeight, SilhouetteThickness);
-            icon.localPosition = new Vector3(0f, headHeight + IconLift, 0f);
-            iconRenderer.sharedMaterial = HoleInWallMaterials.Opaque(color);
+            RequestPose(pendingPose);
+            pendingPose = HoleInWallPose.None;
         }
 
-        private void DestroyVisuals()
+        /// <summary>
+        /// Хозяин персонажа сам даёт ход.
+        ///
+        /// ⚠️ Именно ввод, а не скорость тела: воронка выреза, трос и страховка
+        /// от застревания двигают персонажа не спрашивая, и по скорости поза
+        /// слетала бы от них — то есть воронка, придуманная помогать, роняла бы
+        /// позу ровно в тот момент, ради которого она есть.
+        ///
+        /// Порог — общая мёртвая зона персонажа: та же, по которой
+        /// <c>PlayerController</c> отбрасывает дрожь стика, и та же, по которой
+        /// застревание отличает «упёрся» от «стою».
+        /// </summary>
+        private bool Walking
         {
-            if (silhouette != null)
+            get
             {
-                Destroy(silhouette.gameObject);
-                silhouette = null;
-            }
-
-            if (icon != null)
-            {
-                Destroy(icon.gameObject);
-                icon = null;
+                float deadzone = motor.Config != null ? motor.Config.InputDeadzone : DefaultInputDeadzone;
+                return reader.MoveInput.sqrMagnitude > deadzone * deadzone;
             }
         }
     }

@@ -205,8 +205,6 @@ namespace Igruha.Minigames.HoleInWall
 
             mistakes.TryGetValue(member.PlayerId, out Mistake mistake);
 
-            member.Input.DrivePose((int)(mistake.WrongPose ? OtherPose(pose) : pose));
-
             // Мимо на два допуска: провал уверенный, но болванка всё ещё стоит
             // на платформе, а не уходит с неё сама.
             float error = mistake.WrongPlace ? MistakeOffset(member) * game.Config.HitTolerance * 2f : 0f;
@@ -214,14 +212,16 @@ namespace Igruha.Minigames.HoleInWall
 
             Vector3 position = member.Avatar.transform.position;
             var toTarget = new Vector3(targetX - position.x, 0f, track.transform.position.z - position.z);
+            bool arrived = toTarget.sqrMagnitude <= ArriveRadius * ArriveRadius;
 
-            if (toTarget.sqrMagnitude <= ArriveRadius * ArriveRadius)
-            {
-                member.Input.DriveMove(Vector2.zero);
-                return;
-            }
-
-            member.Input.DriveMove(member.Avatar.WorldToMoveInput(toTarget));
+            // ⚠️ Сначала дойти, потом вставать в позу — ровно как человек.
+            // С 04.09 собственный ход снимает позу (<c>PlayerPoseAbility</c>),
+            // и болванка, жмущая цифру на бегу, стояла бы у выреза без позы:
+            // нажатие пришлось бы на кадр, в котором позу тут же снимает ход,
+            // а повторно она бы не нажалась — способность ловит фронт нажатия,
+            // а не удержание.
+            member.Input.DrivePose(arrived ? (int)(mistake.WrongPose ? OtherPose(pose) : pose) : 0);
+            member.Input.DriveMove(arrived ? Vector2.zero : member.Avatar.WorldToMoveInput(toTarget));
         }
 
         /// <summary>В какую сторону промахнуться. Зависит от участника, чтобы двое не сошлись в одной точке.</summary>
