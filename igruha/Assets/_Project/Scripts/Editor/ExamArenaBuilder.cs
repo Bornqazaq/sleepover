@@ -168,6 +168,7 @@ namespace Igruha.EditorTools
             ExamDress.Build(root, config, dressRandom);
             ExamSurfaces.Apply(root, config, dressRandom);
             ExamEnvironment.Build(root, config, dressRandom);
+            ExamVfx.Build(root, config);
             ExamPalette.Flush();
 
             WireMinigameReferences(root);
@@ -177,6 +178,7 @@ namespace Igruha.EditorTools
             Debug.Log(ExamDress.Report(), root);
             Debug.Log(ExamPalette.Report(), root);
             Debug.Log(ExamEnvironment.Report(), root);
+            Debug.Log(ExamVfx.Report(), root);
 
             Selection.activeGameObject = root;
         }

@@ -90,6 +90,7 @@ namespace Igruha.EditorTools
             MeasureSymmetry(arena, report);
             MeasureMirror(arena, report);
             MeasureEnvironment(arena, report);
+            MeasureEffects(arena, report);
             MeasureHatch(arena, report);
             MeasureMeshes(arena, report);
 
@@ -321,6 +322,60 @@ namespace Igruha.EditorTools
             report.Append("\n  треугольников: ").Append(leftTriangles).Append(" / ").Append(rightTriangles)
                 .Append(Mark(leftTriangles == rightTriangles));
             report.Append("\n  на оси зала: ").Append(onAxis);
+        }
+
+        /// <summary>
+        /// Эффекты: коллайдеров ноль, число систем и потолок частиц записаны,
+        /// а у А и Б их поровну — разница в числе или яркости эффектов была бы
+        /// такой же подсказкой, как разница в реквизите.
+        /// </summary>
+        private static void MeasureEffects(GameObject arena, StringBuilder report)
+        {
+            Transform effects = arena.transform.Find("Effects");
+            report.Append("\n\n— Эффекты");
+            if (effects == null)
+            {
+                report.Append("\n  группы Effects нет  ⚠️");
+                return;
+            }
+
+            int colliders = effects.GetComponentsInChildren<Collider>(true).Length;
+            int systems = 0;
+            int capacity = 0;
+            foreach (ParticleSystem system in effects.GetComponentsInChildren<ParticleSystem>(true))
+            {
+                systems++;
+                capacity += system.main.maxParticles;
+            }
+
+            int sideA = CountSystems(effects.Find("SideA"), out int capacityA);
+            int sideB = CountSystems(effects.Find("SideB"), out int capacityB);
+            int lights = effects.GetComponentsInChildren<Light>(true).Length;
+
+            report.Append("\n  коллайдеров: ").Append(colliders).Append(Mark(colliders == 0));
+            report.Append("\n  систем частиц: ").Append(systems).Append(", потолок частиц: ").Append(capacity);
+            report.Append("\n  систем у А / Б: ").Append(sideA).Append(" / ").Append(sideB).Append(Mark(sideA == sideB));
+            report.Append("\n  потолок у А / Б: ").Append(capacityA).Append(" / ").Append(capacityB)
+                .Append(Mark(capacityA == capacityB));
+            report.Append("\n  источников света в эффектах: ").Append(lights);
+        }
+
+        private static int CountSystems(Transform side, out int capacity)
+        {
+            capacity = 0;
+            if (side == null)
+            {
+                return 0;
+            }
+
+            int count = 0;
+            foreach (ParticleSystem system in side.GetComponentsInChildren<ParticleSystem>(true))
+            {
+                count++;
+                capacity += system.main.maxParticles;
+            }
+
+            return count;
         }
 
         /// <summary>
