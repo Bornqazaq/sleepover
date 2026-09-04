@@ -53,8 +53,20 @@ namespace Igruha.EditorTools
             /// <summary>Опилки на дне ямы.</summary>
             Sawdust,
 
-            /// <summary>Дерево: настил шатра, пол и крыша клетки, трибуны.</summary>
+            /// <summary>Дерево настила шатра. Замеряется по трибунам — они на нём и стоят.</summary>
             Deck,
+
+            /// <summary>
+            /// Дерево клетки: крыша, рама пола, планки решётки.
+            /// <b>Отдельный тон, а не общий с настилом.</b> Настил меряется по
+            /// трибунам, и замер даёт серо-бурый <c>#574D44</c> — на настиле
+            /// это правильно, там рядом стоят сами трибуны. На клетке тот же
+            /// серый в паре с серым металлом делал её целиком монохромной,
+            /// и она переставала читаться силуэтом. Клетка ни с одной моделью
+            /// пака не граничит, кроме цепи, поэтому её дерево берёт тёплый
+            /// тон брифа.
+            /// </summary>
+            CageWood,
 
             /// <summary>Ржавый металл: прутья клетки, ферма, цепи.</summary>
             CageMetal,
@@ -89,6 +101,7 @@ namespace Igruha.EditorTools
             { Tone.BrickCope, "CR_BrickCope" },
             { Tone.Sawdust, "CR_Sawdust" },
             { Tone.Deck, "CR_Deck" },
+            { Tone.CageWood, "CR_CageWood" },
             { Tone.CageMetal, "CR_CageMetal" },
             { Tone.BoardPanel, "CR_BoardPanel" },
             { Tone.BoardFrame, "CR_BoardFrame" },
@@ -101,31 +114,53 @@ namespace Igruha.EditorTools
         /// брифом прямо: полосы купола, панель табло и белая основа кнопки
         /// к паку отношения не имеют.
         /// </summary>
+        /// <remarks>
+        /// <b>Мерим не всё подряд, а только там, где стык реально виден.</b>
+        /// Смысл замера — чтобы крашеная коробка блокаута села в тон стоящей
+        /// рядом модели пака и граница между ними перестала читаться. Где
+        /// рядом нет ни одной некрашеной модели пака, мерить нечего: там
+        /// цвет назначает бриф, и замер только уводит от него.
+        ///
+        /// Замер 04.09 показал это наглядно. Опилки, снятые с грунта пака,
+        /// дают <c>#7B6552</c> — серо-бурую грязь вместо тёплых опилок
+        /// референса; кирпич — <c>#67453E</c> вместо кирпично-красного;
+        /// шерсть медведя — <c>#55473B</c> вместо бурого. Все три поверхности
+        /// ни с чем не граничат: диски опилок и медведь <b>перекрашиваются</b>
+        /// нами же, а к борту ямы модели пака вообще не прислоняются. Значит
+        /// правильный цвет им назначает бриф, а не пак.
+        /// </remarks>
         private static readonly Dictionary<Tone, string> Sources = new Dictionary<Tone, string>
         {
-            { Tone.Brick, "Assets/Synty/PolygonConstruction/Prefabs/Props/SM_Prop_Brick_01.prefab" },
-            { Tone.Sawdust, "Assets/Synty/PolygonHorrorCarnival/Prefabs/Environment/SM_Env_Ground_Dirt_Round_01.prefab" },
-            // Дерево снимается с трибун, а не с настила: настила в паке нет
-            // вовсе, а трибуны — то самое дерево, рядом с которым этот настил
-            // и будет лежать.
+            // Настил шатра: на нём в 4.3 встанут трибуны пака в родном
+            // материале. Не совпадёт — под каждой трибуной будет пятно.
             { Tone.Deck, "Assets/Synty/PolygonHorrorCarnival/Prefabs/Props/SM_Prop_Bleachers_Straight_01.prefab" },
-            // Металл — с перил, а не с клетки-фургона: у фургона корпус
-            // раскрашен в цирковые цвета, и усреднение даёт розовый.
-            { Tone.CageMetal, "Assets/Synty/PolygonHorrorCarnival/Prefabs/Building/SM_Bld_Rail_01.prefab" },
-            { Tone.BearFur, "Assets/Synty/PolygonShops/Prefabs/Props/SM_Prop_Bear_Statue_01.prefab" }
+
+            // Металл клетки: к её крыше вплотную приходит цепь — модель пака
+            // без перекраски. Поэтому меряем по цепи, а не по перилам
+            // HorrorCarnival: перила дают #2A2C2F, цепь #424242, и разница
+            // в полтона видна ровно там, где цепь входит в крышу.
+            { Tone.CageMetal, "Assets/Synty/PolygonGeneric/Prefabs/Props/SM_Gen_Prop_Chain_01.prefab" }
         };
 
         /// <summary>
-        /// <b>Сырые</b> средние пака. Пока пусто: замер снимается на подфазе
-        /// 4.2 и закрепляется здесь числами.
+        /// <b>Сырые</b> средние пака, снятые замером 04.09. Не «примерно
+        /// такие»: это результат того же усреднения по UV, записанный на диск.
         ///
         /// Закреплять обязательно, и причина не в отсутствии паков на чужой
-        /// машине. У импортёра Synty выключен Read/Write: Unity держит вершины
-        /// только до первой выгрузки, и второй прогон замера в той же сессии
-        /// уже ничего не мерит (разбор в STATE 3.70). Без сохранённых чисел
-        /// цвет в `.mat` менялся бы от того, в какой момент нажали пересборку.
+        /// машине. У импортёра Synty выключен Read/Write, и Unity держит
+        /// вершины только до первой выгрузки: второй прогон замера в той же
+        /// сессии может уже ничего не намерить (разбор в STATE 3.70). Без
+        /// сохранённых чисел цвет в `.mat` менялся бы от того, в какой момент
+        /// нажали пересборку.
         /// </summary>
-        private static readonly Dictionary<Tone, Color> Fallback = new Dictionary<Tone, Color>();
+        private static readonly Dictionary<Tone, Color> Fallback = new Dictionary<Tone, Color>
+        {
+            // SM_Prop_Bleachers_Straight_01 → #574D44
+            { Tone.Deck, new Color(0.341f, 0.302f, 0.267f) },
+
+            // SM_Gen_Prop_Chain_01 → #424242
+            { Tone.CageMetal, new Color(0.259f, 0.259f, 0.259f) }
+        };
 
         /// <summary>Насколько поясок светлее кирпича борта: верх борта обязан читаться отдельной линией.</summary>
         private const float CopeFactor = 1.28f;
@@ -201,11 +236,16 @@ namespace Igruha.EditorTools
                 case Tone.Sawdust:
                     return new Color(0.800f, 0.680f, 0.440f);
 
+                // Обе величины ниже — запасные на случай, когда пака нет вовсе:
+                // в норме и настил, и металл приходят замером (см. Sources).
                 case Tone.Deck:
+                    return new Color(0.341f, 0.302f, 0.267f);
+
+                case Tone.CageWood:
                     return new Color(0.420f, 0.290f, 0.200f);
 
                 case Tone.CageMetal:
-                    return new Color(0.300f, 0.240f, 0.220f);
+                    return new Color(0.259f, 0.259f, 0.259f);
 
                 // Панель табло почти чёрная: по ней идёт светлый текст, и любой
                 // подъём яркости панели съедает контраст строк. Читаемость
@@ -338,6 +378,7 @@ namespace Igruha.EditorTools
                 case Tone.Brick:
                 case Tone.BrickCope:
                 case Tone.Deck:
+                case Tone.CageWood:
                 case Tone.BearFur:
                     HoleInWallMaterials.ConfigureOpaque(material, color, 0.05f, 0f);
                     break;

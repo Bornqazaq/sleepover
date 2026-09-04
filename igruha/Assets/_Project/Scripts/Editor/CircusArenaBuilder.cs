@@ -855,7 +855,7 @@ namespace Igruha.EditorTools
             Transform roof = MakeBox(anchor, "Roof", groundLayer);
             roof.localPosition = new Vector3(0f, height + CageFloorThickness * 0.5f, 0f);
             roof.localScale = new Vector3(outer * 2f, CageFloorThickness, outer * 2f);
-            Paint(roof, CircusPalette.Tone.Deck);
+            Paint(roof, CircusPalette.Tone.CageWood);
 
             for (int side = 0; side < 4; side++)
             {
@@ -1030,7 +1030,7 @@ namespace Igruha.EditorTools
                     StripCollider(bar);
                     bar.localPosition = new Vector3(-sign * outer * t, -CageFloorThickness * 0.5f, 0f);
                     bar.localScale = new Vector3(BarThickness * 2f, CageFloorThickness, outer * 2f);
-                    Paint(bar, CircusPalette.Tone.Deck);
+                    Paint(bar, CircusPalette.Tone.CageWood);
                 }
             }
         }
