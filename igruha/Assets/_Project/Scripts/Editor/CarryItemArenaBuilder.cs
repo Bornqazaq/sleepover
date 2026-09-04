@@ -102,6 +102,24 @@ namespace Igruha.EditorTools
         private const float PlankThickness = 0.4f;
         private const float WallThickness = 1f;
 
+        /// <summary>
+        /// Толщина кадра под дресс, ШИ. Кадр — габарит, а не преграда.
+        ///
+        /// 0.45 ШИ это 0.324 м, и число взято не на глаз: самая толстая панель
+        /// пака — 0.30 м. Кадр тоньше неё считался бы переполненным, и замер
+        /// честно отдавал 4 см выхода за габарит на каждом фасаде.
+        /// </summary>
+        private const float FrameThickness = 0.45f;
+
+        /// <summary>Верх пояса фасада, ШИ: панель стены пака ровно 2.90 м.</summary>
+        private const float FacadeTopY = 4.03f;
+
+        /// <summary>Низ пояса стенки выемки, ШИ: три метра видимого борта пропасти.</summary>
+        private const float PitBandY = -4.17f;
+
+        /// <summary>Глубина среза перекрытия у кромки, ШИ: 1.16 м — ровно плита пака.</summary>
+        private const float LipDepth = 1.61f;
+
         /// <summary>Сколько места нужно бутыли и несущему, чтобы протиснуться мимо балки, ШИ.</summary>
         private const float PassageClearance = 2f;
 
@@ -256,9 +274,23 @@ namespace Igruha.EditorTools
             Floor(group, config, ground, "Floor_Tanks", TankMinX, TankMaxX + EndMarginX, 0f);
 
             // Дно пропастей: на нём стоит KillZone, и об него же считается
-            // объявленная LDD пара секунд до респавна. Грунт, а не бетон —
-            // внизу стройка ещё не залита, и разница материала работает на то
-            // же, что и разница тона: край проёма обязан читаться.
+            // объявленная LDD пара секунд до респавна.
+            //
+            // <b>Дно красится, а не одевается, и это разбор поломки 04.09.</b>
+            // С 4.1 сюда садился `SM_Env_Dirt_Square_01`, и всё это время дно
+            // было дырявым: у модели прямоугольный габарит, но силуэт
+            // «органический» — вытянутое пятно с рваными краями. Под дресс
+            // рендерер коробки гаснет, и в углах пропасти вместо грунта
+            // просвечивал фон, а нижний ярус висел в пустоте. На скриншотах
+            // это читалось голубой заливкой и списывалось на тон дна.
+            //
+            // Замер такое не ловит вовсе: модель на месте, габарит совпадает,
+            // за коробку не вылезает. Ловится только глазом, и потому попало в
+            // приёмку лишь тогда, когда в пропасть стали смотреть специально.
+            //
+            // Тёмный бетон вместо грунта — не потеря: глубину он держит лучше
+            // светлого дна, а фактуру внизу дают кучи грунта, бадьи и техника
+            // нижнего яруса, которые никуда не делись.
             float depth = -config.ChasmDepth;
             GameObject deep1 = Slab(group, config, ground, "Floor_Chasm_1",
                 StartMaxX, CommonMinX, -HalfWidth, HalfWidth, depth);
@@ -268,7 +300,6 @@ namespace Igruha.EditorTools
             foreach (GameObject bottom in new[] { deep1, deep2 })
             {
                 Paint(bottom, CarryItemPalette.Get(CarryItemPalette.Tone.ConcreteDeep));
-                CarryItemDress.Apply(bottom, CarryItemDress.Kind.ChasmFloor, dressRandom);
             }
 
             BuildChasmEdges(group, config);
@@ -317,6 +348,142 @@ namespace Igruha.EditorTools
                     config.ToMeters(EdgeStripeWidth), config.ToMeters(0.04f), config.ToMeters(HalfWidth * 2f));
                 Object.DestroyImmediate(go.GetComponent<Collider>());
                 Paint(go, stripe);
+
+                float outward = i % 2 == 0 ? FrameThickness : -FrameThickness;
+                float faceMinX = Mathf.Min(edges[i], edges[i] + outward);
+                float faceMaxX = Mathf.Max(edges[i], edges[i] + outward);
+
+                // Стенка выемки во всю глубину — и это не декор, а заделка
+                // настоящей дыры. Перекрытие толщиной всего 0.72 м, а под ним
+                // пусто: с низкого угла взгляд проходил над дном, под дальней
+                // плитой и уходил за пределы арены. В кадре это читалось как
+                // голубой провал в яме, и на скриншотах 4.1-4.6 списывалось на
+                // цвет дна. Луч из камеры честно уходил «мимо всего».
+                //
+                // Коллайдера у стенки нет: падать в пропасть игрок обязан
+                // насквозь, а границу ему держат KillZone и борта.
+                GameObject face = Box(group, config, 0, $"ChasmFace_{i + 1}",
+                    faceMinX, faceMaxX, -HalfWidth, HalfWidth, -config.ChasmDepth, config.ChasmDepth);
+                Object.DestroyImmediate(face.GetComponent<Collider>());
+                Paint(face, CarryItemPalette.Get(CarryItemPalette.Tone.ConcreteDeep));
+
+                // Пояса садятся <b>перед</b> стенкой, а не в неё: стенка
+                // обязана остаться сплошной. Арматурная плита — решётка, и
+                // одетая ею коробка погасила бы свой рендерер, вернув дыру,
+                // ради заделки которой стенка и появилась.
+                float bandMinX = Mathf.Min(faceMinX + outward, faceMaxX + outward);
+                float bandMaxX = Mathf.Max(faceMinX + outward, faceMaxX + outward);
+
+                // Ниже среза — бетон выемки с арматурой во всю глубину.
+                Frame(group, config, "ChasmWall_" + (i + 1),
+                    bandMinX, bandMaxX, -HalfWidth, HalfWidth,
+                    -config.ChasmDepth, config.ChasmDepth - LipDepth,
+                    CarryItemDress.Kind.PitWall);
+
+                // Срез перекрытия поверх стенки. Без него проём читается ровно
+                // вырезанным прямоугольником: пол выглядит целым, а дыра в нём
+                // случайной. Арматура, торчащая из среза, говорит «оборвали»,
+                // и падать становится страшно раньше, чем упал.
+                Frame(group, config, "ChasmLip_" + (i + 1),
+                    bandMinX, bandMaxX, -HalfWidth, HalfWidth, -LipDepth, LipDepth,
+                    CarryItemDress.Kind.ChasmLip);
+            }
+        }
+
+        /// <summary>
+        /// Кадр-пустышка под дресс: коробка без коллайдера и без рендерера,
+        /// задающая габарит, в который садятся модели.
+        ///
+        /// Зачем кадр, а не сама коробка стены. Стена 4.32 м высотой, панель
+        /// пака — 2.90. Посаженная в стену целиком, панель встала бы двумя
+        /// рядами, приплюснутыми до трёх четвертей роста: окна получились бы
+        /// лежачими. Кадр режет стену на пояса ровно в рост модели, и подтяжка
+        /// остаётся у единицы.
+        ///
+        /// <b>Коробка стены при этом не трогается вовсе</b> — ни коллайдер, ни
+        /// слой, ни размер. Кадр стоит рядом и коллайдера не имеет: договор с
+        /// фазами 2-3 держит коробка, а форму даёт дресс.
+        ///
+        /// Рендерер кадра гасится всегда, даже когда модель не нашлась: иначе
+        /// на месте ненайденной панели загорелся бы белый куб.
+        /// </summary>
+        private static GameObject Frame(Transform group, CarryItemConfig config, string name,
+            float minX, float maxX, float minZ, float maxZ, float bottomY, float height,
+            CarryItemDress.Kind kind)
+        {
+            GameObject frame = Box(group, config, 0, name, minX, maxX, minZ, maxZ, bottomY, height);
+            Object.DestroyImmediate(frame.GetComponent<Collider>());
+            CarryItemDress.Apply(frame, kind, dressRandom);
+
+            var renderer = frame.GetComponent<MeshRenderer>();
+            if (renderer != null)
+            {
+                renderer.enabled = false;
+            }
+
+            return frame;
+        }
+
+        /// <summary>
+        /// Периметр арены поясами поверх тех же коробок стен.
+        ///
+        /// Замечание геймдизайнера 04.09: глухая крашеная стена занимала верхнюю
+        /// треть кадра и не говорила ничего.
+        ///
+        /// Три пояса по высоте, и каждый отвечает на свой вопрос: фасад с окнами
+        /// и дверями — «вокруг стройки стоят коробки домов», венец с арматурой —
+        /// «они недостроены», стенка выемки — «под ногами не земля, а котлован».
+        /// Пояса садятся заподлицо с внутренней гранью стены, сама коробка
+        /// остаётся крашеным бетоном за ними.
+        ///
+        /// Стенка выемки ставится только напротив пропастей: в остальной длине
+        /// борт ниже нуля закрыт перекрытием, и одевать его не для кого.
+        /// </summary>
+        private static void DressPerimeter(Transform group, CarryItemConfig config)
+        {
+            float height = config.WallHeight;
+            float startEdge = StartMinX - EndMarginX;
+            float tankEdge = TankMaxX + EndMarginX;
+            float minX = startEdge - WallThickness;
+            float maxX = tankEdge + WallThickness;
+            float crown = height - FacadeTopY;
+            float wallMinZ = -HalfWidth - WallThickness;
+            float wallMaxZ = HalfWidth + WallThickness;
+
+            // Пояс ставится с той стороны грани, где стоит игрок, а не внутрь
+            // толщи стены. Разница не косметическая: коробка стены остаётся
+            // крашеной и непрозрачной, и пояс, спрятанный внутрь неё, не виден
+            // с арены вовсе — первый прогон 04.09 дал ровно ту же голую стену,
+            // что и до правки, при полностью собранном дрессе.
+            Frame(group, config, "Facade_Start", startEdge, startEdge + FrameThickness,
+                wallMinZ, wallMaxZ, 0f, FacadeTopY, CarryItemDress.Kind.WallFacade);
+            Frame(group, config, "Crown_Start", startEdge, startEdge + FrameThickness,
+                wallMinZ, wallMaxZ, FacadeTopY, crown, CarryItemDress.Kind.WallCrown);
+            Frame(group, config, "Facade_Tanks", tankEdge - FrameThickness, tankEdge,
+                wallMinZ, wallMaxZ, 0f, FacadeTopY, CarryItemDress.Kind.WallFacade);
+            Frame(group, config, "Crown_Tanks", tankEdge - FrameThickness, tankEdge,
+                wallMinZ, wallMaxZ, FacadeTopY, crown, CarryItemDress.Kind.WallCrown);
+
+            // Борта во всю длину.
+            Frame(group, config, "Facade_SideA", minX, maxX, HalfWidth - FrameThickness, HalfWidth,
+                0f, FacadeTopY, CarryItemDress.Kind.WallFacade);
+            Frame(group, config, "Crown_SideA", minX, maxX, HalfWidth - FrameThickness, HalfWidth,
+                FacadeTopY, crown, CarryItemDress.Kind.WallCrown);
+            Frame(group, config, "Facade_SideB", minX, maxX, -HalfWidth, -HalfWidth + FrameThickness,
+                0f, FacadeTopY, CarryItemDress.Kind.WallFacade);
+            Frame(group, config, "Crown_SideB", minX, maxX, -HalfWidth, -HalfWidth + FrameThickness,
+                FacadeTopY, crown, CarryItemDress.Kind.WallCrown);
+
+            // Стенка выемки — напротив каждой пропасти, на обоих бортах.
+            var chasms = new[] { new Vector2(StartMaxX, CommonMinX), new Vector2(CommonMaxX, TankMinX) };
+            for (int i = 0; i < chasms.Length; i++)
+            {
+                Frame(group, config, "Pit_A_" + (i + 1), chasms[i].x, chasms[i].y,
+                    HalfWidth - FrameThickness, HalfWidth, PitBandY, -PitBandY,
+                    CarryItemDress.Kind.PitWall);
+                Frame(group, config, "Pit_B_" + (i + 1), chasms[i].x, chasms[i].y,
+                    -HalfWidth, -HalfWidth + FrameThickness, PitBandY, -PitBandY,
+                    CarryItemDress.Kind.PitWall);
             }
         }
 
@@ -345,6 +512,8 @@ namespace Igruha.EditorTools
                 -config.ChasmDepth, height + config.ChasmDepth), concrete);
             Paint(Box(group, config, ground, "Wall_SideB", minX, maxX, -HalfWidth - WallThickness, -HalfWidth,
                 -config.ChasmDepth, height + config.ChasmDepth), concrete);
+
+            DressPerimeter(group, config);
         }
 
         private static void BuildPlanks(Transform root, CarryItemConfig config, int ground)

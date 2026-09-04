@@ -24,11 +24,23 @@ namespace Igruha.EditorTools
     /// правильный цвет. Палитра подфазы 4.2 занимается полами, стенами и
     /// стеклом бутыли — тем, что моделями не одевается вовсе.
     ///
+    /// <b>Большая плоскость одевается повтором, а не растяжением.</b>
+    ///
+    /// До 04.09 полы и стены в каталоге отсутствовали вовсе, и причина
+    /// записана была так: модель, растянутая на 28 или 56 метров, читается
+    /// бревном. Причина верная, вывод — нет. Растягивать нельзя, а повторять
+    /// можно: пол настелен плитами (<see cref="Kind.Floor"/>), периметр собран
+    /// из панелей (<see cref="Kind.WallFacade"/>), и подтяжка каждой копии
+    /// остаётся у единицы. Запрет касается <c>Fit.Stretch</c> на длинной
+    /// коробке, а не самой длинной коробки.
+    ///
     /// <b>Чего в каталоге нет намеренно.</b>
     ///
-    /// Полы и стены: пять плит длиной до 28.8 м и четыре стены до 56 м — это
-    /// те самые большие плоскости, которые моделями не одевают. Любая модель,
-    /// растянутая на такую длину, читается бревном.
+    /// Дно пропасти: у пака нет прямоугольной плиты грунта вовсе. Единственный
+    /// подходящий по размеру `SM_Env_Dirt_Square_01` — «органическое» пятно с
+    /// рваными краями в прямоугольном габарите, и под ним дно пропасти было
+    /// дырявым с 4.1 до 04.09: рендерер коробки гаснет под дресс, а модель углы
+    /// не закрывает. Дно красится тоном, фактуру внизу держит нижний ярус.
     ///
     /// Бутыль и бак: их читаемость держится на прозрачности. Бутыли для кулера
     /// нет ни в одном из двенадцати паков (проверено по всем 8198 префабам
@@ -62,8 +74,17 @@ namespace Igruha.EditorTools
             /// <summary>Перекрытие, по которому бегут: настилается плитами, а не красится.</summary>
             Floor,
 
-            /// <summary>Дно пропасти: грунт нижнего яруса.</summary>
-            ChasmFloor
+            /// <summary>Фасад периметра: нижний пояс стены, панели с окнами и дверями.</summary>
+            WallFacade,
+
+            /// <summary>Венец периметра: плита с торчащей арматурой поверх фасада.</summary>
+            WallCrown,
+
+            /// <summary>Стенка выемки: борт арены ниже нуля, напротив пропасти.</summary>
+            PitWall,
+
+            /// <summary>Кромка обрыва: срез плиты перекрытия с торчащей арматурой.</summary>
+            ChasmLip
         }
 
         /// <summary>Одевание одного вида: чем закрываем и зачем именно этим.</summary>
@@ -72,10 +93,24 @@ namespace Igruha.EditorTools
             public readonly string Title;
             public readonly Entry[] Entries;
 
+            /// <summary>
+            /// Выбирать модель на каждую копию, а не на коробку целиком.
+            /// Нужно ровно фасаду: полсотни одинаковых панелей читаются обоями.
+            /// </summary>
+            public readonly bool Mix;
+
             public Wear(string title, params Entry[] entries)
             {
                 Title = title;
                 Entries = entries;
+                Mix = false;
+            }
+
+            public Wear(string title, bool mix, params Entry[] entries)
+            {
+                Title = title;
+                Entries = entries;
+                Mix = mix;
             }
         }
 
@@ -180,12 +215,63 @@ namespace Igruha.EditorTools
                     new Entry(Buildings + "SM_Bld_Concrete_Floor_01.prefab", Fit.Tile))
             },
             {
-                // Дно пропасти — грунт, а не бетон: внизу стройка ещё не залита,
-                // и разница материала работает на то же, на что разница тона —
-                // край проёма обязан читаться (требование LDD).
-                Kind.ChasmFloor,
-                new Wear("дно пропасти",
-                    new Entry(Environments + "SM_Env_Dirt_Square_01.prefab", Fit.Tile))
+                // Фасад периметра. Панели дома пака идут ровно 2.50 × 2.90 и
+                // отличаются только проёмом — глухая, с окном, с дверью, по
+                // четыре варианта каждой. Поэтому их можно мешать на каждую
+                // копию: сетка копий считается по первой записи, а габарит у
+                // всех один.
+                //
+                // Fit.Wall, а не Tile: повтор нужен и по длине, и по высоте,
+                // а тонкая сторона панели сама доворачивается к тонкой стороне
+                // кадра — один каталог годится и на борт вдоль X, и на торец
+                // вдоль Z.
+                //
+                // Пояс ровно в высоту панели (2.90 м), поэтому подтяжки по
+                // вертикали нет вовсе: панель стоит в натуральный рост, а не
+                // приплюснутая под высоту стены.
+                Kind.WallFacade,
+                new Wear("фасад периметра", true,
+                    new Entry(Buildings + "SM_Bld_House_Wall_01.prefab", Fit.Wall),
+                    new Entry(Buildings + "SM_Bld_House_Wall_02.prefab", Fit.Wall),
+                    new Entry(Buildings + "SM_Bld_House_Wall_03.prefab", Fit.Wall),
+                    new Entry(Buildings + "SM_Bld_House_Wall_04.prefab", Fit.Wall),
+                    new Entry(Buildings + "SM_Bld_House_Wall_Window_01.prefab", Fit.Wall),
+                    new Entry(Buildings + "SM_Bld_House_Wall_Window_02.prefab", Fit.Wall),
+                    new Entry(Buildings + "SM_Bld_House_Wall_Window_03.prefab", Fit.Wall),
+                    new Entry(Buildings + "SM_Bld_House_Wall_Window_04.prefab", Fit.Wall),
+                    new Entry(Buildings + "SM_Bld_House_Wall_Door_01.prefab", Fit.Wall),
+                    new Entry(Buildings + "SM_Bld_House_Wall_Door_02.prefab", Fit.Wall),
+                    new Entry(Buildings + "SM_Bld_House_Wall_Window_01.prefab", Fit.Wall),
+                    new Entry(Buildings + "SM_Bld_House_Wall_Window_03.prefab", Fit.Wall))
+            },
+            {
+                // Венец: плита с арматурой поверх фасада. Пояс 1.42 м при
+                // модели 1.16 — подтяжка 1.22, внутри предела 1.35.
+                //
+                // Это и есть примета недостроя: этаж залит, арматура под
+                // следующий торчит наружу. Кроме того венец закрывает разрыв
+                // между верхом панели (2.90 м) и верхом стены (4.32 м), иначе
+                // там осталась бы полоса крашеной коробки.
+                Kind.WallCrown,
+                new Wear("венец периметра",
+                    new Entry(Buildings + "SM_Bld_ConcreteRebar_Wall_03.prefab", Fit.Wall))
+            },
+            {
+                // Стенка выемки — то, что видно, когда смотришь в пропасть.
+                // Пояс 3 м при модели 2.92: подтяжка 1.03. Ниже трёх метров
+                // стенку закрывает нижний ярус и дымка, и одевать её незачем.
+                Kind.PitWall,
+                new Wear("стенка выемки",
+                    new Entry(Buildings + "SM_Bld_ConcreteRebar_Wall_01.prefab", Fit.Wall))
+            },
+            {
+                // Кромка обрыва: срез перекрытия. Без неё пропасть читается
+                // аккуратно вырезанным прямоугольником — пол выглядит целым,
+                // а дыра в нём случайной. С торчащей арматурой он выглядит
+                // оборванным, и падать становится страшно раньше, чем упал.
+                Kind.ChasmLip,
+                new Wear("кромка обрыва",
+                    new Entry(Buildings + "SM_Bld_ConcreteRebar_Wall_03.prefab", Fit.Wall))
             },
             {
                 // Кирпич — 0.35 × 0.2 × 0.2 ШИ. Кирпич пака 0.43 × 0.19 × 0.25 м
@@ -222,7 +308,7 @@ namespace Igruha.EditorTools
                 return null;
             }
 
-            return DressKit.Apply(box, wear.Entries, rng);
+            return DressKit.Apply(box, wear.Entries, rng, null, wear.Mix);
         }
 
         /// <summary>

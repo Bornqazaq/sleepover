@@ -99,6 +99,7 @@ namespace Igruha.EditorTools
             BuildFloorLitter(group, config, rng);
             BuildSiteProps(group, config, rng);
             BuildPerimeter(group, config, rng);
+            BuildChasmGuards(group, config, rng);
             BuildLight();
         }
 
@@ -415,13 +416,42 @@ namespace Igruha.EditorTools
                 wall.Add(new Vector3(x, 0f, -edge));
             }
 
+            // Забор идёт и по торцам, а не только по бортам: до правки 04.09
+            // за штабелем и за баком не стояло ничего вовсе, и обе торцевые
+            // стены читались пустой плоскостью на всю ширину арены.
+            for (float z = -17f; z <= 17.5f; z += 5.5f)
+            {
+                if (!IsFree(-35.5f, z, config) && !IsFree(35.5f, z, config))
+                {
+                    continue;
+                }
+
+                if (IsFree(-35.5f, z, config))
+                {
+                    wall.Add(new Vector3(-35.5f, 0f, z));
+                }
+
+                if (IsFree(35.5f, z, config))
+                {
+                    wall.Add(new Vector3(35.5f, 0f, z));
+                }
+            }
+
+            // Набор перевешен в сторону забора: строительный периметр — это
+            // прежде всего профлист и сетка, а леса и плиты между ними
+            // разбавляют строй, а не составляют его.
             string[] kit =
             {
+                Props + "SM_Prop_Fence_MetalSheet_01.prefab",
+                Props + "SM_Prop_Fence_MetalSheet_02.prefab",
+                Props + "SM_Prop_Fence_MetalSheet_03.prefab",
+                Props + "SM_Prop_Fence_Wire_01.prefab",
+                Props + "SM_Prop_Fence_Wire_01.prefab",
+                Props + "SM_Prop_Fence_Concrete_01.prefab",
+                Props + "SM_Prop_Fence_Concrete_Pillar_01.prefab",
                 Props + "SM_Prop_Scaffold_01.prefab",
                 Props + "SM_Prop_Scaffold_02.prefab",
                 Props + "SM_Prop_Scaffold_Stackable_01.prefab",
-                Props + "SM_Prop_Fence_MetalSheet_01.prefab",
-                Props + "SM_Prop_Fence_Wire_01.prefab",
                 Buildings + "SM_Bld_ConcreteRebar_Pillar_Short_01.prefab",
                 Buildings + "SM_Bld_ConcreteRebar_Wall_02.prefab"
             };
@@ -429,7 +459,9 @@ namespace Igruha.EditorTools
             for (int i = 0; i < wall.Count; i++)
             {
                 Vector3 spot = wall[i];
-                float yaw = spot.z > 0f ? 0f : 180f;
+                float yaw = Mathf.Abs(spot.x) > 30f
+                    ? (spot.x > 0f ? 270f : 90f)
+                    : (spot.z > 0f ? 0f : 180f);
                 Place(group, $"Wall_{i + 1}", kit[rng.Next(kit.Length)], config, spot, yaw);
             }
 
@@ -447,6 +479,51 @@ namespace Igruha.EditorTools
                 new Vector3(-4f, 0f, 12.5f), 200f);
             Place(group, "NeckLight", Props + "SM_Prop_TrafficLight_Directional_01.prefab", config,
                 new Vector3(-4f, 0f, -12.5f), 20f);
+        }
+
+        /// <summary>
+        /// Временные ограждения по кромкам пропастей.
+        ///
+        /// Зачем. Кромка размечена жёлтой полосой, но полоса лежит в полу и с
+        /// игровой камеры уходит в перспективу. Ограждение стоит вертикально и
+        /// попадает в силуэт: обрыв виден раньше, чем игрок к нему подошёл.
+        ///
+        /// <b>Мимо маршрутов и мимо подходов к доскам.</b> Ограждение поперёк
+        /// дороги читается преградой ровно там, где надо бежать, — поэтому
+        /// точки просеиваются тем же <see cref="IsFree"/>, что и весь остальной
+        /// реквизит пола. Коллайдеров у них нет: <see cref="Place"/> срезает.
+        /// </summary>
+        private static void BuildChasmGuards(Transform group, CarryItemConfig config, System.Random rng)
+        {
+            // Кромки пропастей и сторона, с которой к ним подходит пол:
+            // чётные смотрят на запад, нечётные на восток.
+            var edges = new[] { -19f, -7f, 13f, 23f };
+            var zs = new[] { -17f, -13f, -11f, 0f, 11f, 13f, 17f };
+
+            string[] kit =
+            {
+                Props + "SM_Prop_Barrier_Long_01.prefab",
+                Props + "SM_Prop_Barrier_Long_02_Tarp.prefab",
+                Props + "SM_Prop_Barrier_Plastic_01.prefab",
+                Props + "SM_Prop_Barrier_Plastic_02.prefab"
+            };
+
+            int placed = 0;
+            for (int i = 0; i < edges.Length; i++)
+            {
+                float x = edges[i] + (i % 2 == 0 ? -1.2f : 1.2f);
+                foreach (float z in zs)
+                {
+                    if (!IsFree(x, z, config))
+                    {
+                        continue;
+                    }
+
+                    placed++;
+                    Place(group, $"Guard_{placed}", kit[rng.Next(kit.Length)], config,
+                        new Vector3(x, 0f, z), 0f);
+                }
+            }
         }
 
         /// <summary>

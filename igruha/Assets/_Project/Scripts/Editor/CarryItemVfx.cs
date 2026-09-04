@@ -56,6 +56,7 @@ namespace Igruha.EditorTools
             BuildPipeJet(group, config, pipe);
             BuildBeamTrail(group, beam);
             BuildHaze(group, config);
+            BuildChasmHaze(group, config);
 
             Wire(manager, stacks, cart, splashes, sprays, dusts, swooshes, cartBurst);
         }
@@ -153,6 +154,55 @@ namespace Igruha.EditorTools
                 main.startSpeed = 0.35f;
                 main.startLifetime = 2.2f;
                 main.gravityModifier = 0.04f;
+            }
+        }
+
+        /// <summary>
+        /// Дымка в глубине пропасти — то, чем обрыв отличается от траншеи.
+        ///
+        /// Пока дно видно целиком, глубина известна, и падение не пугает.
+        /// Слой взвеси на середине глубины съедает нижний ярус наполовину: дно
+        /// перестаёт читаться разом, и пропасть кажется глубже, чем есть. Сам
+        /// нижний ярус при этом остаётся на месте — его видно сквозь дымку и
+        /// целиком, если подойти к самой кромке и посмотреть вниз.
+        ///
+        /// Медленнее и прозрачнее наземной взвеси: та живёт под ногами и должна
+        /// быть незаметной, эта висит в яме и должна читаться слоем.
+        /// </summary>
+        private static void BuildChasmHaze(Transform group, CarryItemConfig config)
+        {
+            var spots = new[]
+            {
+                new Vector3(-13f, -6f, -9f),
+                new Vector3(-13f, -6f, 9f),
+                new Vector3(18f, -6f, -9f),
+                new Vector3(18f, -6f, 9f)
+            };
+
+            for (int i = 0; i < spots.Length; i++)
+            {
+                ParticleSystem haze = Spawn(group, $"ChasmHaze_{i + 1}", Fx + "FX_Dust_Small_01.prefab", 1.6f,
+                    keepLoop: true, keepAwake: true);
+                if (haze == null)
+                {
+                    continue;
+                }
+
+                haze.transform.position = new Vector3(
+                    config.ToMeters(spots[i].x), config.ToMeters(spots[i].y), config.ToMeters(spots[i].z));
+
+                ParticleSystem.MainModule main = haze.main;
+                main.startColor = new Color(0.78f, 0.76f, 0.72f, 0.34f);
+
+                // Тяжесть положительная, а скорость почти нулевая, и это не
+                // вкусовщина: масштаб в режиме Hierarchy умножает и скорость, и
+                // тяжесть. При подъёме 0.12 и масштабе 2.2 облако за шесть
+                // секунд выбиралось из ямы наружу и вставало столбом до 3.12 м —
+                // выше предела постоянного эффекта вдвое. Пыль в котловане
+                // обязана оседать, а не всплывать.
+                main.startSpeed = 0.05f;
+                main.startLifetime = 4.5f;
+                main.gravityModifier = 0.03f;
             }
         }
 

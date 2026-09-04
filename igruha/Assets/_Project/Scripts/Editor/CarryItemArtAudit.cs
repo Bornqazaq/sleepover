@@ -124,7 +124,13 @@ namespace Igruha.EditorTools
                         }
                     }
 
-                    if (gap > Tolerance)
+                    // Настил, прижатый к верхней грани, — не «висит в воздухе»,
+                    // а стоит там, где должен: по нему ходят, и низ коробки под
+                    // ним это толща, а не пустота. DressKit прижимает его туда
+                    // намеренно. Проверка ловит обратный случай — модель,
+                    // оторванную и от низа, и от верха.
+                    bool sitsOnTop = Mathf.Abs(cage.max.y - model.max.y) <= Tolerance;
+                    if (gap > Tolerance && !sitsOnTop)
                     {
                         floating++;
                         worstGap = Mathf.Max(worstGap, gap);
@@ -185,14 +191,31 @@ namespace Igruha.EditorTools
             }
 
             report.Append("\n\n— Декор мимо коробок —");
+            // Отдельной строкой — вся группа окружения целиком. Список имён
+            // знает только реквизит, который ставится поимённо; забор,
+            // ограждения кромок и скайлайн в него не входят — их десятки и они
+            // безымянные. Правило «у окружения коллайдеров нет» касается их
+            // ровно так же, и проверять его надо по группе, а не по списку.
+            GameObject arenaRoot = GameObject.Find("_Arena");
+            Transform environment = arenaRoot != null ? arenaRoot.transform.Find("Environment") : null;
+            int environmentColliders = environment != null
+                ? environment.GetComponentsInChildren<Collider>(true).Length
+                : -1;
+
             report.Append("\n  предметов:                ").Append(props.Count);
             report.Append("\n  коллайдеров в них:        ").Append(colliders).Append(colliders == 0 ? " ✔" : " ✘");
+            report.Append("\n  коллайдеров в окружении:  ").Append(environmentColliders)
+                .Append(environmentColliders == 0 ? " ✔" : " ✘");
             report.Append("\n  не стоит на полу:         ").Append(offFloor)
                 .Append(offFloor == 0 ? " ✔" : $" ✘ (до {worst:F2} м)");
         }
 
         /// <summary>Постоянные эффекты: те, которым автостарт положен по замыслу.</summary>
-        private static readonly string[] AlwaysOn = { "PipeJet", "BeamTrail", "Haze_1", "Haze_2", "Haze_3" };
+        private static readonly string[] AlwaysOn =
+        {
+            "PipeJet", "BeamTrail", "Haze_1", "Haze_2", "Haze_3",
+            "ChasmHaze_1", "ChasmHaze_2", "ChasmHaze_3", "ChasmHaze_4"
+        };
 
         /// <summary>
         /// Эффекты: коллайдеров нет, автостарт остался только у постоянных,
@@ -234,6 +257,26 @@ namespace Igruha.EditorTools
             // иначе он закрывает собой то, на что игрок смотрит. Мгновенный
             // живёт полсекунды, и разлёт брызг вверх — это и есть удар; ему
             // допуск шире, но не бесконечный.
+            // Габарит партикла пуст, пока тот не сыграл ни кадра. Замер сразу
+            // после пересборки честно отдавал ноль по обеим высотам и ставил
+            // галочку там, где ничего не мерил, — то есть проверка молча
+            // проходила всегда. Поэтому системы прогоняются здесь же: луп на
+            // несколько секунд, вспышка на свою длину.
+            //
+            // Прогоняются только корневые: Simulate идёт по детям сам, и вызов
+            // на вложенной системе сдвинул бы её вперёд дважды.
+            for (int i = 0; i < systems.Length; i++)
+            {
+                Transform parent = systems[i].transform.parent;
+                if (parent != null && parent.GetComponentInParent<ParticleSystem>() != null)
+                {
+                    continue;
+                }
+
+                systems[i].Simulate(0f, true, true);
+                systems[i].Simulate(systems[i].main.loop ? 3.5f : 0.5f, true, false);
+            }
+
             float burst = 0f;
             var renderers = group.GetComponentsInChildren<Renderer>(true);
             for (int i = 0; i < renderers.Length; i++)
@@ -340,7 +383,15 @@ namespace Igruha.EditorTools
                     Mesh mesh = filters[i].sharedMesh;
                     if (mesh != null)
                     {
-                        triangles += mesh.triangles.Length / 3;
+                        // Через GetIndexCount, а не через triangles: меши паков
+                        // приходят с выключенным Read/Write, и обращение к
+                        // треугольникам роняет в консоль ошибку на каждый такой
+                        // меш. Число индексов лежит в описании меша и читается
+                        // всегда — замер тот же, а консоль остаётся чистой.
+                        for (int sub = 0; sub < mesh.subMeshCount; sub++)
+                        {
+                            triangles += (long)(mesh.GetIndexCount(sub) / 3);
+                        }
                     }
                 }
             }
