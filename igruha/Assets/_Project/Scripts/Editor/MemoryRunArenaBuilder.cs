@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Text;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
@@ -44,6 +46,8 @@ namespace Igruha.EditorTools
                 return;
             }
 
+            MemoryRunDress.Begin();
+
             ReplaceRoot(ArenaRoot, out Transform arena);
             ReplaceRoot(BoundsRoot, out Transform bounds);
 
@@ -55,6 +59,9 @@ namespace Igruha.EditorTools
             BuildExit(arena, config);
             BuildKillZone(bounds, config);
             EnsureHudStatusLine();
+
+            Debug.Log(MemoryRunDress.Report(), arena);
+            ReportMissingModels();
 
             Debug.Log(
                 $"🧨 Арена «Рейса на память» построена: цех {config.HallWidth:F1}×{config.HallDepth:F1} м, " +
@@ -174,6 +181,7 @@ namespace Igruha.EditorTools
                 new Vector3(0f, lift - WallThickness * 0.5f, centerZ),
                 new Color(0.62f, 0.66f, 0.70f));
             SetLayer(floor, "Ground");
+            MemoryRunDress.Apply(floor, MemoryRunDress.Kind.Deck);
 
             // Метка для расстановки точек спавна и для возврата погибших.
             var marker = new GameObject("StartPoint");
@@ -244,8 +252,15 @@ namespace Igruha.EditorTools
                         new Vector3(config.LaneX(lane), -config.PlateThickness * 0.5f, config.StepZ(step)),
                         new Color(0.55f, 0.56f, 0.58f));
                     SetLayer(plate, "Ground");
+
+                    // 🔴 Все тридцать одеваются одним мешем и одним материалом,
+                    // без поворота и без вариаций. Это правило игры, а не вкус:
+                    // любая примета на плите заменяет память приметой.
+                    MemoryRunDress.ApplyPlate(plate);
                 }
             }
+
+            MemoryRunDress.BuildRowStructure(root.transform, config);
         }
 
         /// <summary>Сплошная безопасная площадка и дверь: понятная цель, видимая от первого ряда.</summary>
@@ -258,6 +273,7 @@ namespace Igruha.EditorTools
                 new Vector3(0f, -WallThickness * 0.5f, centerZ),
                 new Color(0.58f, 0.62f, 0.58f));
             SetLayer(pad, "Ground");
+            MemoryRunDress.Apply(pad, MemoryRunDress.Kind.Deck);
 
             float doorHeight = 3f * config.UnitsPerWidth;
             float doorWidth = 2.4f * config.UnitsPerWidth;
@@ -266,6 +282,7 @@ namespace Igruha.EditorTools
                 new Vector3(0f, doorHeight * 0.5f, config.HallDepth * 0.5f - WallThickness),
                 new Color(0.30f, 0.33f, 0.36f));
             SetLayer(door, "Ground");
+            MemoryRunDress.Apply(door, MemoryRunDress.Kind.ExitDoor);
 
             var lamp = CreateBox(parent, "ExitLamp",
                 new Vector3(doorWidth * 0.3f, 0.15f, 0.15f),
@@ -307,6 +324,29 @@ namespace Igruha.EditorTools
             }
 
             so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// Назвать модели, которых не оказалось в проекте. Паки Synty каждый
+        /// ставит себе сам и в репозиторий не кладутся, поэтому промах пути
+        /// обязан быть громким: молча пропущенная модель выглядит в сцене как
+        /// пустое место, а не как ошибка.
+        /// </summary>
+        private static void ReportMissingModels()
+        {
+            IReadOnlyList<string> missing = MemoryRunDress.Missing;
+            if (missing.Count == 0)
+            {
+                return;
+            }
+
+            var text = new StringBuilder("Модели не найдены — пересборка прошла с замечаниями:");
+            for (int i = 0; i < missing.Count; i++)
+            {
+                text.Append("\n— ").Append(missing[i]);
+            }
+
+            Debug.LogWarning(text.ToString());
         }
 
         private static void ReplaceRoot(string name, out Transform root)
@@ -423,8 +463,20 @@ namespace Igruha.EditorTools
             Debug.Log("HUD получил строку статуса: чей ход, таймер хода, очередь и счётчик попыток", text);
         }
 
-        /// <summary>Цвет барьера очереди — тот же, но теперь сквозь него видно.</summary>
-        private static readonly Color GateColor = new Color(0.75f, 0.62f, 0.20f, 0.22f);
+        /// <summary>
+        /// Цвет барьера очереди. Почти бесцветное стекло с лёгкой холодной
+        /// подсиненностью — <b>не жёлтое</b>.
+        ///
+        /// Жёлтым (0.75, 0.62, 0.20) он простоял с блокаута, и на рендерах
+        /// подфазы 4.0 стало видно, чего это стоит: сквозь барьер смотрят все
+        /// и всегда — в этом весь смысл игры, — и вся арена за ним уходила в
+        /// оливковый. Тонировать кадр, в который семеро смотрят весь раунд,
+        /// нельзя ничем.
+        ///
+        /// Прозрачность при этом трогать запрещено: её ставили ручным прогоном
+        /// 31.08, и глухой барьер ломал мини-игру целиком (см. BuildGate).
+        /// </summary>
+        private static readonly Color GateColor = new Color(0.78f, 0.84f, 0.90f, 0.10f);
 
         private static Material glassMaterial;
 
