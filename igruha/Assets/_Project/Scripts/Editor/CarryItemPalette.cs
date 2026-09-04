@@ -83,7 +83,16 @@ namespace Igruha.EditorTools
             Spray,
 
             /// <summary>Струя из горлышка наклонённой бутыли.</summary>
-            Pour
+            Pour,
+
+            /// <summary>Латка на бетоне: выбоина, залитый заново кусок, вытертое место.</summary>
+            Patch,
+
+            /// <summary>Трещина в перекрытии.</summary>
+            Crack,
+
+            /// <summary>Лужа: мокрый бетон, единственное блестящее место на полу.</summary>
+            Puddle
         }
 
         private const string Folder = "Assets/_Project/Materials/Minigames/CarryItem";
@@ -107,7 +116,10 @@ namespace Igruha.EditorTools
             { Tone.GripBase, "CI_HandleGrip" },
             { Tone.Ready, "CI_StackReady" },
             { Tone.Spray, "CI_PushZone" },
-            { Tone.Pour, "CI_PourWater" }
+            { Tone.Pour, "CI_PourWater" },
+            { Tone.Patch, "CI_Patch" },
+            { Tone.Crack, "CI_Crack" },
+            { Tone.Puddle, "CI_Puddle" }
         };
 
         /// <summary>
@@ -129,17 +141,27 @@ namespace Igruha.EditorTools
         };
 
         /// <summary>
-        /// Значения на случай, когда паков на машине нет. Это не «примерно
-        /// такие»: они сняты замером 04.09 и записаны сюда, чтобы цвет в `.mat`
-        /// не менялся от того, у кого открыт проект.
+        /// <b>Сырые</b> средние пака, снятые замером 04.09. Не «примерно такие»:
+        /// это результат того же усреднения по UV, записанный на диск.
+        ///
+        /// Нужны в двух случаях, и второй важнее первого. Первый — паков на
+        /// машине нет. Второй — меши пака закрыты на чтение: у импортёра Synty
+        /// Read/Write выключен, Unity держит вершины только до первой выгрузки,
+        /// и второй прогон замера в той же сессии уже ничего не мерит. Без
+        /// сохранённых чисел цвет в `.mat` менялся бы от того, в какой момент
+        /// нажали пересборку.
+        ///
+        /// Хранится именно сырое среднее, а не готовый тон: приглушение стены и
+        /// обесцвечивание бетона считаются в одном месте — иначе замеренный и
+        /// сохранённый пути разъезжаются, что и случилось 04.09.
         /// </summary>
         private static readonly Dictionary<Tone, Color> Fallback = new Dictionary<Tone, Color>
         {
-            { Tone.Concrete, new Color(0.725f, 0.706f, 0.674f) },
-            { Tone.Steel, new Color(0.557f, 0.231f, 0.200f) },
-            { Tone.Wood, new Color(0.902f, 0.804f, 0.557f) },
-            { Tone.Metal, new Color(0.635f, 0.659f, 0.690f) },
-            { Tone.Wall, new Color(0.694f, 0.678f, 0.651f) }
+            { Tone.Concrete, new Color(0.525f, 0.486f, 0.439f) },
+            { Tone.Wall, new Color(0.525f, 0.486f, 0.439f) },
+            { Tone.Steel, new Color(0.388f, 0.220f, 0.192f) },
+            { Tone.Wood, new Color(0.800f, 0.620f, 0.475f) },
+            { Tone.Metal, new Color(0.416f, 0.408f, 0.416f) }
         };
 
         /// <summary>Во сколько раз дно пропасти темнее пола. Ниже — дно сливается в чёрную дыру.</summary>
@@ -147,6 +169,23 @@ namespace Igruha.EditorTools
 
         /// <summary>Во сколько раз стена темнее пола: граница площадки обязана читаться.</summary>
         private const float WallFactor = 0.74f;
+
+        /// <summary>Латка на бетоне: заметна, но не дыра.</summary>
+        private const float PatchFactor = 0.88f;
+
+        /// <summary>Трещина: она и должна быть тёмной полосой.</summary>
+        private const float CrackFactor = 0.62f;
+
+        /// <summary>Лужа: мокрый бетон темнее сухого примерно вдвое.</summary>
+        private const float PuddleFactor = 0.52f;
+
+        /// <summary>
+        /// Сколько цветности остаётся у бетона. Решение геймдизайнера 04.09:
+        /// замер с пака даёт тёплый `#867C70`, и площадка читается земляной,
+        /// а не бетонной. Яркость берётся из замера, цветность снимается почти
+        /// до нуля — это ровно то, чем серый бетон отличается от глины.
+        /// </summary>
+        private const float ConcreteChroma = 0.18f;
 
         private static readonly Dictionary<Tone, Material> cache = new Dictionary<Tone, Material>(16);
         private static readonly Dictionary<Tone, Color> measured = new Dictionary<Tone, Color>(8);
@@ -164,11 +203,7 @@ namespace Igruha.EditorTools
             {
                 if (SyntyPalette.TryAverage(pair.Value, out Color average))
                 {
-                    // Стена и пол у пака один и тот же бетон, и замер даёт им
-                    // один цвет — на кадре они сливаются в сплошное пятно, и
-                    // граница площадки пропадает. Стена приглушается: разница
-                    // яркости отделяет её, не выдумывая нового материала.
-                    measured[pair.Key] = pair.Key == Tone.Wall ? Dim(average, WallFactor) : average;
+                    measured[pair.Key] = average;
                 }
                 else
                 {
@@ -191,14 +226,26 @@ namespace Igruha.EditorTools
         /// <summary>Цвет тона: замеренный, если пак на месте, иначе сохранённый.</summary>
         internal static Color ColorOf(Tone tone)
         {
-            if (measured.TryGetValue(tone, out Color average))
+            if (TryRaw(tone, out Color raw))
             {
-                return average;
-            }
+                switch (tone)
+                {
+                    // Бетон обесцвечивается почти до серого. Яркость берётся из
+                    // замера, цветность снимается — решение геймдизайнера 04.09:
+                    // тёплый замер пака делал площадку земляной, а не бетонной.
+                    case Tone.Concrete:
+                        return Desaturate(raw, ConcreteChroma);
 
-            if (Fallback.TryGetValue(tone, out Color saved))
-            {
-                return saved;
+                    // Стена и пол у пака один и тот же бетон, и замер даёт им
+                    // один цвет — на кадре они сливались в сплошное пятно, и
+                    // граница площадки пропадала. Разница яркости отделяет
+                    // стену, не выдумывая нового материала.
+                    case Tone.Wall:
+                        return Desaturate(Dim(raw, WallFactor), ConcreteChroma);
+
+                    default:
+                        return raw;
+                }
             }
 
             switch (tone)
@@ -232,6 +279,18 @@ namespace Igruha.EditorTools
 
                 case Tone.Pour:
                     return new Color(0.62f, 0.84f, 1f, 0.85f);
+
+                // Латка и трещина — тот же бетон, приглушённый. Свой цвет им
+                // не нужен: на настоящем перекрытии выбоина не другого
+                // материала, она просто темнее и грязнее.
+                case Tone.Patch:
+                    return Dim(ColorOf(Tone.Concrete), PatchFactor);
+
+                case Tone.Crack:
+                    return Dim(ColorOf(Tone.Concrete), CrackFactor);
+
+                case Tone.Puddle:
+                    return Dim(ColorOf(Tone.Concrete), PuddleFactor);
 
                 case Tone.Ready:
                     return new Color(0.62f, 0.98f, 0.66f);
@@ -300,7 +359,7 @@ namespace Igruha.EditorTools
                 }
                 else if (Sources.ContainsKey(tone))
                 {
-                    report.Append("  (пак не найден, сохранённое значение)");
+                    report.Append("  (замер недоступен, сохранённое значение)");
                 }
             }
 
@@ -339,13 +398,44 @@ namespace Igruha.EditorTools
                 case Tone.Concrete:
                 case Tone.ConcreteDeep:
                 case Tone.Wall:
+                case Tone.Patch:
+                case Tone.Crack:
                     HoleInWallMaterials.ConfigureOpaque(material, color, 0.06f, 0f);
+                    break;
+
+                // Лужа — единственное блестящее место на полу, и этим она и
+                // читается лужей, а не тёмным пятном краски.
+                case Tone.Puddle:
+                    HoleInWallMaterials.ConfigureOpaque(material, color, 0.88f, 0f);
                     break;
 
                 default:
                     HoleInWallMaterials.ConfigureOpaque(material, color, 0.2f, 0f);
                     break;
             }
+        }
+
+        /// <summary>Сырое среднее пака: замеренное в этом прогоне либо сохранённое.</summary>
+        private static bool TryRaw(Tone tone, out Color raw)
+        {
+            return measured.TryGetValue(tone, out raw) || Fallback.TryGetValue(tone, out raw);
+        }
+
+        /// <summary>
+        /// Снять цветность, оставив яркость. Доля <paramref name="keep"/> —
+        /// сколько цветности остаётся: ноль даёт чистый серый.
+        ///
+        /// Считается в линейном пространстве по той же причине, что и
+        /// приглушение: яркость — это про свет, а не про коды цветов.
+        /// </summary>
+        private static Color Desaturate(Color srgb, float keep)
+        {
+            Color linear = srgb.linear;
+            float grey = linear.r * 0.2126f + linear.g * 0.7152f + linear.b * 0.0722f;
+            return new Color(
+                Mathf.Lerp(grey, linear.r, keep),
+                Mathf.Lerp(grey, linear.g, keep),
+                Mathf.Lerp(grey, linear.b, keep), 1f).gamma;
         }
 
         /// <summary>

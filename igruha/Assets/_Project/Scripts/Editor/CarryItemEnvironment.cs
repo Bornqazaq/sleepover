@@ -95,6 +95,8 @@ namespace Igruha.EditorTools
 
             BuildSkyline(group, config);
             BuildLowerTier(group, config, rng);
+            BuildFloorWear(group, config, rng);
+            BuildFloorLitter(group, config, rng);
             BuildSiteProps(group, config, rng);
             BuildPerimeter(group, config, rng);
             BuildLight();
@@ -169,6 +171,182 @@ namespace Igruha.EditorTools
             });
         }
 
+        /// <summary>Секции пола арены, ШИ: старт, общая площадка, зона баков.</summary>
+        private static readonly Zone[] FloorSections =
+        {
+            new Zone(-37.5f, -19.5f, -19.5f, 19.5f),
+            new Zone(-6.5f, 12.5f, -19.5f, 19.5f),
+            new Zone(23.5f, 37.5f, -19.5f, 19.5f)
+        };
+
+        /// <summary>Сколько выбоин, трещин и луж приходится на всю площадку.</summary>
+        private const int PatchCount = 46;
+        private const int CrackCount = 34;
+        private const int PuddleCount = 14;
+
+        /// <summary>Насколько износ приподнят над полом, м. Меньше — мерцание с плитой.</summary>
+        private const float WearLift = 0.012f;
+
+        /// <summary>
+        /// Износ перекрытия: выбоины, трещины и лужи.
+        ///
+        /// Зачем это отдельно от реквизита. Реквизит нельзя ставить на маршрут —
+        /// он мешает бежать и смотреть. Износ можно ставить <b>везде</b>, потому
+        /// что он плоский: полтора сантиметра над полом не задевают ни ноги, ни
+        /// камеру, ни обзор. Именно поэтому маршруты и горлышко, где реквизита
+        /// не будет никогда, наполняются только так — а это ровно те места, где
+        /// игрок проводит весь раунд.
+        ///
+        /// Рисуется примитивами, а не моделями пака: ни выбоин, ни трещин у
+        /// пака нет, а плоское пятно нужного цвета — это десяток треугольников
+        /// против сотен у любой модели.
+        /// </summary>
+        private static void BuildFloorWear(Transform group, CarryItemConfig config, System.Random rng)
+        {
+            var wear = new GameObject("FloorWear");
+            wear.transform.SetParent(group, false);
+
+            Material patch = CarryItemPalette.Get(CarryItemPalette.Tone.Patch);
+            Material crack = CarryItemPalette.Get(CarryItemPalette.Tone.Crack);
+            Material puddle = CarryItemPalette.Get(CarryItemPalette.Tone.Puddle);
+
+            for (int i = 0; i < PatchCount; i++)
+            {
+                Vector2 spot = RandomFloorSpot(rng);
+                float size = Mathf.Lerp(0.5f, 2.2f, (float)rng.NextDouble());
+
+                // Выбоина — вытертое пятно и тёмная сердцевина в нём: одним
+                // диском она читается кляксой краски, двумя — углублением.
+                // Пятна вытянуты и повёрнуты: ровный круг читается наклейкой,
+                // а не выбоиной. Разброс небольшой — сплющенное вдвое пятно
+                // выглядит уже мазком краски.
+                float squash = Mathf.Lerp(0.62f, 1f, (float)rng.NextDouble());
+                float yaw = (float)rng.NextDouble() * 180f;
+
+                Disc(wear.transform, "Patch_" + (i + 1), config, spot, size, patch, WearLift, squash, yaw);
+                if (rng.Next(3) > 0)
+                {
+                    Disc(wear.transform, "Patch_" + (i + 1) + "_core", config, spot,
+                        size * Mathf.Lerp(0.35f, 0.6f, (float)rng.NextDouble()), crack, WearLift * 1.6f,
+                        squash, yaw + rng.Next(-20, 20));
+                }
+            }
+
+            for (int i = 0; i < CrackCount; i++)
+            {
+                Vector2 spot = RandomFloorSpot(rng);
+                float length = Mathf.Lerp(1.4f, 5.5f, (float)rng.NextDouble());
+                float width = Mathf.Lerp(0.05f, 0.14f, (float)rng.NextDouble());
+
+                var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                go.name = "Crack_" + (i + 1);
+                go.transform.SetParent(wear.transform, false);
+                go.transform.position = new Vector3(config.ToMeters(spot.x), WearLift, config.ToMeters(spot.y));
+                go.transform.rotation = Quaternion.Euler(0f, (float)rng.NextDouble() * 180f, 0f);
+                go.transform.localScale = new Vector3(width, 0.012f, length);
+                Strip(go, crack);
+
+                // Излом: трещина не идёт по линейке. Второе колено под углом от
+                // конца первого — этого хватает, чтобы она перестала читаться
+                // начерченной.
+                if (rng.Next(2) == 0)
+                {
+                    var bend = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    bend.name = "Crack_" + (i + 1) + "_bend";
+                    bend.transform.SetParent(go.transform, false);
+                    bend.transform.localPosition = new Vector3(0f, 0f, 0.5f);
+                    bend.transform.localRotation =
+                        Quaternion.Euler(0f, rng.Next(25, 60) * (rng.Next(2) == 0 ? 1 : -1), 0f);
+                    bend.transform.localScale =
+                        new Vector3(1f, 1f, Mathf.Lerp(0.4f, 0.9f, (float)rng.NextDouble()));
+                    Strip(bend, crack);
+                }
+            }
+
+            for (int i = 0; i < PuddleCount; i++)
+            {
+                Vector2 spot = RandomFloorSpot(rng);
+                Disc(wear.transform, "Puddle_" + (i + 1), config, spot,
+                    Mathf.Lerp(0.9f, 2.6f, (float)rng.NextDouble()), puddle, WearLift * 0.6f,
+                    Mathf.Lerp(0.55f, 1f, (float)rng.NextDouble()), (float)rng.NextDouble() * 180f);
+            }
+        }
+
+        /// <summary>
+        /// Мусор стройки на полу: пыль, гравий, обломки бетона, брошенные
+        /// чертежи и обрезки. Всё ниже двадцати сантиметров, поэтому кладётся
+        /// в том числе на маршруты — по нему бегут, но оно не мешает.
+        /// </summary>
+        private static void BuildFloorLitter(Transform group, CarryItemConfig config, System.Random rng)
+        {
+            var litter = new GameObject("FloorLitter");
+            litter.transform.SetParent(group, false);
+
+            var flat = new[]
+            {
+                new Scatter(Environments + "SM_Env_Dirt_Dust_01.prefab", 10, 0.06f),
+                new Scatter(Environments + "SM_Env_Dirt_Round_01.prefab", 2, 0.1f),
+                new Scatter(Environments + "SM_Generic_Small_Rocks_01.prefab", 16),
+                new Scatter(Environments + "SM_Generic_Small_Rocks_02.prefab", 14),
+                new Scatter(Props + "SM_Prop_Rubbish_Papers_01.prefab", 6),
+                new Scatter(Props + "SM_Prop_Rubbish_Papers_02.prefab", 6),
+                new Scatter(Props + "SM_Prop_Rubbish_Papers_03.prefab", 5),
+                new Scatter(Props + "SM_Prop_Plans_01.prefab", 3),
+                new Scatter(Props + "SM_Prop_Plans_02.prefab", 3),
+                new Scatter(Props + "SM_Prop_Rubble_Concrete_01.prefab", 12),
+                new Scatter(Props + "SM_Prop_Brick_03.prefab", 14),
+                new Scatter(Props + "SM_Prop_Cinderblock_01.prefab", 8),
+                new Scatter(Environments + "SM_Env_Dirt_Rock_03.prefab", 10),
+                new Scatter(Environments + "SM_Env_Dirt_Rock_04.prefab", 10)
+            };
+
+            for (int k = 0; k < flat.Length; k++)
+            {
+                for (int n = 0; n < flat[k].Count; n++)
+                {
+                    Vector2 spot = RandomFloorSpot(rng);
+                    Place(litter.transform, "Litter_" + (k + 1) + "_" + (n + 1), flat[k].Prefab, config,
+                        new Vector3(spot.x, 0f, spot.y), (float)rng.NextDouble() * 360f, flat[k].Height);
+                }
+            }
+        }
+
+        /// <summary>Случайная точка на любой из трёх плит пола, ШИ.</summary>
+        private static Vector2 RandomFloorSpot(System.Random rng)
+        {
+            Zone zone = FloorSections[rng.Next(FloorSections.Length)];
+            return new Vector2(
+                Mathf.Lerp(zone.MinX, zone.MaxX, (float)rng.NextDouble()),
+                Mathf.Lerp(zone.MinZ, zone.MaxZ, (float)rng.NextDouble()));
+        }
+
+        /// <summary>Плоское пятно на полу: сплющенный цилиндр без коллайдера.</summary>
+        private static void Disc(Transform parent, string name, CarryItemConfig config, Vector2 spot,
+            float diameter, Material material, float lift, float squash = 1f, float yaw = 0f)
+        {
+            var go = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            go.name = name;
+            go.transform.SetParent(parent, false);
+            go.transform.position = new Vector3(config.ToMeters(spot.x), lift, config.ToMeters(spot.y));
+            go.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+            go.transform.localScale = new Vector3(diameter, 0.006f, diameter * squash);
+            Strip(go, material);
+        }
+
+        /// <summary>Снять коллайдер, увести на Default, погасить тень, назначить материал.</summary>
+        private static void Strip(GameObject go, Material material)
+        {
+            Object.DestroyImmediate(go.GetComponent<Collider>());
+            go.layer = LayerMask.NameToLayer("Default");
+
+            var renderer = go.GetComponent<MeshRenderer>();
+            if (renderer != null)
+            {
+                renderer.sharedMaterial = material;
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+        }
+
         /// <summary>
         /// Реквизит на самом полу арены. Запретов больше, чем разрешений: по
         /// этому полу бегут с бутылью, и предмет не на своём месте тут не
@@ -209,7 +387,6 @@ namespace Igruha.EditorTools
                 new Scatter(Props + "SM_Prop_Barrel_01.prefab", 6),
                 new Scatter(Props + "SM_Prop_Concrete_Mixer_01.prefab", 2),
                 new Scatter(Props + "SM_Prop_Wood_Frame_01.prefab", 3),
-                new Scatter(Props + "SM_Prop_Tarp_Generic_03.prefab", 2),
                 new Scatter(Props + "SM_Prop_Toilet_Bucket_01.prefab", 2),
                 new Scatter(Environments + "SM_Env_Dirt_Dust_01.prefab", 8),
                 new Scatter(Props + "SM_Prop_Ladder_02.prefab", 3),
