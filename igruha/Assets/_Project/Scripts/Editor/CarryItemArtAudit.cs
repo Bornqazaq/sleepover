@@ -57,6 +57,7 @@ namespace Igruha.EditorTools
 
             MeasureDress(roots, report);
             MeasureScenery(roots, report);
+            MeasureEffects(report);
             MeasureColliders(report);
             MeasureMeshes(roots, report);
             MeasureReadability(report);
@@ -188,6 +189,95 @@ namespace Igruha.EditorTools
             report.Append("\n  коллайдеров в них:        ").Append(colliders).Append(colliders == 0 ? " ✔" : " ✘");
             report.Append("\n  не стоит на полу:         ").Append(offFloor)
                 .Append(offFloor == 0 ? " ✔" : $" ✘ (до {worst:F2} м)");
+        }
+
+        /// <summary>Постоянные эффекты: те, которым автостарт положен по замыслу.</summary>
+        private static readonly string[] AlwaysOn = { "PipeJet", "BeamTrail", "Haze_1", "Haze_2", "Haze_3" };
+
+        /// <summary>
+        /// Эффекты: коллайдеров нет, автостарт остался только у постоянных,
+        /// и ничто не поднимается выше завала вдоль маршрута.
+        ///
+        /// Автостарт проверяется поимённо, а не числом: партиклы пака приходят
+        /// с <c>playOnAwake</c> и зацикливанием, и забытый один означает арену,
+        /// стоящую в брызгах с первого кадра. Постоянных ровно пять — струя
+        /// трубы, шлейф балки и три облака пыли.
+        /// </summary>
+        private static void MeasureEffects(StringBuilder report)
+        {
+            GameObject arena = GameObject.Find("_Arena");
+            Transform group = arena != null ? arena.transform.Find("Effects") : null;
+
+            report.AppendLine().AppendLine().Append("— Эффекты —");
+            if (group == null)
+            {
+                report.AppendLine().Append("  группы Effects нет ✘");
+                return;
+            }
+
+            var systems = group.GetComponentsInChildren<ParticleSystem>(true);
+            int colliders = group.GetComponentsInChildren<Collider>(true).Length;
+            int lights = group.GetComponentsInChildren<Light>(true).Length;
+            int strayAwake = 0;
+            float tallest = 0f;
+
+            for (int i = 0; i < systems.Length; i++)
+            {
+                if (systems[i].main.playOnAwake && !IsAlwaysOn(systems[i].transform))
+                {
+                    strayAwake++;
+                }
+            }
+
+            // Высота считается врозь, и это не придирка. Постоянный эффект
+            // висит в кадре весь раунд: подниматься выше завала ему нельзя,
+            // иначе он закрывает собой то, на что игрок смотрит. Мгновенный
+            // живёт полсекунды, и разлёт брызг вверх — это и есть удар; ему
+            // допуск шире, но не бесконечный.
+            float burst = 0f;
+            var renderers = group.GetComponentsInChildren<Renderer>(true);
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                // Припаркованные под полом копии пула в счёт высоты не идут.
+                if (renderers[i].transform.position.y < -10f)
+                {
+                    continue;
+                }
+
+                if (IsAlwaysOn(renderers[i].transform))
+                {
+                    tallest = Mathf.Max(tallest, renderers[i].bounds.max.y);
+                }
+                else
+                {
+                    burst = Mathf.Max(burst, renderers[i].bounds.max.y);
+                }
+            }
+
+            report.AppendLine().Append("  систем частиц:            ").Append(systems.Length);
+            report.AppendLine().Append("  коллайдеров:              ").Append(colliders).Append(Mark(colliders == 0));
+            report.AppendLine().Append("  своих источников света:   ").Append(lights).Append(Mark(lights == 0));
+            report.AppendLine().Append("  лишних автостартов:       ").Append(strayAwake).Append(Mark(strayAwake == 0));
+            report.AppendLine().Append("  верх постоянного:         ").Append(tallest.ToString("F2")).Append(" м")
+                .Append(Mark(tallest <= 2.16f + Tolerance));
+            report.AppendLine().Append("  верх мгновенного:         ").Append(burst.ToString("F2")).Append(" м")
+                .Append(Mark(burst <= 3.2f));
+        }
+
+        private static bool IsAlwaysOn(Transform effect)
+        {
+            for (Transform t = effect; t != null; t = t.parent)
+            {
+                for (int i = 0; i < AlwaysOn.Length; i++)
+                {
+                    if (t.name == AlwaysOn[i])
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         /// <summary>

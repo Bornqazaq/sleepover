@@ -128,13 +128,21 @@ namespace Igruha.EditorTools
         /// <summary>Высота бака, ШИ. Выше прежнего обода: бак — табло команды, и его должно быть видно издали.</summary>
         private const float TankHeight = 2.15f;
 
-        /// <summary>Сколько слоёв брызг рисует струя прорванной трубы.</summary>
-        private const int JetLayers = 3;
-
         /// <summary>Ширина разметки по краю проёма, ШИ.</summary>
         private const float EdgeStripeWidth = 0.6f;
 
         private static System.Random dressRandom;
+
+        /// <summary>
+        /// Ловушки текущей пересборки: их разбирает подфаза 4.4.
+        ///
+        /// Держатся полями, а не ищутся по имени: имя объекта — это то, что
+        /// молча ломается при первой же переименовке, а эффект, потерявший
+        /// балку, не падает и не пишет ни строчки, он просто не играет.
+        /// </summary>
+        private static Transform builtBeam;
+        private static Transform builtPipe;
+        private static SpringTrap builtCart;
 
         [MenuItem("Igruha/Minigames/Rebuild Carry Item Arena")]
         private static void Rebuild()
@@ -195,6 +203,9 @@ namespace Igruha.EditorTools
 
             Physics.SyncTransforms();
             Report(config);
+            CarryItemVfx.Build(arena.transform, config, GameObject.Find("MinigameManager"),
+                new[] { FindStack("Stack_A"), FindStack("Stack_B") }, builtCart, builtPipe, builtBeam);
+
             CarryItemPalette.Flush();
             ReportMissingModels();
             Debug.Log(CarryItemDress.Report(), arena);
@@ -556,6 +567,8 @@ namespace Igruha.EditorTools
             Paint(beam, CarryItemPalette.Get(CarryItemPalette.Tone.Steel));
             CarryItemDress.Apply(beam, CarryItemDress.Kind.Beam, dressRandom);
 
+            builtBeam = beam.transform;
+
             var trap = beam.AddComponent<SwingingBeamTrap>();
             var so = new SerializedObject(trap);
             so.FindProperty("radius").floatValue = 0f;
@@ -586,6 +599,8 @@ namespace Igruha.EditorTools
             springSo.FindProperty("launchForce").floatValue = config.CartLaunchForce;
             springSo.FindProperty("cooldown").floatValue = config.CartPeriod * 0.5f;
             springSo.ApplyModifiedPropertiesWithoutUndo();
+
+            builtCart = spring;
 
             var driver = cart.AddComponent<PeriodicTrapDriver>();
             var driverSo = new SerializedObject(driver);
@@ -663,6 +678,7 @@ namespace Igruha.EditorTools
             // Толкает поперёк маршрута, одинаково для обеих команд.
             pipe.transform.rotation = Quaternion.Euler(0f, 0f, 0f);
 
+            builtPipe = pipe.transform;
             BuildPipeVisuals(group, config, pipe, box.size);
         }
 
@@ -681,31 +697,14 @@ namespace Igruha.EditorTools
         /// </summary>
         private static void BuildPipeVisuals(Transform group, CarryItemConfig config, GameObject pipe, Vector3 size)
         {
-            // Струя — три слоя брызг разной высоты, а не один куб во весь объём.
+            // Объём струи больше не рисуется мешами.
             //
-            // Куб честно показывал, где толкает, но читался «прозрачной штукой»
-            // непонятного назначения. Слои идут от излома поперёк прохода,
-            // сужаясь книзу, и под ними лужа: получается вода, а не блок.
-            // На 4.4 всё это заменят частицы, здесь — чтобы не было сыро.
-            Material spray = Mat("CI_PushZone");
-            var jet = new GameObject("Jet");
-            jet.transform.SetParent(pipe.transform, false);
-            jet.transform.localPosition = Vector3.zero;
-
-            for (int i = 0; i < JetLayers; i++)
-            {
-                float t = (i + 0.5f) / JetLayers;
-                var layer = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                layer.name = $"Spray_{i + 1}";
-                layer.transform.SetParent(jet.transform, false);
-                layer.transform.localPosition = new Vector3(0f, size.y * (t - 0.5f), 0f);
-                layer.transform.localScale = new Vector3(
-                    size.x * Mathf.Lerp(0.95f, 0.45f, t),
-                    size.y / JetLayers * 0.55f,
-                    size.z);
-                Object.DestroyImmediate(layer.GetComponent<Collider>());
-                Paint(layer, spray);
-            }
+            // До 4.4 он был кубом во весь объём зоны, потом тремя слоями брызг:
+            // и то и другое читалось «прозрачной штукой» непонятного назначения
+            // — так его и назвал геймдизайнер. Теперь воду показывают частицы
+            // (см. CarryItemVfx), а на полу остаётся лужа: она объясняет, что
+            // здесь мокро, и остаётся видимой даже без паков.
+            Material spray = CarryItemPalette.Get(CarryItemPalette.Tone.Spray);
 
             GameObject puddle = Cylinder(pipe.transform, "Puddle",
                 -config.ToMeters(1f) + 0.02f, 0.01f, size.x * 1.35f, spray);
