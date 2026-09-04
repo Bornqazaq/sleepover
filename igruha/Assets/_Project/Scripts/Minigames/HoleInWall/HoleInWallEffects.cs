@@ -409,9 +409,14 @@ namespace Igruha.Minigames.HoleInWall
                     continue;
                 }
 
-                Vector2 size = config.SilhouetteSize(pose);
+                // Высота берётся у форм дорожки: вырез посчитан под её состав,
+                // и вспышка обязана оказаться посередине именно его.
+                float height = track.Shapes != null
+                    ? track.Shapes.Size(pose).y
+                    : config.SilhouetteSize(pose).y;
+
                 var point = new Vector3(trackX + offset,
-                    config.PlatformSurfaceY + size.y * 0.5f, config.CheckLineZ);
+                    config.PlatformSurfaceY + height * 0.5f, config.CheckLineZ);
 
                 PlayAt(flashes, Key(track.Index, cutout), point);
             }

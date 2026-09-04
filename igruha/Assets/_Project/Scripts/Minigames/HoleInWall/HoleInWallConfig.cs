@@ -102,7 +102,7 @@ namespace Igruha.Minigames.HoleInWall
         [SerializeField] private int wideWallCount = 2;
 
         [Header("Силуэты вырезов, ШП — порядок соответствует позам 1…4")]
-        [Tooltip("Замерено по клипам поз на всех восьми персонажах плюс запас 0.3 ШП по контуру. Пересчитать: Igruha/Player/Rebuild Hole In Wall Pose Clips — билдер печатает габариты в консоль")]
+        [Tooltip("ЗАПАСНОЙ ВАРИАНТ. Настоящий размер выреза берётся из ассета силуэтов и считается под состав дорожки. Эти числа работают, только если ассета нет или персонаж не опознан: замерено по всем восьми плюс запас 0.3 ШП")]
         [SerializeField]
         private PoseSilhouette[] poseSilhouettes =
         {
@@ -112,8 +112,8 @@ namespace Igruha.Minigames.HoleInWall
             new PoseSilhouette { Width = 2.85f, Height = 3.15f }
         };
 
-        [Tooltip("Форма вырезов по позам. Генерируется билдером клипов поз; без ассета вырез остаётся прямоугольным")]
-        [SerializeField] private HoleInWallPoseShapes poseShapes;
+        [Tooltip("Контуры вырезов: состав дорожки × поза, в метрах. Генерируется пунктом меню Igruha/Дырка в стене/Испечь силуэты вырезов")]
+        [SerializeField] private HoleInWallSilhouettes silhouettes;
 
         [Header("Трос")]
         [Tooltip("ВЫСОКИЙ ПРИОРИТЕТ ПЛЕЙТЕСТА. Максимальная длина троса, ШП")]
@@ -257,13 +257,22 @@ namespace Igruha.Minigames.HoleInWall
         public int WideWallCount => Mathf.Max(0, wideWallCount);
 
         /// <summary>
-        /// Форма вырезов: контур позы по полосам. <c>null</c> — ассет не собран,
-        /// и вырезы остаются прямоугольными по <see cref="SilhouetteSize"/>.
-        /// Собрать: <c>Igruha/Player/Rebuild Hole In Wall Pose Clips</c>.
+        /// Контуры вырезов: настоящий силуэт позы в метрах, свой у каждого
+        /// состава дорожки. <c>null</c> — ассет не собран, и вырезы остаются
+        /// прямоугольными по <see cref="SilhouetteSize"/>.
+        /// Собрать: <c>Igruha/Дырка в стене/Испечь силуэты вырезов</c>.
         /// </summary>
-        public HoleInWallPoseShapes PoseShapes => poseShapes;
+        public HoleInWallSilhouettes Silhouettes => silhouettes;
 
-        /// <summary>Габариты силуэта позы, м. Для <see cref="HoleInWallPose.None"/> — ноль.</summary>
+        /// <summary>
+        /// Запасной габарит силуэта позы, м. Для <see cref="HoleInWallPose.None"/> — ноль.
+        ///
+        /// ⚠️ Это <b>не</b> размер выреза в игре. Настоящий берётся из
+        /// <see cref="Silhouettes"/> под состав дорожки: у Карлана ростом
+        /// 1.61 м и Шланги ростом 1.96 м вырезы разные. Эти числа — объединение
+        /// всего ростера, то есть вырез «на самого большого»; они остаются
+        /// на случай, когда ассета нет или персонаж на дорожке не опознан.
+        /// </summary>
         public Vector2 SilhouetteSize(HoleInWallPose pose)
         {
             int index = (int)pose - 1;
@@ -275,28 +284,6 @@ namespace Igruha.Minigames.HoleInWall
             PoseSilhouette silhouette = poseSilhouettes[index];
             return new Vector2(silhouette.Width * unitsPerWidth, silhouette.Height * unitsPerWidth);
         }
-
-        /// <summary>
-        /// Насколько далеко от центра дорожки может стоять центр выреза, м.
-        ///
-        /// Ограничений два, и берётся строгое из них: вырез обязан целиком
-        /// поместиться в стену, а вырез <b>вместе с допуском</b> — в платформу.
-        /// Иначе либо силуэт торчит за край стены, либо в вырез нельзя встать,
-        /// не сойдя с платформы.
-        /// </summary>
-        public float MaxCutoutOffset(HoleInWallPose pose)
-        {
-            float halfWidth = SilhouetteSize(pose).x * 0.5f;
-            return PlatformWidth * 0.5f - Mathf.Max(HitTolerance, halfWidth);
-        }
-
-        /// <summary>
-        /// Минимальный разнос центров двух вырезов, м: полуширины плюс
-        /// перемычка. Ниже него вырезы перекрываются и стена разваливается
-        /// на один широкий проём, в который читаются не два силуэта, а ноль.
-        /// </summary>
-        public float MinCutoutSpread(HoleInWallPose left, HoleInWallPose right) =>
-            (SilhouetteSize(left).x + SilhouetteSize(right).x) * 0.5f + CutoutBridge;
 
         // ========== ТРОС ==========
 

@@ -70,6 +70,17 @@ namespace Igruha.Minigames.HoleInWall
         /// <summary>Рисунок всех стен этой дорожки. Считается сервером один раз на раунд.</summary>
         public List<WallPattern> Patterns => patterns;
 
+        /// <summary>
+        /// Формы вырезов дорожки: контур каждой позы под её состав.
+        ///
+        /// Считается один раз, когда состав собран, и до конца раунда
+        /// не меняется — даже если дорожка потеряет одного и станет
+        /// одиночкой. Так сделано намеренно: вырез, посчитанный на пару,
+        /// шире, и оставшийся в него пролезает; а перестройка формы посреди
+        /// раунда меняла бы геометрию едущей стены.
+        /// </summary>
+        public CutoutShapes Shapes { get; private set; }
+
         /// <summary>Сколько стен дорожка прошла. Это же очко каждому её участнику.</summary>
         public int Score { get; private set; }
 
@@ -91,6 +102,34 @@ namespace Igruha.Minigames.HoleInWall
         /// <summary>Вердикт по текущей стене уже посчитан. Считается ровно один раз.</summary>
         public bool WallResolved { get; set; }
 
+        /// <summary>
+        /// Собрать формы вырезов под нынешний состав дорожки.
+        ///
+        /// Ключ состава — имена контроллеров аниматоров участников: у каждого
+        /// персонажа свой, а вешать на префаб персонажа новый компонент нельзя
+        /// (igruha/CLAUDE.md, раздел 🔒 0). У пары ключ из двух имён, и контур
+        /// под него испечён объединением обоих силуэтов: в один вырез лезут
+        /// двое, и кто в какой — пара решает сама.
+        /// </summary>
+        public void ResolveShapes(HoleInWallConfig config)
+        {
+            string composition = null;
+            for (int i = 0; i < members.Count; i++)
+            {
+                PlayerController avatar = members[i].Avatar;
+                composition = CutoutShapes.Compose(composition,
+                    avatar != null ? CutoutShapes.KeyOf(avatar.gameObject) : null);
+            }
+
+            Shapes = new CutoutShapes(config, composition);
+
+            if (!Shapes.Exact)
+            {
+                Debug.LogWarning($"{name}: состав «{Shapes.Composition}» не найден в ассете силуэтов — " +
+                                 "вырез берётся на весь ростер. Испечь: Igruha/Дырка в стене/Испечь силуэты вырезов", this);
+            }
+        }
+
         /// <summary>Новая стена: сбросить всё, что относилось к предыдущей.</summary>
         public void BeginWall()
         {
@@ -103,6 +142,7 @@ namespace Igruha.Minigames.HoleInWall
         {
             members.Clear();
             patterns.Clear();
+            Shapes = null;
             Score = 0;
             Tether = null;
             WallLaunched = false;

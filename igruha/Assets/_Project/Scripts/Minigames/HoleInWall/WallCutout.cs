@@ -5,18 +5,18 @@ namespace Igruha.Minigames.HoleInWall
     /// <summary>
     /// Вырез в стене: поза, место по ширине дорожки и подсветка контура.
     ///
-    /// Сама дырка — это отсутствие плит, её геометрию строит
-    /// <see cref="SweepingWall"/>. Здесь живёт контур: светящаяся лента
+    /// Саму дырку режет в полотне <see cref="SweepingWall"/>. Здесь живёт контур: светящаяся лента
     /// на передней грани стены, обводящая дырку по её настоящей форме.
     /// Требование LDD, а не украшение: не читается силуэт — не играется игра.
     /// </summary>
     /// <remarks>
     /// <b>Контур повторяет позу, а не прямоугольник.</b> До арт-фазы дырка была
-    /// прямоугольной, и контуром служили три куба из сцены. Теперь форма
-    /// берётся из <see cref="HoleInWallPoseShapes"/>, число сегментов зависит
-    /// от позы, и лента собирается мешем в рантайме. Три старых куба остались
-    /// в ссылках и гасятся: сцена одета и запечена, пересобирать её ради них
-    /// значит потерять арт подфаз 4.1–4.6.
+    /// прямоугольной, и контуром служили три куба из сцены. Теперь лента идёт
+    /// по той же ломаной, которой стена режет полотно (<see cref="CutoutShapes"/>),
+    /// то есть по настоящему контуру силуэта — своему у каждого состава
+    /// дорожки. Три старых куба остались в ссылках и гасятся: сцена одета
+    /// и запечена, пересобирать её ради них значит потерять арт
+    /// подфаз 4.1–4.6.
     ///
     /// <b>Поза 4 в зеркале отыгрывается сама.</b> Асимметричный силуэт
     /// отражается вместе с вырезом, потому что отражается всё содержимое
@@ -57,10 +57,6 @@ namespace Igruha.Minigames.HoleInWall
         private Renderer outlineRenderer;
         private Mesh outlineMesh;
         private float blinkUntil;
-
-        /// <summary>Точки ломаной контура. Поле, а не локальная: контур пересобирается в кадре подвоха.</summary>
-        private readonly System.Collections.Generic.List<Vector2> outlinePath =
-            new System.Collections.Generic.List<Vector2>(HoleInWallPoseShapes.RowCount * 4);
 
         private static readonly System.Collections.Generic.List<Vector3> Vertices =
             new System.Collections.Generic.List<Vector3>(1024);
@@ -142,16 +138,19 @@ namespace Igruha.Minigames.HoleInWall
             }
         }
 
-        /// <summary>Поставить вырез: поза и место. Габариты и форма берутся из конфига.</summary>
-        public void Apply(HoleInWallConfig config, HoleInWallPose pose, float offset, float wallThickness)
+        /// <summary>Поставить вырез: поза и место. Контур и габарит берутся у форм дорожки.</summary>
+        public void Apply(HoleInWallConfig config, CutoutShapes shapes, HoleInWallPose pose,
+            float offset, float wallThickness)
         {
             EnsureOutline();
             HideLegacyFrames();
 
             Pose = pose;
             Offset = offset;
-            Size = config.SilhouetteSize(pose);
-            Active = pose != HoleInWallPose.None && Size.x > 0f && Size.y > 0f;
+            Size = shapes != null ? shapes.Size(pose) : config.SilhouetteSize(pose);
+
+            Vector2[] outline = pose != HoleInWallPose.None && shapes != null ? shapes.Outline(pose) : null;
+            Active = outline != null && outline.Length >= 2;
 
             outlineRenderer.gameObject.SetActive(Active);
             if (!Active)
@@ -162,101 +161,62 @@ namespace Igruha.Minigames.HoleInWall
             outlineRenderer.transform.localPosition =
                 new Vector3(offset, 0f, -wallThickness * 0.5f - FrameLift);
 
-            BuildOutlinePath(config.PoseShapes, pose, Size);
-            BuildOutlineMesh();
+            BuildOutlineMesh(outline);
 
             blinkUntil = 0f;
             SetColor(OutlineColor);
         }
 
         /// <summary>
-        /// Ломаная контура в системе координат выреза: снизу вверх по левой
-        /// границе силуэта, поверху и вниз по правой.
+        /// Собрать из ломаной контура ленту толщиной <see cref="FrameThickness"/>.
         ///
-        /// <b>Нижней перекладины нет.</b> Низ всех вырезов лежит на полу
-        /// платформы, и линия там ушла бы внутрь настила — видно её не было бы,
+        /// Каждый отрезок ломаной осевой: лента — прямоугольник вокруг него,
+        /// вытянутый на полтолщины за оба конца. Вылет и заполняет углы: без
+        /// него на каждом повороте оставалась бы дырка в самом контуре.
+        ///
+        /// <b>Нижней перекладины нет</b>, и её неоткуда взять: ломаная выреза
+        /// открытая — она идёт от левой ступни вверх и вниз к правой, потому
+        /// что низ выреза это пол платформы. Линия там ушла бы внутрь настила,
         /// а зазор под ней читался бы как щель, в которую можно подлезть.
-        ///
-        /// Формы нет — рисуем прямоугольник, как на каркасе: контур обязан
-        /// быть всегда, даже если ассет силуэтов ещё не собран.
         /// </summary>
-        private void BuildOutlinePath(HoleInWallPoseShapes shapes, HoleInWallPose pose, Vector2 size)
-        {
-            outlinePath.Clear();
-            float halfWidth = size.x * 0.5f;
-
-            if (shapes == null || !shapes.Has(pose))
-            {
-                outlinePath.Add(new Vector2(-halfWidth, 0f));
-                outlinePath.Add(new Vector2(-halfWidth, size.y));
-                outlinePath.Add(new Vector2(halfWidth, size.y));
-                outlinePath.Add(new Vector2(halfWidth, 0f));
-                return;
-            }
-
-            int rows = HoleInWallPoseShapes.RowCount;
-            float rowHeight = size.y / rows;
-
-            // Левая граница снизу вверх: стойка полосы, затем ступенька к следующей.
-            for (int row = 0; row < rows; row++)
-            {
-                shapes.TryWidestSpan(pose, (float)row / rows, (row + 1f) / rows, out float spanLeft, out _);
-                float x = spanLeft * halfWidth;
-                outlinePath.Add(new Vector2(x, row * rowHeight));
-                outlinePath.Add(new Vector2(x, (row + 1) * rowHeight));
-            }
-
-            // Правая граница сверху вниз.
-            for (int row = rows - 1; row >= 0; row--)
-            {
-                shapes.TryWidestSpan(pose, (float)row / rows, (row + 1f) / rows, out _, out float spanRight);
-                float x = spanRight * halfWidth;
-                outlinePath.Add(new Vector2(x, (row + 1) * rowHeight));
-                outlinePath.Add(new Vector2(x, row * rowHeight));
-            }
-        }
-
-        /// <summary>
-        /// Собрать из ломаной ленту толщиной <see cref="FrameThickness"/>.
-        ///
-        /// Каждый отрезок ломаной осевой, поэтому лента — это прямоугольник,
-        /// вытянутый на полтолщины за оба конца. Вылет и заполняет углы:
-        /// без него на каждом повороте оставалась бы дырка в самом контуре.
-        /// </summary>
-        private void BuildOutlineMesh()
+        private void BuildOutlineMesh(Vector2[] path)
         {
             Vertices.Clear();
             Triangles.Clear();
             const float Half = FrameThickness * 0.5f;
 
-            for (int i = 1; i < outlinePath.Count; i++)
+            for (int i = 1; i < path.Length; i++)
             {
-                Vector2 from = outlinePath[i - 1];
-                Vector2 to = outlinePath[i];
+                Vector2 from = path[i - 1];
+                Vector2 to = path[i];
+                Vector2 along = to - from;
+                float length = along.magnitude;
 
-                float minX = Mathf.Min(from.x, to.x) - Half;
-                float maxX = Mathf.Max(from.x, to.x) + Half;
-                float minY = Mathf.Min(from.y, to.y) - Half;
-                float maxY = Mathf.Max(from.y, to.y) + Half;
-
-                if (maxX - minX <= 0f || maxY - minY <= 0f)
+                if (length < 0.0001f)
                 {
                     continue;
                 }
 
-                int start = Vertices.Count;
-                Vertices.Add(new Vector3(minX, minY, 0f));
-                Vertices.Add(new Vector3(minX, maxY, 0f));
-                Vertices.Add(new Vector3(maxX, maxY, 0f));
-                Vertices.Add(new Vector3(maxX, minY, 0f));
+                along /= length;
+                var across = new Vector2(-along.y, along.x);
+                Vector2 back = from - along * Half;
+                Vector2 ahead = to + along * Half;
 
-                // Лицом к игроку: стена едет в −Z, значит передняя грань смотрит туда же.
+                // ⚠️ Обход ПО часовой стрелке в XY: такая грань смотрит в −Z,
+                // то есть навстречу игроку. Против часовой лента развернулась
+                // бы изнанкой и пропала — URP Lit односторонний.
+                int start = Vertices.Count;
+                Add(back - across * Half);
+                Add(back + across * Half);
+                Add(ahead + across * Half);
+                Add(ahead - across * Half);
+
                 Triangles.Add(start);
-                Triangles.Add(start + 2);
                 Triangles.Add(start + 1);
-                Triangles.Add(start);
-                Triangles.Add(start + 3);
                 Triangles.Add(start + 2);
+                Triangles.Add(start);
+                Triangles.Add(start + 2);
+                Triangles.Add(start + 3);
             }
 
             outlineMesh.Clear();
@@ -265,6 +225,8 @@ namespace Igruha.Minigames.HoleInWall
             outlineMesh.RecalculateNormals();
             outlineMesh.RecalculateBounds();
         }
+
+        private static void Add(Vector2 point) => Vertices.Add(new Vector3(point.x, point.y, 0f));
 
         /// <summary>Убрать вырез со стены: у одиночки второго нет.</summary>
         public void Hide()

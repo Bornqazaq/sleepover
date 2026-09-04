@@ -74,6 +74,13 @@ namespace Igruha.Minigames.HoleInWall
         public event Action<HoleInWallPose> PoseChanged;
 
         private HoleInWallConfig config;
+
+        /// <summary>
+        /// Формы вырезов <b>этого</b> персонажа, а не дорожки. Рамка отвечает
+        /// на вопрос «сколько места я занимаю»: у Карлана ростом 1.61 м и
+        /// у Шланги ростом 1.96 м ответы разные, и усреднять их незачем.
+        /// </summary>
+        private CutoutShapes ownShapes;
         private HoleInWallMinigame owner;
         private int playerId = -1;
         private PlayerController motor;
@@ -147,6 +154,7 @@ namespace Igruha.Minigames.HoleInWall
         public void Configure(HoleInWallConfig gameConfig, HoleInWallMinigame game, int id)
         {
             config = gameConfig;
+            ownShapes = new CutoutShapes(gameConfig, CutoutShapes.KeyOf(gameObject));
             owner = game;
             playerId = id;
             BuildVisuals();
@@ -312,7 +320,7 @@ namespace Igruha.Minigames.HoleInWall
                 return;
             }
 
-            Vector2 size = config.SilhouetteSize(CurrentPose);
+            Vector2 size = ownShapes.Size(CurrentPose);
             Color color = PoseColors[Mathf.Clamp((int)CurrentPose - 1, 0, PoseColors.Length - 1)];
 
             silhouette.localScale = new Vector3(size.x, size.y, SilhouetteThickness);

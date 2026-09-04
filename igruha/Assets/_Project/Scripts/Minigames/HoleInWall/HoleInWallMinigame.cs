@@ -431,7 +431,8 @@ namespace Igruha.Minigames.HoleInWall
                 }
 
                 track.ArrangeSlots(config);
-                track.Wall.Configure(config);
+                track.ResolveShapes(config);
+                track.Wall.Configure(config, track.Shapes);
                 playingTracks.Add(track);
 
                 PlaceMembers(track);
@@ -545,7 +546,7 @@ namespace Igruha.Minigames.HoleInWall
             for (int i = 0; i < playingTracks.Count; i++)
             {
                 HoleInWallTrack track = playingTracks[i];
-                generator.Generate(config, TrackSeed(track), track.Solo, track.Patterns);
+                generator.Generate(config, track.Shapes, TrackSeed(track), track.Solo, track.Patterns);
             }
         }
 
@@ -1309,7 +1310,7 @@ namespace Igruha.Minigames.HoleInWall
         /// </summary>
         private void RedrawAsSolo(HoleInWallTrack track)
         {
-            generator.Generate(config, TrackSeed(track), true, soloPatterns);
+            generator.Generate(config, track.Shapes, TrackSeed(track), true, soloPatterns);
 
             for (int wall = currentWall + 1; wall < track.Patterns.Count && wall < soloPatterns.Count; wall++)
             {
