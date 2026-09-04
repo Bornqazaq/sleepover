@@ -3,7 +3,6 @@ using System.Text;
 using UnityEditor;
 using UnityEngine;
 using Igruha.Minigames.Exam;
-using Igruha.Minigames.HoleInWall;
 
 namespace Igruha.EditorTools
 {
@@ -82,8 +81,6 @@ namespace Igruha.EditorTools
 
         /// <summary>Рабочая высота взрослой парты. Мебель PolygonKids детская и до неё дотягивается.</summary>
         private const float ExamDeskHeight = 0.84f;
-
-        private const string MaterialFolder = "Assets/_Project/Materials/Exam";
 
         private static readonly List<string> Notes = new List<string>(8);
         private static readonly List<string> Placed = new List<string>(24);
@@ -207,7 +204,7 @@ namespace Igruha.EditorTools
             // Рендерер коробки гаснет только после того, как настил встал:
             // не нашлась модель — створка обязана остаться серой и видимой,
             // а не превратиться в дыру, сквозь которую видно яму.
-            if (!DeckSurface(holder, box, rng, 0f, out int countX, out int countZ, out float stepX, out float stepZ))
+            if (!DeckSurface(holder, box, rng, 0f, DeckSlab, out int countX, out int countZ, out float stepX, out float stepZ))
             {
                 return;
             }
@@ -225,7 +222,7 @@ namespace Igruha.EditorTools
         /// полосу z-fighting'а по всей площадке.
         /// </summary>
         private static bool DeckSurface(Transform holder, Bounds box, System.Random rng, float lift,
-            out int countX, out int countZ, out float stepX, out float stepZ)
+            string prefabPath, out int countX, out int countZ, out float stepX, out float stepZ)
         {
             countX = Mathf.Max(1, Mathf.RoundToInt(box.size.x / Module));
             countZ = Mathf.Max(1, Mathf.RoundToInt(box.size.z / Module));
@@ -247,7 +244,7 @@ namespace Igruha.EditorTools
                     // генератор — общий с билдером сдвинул бы последовательность,
                     // по которой раскладывается геймплей.
                     int yaw = 1 + (rng.Next(2) == 0 ? 0 : 2);
-                    GameObject tile = Spawn(holder, $"Deck_{x}_{z}", DeckSlab, yaw);
+                    GameObject tile = Spawn(holder, $"Deck_{x}_{z}", prefabPath, yaw);
                     if (tile == null)
                     {
                         return false;
@@ -283,7 +280,7 @@ namespace Igruha.EditorTools
                 return;
             }
 
-            Material tone = Tone("Exam_HatchSeam", new Color32(0x17, 0x17, 0x1A, 0xFF), 0.05f, 0f);
+            Material tone = ExamPalette.Get(ExamPalette.Tone.Seam);
             Bar(holder, "SeamStrip", tone,
                 new Vector3(box.center.x + inward * (box.size.x * 0.5f - SeamWidth * 0.5f),
                     box.max.y - 0.03f,
@@ -307,7 +304,7 @@ namespace Igruha.EditorTools
             holder.localRotation = Quaternion.identity;
             holder.localScale = Vector3.one;
 
-            Material metal = Tone("Exam_HatchMetal", new Color32(0x4A, 0x4A, 0x4E, 0xFF), 0.35f, 0.6f);
+            Material metal = ExamPalette.Get(ExamPalette.Tone.Metal);
 
             for (int i = 0; i < HingesPerDoor; i++)
             {
@@ -413,7 +410,7 @@ namespace Igruha.EditorTools
             }
 
             const float lift = 0.005f;
-            if (!DeckSurface(holder, box, rng, lift, out int countX, out int countZ, out float stepX, out float stepZ))
+            if (!DeckSurface(holder, box, rng, lift, DeckSlab, out int countX, out int countZ, out float stepX, out float stepZ))
             {
                 return;
             }
@@ -981,6 +978,35 @@ namespace Igruha.EditorTools
             }
         }
 
+        /// <summary>
+        /// Перекрасить <b>все слоты</b> рендерера, а не первый.
+        ///
+        /// Модели Synty собраны из нескольких подмешей с разными материалами
+        /// атласа: у каменной плиты пола это сама плита и сколы в ней.
+        /// Присвоение <c>sharedMaterial</c> пишет только нулевой слот, и пол
+        /// зала вышел из первой пересборки крашеным наполовину — пятнами
+        /// чужого пака поверх нашего тона. Ровно об этом предупреждает
+        /// <see cref="DressKit.Repaint"/>, и ровно это здесь и повторилось.
+        ///
+        /// <paramref name="extra"/> красит слоты со второго. Пусто — красятся
+        /// все одинаково.
+        /// </summary>
+        internal static void PaintAll(Renderer renderer, Material primary, Material extra = null)
+        {
+            if (renderer == null || primary == null)
+            {
+                return;
+            }
+
+            Material[] slots = renderer.sharedMaterials;
+            for (int i = 0; i < slots.Length; i++)
+            {
+                slots[i] = i == 0 || extra == null ? primary : extra;
+            }
+
+            renderer.sharedMaterials = slots;
+        }
+
         private static void HideRenderer(GameObject box)
         {
             var renderer = box.GetComponent<Renderer>();
@@ -1012,53 +1038,13 @@ namespace Igruha.EditorTools
         // ────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Цвет варианта — тот же, которым билдер красит букву и указатель.
-        /// Один источник: разойдись они, «синее = А» перестало бы работать
-        /// ровно в том месте, где оно нужнее всего.
+        /// Цвет варианта — тот же, которым билдер красит букву и указатель,
+        /// и приходит он из палитры 4.2. Один источник: разойдись они, «синее
+        /// = А» перестало бы работать ровно там, где оно нужнее всего.
         /// </summary>
         private static Material SideTone(ExamSide side)
         {
-            return side == ExamSide.A
-                ? Tone("Exam_SideA", ExamArenaBuilder.SideColor(ExamSide.A), 0.35f, 0f)
-                : Tone("Exam_SideB", ExamArenaBuilder.SideColor(ExamSide.B), 0.35f, 0f);
-        }
-
-        /// <summary>
-        /// Материал-ассет по имени. Значения здесь предварительные: окончательные
-        /// тона, глянец и свечение снимает замером палитра 4.2, она же владеет
-        /// этой папкой.
-        /// </summary>
-        private static Material Tone(string name, Color color, float smoothness, float metallic)
-        {
-            EnsureFolder();
-            string path = $"{MaterialFolder}/{name}.mat";
-            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
-            if (material == null)
-            {
-                Shader shader = Shader.Find("Universal Render Pipeline/Lit");
-                if (shader == null)
-                {
-                    Note("шейдер URP Lit не найден — планки дресса будут фиолетовыми в сборке");
-                    return null;
-                }
-
-                material = new Material(shader) { name = name };
-                AssetDatabase.CreateAsset(material, path);
-            }
-
-            HoleInWallMaterials.ConfigureOpaque(material, color, smoothness, metallic);
-            EditorUtility.SetDirty(material);
-            return material;
-        }
-
-        private static void EnsureFolder()
-        {
-            if (AssetDatabase.IsValidFolder(MaterialFolder))
-            {
-                return;
-            }
-
-            AssetDatabase.CreateFolder("Assets/_Project/Materials", "Exam");
+            return ExamPalette.Get(side == ExamSide.A ? ExamPalette.Tone.SideA : ExamPalette.Tone.SideB);
         }
 
         private static void Note(string text)

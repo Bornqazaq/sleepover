@@ -140,6 +140,7 @@ namespace Igruha.EditorTools
             // объекты, и проверенная планировка поехала бы от смены модели.
             var dressRandom = new System.Random(DressSeed);
             ExamDress.Begin();
+            ExamPalette.Begin();
 
             // Раскладка по глубине от дальней стены: кафедра → проход →
             // платформы → проход → зона возврата → запас для камеры.
@@ -165,12 +166,15 @@ namespace Igruha.EditorTools
             // воспроизводится ею, теряется при первом слиянии веток — YAML
             // сцены слияние не переживает.
             ExamDress.Build(root, config, dressRandom);
+            ExamSurfaces.Apply(root, config, dressRandom);
+            ExamPalette.Flush();
 
             WireMinigameReferences(root);
 
             Debug.Log($"📚 Арена «Экзамена» построена: зал {config.HallWidth:F1}×{config.HallDepth:F1} м, " +
                       $"платформы {config.PlatformWidth:F1}×{config.PlatformDepth:F1} м", root);
             Debug.Log(ExamDress.Report(), root);
+            Debug.Log(ExamPalette.Report(), root);
 
             Selection.activeGameObject = root;
         }
