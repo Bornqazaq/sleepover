@@ -348,6 +348,7 @@ namespace Igruha.EditorTools
                 new Color(0.05f, 0.04f, 0.04f));
             SetLayer(shade, "Ground");
             BelieveOrNotDress.DressLamp(shade, config);
+            BelieveOrNotEffects.BeamDust(parent, config);
         }
 
         /// <summary>
@@ -564,6 +565,8 @@ namespace Igruha.EditorTools
                 Object.DestroyImmediate(collider);
             }
 
+            BelieveOrNotEffects.CardGlow(root.transform, plate, win);
+
             root.SetActive(false);
             return root;
         }
@@ -575,6 +578,16 @@ namespace Igruha.EditorTools
         /// </summary>
         private static ParticleSystem BuildGagPuff(Transform parent, float size)
         {
+            // Сначала эффект пака (подфаза 4.4), и только если паков на машине
+            // нет — заглушка фазы 2 ниже. Она остаётся не «на всякий случай»:
+            // паки в репозиторий не кладутся, и у напарника без них коробка
+            // обязана пыхать хоть чем-то.
+            ParticleSystem packPuff = BelieveOrNotEffects.GagPuff(parent, size);
+            if (packPuff != null)
+            {
+                return packPuff;
+            }
+
             var go = new GameObject("GagPuff");
             go.transform.SetParent(parent, false);
             go.transform.localPosition = new Vector3(0f, size * 0.45f, 0f);
