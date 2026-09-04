@@ -203,8 +203,12 @@ namespace Igruha.EditorTools
 
             Physics.SyncTransforms();
             Report(config);
-            CarryItemVfx.Build(arena.transform, config, GameObject.Find("MinigameManager"),
-                new[] { FindStack("Stack_A"), FindStack("Stack_B") }, builtCart, builtPipe, builtBeam);
+            GameObject manager = GameObject.Find("MinigameManager");
+            BottleStack[] stacks = { FindStack("Stack_A"), FindStack("Stack_B") };
+            WaterTank[] tanks = { FindTank("Tank_A"), FindTank("Tank_B") };
+
+            CarryItemVfx.Build(arena.transform, config, manager, stacks, builtCart, builtPipe, builtBeam);
+            CarryItemSfx.Build(arena.transform, config, manager, stacks, tanks, builtCart, builtPipe, builtBeam);
 
             CarryItemPalette.Flush();
             ReportMissingModels();

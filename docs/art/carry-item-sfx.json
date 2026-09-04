@@ -1,0 +1,178 @@
+{
+  "game": "Переноска предмета",
+  "source": "docs/minigames/carry-item.md — раздел 14, таблица «Звук»",
+  "output_folder": "Assets/_Project/Audio/CarryItem",
+  "provider": "fal",
+  "models": {
+    "sfx": "cassetteai/sound-effects-generator",
+    "music": "cassetteai/music-generator",
+    "sting": "fal-ai/stable-audio-25/text-to-audio"
+  },
+  "slots": [
+    {
+      "id": "round_start",
+      "event": "Старт раунда, отсчёт 3-2-1",
+      "model": "sfx",
+      "duration": 3,
+      "loop": false,
+      "volume": 0.85,
+      "spatial": false,
+      "prompt": "construction site air horn blast, short single honk, work day begins, industrial, clean attack, no music, no voices"
+    },
+    {
+      "id": "bottle_take",
+      "event": "Тара снята со штабеля",
+      "model": "sfx",
+      "duration": 2,
+      "loop": false,
+      "volume": 0.7,
+      "spatial": true,
+      "prompt": "large plastic water cooler bottle lifted off a pallet, hollow plastic creak and water sloshing inside, single motion, no music"
+    },
+    {
+      "id": "slosh_loop",
+      "event": "Плеск в бутыли, растёт с наклоном",
+      "model": "sfx",
+      "duration": 8,
+      "loop": true,
+      "volume": 0.55,
+      "spatial": true,
+      "prompt": "water sloshing back and forth inside a big plastic jug, continuous seamless loop, soft liquid movement, no splashing out, no music",
+      "note": "Луп. Громкость и питч гонятся кодом от наклона через SetLoopLevel."
+    },
+    {
+      "id": "leak_loop",
+      "event": "Утечка через горлышко: наклон за порогом",
+      "model": "sfx",
+      "duration": 6,
+      "loop": true,
+      "volume": 0.9,
+      "spatial": true,
+      "prompt": "steady stream of water pouring out of a bottle neck onto concrete, continuous seamless loop, splattering on hard floor, no music",
+      "note": "Отдельно от плеска: плеск говорит «сейчас начнёт», утечка — «уже теряешь». Склеенным файлом их не развести."
+    },
+    {
+      "id": "handle_break",
+      "event": "Срыв ручки",
+      "model": "sfx",
+      "duration": 1,
+      "loop": false,
+      "volume": 0.95,
+      "spatial": true,
+      "prompt": "sharp plastic handle snapping loose, quick rubber grip slip and clack, sudden release, dry, no music"
+    },
+    {
+      "id": "bottle_drop",
+      "event": "Бутыль упала на бетон",
+      "model": "sfx",
+      "duration": 2,
+      "loop": false,
+      "volume": 1.0,
+      "spatial": true,
+      "prompt": "heavy full water jug slamming onto concrete floor, deep plastic thud with water surge inside, single impact, no music"
+    },
+    {
+      "id": "pour_loop",
+      "event": "Слив в бак, полтора секунды",
+      "model": "sfx",
+      "duration": 4,
+      "loop": true,
+      "volume": 0.8,
+      "spatial": true,
+      "prompt": "water gurgling and glugging as it pours from a jug into a metal tank, continuous, hollow resonant tank, no music",
+      "note": "Луп на время слива. Отдельно от фанфары: у них разная длина хвоста."
+    },
+    {
+      "id": "pour_done",
+      "event": "Ходка засчитана — короткая фанфара",
+      "model": "sting",
+      "duration": 2,
+      "loop": false,
+      "volume": 0.9,
+      "spatial": false,
+      "prompt": "short cheerful reward jingle, bright two-note chime, task complete, clean and quick, no vocals",
+      "note": "Единственная награда игры. Разведена с pour_loop намеренно: бульканье тянется, фанфара обрывается."
+    },
+    {
+      "id": "beam_warn",
+      "event": "Балка идёт на тебя — телеграф до удара",
+      "model": "sfx",
+      "duration": 2,
+      "loop": true,
+      "volume": 0.75,
+      "spatial": true,
+      "prompt": "steel cable creaking under load, slow rhythmic metal groan of a swinging crane load, continuous seamless loop, ominous, no music",
+      "note": "Спека 8.5: ловушку обязано быть слышно до того, как она коснётся."
+    },
+    {
+      "id": "beam_hit",
+      "event": "Удар балки",
+      "model": "sfx",
+      "duration": 2,
+      "loop": false,
+      "volume": 1.0,
+      "spatial": true,
+      "prompt": "heavy steel I-beam smashing into a body, loud metallic clang with dull impact thump, single hit, no music"
+    },
+    {
+      "id": "cart_tip",
+      "event": "Тачка опрокинулась",
+      "model": "sfx",
+      "duration": 2,
+      "loop": false,
+      "volume": 0.85,
+      "spatial": true,
+      "prompt": "metal wheelbarrow tipping over and clattering on concrete, gravel spilling out, single event, no music"
+    },
+    {
+      "id": "pipe_loop",
+      "event": "Прорванная труба, слышно с подхода",
+      "model": "sfx",
+      "duration": 8,
+      "loop": true,
+      "volume": 0.6,
+      "spatial": true,
+      "prompt": "burst water pipe spraying hard, continuous hissing jet of water hitting concrete, seamless loop, wet and steady, no music"
+    },
+    {
+      "id": "brick_throw",
+      "event": "Кирпич брошен",
+      "model": "sfx",
+      "duration": 1,
+      "loop": false,
+      "volume": 0.7,
+      "spatial": true,
+      "prompt": "short whoosh of a heavy brick thrown through air, quick air swipe, dry, no music"
+    },
+    {
+      "id": "brick_hit",
+      "event": "Кирпич попал",
+      "model": "sfx",
+      "duration": 1,
+      "loop": false,
+      "volume": 0.9,
+      "spatial": true,
+      "prompt": "brick striking hard surface, sharp stone crack with small debris scatter, single impact, no music"
+    },
+    {
+      "id": "last_15s",
+      "event": "Последние 15 секунд",
+      "model": "sfx",
+      "duration": 3,
+      "loop": true,
+      "volume": 0.65,
+      "spatial": false,
+      "prompt": "urgent ticking countdown, mechanical clock tick with slight tension, steady seamless loop, no music, no voices"
+    },
+    {
+      "id": "round_end",
+      "event": "Конец раунда — гудок конца смены",
+      "model": "sfx",
+      "duration": 3,
+      "loop": false,
+      "volume": 0.9,
+      "spatial": false,
+      "prompt": "factory end of shift horn, long descending industrial blast, work day over, single honk, no music, no voices"
+    }
+  ]
+}
