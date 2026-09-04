@@ -73,7 +73,10 @@ namespace Igruha.EditorTools
             StopwatchAudio audio = Ensure<StopwatchAudio>(root.gameObject);
             var serialized = new SerializedObject(audio);
             serialized.FindProperty("audioPlayer").objectReferenceValue = player;
-            serialized.FindProperty("game").objectReferenceValue = game;
+            // Стадии живут на том же объекте, что и контроллер: гонг и дробь
+            // приходят оттуда, а не опросом номера подраунда.
+            serialized.FindProperty("stageState").objectReferenceValue =
+                game.GetComponent<Igruha.Core.Minigame.MinigameStageState>();
             SetArray(serialized, "buttons", buttons);
             serialized.ApplyModifiedPropertiesWithoutUndo();
 

@@ -1,31 +1,34 @@
 using UnityEngine;
 using Igruha.Core.Audio;
+using Igruha.Core.Minigame;
 
 namespace Igruha.Minigames.Stopwatch
 {
     /// <summary>
-    /// Звук, который есть только у «Секундомера» — подфаза 4.5: гонг подраунда
-    /// и щелчки кнопки. Всё, что описывает саму арену — лебёдка, створки,
-    /// медведь, публика, — лежит в <c>CircusAudio</c> и общее с «Порядком
-    /// банок».
+    /// Звук, который есть только у «Секундомера» — подфаза 4.5: гонг подраунда,
+    /// щелчки кнопки и барабанная дробь с тарелкой на показе результатов.
+    /// Всё, что описывает саму арену — лебёдка, створки, медведь, публика, —
+    /// лежит в <c>CircusAudio</c> и общее с «Порядком банок».
     ///
     /// <b>Своего состояния и своих RPC нет.</b> Щелчки висят на событиях
     /// <see cref="CageButton.Started"/> и <see cref="CageButton.Stopped"/>,
-    /// гонг — на смене номера подраунда, который приезжает с сервера через
-    /// <c>ApplyNetworkTask</c>. Каждая машина приходит к звуку сама из
-    /// одинакового состояния, поэтому он звучит у всех и в один момент.
+    /// а гонг и дробь — на <see cref="MinigameStageState"/>. Он и есть тот
+    /// сетевой источник, которого не хватало: сервер объявляет стадию, клиент
+    /// принимает её через <c>ApplyState</c>, и оба поднимают одни и те же
+    /// события. Значит звук идёт у всех и в один момент, без единого пакета
+    /// ради звука.
     /// </summary>
     /// <remarks>
     /// <b>Почему щелчок кнопки трёхмерный, а гонг нет.</b> Кнопка — предмет
     /// в конкретной клетке, и по звуку должно быть слышно, своя она или
-    /// соседская: спека 5.2 разрешает знать, что сосед начал. Гонг объявляет
-    /// подраунд всем разом и точки в пространстве не имеет.
+    /// соседская: спека 5.2 разрешает знать, что сосед начал. Гонг и дробь
+    /// объявляют стадию всем разом и точки в пространстве не имеют.
     ///
-    /// <b>Чего здесь нет.</b> Барабанной дроби и тарелки на показе
-    /// результатов: стадия подраунда наружу из <see cref="StopwatchMinigame"/>
-    /// не выставлена, а заводить ради звука новое свойство — это правка
-    /// правил игры, то есть фаза 2. Клипы `drumroll` и `cymbal` сгенерированы
-    /// и лежат в библиотеке; привязать их — отдельный тикет.
+    /// <b>Дробь и тарелка — два слота, а не один файл.</b> Дробь тянется всю
+    /// стадию результатов, тарелка бьёт в конце; склеенным клипом их уже не
+    /// развести по времени, а стадия настраивается числом в конфиге.
+    /// Поэтому тарелка ставится по длительности стадии, а не по фиксированной
+    /// задержке.
     /// </remarks>
     public sealed class StopwatchAudio : MonoBehaviour
     {
@@ -34,13 +37,21 @@ namespace Igruha.Minigames.Stopwatch
         [Tooltip("Кнопки клеток. Заполняет билдер реквизита")]
         [SerializeField] private CageButton[] buttons;
 
-        [SerializeField] private StopwatchMinigame game;
+        [Tooltip("Стадии подраунда. Отсюда приходят гонг и дробь")]
+        [SerializeField] private MinigameStageState stageState;
 
         private const string GongId = "round_gong";
         private const string StartId = "button_start";
         private const string StopId = "button_stop";
+        private const string DrumrollId = "drumroll";
+        private const string CymbalId = "cymbal";
 
-        private int lastSubround = -1;
+        /// <summary>
+        /// За сколько до конца стадии результатов бьёт тарелка, с.
+        /// Она обязана прийтись на момент, когда цифры уже прочитаны,
+        /// а не на их появление.
+        /// </summary>
+        private const float CymbalLead = 0.9f;
 
         private void OnEnable()
         {
@@ -53,6 +64,12 @@ namespace Igruha.Minigames.Stopwatch
 
                 buttons[i].Started += OnStarted;
                 buttons[i].Stopped += OnStopped;
+            }
+
+            if (stageState != null)
+            {
+                stageState.SubroundStarted += OnSubroundStarted;
+                stageState.StageStarted += OnStageStarted;
             }
         }
 
@@ -68,35 +85,48 @@ namespace Igruha.Minigames.Stopwatch
                 buttons[i].Started -= OnStarted;
                 buttons[i].Stopped -= OnStopped;
             }
+
+            if (stageState != null)
+            {
+                stageState.SubroundStarted -= OnSubroundStarted;
+                stageState.StageStarted -= OnStageStarted;
+            }
+
+            CancelInvoke();
         }
 
         private int ButtonCount => buttons == null ? 0 : buttons.Length;
 
-        /// <summary>
-        /// Гонг на смене подраунда. Читаем номер, а не событие: события начала
-        /// подраунда игра наружу не поднимает, а номер приезжает с сервера
-        /// и одинаков у всех.
-        /// </summary>
-        private void Update()
+        private void OnSubroundStarted(int subround)
         {
-            if (game == null || audioPlayer == null)
-            {
-                return;
-            }
-
-            int subround = game.Subround;
-            if (subround == lastSubround)
-            {
-                return;
-            }
-
-            // Первый заход не звенит: при загрузке сцены номер меняется
-            // с −1 на 0, и гонг ударил бы до начала игры.
-            bool first = lastSubround < 0;
-            lastSubround = subround;
-            if (!first && subround > 0)
+            if (audioPlayer != null)
             {
                 audioPlayer.Play(GongId);
+            }
+        }
+
+        private void OnStageStarted(byte stage)
+        {
+            if (audioPlayer == null || stage != StopwatchMinigame.StageResults)
+            {
+                return;
+            }
+
+            audioPlayer.Play(DrumrollId);
+
+            // Тарелку ставим от длительности стадии, а не от длительности
+            // дроби: стадия крутится числом в конфиге, и приколоченная
+            // задержка разъехалась бы с ней при первой же правке.
+            float lead = Mathf.Max(0.2f, stageState.StageDuration - CymbalLead);
+            CancelInvoke(nameof(PlayCymbal));
+            Invoke(nameof(PlayCymbal), lead);
+        }
+
+        private void PlayCymbal()
+        {
+            if (audioPlayer != null)
+            {
+                audioPlayer.Play(CymbalId);
             }
         }
 

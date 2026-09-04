@@ -22,13 +22,21 @@ namespace Igruha.Minigames.Stopwatch
     /// </summary>
     public sealed class StopwatchMinigame : MinigameControllerBase
     {
-        /// <summary>Стадии подраунда. Значения уезжают в сеть байтом, порядок менять нельзя.</summary>
-        private const byte StageBriefing = 1;
-        private const byte StageMeasure = 2;
-        private const byte StageResults = 3;
-        private const byte StageDescend = 4;
-        private const byte StageHatch = 5;
-        private const byte StagePause = 6;
+        /// <summary>
+        /// Стадии подраунда. Значения уезжают в сеть байтом, порядок менять нельзя.
+        ///
+        /// <c>internal</c>, а не <c>private</c>, ради звука: <c>StopwatchAudio</c>
+        /// ставит барабанную дробь на начало стадии результатов и обязан знать
+        /// её номер. Продублировать константу у себя было бы магическим числом
+        /// в двух местах, которые обязаны совпадать и разъедутся при первой же
+        /// правке порядка стадий. Поведение это не меняет ничем.
+        /// </summary>
+        internal const byte StageBriefing = 1;
+        internal const byte StageMeasure = 2;
+        internal const byte StageResults = 3;
+        internal const byte StageDescend = 4;
+        internal const byte StageHatch = 5;
+        internal const byte StagePause = 6;
 
         [SerializeField] private StopwatchConfig config;
         [SerializeField] private CircusArenaConfig arenaConfig;
