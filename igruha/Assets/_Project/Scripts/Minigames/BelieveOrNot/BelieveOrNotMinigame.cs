@@ -282,6 +282,13 @@ namespace Igruha.Minigames.BelieveOrNot
 
                 avatar.MovementLocked = false;
                 avatar.ImpulseImmune = false;
+
+                // Встать обязаны все: мини-игра кончилась, и уехавший в хаб
+                // сидящим персонаж остался бы сидеть в воздухе.
+                if (avatar.TryGetComponent(out CharacterAnimatorDriver animatorDriver))
+                {
+                    animatorDriver.SetSitting(false);
+                }
             }
 
             // Строго последним: риг стола умрёт вместе со сценой, и камера
@@ -880,6 +887,16 @@ namespace Igruha.Minigames.BelieveOrNot
                 bool seated = Players[i].Id == SeatedId(0) || Players[i].Id == SeatedId(1);
                 avatar.MovementLocked = seated;
                 avatar.ImpulseImmune = seated;
+
+                // Сидячая поза — отдельный слой аниматора, и его вес поднимает
+                // тот же проход, что запирает движение: садится и встаёт игрок
+                // ровно тогда, когда меняется этот флаг. Компонент у чужих
+                // копий выключен, но метод у него публичный именно для этого —
+                // кто сидит, известно на каждой машине.
+                if (avatar.TryGetComponent(out CharacterAnimatorDriver animatorDriver))
+                {
+                    animatorDriver.SetSitting(seated);
+                }
             }
         }
 

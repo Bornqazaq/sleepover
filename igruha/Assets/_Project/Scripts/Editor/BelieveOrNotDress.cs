@@ -137,7 +137,7 @@ namespace Igruha.EditorTools
         /// замер 25.08). Стул со срезанной до полуметра спинкой читался бы
         /// табуреткой, а дуэль держится в том числе на двух высоких спинках.
         /// </summary>
-        internal static void DressChair(GameObject chairBox, Vector3 seatDirection)
+        internal static void DressChair(GameObject chairBox, Vector3 seatDirection, float seatDistance)
         {
             if (chairBox == null || !DressKit.TryLoad(ChairPath, out GameObject prefab))
             {
@@ -148,9 +148,17 @@ namespace Igruha.EditorTools
             var chair = (GameObject)PrefabUtility.InstantiatePrefab(prefab, holder);
             chair.name = "Chair";
 
-            // Коробка блокаута стоит на полу и центрирована по высоте, значит
-            // пол ровно на её полувысоте ниже центра.
-            chair.transform.localPosition = new Vector3(0f, -chairBox.transform.localPosition.y, 0f);
+            // Стул уезжает вперёд, на саму точку посадки.
+            //
+            // В блокауте он стоял в 0.7 м позади неё, и это была вынужденная
+            // мера: персонаж стоял столбом, а стул под ним подхватывал его
+            // и ставил на сиденье (замер 25.08). С сидячей позой всё наоборот —
+            // сидеть надо НА стуле, иначе он торчит за спиной отдельным
+            // предметом. Коллайдера у стула нет, поэтому перестановка чисто
+            // визуальная: точка посадки, барьер и замеры фазы 2 не меняются.
+            float shift = chairBox.transform.localPosition.magnitude - seatDistance;
+            chair.transform.localPosition =
+                new Vector3(0f, -chairBox.transform.localPosition.y, 0f) - seatDirection * shift;
             chair.transform.localRotation =
                 Quaternion.LookRotation(-seatDirection, Vector3.up) * Quaternion.Euler(0f, ChairYaw, 0f);
             chair.transform.localScale = Vector3.one;

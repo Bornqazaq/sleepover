@@ -283,7 +283,7 @@ namespace Igruha.EditorTools
                     new Color(0.18f, 0.08f, 0.09f));
                 Object.DestroyImmediate(chair.GetComponent<Collider>());
                 SetLayer(chair, "Ground");
-                BelieveOrNotDress.DressChair(chair, direction);
+                BelieveOrNotDress.DressChair(chair, direction, config.SeatDistance);
             }
 
             return table;
