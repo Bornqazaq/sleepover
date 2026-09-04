@@ -17,7 +17,9 @@
       "loop": false,
       "spatial": false,
       "volume": 0.8,
-      "prompt": "deep single gong strike in a closed room, low brass resonance, slow natural decay, intimate not ceremonial, no music, no voices"
+      "prompt": "deep single gong strike in a closed room, low brass resonance, slow natural decay, intimate not ceremonial, no music, no voices",
+      "picked": "v2",
+      "note": "Варианты 1 и 3 пришли с клиппингом (54 и 42 среза), взят второй — чистый."
     },
     {
       "id": "peek_latch",
@@ -28,7 +30,8 @@
       "spatial": false,
       "volume": 0.9,
       "prompt": "single small brass latch clicking open on a wooden box, dry crisp close-up, tiny metal ring, no reverb tail, no music",
-      "note": "Слышен всем и содержимого не выдаёт: это щелчок замка, а не подсказка. Поэтому не трёхмерный — иначе зрители у дальней стены его не услышат и решат, что показа не было."
+      "note": "Слышен всем и содержимого не выдаёт: это щелчок замка, а не подсказка. Поэтому не трёхмерный — иначе зрители у дальней стены его не услышат и решат, что показа не было. Вариант 3 пришёл тишиной (пик −32.8 dBFS), вариант 4 — с клиппингом. Взят первый.",
+      "picked": "v1"
     },
     {
       "id": "phrase_knower",
@@ -38,7 +41,8 @@
       "loop": false,
       "spatial": true,
       "volume": 0.6,
-      "prompt": "soft short synth blip, warm low tone, single note, speech bubble notification, dry, no music"
+      "prompt": "soft short synth blip, warm low tone, single note, speech bubble notification, dry, no music",
+      "picked": "v1"
     },
     {
       "id": "phrase_decider",
@@ -49,7 +53,8 @@
       "spatial": true,
       "volume": 0.6,
       "prompt": "soft short synth blip, bright high tone, single note, speech bubble notification, dry, no music",
-      "note": "Тон выше, чем у Знающего, намеренно: по звуку слышно, кто из двоих заговорил, даже если не смотришь на пузырь."
+      "note": "Тон выше, чем у Знающего, намеренно: по звуку слышно, кто из двоих заговорил, даже если не смотришь на пузырь. Первые два варианта пришли с клиппингом (27193 и 18 срезанных сэмплов) — нормализацией это не чинится. Взят третий, ему нормализация добавила +12.7 дБ.",
+      "picked": "v3"
     },
     {
       "id": "tick_last",
@@ -59,7 +64,8 @@
       "loop": true,
       "spatial": false,
       "volume": 0.5,
-      "prompt": "quiet mechanical clock ticking, steady one second intervals, dry close-up wooden case, seamless loop, no music, no alarm"
+      "prompt": "quiet mechanical clock ticking, steady one second intervals, dry close-up wooden case, seamless loop, no music, no alarm",
+      "picked": "v2"
     },
     {
       "id": "box_swap",
@@ -69,7 +75,8 @@
       "loop": false,
       "spatial": true,
       "volume": 0.9,
-      "prompt": "two heavy wooden boxes sliding and scraping across green felt card table, short muffled wood on cloth, no music"
+      "prompt": "two heavy wooden boxes sliding and scraping across green felt card table, short muffled wood on cloth, no music",
+      "picked": "v2"
     },
     {
       "id": "lids_open",
@@ -79,7 +86,8 @@
       "loop": false,
       "spatial": true,
       "volume": 1.0,
-      "prompt": "two wooden chest lids thrown open at once, brass hinges creak, hollow wooden knock at the end, close-up, no music"
+      "prompt": "two wooden chest lids thrown open at once, brass hinges creak, hollow wooden knock at the end, close-up, no music",
+      "picked": "v1"
     },
     {
       "id": "outcome_win",
@@ -89,7 +97,8 @@
       "loop": false,
       "spatial": false,
       "volume": 0.85,
-      "prompt": "short triumphant brass chord, warm casino jackpot flourish, two seconds, clean ending, no drums, no voices"
+      "prompt": "short triumphant brass chord, warm casino jackpot flourish, two seconds, clean ending, no drums, no voices",
+      "picked": "v1"
     },
     {
       "id": "outcome_fail",
@@ -100,7 +109,8 @@
       "spatial": false,
       "volume": 0.85,
       "prompt": "short descending brass chord, deflating failure sting, two seconds, clean ending, no drums, no voices",
-      "note": "Победа и провал обязаны различаться на слух без взгляда на экран — это требование тикета 19.24. Поэтому два слота, а не один «аккорд исхода»."
+      "note": "Победа и провал обязаны различаться на слух без взгляда на экран — это требование тикета 19.24. Поэтому два слота, а не один «аккорд исхода».",
+      "picked": "v1"
     },
     {
       "id": "gag_puff",
@@ -110,7 +120,8 @@
       "loop": false,
       "spatial": true,
       "volume": 0.8,
-      "prompt": "short soft puff of smoke and dust bursting out of a small wooden box, airy pop, close-up, no music"
+      "prompt": "short soft puff of smoke and dust bursting out of a small wooden box, airy pop, close-up, no music",
+      "picked": "v1"
     },
     {
       "id": "crowd_react",
@@ -121,7 +132,8 @@
       "spatial": false,
       "volume": 0.7,
       "prompt": "small indoor crowd of six people reacting at once: sharp gasp, scattered laughter, a whistle and shouts, dry room, short burst, no music",
-      "note": "⚠️ Ставить в пробу первым. Генератор слаб на плотной толпе — на «Дырке в стене» из пяти вариантов годным вышел один (STATE 3.44). Если не выйдет, берём из купленного пака."
+      "note": "⚠️ Ставить в пробу первым. Генератор слаб на плотной толпе — на «Дырке в стене» из пяти вариантов годным вышел один (STATE 3.44). Если не выйдет, берём из купленного пака.",
+      "picked": "v3"
     },
     {
       "id": "hall_ambience",
@@ -132,13 +144,14 @@
       "spatial": false,
       "volume": 0.35,
       "prompt": "quiet private casino lounge room tone, distant indistinct murmur, occasional glass clink at a bar, low air hum, seamless loop, no music, no intelligible speech",
-      "note": "Тихо и без разборчивых слов: зал звучит присутствием, а не разговором. Разборчивая речь спорила бы с репликами за столом, а они и есть игра."
+      "note": "Тихо и без разборчивых слов: зал звучит присутствием, а не разговором. Разборчивая речь спорила бы с репликами за столом, а они и есть игра.",
+      "picked": "v1"
     }
   ],
   "mix_review": {
-    "date": null,
-    "by": null,
-    "note": "Приёмка на слух не проводилась: ключ fal.ai в редакторе не заведён, генерация не запускалась. Слоты и промпты готовы, разводка по событиям сделана."
+    "date": "2026-09-04",
+    "by": "агент — по числам (пик, RMS, срезанные сэмплы); на слух НЕ слушано",
+    "note": "Сгенерировано и нормализовано, но приёмки на слух не было: выбирать характер звука — за геймдизайнером. Из вариантов брался тот, которому нормализация добавила меньше всех децибел: меньше добавка — меньше поднятый шумовой пол. Все клипы приведены к пику −1 dBFS. Слушать и менять громкости — меню Igruha/Арт/Пульт звука. Брака по числам не осталось: из 28 проб 8 отбраковано (клиппинг или тишина), у каждого слота есть годный вариант. ⚠️ Модель cassetteai/sound-effects-generator в этот день отвечала «running 0%» по десять минут и отдавала файл молча, уже после того, как опрос статуса переставал что-либо показывать: не считать её зависшей и не перезапускать вслепую. Стинги исходов сгенерированы stable-audio-25 — она отвечает синхронно."
   },
   "removed": []
 }
