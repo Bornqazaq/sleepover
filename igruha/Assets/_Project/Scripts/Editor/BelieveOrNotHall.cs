@@ -44,6 +44,15 @@ namespace Igruha.EditorTools
         private const string CouchPath = Casino + "Props/SM_Prop_Couch_Suite_01.prefab";
         private const string BenchPath = Casino + "Props/SM_Prop_Bench_Pew_01.prefab";
         private const string LowTablePath = Casino + "Props/SM_Prop_Table_Suite_01.prefab";
+        private const string ColumnPath = Casino + "Buildings/SM_Bld_Pillar_Lights_Base_01.prefab";
+        private const string HighTablePath = Casino + "Props/SM_Prop_Bar_Table_01.prefab";
+        private const string ArmchairPath = Casino + "Props/SM_Prop_Chair_Suite_02.prefab";
+        private const string SideTablePath = Casino + "Props/SM_Prop_Table_Suite_02.prefab";
+        private const string RugPath = Nightclubs + "Props/SM_Prop_Rug_01.prefab";
+        private const string TrayPath = Casino + "Props/SM_Prop_Server_Tray_01.prefab";
+        private const string FluteGlassPath = Casino + "Props/SM_Prop_Champagne_Glass_01.prefab";
+        private const string CigarettePath = Casino + "Items/SM_Item_Cigarette_Pack_01.prefab";
+        private const string CardDeckPath = Casino + "Items/Cards/SM_Item_Card_Deck_01.prefab";
         private const string WallArtPath = Casino + "Props/SM_Prop_Wall_Art_02.prefab";
         private const string WallArtAltPath = Casino + "Props/SM_Prop_Wall_Art_01.prefab";
 
@@ -84,6 +93,7 @@ namespace Igruha.EditorTools
             Curtains(hall, config, wallFace);
             Bar(hall, wallFace);
             Lounge(hall, wallFace);
+            Corners(hall, config);
             Lights(hall);
 
             notes.Add($"предметов окружения {props}, ближайший к центру {nearest:F2} м " +
@@ -191,8 +201,18 @@ namespace Igruha.EditorTools
             Prop(group, "Bench", BenchPath, new Vector3(-10.9f, 0f, -7.4f), 90f);
             Prop(group, "Bench", BenchPath, new Vector3(-10.9f, 0f, 7.4f), 90f);
 
+            Prop(group, "Rug", RugPath, new Vector3(-9.8f, 0f, 0.1f), 0f);
+
             Prop(group, "LowTable", LowTablePath, new Vector3(-8.9f, 0f, -2.4f), 0f);
             Prop(group, "LowTable", LowTablePath, new Vector3(-8.9f, 0f, 2.6f), 0f);
+
+            // Мелочь на столиках: поднос с бокалами и пачка сигарет. Высота
+            // столика 0.37 м — на неё и садится всё, что на нём стоит.
+            Prop(group, "Tray", TrayPath, new Vector3(-8.9f, 0.37f, -2.4f), 0f);
+            Prop(group, "Glass", FluteGlassPath, new Vector3(-8.75f, 0.42f, -2.3f), 0f);
+            Prop(group, "Glass", FluteGlassPath, new Vector3(-9.05f, 0.42f, -2.5f), 0f);
+            Prop(group, "Glass", GlassPath, new Vector3(-8.9f, 0.37f, 2.6f), 0f);
+            Prop(group, "Cigarettes", CigarettePath, new Vector3(-8.7f, 0.37f, 2.75f), 25f);
 
             // На стене — золочёный вензель, а не картины пака.
             //
@@ -206,6 +226,66 @@ namespace Igruha.EditorTools
             // и не спорит с лампой.
             Prop(group, "WallArt", WallArtAltPath, new Vector3(-wallFace + WallGap, 0.3f, -4.9f), 90f);
             Prop(group, "WallArt", WallArtAltPath, new Vector3(-wallFace + WallGap, 0.3f, 4.9f), 90f);
+        }
+
+        // ========== УГЛЫ ==========
+
+        /// <summary>
+        /// Углы зала: колонны от пола до потолка, стоячие столики с табуретами
+        /// и пара кресел со столиком.
+        ///
+        /// Зачем вообще: после первой приёмки зал читался пустым. Четыре стены
+        /// в бархате и две зоны у стен оставляют между ними двадцать метров
+        /// голого пола, и в кадре зрителя, отбежавшего от стола, не было
+        /// ничего. Углы — единственное место, где объём можно поставить,
+        /// не залезая ни в свободную зону, ни на фон геройского кадра.
+        ///
+        /// Колонна пака — три метра, потолок — пять с небольшим. Она тянется
+        /// по высоте, а не масштабируется целиком: колонна — призма, вытяжка
+        /// вдоль оси её не искажает, а равномерный масштаб раздул бы её
+        /// в тумбу диаметром почти три метра.
+        /// </summary>
+        private static void Corners(Transform hall, BelieveOrNotConfig config)
+        {
+            Transform group = Group(hall, "Corners");
+            const float column = 10.8f;
+            const float cluster = 8.8f;
+            var stretch = new Vector3(1f, config.CeilingHeight / 3.00f, 1f);
+
+            for (int sx = -1; sx <= 1; sx += 2)
+            {
+                for (int sz = -1; sz <= 1; sz += 2)
+                {
+                    Prop(group, "Column", ColumnPath, new Vector3(sx * column, 0f, sz * column), 0f, stretch);
+                }
+            }
+
+            // Два стоячих столика по диагонали: у бара и напротив него.
+            StandingTable(group, new Vector3(cluster, 0f, -cluster));
+            StandingTable(group, new Vector3(-cluster, 0f, cluster));
+
+            // Два кресла со столиком между ними — угол, где сидят и смотрят.
+            Prop(group, "Armchair", ArmchairPath, new Vector3(cluster - 0.9f, 0f, cluster), 250f);
+            Prop(group, "Armchair", ArmchairPath, new Vector3(cluster + 0.9f, 0f, cluster + 0.6f), 70f);
+            GameObject side = Prop(group, "SideTable", SideTablePath, new Vector3(cluster, 0f, cluster + 1.5f), 0f);
+            if (side != null)
+            {
+                Prop(group, "CardDeck", CardDeckPath, new Vector3(cluster, 0.52f, cluster + 1.5f), 15f);
+            }
+
+            Prop(group, "Armchair", ArmchairPath, new Vector3(-cluster + 0.9f, 0f, -cluster), 70f);
+            Prop(group, "Armchair", ArmchairPath, new Vector3(-cluster - 0.9f, 0f, -cluster - 0.6f), 250f);
+            Prop(group, "SideTable", SideTablePath, new Vector3(-cluster, 0f, -cluster - 1.5f), 0f);
+            Prop(group, "Cigarettes", CigarettePath, new Vector3(-cluster + 0.2f, 0.52f, -cluster - 1.5f), 40f);
+        }
+
+        /// <summary>Стоячий столик с двумя табуретами и брошенным бокалом.</summary>
+        private static void StandingTable(Transform group, Vector3 place)
+        {
+            Prop(group, "HighTable", HighTablePath, place, 0f);
+            Prop(group, "Stool", StoolPath, place + new Vector3(0.85f, 0f, 0.2f), 250f);
+            Prop(group, "Stool", StoolPath, place + new Vector3(-0.85f, 0f, -0.2f), 70f);
+            Prop(group, "Glass", FluteGlassPath, place + new Vector3(0.15f, 1.10f, 0.1f), 0f);
         }
 
         // ========== СВЕТ ЗАЛА ==========
@@ -299,9 +379,13 @@ namespace Igruha.EditorTools
             props++;
             if (TryBounds(go, out Bounds placed))
             {
-                float distance = new Vector2(placed.center.x, placed.center.z).magnitude
-                                 - new Vector2(placed.extents.x, placed.extents.z).magnitude;
-                nearest = Mathf.Min(nearest, distance);
+                // Считаем расстояние до ближайшей точки габарита, а не до его
+                // центра минус диагональ: диагональ занижает ответ на предметах
+                // вытянутых, и ковёр 2 × 4.6 м «залезал» в зону, стоя от неё
+                // в полутора метрах.
+                float dx = Mathf.Max(0f, Mathf.Abs(placed.center.x) - placed.extents.x);
+                float dz = Mathf.Max(0f, Mathf.Abs(placed.center.z) - placed.extents.z);
+                nearest = Mathf.Min(nearest, Mathf.Sqrt(dx * dx + dz * dz));
             }
 
             return go;
