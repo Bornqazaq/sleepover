@@ -27,10 +27,19 @@ namespace Igruha.EditorTools
         private const string HudObjectName = "StopwatchHud";
         private const string StatusObjectName = "StopwatchStatus";
 
-        private const float PedestalHeight = 0.55f;
-        private const float PedestalDiameter = 0.42f;
-        private const float CapHeight = 0.12f;
-        private const float CapDiameter = 0.3f;
+        // ---- Кнопка после дресса 4.1. Замер до/после — в шапке BuildPrefab.
+        private const float PedestalHeight = 0.85f;
+
+        /// <summary>Диаметр коллайдера тумбы. Чуть уже видимой бочки, чтобы игрок не упирался в воздух перед ней.</summary>
+        private const float PedestalDiameter = 0.62f;
+
+        /// <summary>Купол кнопки: сплюснутая сфера, а не цилиндр.</summary>
+        private const float CapHeight = 0.21f;
+        private const float CapDiameter = 0.42f;
+
+        /// <summary>Ободок вокруг купола — то, во что кнопка утоплена.</summary>
+        private const float RimHeight = 0.07f;
+        private const float RimDiameter = 0.54f;
 
         [MenuItem("Igruha/Minigames/Rebuild Stopwatch Props")]
         private static void Rebuild()
@@ -278,6 +287,44 @@ namespace Igruha.EditorTools
             return existing != null ? existing.font : null;
         }
 
+        /// <summary>Покрасить примитив тоном общей палитры цирка.</summary>
+        private static void PaintCircus(GameObject go, CircusPalette.Tone tone)
+        {
+            Material material = CircusPalette.Get(tone);
+            if (material != null)
+            {
+                go.GetComponent<MeshRenderer>().sharedMaterial = material;
+            }
+        }
+
+        /// <summary>
+        /// Префаб кнопки. Дресс 4.1 заменил заглушку блокаута целиком:
+        /// цилиндр-тумба и цилиндр-крышка стали цирковой бочкой со звёздами
+        /// и красным куполом в металлическом ободке.
+        ///
+        /// 🔴 <b>Коллайдер взаимодействия вырос — и это объявлено.</b>
+        ///
+        /// | | было | стало |
+        /// |---|---|---|
+        /// | высота тумбы | 0.55 м | 0.85 м |
+        /// | диаметр тумбы | 0.42 м | 0.62 м |
+        /// | купол | цилиндр Ø 0.30 × 0.12 | сфера Ø 0.42 × 0.21 |
+        /// | верх кнопки | 0.67 м | 1.06 м |
+        ///
+        /// Причина роста: на 0.55 м кнопка приходилась персонажу ниже колена,
+        /// и в кадре из клетки её съедал решётчатый пол — а это единственное
+        /// действие в игре. На 0.85 м купол выходит на уровень пояса.
+        ///
+        /// <b>Поиск интерактива это не ломает.</b> <c>PlayerInteractor</c>
+        /// берёт <c>OverlapSphere</c> радиусом 1.80 м от корня персонажа,
+        /// то есть от пола клетки. Спавн стоит в 0.72 м от центра клетки, где
+        /// кнопка. До центра коллайдера было √(0.72² + 0.275²) = 0.77 м, стало
+        /// √(0.72² + 0.425²) = 0.84 м — обе величины втрое меньше радиуса
+        /// поиска, и ближняя точка коллайдера ещё ближе.
+        ///
+        /// Ширина 0.62 м выбрана <b>уже</b> видимой бочки (0.67 м): игрок
+        /// должен упираться в бочку, а не в воздух перед ней.
+        /// </summary>
         private static GameObject BuildPrefab()
         {
             if (!Directory.Exists(PrefabFolder))
@@ -291,18 +338,45 @@ namespace Igruha.EditorTools
             {
                 // Тумба. Коллайдер на ней же: PlayerInteractor ищет интерактив
                 // через OverlapSphere, и без коллайдера кнопка невидима для поиска.
+                //
+                // Рендерер тумбы гаснет — её место занимает цирковая бочка
+                // пака. Сама коробка остаётся: она и есть объём, в который
+                // упирается игрок и который находит поиск интерактива.
                 GameObject pedestal = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
                 pedestal.name = "Pedestal";
                 pedestal.transform.SetParent(root.transform, false);
                 pedestal.transform.localPosition = new Vector3(0f, PedestalHeight * 0.5f, 0f);
                 pedestal.transform.localScale = new Vector3(PedestalDiameter, PedestalHeight * 0.5f, PedestalDiameter);
+                pedestal.GetComponent<MeshRenderer>().enabled = false;
 
-                GameObject cap = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                CircusDress.Prop(root.transform, "Barrel", CircusDress.BarrelPath,
+                    root.transform.position, 0f, PedestalHeight);
+
+                // Ободок, в который утоплен купол. Без него красный шар просто
+                // лежит на бочке и не читается кнопкой.
+                GameObject rim = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                rim.name = "Rim";
+                rim.transform.SetParent(root.transform, false);
+                rim.transform.localPosition = new Vector3(0f, PedestalHeight + RimHeight * 0.5f, 0f);
+                rim.transform.localScale = new Vector3(RimDiameter, RimHeight * 0.5f, RimDiameter);
+                Object.DestroyImmediate(rim.GetComponent<Collider>());
+                PaintCircus(rim, CircusPalette.Tone.CageMetal);
+
+                // Купол — сплюснутая сфера, а не цилиндр: единственное действие
+                // в игре обязано выглядеть кнопкой, которую хочется ударить
+                // ладонью, а не крышкой люка.
+                //
+                // Материал белый и это не описка: цвет купола ведёт CageButton
+                // через MaterialPropertyBlock — покой, свой отсчёт, чужой
+                // отсчёт. Любая своя окраска под ним перемножилась бы
+                // с назначенной, и «горит» перестало бы отличаться от «нет».
+                GameObject cap = GameObject.CreatePrimitive(PrimitiveType.Sphere);
                 cap.name = "Lamp";
                 cap.transform.SetParent(root.transform, false);
-                cap.transform.localPosition = new Vector3(0f, PedestalHeight + CapHeight * 0.5f, 0f);
-                cap.transform.localScale = new Vector3(CapDiameter, CapHeight * 0.5f, CapDiameter);
+                cap.transform.localPosition = new Vector3(0f, PedestalHeight + RimHeight * 0.4f, 0f);
+                cap.transform.localScale = new Vector3(CapDiameter, CapHeight * 2f, CapDiameter);
                 Object.DestroyImmediate(cap.GetComponent<Collider>());
+                PaintCircus(cap, CircusPalette.Tone.ButtonBase);
 
                 // Лампа-маяк: сама кнопка мелкая и её заслоняет спина персонажа,
                 // а залитая светом клетка читается и краем глаза.
