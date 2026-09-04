@@ -1,0 +1,80 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2574025c1373412bb9b8283feb02ca7, type: 3}
+  m_Name: SfxLibrary
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.MinigameSfxLibrary
+  entries:
+  - Id: hall_ambience
+    Clip: {fileID: 8300000, guid: 8912484cd08ddc7488b848d3e8c2ed4d, type: 3}
+    Volume: 0.32
+    Loop: 1
+    Spatial: 0
+  - Id: round_start
+    Clip: {fileID: 8300000, guid: 6657c625936cd9c4199f596973b7394f, type: 3}
+    Volume: 0.85
+    Loop: 0
+    Spatial: 0
+  - Id: turn_announce
+    Clip: {fileID: 8300000, guid: 7b136add501e7e04baad23b9f3359da0, type: 3}
+    Volume: 0.75
+    Loop: 0
+    Spatial: 0
+  - Id: plate_land
+    Clip: {fileID: 8300000, guid: 57f30de5267c5604281502bed5dd254d, type: 3}
+    Volume: 0.8
+    Loop: 0
+    Spatial: 1
+  - Id: mine_blast
+    Clip: {fileID: 8300000, guid: e868150c930e15c4b811713671dd649d, type: 3}
+    Volume: 1
+    Loop: 0
+    Spatial: 1
+  - Id: ragdoll_launch
+    Clip: {fileID: 8300000, guid: 6a4125eb7a050de4e87be5b98a5bca76, type: 3}
+    Volume: 0.6
+    Loop: 0
+    Spatial: 1
+  - Id: ragdoll_land
+    Clip: {fileID: 8300000, guid: f1676399111046c4781bbd1eaf70d305, type: 3}
+    Volume: 0.7
+    Loop: 0
+    Spatial: 1
+  - Id: crowd_gasp
+    Clip: {fileID: 8300000, guid: 352addb39f6a916489f60f77addb19eb, type: 3}
+    Volume: 0.65
+    Loop: 0
+    Spatial: 0
+  - Id: pit_fall
+    Clip: {fileID: 8300000, guid: 79cc678350c2d3a4eace1e2e7d95aea0, type: 3}
+    Volume: 0.7
+    Loop: 0
+    Spatial: 1
+  - Id: turn_tick
+    Clip: {fileID: 8300000, guid: f4ac038a9b053e54793f65e842fd3170, type: 3}
+    Volume: 0.5
+    Loop: 0
+    Spatial: 0
+  - Id: exit_door
+    Clip: {fileID: 8300000, guid: 9ecf81609ed6e104ea06b8537ba370b3, type: 3}
+    Volume: 0.8
+    Loop: 0
+    Spatial: 1
+  - Id: exit_fanfare
+    Clip: {fileID: 8300000, guid: 28b819308613d1b4485f5af7f934a3a4, type: 3}
+    Volume: 0.85
+    Loop: 0
+    Spatial: 0
+  - Id: round_end
+    Clip: {fileID: 8300000, guid: 17be0848c1ebae642b3e8cc310dbc1c5, type: 3}
+    Volume: 0.8
+    Loop: 0
+    Spatial: 0
