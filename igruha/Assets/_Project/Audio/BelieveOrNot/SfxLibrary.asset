@@ -1,0 +1,75 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2574025c1373412bb9b8283feb02ca7, type: 3}
+  m_Name: SfxLibrary
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.MinigameSfxLibrary
+  entries:
+  - Id: round_gong
+    Clip: {fileID: 8300000, guid: 35cb3b4829aef2c499d580a53d42193a, type: 3}
+    Volume: 0.8
+    Loop: 0
+    Spatial: 0
+  - Id: peek_latch
+    Clip: {fileID: 8300000, guid: efd4f9a34aac3ce45a4aa512b3fdd5c4, type: 3}
+    Volume: 0.9
+    Loop: 0
+    Spatial: 0
+  - Id: phrase_knower
+    Clip: {fileID: 8300000, guid: 71cd780c4036d7645812aabeacc9b7e1, type: 3}
+    Volume: 0.6
+    Loop: 0
+    Spatial: 1
+  - Id: phrase_decider
+    Clip: {fileID: 8300000, guid: 360de730e59259644aeab474ce2b2d7a, type: 3}
+    Volume: 0.6
+    Loop: 0
+    Spatial: 1
+  - Id: tick_last
+    Clip: {fileID: 8300000, guid: 5e8c95158d16a314c89b860a4e86097d, type: 3}
+    Volume: 0.5
+    Loop: 1
+    Spatial: 0
+  - Id: box_swap
+    Clip: {fileID: 8300000, guid: de31adfa011dba84f942585a0638aa51, type: 3}
+    Volume: 0.9
+    Loop: 0
+    Spatial: 1
+  - Id: lids_open
+    Clip: {fileID: 8300000, guid: b4b8dc55ddb07cd48babe54aada3b373, type: 3}
+    Volume: 1
+    Loop: 0
+    Spatial: 1
+  - Id: outcome_win
+    Clip: {fileID: 8300000, guid: 0875a22d73a815742ada0a4b1c85de53, type: 3}
+    Volume: 0.85
+    Loop: 0
+    Spatial: 0
+  - Id: outcome_fail
+    Clip: {fileID: 8300000, guid: 2141fbbb4476a224592d6038c8339bda, type: 3}
+    Volume: 0.85
+    Loop: 0
+    Spatial: 0
+  - Id: gag_puff
+    Clip: {fileID: 8300000, guid: e8071c749a314224bada79765d6680be, type: 3}
+    Volume: 0.8
+    Loop: 0
+    Spatial: 1
+  - Id: crowd_react
+    Clip: {fileID: 8300000, guid: c31c3fa3cbbec814d8d451f4ec13c0cc, type: 3}
+    Volume: 0.7
+    Loop: 0
+    Spatial: 0
+  - Id: hall_ambience
+    Clip: {fileID: 8300000, guid: 3732bc74695ca854eb81b66b6d66e66a, type: 3}
+    Volume: 0.35
+    Loop: 1
+    Spatial: 0

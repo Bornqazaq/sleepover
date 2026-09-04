@@ -132,6 +132,21 @@ namespace Igruha.Minigames.BelieveOrNot
         /// <summary>Кто сейчас Решающий.</summary>
         public int DeciderPlayerId => match.DeciderPlayerId;
 
+        /// <summary>
+        /// Реплика показана на этой машине: место сидящего и то, Знающий ли
+        /// это. Локальное событие, а не сетевое: пузырь уже показан всем
+        /// через <see cref="ApplyPhrase"/>, и звуку остаётся повторить
+        /// то, что игра только что сделала.
+        /// </summary>
+        public event System.Action<int, bool> PhraseShown;
+
+        /// <summary>
+        /// Раскрытие началось: решение Решающего и угадал ли он. Считается
+        /// той же формулой, что и строка исхода, — чтобы звук и текст не
+        /// разъехались после обмена коробок.
+        /// </summary>
+        public event System.Action<Decision, bool> RevealStarted;
+
         /// <summary>Текущая стадия кона. <c>MinigameStageState.NoStage</c> — кон не идёт.</summary>
         public byte Stage => stageState != null ? stageState.Stage : MinigameStageState.NoStage;
 
@@ -1203,6 +1218,8 @@ namespace Igruha.Minigames.BelieveOrNot
             // между камерой и столом. Разговор здесь и есть игра, и терять
             // его на ракурсе нельзя.
             seatHud?.ShowTalk(NameOf(playerId), phrase, config.PhraseBubbleSeconds);
+
+            PhraseShown?.Invoke(seat, playerId == match.KnowerPlayerId);
         }
 
         private void ApplyRevealStage()
@@ -1244,7 +1261,22 @@ namespace Igruha.Minigames.BelieveOrNot
                 StopCoroutine(revealRoutine);
             }
 
+            RevealStarted?.Invoke(decision, WinnerSeat(decision, seat0Card) == SeatOf(match.DeciderPlayerId));
             revealRoutine = StartCoroutine(RevealRoutine(decision, seat0Card, seat1Card));
+        }
+
+        /// <summary>
+        /// Чьё место взяло кон.
+        ///
+        /// ⚠️ Карточки приезжают по НОМЕРУ КОРОБКИ, а не по месту, за которым
+        /// она в итоге стоит: обмен меняет места коробок, содержимое остаётся
+        /// при них. Формула одна на строку исхода и на звук — разъехаться им
+        /// негде, а разъехавшись, они назвали бы победителями разных людей.
+        /// </summary>
+        private static int WinnerSeat(Decision decision, BelieveCard seat0Card)
+        {
+            int cardSeat = seat0Card == BelieveCard.Win ? 0 : 1;
+            return decision == Decision.Swap ? BelieveTable.SeatCount - 1 - cardSeat : cardSeat;
         }
 
         private IEnumerator RevealRoutine(Decision decision, BelieveCard seat0Card, BelieveCard seat1Card)
@@ -1292,11 +1324,7 @@ namespace Igruha.Minigames.BelieveOrNot
             // коробки лежала галочка. Иначе после обмена строка называла бы
             // победителем проигравшего, а знаки над коробками показывали бы
             // правду: две разные картинки одного и того же кона.
-            int cardSeat = seat0Card == BelieveCard.Win ? 0 : 1;
-            int winnerSeat = decision == Decision.Swap
-                ? BelieveTable.SeatCount - 1 - cardSeat
-                : cardSeat;
-
+            int winnerSeat = WinnerSeat(decision, seat0Card);
             int winnerId = SeatedId(winnerSeat);
             int localSeat = SeatOf(LocalPlayerId);
 

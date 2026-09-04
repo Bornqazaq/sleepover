@@ -133,6 +133,10 @@ namespace Igruha.EditorTools
             PlaceSpawnPoints(config);
             ApplyLighting(config);
             WireManager(config, table);
+
+            // Звук ставится после связей менеджера: ему нужен уже собранный
+            // контроллер игры, на события которого он вешается.
+            BelieveOrNotSfx.Build(GameObject.Find(ArenaRoot).transform, config, table);
             RegisterInBuildSettings();
 
             GameObject arena = GameObject.Find(ArenaRoot);
