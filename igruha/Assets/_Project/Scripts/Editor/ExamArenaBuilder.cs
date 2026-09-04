@@ -75,8 +75,16 @@ namespace Igruha.EditorTools
         /// <summary>Какую долю меньшей стороны платформы занимает буква.</summary>
         private const float LetterFitFactor = 0.55f;
 
-        /// <summary>Насколько буква на полу темнее указателя — чтобы не спорила с ним.</summary>
-        private const float LetterFloorTint = 0.75f;
+        /// <summary>
+        /// Насколько буква на полу разбелена относительно цвета варианта.
+        ///
+        /// Была затемнена на четверть — так она не спорила со светлым
+        /// блокаутом площадки. Дресс 4.1 настелил площадку тёмным деревом,
+        /// и тёмно-синяя буква на тёмно-коричневом настиле перестала читаться
+        /// вовсе: рендер приёмки показал «Б» едва различимой. Теперь буква
+        /// светлее фона, а не темнее, и цвет варианта в ней сохраняется.
+        /// </summary>
+        private const float LetterFloorLift = 0.4f;
 
         /// <summary>Доля цвета варианта в покрытии платформы — намёк, а не заливка.</summary>
         private const float PlatformTint = 0.3f;
@@ -105,6 +113,9 @@ namespace Igruha.EditorTools
         /// <summary>Высота самой таблички указателя, в метрах.</summary>
         private const float SignPlateHeight = 1.3f;
 
+        /// <summary>Зерно генератора дресса. Фиксировано: пересборка обязана давать ту же арену.</summary>
+        private const int DressSeed = 20260904;
+
         [MenuItem("Igruha/Экзамен/Построить арену")]
         public static void Build()
         {
@@ -123,6 +134,12 @@ namespace Igruha.EditorTools
             }
 
             var root = new GameObject(Root);
+
+            // У дресса свой генератор случайных чисел. Общий с билдером сдвинул
+            // бы последовательность, по которой раскладываются геймплейные
+            // объекты, и проверенная планировка поехала бы от смены модели.
+            var dressRandom = new System.Random(DressSeed);
+            ExamDress.Begin();
 
             // Раскладка по глубине от дальней стены: кафедра → проход →
             // платформы → проход → зона возврата → запас для камеры.
@@ -144,10 +161,16 @@ namespace Igruha.EditorTools
             BuildReturnZone(root.transform, config, returnZ);
             BuildDecor(root.transform, config, platformsZ, podiumZ, far);
 
+            // Арт строится той же пересборкой, что и блокаут: всё, что не
+            // воспроизводится ею, теряется при первом слиянии веток — YAML
+            // сцены слияние не переживает.
+            ExamDress.Build(root, config, dressRandom);
+
             WireMinigameReferences(root);
 
             Debug.Log($"📚 Арена «Экзамена» построена: зал {config.HallWidth:F1}×{config.HallDepth:F1} м, " +
                       $"платформы {config.PlatformWidth:F1}×{config.PlatformDepth:F1} м", root);
+            Debug.Log(ExamDress.Report(), root);
 
             Selection.activeGameObject = root;
         }
@@ -505,7 +528,7 @@ namespace Igruha.EditorTools
             text.fontSize = LetterCanvasUnits * 0.8f;
             text.alignment = TextAlignmentOptions.Center;
             text.textWrappingMode = TextWrappingModes.NoWrap;
-            text.color = SideColor(side) * LetterFloorTint;
+            text.color = Color.Lerp(SideColor(side), Color.white, LetterFloorLift);
 
             return canvasGo;
         }
@@ -782,8 +805,16 @@ namespace Igruha.EditorTools
             tmp.color = SideColor(side);
         }
 
-        /// <summary>Цвет варианта: один и тот же на полу и на указателе.</summary>
-        private static Color SideColor(ExamSide side) => side == ExamSide.A
+        /// <summary>
+        /// Цвет варианта: один и тот же на полу, на указателе и на рамке люка.
+        ///
+        /// Синий с янтарным взяты не на вкус: эта пара различима при всех
+        /// распространённых формах дальтонизма, а красный с зелёным — нет.
+        /// Дресс 4.1 и палитра 4.2 берут цвет отсюда, а не заводят свой:
+        /// разойдись они, «синее = вариант А» перестало бы работать ровно там,
+        /// где нужнее всего.
+        /// </summary>
+        internal static Color SideColor(ExamSide side) => side == ExamSide.A
             ? new Color(0.16f, 0.42f, 0.72f)
             : new Color(0.78f, 0.5f, 0.09f);
 
