@@ -37,8 +37,8 @@
       "loop": true,
       "volume": 0.55,
       "spatial": true,
-      "prompt": "water sloshing back and forth inside a big plastic jug, continuous seamless loop, soft liquid movement, no splashing out, no music",
-      "note": "Луп. Громкость и питч гонятся кодом от наклона через SetLoopLevel."
+      "prompt": "close-miked water sloshing violently inside a large plastic water jug, loud continuous liquid churning and thumping against the walls, seamless loop, full and present, no music",
+      "note": "Луп. Громкость и питч гонятся кодом от наклона через SetLoopLevel. Правка 04.09: первые три варианта пришли пустыми — генератор понял событие как далёкий звук. Промпт просит запись вблизи (close-miked, loud, present)."
     },
     {
       "id": "leak_loop",
@@ -101,8 +101,8 @@
       "loop": true,
       "volume": 0.75,
       "spatial": true,
-      "prompt": "steel cable creaking under load, slow rhythmic metal groan of a swinging crane load, continuous seamless loop, ominous, no music",
-      "note": "Спека 8.5: ловушку обязано быть слышно до того, как она коснётся."
+      "prompt": "heavy steel cable under tension creaking rhythmically, loud rope and metal groan of a swinging crane load, seamless continuous loop, even level, no music",
+      "note": "Спека 8.5: ловушку обязано быть слышно до того, как она коснётся. Правка 04.09: первые три варианта пришли пустыми — генератор понял событие как далёкий звук. Промпт просит запись вблизи (close-miked, loud, present)."
     },
     {
       "id": "beam_hit",
@@ -122,7 +122,8 @@
       "loop": false,
       "volume": 0.85,
       "spatial": true,
-      "prompt": "metal wheelbarrow tipping over and clattering on concrete, gravel spilling out, single event, no music"
+      "prompt": "metal wheelbarrow crashing over onto concrete, loud clang of the steel tray hitting the ground, gravel dumping out, sharp attack, close, no music",
+      "note": "Правка 04.09: первые три варианта пришли пустыми — генератор понял событие как далёкий звук. Промпт просит запись вблизи (close-miked, loud, present)."
     },
     {
       "id": "pipe_loop",
@@ -142,7 +143,8 @@
       "loop": false,
       "volume": 0.7,
       "spatial": true,
-      "prompt": "short whoosh of a heavy brick thrown through air, quick air swipe, dry, no music"
+      "prompt": "loud sharp whoosh of a heavy brick hurled fast past the microphone, strong air movement, close and dry, single swipe, no music",
+      "note": "Правка 04.09: первые три варианта пришли пустыми — генератор понял событие как далёкий звук. Промпт просит запись вблизи (close-miked, loud, present)."
     },
     {
       "id": "brick_hit",
