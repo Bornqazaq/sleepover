@@ -151,6 +151,7 @@ namespace Igruha.EditorTools
             BuildScoreboard(arenaRoot.transform, config);
             BuildCages(arenaRoot.transform, config, groundLayer);
             BuildBear(arenaRoot.transform, config);
+            CircusEnvironment.Build(arenaRoot.transform, config, dressRandom);
             BuildSpawns(spawnsRoot.transform, config);
             BuildBounds(config);
 
