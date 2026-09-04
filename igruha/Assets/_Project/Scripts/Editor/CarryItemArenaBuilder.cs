@@ -131,6 +131,9 @@ namespace Igruha.EditorTools
         /// <summary>Сколько слоёв брызг рисует струя прорванной трубы.</summary>
         private const int JetLayers = 3;
 
+        /// <summary>Ширина разметки по краю проёма, ШИ.</summary>
+        private const float EdgeStripeWidth = 0.6f;
+
         private static System.Random dressRandom;
 
         [MenuItem("Igruha/Minigames/Rebuild Carry Item Arena")]
@@ -165,6 +168,7 @@ namespace Igruha.EditorTools
 
             dressRandom = new System.Random(DressSeed);
             CarryItemDress.Begin();
+            CarryItemPalette.Begin();
 
             EnsurePrefabs(config);
             ClearTemplateContent(arena, spawns, bounds, traps, pickups);
@@ -191,8 +195,10 @@ namespace Igruha.EditorTools
 
             Physics.SyncTransforms();
             Report(config);
+            CarryItemPalette.Flush();
             ReportMissingModels();
             Debug.Log(CarryItemDress.Report(), arena);
+            Debug.Log(CarryItemPalette.Report(), arena);
 
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
         }
@@ -225,17 +231,78 @@ namespace Igruha.EditorTools
 
             // Три площадки маршрута. Между ними — пропасти, и пола там нет
             // намеренно: это и есть единственное, что убивает игрока.
-            Slab(group, config, ground, "Floor_Start", StartMinX - EndMarginX, StartMaxX,
-                -HalfWidth, HalfWidth, 0f);
-            Slab(group, config, ground, "Floor_Common", CommonMinX, CommonMaxX, -HalfWidth, HalfWidth, 0f);
-            Slab(group, config, ground, "Floor_Tanks", TankMinX, TankMaxX + EndMarginX,
-                -HalfWidth, HalfWidth, 0f);
+            //
+            // Пол настилается плитами перекрытия из пака, а не красится ровным
+            // тоном: у плиты есть шов, кромка и толщина, и с ними перекрытие
+            // читается залитым, а не покрашенным. Тайлить атлас Synty при этом
+            // нельзя — это цветовая карта, а не тайловый материал.
+            Floor(group, config, ground, "Floor_Start", StartMinX - EndMarginX, StartMaxX, 0f);
+            Floor(group, config, ground, "Floor_Common", CommonMinX, CommonMaxX, 0f);
+            Floor(group, config, ground, "Floor_Tanks", TankMinX, TankMaxX + EndMarginX, 0f);
 
             // Дно пропастей: на нём стоит KillZone, и об него же считается
-            // объявленная LDD пара секунд до респавна.
+            // объявленная LDD пара секунд до респавна. Грунт, а не бетон —
+            // внизу стройка ещё не залита, и разница материала работает на то
+            // же, что и разница тона: край проёма обязан читаться.
             float depth = -config.ChasmDepth;
-            Slab(group, config, ground, "Floor_Chasm_1", StartMaxX, CommonMinX, -HalfWidth, HalfWidth, depth);
-            Slab(group, config, ground, "Floor_Chasm_2", CommonMaxX, TankMinX, -HalfWidth, HalfWidth, depth);
+            GameObject deep1 = Slab(group, config, ground, "Floor_Chasm_1",
+                StartMaxX, CommonMinX, -HalfWidth, HalfWidth, depth);
+            GameObject deep2 = Slab(group, config, ground, "Floor_Chasm_2",
+                CommonMaxX, TankMinX, -HalfWidth, HalfWidth, depth);
+
+            foreach (GameObject bottom in new[] { deep1, deep2 })
+            {
+                Paint(bottom, CarryItemPalette.Get(CarryItemPalette.Tone.ConcreteDeep));
+                CarryItemDress.Apply(bottom, CarryItemDress.Kind.ChasmFloor, dressRandom);
+            }
+
+            BuildChasmEdges(group, config);
+        }
+
+        /// <summary>
+        /// Плита перекрытия: коробка блокаута со своим коллайдером, поверх неё
+        /// настил плитами пака. Верх плиты совпадает с верхом коробки — по нему
+        /// и бегут.
+        /// </summary>
+        private static void Floor(Transform group, CarryItemConfig config, int ground, string name,
+            float minX, float maxX, float topY)
+        {
+            GameObject slab = Slab(group, config, ground, name, minX, maxX, -HalfWidth, HalfWidth, topY);
+            Paint(slab, CarryItemPalette.Get(CarryItemPalette.Tone.Concrete));
+            CarryItemDress.Apply(slab, CarryItemDress.Kind.Floor, dressRandom);
+        }
+
+        /// <summary>
+        /// Разметка по краю проёма — требование LDD: края пропастей обязаны
+        /// явно контрастировать с полом.
+        ///
+        /// Полосой, а не тоном всего пола: тон уже разведён (дно темнее
+        /// перекрытия), но сверху, с игровой камеры, разницу яркости съедает
+        /// перспектива. Полоса лежит на самом краю и видна ровно оттуда,
+        /// откуда в пропасть падают. Коллайдера у неё нет.
+        /// </summary>
+        private static void BuildChasmEdges(Transform group, CarryItemConfig config)
+        {
+            var edges = new[] { StartMaxX, CommonMinX, CommonMaxX, TankMinX };
+            Material stripe = CarryItemPalette.Get(CarryItemPalette.Tone.EdgeStripe);
+
+            for (int i = 0; i < edges.Length; i++)
+            {
+                // Полоса кладётся на пол со стороны перекрытия, а не в воздух
+                // над проёмом: наружу от края её было бы не на чем держать.
+                float inward = i % 2 == 0 ? -EdgeStripeWidth : EdgeStripeWidth;
+                var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                go.name = $"ChasmEdge_{i + 1}";
+                go.transform.SetParent(group, false);
+                go.transform.position = new Vector3(
+                    config.ToMeters(edges[i] + inward * 0.5f),
+                    config.ToMeters(0.02f),
+                    0f);
+                go.transform.localScale = new Vector3(
+                    config.ToMeters(EdgeStripeWidth), config.ToMeters(0.04f), config.ToMeters(HalfWidth * 2f));
+                Object.DestroyImmediate(go.GetComponent<Collider>());
+                Paint(go, stripe);
+            }
         }
 
         private static void BuildWalls(Transform root, CarryItemConfig config, int ground)
@@ -248,19 +315,21 @@ namespace Igruha.EditorTools
             float minX = startEdge - WallThickness;
             float maxX = tankEdge + WallThickness;
 
+            Material concrete = CarryItemPalette.Get(CarryItemPalette.Tone.Wall);
+
             // Торцы: за штабелем и за баком, с отступом на правило камеры.
             // Расстояние до них проверяется отчётом.
-            Box(group, config, ground, "Wall_Start", startEdge - WallThickness, startEdge,
-                -HalfWidth - WallThickness, HalfWidth + WallThickness, 0f, height);
-            Box(group, config, ground, "Wall_Tanks", tankEdge, tankEdge + WallThickness,
-                -HalfWidth - WallThickness, HalfWidth + WallThickness, 0f, height);
+            Paint(Box(group, config, ground, "Wall_Start", startEdge - WallThickness, startEdge,
+                -HalfWidth - WallThickness, HalfWidth + WallThickness, 0f, height), concrete);
+            Paint(Box(group, config, ground, "Wall_Tanks", tankEdge, tankEdge + WallThickness,
+                -HalfWidth - WallThickness, HalfWidth + WallThickness, 0f, height), concrete);
 
             // Борта во всю длину, включая пропасти: свалившийся не должен
             // укатиться из-под арены.
-            Box(group, config, ground, "Wall_SideA", minX, maxX, HalfWidth, HalfWidth + WallThickness,
-                -config.ChasmDepth, height + config.ChasmDepth);
-            Box(group, config, ground, "Wall_SideB", minX, maxX, -HalfWidth - WallThickness, -HalfWidth,
-                -config.ChasmDepth, height + config.ChasmDepth);
+            Paint(Box(group, config, ground, "Wall_SideA", minX, maxX, HalfWidth, HalfWidth + WallThickness,
+                -config.ChasmDepth, height + config.ChasmDepth), concrete);
+            Paint(Box(group, config, ground, "Wall_SideB", minX, maxX, -HalfWidth - WallThickness, -HalfWidth,
+                -config.ChasmDepth, height + config.ChasmDepth), concrete);
         }
 
         private static void BuildPlanks(Transform root, CarryItemConfig config, int ground)
@@ -484,7 +553,7 @@ namespace Igruha.EditorTools
             // ребёнком самой балки: SwingingBeamTrap водит её transform, и
             // модель едет вместе с ним. Поставь её рядом — балка ушла бы
             // крутиться одна, а двутавр остался бы висеть над горлышком.
-            Paint(beam, Mat("CI_Hazard"));
+            Paint(beam, CarryItemPalette.Get(CarryItemPalette.Tone.Steel));
             CarryItemDress.Apply(beam, CarryItemDress.Kind.Beam, dressRandom);
 
             var trap = beam.AddComponent<SwingingBeamTrap>();
@@ -509,7 +578,7 @@ namespace Igruha.EditorTools
             trigger.isTrigger = true;
             trigger.size = new Vector3(1f, 4f, 1f);
 
-            Paint(cart, Mat("CI_Hazard"));
+            Paint(cart, CarryItemPalette.Get(CarryItemPalette.Tone.Hazard));
             BuildCartProps(group, config, cart);
 
             var spring = cart.AddComponent<SpringTrap>();
@@ -1190,9 +1259,11 @@ namespace Igruha.EditorTools
                 config.ToMeters(side * 0.82f), Mat("CI_TankRim"));
             lid.layer = ground;
 
+            // Обод шире корпуса заметно, а не на сантиметр: это метка команды,
+            // и её обязано быть видно от середины площадки, а не только вплотную.
             GameObject band = Cylinder(root.transform, "TeamBand",
-                config.ToMeters(height - 0.18f), config.ToMeters(0.18f),
-                config.ToMeters(side * 1.03f), Mat("CI_TankRim"));
+                config.ToMeters(height - 0.22f), config.ToMeters(0.22f),
+                config.ToMeters(side * 1.11f), Mat("CI_TankRim"));
             band.layer = ground;
 
             // Смотровое стекло: столбик воды снаружи, во всю высоту бака.
@@ -1227,8 +1298,11 @@ namespace Igruha.EditorTools
 
             // Лестница на бак и труба у основания — то, из-за чего резервуар
             // читается резервуаром, а не бочкой. Декор, коллайдеров нет.
+            // Лестница прислонена к наружной стенке. Была на 0.46 стороны —
+            // то есть внутри корпуса радиусом в половину стороны, и её просто
+            // не было видно.
             CarryItemDress.Prop(root.transform, "Ladder", CarryItemDress.LadderPath,
-                root.transform.position + new Vector3(config.ToMeters(side * 0.46f), 0f, 0f),
+                root.transform.position + new Vector3(config.ToMeters(side * 0.54f), 0f, 0f),
                 90f, config.ToMeters(height));
             CarryItemDress.Prop(root.transform, "Outlet", CarryItemDress.OutletPath,
                 root.transform.position + new Vector3(0f, 0f, config.ToMeters(side * 0.5f)),

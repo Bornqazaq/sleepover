@@ -57,7 +57,13 @@ namespace Igruha.EditorTools
             Beam,
 
             /// <summary>Сам кирпич — метательный предмет, живёт в префабе.</summary>
-            Brick
+            Brick,
+
+            /// <summary>Перекрытие, по которому бегут: настилается плитами, а не красится.</summary>
+            Floor,
+
+            /// <summary>Дно пропасти: грунт нижнего яруса.</summary>
+            ChasmFloor
         }
 
         /// <summary>Одевание одного вида: чем закрываем и зачем именно этим.</summary>
@@ -75,6 +81,8 @@ namespace Igruha.EditorTools
 
         private const string Construction = "Assets/Synty/PolygonConstruction/Prefabs/";
         private const string Props = Construction + "Props/";
+        private const string Buildings = Construction + "Buildings/";
+        private const string Environments = Construction + "Environments/";
 
         /// <summary>Тачка-ловушка: три штуки вдоль горлышка, поэтому путь вынесен наружу.</summary>
         internal const string WheelbarrowPath = Props + "SM_Prop_Wheelbarrow_01.prefab";
@@ -158,6 +166,26 @@ namespace Igruha.EditorTools
                 // сам transform балки, и дресс едет вместе с ним.
                 Kind.Beam,
                 new Wear("балка", new Entry(Props + "SM_Prop_I_Beam_01.prefab", Fit.Row, 1))
+            },
+            {
+                // Пол перекрытия. Плитами, а не краской, и это ответ на прямой
+                // вопрос геймдизайнера: тайлить атлас Synty нельзя (это цветовая
+                // карта, а не тайловый материал — так ледяная текстура сделала
+                // зимний этаж Duck Hunt бассейном), зато в паке есть настоящие
+                // плиты перекрытия. Сетка 5 × 5 м даёт швы, кромки и толщину
+                // залитого бетона; коробка блокаута под ними остаётся
+                // коллайдером, а её верх совпадает с верхом плиты.
+                Kind.Floor,
+                new Wear("перекрытие",
+                    new Entry(Buildings + "SM_Bld_Concrete_Floor_01.prefab", Fit.Tile))
+            },
+            {
+                // Дно пропасти — грунт, а не бетон: внизу стройка ещё не залита,
+                // и разница материала работает на то же, на что разница тона —
+                // край проёма обязан читаться (требование LDD).
+                Kind.ChasmFloor,
+                new Wear("дно пропасти",
+                    new Entry(Environments + "SM_Env_Dirt_Square_01.prefab", Fit.Tile))
             },
             {
                 // Кирпич — 0.35 × 0.2 × 0.2 ШИ. Кирпич пака 0.43 × 0.19 × 0.25 м
