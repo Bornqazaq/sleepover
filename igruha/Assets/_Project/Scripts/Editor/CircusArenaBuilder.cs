@@ -159,6 +159,12 @@ namespace Igruha.EditorTools
             // повеситься на их события.
             CageStation[] builtCages = arenaRoot.GetComponentsInChildren<CageStation>(true);
             PitBear builtBear = arenaRoot.GetComponentInChildren<PitBear>(true);
+
+            // Вернуть контроллеру ссылки на клетки и медведя. Обязательно и
+            // до всего остального: пересборка пересоздала эти объекты, и без
+            // этого шага игра встаёт с «клетка 0 не назначена».
+            CircusWiring.Apply(builtCages, builtBear);
+
             CircusVfx.Build(arenaRoot.transform, config, builtCages, builtBear);
 
             // Звук — после эффектов и по тем же событиям. Кнопки на этот
