@@ -128,11 +128,16 @@ namespace Igruha.EditorTools
             }
 
             StripTemplate();
+            BelieveOrNotDress.Begin();
             BelieveTable table = BuildArena(config);
             PlaceSpawnPoints(config);
             ApplyLighting(config);
             WireManager(config, table);
             RegisterInBuildSettings();
+
+            GameObject arena = GameObject.Find(ArenaRoot);
+            Debug.Log(BelieveOrNotDress.Report(arena), arena);
+            BelieveOrNotPaletteAssets.Flush();
 
             EditorSceneManager.MarkAllScenesDirty();
             EditorSceneManager.SaveOpenScenes();
@@ -255,6 +260,7 @@ namespace Igruha.EditorTools
             box.size = new Vector3(inscribed, 1f, inscribed);
 
             SetLayer(top, "Ground");
+            BelieveOrNotDress.DressTable(top, config);
 
             for (int seat = 0; seat < BelieveTable.SeatCount; seat++)
             {
@@ -271,6 +277,7 @@ namespace Igruha.EditorTools
                     new Color(0.18f, 0.08f, 0.09f));
                 Object.DestroyImmediate(chair.GetComponent<Collider>());
                 SetLayer(chair, "Ground");
+                BelieveOrNotDress.DressChair(chair, direction);
             }
 
             return table;
@@ -334,6 +341,7 @@ namespace Igruha.EditorTools
                 new Vector3(0f, config.LampHeight + 0.2f, 0f),
                 new Color(0.05f, 0.04f, 0.04f));
             SetLayer(shade, "Ground");
+            BelieveOrNotDress.DressLamp(shade, config);
         }
 
         /// <summary>
@@ -431,8 +439,14 @@ namespace Igruha.EditorTools
             root.transform.localRotation = Quaternion.LookRotation(-SeatDirection(seat), Vector3.up);
 
             var boxColor = new Color(0.34f, 0.22f, 0.12f);
+
+            // Корпус ставится по нижней грани номинального куба, а не по его
+            // центру: куб — это габарит коробки из спеки (0.8 ШП), корпус
+            // занимает по высоте 0.7 от него, и центрированный корпус висел бы
+            // над столешницей на 8.6 см. В блокауте это не читалось — серый
+            // ящик в тёмном зале, — а под сундуком фазы 4 стало бы видно сразу.
             GameObject body = CreateBox(root.transform, "Body", new Vector3(size, size * 0.7f, size * 0.75f),
-                Vector3.zero, boxColor);
+                new Vector3(0f, size * (0.7f * 0.5f - 0.5f), 0f), boxColor);
             Object.DestroyImmediate(body.GetComponent<Collider>());
 
             // Петля сбоку, а не сзади. Откинутая назад крышка ближней коробки
@@ -487,6 +501,8 @@ namespace Igruha.EditorTools
             so.FindProperty("cardPivot").objectReferenceValue = cardPivot.transform;
             so.FindProperty("revealLift").floatValue = size * 0.95f;
             so.ApplyModifiedPropertiesWithoutUndo();
+
+            BelieveOrNotDress.DressBox(component, body, hinge.transform, lid, size);
 
             return component;
         }
