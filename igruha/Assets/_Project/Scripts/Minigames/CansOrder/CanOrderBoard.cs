@@ -103,8 +103,12 @@ namespace Igruha.Minigames.CansOrder
             // Сначала расстановки: три лучшие уходят на свои строки поверх
             // левой колонки грани. Кто в тройку попал, в списке ниже уже
             // не повторяется — его имя и счёт стоят в самой строке.
+            // Флаг плейтеста boardTopRows = 0 выключает расстановки совсем
+            // (спека 8.8). Тогда левая колонка не резервируется: пустой она
+            // была бы потерей половины грани.
+            bool usePanel = panel != null && config.BoardTopRows > 0;
             bool[] onPanel = null;
-            if (panel != null)
+            if (usePanel)
             {
                 onPanel = new bool[ordered.Count];
                 for (int i = 0; i < ordered.Count && shownArrangements < panel.Capacity; i++)
@@ -146,7 +150,7 @@ namespace Igruha.Minigames.CansOrder
                 pending.Add(Entry(ordered[i], names[i], oneStepAway));
             }
 
-            int slots = Mathf.Max(1, capacity - (onPanel != null ? LeftColumnRows : 0));
+            int slots = Mathf.Max(1, capacity - (usePanel ? LeftColumnRows : 0));
             int perSlot = Mathf.Max(1, Mathf.CeilToInt(pending.Count / (float)slots));
             for (int i = 0; i < pending.Count; i += perSlot)
             {
@@ -164,9 +168,9 @@ namespace Igruha.Minigames.CansOrder
                 board.AddRow(text.ToString(), string.Empty);
             }
 
-            // Кассеты нет — старое поведение: расстановка печатается прямо
+            // Своих строк нет — старое поведение: расстановка печатается прямо
             // в подписи строки. Игра на нём работает, просто читается хуже.
-            if (panel == null)
+            if (panel == null && config.BoardTopRows > 0)
             {
                 for (int i = 0; i < ordered.Count && i < capacity; i++)
                 {
@@ -194,7 +198,7 @@ namespace Igruha.Minigames.CansOrder
             // в круге может оказаться меньше трёх подтвердивших.
             if (panel != null)
             {
-                for (int i = shownArrangements; i < panel.Capacity; i++)
+                for (int i = usePanel ? shownArrangements : 0; i < panel.Capacity; i++)
                 {
                     panel.HideRowOnAllFaces(i);
                 }
