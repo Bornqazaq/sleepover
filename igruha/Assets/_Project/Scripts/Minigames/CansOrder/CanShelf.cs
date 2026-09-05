@@ -75,6 +75,10 @@ namespace Igruha.Minigames.CansOrder
         [Tooltip("Высота банки, м")]
         [SerializeField] private float canHeight = 0.24f;
 
+        [Header("Вид")]
+        [Tooltip("Префаб банки. Ставит билдер реквизита; пусто — рантайм строит серый цилиндр блокаута")]
+        [SerializeField] private GameObject canPrefab;
+
         [Header("Курсор")]
         [Tooltip("Сколько мышь должна пройти, чтобы курсор перескочил на соседнюю банку. Меньше — резче")]
         [SerializeField] private float mouseStepPixels = 45f;
@@ -873,13 +877,38 @@ namespace Igruha.Minigames.CansOrder
         }
 
         /// <summary>
-        /// Серая заготовка банки: цилиндр без коллайдера. Коллайдера нет
-        /// намеренно — банка не должна попадать в выборку
-        /// <c>PlayerInteractor</c>: там буфер на 16 коллайдеров, а в клетке
-        /// их и так семь, и пять банок вытеснили бы из выборки кнопку.
-        /// Взаимодействие идёт через полку, а не через саму банку.
+        /// Банка. Коллайдера у неё нет намеренно — она не должна попадать
+        /// в выборку <c>PlayerInteractor</c>: там буфер на 16 коллайдеров,
+        /// а в клетке их и так семь, и пять банок вытеснили бы из выборки
+        /// кнопку. Взаимодействие идёт через полку, а не через саму банку.
+        ///
+        /// <b>Вид приезжает префабом, а не строится здесь.</b> Слоты и число
+        /// банок берутся из конфига и меняются от круга к кругу, поэтому сами
+        /// объекты создаются в рантайме, — но внешность обязана быть
+        /// редактируемой билдером: то, что не восстанавливается пересборкой,
+        /// теряется. Ссылка пустая — строится прежний серый цилиндр, и игра
+        /// на нём работает как работала.
         /// </summary>
         private Can BuildCan(CansOrderConfig config, int canId)
+        {
+            if (canPrefab != null)
+            {
+                var dressed = Instantiate(canPrefab, slotsRoot);
+                if (dressed.TryGetComponent(out Can dressedCan))
+                {
+                    dressedCan.Configure(canId, config.GetCanKind(canId));
+                    return dressedCan;
+                }
+
+                Debug.LogError($"{name}: на префабе банки нет компонента Can — строю заготовку", this);
+                Destroy(dressed);
+            }
+
+            return BuildBlockoutCan(config, canId);
+        }
+
+        /// <summary>Серая заготовка банки блокаута: цилиндр без коллайдера.</summary>
+        private Can BuildBlockoutCan(CansOrderConfig config, int canId)
         {
             var root = new GameObject("Can");
             root.transform.SetParent(slotsRoot, false);

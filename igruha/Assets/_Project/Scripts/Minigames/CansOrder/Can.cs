@@ -12,12 +12,20 @@ namespace Igruha.Minigames.CansOrder
     /// добавилась бы синхронизация физического тела ради одной шутки.
     /// Поэтому же банка не <c>PickupItem</c>: там бросок на ЛКМ.
     ///
-    /// <b>Как поменять серую заготовку на настоящую банку (арт-фаза, 9.21):</b>
-    /// положить модель ребёнком вместо примитива и оставить <see cref="Configure"/>
-    /// красить её материал. Логика про внешность не знает.
+    /// <b>Внешность приезжает префабом от билдера реквизита (арт-фаза, 9.22).</b>
+    /// Корпус и пять знаков лежат в префабе, <see cref="Configure"/> красит
+    /// корпус и включает знак по идентификатору. Логика про внешность
+    /// по-прежнему не знает ничего: пустые ссылки означают серую заготовку
+    /// блокаута, и игра на них работает как работала.
     /// </summary>
     public sealed class Can : MonoBehaviour
     {
+        [Tooltip("Рендерер корпуса — его и красит палитра. Пусто у заготовки блокаута: тогда берётся первый найденный")]
+        [SerializeField] private Renderer body;
+
+        [Tooltip("Знаки по индексу палитры: включается ровно один, остальные гасятся. Пусто у заготовки блокаута")]
+        [SerializeField] private GameObject[] symbols;
+
         private Renderer visual;
         private MaterialPropertyBlock block;
 
@@ -68,7 +76,10 @@ namespace Igruha.Minigames.CansOrder
 
         private void Awake()
         {
-            visual = GetComponentInChildren<Renderer>();
+            // Ссылка на корпус явная, а не «первый попавшийся рендерер»:
+            // в префабе рядом с корпусом лежат пять знаков, и порядок обхода
+            // отдал бы палитре знак вместо банки.
+            visual = body != null ? body : GetComponentInChildren<Renderer>();
         }
 
         /// <summary>
@@ -123,6 +134,32 @@ namespace Igruha.Minigames.CansOrder
             highlight = Highlight.None;
 
             ApplyColor(kind.color);
+            ApplySymbol(canId);
+        }
+
+        /// <summary>
+        /// Включить знак этой банки и погасить остальные.
+        ///
+        /// Знак — не украшение, а второй канал различения. Замер по имитации
+        /// Viénot–Brettel–Mollon: минимальное ΔE76 между пятью цветами палитры
+        /// падает с 42.9 в норме до 12.5 на протанопии и 17.8 на дейтеранопии,
+        /// то есть по цвету банки не различаются вовсе. Палитрой это не
+        /// лечится ни одной — проверено перебором, спека 14.2.
+        /// </summary>
+        private void ApplySymbol(int canId)
+        {
+            if (symbols == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < symbols.Length; i++)
+            {
+                if (symbols[i] != null)
+                {
+                    symbols[i].SetActive(i == canId);
+                }
+            }
         }
 
         private void ApplyColor(Color color)
