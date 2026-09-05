@@ -32,13 +32,22 @@ namespace Igruha.Minigames.CansOrder
 
         [SerializeField] private WorldScoreboard board;
         [SerializeField] private CansOrderConfig config;
+        [Tooltip("Кассета расстановок под табло. Ставит билдер реквизита; пусто — расстановки печатаются строкой в подписи, как в блокауте")]
+        [SerializeField] private CanOrderArrangementPanel panel;
         [Tooltip("Цвет счёта у того, кому остался один шаг до победы")]
         [SerializeField] private Color oneStepAwayColor = new Color(1f, 0.72f, 0.2f);
 
         private readonly List<CansOrderEntry> ordered = new List<CansOrderEntry>(8);
         private readonly List<string> names = new List<string>(8);
         private readonly List<int> submitted = new List<int>(8);
+        private readonly List<string> pending = new List<string>(8);
         private readonly StringBuilder text = new StringBuilder(96);
+
+        /// <summary>
+        /// Сколько слотов табло занимает левая колонка. Поверх неё стоят свои
+        /// строки расстановок, поэтому эти слоты заполняются пустыми.
+        /// </summary>
+        private const int LeftColumnRows = 4;
 
         /// <summary>Табло найдено и в него есть что писать.</summary>
         public bool HasBoard => board != null;
@@ -54,6 +63,7 @@ namespace Igruha.Minigames.CansOrder
             board.SetHeader($"РАУНД {roundNumber}", $"БАНОК: {canCount}");
             board.BeginRows();
             board.EndRows();
+            panel?.Clear();
         }
 
         /// <summary>
@@ -90,42 +100,124 @@ namespace Igruha.Minigames.CansOrder
             // Настоящий шаг до победы — один обмен местами, то есть N − 2.
             int oneStepAway = game.Round.CanCount - 2;
 
-            for (int i = 0; i < ordered.Count && i < capacity; i++)
+            // Сначала расстановки: три лучшие уходят на свои строки поверх
+            // левой колонки грани. Кто в тройку попал, в списке ниже уже
+            // не повторяется — его имя и счёт стоят в самой строке.
+            bool[] onPanel = null;
+            if (panel != null)
             {
-                CansOrderEntry entry = ordered[i];
-                string label = names[i];
-
-                bool showArrangement = shownArrangements < config.BoardTopRows
-                                       && entry.Confirmed
-                                       && !entry.Solved
-                                       && game.TryGetSubmitted(IndexOf(game, entry.PlayerId), submitted);
-
-                if (showArrangement)
+                onPanel = new bool[ordered.Count];
+                for (int i = 0; i < ordered.Count && shownArrangements < panel.Capacity; i++)
                 {
-                    label = names[i] + "  " + Render(submitted);
-                    // Первая строка с расстановкой — лидер круга, и взгляд
-                    // должен идти на неё первой.
-                    if (shownArrangements == 0)
+                    CansOrderEntry entry = ordered[i];
+                    if (shownArrangements >= config.BoardTopRows
+                        || !entry.Confirmed
+                        || entry.Solved
+                        || !game.TryGetSubmitted(IndexOf(game, entry.PlayerId), submitted))
                     {
-                        label = "<b>" + label + "</b>";
+                        continue;
                     }
 
+                    panel.SetRow(shownArrangements, names[i], submitted, entry.Matches, shownArrangements == 0);
+                    onPanel[i] = true;
                     shownArrangements++;
                 }
 
-                string value = ValueFor(entry);
-                if (entry.Confirmed && !entry.Solved && oneStepAway > 0 && entry.Matches == oneStepAway)
+                // Левая колонка грани остаётся пустой: на ней стоят строки
+                // расстановок. Пустые строки добавляются явно, потому что
+                // WorldScoreboard заполняет слоты подряд.
+                for (int i = 0; i < LeftColumnRows; i++)
                 {
-                    value = "<color=#" + ColorUtility.ToHtmlStringRGB(oneStepAwayColor) + "><b>" + value + "</b></color>";
+                    board.AddRow(string.Empty, string.Empty);
+                }
+            }
+
+            // Остальные участники — компактным списком. По двое в строке,
+            // когда иначе не помещаются: на полном лобби их пятеро, а слотов
+            // правой колонки четыре.
+            pending.Clear();
+            for (int i = 0; i < ordered.Count; i++)
+            {
+                if (onPanel != null && onPanel[i])
+                {
+                    continue;
                 }
 
-                board.AddRow(label, value);
+                pending.Add(Entry(ordered[i], names[i], oneStepAway));
+            }
+
+            int slots = Mathf.Max(1, capacity - (onPanel != null ? LeftColumnRows : 0));
+            int perSlot = Mathf.Max(1, Mathf.CeilToInt(pending.Count / (float)slots));
+            for (int i = 0; i < pending.Count; i += perSlot)
+            {
+                text.Clear();
+                for (int k = i; k < i + perSlot && k < pending.Count; k++)
+                {
+                    if (k > i)
+                    {
+                        text.Append("   ");
+                    }
+
+                    text.Append(pending[k]);
+                }
+
+                board.AddRow(text.ToString(), string.Empty);
+            }
+
+            // Кассеты нет — старое поведение: расстановка печатается прямо
+            // в подписи строки. Игра на нём работает, просто читается хуже.
+            if (panel == null)
+            {
+                for (int i = 0; i < ordered.Count && i < capacity; i++)
+                {
+                    CansOrderEntry entry = ordered[i];
+                    string label = names[i];
+                    if (shownArrangements < config.BoardTopRows && entry.Confirmed && !entry.Solved
+                        && game.TryGetSubmitted(IndexOf(game, entry.PlayerId), submitted))
+                    {
+                        label = names[i] + "  " + Render(submitted);
+                        if (shownArrangements == 0)
+                        {
+                            label = "<b>" + label + "</b>";
+                        }
+
+                        shownArrangements++;
+                    }
+
+                    board.AddRow(label, ValueFor(entry));
+                }
             }
 
             board.EndRows();
+
+            // Строки кассеты, на которые расстановок не хватило, гасятся:
+            // в круге может оказаться меньше трёх подтвердивших.
+            if (panel != null)
+            {
+                for (int i = shownArrangements; i < panel.Capacity; i++)
+                {
+                    panel.HideRowOnAllFaces(i);
+                }
+            }
         }
 
-        public void Clear() => board?.Clear();
+        /// <summary>Компактная запись участника для списка: имя и счёт одной строкой.</summary>
+        private string Entry(CansOrderEntry entry, string playerName, int oneStepAway)
+        {
+            string value = ValueFor(entry);
+            if (entry.Confirmed && !entry.Solved && oneStepAway > 0 && entry.Matches == oneStepAway)
+            {
+                value = "<color=#" + ColorUtility.ToHtmlStringRGB(oneStepAwayColor) + "><b>" + value + "</b></color>";
+            }
+
+            return playerName + " " + value;
+        }
+
+        public void Clear()
+        {
+            board?.Clear();
+            panel?.Clear();
+        }
 
         /// <summary>
         /// Что стоит в правой колонке. Три разных состояния, и подменять одно

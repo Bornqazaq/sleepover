@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using TMPro;
 using UnityEditor;
@@ -149,6 +150,7 @@ namespace Igruha.EditorTools
                 placed++;
             }
 
+            bool panel = BuildArrangementPanel(config);
             bool hud = BuildStageHud();
             GameObject fanfare = BuildFanfarePrefab();
 
@@ -170,6 +172,11 @@ namespace Igruha.EditorTools
                 Debug.LogWarning("CanOrderPropBuilder: полоса стадии не построена — не найден _UI/Canvas.");
             }
 
+            if (!panel)
+            {
+                Debug.LogWarning("CanOrderPropBuilder: кассета расстановок не построена — не найдено _Arena/Scoreboard.");
+            }
+
             float length = ShelfLengthBodyWidths * CircusArenaConfig.MetersPerBodyWidth;
             Debug.Log($"Реквизит «Порядка банок» расставлен: полок {placed} из {stations.Length} клеток. " +
                       $"Полка {length:F2} × {ShelfDepth:F2} м на высоте {ShelfHeight:F2} м, " +
@@ -188,6 +195,232 @@ namespace Igruha.EditorTools
         private static float InnerWallOffset(CircusArenaConfig config)
         {
             return config.CageInnerSize * 0.5f - ShelfDepth * 0.5f - WallGap;
+        }
+
+        // ── кассета расстановок под табло (подфаза 4.3) ───────────────────
+
+        private const string PanelObjectName = "ArrangementPanel";
+
+        /// <summary>
+        /// Радиус посадки строк: грань табло стоит на 2.88 м от оси, её плита
+        /// 0.10 м, канвас с текстом — на 3.04. Значки садятся перед канвасом.
+        /// </summary>
+        private const float PanelRadius = 3.08f;
+
+        /// <summary>
+        /// Высота значка. <b>Это замер, а не вкус:</b> в подписи строки табло
+        /// символ выходит ≈ 0.17 м, то есть ≈ 20 px с восьми метров, и прут
+        /// внутренней стены съедает его целиком. 0.32 м — это ≈ 38 px, прут
+        /// перекрывает такой значок частично (спека 14.5). Больше не влезает:
+        /// сверху подпись табло кончается на 8.08, снизу из своей клетки на
+        /// верхней ступени всё ниже ≈ 7.10 м закрывает собственный решётчатый
+        /// пол — вот и вся полоса, три значка по 0.32 её заполняют.
+        /// </summary>
+        private const float PanelIconSize = 0.32f;
+        private const float PanelIconPitch = 0.36f;
+        private const int PanelRows = 3;
+
+        /// <summary>
+        /// Высоты строк расстановок в мире. Занимают <b>левую колонку</b> грани
+        /// целиком — ту, где у табло стоят строки 1–4. Список участников
+        /// уезжает в правую колонку по двое в строке, и грань остаётся полной:
+        /// три расстановки плюс до восьми имён.
+        ///
+        /// Числа не круглые, потому что они зажаты между замерами: подпись
+        /// табло кончается на 8.08, нижний край грани — 6.84, и три значка по
+        /// 0.34 м обязаны уложиться между ними.
+        /// </summary>
+        private static readonly float[] PanelRowHeights = { 7.98f, 7.62f, 7.26f };
+
+        /// <summary>
+        /// Строки расстановок на грани табло: три лучшие расстановки круга
+        /// крупными значками, на четырёх гранях сразу.
+        ///
+        /// <b>Почему прямо на грани, а не отдельной кассетой под ней.</b>
+        /// Кассету под табло построили и отрендерили первой — и она оказалась
+        /// не видна вовсе: из своей клетки на верхней ступени всё ниже 6.76 м
+        /// закрывает собственный решётчатый пол, а сверху грань подрезает
+        /// полка. Видимая полоса — это ровно грань табло, 6.84…9.00, и строки
+        /// обязаны быть внутри неё.
+        ///
+        /// Спека это предусмотрела: 9.2 — «табло не трогаем», 9.3 — «три
+        /// цветные строки расстановок — собственными гранями». <c>Core/UI</c>
+        /// здесь не задет ни строкой: строки 1–4 табло остаются пустыми, и
+        /// поверх них становятся свои.
+        /// </summary>
+        private static bool BuildArrangementPanel(CircusArenaConfig arena)
+        {
+            var scoreboard = GameObject.Find("_Arena/Scoreboard");
+            if (scoreboard == null)
+            {
+                return false;
+            }
+
+            var config = AssetDatabase.LoadAssetAtPath<CansOrderConfig>(GameConfigPath);
+            if (config == null)
+            {
+                return false;
+            }
+
+            Transform existing = scoreboard.transform.Find(PanelObjectName);
+            if (existing != null)
+            {
+                Object.DestroyImmediate(existing.gameObject);
+            }
+
+            var rootGo = new GameObject(PanelObjectName);
+            rootGo.transform.SetParent(scoreboard.transform, false);
+            rootGo.transform.localPosition = Vector3.zero;
+
+            var rows = new List<(GameObject label, GameObject score, MeshFilter[] cells)>(PanelRows * 4);
+            for (int face = 0; face < 4; face++)
+            {
+                BuildPanelFace(rootGo.transform, scoreboard.transform.position.y, face, rows);
+            }
+
+            var panel = rootGo.AddComponent<CanOrderArrangementPanel>();
+            var serialized = new SerializedObject(panel);
+            serialized.FindProperty("rowsPerFace").intValue = PanelRows;
+
+            SerializedProperty rowArray = serialized.FindProperty("rows");
+            rowArray.arraySize = rows.Count;
+            for (int i = 0; i < rows.Count; i++)
+            {
+                SerializedProperty row = rowArray.GetArrayElementAtIndex(i);
+                row.FindPropertyRelative("label").objectReferenceValue = rows[i].label.GetComponent<TMP_Text>();
+                row.FindPropertyRelative("score").objectReferenceValue = rows[i].score.GetComponent<TMP_Text>();
+                SerializedProperty cells = row.FindPropertyRelative("cells");
+                cells.arraySize = rows[i].cells.Length;
+                for (int c = 0; c < rows[i].cells.Length; c++)
+                {
+                    cells.GetArrayElementAtIndex(c).objectReferenceValue = rows[i].cells[c];
+                }
+            }
+
+            int kinds = config.PaletteSize;
+            SerializedProperty meshes = serialized.FindProperty("symbolMeshes");
+            SerializedProperty materials = serialized.FindProperty("symbolMaterials");
+            meshes.arraySize = kinds;
+            materials.arraySize = kinds;
+            for (int i = 0; i < kinds; i++)
+            {
+                // Контур тот же, что на банке: знак на полке и знак на табло
+                // обязаны быть одним знаком, иначе списывать с чужой строки
+                // придётся с переводом.
+                meshes.GetArrayElementAtIndex(i).objectReferenceValue = SymbolMesh(i);
+                materials.GetArrayElementAtIndex(i).objectReferenceValue = CanColorMaterial(i, config.GetCanKind(i).color);
+            }
+
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            var boardScript = Object.FindAnyObjectByType<CanOrderBoard>(FindObjectsInactive.Include);
+            if (boardScript != null)
+            {
+                var boardSo = new SerializedObject(boardScript);
+                boardSo.FindProperty("panel").objectReferenceValue = panel;
+
+                // Ссылка на само табло возвращается здесь же, и это не
+                // перестраховка: поле `board` — обычный [SerializeField],
+                // набитый руками, а `CircusArenaBuilder` сносит `Scoreboard`
+                // и делает новый, с новым fileID. К арт-фазе ссылка была
+                // пустой, то есть табло не показывало ничего вообще — ни
+                // задания, ни результатов круга. Тот же класс, что стоил
+                // «Секундомеру» ссылок на клетки (STATE 3.74, CircusWiring):
+                // что не восстанавливается пересборкой, теряется.
+                var scoreboardComponent = scoreboard.GetComponent<Igruha.Core.UI.WorldScoreboard>();
+                if (scoreboardComponent != null)
+                {
+                    boardSo.FindProperty("board").objectReferenceValue = scoreboardComponent;
+                }
+
+                boardSo.ApplyModifiedPropertiesWithoutUndo();
+            }
+
+            return true;
+        }
+
+        private static void BuildPanelFace(Transform root, float boardY, int face,
+            List<(GameObject label, GameObject score, MeshFilter[] cells)> rows)
+        {
+            var faceGo = new GameObject($"PanelFace_{face + 1}");
+            faceGo.transform.SetParent(root, false);
+            faceGo.transform.localPosition = Quaternion.Euler(0f, face * 90f, 0f) * new Vector3(0f, 0f, PanelRadius);
+            // Разворот на 180°, как у канваса грани: текст читается с той
+            // стороны, куда смотрит НЕ его forward. Без этого имена приходят
+            // зеркальными — значки-то симметричны, а буквы нет.
+            faceGo.transform.localRotation = Quaternion.Euler(0f, face * 90f + 180f, 0f);
+
+            for (int r = 0; r < PanelRows; r++)
+            {
+                float y = PanelRowHeights[r] - boardY;
+                rows.Add(BuildPanelRow(faceGo.transform, r, y));
+            }
+        }
+
+        private static (GameObject, GameObject, MeshFilter[]) BuildPanelRow(Transform face, int index, float y)
+        {
+            // Локальный +X грани — это право зрителя. Строка идёт слева
+            // направо: имя, пять значков, счёт.
+            // Кегль в мировых единицах: TextMeshPro в мире считает fontSize
+            // десятыми долями метра, и 0.22 давало буквы в три сантиметра —
+            // имя лидера круга не читалось вовсе.
+            GameObject label = PanelText(face, $"Row_{index + 1}_Name", new Vector3(-2.55f, y, 0f),
+                new Vector2(0.62f, 0.32f), TextAlignmentOptions.MidlineRight, 1.2f);
+
+            var cells = new MeshFilter[5];
+            for (int c = 0; c < cells.Length; c++)
+            {
+                var cell = new GameObject($"Row_{index + 1}_Cell_{c + 1}");
+                cell.transform.SetParent(face, false);
+                cell.transform.localPosition = new Vector3(-1.86f + c * PanelIconPitch, y, 0f);
+                // Тот же поворот, что у знака на банке: контур строится
+                // в плоскости XZ, и −90° по X ставит его стоймя.
+                cell.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
+                cell.transform.localScale = new Vector3(PanelIconSize, 0.03f, PanelIconSize);
+                cell.AddComponent<MeshFilter>();
+                var renderer = cell.AddComponent<MeshRenderer>();
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                cell.SetActive(false);
+                cells[c] = cell.GetComponent<MeshFilter>();
+            }
+
+            // Счёт держится левее середины грани: правая колонка табло — это
+            // список остальных участников, и залезать в неё нельзя.
+            GameObject score = PanelText(face, $"Row_{index + 1}_Score", new Vector3(-0.05f, y, 0f),
+                new Vector2(0.32f, 0.32f), TextAlignmentOptions.Midline, 2.0f);
+
+            return (label, score, cells);
+        }
+
+        private static GameObject PanelText(Transform face, string objectName, Vector3 localPosition,
+            Vector2 size, TextAlignmentOptions alignment, float fontSize)
+        {
+            var go = new GameObject(objectName);
+            go.transform.SetParent(face, false);
+            var text = go.AddComponent<TextMeshPro>();
+            var rect = (RectTransform)go.transform;
+            rect.localPosition = localPosition;
+            rect.localRotation = Quaternion.identity;
+            rect.sizeDelta = size;
+
+            TMP_FontAsset font = TMP_Settings.defaultFontAsset;
+            if (font != null)
+            {
+                text.font = font;
+            }
+
+            text.fontSize = fontSize;
+            text.alignment = alignment;
+            text.textWrappingMode = TextWrappingModes.NoWrap;
+            text.color = new Color(0.94f, 0.92f, 0.86f);
+            text.enabled = false;
+            return go;
+        }
+
+        /// <summary>Материал значка в цвете банки. Один ассет на цвет, а не копия на ячейку.</summary>
+        private static Material CanColorMaterial(int canId, Color color)
+        {
+            return FlatMaterial($"CO_Can_{canId}", color);
         }
 
         private const string HudObjectName = "CansOrderStageHud";
