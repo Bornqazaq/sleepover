@@ -1,0 +1,65 @@
+{
+  "game": "Порядок банок",
+  "source": "docs/minigames/cans-order.md — раздел 14.8, арт-бриф",
+  "output_folder": "Assets/_Project/Audio/CansOrder",
+  "provider": "fal",
+  "models": {
+    "sfx": "cassetteai/sound-effects-generator",
+    "sting": "fal-ai/stable-audio-25/text-to-audio"
+  },
+  "note": "Арена общая с «Секундомером», но звук арены сюда не входит: лебёдка, створки, лапа медведя, вздох и смех зала уже лежат в Assets/_Project/Audio/Stopwatch и играются общим CircusAudio. Здесь только четыре события, которых у арены нет — они про действия игрока за полкой. Отбор сделан замером через tools/wav_probe.py (--trim --normalize -1): сначала отбрасывается всё с клиппингом в исходнике и всё глухое, из оставшегося берётся то, у кого атака ближе к началу. Приёмка на слух — за геймдизайнером.",
+  "slots": [
+    {
+      "id": "can_swap",
+      "event": "Две банки поменялись местами на полке (CanShelf.ArrangementChanged)",
+      "model": "sfx",
+      "role": "impact",
+      "duration": 1,
+      "loop": false,
+      "spatial": true,
+      "volume": 0.7,
+      "prompt": "single light tin can set down on a wooden shelf, short hollow metallic knock, close-up dry recording, no reverb tail, no music, no voices",
+      "picked": "v4",
+      "note": "cassetteai на длительности 1 с дважды отдал тишину (−71.2 и −36.1 dBFS). Помогла не смена промпта, а длительность: на 2 с та же модель дала чистый удар (v3, −0.7). Взят v4 со stable-audio — атака на 0% длины против 9% у v3, то есть звук начинается ровно в кадре нажатия. После среза хвоста 0.5 с, пик −1.0 dBFS."
+    },
+    {
+      "id": "confirm_bell",
+      "event": "Игрок подтвердил расстановку — удар по колоколу (CanConfirmButton.Confirmed)",
+      "model": "sfx",
+      "role": "impact",
+      "duration": 3,
+      "loop": false,
+      "spatial": true,
+      "volume": 0.85,
+      "prompt": "single bright hotel reception desk bell ding, one clean strike with natural shimmering decay, close-up, no music, no voices",
+      "picked": "v3",
+      "note": "v2 пришёл тишиной (−39.7 dBFS). v1 громче (−0.6), но его максимум приходится на 30% длины — колокол как будто разгоняется. Взят v3: удар с первого сэмпла, разгон до пика к 16% длины, ровный звон без хвоста шума. Поднят на +6.7 дБ до −1.0 dBFS."
+    },
+    {
+      "id": "board_reveal",
+      "event": "Табло загорелось в начале стадии показа (MinigameStageState, стадия 3)",
+      "model": "sfx",
+      "role": "rise",
+      "duration": 3,
+      "loop": false,
+      "spatial": false,
+      "volume": 0.8,
+      "prompt": "old fairground sign lighting up, heavy relay clunk followed by rising electric hum of filament bulbs igniting, vintage carnival, no music, no voices",
+      "picked": "v1",
+      "note": "Оба варианта cassetteai пришли тихими (−19.7 и −20.9 dBFS), но без клиппинга — это чинится нормализацией, в отличие от срезанных верхушек. Взят v1: наклон +0.6 дБ против +0.9 у v2 он ровнее, а роль тут — нарастание гула ламп, а не удар. Поднят на +18.7 дБ до −1.0 dBFS. Третий вариант на другой модели заказать не удалось: аккаунт fal.ai заблокирован по балансу."
+    },
+    {
+      "id": "solved_fanfare",
+      "event": "Игрок собрал скрытую расстановку — фанфара над его клеткой",
+      "model": "sting",
+      "role": "rise",
+      "duration": 4,
+      "loop": false,
+      "spatial": true,
+      "volume": 0.9,
+      "prompt": "short triumphant circus fanfare, three ascending brass notes with a cymbal accent, cheerful vintage carnival band, plenty of headroom, moderate volume, no clipping, no voices",
+      "picked": "v1",
+      "note": "Оба варианта stable-audio пришли на пределе (0.0 и −0.0 dBFS), но у v2 один срезанный сэмпл, а клиппинг нормализацией не чинится. Взят v1: срезанных нет. После среза хвоста 1.4 с длина 2.6 с, пик −1.0 dBFS. Форма фронтальная, а не нарастающая — генератор отдал сразу полный аккорд; для стинга это годится."
+    }
+  ]
+}

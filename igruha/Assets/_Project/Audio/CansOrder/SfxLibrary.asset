@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2574025c1373412bb9b8283feb02ca7, type: 3}
+  m_Name: SfxLibrary
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.MinigameSfxLibrary
+  entries:
+  - Id: can_swap
+    Clip: {fileID: 8300000, guid: 77122909e5d4745c8a352cc79e2ff3e7, type: 3}
+    Volume: 0.7
+    Loop: 0
+    Spatial: 1
+  - Id: confirm_bell
+    Clip: {fileID: 8300000, guid: b6d0ae7e5d4434c45a89d71d5319f086, type: 3}
+    Volume: 0.85
+    Loop: 0
+    Spatial: 1
+  - Id: board_reveal
+    Clip: {fileID: 8300000, guid: b4562d7f9cb3e456483dd8914ad28e60, type: 3}
+    Volume: 0.8
+    Loop: 0
+    Spatial: 0
+  - Id: solved_fanfare
+    Clip: {fileID: 8300000, guid: fb46bde32031e4081b93ef2e0a3ed8f6, type: 3}
+    Volume: 0.9
+    Loop: 0
+    Spatial: 1

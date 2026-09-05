@@ -75,8 +75,87 @@ namespace Igruha.EditorTools
             MeasureMeshes(roots, report);
             MeasureReadability(config, report);
             MeasureGrounding(config, report);
+            MeasureCansOrder(report);
 
             Debug.Log(report.ToString());
+        }
+
+        /// <summary>
+        /// Реквизит «Порядка банок». Молчит в сцене «Секундомера»: там нет
+        /// ни одной полки, и блок не печатается вовсе.
+        ///
+        /// <b>Банки в сохранённой сцене нет — и не будет.</b> Их число берётся
+        /// из таблицы конфига и меняется от круга к кругу, поэтому полка
+        /// создаёт их в рантайме. Значит замерять надо не сцену, а то, из чего
+        /// они родятся: ссылку на префаб, знаки в нём и отсутствие коллайдера.
+        /// </summary>
+        private static void MeasureCansOrder(StringBuilder report)
+        {
+            var shelves = Object.FindObjectsByType<Igruha.Minigames.CansOrder.CanShelf>(
+                FindObjectsInactive.Include, FindObjectsSortMode.None);
+            if (shelves.Length == 0)
+            {
+                return;
+            }
+
+            int wired = 0;
+            GameObject canPrefab = null;
+            for (int i = 0; i < shelves.Length; i++)
+            {
+                var serialized = new SerializedObject(shelves[i]);
+                var prefab = serialized.FindProperty("canPrefab").objectReferenceValue as GameObject;
+                if (prefab != null)
+                {
+                    wired++;
+                    canPrefab = prefab;
+                }
+            }
+
+            report.Append("\n— полок ").Append(shelves.Length)
+                .Append(", с префабом банки ").Append(wired)
+                .Append(wired == shelves.Length ? " ✅" : " ❌ (банка родится серым цилиндром)");
+
+            if (canPrefab == null)
+            {
+                return;
+            }
+
+            int symbols = 0;
+            var canSerialized = new SerializedObject(canPrefab.GetComponent<Igruha.Minigames.CansOrder.Can>());
+            SerializedProperty array = canSerialized.FindProperty("symbols");
+            for (int i = 0; i < array.arraySize; i++)
+            {
+                if (array.GetArrayElementAtIndex(i).objectReferenceValue != null)
+                {
+                    symbols++;
+                }
+            }
+
+            var config = AssetDatabase.LoadAssetAtPath<Igruha.Minigames.CansOrder.CansOrderConfig>(
+                "Assets/_Project/Settings/Gameplay/Minigames/CansOrderConfig.asset");
+            int expected = config != null ? config.PaletteSize : symbols;
+
+            // Знак — второй канал различения банок: по цвету дальтоник их
+            // не различает вовсе (спека 14.2). Недостающий знак — это не
+            // косметика, это неиграбельная банка.
+            report.Append("\n— знаков на банке ").Append(symbols).Append(" из ").Append(expected)
+                .Append(symbols == expected ? " ✅" : " ❌");
+
+            // Коллайдера у банки быть не должно: буфер PlayerInteractor на 16,
+            // в клетке уже семь своих, пять банок вытеснили бы кнопку.
+            int canColliders = canPrefab.GetComponentsInChildren<Collider>(true).Length;
+            report.Append("\n— коллайдеров у банки ").Append(canColliders)
+                .Append(canColliders == 0 ? " ✅" : " ❌ (вытеснят кнопку из выборки интерактива)");
+
+            var panel = Object.FindAnyObjectByType<Igruha.Minigames.CansOrder.CanOrderArrangementPanel>(
+                FindObjectsInactive.Include);
+            report.Append("\n— строки расстановок на табло: ")
+                .Append(panel != null ? "есть, по " + panel.Capacity + " на грань ✅" : "НЕТ ❌");
+
+            var board = Object.FindAnyObjectByType<Igruha.Minigames.CansOrder.CanOrderBoard>(
+                FindObjectsInactive.Include);
+            report.Append("\n— табло подключено к игре: ")
+                .Append(board != null && board.HasBoard ? "да ✅" : "НЕТ ❌ (не покажет ни задания, ни результатов)");
         }
 
         /// <summary>

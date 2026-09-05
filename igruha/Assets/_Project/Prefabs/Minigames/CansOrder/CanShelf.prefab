@@ -421,6 +421,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3893035509545015927}
   - component: {fileID: 8560902988577215846}
+  - component: {fileID: 5355101027748124535}
   m_Layer: 0
   m_Name: ConfirmButton
   m_TagString: Untagged
@@ -445,6 +446,7 @@ Transform:
   - {fileID: 7586164279691936020}
   - {fileID: 3243090743315057024}
   - {fileID: 4778307401061150830}
+  - {fileID: 2943046020042247456}
   m_Father: {fileID: 8949473920401642206}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &8560902988577215846
@@ -464,6 +466,20 @@ MonoBehaviour:
   shelf: {fileID: 5863798898869092290}
   idleColor: {r: 0.22, g: 0.22, b: 0.25, a: 1}
   acceptedColor: {r: 0.95, g: 0.86, b: 0.42, a: 1}
+--- !u!114 &5355101027748124535
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2275363230791392037}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4fcaf95c7267d4f6b9dce0a156518f68, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.CansOrder.CanConfirmFlash
+  button: {fileID: 8560902988577215846}
+  burst: {fileID: 3028157439166862966}
 --- !u!1 &2415650446720250564
 GameObject:
   m_ObjectHideFlags: 0
@@ -1535,6 +1551,89 @@ PrefabInstance:
 Transform:
   m_CorrespondingSourceObject: {fileID: 518830346226981284, guid: 589990639b8f0b540b814ab91e580607, type: 3}
   m_PrefabInstance: {fileID: 1972324904769165467}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &2320260159630296953
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 3893035509545015927}
+    m_Modifications:
+    - target: {fileID: 640905951934646873, guid: 2671e70d88b930d4d8c69f180e75c2d5, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.55
+      objectReference: {fileID: 0}
+    - target: {fileID: 640905951934646873, guid: 2671e70d88b930d4d8c69f180e75c2d5, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.55
+      objectReference: {fileID: 0}
+    - target: {fileID: 640905951934646873, guid: 2671e70d88b930d4d8c69f180e75c2d5, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.55
+      objectReference: {fileID: 0}
+    - target: {fileID: 640905951934646873, guid: 2671e70d88b930d4d8c69f180e75c2d5, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 640905951934646873, guid: 2671e70d88b930d4d8c69f180e75c2d5, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.126
+      objectReference: {fileID: 0}
+    - target: {fileID: 640905951934646873, guid: 2671e70d88b930d4d8c69f180e75c2d5, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 640905951934646873, guid: 2671e70d88b930d4d8c69f180e75c2d5, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 640905951934646873, guid: 2671e70d88b930d4d8c69f180e75c2d5, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 640905951934646873, guid: 2671e70d88b930d4d8c69f180e75c2d5, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 640905951934646873, guid: 2671e70d88b930d4d8c69f180e75c2d5, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 640905951934646873, guid: 2671e70d88b930d4d8c69f180e75c2d5, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 640905951934646873, guid: 2671e70d88b930d4d8c69f180e75c2d5, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 640905951934646873, guid: 2671e70d88b930d4d8c69f180e75c2d5, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 644049014140770413, guid: 2671e70d88b930d4d8c69f180e75c2d5, type: 3}
+      propertyPath: m_Name
+      value: ConfirmBurst
+      objectReference: {fileID: 0}
+    - target: {fileID: 735517718416855311, guid: 2671e70d88b930d4d8c69f180e75c2d5, type: 3}
+      propertyPath: playOnAwake
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 2671e70d88b930d4d8c69f180e75c2d5, type: 3}
+--- !u!4 &2943046020042247456 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 640905951934646873, guid: 2671e70d88b930d4d8c69f180e75c2d5, type: 3}
+  m_PrefabInstance: {fileID: 2320260159630296953}
+  m_PrefabAsset: {fileID: 0}
+--- !u!198 &3028157439166862966 stripped
+ParticleSystem:
+  m_CorrespondingSourceObject: {fileID: 735517718416855311, guid: 2671e70d88b930d4d8c69f180e75c2d5, type: 3}
+  m_PrefabInstance: {fileID: 2320260159630296953}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &3085836332614297709
 PrefabInstance:

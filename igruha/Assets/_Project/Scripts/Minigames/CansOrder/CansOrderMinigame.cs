@@ -35,7 +35,12 @@ namespace Igruha.Minigames.CansOrder
         /// <summary>Стадии круга. Значения уезжают в сеть байтом, порядок менять нельзя.</summary>
         private const byte StageBriefing = 1;
         private const byte StagePlacement = 2;
-        private const byte StageReveal = 3;
+        /// <summary>
+        /// Показ результатов. <b>Публичная</b>, потому что на неё вешается
+        /// вспышка табло (<see cref="CansOrderEffects"/>): эффект обязан знать
+        /// ту же стадию, что и правила, а не свою копию числа.
+        /// </summary>
+        public const byte StageReveal = 3;
         private const byte StageHatch = 4;
         private const byte StagePause = 5;
 
@@ -1388,6 +1393,16 @@ namespace Igruha.Minigames.CansOrder
         }
 
         /// <summary>
+        /// Кто-то собрал расстановку — фанфара пошла над его клеткой.
+        ///
+        /// Единственная воронка на все машины: сервер приходит сюда из разбора
+        /// круга, клиент — через <see cref="ApplyNetworkSolvedFanfare"/>.
+        /// Своего состояния событие не заводит, поэтому звук и эффект
+        /// подписываются на него без единого пакета ради себя.
+        /// </summary>
+        public event System.Action<Vector3> SolvedFanfarePlayed;
+
+        /// <summary>
         /// Конфетти над клеткой собравшего.
         ///
         /// Это не украшение, а читаемость момента: в ту же секунду все
@@ -1405,6 +1420,7 @@ namespace Igruha.Minigames.CansOrder
             Vector3 at = contestant.Cage.transform.position + Vector3.up * fanfareHeight;
             GameObject instance = Instantiate(solvedFanfarePrefab, at, Quaternion.identity);
             Destroy(instance, fanfareLifetime);
+            SolvedFanfarePlayed?.Invoke(at);
         }
 
 

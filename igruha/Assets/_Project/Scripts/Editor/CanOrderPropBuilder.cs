@@ -58,6 +58,11 @@ namespace Igruha.EditorTools
 
         private const string Carnival = "Assets/Synty/PolygonHorrorCarnival/Prefabs/Props/";
         private const string Casino = "Assets/Synty/PolygonCasino/Prefabs/Props/";
+        private const string CarnivalFx = "Assets/Synty/PolygonHorrorCarnival/Prefabs/FX/";
+
+        /// <summary>Конфетти собравшему и вспышка табло — те же эффекты пака, что у общего слоя арены.</summary>
+        private const string ConfettiPath = CarnivalFx + "FX_Confetti_Shower_01.prefab";
+        private const string SparkBurstPath = CarnivalFx + "FX_SparksBurst_01.prefab";
 
         /// <summary>
         /// Полка — ярмарочная лавка того же шатра. Родная высота 0.97 м против
@@ -151,6 +156,8 @@ namespace Igruha.EditorTools
             }
 
             bool panel = BuildArrangementPanel(config);
+            bool effects = BuildEffects(config);
+            bool audio = BuildAudio();
             bool hud = BuildStageHud();
             GameObject fanfare = BuildFanfarePrefab();
 
@@ -174,7 +181,18 @@ namespace Igruha.EditorTools
 
             if (!panel)
             {
-                Debug.LogWarning("CanOrderPropBuilder: кассета расстановок не построена — не найдено _Arena/Scoreboard.");
+                Debug.LogWarning("CanOrderPropBuilder: строки расстановок не построены — не найдено _Arena/Scoreboard.");
+            }
+
+            if (!effects)
+            {
+                Debug.LogWarning("CanOrderPropBuilder: вспышка табло не построена — не найдено _Arena/Scoreboard.");
+            }
+
+            if (!audio)
+            {
+                Debug.LogWarning("CanOrderPropBuilder: звук игры не подключён — нет " + SfxLibraryPath +
+                                 ". Собери библиотеку пунктом «Igruha/Арт/Собрать библиотеку звука».");
             }
 
             float length = ShelfLengthBodyWidths * CircusArenaConfig.MetersPerBodyWidth;
@@ -423,6 +441,134 @@ namespace Igruha.EditorTools
             return FlatMaterial($"CO_Can_{canId}", color);
         }
 
+        private const string AudioObjectName = "CansOrderAudio";
+        private const string SfxLibraryPath = "Assets/_Project/Audio/CansOrder/SfxLibrary.asset";
+
+        /// <summary>
+        /// Звук, которого у арены нет: стук банки, колокол подтверждения,
+        /// загорающееся табло и фанфара собравшему.
+        ///
+        /// <b>Свой проигрыватель, а не общий с ареной.</b> На <c>_Arena/Audio</c>
+        /// уже висит <c>MinigameAudioPlayer</c> с библиотекой «Секундомера» —
+        /// её ставит общий <see cref="CircusSfx"/> в обеих сценах, потому что
+        /// лебёдка, створки и медведь звучат одинаково. Один проигрыватель
+        /// держит одну библиотеку, поэтому свои четыре слота получают свой,
+        /// и общий слой остаётся нетронутым.
+        /// </summary>
+        private static bool BuildAudio()
+        {
+            var library = AssetDatabase.LoadAssetAtPath<Igruha.Core.Audio.MinigameSfxLibrary>(SfxLibraryPath);
+            if (library == null)
+            {
+                return false;
+            }
+
+            var arenaRoot = GameObject.Find("_Arena");
+            if (arenaRoot == null)
+            {
+                return false;
+            }
+
+            Transform existing = arenaRoot.transform.Find(AudioObjectName);
+            if (existing != null)
+            {
+                Object.DestroyImmediate(existing.gameObject);
+            }
+
+            var rootGo = new GameObject(AudioObjectName);
+            rootGo.transform.SetParent(arenaRoot.transform, false);
+            rootGo.transform.localPosition = Vector3.zero;
+
+            var player = rootGo.AddComponent<Igruha.Core.Audio.MinigameAudioPlayer>();
+            var playerSo = new SerializedObject(player);
+            playerSo.FindProperty("library").objectReferenceValue = library;
+            playerSo.ApplyModifiedPropertiesWithoutUndo();
+
+            var shelves = Object.FindObjectsByType<CanShelf>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            var buttons = Object.FindObjectsByType<CanConfirmButton>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            var game = Object.FindAnyObjectByType<CansOrderMinigame>(FindObjectsInactive.Include);
+
+            var audio = rootGo.AddComponent<CansOrderAudio>();
+            var serialized = new SerializedObject(audio);
+            serialized.FindProperty("audioPlayer").objectReferenceValue = player;
+            serialized.FindProperty("stageState").objectReferenceValue =
+                Object.FindAnyObjectByType<Igruha.Core.Minigame.MinigameStageState>(FindObjectsInactive.Include);
+            serialized.FindProperty("game").objectReferenceValue = game;
+            SetArray(serialized, "shelves", shelves);
+            SetArray(serialized, "buttons", buttons);
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            return true;
+        }
+
+        private static void SetArray(SerializedObject target, string propertyName, Object[] values)
+        {
+            SerializedProperty array = target.FindProperty(propertyName);
+            array.arraySize = values.Length;
+            for (int i = 0; i < values.Length; i++)
+            {
+                array.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
+            }
+        }
+
+        private const string EffectsObjectName = "CansOrderEffects";
+
+        /// <summary>
+        /// Своё на 4.4 — ровно одно: табло загорается в начале показа.
+        ///
+        /// Спуск клеток, створки, лапа медведя и конфетти на итогах уже есть
+        /// в общем <c>CircusEffects</c>. Дублировать их здесь значило бы
+        /// получить два облака опилок на одну створку.
+        ///
+        /// <b>Своя группа, а не <c>_Arena/Effects</c>:</b> общую группу
+        /// <see cref="CircusVfx"/> пересоздаёт с нуля при каждой пересборке
+        /// арены, и всё, что мы туда положим, исчезнет молча.
+        /// </summary>
+        private static bool BuildEffects(CircusArenaConfig arena)
+        {
+            var scoreboard = GameObject.Find("_Arena/Scoreboard");
+            if (scoreboard == null)
+            {
+                return false;
+            }
+
+            var arenaRoot = GameObject.Find("_Arena");
+            Transform existing = arenaRoot.transform.Find(EffectsObjectName);
+            if (existing != null)
+            {
+                Object.DestroyImmediate(existing.gameObject);
+            }
+
+            var rootGo = new GameObject(EffectsObjectName);
+            rootGo.transform.SetParent(arenaRoot.transform, false);
+            rootGo.transform.position = scoreboard.transform.position;
+
+            // Конфетти-вспышка над табло: она объявляет момент, а не украшает
+            // его. Игрок в стадии показа смотрит на свою полку, и без вспышки
+            // замечает табло с опозданием — а горит оно семь секунд из двадцати
+            // двух.
+            ParticleSystem flash = SpawnFx(rootGo.transform, "BoardFlash", ConfettiPath,
+                Vector3.up * (arena.ScoreboardFaceHeight * 0.5f + 0.4f), 2.2f);
+
+            var glowGo = new GameObject("BoardGlow");
+            glowGo.transform.SetParent(rootGo.transform, false);
+            glowGo.transform.localPosition = Vector3.zero;
+            var glow = glowGo.AddComponent<Light>();
+            glow.type = LightType.Point;
+            glow.color = new Color(1f, 0.92f, 0.66f);
+            glow.range = 9f;
+            glow.intensity = 0f;
+            glow.enabled = false;
+
+            var effects = rootGo.AddComponent<CansOrderEffects>();
+            var serialized = new SerializedObject(effects);
+            serialized.FindProperty("stageState").objectReferenceValue =
+                Object.FindAnyObjectByType<Igruha.Core.Minigame.MinigameStageState>(FindObjectsInactive.Include);
+            serialized.FindProperty("boardFlash").objectReferenceValue = flash;
+            serialized.FindProperty("boardGlow").objectReferenceValue = glow;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            return true;
+        }
+
         private const string HudObjectName = "CansOrderStageHud";
         private const float HudWidth = 620f;
         private const float HudHeight = 34f;
@@ -535,49 +681,17 @@ namespace Igruha.EditorTools
             var root = new GameObject("SolvedFanfare");
             try
             {
-                var ps = root.AddComponent<ParticleSystem>();
-                var main = ps.main;
-                main.duration = 1.2f;
-                main.loop = false;
-                main.startLifetime = 2.2f;
-                main.startSpeed = 4.5f;
-                main.startSize = 0.09f;
-                main.gravityModifier = 0.9f;
-                main.maxParticles = 120;
-                main.stopAction = ParticleSystemStopAction.None;
-
-                var emission = ps.emission;
-                emission.rateOverTime = 0f;
-                emission.SetBurst(0, new ParticleSystem.Burst(0f, 90));
-
-                var shape = ps.shape;
-                shape.shapeType = ParticleSystemShapeType.Cone;
-                shape.angle = 32f;
-                shape.radius = 0.25f;
-                shape.rotation = new Vector3(-90f, 0f, 0f);
-
-                // Конфетти разноцветные: однотонный всплеск с такого
-                // расстояния читается как дым, а не как праздник.
-                var colorModule = ps.colorOverLifetime;
-                colorModule.enabled = true;
-                var gradient = new Gradient();
-                gradient.SetKeys(
-                    new[]
-                    {
-                        new GradientColorKey(new Color(1f, 0.85f, 0.25f), 0f),
-                        new GradientColorKey(new Color(0.35f, 0.8f, 1f), 0.5f),
-                        new GradientColorKey(new Color(1f, 0.4f, 0.7f), 1f)
-                    },
-                    new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(1f, 0.7f), new GradientAlphaKey(0f, 1f) });
-                colorModule.color = new ParticleSystem.MinMaxGradient(gradient);
-
-                var rotation = ps.rotationOverLifetime;
-                rotation.enabled = true;
-                rotation.z = new ParticleSystem.MinMaxCurve(-6f, 6f);
-
-                var renderer = root.GetComponent<ParticleSystemRenderer>();
-                renderer.renderMode = ParticleSystemRenderMode.Billboard;
-                renderer.sharedMaterial = AssetDatabase.GetBuiltinExtraResource<Material>("Default-Particle.mat");
+                // Конфетти пака вместо системного партикла заготовки. Автостарт
+                // здесь ОСТАВЛЕН, и это не противоречит правилу подфазы: объект
+                // не живёт в сцене, а создаётся контроллером в момент события
+                // и уничтожается через fanfareLifetime. Гасить автостарт значило
+                // бы, что фанфара не сыграет вовсе.
+                ParticleSystem confetti = SpawnFx(root.transform, "Confetti", ConfettiPath,
+                    Vector3.zero, 1.6f, playOnAwake: true);
+                if (confetti == null)
+                {
+                    Debug.LogWarning("CanOrderPropBuilder: конфетти пака не найдено — фанфара останется без частиц");
+                }
 
                 var flashGo = new GameObject("Flash");
                 flashGo.transform.SetParent(root.transform, false);
@@ -594,8 +708,6 @@ namespace Igruha.EditorTools
                 Object.DestroyImmediate(root);
             }
         }
-
-
 
         /// <summary>
         /// Кнопка подтверждения. Коллайдер только на корпусе: вместе
@@ -658,7 +770,18 @@ namespace Igruha.EditorTools
             beacon.intensity = 1.4f;
             beacon.enabled = false;
 
+            // Всплеск в момент удара по колоколу. Локальный по построению:
+            // висит на событии Confirmed, которое поднимается только у нажавшего.
+            ParticleSystem burst = SpawnFx(buttonGo.transform, "ConfirmBurst", SparkBurstPath,
+                new Vector3(0f, lampY, 0f), 0.55f);
+
             var button = buttonGo.AddComponent<CanConfirmButton>();
+            var flash = buttonGo.AddComponent<CanConfirmFlash>();
+            var flashSo = new SerializedObject(flash);
+            flashSo.FindProperty("button").objectReferenceValue = button;
+            flashSo.FindProperty("burst").objectReferenceValue = burst;
+            flashSo.ApplyModifiedPropertiesWithoutUndo();
+
             var serialized = new SerializedObject(button);
             serialized.FindProperty("lamp").objectReferenceValue = lampGo.GetComponent<Renderer>();
             serialized.FindProperty("beacon").objectReferenceValue = beacon;
@@ -1094,6 +1217,39 @@ namespace Igruha.EditorTools
         }
 
         // ── утилиты дресса ────────────────────────────────────────────────
+
+        /// <summary>
+        /// Эффект пака в сцене. Автостарт и зацикливание снимаются: у всех FX
+        /// HorrorCarnival в префабе стоит <c>playOnAwake</c>, а у половины ещё
+        /// и <c>loop</c> — без правки арена встретила бы игрока восемью
+        /// непрерывными вспышками. Правило то же, что в общем
+        /// <see cref="CircusVfx"/>, но эффект свой и живёт в своём объекте.
+        /// </summary>
+        private static ParticleSystem SpawnFx(Transform parent, string objectName, string path,
+            Vector3 localPosition, float scale, bool playOnAwake = false)
+        {
+            if (!TryLoad(path, out GameObject prefab))
+            {
+                return null;
+            }
+
+            var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
+            go.name = objectName;
+            go.transform.localPosition = localPosition;
+            go.transform.localRotation = Quaternion.identity;
+            go.transform.localScale = Vector3.one * scale;
+            CircusDress.MarkAsScenery(go, false);
+
+            var systems = go.GetComponentsInChildren<ParticleSystem>(true);
+            for (int i = 0; i < systems.Length; i++)
+            {
+                ParticleSystem.MainModule main = systems[i].main;
+                main.playOnAwake = playOnAwake;
+                main.loop = false;
+            }
+
+            return systems.Length > 0 ? systems[0] : null;
+        }
 
         private static bool TryLoad(string path, out GameObject prefab)
         {
