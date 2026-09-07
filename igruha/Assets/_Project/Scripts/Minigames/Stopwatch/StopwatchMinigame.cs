@@ -600,6 +600,11 @@ namespace Igruha.Minigames.Stopwatch
         /// </summary>
         private void EnterHatch()
         {
+            // Момент начала стадии — общий для всех машин: от него и подъём,
+            // и открытие створок считаются одной формулой, поэтому клетка
+            // выбывшего идёт вверх синхронно у всех.
+            double startedAt = NetworkClock.Now;
+
             eliminatedThisSubround.Clear();
             for (int i = 0; i < contestants.Count; i++)
             {
@@ -612,7 +617,7 @@ namespace Igruha.Minigames.Stopwatch
                 c.Alive = false;
                 c.InPit = true;
                 eliminatedThisSubround.Add(c.Session.Id);
-                c.Cage?.OpenDoors(config.HatchOpenSeconds);
+                c.Cage?.RaiseAndOpenDoors(config.HatchOpenSeconds, startedAt);
             }
 
             // Ушедшие делят группу с теми, кто выпал в этом же подраунде.
@@ -631,7 +636,11 @@ namespace Igruha.Minigames.Stopwatch
                 ranking.AddEliminationGroup(eliminatedThisSubround);
             }
 
-            stageState.EnterStage(StageHatch, eliminatedThisSubround.Count > 0 ? config.HatchOpenSeconds : 0f);
+            // Стадия длиннее ровно на подъём: раньше она равнялась открытию
+            // створок, и с подъёмом следующий подраунд стартовал бы, пока
+            // выбывший ещё едет вверх.
+            stageState.EnterStage(StageHatch,
+                eliminatedThisSubround.Count > 0 ? arenaConfig.ExecutionRiseSeconds + config.HatchOpenSeconds : 0f);
         }
 
         /// <summary>
@@ -1039,6 +1048,15 @@ namespace Igruha.Minigames.Stopwatch
                 return;
             }
 
+            // В стадии люка высотой распоряжается RaiseAndOpenDoors: клетка
+            // едет вверх, а присланный уровень уже равен верхней ступени.
+            // Без этой отсечки поправка позднего подключения телепортировала
+            // бы клетку посреди подъёма.
+            if (stageState != null && stageState.Stage == StageHatch)
+            {
+                return;
+            }
+
             if (stageState != null && stageState.Stage == StageDescend)
             {
                 // Момент начала стадии: конец минус длительность. Считается
@@ -1065,7 +1083,11 @@ namespace Igruha.Minigames.Stopwatch
 
             if (doorsOpen)
             {
-                c.Cage.OpenDoors(config.HatchOpenSeconds);
+                // Тот же номер, что у авторитета, и от того же момента: конец
+                // стадии минус её длительность. Опоздавшая машина застаёт
+                // подъём уже законченным и просто открывает дно.
+                c.Cage.RaiseAndOpenDoors(config.HatchOpenSeconds,
+                    stageState != null ? stageState.StageEndTime - stageState.StageDuration : NetworkClock.Now);
             }
             else
             {
