@@ -714,12 +714,27 @@ namespace Igruha.EditorTools
         }
 
         /// <summary>
-        /// Заготовка медведя: тело, голова и четыре лапы из примитивов.
-        /// Живёт под отдельным объектом Visual, и в этом весь смысл — модель
-        /// из ассет-стора кладётся туда вместо примитивов, а логика в PitBear
-        /// про внешний вид ничего не знает и правок не требует.
+        /// Зверь в яме. Вид живёт под отдельным объектом Visual, и в этом весь
+        /// смысл: логика в PitBear про внешность ничего не знает и правок при
+        /// смене модели не требует.
         ///
-        /// Размеры взяты «на глаз от персонажа»: медведь заметно крупнее
+        /// Видов три, по убыванию качества — анимированный зверь, статуя,
+        /// коробки, — и берётся первый, который собрался.
+        ///
+        /// 🔴 <b>Менять вид зверя полной пересборкой арены не нужно — и не
+        /// стоит.</b> Для этого есть «Igruha/Цирк/Переодеть зверя в яме»
+        /// (<see cref="CircusBeast.RedressInScene"/>): он трогает только
+        /// содержимое <c>Visual</c> и ничьих ссылок не рвёт.
+        ///
+        /// А <b>после полной пересборки арены обязательно прогнать</b>
+        /// «Igruha/Minigames/Rebuild Stopwatch Props» и «Rebuild Cans Order
+        /// Props» — либо «Igruha/Цирк/Перевязать интерфейс». Пересборка
+        /// пересоздаёт клетки и табло с новыми <c>fileID</c>, и ссылки
+        /// контроллеров на них обнуляются молча: ни одной ошибки в консоли,
+        /// просто в игре пропадает весь интерфейс. Обе игры шатра простояли
+        /// так с 04.09 — разбор в STATE.md, раздел 3.78.
+        ///
+        /// Размеры взяты «на глаз от персонажа»: зверь заметно крупнее
         /// капсулы 0.72 м, иначе в яме радиусом 8.64 он теряется.
         /// </summary>
         private static void BuildBear(Transform root, CircusArenaConfig config)
@@ -731,16 +746,24 @@ namespace Igruha.EditorTools
             Transform visual = visualGo.transform;
             visual.SetParent(bearRoot, false);
 
-            // Дресс 4.1: модель вместо коробок. Настоящего медведя в паках нет —
-            // поиск по слову bear среди 8198 префабов индекса даёт бороды,
-            // капкан и плюшевых мишек. SM_Prop_Bear_Statue_01 вопреки имени
-            // не изваяние, а медведь на задних лапах с открытой пастью: ровно
-            // та поза, которую спека 3.5 просит на нижней ступени. Выбран
-            // геймдизайнером 04.09 из трёх вариантов брифа 14.4.
+            // Три вида зверя по убыванию качества, и берётся первый доступный.
+            // Так сделано затем, чтобы яма не осталась пустой ни на одной
+            // машине: «медведь не заспавнился» искали бы в сетевом коде.
             //
-            // Заготовка из коробок ниже остаётся запасной и строится только
-            // если модели нет: без неё яма на чужой машине была бы пустой,
-            // и «медведь не заспавнился» пришлось бы искать в сетевом коде.
+            // 1. Анимированный зверь (CircusBeast) — humanoid Synty на клипах
+            //    игрока. Он единственный из трёх умеет ходить: у статуи и
+            //    коробок костей нет, и по яме они ездят, не переставляя лап.
+            Animator beast = CircusBeast.Build(visual, CircusDress.BearHeight);
+            if (beast != null)
+            {
+                FinishBear(bearRoot, visual, true, beast);
+                return;
+            }
+
+            // 2. Статуя SM_Prop_Bear_Statue_01. Вопреки имени это не изваяние,
+            //    а медведь на задних лапах с открытой пастью — поза, которую
+            //    спека 3.5 просит на нижней ступени. Выбрана геймдизайнером
+            //    04.09 из трёх вариантов брифа 14.4 и остаётся запасным видом.
             GameObject model = CircusDress.Prop(visual, "BearModel", CircusDress.BearPath,
                 bearRoot.position, 180f, CircusDress.BearHeight);
             if (model != null)
@@ -750,9 +773,11 @@ namespace Igruha.EditorTools
                 // а бриф просит бурого и мультяшного (спека 8.4 — «отмахивается
                 // лапой как кот от игрушки»).
                 DressKit.Repaint(model, CircusPalette.Get(CircusPalette.Tone.BearFur));
-                FinishBear(bearRoot, visual, true);
+                FinishBear(bearRoot, visual, true, null);
                 return;
             }
+
+            // 3. Коробки блокаута.
 
             const float bodyLength = 1.9f;
             const float bodyWidth = 1.0f;
@@ -784,7 +809,7 @@ namespace Igruha.EditorTools
                 leg.localScale = new Vector3(0.28f, legHeight, 0.28f);
             }
 
-            FinishBear(bearRoot, visual, false);
+            FinishBear(bearRoot, visual, false, null);
         }
 
         /// <summary>Габарит капсулы медведя-заготовки: тело 1.9 длиной, 1.0 шириной, лапы 0.6.</summary>
@@ -815,7 +840,12 @@ namespace Igruha.EditorTools
         /// <c>CircusBearConfig</c>, он считается от позиции медведя и от формы
         /// капсулы не зависит. Меняется только объём, которым медведь пихается.
         /// </summary>
-        private static void FinishBear(Transform bearRoot, Transform visual, bool upright)
+        /// <param name="animator">
+        /// Аниматор вида, если вид умеет анимироваться. Null у статуи и коробок:
+        /// <c>PitBear</c> проверяет поле на null сам и молча работает без
+        /// анимаций — логика от вида не зависит.
+        /// </param>
+        private static void FinishBear(Transform bearRoot, Transform visual, bool upright, Animator animator)
         {
             var collider = bearRoot.gameObject.AddComponent<CapsuleCollider>();
             if (upright)
@@ -836,6 +866,7 @@ namespace Igruha.EditorTools
             var bear = bearRoot.gameObject.AddComponent<PitBear>();
             var serialized = new SerializedObject(bear);
             serialized.FindProperty("visualRoot").objectReferenceValue = visual;
+            serialized.FindProperty("animator").objectReferenceValue = animator;
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
             // Медведь — единственный на арене, кем не владеет ни один игрок:
