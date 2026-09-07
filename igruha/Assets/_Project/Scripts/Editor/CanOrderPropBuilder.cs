@@ -171,6 +171,14 @@ namespace Igruha.EditorTools
                 gameSo.ApplyModifiedPropertiesWithoutUndo();
             }
 
+            // Панель стадии только что пересоздана, а вместе с ней обнулились
+            // ссылка контроллера на неё и её четыре текстовых поля: подсказка
+            // про E, строка управления, карточка результата и прошлый круг.
+            // Собраны они руками в фазе каркаса, пересборка их не возвращает —
+            // и после арт-фазы игрок не видел ни одной подсказки. Разбор —
+            // в CircusUiWiring.
+            CircusUiWiring.ApplyCansOrder();
+
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(scene);
             UnityEditor.SceneManagement.EditorSceneManager.SaveScene(scene);
 

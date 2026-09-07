@@ -178,6 +178,11 @@ namespace Igruha.EditorTools
             var faceSo = new SerializedObject(face);
             faceSo.FindProperty("title").objectReferenceValue = title;
             faceSo.FindProperty("subtitle").objectReferenceValue = subtitle;
+            // Панель рассчитана на восемь строк, а лобби бывает и на двоих:
+            // без подрезки нижняя половина остаётся пустым тёмным
+            // прямоугольником в четверть экрана. Мировым граням это поле
+            // не ставится — им обрезать нечего.
+            faceSo.FindProperty("autoHeightPanel").objectReferenceValue = root;
             SerializedProperty labelsProperty = faceSo.FindProperty("rowLabels");
             SerializedProperty valuesProperty = faceSo.FindProperty("rowValues");
             labelsProperty.arraySize = HudRowCapacity;
@@ -256,6 +261,14 @@ namespace Igruha.EditorTools
             faces.Add(hud);
             board.SetFaces(faces);
             board.Clear();
+
+            // Грани собраны — осталось вернуть само табло контроллеру.
+            // Поле `board` у StopwatchScoreboard — обычный [SerializeField],
+            // и пересборка арены обнуляет его вместе со старым Scoreboard.
+            // Одна эта пустая ссылка гасит игру целиком: и четыре грани над
+            // ямой, и экранную панель, потому что пишет в них всех один
+            // WorldScoreboard. Разбор — в CircusUiWiring.
+            CircusUiWiring.ApplyStopwatch();
             return faces.Count;
         }
 

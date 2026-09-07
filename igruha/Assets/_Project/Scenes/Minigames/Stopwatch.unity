@@ -611,7 +611,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -5322,12 +5322,12 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1599765009}
-  - {fileID: 1319574946}
-  - {fileID: 389625411}
-  - {fileID: 1324044315}
   - {fileID: 1069350557}
   - {fileID: 1024401057}
   - {fileID: 1557206785}
+  - {fileID: 1324044315}
+  - {fileID: 389625411}
+  - {fileID: 1319574946}
   m_Father: {fileID: 2118227425}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -14814,12 +14814,12 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
+  m_fontSize: 34
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -24794,6 +24794,8 @@ MonoBehaviour:
   - {fileID: 1954600538}
   - {fileID: 429105208}
   - {fileID: 414208277}
+  autoHeightPanel: {fileID: 0}
+  autoHeightPadding: 12
 --- !u!223 &581891023
 Canvas:
   m_ObjectHideFlags: 0
@@ -32089,7 +32091,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5a4fb1e0b74ab432496db29f66827498, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.Stopwatch.StopwatchScoreboard
-  board: {fileID: 0}
+  board: {fileID: 1462142628}
 --- !u!114 &756139783
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -43541,6 +43543,8 @@ MonoBehaviour:
   - {fileID: 1473888914}
   - {fileID: 1480070455}
   - {fileID: 514369011}
+  autoHeightPanel: {fileID: 1024401057}
+  autoHeightPadding: 12
 --- !u!224 &1024401057
 RectTransform:
   m_ObjectHideFlags: 0
@@ -48810,12 +48814,12 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
+  m_fontSize: 34
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -51903,6 +51907,8 @@ MonoBehaviour:
   - {fileID: 328271367}
   - {fileID: 143760239}
   - {fileID: 1893169973}
+  autoHeightPanel: {fileID: 0}
+  autoHeightPadding: 12
 --- !u!223 &1260891126
 Canvas:
   m_ObjectHideFlags: 0
@@ -53928,12 +53934,12 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
+  m_fontSize: 29
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -58523,7 +58529,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -58938,6 +58944,8 @@ MonoBehaviour:
   - {fileID: 696096868}
   - {fileID: 1160542012}
   - {fileID: 123719470}
+  autoHeightPanel: {fileID: 0}
+  autoHeightPadding: 12
 --- !u!223 &1414636670
 Canvas:
   m_ObjectHideFlags: 0
@@ -59949,12 +59957,12 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
+  m_fontSize: 34
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -63984,7 +63992,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -67685,7 +67693,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -69171,12 +69179,12 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
+  m_fontSize: 34
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -73172,6 +73180,8 @@ MonoBehaviour:
   - {fileID: 304749445}
   - {fileID: 104940638}
   - {fileID: 471722336}
+  autoHeightPanel: {fileID: 0}
+  autoHeightPadding: 12
 --- !u!223 &1793614240
 Canvas:
   m_ObjectHideFlags: 0
@@ -77043,7 +77053,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -84025,12 +84035,12 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
+  m_fontSize: 34
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
