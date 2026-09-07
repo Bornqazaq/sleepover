@@ -8027,7 +8027,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 46
+  m_fontSize: 36
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -11578,12 +11578,12 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
+  m_fontSize: 34
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -13747,7 +13747,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 46
+  m_fontSize: 36
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -31380,6 +31380,8 @@ MonoBehaviour:
   - {fileID: 1456330792}
   - {fileID: 548227718}
   - {fileID: 1170134785}
+  autoHeightPanel: {fileID: 0}
+  autoHeightPadding: 12
 --- !u!223 &680931235
 Canvas:
   m_ObjectHideFlags: 0
@@ -32212,6 +32214,8 @@ MonoBehaviour:
   - {fileID: 103733039}
   - {fileID: 1340931440}
   - {fileID: 148392298}
+  autoHeightPanel: {fileID: 0}
+  autoHeightPadding: 12
 --- !u!223 &706293377
 Canvas:
   m_ObjectHideFlags: 0
@@ -38474,6 +38478,8 @@ MonoBehaviour:
   - {fileID: 46043690}
   - {fileID: 2009662941}
   - {fileID: 2023293776}
+  autoHeightPanel: {fileID: 0}
+  autoHeightPadding: 12
 --- !u!223 &861781861
 Canvas:
   m_ObjectHideFlags: 0
@@ -58009,7 +58015,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 46
+  m_fontSize: 36
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -63159,6 +63165,8 @@ MonoBehaviour:
   - {fileID: 5736771}
   - {fileID: 821421848}
   - {fileID: 772229387}
+  autoHeightPanel: {fileID: 0}
+  autoHeightPadding: 12
 --- !u!223 &1441336830
 Canvas:
   m_ObjectHideFlags: 0
@@ -65837,7 +65845,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 46
+  m_fontSize: 36
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
