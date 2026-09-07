@@ -54,6 +54,8 @@ namespace Igruha.Minigames.Circus
         [SerializeField] private int maxLevelSteps = 3;
         [Tooltip("Сколько секунд занимает спуск на один шаг")]
         [SerializeField] private float cageLevelStepDuration = 2f;
+        [Tooltip("Сколько секунд лебёдка тянет клетку выбывшего на верхнюю ступень перед тем, как распахнуть дно")]
+        [SerializeField] private float executionRiseSeconds = 1.6f;
 
         [Header("Табло")]
         [Tooltip("Высота центра табло над дном ямы, ШП")]
@@ -80,6 +82,7 @@ namespace Igruha.Minigames.Circus
         public float CageInnerHeight => cageInnerHeight * MetersPerBodyWidth;
         public float CageLevelStep => cageLevelStep * MetersPerBodyWidth;
         public float CageLevelStepDuration => Mathf.Max(0.01f, cageLevelStepDuration);
+        public float ExecutionRiseSeconds => Mathf.Max(0f, executionRiseSeconds);
         public int MaxLevelSteps => Mathf.Max(0, maxLevelSteps);
         public float ScoreboardHeight => scoreboardHeight * MetersPerBodyWidth;
         public float ScoreboardFaceWidth => scoreboardFaceWidth * MetersPerBodyWidth;
@@ -96,6 +99,22 @@ namespace Igruha.Minigames.Circus
         {
             return (cageBaseHeight + cageLevelStep * Mathf.Max(0, levelSteps)) * MetersPerBodyWidth;
         }
+
+        /// <summary>
+        /// Высота, с которой выбывшего роняют в яму.
+        ///
+        /// Это верхняя ступень кольца, и число здесь не косметическое.
+        /// Персонаж падает молча и просто встаёт на ноги, пока скорость
+        /// у пола ниже <c>CharacterConfig.HardLandingSpeed</c> (18 м/с);
+        /// шмяк с нокдауном и подъёмом начинается только выше неё.
+        /// При гравитации падения 9.81 × 3 = 29.4 м/с² порог набирается
+        /// с 5.51 м, а верхняя ступень даёт 8.64 м и 22.5 м/с — запас 25%.
+        ///
+        /// Ронять с нижней ступени бессмысленно: 2.16 м это 11.3 м/с,
+        /// то есть половина порога. Ровно поэтому падения и не было видно —
+        /// люк открывался там, куда клетку опустили ошибки.
+        /// </summary>
+        public float ExecutionDropHeight => GetCageBottomHeight(MaxLevelSteps);
 
         /// <summary>Пол шатра выше дна ямы на глубину ямы — по нему ходят до падения и стоят трибуны.</summary>
         public float TentFloorHeight => PitRecess;

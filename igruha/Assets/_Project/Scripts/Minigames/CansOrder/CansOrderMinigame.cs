@@ -1452,6 +1452,10 @@ namespace Igruha.Minigames.CansOrder
             // вернёт null, и створки им не откроются.
             MergeLeavers(eliminatedThisRound);
 
+            // Момент начала стадии — общий для всех машин: от него и подъём,
+            // и открытие створок считаются одной формулой.
+            double hatchStartedAt = NetworkClock.Now;
+
             int doorsOpened = 0;
             for (int i = 0; i < eliminatedThisRound.Count; i++)
             {
@@ -1473,7 +1477,12 @@ namespace Igruha.Minigames.CansOrder
                 c.Bot?.Disarm();
                 c.Shelf?.Release();
                 c.Button?.CloseWindow();
-                c.Cage?.OpenDoors(config.HatchOpenSeconds);
+
+                // Доля высоты уезжает в сеть, и клетка выбывшего уходит на
+                // самый верх: без этого чужая машина увидела бы расхождение
+                // «высота вверху, доля внизу» и дёрнула бы клетку обратно.
+                c.Entry.HeightFraction = 1f;
+                c.Cage?.RaiseAndOpenDoors(config.HatchOpenSeconds, hatchStartedAt);
             }
 
             if (eliminatedThisRound.Count > 0)
@@ -1486,7 +1495,11 @@ namespace Igruha.Minigames.CansOrder
             // Длительность стадии — по реально распахнутым створкам, а не по
             // размеру группы: группа из одних ушедших не открывает ни одной
             // клетки, и ждать её нечего.
-            stageState.EnterStage(StageHatch, doorsOpened > 0 ? config.HatchOpenSeconds : 0f);
+            // Стадия длиннее ровно на подъём: раньше она равнялась открытию
+            // створок, и с подъёмом следующий раунд стартовал бы, пока
+            // выбывший ещё едет вверх.
+            stageState.EnterStage(StageHatch,
+                doorsOpened > 0 ? arenaConfig.ExecutionRiseSeconds + config.HatchOpenSeconds : 0f);
         }
 
         /// <summary>Добавить ушедших в группу вылета этого раунда, не задваивая уже попавших.</summary>
@@ -2496,6 +2509,11 @@ namespace Igruha.Minigames.CansOrder
 
             switch (stage)
             {
+                case StageHatch:
+                    // Высотой распоряжается RaiseAndOpenDoors: клетка едет
+                    // вверх, а присланная доля уже равна верхней ступени.
+                    // Поправка здесь телепортировала бы клетку посреди подъёма.
+                    break;
                 case StageBriefing:
                     c.Cage.MoveToFraction(fraction, config.BriefingRiseSeconds, startedAt);
                     break;
@@ -2523,7 +2541,11 @@ namespace Igruha.Minigames.CansOrder
 
             if (doorsOpen)
             {
-                c.Cage.OpenDoors(config.HatchOpenSeconds);
+                // Тот же номер, что у авторитета, и от того же момента: конец
+                // стадии минус её длительность. Опоздавшая машина застаёт
+                // подъём законченным и просто открывает дно.
+                c.Cage.RaiseAndOpenDoors(config.HatchOpenSeconds,
+                    stageState != null ? stageState.StageEndTime - stageState.StageDuration : NetworkClock.Now);
             }
             else
             {
