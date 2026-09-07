@@ -191,6 +191,9 @@ namespace Igruha.Minigames.Stopwatch
             contestants.Clear();
             startingPlayers = Players.Count;
             errorLimit = config.GetErrorLimit(startingPlayers);
+            // Табло рисует запас ошибок точками, и без лимита оно не знает,
+            // сколько их всего: при шести игроках и больше лимит 2, иначе 3.
+            scoreboard?.SetErrorLimit(errorLimit);
             // Рандом только серверный: сид берётся у авторитета и в фазе 3
             // уедет в сеть вместе с выбранными типами и целями.
             random = new System.Random(System.Environment.TickCount);
