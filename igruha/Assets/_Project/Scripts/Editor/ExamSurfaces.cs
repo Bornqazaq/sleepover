@@ -28,8 +28,18 @@ namespace Igruha.EditorTools
         /// <summary>Карниз 2.50 × 0.50 × 0.14 — им закрывается верхняя кромка панелей.</summary>
         private const string TrimPath = "Assets/Synty/PolygonAncientEmpire/Prefabs/Buildings/SM_Bld_Trim_05.prefab";
 
-        /// <summary>Шаг швов пола зала, 4 ШП. Вдвое крупнее настила створок — см. описание класса.</summary>
-        private const float FloorModule = 2.88f;
+        /// <summary>
+        /// Шаг швов пола зала, 2 ШП.
+        ///
+        /// Было 4 ШП (2.88 м) — по плите на полтора персонажа в поперечнике.
+        /// Пока зал был 28.8 × 25.92, крупная сетка держала его «не паркетным»;
+        /// после ужатия до 19.44 × 20.16 та же плита стала главным виновником
+        /// того, что персонаж в кадре читался мелким: масштаб сцене задаёт
+        /// не размер комнаты, а размер самой мелкой различимой детали в ней.
+        /// 1.44 м даёт плиту чуть шире человека — ровно тот масштаб, по
+        /// которому глаз меряет всё остальное.
+        /// </summary>
+        private const float FloorModule = 1.44f;
 
         /// <summary>Ширина шва между плитами пола.</summary>
         private const float SeamWidth = 0.05f;
@@ -207,6 +217,7 @@ namespace Igruha.EditorTools
             Paint(arena, "Board", ExamPalette.Get(ExamPalette.Tone.Slate));
             Paint(arena, "Podium", ExamPalette.Get(ExamPalette.Tone.Panel));
             Paint(arena, "ReturnZone", ExamPalette.Get(ExamPalette.Tone.Runner));
+            Paint(arena, "GapThreshold", ExamPalette.Get(ExamPalette.Tone.Seam));
 
             Material metal = ExamPalette.Get(ExamPalette.Tone.Metal);
             Paint(arena, "Decor/CoatRack/Post", metal);

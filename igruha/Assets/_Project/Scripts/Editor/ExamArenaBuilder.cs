@@ -45,11 +45,16 @@ namespace Igruha.EditorTools
         /// Насколько камера зала отставлена за ближний край платформ, в метрах.
         ///
         /// Число не на глаз: у фиксированного рига поле зрения 40°, то есть
-        /// по горизонтали 65.8° при 16:9. Чтобы обе платформы (±9.36 м)
-        /// помещались в кадр целиком, нужно отойти почти к задней стене —
-        /// ближе край дальней платформы уходит за границу кадра.
+        /// по горизонтали 65.8° при 16:9, полуугол 32.9° и тангенс 0.647.
+        /// Крайняя точка площадок теперь ±6.48 м, значит камере нужно
+        /// 6.48 / 0.647 = 10.0 м до их центра; 9.2 за ближним краем дают
+        /// 11.36 — кадр с полями. До задней стены при этом остаётся 1.6 м.
+        ///
+        /// Было 11.5 при площадках ±9.36: после того как зал ужали, прежнее
+        /// число отодвинуло бы камеру в стену и добавило бы в кадр ровно то,
+        /// от чего избавлялись, — пустой пол перед площадками.
         /// </summary>
-        private const float HallCameraDistance = 11.5f;
+        private const float HallCameraDistance = 9.2f;
 
         /// <summary>Насколько камера зала опущена под потолок, в метрах.</summary>
         private const float HallCameraDrop = 0.6f;
@@ -92,26 +97,94 @@ namespace Igruha.EditorTools
         /// <summary>Толщина рамки доски, в метрах.</summary>
         private const float BoardFrameThickness = 0.12f;
 
+        /// <summary>
+        /// Доля ширины зала, которую занимает доска.
+        ///
+        /// Три числа доски (ширина, высота, центр) раньше стояли константами
+        /// прямо в двух методах — в самой доске и в её рамке. Разъехаться им
+        /// мешало только внимание: рамка считалась по своей копии тех же
+        /// множителей. Теперь множитель один на оба места.
+        /// </summary>
+        private const float BoardWidthFactor = 0.5f;
+
+        /// <summary>Доля высоты зала, которую занимает доска.</summary>
+        private const float BoardHeightFactor = 0.44f;
+
+        /// <summary>
+        /// На какой доле высоты зала стоит центр доски.
+        ///
+        /// Поднято с 0.56 после рендера ужатого зала: нижняя строка доски —
+        /// вариант Б — оказалась ровно за монитором Ведущего. Это арифметика
+        /// параллакса, а не случайность. Камера зала подошла к площадкам
+        /// на два метра ближе, угол на доску стал круче, и луч к нижней строке
+        /// пошёл через ту высоту, на которой стоит монитор. Строку варианта
+        /// нельзя закрывать ничем: по ней Ученик и выбирает, куда бежать.
+        ///
+        /// Лечится с двух сторон сразу — доска выше, тумба Ведущего ниже
+        /// (см. <see cref="HostDeskHeight"/>): запас между лучом и верхом
+        /// монитора выходит 27 см вместо минус пяти.
+        /// </summary>
+        private const float BoardCenterFactor = 0.6f;
+
+        /// <summary>Высота тумбы Ведущего, м. Ниже монитор не опустить — он стоит на ней.</summary>
+        private const float HostDeskHeight = 0.85f;
+
         /// <summary>Высота парты, в метрах.</summary>
-        private const float DeskHeight = 0.72f;
+        private const float DeskHeight = 0.75f;
 
-        /// <summary>Сколько парт вдоль каждой боковой стены.</summary>
-        private const int DesksPerSide = 3;
+        /// <summary>
+        /// Сколько парт вдоль каждой боковой стены.
+        ///
+        /// Было три, и они кучкой стояли у зоны возврата: на рендере приёмки
+        /// это читалось не классом, а шестью стульями, забытыми посреди
+        /// спортзала. Пять коробок по два места растягивают колонну на всю
+        /// длину площадки — боковой неф становится рядом парт, смотрящих
+        /// на доску, то есть тем, чем в классе и должен быть.
+        /// </summary>
+        private const int DesksPerSide = 5;
 
-        /// <summary>Отступ парт от боковой стены, в метрах.</summary>
-        private const float DeskWallGap = 1.6f;
+        /// <summary>Отступ ЦЕНТРА колонны парт от боковой стены, в метрах.</summary>
+        private const float DeskWallGap = 1.4f;
 
-        /// <summary>Z ближайшей к платформам парты, в метрах.</summary>
-        private const float DeskFirstZ = -0.4f;
+        /// <summary>Z ближайшей к доске парты, в метрах.</summary>
+        private const float DeskFirstZ = 4.2f;
 
         /// <summary>Шаг между партами, в метрах.</summary>
-        private const float DeskSpacing = 1.9f;
+        private const float DeskSpacing = 1.55f;
 
-        /// <summary>Высота подвесного указателя варианта, в метрах.</summary>
-        private const float SignHeight = 3.9f;
+        /// <summary>Ширина коробки парты по X: два места рядом.</summary>
+        private const float DeskWidth = 1.5f;
+
+        /// <summary>Глубина коробки парты по Z — столешница вместе со скамьёй.</summary>
+        private const float DeskDepth = 0.95f;
+
+        /// <summary>
+        /// Насколько низ подвеса указателя утоплен под потолок, в метрах.
+        ///
+        /// Было абсолютное 3.9 при потолке 5.76. Потолок опустился до 4.68,
+        /// и абсолютное число оставило бы указателю 0.13 м подвеса — табличка
+        /// висела бы приклеенной к перекрытию. Считаем от потолка: подвес
+        /// всегда читается верёвкой, какой бы ни стала высота зала.
+        /// </summary>
+        private const float SignDropFromCeiling = 1f;
 
         /// <summary>Высота самой таблички указателя, в метрах.</summary>
-        private const float SignPlateHeight = 1.3f;
+        private const float SignPlateHeight = 0.95f;
+
+        /// <summary>Ширина таблички указателя, в метрах.</summary>
+        private const float SignPlateWidth = 1.8f;
+
+        /// <summary>
+        /// Насколько указатель отодвинут от внутреннего края своей площадки
+        /// к внешнему, в долях её ширины.
+        ///
+        /// Висел строго над центром площадки — и в ужатом зале обе таблички
+        /// встали ровно перед доской: с камеры зала «А» и «Б» закрывали текст
+        /// вопроса, то есть указатель отнимал ровно то, ради чего сам и висит.
+        /// 0.78 уводит их к боковым стенам, оставляя середину кадра доске,
+        /// и при этом каждая табличка остаётся над своей площадкой.
+        /// </summary>
+        private const float SignOutwardFactor = 0.78f;
 
         /// <summary>Зерно генератора дресса. Фиксировано: пересборка обязана давать ту же арену.</summary>
         private const int DressSeed = 20260904;
@@ -442,6 +515,29 @@ namespace Igruha.EditorTools
             }
 
             SetLayer(gap, "Ground");
+
+            // Порог поверх невидимого пола.
+            //
+            // Невидимость здесь была следствием, а не целью: рендерер сняли,
+            // чтобы полоса не мерцала z-fighting'ом со створками. Но сквозь
+            // проём между площадками честно видно дно ямы, и полутораметровая
+            // щель читается пропастью — при том что стоять на ней можно.
+            // Игрок обходит место, которое на самом деле безопасно, а толчок
+            // в «пропасть», ради устранения которого пол и появился, снова
+            // выглядит смертельным. Видимый порог снимает обман: тёмная
+            // полоса отделяет А от Б и при этом очевидно является полом.
+            var threshold = CreateBox(parent, "GapThreshold",
+                new Vector3(config.PlatformGap, 0.06f, config.PlatformDepth),
+                new Vector3(0f, 0.02f, z), new Color(0.24f, 0.19f, 0.16f));
+
+            var thresholdCollider = threshold.GetComponent<Collider>();
+            if (thresholdCollider != null)
+            {
+                // Опору держит невидимый пол под ним: второй коллайдер на той
+                // же высоте — это ступенька в шесть сантиметров ровно там,
+                // где игроки толкаются.
+                Object.DestroyImmediate(thresholdCollider);
+            }
         }
 
         private static void BuildPodium(Transform parent, ExamConfig config, float z)
@@ -556,9 +652,9 @@ namespace Igruha.EditorTools
         /// </summary>
         private static void BuildBoard(Transform parent, ExamConfig config, float farZ)
         {
-            float width = config.HallWidth * 0.45f;
-            float height = config.CeilingHeight * 0.5f;
-            float centerY = config.CeilingHeight * 0.6f;
+            float width = config.HallWidth * BoardWidthFactor;
+            float height = config.CeilingHeight * BoardHeightFactor;
+            float centerY = config.CeilingHeight * BoardCenterFactor;
             float z = farZ - 0.3f;
 
             var board = CreateBox(parent, "Board", new Vector3(width, height, BoardThickness),
@@ -665,11 +761,20 @@ namespace Igruha.EditorTools
             BuildOverheadSigns(decor.transform, config, platformsZ);
         }
 
-        /// <summary>Парты вдоль боковых стен — в проходе между платформами и зоной возврата.</summary>
+        /// <summary>
+        /// Парты в боковых нефах — колонна вдоль каждой стены, лицом к доске.
+        ///
+        /// Колонна начинается у дальнего края площадки и тянется до зоны
+        /// возврата: там, где раньше было три метра голого пола между партой
+        /// и платформой, теперь ряд. Ширина нефа 3.24 м, коробка 1.5 —
+        /// метр с лишним прохода вдоль стены остаётся, и промахнувшийся мимо
+        /// площадки в нём не застревает.
+        /// </summary>
         private static void BuildDeskRows(Transform parent, ExamConfig config)
         {
             var wood = new Color(0.55f, 0.4f, 0.28f);
             float x = config.HallWidth * 0.5f - DeskWallGap;
+            float halfWidth = DeskWidth * 0.5f;
 
             for (int side = 0; side < 2; side++)
             {
@@ -682,14 +787,14 @@ namespace Igruha.EditorTools
                     desk.transform.SetParent(parent, false);
                     desk.transform.localPosition = new Vector3(sideX, 0f, z);
 
-                    CreateBox(desk.transform, "Top", new Vector3(1.6f, 0.08f, 0.7f),
-                        new Vector3(0f, DeskHeight, 0f), wood);
-                    CreateBox(desk.transform, "LegL", new Vector3(0.1f, DeskHeight, 0.6f),
-                        new Vector3(-0.7f, DeskHeight * 0.5f, 0f), wood * 0.8f);
-                    CreateBox(desk.transform, "LegR", new Vector3(0.1f, DeskHeight, 0.6f),
-                        new Vector3(0.7f, DeskHeight * 0.5f, 0f), wood * 0.8f);
-                    CreateBox(desk.transform, "Bench", new Vector3(1.6f, 0.08f, 0.34f),
-                        new Vector3(0f, DeskHeight * 0.6f, -0.75f), wood * 0.9f);
+                    CreateBox(desk.transform, "Top", new Vector3(DeskWidth, 0.08f, DeskDepth * 0.72f),
+                        new Vector3(0f, DeskHeight, DeskDepth * 0.14f), wood);
+                    CreateBox(desk.transform, "LegL", new Vector3(0.1f, DeskHeight, DeskDepth * 0.6f),
+                        new Vector3(-halfWidth + 0.05f, DeskHeight * 0.5f, DeskDepth * 0.14f), wood * 0.8f);
+                    CreateBox(desk.transform, "LegR", new Vector3(0.1f, DeskHeight, DeskDepth * 0.6f),
+                        new Vector3(halfWidth - 0.05f, DeskHeight * 0.5f, DeskDepth * 0.14f), wood * 0.8f);
+                    CreateBox(desk.transform, "Bench", new Vector3(DeskWidth, 0.08f, 0.34f),
+                        new Vector3(0f, DeskHeight * 0.6f, -DeskDepth * 0.42f), wood * 0.9f);
                 }
             }
         }
@@ -723,8 +828,8 @@ namespace Igruha.EditorTools
             desk.transform.SetParent(parent, false);
             desk.transform.localPosition = new Vector3(0f, config.PodiumHeight, podiumZ - 1.3f);
 
-            CreateBox(desk.transform, "Stand", new Vector3(1.4f, 1.05f, 0.65f),
-                new Vector3(0f, 0.52f, 0f), new Color(0.5f, 0.36f, 0.25f));
+            CreateBox(desk.transform, "Stand", new Vector3(1.4f, HostDeskHeight, 0.65f),
+                new Vector3(0f, HostDeskHeight * 0.5f, 0f), new Color(0.5f, 0.36f, 0.25f));
             // Монитор стоит по центру стола, а не сбоку. Сдвинут туда на 4.3:
             // замер зеркальности зала показал его единственным предметом
             // у оси, у которого нет пары, — а правило симметрии в этой игре
@@ -732,17 +837,17 @@ namespace Igruha.EditorTools
             // при этом не появились и не исчезли, только переехали на 0.35 м
             // на высоте двух метров над недоступным Ученику возвышением.
             CreateBox(desk.transform, "Monitor", new Vector3(0.55f, 0.45f, 0.5f),
-                new Vector3(0f, 1.28f, 0f), new Color(0.78f, 0.76f, 0.7f));
+                new Vector3(0f, HostDeskHeight + 0.225f, 0f), new Color(0.78f, 0.76f, 0.7f));
             CreateBox(desk.transform, "Screen", new Vector3(0.42f, 0.32f, 0.02f),
-                new Vector3(0f, 1.3f, -0.26f), new Color(0.15f, 0.35f, 0.2f));
+                new Vector3(0f, HostDeskHeight + 0.245f, -0.26f), new Color(0.15f, 0.35f, 0.2f));
         }
 
         /// <summary>Рамка доски — четыре бруска по периметру.</summary>
         private static void BuildBoardFrame(Transform parent, ExamConfig config, float farZ)
         {
-            float width = config.HallWidth * 0.45f;
-            float height = config.CeilingHeight * 0.5f;
-            float centerY = config.CeilingHeight * 0.6f;
+            float width = config.HallWidth * BoardWidthFactor;
+            float height = config.CeilingHeight * BoardHeightFactor;
+            float centerY = config.CeilingHeight * BoardCenterFactor;
             float z = farZ - 0.3f - BoardThickness * 0.5f - BoardFrameThickness * 0.5f;
             var frame = new Color(0.35f, 0.25f, 0.16f);
 
@@ -765,7 +870,10 @@ namespace Igruha.EditorTools
         /// </summary>
         private static void BuildOverheadSigns(Transform parent, ExamConfig config, float platformsZ)
         {
-            float offset = (config.PlatformWidth + config.PlatformGap) * 0.5f;
+            float offset = (config.PlatformWidth + config.PlatformGap) * 0.5f
+                           + config.PlatformWidth * 0.5f * SignOutwardFactor;
+
+            float signHeight = config.CeilingHeight - SignDropFromCeiling - SignPlateHeight * 0.5f;
 
             for (int i = 0; i < 2; i++)
             {
@@ -774,15 +882,15 @@ namespace Igruha.EditorTools
 
                 var sign = new GameObject("Sign_" + (side == ExamSide.A ? "A" : "B"));
                 sign.transform.SetParent(parent, false);
-                sign.transform.localPosition = new Vector3(x, SignHeight, platformsZ);
+                sign.transform.localPosition = new Vector3(x, signHeight, platformsZ);
 
                 // Подвес ровно от верха таблички до потолка: посчитанный
                 // «на глаз» он протыкал перекрытие и торчал над классом.
                 float plateHalf = SignPlateHeight * 0.5f;
-                float ropeLength = config.CeilingHeight - SignHeight - plateHalf;
+                float ropeLength = config.CeilingHeight - signHeight - plateHalf;
                 CreateBox(sign.transform, "Rope", new Vector3(0.06f, ropeLength, 0.06f),
                     new Vector3(0f, plateHalf + ropeLength * 0.5f, 0f), new Color(0.3f, 0.3f, 0.32f));
-                CreateBox(sign.transform, "Plate", new Vector3(2.4f, SignPlateHeight, 0.1f),
+                CreateBox(sign.transform, "Plate", new Vector3(SignPlateWidth, SignPlateHeight, 0.1f),
                     Vector3.zero, new Color(0.93f, 0.92f, 0.88f));
 
                 // Обе стороны: с одной надписью табличка читалась бы с изнанки
@@ -801,7 +909,7 @@ namespace Igruha.EditorTools
             canvasGo.GetComponent<Canvas>().renderMode = RenderMode.WorldSpace;
 
             var rect = (RectTransform)canvasGo.transform;
-            rect.sizeDelta = new Vector2(240f, 130f);
+            rect.sizeDelta = new Vector2(SignPlateWidth * 100f, SignPlateHeight * 100f);
             rect.localScale = Vector3.one * 0.01f;
 
             var text = new GameObject("Letter", typeof(TextMeshProUGUI));
@@ -814,7 +922,7 @@ namespace Igruha.EditorTools
 
             var tmp = text.GetComponent<TextMeshProUGUI>();
             tmp.text = side == ExamSide.A ? "А" : "Б";
-            tmp.fontSize = 110f;
+            tmp.fontSize = SignPlateHeight * 85f;
             tmp.alignment = TextAlignmentOptions.Center;
             tmp.textWrappingMode = TextWrappingModes.NoWrap;
             tmp.color = SideColor(side);

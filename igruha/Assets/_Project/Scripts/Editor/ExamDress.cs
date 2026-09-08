@@ -86,8 +86,23 @@ namespace Igruha.EditorTools
         /// <summary>Петель на створку. Три — минимум, при котором ось читается линией, а не точкой.</summary>
         private const int HingesPerDoor = 3;
 
-        /// <summary>Рабочая высота взрослой парты. Мебель PolygonKids детская и до неё дотягивается.</summary>
-        private const float ExamDeskHeight = 0.84f;
+        /// <summary>
+        /// Габаритная высота парты, к которой приводится модель.
+        ///
+        /// Мебель PolygonKids детская: моноблок «стол со стулом» приезжает
+        /// 0.51 × 0.62 × 0.65, и высота 0.62 — это спинка стула, а не
+        /// столешница. Прежние 0.84 давали спинку по бедро персонажу ростом
+        /// 1.8 м, отчего класс и читался детским садом даже после подгонки.
+        /// 0.95 ставит спинку под лопатку сидящему взрослому, а столешницу
+        /// на 0.72 — ровно на высоту коробки блокаута.
+        /// </summary>
+        private const float ExamDeskHeight = 0.95f;
+
+        /// <summary>Стопка учебников на парте: 0.44 × 0.31 × 0.26.</summary>
+        private const string BooksPath = "Assets/Synty/PolygonTown/Prefabs/Props/SM_Prop_Book_Group_07.prefab";
+
+        /// <summary>Стопка потоньше, для разнообразия: 0.37 × 0.23 × 0.35.</summary>
+        private const string BooksAltPath = "Assets/Synty/PolygonTown/Prefabs/Props/SM_Prop_Book_Group_05.prefab";
 
         private static readonly List<string> Notes = new List<string>(8);
         private static readonly List<string> Placed = new List<string>(24);
@@ -640,24 +655,32 @@ namespace Igruha.EditorTools
         /// лучше, чем один растянутый вдвое стол.
         ///
         /// Мебель пака <b>детская</b>, и в натуральный рост она не годится:
-        /// парта 0.51 × 0.63 рядом с персонажем шириной 0.72 читалась на
-        /// рендере приёмки детским садом, а не экзаменом. Высота приведена
-        /// к 0.84 м — рабочей высоте взрослой парты. Пара таких занимает
-        /// 1.38 м в коробке 1.60, то есть по горизонтали по-прежнему
-        /// помещается; в высоту выходит на 8 см, и это разрешено — предмет
-        /// выше своей коробки правилами не запрещён.
+        /// парта 0.51 × 0.62 рядом с персонажем шириной 0.72 читалась на
+        /// рендере приёмки детским садом, а не экзаменом. Габарит приведён
+        /// к 0.95 м — см. <see cref="ExamDeskHeight"/>. Пара таких занимает
+        /// 1.56 м в коробке 1.50, то есть по краям выходит на три сантиметра,
+        /// и это разрешено: предмет шире своей коробки правилами не запрещён,
+        /// а вплотную сдвинутые парты как раз и читаются рядом, а не мебелью
+        /// на витрине.
+        ///
+        /// <b>На партах лежат учебники.</b> Пустая столешница на любом ракурсе
+        /// выдаёт декорацию: класс, в котором идёт экзамен, не бывает убранным.
+        /// Стопка кладётся через одну парту и с чередованием модели — так ряд
+        /// не превращается в узор из одинаковых кубиков.
         /// </summary>
         private static void DressDeskRows(GameObject arena)
         {
             int dressed = 0;
+            int books = 0;
+
             foreach (string sideLetter in new[] { "L", "R" })
             {
-                for (int i = 1; i <= 3; i++)
+                for (int i = 1; ; i++)
                 {
                     Transform desk = Find(arena, $"Decor/Desk_{sideLetter}{i}");
                     if (desk == null)
                     {
-                        continue;
+                        break;
                     }
 
                     foreach (Renderer part in desk.GetComponentsInChildren<Renderer>(true))
@@ -673,9 +696,29 @@ namespace Igruha.EditorTools
 
                     for (int seat = 0; seat < 2; seat++)
                     {
-                        float x = seat == 0 ? -0.36f : 0.36f;
+                        float x = seat == 0 ? -0.38f : 0.38f;
                         Prop(holder, $"ExamDesk_{seat + 1}", ExamDeskPath,
                             desk.position + new Vector3(x, 0f, -0.10f), 0f, ExamDeskHeight);
+                    }
+
+                    if (i % 2 == 1)
+                    {
+                        // Столешница моноблока — на 0.72 от пола: коробка
+                        // блокаута и модель после подгонки сходятся высотой,
+                        // поэтому книги кладутся на число, а не на замер.
+                        // Модель выбирается по НОМЕРУ парты, а не по стороне
+                        // зала: разные стопки слева и справа разводят зеркальность
+                        // зала на пару сотен треугольников, и замер это ловит.
+                        // Зеркалятся и смещение, и разворот — левая колонна
+                        // обязана быть отражением правой, а не её вариацией.
+                        string stack = i % 4 == 1 ? BooksPath : BooksAltPath;
+                        float side = sideLetter == "L" ? -1f : 1f;
+                        if (Prop(holder, "Books", stack,
+                                desk.position + new Vector3(side * 0.34f, 0.72f, 0.06f),
+                                side * 18f, 0f) != null)
+                        {
+                            books++;
+                        }
                     }
 
                     dressed++;
@@ -684,7 +727,8 @@ namespace Igruha.EditorTools
 
             if (dressed > 0)
             {
-                Record("парты", $"{dressed} коробок, по два места в каждой", ExamDeskPath);
+                Record("парты", $"{dressed} коробок, по два места в каждой, стопок книг {books}",
+                    ExamDeskPath);
             }
         }
 
