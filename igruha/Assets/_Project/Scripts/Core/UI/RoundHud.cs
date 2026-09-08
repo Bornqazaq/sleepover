@@ -28,6 +28,17 @@ namespace Igruha.Core.UI
         [Tooltip("Кнопка «ещё раз» на экране результатов. Не назначена — кнопки просто нет, остальные сцены править не надо")]
         [SerializeField] private Button restartButton;
 
+        [Header("Итоги строками")]
+        [Tooltip("Готовые строки мест. Пусто — итоги показываются одним текстом, как раньше")]
+        [SerializeField] private ResultRow[] resultRows = Array.Empty<ResultRow>();
+
+        [Header("Оформление")]
+        [Tooltip("Появление цифры отсчёта. Не назначено — цифра просто меняется")]
+        [SerializeField] private UiPop countdownPop;
+
+        [Tooltip("С какой секунды таймер краснеет")]
+        [SerializeField] private float criticalSeconds = 10f;
+
         /// <summary>
         /// Игрок попросил переиграть. Кнопка — только намерение: перезапускать
         /// раунд HUD не вправе, это решение правил и в сетевой катке решение
@@ -109,6 +120,13 @@ namespace Igruha.Core.UI
             lastShownCountdown = seconds;
             countdownText.text = seconds > 0 ? seconds.ToString() : string.Empty;
             countdownText.gameObject.SetActive(seconds > 0);
+
+            // Толчок на каждой цифре: отсчёт, меняющийся без движения,
+            // не читается как отсчёт — глаз просто не ловит смену знака.
+            if (seconds > 0)
+            {
+                countdownPop?.Play();
+            }
         }
 
         public void HideCountdown()
@@ -180,15 +198,66 @@ namespace Igruha.Core.UI
             lastShownSeconds = seconds;
             int minutes = seconds / 60;
             timerText.text = $"{minutes}:{seconds % 60:00}";
+            timerText.color = seconds <= criticalSeconds ? UiSkin.Danger : UiSkin.TextPrimary;
         }
 
         public void ShowResults(MinigameResults results, IReadOnlyList<SessionPlayer> players)
         {
-            if (resultsPanel == null || resultsText == null)
+            if (resultsPanel == null)
             {
                 return;
             }
 
+            if (resultRows.Length > 0)
+            {
+                FillResultRows(results, players);
+            }
+            else if (resultsText != null)
+            {
+                resultsText.text = BuildResultsText(results, players);
+            }
+
+            resultsPanel.SetActive(true);
+
+            if (restartButton != null)
+            {
+                restartButton.gameObject.SetActive(restartAllowed);
+            }
+        }
+
+        /// <summary>
+        /// Разложить итоги по готовым строкам: кружок места, номер, имя.
+        /// Строк ровно столько, на сколько собрана карточка (восемь — потолок
+        /// лобби), лишние прячутся.
+        /// </summary>
+        private void FillResultRows(MinigameResults results, IReadOnlyList<SessionPlayer> players)
+        {
+            IReadOnlyList<MinigameResults.PlayerResult> entries = results.Entries;
+            int row = 0;
+
+            for (int place = 1; place <= entries.Count && row < resultRows.Length; place++)
+            {
+                for (int i = 0; i < entries.Count && row < resultRows.Length; i++)
+                {
+                    if (entries[i].Place != place)
+                    {
+                        continue;
+                    }
+
+                    resultRows[row]?.Set(place, FindName(players, entries[i].PlayerId));
+                    row++;
+                }
+            }
+
+            for (; row < resultRows.Length; row++)
+            {
+                resultRows[row]?.Clear();
+            }
+        }
+
+        /// <summary>Запасной вид итогов — одним текстом, для сцен без готовых строк.</summary>
+        private static string BuildResultsText(MinigameResults results, IReadOnlyList<SessionPlayer> players)
+        {
             var sb = new StringBuilder("Результаты раунда:\n");
             IReadOnlyList<MinigameResults.PlayerResult> entries = results.Entries;
             for (int place = 1; place <= entries.Count; place++)
@@ -200,18 +269,11 @@ namespace Igruha.Core.UI
                         continue;
                     }
 
-                    string playerName = FindName(players, entries[i].PlayerId);
-                    sb.AppendLine($"{place} место — {playerName}");
+                    sb.AppendLine($"{place} место — {FindName(players, entries[i].PlayerId)}");
                 }
             }
 
-            resultsText.text = sb.ToString();
-            resultsPanel.SetActive(true);
-
-            if (restartButton != null)
-            {
-                restartButton.gameObject.SetActive(restartAllowed);
-            }
+            return sb.ToString();
         }
 
         private static string FindName(IReadOnlyList<SessionPlayer> players, int playerId)

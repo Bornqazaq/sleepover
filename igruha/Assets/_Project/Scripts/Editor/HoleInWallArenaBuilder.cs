@@ -145,6 +145,10 @@ namespace Igruha.EditorTools
             // блокаута, до этого шага проходилось насквозь.
             PropColliders.Build(arena.gameObject);
 
+            // Оформление интерфейса — тем же прогоном: иначе пересборка арены
+            // вернула бы серые прямоугольники шаблона.
+            UiSkinPass.Apply();
+
             Debug.Log(
                 $"🧱 Арена «Дырки в стене» построена: {config.TrackCount} дорожек, " +
                 $"арена {config.ArenaWidth:F1}×{config.ArenaDepth:F1} м, путь стены {config.WallTravel:F1} м, " +

@@ -249,6 +249,10 @@ namespace Igruha.EditorTools
             // блокаута, до этого шага проходилось насквозь.
             PropColliders.Build(root);
 
+            // Оформление интерфейса — тем же прогоном: иначе пересборка арены
+            // вернула бы серые прямоугольники шаблона.
+            UiSkinPass.Apply();
+
             WireMinigameReferences(root);
 
             Debug.Log($"📚 Арена «Экзамена» построена: зал {config.HallWidth:F1}×{config.HallDepth:F1} м, " +

@@ -116,6 +116,10 @@ namespace Igruha.EditorTools
             // блокаута, до этого шага проходилось насквозь.
             PropColliders.Build(arenaRoot);
 
+            // Оформление интерфейса — тем же прогоном: иначе пересборка арены
+            // вернула бы серые прямоугольники шаблона.
+            UiSkinPass.Apply();
+
             EditorSceneManagerSetDirty();
             Debug.Log($"Арена пересобрана: радиус {radius:F2} ({radius / 0.72f:F0} ШП), укрытий {made} " +
                       $"(внутр. {inner} / средн. {middle} / внешн. {outer}), спавны на {radius * SpawnRingT:F2}, дальность луча {radius:F2}.");
