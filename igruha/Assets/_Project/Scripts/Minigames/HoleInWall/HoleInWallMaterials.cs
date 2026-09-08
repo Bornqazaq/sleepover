@@ -129,6 +129,40 @@ namespace Igruha.Minigames.HoleInWall
             SetEmission(material, Color.black, 0f);
         }
 
+        /// <summary>
+        /// Настроить готовый материал как поверхность с текстурой пака:
+        /// альбедо-атлас и, если он есть, карта свечения.
+        ///
+        /// <b>Единственное место в игре, где цвет назначает не палитра.</b>
+        /// Правило подфазы 4.2 — «цвет в кадре назначает палитра, а не атлас
+        /// пака» — писалось про реквизит: перекрашенная трибуна не спорит
+        /// с ареной, а неперекрашенная кричит ярмаркой посреди ночной студии.
+        /// С людьми оно даёт ровно обратное. Человек, залитый одним плоским
+        /// тоном, теряет лицо, волосы и одежду разом и читается манекеном —
+        /// на приёмке 08.09 это назвали «какие-то роботы». У зрителя цвет
+        /// и есть его лицо, поэтому здесь работает атлас.
+        /// </summary>
+        public static void ConfigureTextured(Material material, Texture albedo, Texture emission,
+            Color emissionTint, float emissionIntensity, float smoothness)
+        {
+            if (material == null)
+            {
+                return;
+            }
+
+            ConfigureOpaque(material, Color.white, smoothness, 0f);
+            material.SetTexture(BaseMapId, albedo);
+            material.mainTexture = albedo;
+
+            if (emission == null || emissionIntensity <= 0f)
+            {
+                return;
+            }
+
+            material.SetTexture(EmissionMapId, emission);
+            SetEmission(material, emissionTint, emissionIntensity);
+        }
+
         /// <summary>Настроить готовый материал как светящуюся поверхность палитры.</summary>
         public static void ConfigureEmissive(Material material, Color color, float intensity)
         {
@@ -212,5 +246,7 @@ namespace Igruha.Minigames.HoleInWall
         private static readonly int SmoothnessId = Shader.PropertyToID("_Smoothness");
         private static readonly int MetallicId = Shader.PropertyToID("_Metallic");
         private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
+        private static readonly int BaseMapId = Shader.PropertyToID("_BaseMap");
+        private static readonly int EmissionMapId = Shader.PropertyToID("_EmissionMap");
     }
 }

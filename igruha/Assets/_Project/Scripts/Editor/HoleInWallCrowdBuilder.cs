@@ -20,8 +20,8 @@ namespace Igruha.EditorTools
     /// <item><b>Их стало много.</b> Публика садится на <i>каждую</i> секцию
     /// трибуны, которую поставил <see cref="HoleInWallStands"/>, — а их теперь
     /// три пояса вместо одного.</item>
-    /// <item><b>Они разные.</b> Восемь персонажей пака в двух позах, пять
-    /// матовых тонов одежды, разброс роста и разворота — вместо одного
+    /// <item><b>Они разные.</b> Восемь персонажей пака в двух позах, три
+    /// цветовых атласа на выбор, разброс роста и разворота — вместо одного
     /// стального силуэта, повторённого сорок раз.</item>
     /// <item><b>Они живые.</b> Группа получает <see cref="HoleInWallCrowd"/>:
     /// зал качается на бите, прокатывает волну, замирает перед ударом стены
@@ -60,6 +60,42 @@ namespace Igruha.EditorTools
 
         private const string PackModels = "Assets/Synty/PolygonNightclubs/Models/";
         private const string BakedModels = "Assets/_Project/Art/HoleInWall/PolygonNightclubs/Models/";
+
+        private const string PackMaterials = "Assets/Synty/PolygonNightclubs/Materials/Alts/";
+        private const string BakedMaterials = "Assets/_Project/Art/HoleInWall/PolygonNightclubs/Materials/Alts/";
+
+        /// <summary>
+        /// Цветовые атласы зала: одна и та же развёртка в трёх раскрасках.
+        ///
+        /// ⚠️ <b>Только страница 01.</b> В паке есть ещё 02, 03 и 04, но это
+        /// <i>другие</i> страницы атласа, а не другие цвета той же: развёртка
+        /// персонажа указывает в 01, и любая другая страница даст на лице
+        /// кусок стены. Буквы A/B/C — как раз перекраски одной страницы,
+        /// и их брать можно.
+        /// </summary>
+        private static readonly string[] CrowdAtlases =
+        {
+            "PolygonNightclubs_01_A.mat",
+            "PolygonNightclubs_01_B.mat",
+            "PolygonNightclubs_01_C.mat"
+        };
+
+        /// <summary>Куда кладутся собранные материалы зала.</summary>
+        private const string SkinFolder = "Assets/_Project/Materials/HoleInWall";
+        private const string SkinPrefix = "HIW_CrowdSkin_";
+
+        /// <summary>Глянец кожи и ткани: матовее пластика платформы вчетверо.</summary>
+        private const float SkinSmoothness = 0.18f;
+
+        /// <summary>
+        /// Свечение неоновых пятен на одежде зала.
+        ///
+        /// Заметно тише неона палитры (3.0): у пака своя карта свечения на
+        /// вставках одежды, и на полной силе пять сотен зрителей превратились
+        /// бы в россыпь лампочек, съедающих bloom'ом контур выреза — а он
+        /// единственное, что обязано читаться с тридцати ширин.
+        /// </summary>
+        private const float SkinEmission = 0.45f;
 
         /// <summary>Восемь персонажей одним FBX — из них набирается зал.</summary>
         private const string CrowdModel = "Characters.fbx";
@@ -122,9 +158,19 @@ namespace Igruha.EditorTools
         private const float FlagLift = 2.1f;
         private const float FlagReach = 0.22f;
 
-        /// <summary>Насколько довернуть руку от позы привязки: вниз — почти до конца, вверх — сильнее.</summary>
+        /// <summary>
+        /// Насколько довернуть руку от позы привязки: вниз и вверх.
+        ///
+        /// ⚠️ <b>Вверх доворачивается сильнее, чем вниз, и это не опечатка.</b>
+        /// Поза привязки у персонажей пака — руки в стороны. Довернуть их вниз
+        /// на 0.82 хватает: рука уходит вдоль тела и читается спокойным
+        /// зрителем. Вверх на те же 0.55 не хватало вовсе — рука оставалась
+        /// почти горизонтальной, и половина зала читалась не болеющей,
+        /// а стоящей в T-позе. Ровно это назвали «роботами» на приёмке 08.09
+        /// вместе с плоской заливкой.
+        /// </summary>
         private const float ArmDownBlend = 0.82f;
-        private const float ArmUpBlend = 0.55f;
+        private const float ArmUpBlend = 0.88f;
 
         /// <summary>
         /// Рассадить зал по трибунам и оживить его.
@@ -148,6 +194,13 @@ namespace Igruha.EditorTools
                 return 0;
             }
 
+            Material[] skins = LoadCrowdSkins();
+            if (skins.Length == 0)
+            {
+                Debug.LogWarning("Атласов зала нет — трибуны останутся пустыми");
+                return 0;
+            }
+
             int seated = 0;
             for (int i = 0; i < stands.childCount; i++)
             {
@@ -163,7 +216,7 @@ namespace Igruha.EditorTools
                 }
 
                 bool amphi = bench.name.StartsWith(AmphiPrefix, System.StringComparison.Ordinal);
-                seated += SeatBench(group, kinds, bounds, amphi, i, rng);
+                seated += SeatBench(group, kinds, skins, bounds, amphi, i, rng);
             }
 
             Wire(group, kinds);
@@ -179,8 +232,8 @@ namespace Igruha.EditorTools
         /// поперёк и вытянут по X. Одна и та же рассадка обслуживает оба
         /// только потому, что спрашивает у габарита, куда секция длиннее.
         /// </summary>
-        private static int SeatBench(Transform group, Mesh[] kinds, Bounds bounds, bool amphi, int bench,
-            System.Random rng)
+        private static int SeatBench(Transform group, Mesh[] kinds, Material[] skins, Bounds bounds, bool amphi,
+            int bench, System.Random rng)
         {
             bool alongZ = bounds.size.z >= bounds.size.x;
             int rows = amphi ? AmphiRows : BeltRows;
@@ -214,7 +267,7 @@ namespace Igruha.EditorTools
                         ? Mathf.Lerp(bounds.min.z, bounds.max.z, along) + Jitter(rng, 0.14f)
                         : bounds.center.z + faceZ * reach;
 
-                    SpawnFan(group, kinds, new Vector3(x, y, z), yaw + Jitter(rng, FanYawJitter),
+                    SpawnFan(group, kinds, skins, new Vector3(x, y, z), yaw + Jitter(rng, FanYawJitter),
                         bench, row * seats + seat, rng);
                     placed++;
                 }
@@ -231,8 +284,8 @@ namespace Igruha.EditorTools
         /// позу того же персонажа по надетой, и зал, поставленный целиком
         /// в одной позе, оживал бы ровно так же.
         /// </summary>
-        private static void SpawnFan(Transform parent, Mesh[] kinds, Vector3 at, float yaw, int bench, int seat,
-            System.Random rng)
+        private static void SpawnFan(Transform parent, Mesh[] kinds, Material[] skins, Vector3 at, float yaw,
+            int bench, int seat, System.Random rng)
         {
             var fan = new GameObject($"Fan_{bench}_{seat}");
             fan.transform.SetParent(parent, false);
@@ -241,8 +294,7 @@ namespace Igruha.EditorTools
             fan.transform.localScale = Vector3.one * Mathf.Lerp(FanScaleMin, FanScaleMax, (float)rng.NextDouble());
 
             fan.AddComponent<MeshFilter>().sharedMesh = kinds[rng.Next(kinds.Length)];
-            fan.AddComponent<MeshRenderer>().sharedMaterial =
-                HoleInWallPaletteAssets.Get(HoleInWallPaletteAssets.CrowdWearTone(rng.Next(64)));
+            fan.AddComponent<MeshRenderer>().sharedMaterial = skins[rng.Next(skins.Length)];
 
             double roll = rng.NextDouble();
             if (roll < PhoneShare)
@@ -310,6 +362,107 @@ namespace Igruha.EditorTools
 
             so.ApplyModifiedPropertiesWithoutUndo();
         }
+
+        // ========== ОДЕЖДА ==========
+
+        /// <summary>
+        /// Материалы зала: три перекраски атласа персонажей пака, переложенные
+        /// на URP Lit.
+        ///
+        /// <b>Почему не палитра.</b> Всё остальное в этой сцене красится
+        /// тоном палитры, и это правило подфазы 4.2: перекрашенный реквизит
+        /// не спорит с ареной. С людьми оно даёт обратное — залитый плоским
+        /// тоном человек теряет лицо, волосы и одежду разом. Первый прогон
+        /// зала 08.09 так и приняли: «какие-то роботы, странно выглядит».
+        /// Разбор — в шапке <see cref="HoleInWallMaterials.ConfigureTextured"/>.
+        ///
+        /// <b>Почему не материал пака как есть.</b> Он на своём шейдере
+        /// <c>Synty/Generic_Basic</c>, а вся сцена — на URP Lit: чужой шейдер
+        /// иначе отвечает на студийный свет и тонмаппинг, и зал засветился бы
+        /// ровно там, где остальное темнеет. Берётся только текстура; глянец
+        /// и свечение задаём сами.
+        ///
+        /// <b>Три материала на пять сотен зрителей, а не пятьсот.</b> Меш
+        /// у зрителя один из шестнадцати, материал — один из трёх: пакетная
+        /// отрисовка складывает их в полсотни вызовов вместо пяти сотен.
+        /// </summary>
+        private static Material[] LoadCrowdSkins()
+        {
+            var skins = new List<Material>(CrowdAtlases.Length);
+
+            for (int i = 0; i < CrowdAtlases.Length; i++)
+            {
+                var source = AssetDatabase.LoadAssetAtPath<Material>(MaterialPath(CrowdAtlases[i]));
+                if (source == null)
+                {
+                    continue;
+                }
+
+                string letter = System.IO.Path.GetFileNameWithoutExtension(CrowdAtlases[i]);
+                letter = letter.Substring(letter.Length - 1);
+                Material skin = EnsureSkin(SkinFolder + "/" + SkinPrefix + letter + ".mat", source);
+                if (skin != null)
+                {
+                    skins.Add(skin);
+                }
+            }
+
+            if (skins.Count == 0)
+            {
+                Debug.LogWarning($"Атласов зала нет ни в паке, ни в запечённом арте ({PackMaterials})");
+            }
+
+            return skins.ToArray();
+        }
+
+        /// <summary>
+        /// Завести или обновить один материал зала по материалу пака.
+        ///
+        /// Текстуры берутся <b>у самого материала пака</b>, а не по
+        /// зашитому пути: после запекания 4.6 материал живёт уже в
+        /// <c>Art/HoleInWall</c> и указывает на перенесённые копии текстур —
+        /// путь, зашитый в код, вернул бы ссылку на пак с первой же
+        /// пересборки.
+        /// </summary>
+        private static Material EnsureSkin(string path, Material source)
+        {
+            var skin = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (skin == null)
+            {
+                Shader shader = Shader.Find(LitShaderName);
+                if (shader == null)
+                {
+                    Debug.LogError($"Шейдера «{LitShaderName}» нет в проекте — зал одеть не во что");
+                    return null;
+                }
+
+                skin = new Material(shader) { name = System.IO.Path.GetFileNameWithoutExtension(path) };
+                AssetDatabase.CreateAsset(skin, path);
+            }
+
+            HoleInWallMaterials.ConfigureTextured(skin,
+                Texture(source, AlbedoProperty), Texture(source, EmissionProperty),
+                Color.white, SkinEmission, SkinSmoothness);
+
+            EditorUtility.SetDirty(skin);
+            return skin;
+        }
+
+        private static Texture Texture(Material source, string property) =>
+            source.HasProperty(property) ? source.GetTexture(property) : null;
+
+        /// <summary>Путь к материалу пака: сначала перенесённая копия, потом сам пак.</summary>
+        private static string MaterialPath(string fileName)
+        {
+            string baked = BakedMaterials + fileName;
+            return AssetDatabase.LoadAssetAtPath<Material>(baked) != null ? baked : PackMaterials + fileName;
+        }
+
+        private const string LitShaderName = "Universal Render Pipeline/Lit";
+
+        /// <summary>Как называются карты у шейдера пака. У URP Lit имена другие — их знает HoleInWallMaterials.</summary>
+        private const string AlbedoProperty = "_Albedo_Map";
+        private const string EmissionProperty = "_Emission_Map";
 
         // ========== ЗАПЕКАНИЕ ПОЗ ==========
 
