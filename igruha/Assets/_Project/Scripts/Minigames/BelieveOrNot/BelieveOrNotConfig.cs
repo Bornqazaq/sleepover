@@ -52,11 +52,23 @@ namespace Igruha.Minigames.BelieveOrNot
         [SerializeField] private float matchTimeoutSeconds = 360f;
 
         [Header("Арена, в ширинах персонажа (1 ШП = 0.72 м)")]
+        //
+        // ⚠️ Зал ужат 08.09 по замечанию геймдизайнера. Было 34 × 34 ШП
+        // (24.48 × 24.48 м) при потолке 7 ШП — 600 м² на восьмерых вокруг
+        // стола диаметром 2.88 м. От кромки стола до стены оставалось
+        // одиннадцать метров, из которых девять были ровным пустым полом:
+        // зал читался не салоном, а спортзалом, в углу которого зачем-то
+        // накрыт карточный стол, и стол на этом фоне казался игрушечным.
+        //
+        // Стало 24 × 24 ШП (17.28 × 17.28 м), 299 м² — ровно вдвое меньше.
+        // Свободная зона зрителей ужата с 10 до 7.5 ШП вслед за залом: она
+        // и определяет, где начинается кольцо мебели, а не наоборот.
         [SerializeField] private float unitsPerWidth = 0.72f;
-        [Tooltip("34, а не 30: при 30 зона зрителей упирается в стену и камере не хватает 4.5 м позади")]
-        [SerializeField] private float hallWidth = 34f;
-        [SerializeField] private float hallDepth = 34f;
-        [SerializeField] private float ceilingHeight = 7f;
+        [Tooltip("24 = свободная зона 7.5 ШП вокруг стола + кольцо мебели 4.2 ШП до стены")]
+        [SerializeField] private float hallWidth = 24f;
+        [SerializeField] private float hallDepth = 24f;
+        [Tooltip("6 ШП = 4.32 м. На 7 потолок терялся в темноте и зал не имел верха вовсе")]
+        [SerializeField] private float ceilingHeight = 6f;
         [SerializeField] private float tableDiameter = 4f;
         [Tooltip("Высота столешницы над полом")]
         [SerializeField] private float tableHeight = 1f;
@@ -66,8 +78,10 @@ namespace Igruha.Minigames.BelieveOrNot
                  "Меньше стола, чтобы не задевать сидящих. Держит тело, пропускает камеру — слой Ignore Raycast")]
         [SerializeField] private float barrierRadius = 1.6f;
         [SerializeField] private float barrierHeight = 1.5f;
-        [Tooltip("Свободная зона зрителей: радиус от центра стола, внутри него ничего не стоит")]
-        [SerializeField] private float spectatorZoneRadius = 10f;
+        [Tooltip("Свободная зона зрителей: радиус от центра стола, внутри него ничего не стоит. " +
+                 "7.5 ШП = 5.4 м: шестеро зрителей бегают вокруг стола на 92 м² — тесно ровно " +
+                 "настолько, чтобы толкаться, и достаточно, чтобы не залипать друг в друге")]
+        [SerializeField] private float spectatorZoneRadius = 7.5f;
         [Tooltip("Радиус окружности стартовых точек")]
         [SerializeField] private float spawnRingRadius = 6f;
         [SerializeField] private float boxSize = 0.8f;
@@ -108,8 +122,10 @@ namespace Igruha.Minigames.BelieveOrNot
         [SerializeField] private Color lampColor = new Color(1f, 0.85f, 0.65f);
         [Tooltip("Общий свет зала. Тёмный — темнота здесь механика фокуса, а не украшение, — " +
                  "но не чёрный: на 0.02 зритель за пределами круга лампы не видел ни пола, " +
-                 "ни соседей и терял стол из виду вовсе")]
-        [SerializeField] private Color ambientColor = new Color(0.07f, 0.07f, 0.09f);
+                 "ни соседей и терял стол из виду вовсе. Поднят с 0.07 до 0.10 вместе " +
+                 "с ужатием зала: кольцо мебели подошло к столу вплотную и обязано " +
+                 "читаться, а не тонуть — стол под лампой всё равно вшестеро ярче")]
+        [SerializeField] private Color ambientColor = new Color(0.1f, 0.098f, 0.115f);
 
         public float SeatingSeconds => seatingSeconds;
         public float PeekSeconds => peekSeconds;
