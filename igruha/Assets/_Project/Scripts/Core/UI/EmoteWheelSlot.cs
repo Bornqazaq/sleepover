@@ -20,6 +20,12 @@ namespace Igruha.Core.UI
         [Tooltip("Сектор без клипа: у персонажа эта эмоция ещё не завезена")]
         [SerializeField] private Color emptyColor = new Color(0.09f, 0.09f, 0.12f, 0.35f);
 
+        [Tooltip("Подпись на обычном секторе")]
+        [SerializeField] private Color idleLabelColor = Color.white;
+
+        [Tooltip("Подпись на подсвеченном секторе: он светлый, и белая надпись на нём пропадает")]
+        [SerializeField] private Color hoveredLabelColor = new Color(0.07f, 0.06f, 0.03f, 1f);
+
         private bool isAvailable;
 
         /// <summary>Заполнить сектор: пустое имя — эмоции нет, сектор гаснет.</summary>
@@ -38,12 +44,20 @@ namespace Igruha.Core.UI
 
         public void SetHovered(bool hovered)
         {
-            if (background == null)
+            if (background != null)
             {
-                return;
+                background.color = !isAvailable ? emptyColor : hovered ? hoveredColor : idleColor;
             }
 
-            background.color = !isAvailable ? emptyColor : hovered ? hoveredColor : idleColor;
+            if (label != null)
+            {
+                Color color = isAvailable && hovered ? hoveredLabelColor : idleLabelColor;
+
+                // Прозрачность держит Bind: у пустого сектора подпись
+                // приглушена, и цвет не имеет права её вернуть.
+                color.a = isAvailable ? 1f : 0.4f;
+                label.color = color;
+            }
         }
     }
 }

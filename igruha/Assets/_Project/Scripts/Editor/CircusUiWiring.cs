@@ -58,10 +58,11 @@ namespace Igruha.EditorTools
         private const string LastCircleName = "LastCircleLabel";
 
         /// <summary>
-        /// Экраны, которые обязаны рисоваться поверх игрового интерфейса.
-        /// Порядок в массиве и есть порядок отрисовки: последний — самый верхний.
+        /// Слой модальных экранов раунда — правила, итоги, отсчёт. Собирает его
+        /// <c>HudSkin</c>, и лежат они внутри него, а не поодиночке на канвасе:
+        /// раньше здесь поднимались три панели по именам.
         /// </summary>
-        private static readonly string[] ModalPanels = { "SpectatorPanel", "ResultsPanel", "TutorialPanel" };
+        private const string ModalRoot = "_HudOverlay";
 
         [MenuItem("Igruha/Цирк/Перевязать интерфейс")]
         private static void RewireMenu()
@@ -267,25 +268,18 @@ namespace Igruha.EditorTools
                 return 0;
             }
 
-            int moved = 0;
-            for (int i = 0; i < ModalPanels.Length; i++)
+            Transform modals = canvas.Find(ModalRoot);
+            if (modals == null || modals.GetSiblingIndex() == canvas.childCount - 1)
             {
-                Transform panel = canvas.Find(ModalPanels[i]);
-                if (panel == null || panel.GetSiblingIndex() == canvas.childCount - 1)
-                {
-                    continue;
-                }
-
-                panel.SetAsLastSibling();
-                moved++;
+                return 0;
             }
 
-            if (moved > 0)
-            {
-                Debug.Log($"CircusUiWiring: модальные экраны подняты над игровым интерфейсом — {moved} шт.");
-            }
-
-            return moved;
+            // Подсказки «Порядка банок» создаются этим же прогоном и встают
+            // последними — то есть поверх правил и итогов. Слой модальных
+            // экранов поднимается обратно.
+            modals.SetAsLastSibling();
+            Debug.Log("CircusUiWiring: слой модальных экранов поднят над игровым интерфейсом.");
+            return 1;
         }
 
         /// <summary>
