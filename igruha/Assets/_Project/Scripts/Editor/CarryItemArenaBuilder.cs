@@ -239,6 +239,10 @@ namespace Igruha.EditorTools
             PropColliders.Build(arena);
             PropColliders.Build(traps);
 
+            // Оформление интерфейса — тем же прогоном: иначе пересборка арены
+            // вернула бы серые прямоугольники шаблона.
+            UiSkinPass.Apply();
+
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
         }
 

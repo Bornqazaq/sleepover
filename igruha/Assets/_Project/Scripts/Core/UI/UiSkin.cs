@@ -25,6 +25,9 @@ namespace Igruha.Core.UI
         /// <summary>Плашка поверх карточки: капсула таймера, клавиша, строка статуса.</summary>
         public static readonly Color Plate = new Color(1f, 1f, 1f, 0.07f);
 
+        /// <summary>Поле ввода: темнее подложки, чтобы читалось как «сюда печатают».</summary>
+        public static readonly Color Field = new Color(0.03f, 0.035f, 0.05f, 0.9f);
+
         /// <summary>Плашка на фоне сцены, а не карточки: ей нужна собственная плотность.</summary>
         public static readonly Color PlateOnScene = new Color(0.055f, 0.063f, 0.086f, 0.86f);
 

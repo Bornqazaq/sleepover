@@ -557,6 +557,10 @@ namespace Igruha.EditorTools
             // блокаута, до этого шага проходилось насквозь.
             PropColliders.Build(arenaRoot);
 
+            // Оформление интерфейса — тем же прогоном: иначе пересборка арены
+            // вернула бы серые прямоугольники шаблона.
+            UiSkinPass.Apply();
+
             MarkSceneDirty();
             ReportResult();
         }
