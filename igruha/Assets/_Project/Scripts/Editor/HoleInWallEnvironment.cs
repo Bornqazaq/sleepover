@@ -7,6 +7,7 @@ using Igruha.Minigames.HoleInWall;
 using Entry = Igruha.EditorTools.DressKit.Entry;
 using Fit = Igruha.EditorTools.DressKit.Fit;
 using Tone = Igruha.EditorTools.HoleInWallPaletteAssets.Tone;
+using static Igruha.EditorTools.HoleInWallProps;
 
 namespace Igruha.EditorTools
 {
@@ -144,22 +145,11 @@ namespace Igruha.EditorTools
         // ========== МОДЕЛИ ПАКОВ ==========
 
         private const string Nightclubs = "Assets/Synty/PolygonNightclubs/Prefabs/Props/";
-        private const string Carnival = "Assets/Synty/PolygonHorrorCarnival/Prefabs/Props/";
-        private const string Shops = "Assets/Synty/PolygonShops/Prefabs/Props/";
 
         /// <summary>Секция фермы: из неё набираются и потолочные фермы, и ферма табло.</summary>
         private static readonly Entry Truss = new Entry(Nightclubs + "Modular/SM_Prop_Stage_Frame_01.prefab", Fit.Wall);
 
         private const string SpotBarPrefab = Nightclubs + "SM_Prop_Light_Spotlight_01.prefab";
-        private const string BleacherPrefab = Carnival + "SM_Prop_Bleachers_Straight_01.prefab";
-        private const string TripodPrefab = Shops + "SM_Prop_Computer_Camera_Tripod_01.prefab";
-        private const string CameraPrefab = Shops + "SM_Prop_Computer_Camera_DSLR_01.prefab";
-
-        /// <summary>Сколько секций трибуны стоит вдоль каждой длинной стороны арены.</summary>
-        private const int BleacherCount = 6;
-
-        /// <summary>Верх подиума трибуны над полом платформы, ШП.</summary>
-        private const float StandDeckWidths = 1.2f;
 
         /// <summary>Тёмное небо студии: источник отражений, а не вид.</summary>
         private const string SkyAsset = "Assets/_Project/Materials/HoleInWall/HIW_StudioSky.mat";
@@ -186,11 +176,18 @@ namespace Igruha.EditorTools
             BuildShell(studio, config);
             BuildRigging(studio, config, rng);
             BuildScreens(studio, config);
-            BuildStands(studio, config);
+            HoleInWallStands.Build(studio, config);
             BuildScoreboards(studio, config, tracks, rng);
 
             TuneLighting(config, studio);
             TunePostProcessing();
+
+            // Декор — последним и отсюда, а не из построителя арены: ему нужны
+            // уже стоящие трибуны (по ним садится публика) и уже настроенные
+            // прожекторы (под ними встают шахты света). До 08.09 его отсюда не
+            // звали вовсе, хотя шапка декора это обещала, — и всякая честная
+            // пересборка арены молча теряла публику, шахты и закулисье.
+            HoleInWallDecor.Build(studio, config);
         }
 
         // ========== КОРОБКА ПАВИЛЬОНА ==========
@@ -393,101 +390,6 @@ namespace Igruha.EditorTools
                 new Vector3(-halfWidth, neonY, centreZ), pink);
             Slab(neon, "Rim_Right", new Vector3(NeonBand, NeonThickness, config.ArenaDepth),
                 new Vector3(halfWidth, neonY, centreZ), pink);
-        }
-
-        // ========== ТРИБУНА И ТЕЛЕКАМЕРЫ ==========
-
-        /// <summary>
-        /// Трибуна вдоль длинных сторон и телекамеры на штативах.
-        ///
-        /// Ставятся поштучно, а не рядом копий через <see cref="DressKit"/>:
-        /// ряд разворачивает копии через одну на пол-оборота — для бортика и
-        /// настила это спасение от «забора из клонов», а для трибуны и камеры
-        /// это половина предметов, повёрнутых спиной к арене.
-        /// </summary>
-        private static void BuildStands(Transform parent, HoleInWallConfig config)
-        {
-            Transform stands = Group(parent, "Stands");
-
-            float unit = config.UnitsPerWidth;
-            float floorY = RimTopY(config) - 0.02f;
-            float halfWidth = config.ArenaWidth * 0.5f;
-
-            // Трибуна стоит на подиуме, а не прямо на полу студии: вровень
-            // с полом её закрывал бы светодиодный борт, который проходит по
-            // кромке бассейна ровно между ней и ареной. Подиум поднимает
-            // зрителя над бортом — так, как это и устроено в настоящем зале.
-            float standX = halfWidth + 4.5f * unit;
-            float step = config.ArenaDepth / (BleacherCount + 1);
-            float deckTop = config.PlatformSurfaceY + StandDeckWidths * unit;
-            float deckDepth = config.ArenaDepth;
-            float deckWidth = 6f * unit;
-
-            Material rim = HoleInWallPaletteAssets.Get(Tone.PoolRim);
-            Material led = HoleInWallPaletteAssets.Get(Tone.Led);
-            float deckCentreZ = (config.ArenaFarZ + config.ArenaNearZ) * 0.5f;
-
-            for (int side = 0; side < 2; side++)
-            {
-                float sign = side == 0 ? -1f : 1f;
-                float x = sign * standX;
-
-                Slab(stands, $"Deck_{side}", new Vector3(deckWidth, deckTop - floorY, deckDepth),
-                    new Vector3(x, (deckTop + floorY) * 0.5f, deckCentreZ), rim);
-
-                // Светящаяся кромка подиума: без неё трибуна остаётся чёрным
-                // пятном на чёрной стене и в кадре её попросту нет.
-                Slab(stands, $"DeckEdge_{side}", new Vector3(0.14f, 0.12f, deckDepth),
-                    new Vector3(x - sign * (deckWidth * 0.5f - 0.07f), deckTop + 0.06f, deckCentreZ), led);
-            }
-
-            // Трибуна красится тоном бортика, а не тёмным тоном студии:
-            // тем же цветом она слилась бы со стеной павильона в одно пятно,
-            // а зритель за ареной — часть кадра.
-            for (int i = 0; i < BleacherCount; i++)
-            {
-                float z = config.ArenaNearZ + step * (i + 1);
-                SeatProp(stands, $"Bleacher_L_{i}", BleacherPrefab, new Vector3(-standX, deckTop, z), 90f, Tone.PoolRim);
-                SeatProp(stands, $"Bleacher_R_{i}", BleacherPrefab, new Vector3(standX, deckTop, z), -90f, Tone.PoolRim);
-            }
-
-            // Телекамеры: две по бокам напротив платформ и две за дальним
-            // бортом, лицом на игроков. Дальние стоят прямо в кадре, боковые
-            // ловят арену, когда камера обходит игрока по орбите.
-            // Боковые стоят на переднем крае подиума, перед трибуной: дальше
-            // подиум кончается, и камера повисла бы над полом студии — замеры
-            // это и поймали.
-            float sideX = standX - deckWidth * 0.5f + 0.9f;
-            float sideZ = config.CheckLineZ - 1.2f;
-            float backZ = config.ArenaFarZ + 6f * unit;
-
-            SeatCamera(stands, "TvCam_L", new Vector3(-sideX, deckTop, sideZ), 90f);
-            SeatCamera(stands, "TvCam_R", new Vector3(sideX, deckTop, sideZ), -90f);
-            SeatCamera(stands, "TvCam_FarL", new Vector3(-config.TrackPitch * 0.5f, floorY, backZ), 180f);
-            SeatCamera(stands, "TvCam_FarR", new Vector3(config.TrackPitch * 0.5f, floorY, backZ), 180f);
-        }
-
-        /// <summary>
-        /// Телекамера — штатив плюс камера на его верхней грани по замеру.
-        ///
-        /// Обе части лежат под общим узлом, и это не про порядок в иерархии:
-        /// замеры проверяют, что предмет на площадке стоит на полу, а камера
-        /// стоит на штативе. Отдельным предметом она честно числилась бы
-        /// висящей в воздухе — и замер, который срабатывает на правильном,
-        /// перестают читать.
-        /// </summary>
-        private static void SeatCamera(Transform parent, string cameraName, Vector3 ground, float yaw)
-        {
-            Transform mount = Group(parent, cameraName);
-
-            GameObject tripod = SeatProp(mount, cameraName + "_Tripod", TripodPrefab, ground, yaw, Tone.Metal);
-            if (tripod == null || !TryWorldBounds(tripod, out Bounds bounds))
-            {
-                return;
-            }
-
-            SeatProp(mount, cameraName + "_Body", CameraPrefab,
-                new Vector3(ground.x, bounds.max.y, ground.z), yaw, Tone.Stage);
         }
 
         // ========== ТАБЛО ==========
@@ -910,17 +812,6 @@ namespace Igruha.EditorTools
             return sky;
         }
 
-        /// <summary>Верх бортика бассейна: по нему выложен пол студии.</summary>
-        private static float RimTopY(HoleInWallConfig config) =>
-            config.PoolBottomY + config.PoolDepth + HoleInWallArenaBuilder.PoolRimHeight;
-
-        private static Transform Group(Transform parent, string groupName)
-        {
-            var group = new GameObject(groupName).transform;
-            group.SetParent(parent, false);
-            return group;
-        }
-
         /// <summary>
         /// Группа света студии под <c>_Lighting</c>. Сносится и заводится
         /// заново каждой пересборкой: свет — такая же часть арта, и оставшийся
@@ -942,148 +833,5 @@ namespace Igruha.EditorTools
             return Group(lightingRoot.transform, LightingGroup);
         }
 
-        /// <summary>
-        /// Плита окружения: без коллайдера, на <c>Default</c> и без отброса
-        /// теней. Все три свойства обязательны, и ни одно из них не косметика —
-        /// разбор в шапке файла.
-        /// </summary>
-        private static GameObject Slab(Transform parent, string slabName, Vector3 size, Vector3 centre,
-            Material material)
-        {
-            GameObject go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            go.name = slabName;
-            go.transform.SetParent(parent, false);
-            go.transform.position = centre;
-            go.transform.localScale = size;
-
-            Object.DestroyImmediate(go.GetComponent<Collider>());
-            go.GetComponent<Renderer>().sharedMaterial = material;
-            MarkAsScenery(go);
-            return go;
-        }
-
-        /// <summary>Плита окружения, одетая моделью пака через общий <see cref="DressKit"/>.</summary>
-        private static void DressedSlab(Transform parent, string slabName, Vector3 size, Vector3 centre,
-            Tone paint, Entry entry, System.Random rng)
-        {
-            GameObject box = Slab(parent, slabName, size, centre, HoleInWallPaletteAssets.Get(paint));
-            GameObject dress = DressKit.Apply(box, new[] { entry }, rng, HoleInWallPaletteAssets.Get(paint));
-            if (dress != null)
-            {
-                MarkAsScenery(dress);
-            }
-        }
-
-        /// <summary>Предмет, подвешенный за свою точку крепления: софит на ферме.</summary>
-        private static GameObject HangProp(Transform parent, string propName, string prefabPath, Vector3 position,
-            float yaw, Tone paint)
-        {
-            GameObject go = SpawnProp(parent, propName, prefabPath, yaw, paint);
-            if (go != null)
-            {
-                go.transform.position = position;
-            }
-
-            return go;
-        }
-
-        /// <summary>
-        /// Предмет, поставленный на пол: нижняя грань его габарита садится
-        /// ровно на заданную высоту, центр — в заданную точку по горизонтали.
-        /// Замером, а не отступом на глаз: у моделей паков опорная точка стоит
-        /// то в центре, то в основании, и предмет, поставленный по опорной
-        /// точке, у половины моделей повисает в воздухе.
-        /// </summary>
-        private static GameObject SeatProp(Transform parent, string propName, string prefabPath, Vector3 ground,
-            float yaw, Tone paint)
-        {
-            GameObject go = SpawnProp(parent, propName, prefabPath, yaw, paint);
-            if (go == null || !TryWorldBounds(go, out Bounds bounds))
-            {
-                return go;
-            }
-
-            Vector3 shift = new Vector3(ground.x - bounds.center.x, ground.y - bounds.min.y, ground.z - bounds.center.z);
-            go.transform.position += shift;
-            return go;
-        }
-
-        /// <summary>
-        /// Поставить модель пака и перекрасить её тоном палитры.
-        ///
-        /// Перекраска здесь не украшательство: трибуна приезжает из «Карнавала»
-        /// в ярмарочной раскраске, штатив из «Магазинов» — в своей, и в тёмной
-        /// студии каждый такой предмет кричал бы громче арены. Правило то же,
-        /// что у дресса на 4.2: цвет в кадре назначает палитра, а не атлас
-        /// пака, из которого предмет приехал.
-        /// </summary>
-        private static GameObject SpawnProp(Transform parent, string propName, string prefabPath, float yaw,
-            Tone paint)
-        {
-            if (!DressKit.TryLoad(prefabPath, out GameObject prefab))
-            {
-                return null;
-            }
-
-            var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
-            go.name = propName;
-            go.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
-            MarkAsScenery(go);
-            DressKit.Repaint(go, HoleInWallPaletteAssets.Get(paint));
-            return go;
-        }
-
-        /// <summary>Габарит предмета по его рендерерам, в мировых координатах.</summary>
-        private static bool TryWorldBounds(GameObject go, out Bounds bounds)
-        {
-            bounds = new Bounds();
-            var renderers = go.GetComponentsInChildren<Renderer>(true);
-            if (renderers.Length == 0)
-            {
-                return false;
-            }
-
-            bounds = renderers[0].bounds;
-            for (int i = 1; i < renderers.Length; i++)
-            {
-                bounds.Encapsulate(renderers[i].bounds);
-            }
-
-            return true;
-        }
-
-        /// <summary>
-        /// Пометить предмет декорацией: снять коллайдеры, увести на
-        /// <c>Default</c>, погасить отброс теней и включить пакетную отрисовку.
-        /// </summary>
-        private static void MarkAsScenery(GameObject go)
-        {
-            var colliders = go.GetComponentsInChildren<Collider>(true);
-            for (int i = 0; i < colliders.Length; i++)
-            {
-                Object.DestroyImmediate(colliders[i], true);
-            }
-
-            var renderers = go.GetComponentsInChildren<Renderer>(true);
-            for (int i = 0; i < renderers.Length; i++)
-            {
-                renderers[i].shadowCastingMode = ShadowCastingMode.Off;
-            }
-
-            int layer = LayerMask.NameToLayer("Default");
-            SetLayer(go, layer);
-
-            GameObjectUtility.SetStaticEditorFlags(go,
-                StaticEditorFlags.BatchingStatic | StaticEditorFlags.OccludeeStatic);
-        }
-
-        private static void SetLayer(GameObject go, int layer)
-        {
-            go.layer = layer;
-            foreach (Transform child in go.transform)
-            {
-                SetLayer(child.gameObject, layer);
-            }
-        }
     }
 }

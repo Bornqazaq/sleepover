@@ -2,6 +2,7 @@ using UnityEditor;
 using UnityEngine;
 using Igruha.Minigames.HoleInWall;
 using Tone = Igruha.EditorTools.HoleInWallPaletteAssets.Tone;
+using static Igruha.EditorTools.HoleInWallProps;
 
 namespace Igruha.EditorTools
 {
@@ -58,7 +59,6 @@ namespace Igruha.EditorTools
         private const string BakedModels = "Assets/_Project/Art/HoleInWall/PolygonNightclubs/Models/";
 
         /// <summary>Восемь персонажей одним FBX — из них набирается зал.</summary>
-        private const string CrowdModel = "Characters.fbx";
         private const string SpeakerModel = "SM_Prop_Speaker_Large_01.fbx";
         private const string SpeakerTallModel = "SM_Prop_Speaker_Large_02.fbx";
         private const string ScreenModel = "SM_Prop_Screen_01.fbx";
@@ -89,39 +89,6 @@ namespace Igruha.EditorTools
             "Assets/_Project/Art/HoleInWall/PolygonShops/Models/SM_Prop_Computer_Camera_DSLR_01.fbx";
         private const string CameraTripodPath =
             "Assets/_Project/Art/HoleInWall/PolygonShops/Models/SM_Prop_Computer_Camera_Tripod_01.fbx";
-
-        // ========== ПУБЛИКА ==========
-
-        /// <summary>Сколько зрителей на одной секции трибуны.</summary>
-        private const int CrowdPerBleacher = 5;
-
-        /// <summary>Рост зрителя, м. Ниже игрока: публика не должна читаться как участник.</summary>
-        private const float CrowdHeightMin = 0.95f;
-        private const float CrowdHeightMax = 1.35f;
-
-        /// <summary>Толщина зрителя, м.</summary>
-        private const float CrowdWidth = 0.42f;
-
-        /// <summary>Доля зрителей, подсвеченных «телефоном». Живой зал снимает на телефоны.</summary>
-        private const float CrowdPhoneShare = 0.40f;
-
-        /// <summary>Размер огонька телефона, м.</summary>
-        private const float PhoneSize = 0.12f;
-
-        /// <summary>На сколько огонёк вынесен к арене и поднят над сиденьем, м.</summary>
-        private const float PhoneReach = 0.35f;
-        private const float PhoneHeight = 1.25f;
-
-        /// <summary>Путь к запечённым в позе мешам зала.</summary>
-        private const string CrowdMeshPath = "Assets/_Project/Art/HoleInWall/HIW_Crowd.asset";
-
-        /// <summary>Насколько довернуть руку от позы привязки: вниз — почти до конца, вверх — сильнее.</summary>
-        private const float ArmDownBlend = 0.82f;
-        private const float ArmUpBlend = 0.55f;
-
-        /// <summary>Разброс роста зрителя множителем к модели пака.</summary>
-        private const float FanScaleMin = 0.92f;
-        private const float FanScaleMax = 1.06f;
 
         // ========== ШАХТЫ СВЕТА ==========
 
@@ -200,298 +167,15 @@ namespace Igruha.EditorTools
             // разработчиков и в раздатке, иначе «у меня по-другому стоит».
             var rng = new System.Random(486);
 
-            BuildCrowd(decor, studio, rng);
+            HoleInWallCrowdBuilder.Build(decor, studio, rng);
             BuildLightShafts(decor, config);
             BuildBroadcast(decor, config);
             BuildBackstage(decor, config, rng);
+            HoleInWallShow.Build(decor, config, rng);
 
             Strip(decor);
             return decor.GetComponentsInChildren<Renderer>(true).Length;
         }
-
-        // ========== ПУБЛИКА ==========
-
-        /// <summary>
-        /// Зрители на секциях трибуны. Позиции берутся у самих секций, а не
-        /// считаются заново: трибуны строит <see cref="HoleInWallEnvironment"/>,
-        /// и второй расчёт разъехался бы с ними при первой же правке.
-        /// </summary>
-        private static void BuildCrowd(Transform parent, Transform studio, System.Random rng)
-        {
-            Transform stands = studio.Find("Stands");
-            if (stands == null)
-            {
-                Debug.LogWarning("Трибун в павильоне нет — публику ставить некуда");
-                return;
-            }
-
-            var group = new GameObject("Crowd").transform;
-            group.SetParent(parent, false);
-
-            // ⚠️ Не Tone.Stage. Первым прогоном зал покрасили именно им —
-            // это самый тёмный тон палитры, тот же, что у трибуны и у стен
-            // студии. Зрители слились с фоном, и в кадре их не было вовсе:
-            // сорок человек, которых не видно. Сталь читается силуэтом
-            // и на тёмной трибуне, и против светодиодного борта.
-            Material body = HoleInWallPaletteAssets.Get(Tone.Metal);
-            Material phone = HoleInWallPaletteAssets.Get(Tone.NeonCyan);
-
-            // Восемь персонажей лежат в одном FBX; берутся их меши — почему
-            // именно меши, а не объекты, разобрано в LoadCrowdMeshes.
-            Mesh[] kinds = LoadCrowdMeshes();
-
-            for (int i = 0; i < stands.childCount; i++)
-            {
-                Transform bench = stands.GetChild(i);
-                if (!bench.name.StartsWith("Bleacher_"))
-                {
-                    continue;
-                }
-
-                Renderer benchRenderer = bench.GetComponent<Renderer>();
-                if (benchRenderer == null)
-                {
-                    continue;
-                }
-
-                Bounds b = benchRenderer.bounds;
-                float standY = b.max.y;
-
-                for (int p = 0; p < CrowdPerBleacher; p++)
-                {
-                    float alongZ = (p + 0.5f) / CrowdPerBleacher;
-                    float z = Mathf.Lerp(b.min.z, b.max.z, alongZ) + Jitter(rng, 0.25f);
-                    float x = b.center.x + Jitter(rng, b.size.x * 0.22f);
-                    var at = new Vector3(x, standY, z);
-
-                    // Зритель смотрит на арену: она в середине по X, трибуны
-                    // по краям, поэтому разворот — от знака X, а не наугад.
-                    float yaw = (x < 0f ? 90f : -90f) + Jitter(rng, 18f);
-                    SpawnFan(group, kinds, body, at, yaw, i, p, rng);
-
-                    if (rng.NextDouble() >= CrowdPhoneShare)
-                    {
-                        continue;
-                    }
-
-                    // Огонёк телефона поднят к лицу и вынесен к арене: это
-                    // единственное, что вообще видно в тёмной трибуне.
-                    var light = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    light.name = $"Phone_{i}_{p}";
-                    light.transform.SetParent(group, true);
-                    light.transform.position =
-                        new Vector3(x + Mathf.Sign(-x) * PhoneReach, standY + PhoneHeight, z);
-                    light.transform.localScale = Vector3.one * PhoneSize;
-                    light.GetComponent<Renderer>().sharedMaterial = phone;
-                }
-            }
-
-        }
-
-        /// <summary>
-        /// Меши зрителей — <b>запечённые в позе</b>, а не в позе привязки.
-        ///
-        /// ⚠️ Первым прогоном брался готовый <c>sharedMesh</c>, то есть поза
-        /// привязки: сорок человек стояли с раскинутыми руками. На приёмке это
-        /// прочли сразу — «что за болванки слева справа стоят». T-поза
-        /// на трибуне читается не зрителем, а манекеном.
-        ///
-        /// Здесь скелет разворачивается в сцене, руки опускаются или
-        /// поднимаются, и меш снимается <c>BakeMesh</c> уже в этом виде.
-        /// Дальше он живёт обычным <c>MeshRenderer</c>: анимировать зал незачем,
-        /// а зависимость остаётся только на сам меш — запекание арта проходит.
-        ///
-        /// <b>Поворот считается по направлению руки, а не по оси кости.</b>
-        /// У кости своя система координат, и «повернуть на 60° вокруг Z» даёт
-        /// у разных ригов разное. Здесь берётся текущее направление
-        /// плечо→кисть и доворачивается к нужному: работает независимо
-        /// от соглашений рига.
-        /// </summary>
-        private static Mesh[] LoadCrowdMeshes()
-        {
-            var existing = AssetDatabase.LoadAllAssetsAtPath(CrowdMeshPath);
-            if (existing != null && existing.Length > 0)
-            {
-                var cached = new System.Collections.Generic.List<Mesh>(existing.Length);
-                for (int i = 0; i < existing.Length; i++)
-                {
-                    if (existing[i] is Mesh mesh)
-                    {
-                        cached.Add(mesh);
-                    }
-                }
-
-                if (cached.Count > 0)
-                {
-                    return cached.ToArray();
-                }
-            }
-
-            return BakeCrowdMeshes();
-        }
-
-        /// <summary>
-        /// Развернуть персонажей пака, поставить им руки и снять меши.
-        /// На каждого — две позы, чтобы зал не читался штампом.
-        /// </summary>
-        private static Mesh[] BakeCrowdMeshes()
-        {
-            var source = AssetDatabase.LoadAssetAtPath<GameObject>(ModelPath(CrowdModel));
-            if (source == null)
-            {
-                Debug.LogWarning($"Персонажей нет ни в паке, ни в запечённом арте ({CrowdModel}) — зал будет капсулами");
-                return System.Array.Empty<Mesh>();
-            }
-
-            var template = (GameObject)PrefabUtility.InstantiatePrefab(source);
-            var baked = new System.Collections.Generic.List<Mesh>(16);
-
-            try
-            {
-                foreach (SkinnedMeshRenderer skin in template.GetComponentsInChildren<SkinnedMeshRenderer>(true))
-                {
-                    if (skin.sharedMesh == null)
-                    {
-                        continue;
-                    }
-
-                    // Две позы на персонажа: руки вниз — спокойный зритель,
-                    // руки вверх — болеет. Смесь читается живой трибуной.
-                    baked.Add(BakePose(skin, Vector3.down, ArmDownBlend));
-                    baked.Add(BakePose(skin, Vector3.up, ArmUpBlend));
-                }
-            }
-            finally
-            {
-                Object.DestroyImmediate(template);
-            }
-
-            if (baked.Count == 0)
-            {
-                return System.Array.Empty<Mesh>();
-            }
-
-            AssetDatabase.CreateAsset(baked[0], CrowdMeshPath);
-            for (int i = 1; i < baked.Count; i++)
-            {
-                AssetDatabase.AddObjectToAsset(baked[i], CrowdMeshPath);
-            }
-
-            AssetDatabase.SaveAssets();
-            return baked.ToArray();
-        }
-
-        /// <summary>
-        /// Довернуть обе руки к заданному направлению и снять меш.
-        /// </summary>
-        /// <param name="towards">Куда тянуть руку: вниз или вверх</param>
-        /// <param name="blend">Насколько довернуть, 0…1 от исходного к цели</param>
-        private static Mesh BakePose(SkinnedMeshRenderer skin, Vector3 towards, float blend)
-        {
-            // ⚠️ Поза сбрасывается после каждого снятия. Персонажи пака сидят
-            // в одном FBX на общем скелете, поэтому поворот плеча, сделанный
-            // для одного, виден всем остальным. Без сброса повороты
-            // НАКАПЛИВАЮТСЯ: первый зритель получал верную позу, второй —
-            // двойную, а «руки вверх» доворачивались от уже опущенных.
-            // На трибуне это вышло половиной зала с одной торчащей рукой.
-            Transform left = FindBone(skin, "Shoulder_L");
-            Transform right = FindBone(skin, "Shoulder_R");
-            Quaternion leftWas = left != null ? left.localRotation : Quaternion.identity;
-            Quaternion rightWas = right != null ? right.localRotation : Quaternion.identity;
-
-            SwingArm(left, FindBone(skin, "Hand_L"), towards, blend);
-            SwingArm(right, FindBone(skin, "Hand_R"), towards, blend);
-
-            var mesh = new Mesh { name = skin.sharedMesh.name + (towards == Vector3.up ? "_Cheer" : "_Idle") };
-            skin.BakeMesh(mesh);
-            mesh.RecalculateBounds();
-
-            if (left != null)
-            {
-                left.localRotation = leftWas;
-            }
-
-            if (right != null)
-            {
-                right.localRotation = rightWas;
-            }
-
-            return mesh;
-        }
-
-        /// <summary>Кость по имени в скелете этого рендерера.</summary>
-        private static Transform FindBone(SkinnedMeshRenderer skin, string boneName)
-        {
-            Transform[] bones = skin.bones;
-            for (int i = 0; i < bones.Length; i++)
-            {
-                if (bones[i] != null && bones[i].name == boneName)
-                {
-                    return bones[i];
-                }
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Повернуть плечо так, чтобы рука пошла к <paramref name="towards"/>.
-        /// Ищет кости по имени в массиве самого рендерера: свой скелет
-        /// у каждого персонажа, и общего <c>Animator</c> тут не хватило бы.
-        /// </summary>
-        private static void SwingArm(Transform shoulder, Transform hand, Vector3 towards, float blend)
-        {
-            if (shoulder == null || hand == null)
-            {
-                return;
-            }
-
-            Vector3 current = hand.position - shoulder.position;
-            if (current.sqrMagnitude < 0.0001f)
-            {
-                return;
-            }
-
-            current.Normalize();
-            Vector3 target = Vector3.Slerp(current, towards, blend).normalized;
-            shoulder.rotation = Quaternion.FromToRotation(current, target) * shoulder.rotation;
-        }
-
-        /// <summary>
-        /// Поставить одного зрителя. Персонаж пака, а при его отсутствии —
-        /// капсула того же роста.
-        /// </summary>
-        private static void SpawnFan(Transform parent, Mesh[] kinds, Material body,
-            Vector3 at, float yaw, int bench, int seat, System.Random rng)
-        {
-            if (kinds.Length == 0)
-            {
-                float height = Mathf.Lerp(CrowdHeightMin, CrowdHeightMax, (float)rng.NextDouble());
-                var capsule = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-                capsule.name = $"Fan_{bench}_{seat}";
-                capsule.transform.SetParent(parent, true);
-                capsule.transform.position = at + Vector3.up * height * 0.5f;
-                capsule.transform.localScale = new Vector3(CrowdWidth, height * 0.5f, CrowdWidth);
-                capsule.GetComponent<Renderer>().sharedMaterial = body;
-                return;
-            }
-
-            var fan = new GameObject($"Fan_{bench}_{seat}");
-            fan.transform.SetParent(parent, false);
-            fan.transform.position = at;
-            fan.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
-
-            // Рост чуть разный, иначе зал читается штампом. Ниже игрока
-            // намеренно: публика не должна путаться с участником.
-            float scale = Mathf.Lerp(FanScaleMin, FanScaleMax, (float)rng.NextDouble());
-            fan.transform.localScale = Vector3.one * scale;
-
-            fan.AddComponent<MeshFilter>().sharedMesh = kinds[rng.Next(kinds.Length)];
-            fan.AddComponent<MeshRenderer>().sharedMaterial = body;
-        }
-
-        private static float Jitter(System.Random rng, float amount) =>
-            (float)(rng.NextDouble() * 2.0 - 1.0) * amount;
 
         // ========== ШАХТЫ СВЕТА ==========
 
