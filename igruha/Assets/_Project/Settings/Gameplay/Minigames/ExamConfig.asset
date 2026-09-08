@@ -29,17 +29,17 @@ MonoBehaviour:
   matchTimeoutSeconds: 600
   stuckTeleportSeconds: 3
   unitsPerWidth: 0.72
-  hallWidth: 40
-  hallDepth: 36
-  ceilingHeight: 8
-  platformWidth: 12
-  platformDepth: 10
+  hallWidth: 27
+  hallDepth: 28
+  ceilingHeight: 6.5
+  platformWidth: 8
+  platformDepth: 6
   platformGap: 2
-  podiumWidth: 10
-  podiumDepth: 5
+  podiumWidth: 8
+  podiumDepth: 4
   podiumHeight: 1
-  returnZoneWidth: 26
-  returnZoneDepth: 5
-  returnToPlatformGap: 6
-  cameraSlackDepth: 7
+  returnZoneWidth: 18
+  returnZoneDepth: 4
+  returnToPlatformGap: 5
+  cameraSlackDepth: 6
   pitDepth: 10

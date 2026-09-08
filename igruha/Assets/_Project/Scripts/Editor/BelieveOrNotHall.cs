@@ -56,6 +56,27 @@ namespace Igruha.EditorTools
         private const string WallArtPath = Casino + "Props/SM_Prop_Wall_Art_02.prefab";
         private const string WallArtAltPath = Casino + "Props/SM_Prop_Wall_Art_01.prefab";
 
+        /// <summary>Стол рулетки 2.69 × 1.25 × 1.81 — угловой якорь восточной половины.</summary>
+        private const string RoulettePath = Casino + "Props/SM_Prop_Roulette_Table_01.prefab";
+
+        /// <summary>Покерный стол 3.34 × 0.97 × 1.35 — угловой якорь западной половины.</summary>
+        private const string PokerPath = Casino + "Props/SM_Prop_Poker_Table_01.prefab";
+
+        /// <summary>Игровой автомат 0.90 × 2.86 × 1.11 — единственная вертикаль в кольце мебели.</summary>
+        private const string SlotPath = Casino + "Props/SM_Prop_Slot_Machine_01.prefab";
+
+        /// <summary>Неон 4.08 × 2.67 — вывеска над баром и над лаунжем.</summary>
+        private const string NeonWidePath = Casino + "Props/SM_Prop_Casino_Neon_11.prefab";
+
+        /// <summary>Неон 0.86 × 2.59 — вертикальная вывеска в простенках.</summary>
+        private const string NeonTallPath = Casino + "Props/SM_Prop_Casino_Neon_07.prefab";
+
+        /// <summary>Кадка с растением 0.96 × 1.84 × 1.00.</summary>
+        private const string PlantPath = Casino + "Props/SM_Prop_Pot_Plants_03.prefab";
+
+        /// <summary>Кадка пониже и пошире, 1.52 × 1.48 × 1.46.</summary>
+        private const string PlantWidePath = Casino + "Props/SM_Prop_Pot_Plants_01.prefab";
+
         private const string HallRoot = "_Hall";
 
         /// <summary>Сколько полотнищ шторы приходится на одну стену.</summary>
@@ -93,8 +114,9 @@ namespace Igruha.EditorTools
             Curtains(hall, config, wallFace);
             Bar(hall, wallFace);
             Lounge(hall, wallFace);
-            Corners(hall, config);
-            Lights(hall);
+            GamingFloor(hall, config, wallFace);
+            Corners(hall, config, wallFace);
+            Lights(hall, wallFace);
 
             notes.Add($"предметов окружения {props}, ближайший к центру {nearest:F2} м " +
                       $"при свободной зоне {config.SpectatorZoneRadius:F2} м");
@@ -157,7 +179,11 @@ namespace Igruha.EditorTools
         private static void Bar(Transform hall, float wallFace)
         {
             Transform group = Group(hall, "Bar");
-            const float counterX = 10.6f;
+
+            // Отступы считаются от стены, а не абсолютными числами. Абсолютные
+            // 10.6 писались под зал 24.48 м и пережили бы ужатие до 17.28
+            // молча: стойка вышла бы за стену, а табуреты встали бы в неё.
+            float counterX = wallFace - 1.15f;
             const float counterWidth = 2.53f;
             const float counterTop = 1.06f;
 
@@ -166,12 +192,12 @@ namespace Igruha.EditorTools
                 Prop(group, "BarCounter", BarPath, new Vector3(counterX, 0f, i * counterWidth), 90f);
             }
 
-            Prop(group, "BackBar", MinibarPath, new Vector3(wallFace - 1.05f, 0f, 2.2f), 270f);
-            Prop(group, "BackBar", MinibarPath, new Vector3(wallFace - 1.05f, 0f, -2.2f), 270f);
+            Prop(group, "BackBar", MinibarPath, new Vector3(wallFace - 0.5f, 0f, 2.2f), 270f);
+            Prop(group, "BackBar", MinibarPath, new Vector3(wallFace - 0.5f, 0f, -2.2f), 270f);
 
             for (int i = -1; i <= 1; i++)
             {
-                Prop(group, "Stool", StoolPath, new Vector3(counterX - 1.1f, 0f, i * 2.2f), 90f);
+                Prop(group, "Stool", StoolPath, new Vector3(counterX - 0.85f, 0f, i * 2.2f), 90f);
             }
 
             // Мелочь на стойке. Она ниже кромки и видна только силуэтом
@@ -196,23 +222,31 @@ namespace Igruha.EditorTools
         {
             Transform group = Group(hall, "Lounge");
 
-            Prop(group, "Sofa", SofaPath, new Vector3(-10.6f, 0f, -2.4f), 90f);
-            Prop(group, "Couch", CouchPath, new Vector3(-10.4f, 0f, 2.6f), 90f);
-            Prop(group, "Bench", BenchPath, new Vector3(-10.9f, 0f, -7.4f), 90f);
-            Prop(group, "Bench", BenchPath, new Vector3(-10.9f, 0f, 7.4f), 90f);
+            // Три пояса от стены внутрь: спинки у стены, ковёр перед ними,
+            // столики по внутренней кромке кольца. Числа — отступы от стены,
+            // по той же причине, что и в баре.
+            float backX = -(wallFace - 1.15f);
+            float benchX = -(wallFace - 0.75f);
+            float rugX = -(wallFace - 1.85f);
+            float tableX = -(wallFace - 2.25f);
 
-            Prop(group, "Rug", RugPath, new Vector3(-9.8f, 0f, 0.1f), 0f);
+            Prop(group, "Sofa", SofaPath, new Vector3(backX, 0f, -2.4f), 90f);
+            Prop(group, "Couch", CouchPath, new Vector3(backX + 0.2f, 0f, 2.6f), 90f);
+            Prop(group, "Bench", BenchPath, new Vector3(benchX, 0f, -6.6f), 90f);
+            Prop(group, "Bench", BenchPath, new Vector3(benchX, 0f, 6.6f), 90f);
 
-            Prop(group, "LowTable", LowTablePath, new Vector3(-8.9f, 0f, -2.4f), 0f);
-            Prop(group, "LowTable", LowTablePath, new Vector3(-8.9f, 0f, 2.6f), 0f);
+            Prop(group, "Rug", RugPath, new Vector3(rugX, 0f, 0.1f), 0f);
+
+            Prop(group, "LowTable", LowTablePath, new Vector3(tableX, 0f, -2.4f), 0f);
+            Prop(group, "LowTable", LowTablePath, new Vector3(tableX, 0f, 2.6f), 0f);
 
             // Мелочь на столиках: поднос с бокалами и пачка сигарет. Высота
             // столика 0.37 м — на неё и садится всё, что на нём стоит.
-            Prop(group, "Tray", TrayPath, new Vector3(-8.9f, 0.37f, -2.4f), 0f);
-            Prop(group, "Glass", FluteGlassPath, new Vector3(-8.75f, 0.42f, -2.3f), 0f);
-            Prop(group, "Glass", FluteGlassPath, new Vector3(-9.05f, 0.42f, -2.5f), 0f);
-            Prop(group, "Glass", GlassPath, new Vector3(-8.9f, 0.37f, 2.6f), 0f);
-            Prop(group, "Cigarettes", CigarettePath, new Vector3(-8.7f, 0.37f, 2.75f), 25f);
+            Prop(group, "Tray", TrayPath, new Vector3(tableX, 0.37f, -2.4f), 0f);
+            Prop(group, "Glass", FluteGlassPath, new Vector3(tableX + 0.15f, 0.42f, -2.3f), 0f);
+            Prop(group, "Glass", FluteGlassPath, new Vector3(tableX - 0.15f, 0.42f, -2.5f), 0f);
+            Prop(group, "Glass", GlassPath, new Vector3(tableX, 0.37f, 2.6f), 0f);
+            Prop(group, "Cigarettes", CigarettePath, new Vector3(tableX + 0.2f, 0.37f, 2.75f), 25f);
 
             // На стене — золочёный вензель, а не картины пака.
             //
@@ -226,6 +260,85 @@ namespace Igruha.EditorTools
             // и не спорит с лампой.
             Prop(group, "WallArt", WallArtAltPath, new Vector3(-wallFace + WallGap, 0.3f, -4.9f), 90f);
             Prop(group, "WallArt", WallArtAltPath, new Vector3(-wallFace + WallGap, 0.3f, 4.9f), 90f);
+        }
+
+        // ========== ИГРОВОЙ ЗАЛ ==========
+
+        /// <summary>
+        /// Автоматы, вывески, кадки и два стоячих столика — всё, что
+        /// заполняет кольцо между свободной зоной и стенами по востоку
+        /// и западу.
+        ///
+        /// <b>Почему это понадобилось.</b> До ужатия зала кольцо было
+        /// шириной пять метров, и бар с диванами занимали в нём середину;
+        /// остальное честно оставалось пустым, потому что поставить туда
+        /// что-то значило поставить это в десяти метрах от стола, где
+        /// предмет уже не читается. Ужатый зал даёт кольцо в три метра,
+        /// целиком попадающее в кадр зрителя, — и оно обязано быть занято.
+        ///
+        /// <b>Север и юг не трогаем.</b> Сидящие смотрят вдоль оси Z, и всё
+        /// поставленное там встанет за лицом соперника в геройском кадре
+        /// (бриф 14.7). Правило старое, ужатие зала его не отменяет —
+        /// наоборот, делает строже: стена стала ближе к лицу.
+        ///
+        /// <b>Вывески светятся, но не спорят с лампой.</b> Неон — это
+        /// собственный эмиссивный материал модели, а не источник света:
+        /// он виден в темноте пятном на стене и не кладёт ни люмена
+        /// на пол, по которому меряется «светлое пятно ровно одно».
+        /// </summary>
+        private static void GamingFloor(Transform hall, BelieveOrNotConfig config, float wallFace)
+        {
+            Transform group = Group(hall, "Gaming");
+
+            // Автоматы стоят спиной к стене, по два у каждой боковой стены,
+            // разнесённые к северному и южному краям — там кольцо свободно
+            // от бара и от диванов.
+            float slotX = wallFace - 0.65f;
+            foreach (float z in new[] { -6.2f, 6.2f })
+            {
+                for (int i = 0; i < 2; i++)
+                {
+                    float offset = (i - 0.5f) * 1.05f;
+                    Prop(group, "SlotMachine", SlotPath, new Vector3(slotX, 0f, z + offset), 270f);
+                    Prop(group, "SlotMachine", SlotPath, new Vector3(-slotX, 0f, z + offset), 90f);
+                }
+            }
+
+            // Вывески над баром и над лаунжем — на высоте, где стена
+            // остаётся пустой: выше спинок и ниже карниза.
+            float signX = wallFace - 0.08f;
+            Prop(group, "NeonWide", NeonWidePath, new Vector3(signX, 2.35f, 0f), 270f);
+            Prop(group, "NeonWide", NeonWidePath, new Vector3(-signX, 2.35f, 0f), 90f);
+
+            foreach (float z in new[] { -4.3f, 4.3f })
+            {
+                Prop(group, "NeonTall", NeonTallPath, new Vector3(signX, 1.5f, z), 270f);
+                Prop(group, "NeonTall", NeonTallPath, new Vector3(-signX, 1.5f, z), 90f);
+            }
+
+            // Кадки в стыках зон: между баром и автоматами, между диванами
+            // и автоматами. Растение — единственный предмет кольца с рваным
+            // силуэтом, и на фоне прямых линий мебели именно оно не даёт
+            // кольцу читаться забором.
+            float plantX = wallFace - 1.0f;
+            foreach (float z in new[] { -3.9f, 3.9f })
+            {
+                Prop(group, "Plant", PlantPath, new Vector3(plantX, 0f, z), 0f);
+                Prop(group, "Plant", PlantPath, new Vector3(-plantX, 0f, z), 0f);
+            }
+
+            Prop(group, "PlantWide", PlantWidePath, new Vector3(plantX, 0f, -8.0f), 0f);
+            Prop(group, "PlantWide", PlantWidePath, new Vector3(-plantX, 0f, 8.0f), 0f);
+
+            // Стоячие столики: переехали из углов, которые отдали игровым
+            // столам. Стоят по внутренней кромке кольца — там, где зритель
+            // отбегает от стола и упирается взглядом в пустоту.
+            float standX = wallFace - 2.4f;
+            StandingTable(group, new Vector3(standX, 0f, -5.3f));
+            StandingTable(group, new Vector3(-standX, 0f, 5.3f));
+
+            notes.Add($"игровой зал: 8 автоматов, 6 вывесок, 6 кадок, ближняя кромка кольца {standX:F2} м " +
+                      $"при свободной зоне {config.SpectatorZoneRadius:F2} м");
         }
 
         // ========== УГЛЫ ==========
@@ -245,11 +358,11 @@ namespace Igruha.EditorTools
         /// вдоль оси её не искажает, а равномерный масштаб раздул бы её
         /// в тумбу диаметром почти три метра.
         /// </summary>
-        private static void Corners(Transform hall, BelieveOrNotConfig config)
+        private static void Corners(Transform hall, BelieveOrNotConfig config, float wallFace)
         {
             Transform group = Group(hall, "Corners");
-            const float column = 10.8f;
-            const float cluster = 8.8f;
+            float column = wallFace - 1.25f;
+            float cluster = wallFace - 2.3f;
             var stretch = new Vector3(1f, config.CeilingHeight / 3.00f, 1f);
 
             for (int sx = -1; sx <= 1; sx += 2)
@@ -260,9 +373,17 @@ namespace Igruha.EditorTools
                 }
             }
 
-            // Два стоячих столика по диагонали: у бара и напротив него.
-            StandingTable(group, new Vector3(cluster, 0f, -cluster));
-            StandingTable(group, new Vector3(-cluster, 0f, cluster));
+            // Игровые столы по диагонали — рулетка и покер.
+            //
+            // Раньше здесь стояли два стоячих столика: они держали угол,
+            // пока зал был на шесть метров шире и любой предмет в нём читался
+            // мелким. В ужатом зале угол — это уже полноценный второй план,
+            // и столик на 1.1 м в нём просто теряется. Рулетка и покерный
+            // стол дают то, чего в зале не было вовсе: он перестаёт быть
+            // комнатой с одним столом и становится залом, где этот стол —
+            // не единственная игра. Столики переехали к бару и в лаунж.
+            GamingTable(group, RoulettePath, new Vector3(cluster, 0f, -cluster), 30f);
+            GamingTable(group, PokerPath, new Vector3(-cluster, 0f, cluster), -150f);
 
             // Два кресла со столиком между ними — угол, где сидят и смотрят.
             Prop(group, "Armchair", ArmchairPath, new Vector3(cluster - 0.9f, 0f, cluster), 250f);
@@ -288,6 +409,30 @@ namespace Igruha.EditorTools
             Prop(group, "Glass", FluteGlassPath, place + new Vector3(0.15f, 1.10f, 0.1f), 0f);
         }
 
+        /// <summary>
+        /// Игровой стол в углу: сам стол, три табурета по внешней дуге
+        /// и брошенная колода. Табуреты стоят спинами к стене — за столом
+        /// в углу садятся лицом в зал, и пустая дуга со стороны зрителя
+        /// читается «отсюда только что встали».
+        /// </summary>
+        private static void GamingTable(Transform group, string path, Vector3 place, float yaw)
+        {
+            GameObject table = Prop(group, "GamingTable", path, place, yaw);
+            if (table == null)
+            {
+                return;
+            }
+
+            Vector3 outward = new Vector3(Mathf.Sign(place.x), 0f, Mathf.Sign(place.z));
+            for (int i = -1; i <= 1; i++)
+            {
+                Vector3 along = new Vector3(-outward.z, 0f, outward.x) * (i * 0.95f);
+                Prop(group, "Stool", StoolPath, place + outward * 1.25f + along, yaw + 180f);
+            }
+
+            Prop(group, "CardDeck", CardDeckPath, place + new Vector3(0.25f, 0.95f, 0.15f), yaw + 40f);
+        }
+
         // ========== СВЕТ ЗАЛА ==========
 
         /// <summary>
@@ -302,16 +447,38 @@ namespace Igruha.EditorTools
         /// Ставятся кодом, а не инспектором: настройки света в YAML сцены
         /// не переживают слияние веток.
         /// </summary>
-        private static void Lights(Transform hall)
+        private static void Lights(Transform hall, float wallFace)
         {
             Transform group = Group(hall, "Lights");
             var warm = new Color(1f, 0.82f, 0.62f);
+            float barX = wallFace - 1.35f;
+            float loungeX = -(wallFace - 1.75f);
 
-            Lamp(group, "BarLight", new Vector3(10.4f, 3.2f, 2.3f), warm, 2.5f, 7f);
-            Lamp(group, "BarLight", new Vector3(10.4f, 3.2f, -2.3f), warm, 2.5f, 7f);
-            Lamp(group, "LoungeLight", new Vector3(-10.0f, 3.0f, 0f), warm, 2.0f, 8f);
+            Lamp(group, "BarLight", new Vector3(barX, 3.2f, 2.3f), warm, 2.5f, 7f);
+            Lamp(group, "BarLight", new Vector3(barX, 3.2f, -2.3f), warm, 2.5f, 7f);
+            Lamp(group, "LoungeLight", new Vector3(loungeX, 3.0f, 0f), warm, 2.0f, 8f);
 
-            notes.Add("свет зала: две точки над баром (2.5), одна над диванами (2.0), тени выключены");
+            // Точки над игровыми столами в углах. Слабее барных: рулетка
+            // и покер стоят дальше от стола, и пятно над ними обязано
+            // читаться силуэтом мебели, а не вторым центром кадра.
+            float cornerX = wallFace - 2.3f;
+            Lamp(group, "GamingLight", new Vector3(cornerX, 2.9f, -cornerX), warm, 1.5f, 6f);
+            Lamp(group, "GamingLight", new Vector3(-cornerX, 2.9f, cornerX), warm, 1.5f, 6f);
+
+            // Заливка бархата севера и юга — самые слабые источники зала.
+            //
+            // Эти две стены и есть фон геройского кадра: в них упирается взгляд
+            // сидящего поверх плеча соперника. Без заливки они уходили в тот же
+            // чёрный, что и потолок, и соперник читался тёмной фигурой на тёмном
+            // фоне — то есть не читался. Светят вниз по ткани, до стола не
+            // достают (радиус 6 при расстоянии 7.3 м до его кромки) и светлое
+            // пятно кадра не трогают.
+            float velvetZ = wallFace - 1.2f;
+            Lamp(group, "VelvetWash", new Vector3(0f, 3.4f, velvetZ), warm, 1.2f, 6f);
+            Lamp(group, "VelvetWash", new Vector3(0f, 3.4f, -velvetZ), warm, 1.2f, 6f);
+
+            notes.Add("свет зала: две точки над баром (2.5), одна над диванами (2.0), " +
+                      "две над игровыми столами (1.5), две заливки бархата (1.2), тени выключены");
         }
 
         private static void Lamp(Transform parent, string name, Vector3 position, Color color, float intensity,

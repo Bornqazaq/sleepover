@@ -26,15 +26,15 @@ MonoBehaviour:
   roundsByPlayerCount: 04000000030000000200000003000000030000000400000004000000
   matchTimeoutSeconds: 360
   unitsPerWidth: 0.72
-  hallWidth: 34
-  hallDepth: 34
-  ceilingHeight: 7
+  hallWidth: 24
+  hallDepth: 24
+  ceilingHeight: 6
   tableDiameter: 4
   tableHeight: 1
   seatDistance: 2.8
   barrierRadius: 1.6
   barrierHeight: 1.5
-  spectatorZoneRadius: 10
+  spectatorZoneRadius: 7.5
   spawnRingRadius: 6
   boxSize: 0.8
   boxOffset: 0.55
@@ -47,4 +47,4 @@ MonoBehaviour:
   lampSpotAngle: 110
   lampIntensity: 6
   lampColor: {r: 1, g: 0.85, b: 0.65, a: 1}
-  ambientColor: {r: 0.07, g: 0.07, b: 0.09, a: 1}
+  ambientColor: {r: 0.1, g: 0.098, b: 0.115, a: 1}

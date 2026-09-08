@@ -62,6 +62,21 @@ namespace Igruha.EditorTools
         private const string CoatBagPath = Kids + "Attachments/Bags/SM_Chr_Attach_Bag_School_01.prefab";
         private const string PaperPlanePath = Kids + "Props/SM_Prop_Paper_Plane_01.prefab";
 
+        /// <summary>Кадка с растением 0.29 × 0.66 × 0.33 — в простенки между окнами.</summary>
+        private const string PlantPath = Town + "Props/SM_Prop_PotPlant_04.prefab";
+
+        /// <summary>Книжный шкаф 0.89 × 1.03 × 0.29 — у ближней стены, парой.</summary>
+        private const string BookshelfPath = Town + "Props/SM_Prop_Bookshelf_02.prefab";
+
+        /// <summary>Стопка учебников: ею заполняются полки и подоконники.</summary>
+        private const string BooksPath = Town + "Props/SM_Prop_Book_Group_07.prefab";
+
+        /// <summary>Стопка потоньше — вторая модель, чтобы полки не повторялись.</summary>
+        private const string BooksAltPath = Town + "Props/SM_Prop_Book_Group_05.prefab";
+
+        /// <summary>Скелет 2.06 × 1.96 × 0.62 (на подвесе) — наглядное пособие в углах у кафедры.</summary>
+        private const string SkeletonPath = Generic + "Characters/SM_Gen_Chr_Skeleton_01.prefab";
+
         private static readonly string[] Papers =
         {
             Generic + "Props/SM_Gen_Prop_Papers_01.prefab",
@@ -85,14 +100,94 @@ namespace Igruha.EditorTools
         /// <summary>Половина толщины стены зала: коробки стоят центром на границе и уходят наружу.</summary>
         private const float WallHalf = 0.2f;
 
-        /// <summary>Расстояние от оси зала до окон по глубине. Шесть окон на стену с шагом 4.32 м.</summary>
-        private static readonly float[] WindowZ = { -10.8f, -6.48f, -2.16f, 2.16f, 6.48f, 10.8f };
+        /// <summary>Окон на каждой боковой стене.</summary>
+        private const int WindowCount = 6;
 
-        /// <summary>Пилястры между окнами и по углам.</summary>
-        private static readonly float[] PilasterZ = { -12.5f, -8.64f, -4.32f, 0f, 4.32f, 8.64f, 12.5f };
+        /// <summary>
+        /// Ширина оконного модуля в мире, м. Модуль пака 2.50 × 6.01 —
+        /// он на этаж выше нашего потолка, и подгонять его равномерно нельзя:
+        /// ужатый по высоте до 4.68 он сузился бы до 1.95 и превратил стену
+        /// в частокол бойниц. Ширину задаём сами (3 ШП), высоту тянем до
+        /// потолка — арка при этом слегка вытягивается, и на плоскости
+        /// стены этого не видно.
+        /// </summary>
+        private const float WindowWidth = 2.16f;
+
+        /// <summary>
+        /// Раскладка по глубине: окна равномерно вдоль стены, пилястры
+        /// в промежутках между ними и по углам.
+        ///
+        /// Считается от размера зала, а не таблицей чисел. Таблица под зал
+        /// 25.92 м пережила бы ужатие до 20.16 молча: два крайних окна
+        /// уехали бы в торцевые стены, а пилястры — за пределы зала.
+        /// </summary>
+        private static float[] WindowLine(ExamConfig config)
+        {
+            float step = config.HallDepth / WindowCount;
+            var line = new float[WindowCount];
+            for (int i = 0; i < WindowCount; i++)
+            {
+                line[i] = -config.HallDepth * 0.5f + step * (i + 0.5f);
+            }
+
+            return line;
+        }
+
+        /// <summary>Пилястры между окнами и по углам — на одну больше, чем окон.</summary>
+        private static float[] PilasterLine(ExamConfig config)
+        {
+            float step = config.HallDepth / WindowCount;
+            float corner = config.HallDepth * 0.5f - 0.25f;
+            var line = new float[WindowCount + 1];
+            for (int i = 0; i <= WindowCount; i++)
+            {
+                line[i] = Mathf.Clamp(-config.HallDepth * 0.5f + step * i, -corner, corner);
+            }
+
+            return line;
+        }
 
         /// <summary>Насколько мелочь считается мелочью: ниже неё предмет можно класть и на маршруты.</summary>
         private const float LitterHeight = 0.2f;
+
+        /// <summary>Рядов парт в запасе за зоной возврата.</summary>
+        private const int BackRowCount = 3;
+
+        /// <summary>Балок перекрытия поперёк зала.</summary>
+        private const int CeilingBeamCount = 5;
+
+        /// <summary>Насколько балка свисает из потолка, м.</summary>
+        private const float BeamHeight = 0.26f;
+
+        /// <summary>Толщина балки по глубине зала, м.</summary>
+        private const float BeamDepth = 0.34f;
+
+        /// <summary>Насколько пилястра выступает от стены в зал, м. Замер модели пака.</summary>
+        private const float PilasterDepth = 0.43f;
+
+        /// <summary>Ширина объявления на пилястре, м: по её лицевой грани, не шире.</summary>
+        private const float ChartWidth = 0.38f;
+
+        /// <summary>Высота объявления, м.</summary>
+        private const float ChartHeight = 1.05f;
+
+        /// <summary>Высота центра плаката над полом, м: выше панелей, ниже карниза.</summary>
+        private const float ChartCenterY = 2.35f;
+
+        /// <summary>
+        /// Половина ширины доски в долях ширины зала. Дублирует
+        /// <c>ExamArenaBuilder.BoardWidthFactor / 2</c>: окружение обязано
+        /// знать, где кончается доска, чтобы не ставить предметы поверх неё.
+        /// </summary>
+        private const float BoardHalfFactor = 0.25f;
+
+        /// <summary>
+        /// Габаритная высота задней парты. Та же, что у парт в нефах
+        /// (<c>ExamDress.ExamDeskHeight</c>): одинаковая мебель на одной
+        /// глубине кадра — единственный способ не получить в зале два
+        /// разных масштаба сразу.
+        /// </summary>
+        private const float BackDeskHeight = 0.95f;
 
         private static readonly List<string> Notes = new List<string>(8);
         private static int placed;
@@ -152,12 +247,14 @@ namespace Igruha.EditorTools
             Transform group = Group(root, "SideWalls");
             float inX = config.HallWidth * 0.5f - WallHalf;
             float height = config.CeilingHeight;
+            float[] windowZ = WindowLine(config);
+            float[] pilasterZ = PilasterLine(config);
             Material daylight = ExamPalette.Get(ExamPalette.Tone.Daylight);
             Material stone = ExamPalette.Get(ExamPalette.Tone.Stone);
 
-            for (int i = 0; i < WindowZ.Length; i++)
+            for (int i = 0; i < windowZ.Length; i++)
             {
-                float z = WindowZ[i];
+                float z = windowZ[i];
                 Pair(inX, x =>
                 {
                     GameObject window = ExamDress.Spawn(group, $"Window_{i}", WindowPath, x < 0 ? 1 : 3);
@@ -166,9 +263,15 @@ namespace Igruha.EditorTools
                         return;
                     }
 
+                    // ⚠️ Габарит задаётся в МИРОВЫХ осях, а окно боковой стены
+                    // развёрнуто на 90°: его ширина идёт по Z, а по X стоит
+                    // толщина стены. Подставленная в X ширина раздула модули
+                    // в плиты 2.16 м толщиной, вылезшие в зал поверх парт.
+                    // Ось выбирается по замеру, а не по предположению.
                     Vector3 natural = ExamDress.WorldSize(window);
-                    float scale = height / Mathf.Max(0.01f, natural.y);
-                    ExamDress.SizeTo(window, natural * scale);
+                    ExamDress.SizeTo(window, natural.x > natural.z
+                        ? new Vector3(WindowWidth, height, natural.z)
+                        : new Vector3(natural.x, height, WindowWidth));
                     Vector3 size = ExamDress.WorldSize(window);
                     ExamDress.CenterAt(window, new Vector3(
                         x - Mathf.Sign(x) * size.x * 0.5f, height * 0.5f, z));
@@ -181,12 +284,12 @@ namespace Igruha.EditorTools
                     // Светящаяся плоскость за окном, вплотную к нашей стене.
                     ExamDress.Bar(group, $"Daylight_{i}", daylight,
                         new Vector3(x - Mathf.Sign(x) * 0.06f, height * 0.55f, z),
-                        new Vector3(0.04f, height * 0.72f, 1.5f));
+                        new Vector3(0.04f, height * 0.72f, WindowWidth * 0.7f));
                     placed++;
                 });
             }
 
-            foreach (float z in PilasterZ)
+            foreach (float z in pilasterZ)
             {
                 Pair(inX, x =>
                 {
@@ -207,9 +310,9 @@ namespace Igruha.EditorTools
                 });
             }
 
-            for (int i = 0; i < WindowZ.Length; i++)
+            for (int i = 0; i < windowZ.Length; i++)
             {
-                float z = WindowZ[i];
+                float z = windowZ[i];
                 Pair(inX, x =>
                 {
                     GameObject heater = ExamDress.Prop(group, $"Heater_{i}", HeaterPath,
@@ -221,10 +324,79 @@ namespace Igruha.EditorTools
                 });
             }
 
+            // Кадки с растениями в простенках между окнами — через один,
+            // чтобы стена не превратилась в оранжерею. Ставятся парами,
+            // как и всё здесь: горшок только слева был бы приметой стороны.
+            for (int i = 1; i < pilasterZ.Length - 1; i += 2)
+            {
+                float z = pilasterZ[i];
+                Pair(inX - 0.55f, x =>
+                {
+                    if (ExamDress.Prop(group, $"WallPlant_{z:F0}", PlantPath,
+                            new Vector3(x, 0f, z), x < 0f ? 25f : -25f, 1.15f) != null)
+                    {
+                        placed++;
+                    }
+                });
+            }
+
+            // Объявления на пилястрах между окнами.
+            //
+            // ⚠️ Висят на ЛИЦЕВОЙ грани пилястры, а не на плоскости стены.
+            // Первый заход повесил их на стену с отступом 6 см — и они
+            // целиком спрятались внутрь пилястры, которая выступает в зал
+            // на 43 см. В кадре не появилось ничего, и это был не промах
+            // по месту, а промах по оси: между окнами тут не стена, а колонна.
+            //
+            // Ширина — по ширине самой пилястры: лист, вылезающий за её
+            // грань, читается висящим в воздухе.
+            Material frameTone = ExamPalette.Get(ExamPalette.Tone.Panel);
+            Material chartTone = ExamPalette.Get(ExamPalette.Tone.SignPlate);
+            for (int i = 2; i < pilasterZ.Length - 2; i += 2)
+            {
+                float z = pilasterZ[i];
+                Pair(inX, x =>
+                {
+                    float sign = Mathf.Sign(x);
+                    ExamDress.Bar(group, $"ChartFrame_{z:F0}", frameTone,
+                        new Vector3(x - sign * (PilasterDepth + 0.02f), ChartCenterY, z),
+                        new Vector3(0.04f, ChartHeight + 0.1f, ChartWidth + 0.1f));
+                    ExamDress.Bar(group, $"Chart_{z:F0}", chartTone,
+                        new Vector3(x - sign * (PilasterDepth + 0.05f), ChartCenterY, z),
+                        new Vector3(0.02f, ChartHeight, ChartWidth));
+                    placed += 2;
+                });
+            }
+
+            // Бра на пилястрах между окнами: боковые стены до сих пор жили
+            // одним дневным подсветом из-за стекла, и всё, что на них висит,
+            // проваливалось в тень ровно там, где кончался этот подсвет.
+            foreach (float z in new[] { pilasterZ[1], pilasterZ[WindowCount - 1] })
+            {
+                Pair(inX, x =>
+                {
+                    GameObject sconce = ExamDress.Spawn(group, $"SideSconce_{z:F0}", SconcePath, x < 0 ? 1 : 3);
+                    if (sconce == null)
+                    {
+                        return;
+                    }
+
+                    Vector3 natural = ExamDress.WorldSize(sconce);
+                    ExamDress.CenterAt(sconce, new Vector3(
+                        x - Mathf.Sign(x) * natural.x * 0.5f, config.CeilingHeight - 1.35f, z));
+                    ExamDress.PaintTree(sconce, ExamPalette.Get(ExamPalette.Tone.Gilt));
+                    placed++;
+                });
+            }
+
             // Часы — на боковых стенах, а не под потолком по центру: на оси
             // зала они попадают между камерой и доской. Две штуки, зеркально,
             // над простенками между окнами.
-            foreach (float z in new[] { -4.32f, 4.32f })
+            // Часы вешаются на пилястру, а не «примерно там»: между окнами
+            // стена шириной чуть больше метра, и абсолютное число рано или
+            // поздно попадает циферблатом на стекло.
+            float clockY = config.CeilingHeight - 0.75f;
+            foreach (float z in new[] { pilasterZ[2], pilasterZ[WindowCount - 2] })
             {
                 Pair(inX, x =>
                 {
@@ -237,7 +409,7 @@ namespace Igruha.EditorTools
                     Vector3 natural = ExamDress.WorldSize(clock);
                     ExamDress.SizeTo(clock, natural * (1.15f / Mathf.Max(0.01f, natural.y)));
                     Vector3 size = ExamDress.WorldSize(clock);
-                    ExamDress.CenterAt(clock, new Vector3(x - Mathf.Sign(x) * (size.x * 0.5f + 0.02f), 4.25f, z));
+                    ExamDress.CenterAt(clock, new Vector3(x - Mathf.Sign(x) * (size.x * 0.5f + 0.02f), clockY, z));
                     placed++;
                 });
             }
@@ -256,7 +428,15 @@ namespace Igruha.EditorTools
         {
             Transform group = Group(root, "FarWall");
             float z = config.HallDepth * 0.5f - WallHalf;
-            float[] portraitX = { 8.6f, 11.6f };
+            float inX = config.HallWidth * 0.5f - WallHalf;
+
+            // Портреты живут между краем доски и углом зала. Абсолютные 8.6
+            // и 11.6 считались от стены шириной 28.8 м; на 19.44 второй из них
+            // оказался бы за пределами зала. Считаем от свободного простенка.
+            float boardEdge = config.HallWidth * BoardHalfFactor + 0.4f;
+            float span = Mathf.Max(0.6f, inX - 0.7f - boardEdge);
+            float[] portraitX = { boardEdge + span * 0.32f, boardEdge + span * 0.78f };
+            float portraitY = config.CeilingHeight * 0.66f;
 
             for (int i = 0; i < portraitX.Length; i++)
             {
@@ -270,7 +450,7 @@ namespace Igruha.EditorTools
                     }
 
                     Vector3 natural = ExamDress.WorldSize(frame);
-                    ExamDress.CenterAt(frame, new Vector3(x, 3.25f, z - natural.z * 0.5f - 0.01f));
+                    ExamDress.CenterAt(frame, new Vector3(x, portraitY, z - natural.z * 0.5f - 0.01f));
                     ExamDress.PaintTree(frame, ExamPalette.Get(ExamPalette.Tone.Gilt));
                     placed++;
 
@@ -278,12 +458,12 @@ namespace Igruha.EditorTools
                     // зеркальная пара обязана быть одинаковой, иначе портрет
                     // сам становится приметой стороны.
                     Canvas(group, $"PortraitCanvas_{index}_{(x < 0 ? "L" : "R")}", index,
-                        new Vector3(x, 3.25f, z - natural.z - 0.02f),
+                        new Vector3(x, portraitY, z - natural.z - 0.02f),
                         natural.x * 0.79f, natural.y * 0.77f);
                 });
             }
 
-            Pair(10.1f, x =>
+            Pair(boardEdge + span * 0.55f, x =>
             {
                 GameObject sconce = ExamDress.Spawn(group, "Sconce_Far", SconcePath, 0);
                 if (sconce == null)
@@ -292,9 +472,26 @@ namespace Igruha.EditorTools
                 }
 
                 Vector3 natural = ExamDress.WorldSize(sconce);
-                ExamDress.CenterAt(sconce, new Vector3(x, 4.6f, z - natural.z * 0.5f));
+                ExamDress.CenterAt(sconce, new Vector3(x, config.CeilingHeight - 0.75f, z - natural.z * 0.5f));
                 ExamDress.PaintTree(sconce, ExamPalette.Get(ExamPalette.Tone.Gilt));
                 placed++;
+            });
+
+            // Скелеты по краям доски — наглядное пособие, по которому зал
+            // читается школьным кабинетом с первого кадра.
+            //
+            // Стояли в дальних углах и попадали внутрь шкафчиков: угол уже
+            // занят их зеркальной парой. Место у края доски свободно, стоит
+            // ровно на фоне обеих камер игры и не спорит с портретами —
+            // те висят выше и дальше от оси.
+            Pair(config.HallWidth * BoardHalfFactor + 0.7f, x =>
+            {
+                GameObject skeleton = ExamDress.Prop(group, "Skeleton", SkeletonPath,
+                    new Vector3(x, 0f, z - 0.55f), x < 0f ? 22f : -22f, 2.05f);
+                if (skeleton != null)
+                {
+                    placed++;
+                }
             });
         }
 
@@ -307,6 +504,7 @@ namespace Igruha.EditorTools
         {
             Transform group = Group(root, "NearWall");
             float z = -(config.HallDepth * 0.5f - WallHalf);
+            float inX = config.HallWidth * 0.5f - WallHalf;
             Material stone = ExamPalette.Get(ExamPalette.Tone.Stone);
 
             GameObject doorway = ExamDress.Spawn(group, "Doorway", DoorwayPath, 2);
@@ -332,11 +530,11 @@ namespace Igruha.EditorTools
                 Vector3 natural = ExamDress.WorldSize(clock);
                 ExamDress.SizeTo(clock, natural * (1.35f / Mathf.Max(0.01f, natural.y)));
                 Vector3 size = ExamDress.WorldSize(clock);
-                ExamDress.CenterAt(clock, new Vector3(0f, 4.6f, z + size.z * 0.5f + 0.02f));
+                ExamDress.CenterAt(clock, new Vector3(0f, config.CeilingHeight - 0.75f, z + size.z * 0.5f + 0.02f));
                 placed++;
             }
 
-            Pair(4.6f, x =>
+            Pair(inX * 0.35f, x =>
             {
                 GameObject notice = ExamDress.Spawn(group, "Notice", NoticePath, 0);
                 if (notice == null)
@@ -351,7 +549,7 @@ namespace Igruha.EditorTools
                 placed++;
             });
 
-            Pair(8.6f, x =>
+            Pair(inX * 0.72f, x =>
             {
                 if (ExamDress.Prop(group, "Shelf", ShelfPath, new Vector3(x, 0f, z + 0.4f), 180f) != null)
                 {
@@ -359,11 +557,37 @@ namespace Igruha.EditorTools
                 }
             });
 
+            // Книжные шкафы по краям ближней стены и учебники на них.
+            // Ближняя стена — это фон для обернувшегося Ученика и для всей
+            // зоны возврата; после ужатия зала она подошла к площадкам вплотную
+            // и стала попадать в кадр чаще, чем раньше попадала дальняя.
+            Pair(inX - 0.65f, x =>
+            {
+                GameObject shelf = ExamDress.Prop(group, "Bookcase", BookshelfPath,
+                    new Vector3(x, 0f, z + 0.25f), 180f, 1.85f);
+                if (shelf == null)
+                {
+                    return;
+                }
+
+                placed++;
+                for (int tier = 0; tier < 3; tier++)
+                {
+                    float y = 0.42f + tier * 0.52f;
+                    if (ExamDress.Prop(group, $"Bookcase_Books_{tier}", tier % 2 == 0 ? BooksPath : BooksAltPath,
+                            new Vector3(x + (tier % 2 == 0 ? -0.18f : 0.18f), y, z + 0.25f), 180f) != null)
+                    {
+                        placed++;
+                    }
+                }
+            });
+
             // Ещё две пары портретов. Сгенерированных холстов четыре, и все
             // четыре идут в дело: два висят у доски, два здесь. Пара — это
             // один и тот же портрет слева и справа, иначе сам портрет
             // становится приметой стороны.
-            float[] portraitX = { 6.6f, 10.6f };
+            float[] portraitX = { inX * 0.28f, inX * 0.58f };
+            float portraitY = config.CeilingHeight * 0.66f;
             for (int i = 0; i < portraitX.Length; i++)
             {
                 int index = i + 2;
@@ -376,12 +600,12 @@ namespace Igruha.EditorTools
                     }
 
                     Vector3 natural = ExamDress.WorldSize(frame);
-                    ExamDress.CenterAt(frame, new Vector3(x, 3.25f, z + natural.z * 0.5f + 0.01f));
+                    ExamDress.CenterAt(frame, new Vector3(x, portraitY, z + natural.z * 0.5f + 0.01f));
                     ExamDress.PaintTree(frame, ExamPalette.Get(ExamPalette.Tone.Gilt));
                     placed++;
 
                     Canvas(group, $"PortraitCanvas_{index}_{(x < 0 ? "L" : "R")}", index,
-                        new Vector3(x, 3.25f, z + natural.z + 0.02f),
+                        new Vector3(x, portraitY, z + natural.z + 0.02f),
                         natural.x * 0.79f, natural.y * 0.77f, 180f);
                 });
             }
@@ -400,7 +624,39 @@ namespace Igruha.EditorTools
             Transform group = Group(root, "Ceiling");
             float top = config.CeilingHeight;
 
-            Pair(7.2f, x =>
+            // Балки поперёк зала. До них потолок был ровным светлым полем
+            // на всю ширину кадра — единственная плоскость сцены, по которой
+            // глазу нечем померить расстояние. Ритм балок задаёт масштаб
+            // сверху так же, как шов пола задаёт его снизу, и стоит это
+            // пяти растянутых кубов.
+            // Балка не ставится за спиной камеры зала: та висит на 4.08 м,
+            // и ближайшая балка оказалась бы в полутора метрах перед объективом,
+            // занимая собой верхнюю треть кадра. Считаем границу от запаса
+            // за зоной возврата — там, где эта камера и стоит.
+            Material beamTone = ExamPalette.Get(ExamPalette.Tone.Panel);
+            float beamStep = config.HallDepth / (CeilingBeamCount + 1);
+            float beamNearLimit = -config.HallDepth * 0.5f + config.CameraSlackDepth;
+            for (int i = 1; i <= CeilingBeamCount; i++)
+            {
+                float z = -config.HallDepth * 0.5f + beamStep * i;
+                if (z < beamNearLimit)
+                {
+                    continue;
+                }
+
+                ExamDress.Bar(group, $"Beam_{i}", beamTone,
+                    new Vector3(0f, top - BeamHeight * 0.5f, z),
+                    new Vector3(config.HallWidth, BeamHeight, BeamDepth));
+                placed++;
+            }
+
+            // Люстра 2.2 м спускалась бы теперь до 2.48 — ровно на уровень
+            // головы бегущего. Под потолок 4.68 её высота считается от него:
+            // низ обязан остаться выше человека с запасом на прыжок.
+            float chandelierHeight = Mathf.Clamp(top * 0.3f, 1.1f, 2.2f);
+            float chandelierZ = -config.HallDepth * 0.5f + config.CameraSlackDepth * 0.75f;
+
+            Pair(config.HallWidth * 0.27f, x =>
             {
                 GameObject chandelier = ExamDress.Spawn(group, "Chandelier", ChandelierPath, 0);
                 if (chandelier == null)
@@ -409,9 +665,9 @@ namespace Igruha.EditorTools
                 }
 
                 Vector3 natural = ExamDress.WorldSize(chandelier);
-                ExamDress.SizeTo(chandelier, natural * (2.2f / Mathf.Max(0.01f, natural.y)));
+                ExamDress.SizeTo(chandelier, natural * (chandelierHeight / Mathf.Max(0.01f, natural.y)));
                 Vector3 size = ExamDress.WorldSize(chandelier);
-                ExamDress.CenterAt(chandelier, new Vector3(x, top - size.y * 0.5f, -6.48f));
+                ExamDress.CenterAt(chandelier, new Vector3(x, top - size.y * 0.5f, chandelierZ));
                 placed++;
             });
 
@@ -468,18 +724,25 @@ namespace Igruha.EditorTools
             float halfW = config.HallWidth * 0.5f;
             float halfD = config.HallDepth * 0.5f;
 
-            // Задние ряды парт: два ряда по восемь, по обе стороны от оси.
-            float[] rows = { -9.6f, -11.3f };
-            for (int r = 0; r < rows.Length; r++)
+            // Задние ряды парт — «класс» за спиной Учеников. Считаются от
+            // ближней стены, а не абсолютными числами: после ужатия зала
+            // прежние −9.6 и −11.3 уехали бы в стену и наружу.
+            //
+            // Рядов три, по шесть мест в каждом: запас за зоной возврата —
+            // единственное место в зале, где помещается настоящий ряд парт,
+            // и именно он попадает в кадр каждый раз, когда камера отходит
+            // за спину игрока.
+            float backRowStart = -halfD + 1.35f;
+            for (int r = 0; r < BackRowCount; r++)
             {
-                for (int i = 0; i < 4; i++)
+                float z = backRowStart + r * 1.55f;
+                for (int i = 0; i < 3; i++)
                 {
-                    float baseX = 1.4f + i * 2.1f;
-                    float z = rows[r];
+                    float baseX = 1.1f + i * 1.7f;
                     Pair(baseX, x =>
                     {
-                        if (ExamDress.Prop(group, "BackDesk", ExamDeskPath,
-                                new Vector3(x, 0f, z), 0f, 0.84f) != null)
+                        if (ExamDress.Prop(group, $"BackDesk_{r}_{i}", ExamDeskPath,
+                                new Vector3(x, 0f, z), 0f, BackDeskHeight) != null)
                         {
                             placed++;
                         }
@@ -487,8 +750,19 @@ namespace Igruha.EditorTools
                 }
             }
 
+            // Портфели у задних парт: брошенная сумка читается «здесь сидели»
+            // убедительнее любой третьей парты.
+            Pair(1.1f + 1.7f, x =>
+            {
+                if (ExamDress.Prop(group, "BackBag", CoatBagPath,
+                        new Vector3(x + 0.55f, 0f, backRowStart + 0.75f), x < 0f ? 200f : 160f) != null)
+                {
+                    placed++;
+                }
+            });
+
             // Зеркальный двойник шкафчиков: блокаутный шкаф стоит слева.
-            Pair(13.2f, x =>
+            Pair(halfW - 1.2f, x =>
             {
                 if (x < 0f)
                 {
@@ -507,7 +781,7 @@ namespace Igruha.EditorTools
 
                         ExamDress.SizeTo(locker, new Vector3(0.9f, 1.15f, 0.6f));
                         ExamDress.CenterAt(locker, new Vector3(
-                            x - 0.45f + c * 0.9f, 0.575f + row * 1.15f, halfD - 0.6f));
+                            x - 0.45f + c * 0.9f, 0.575f + row * 1.15f, halfD - 0.55f));
                         ExamDress.PaintTree(locker, ExamPalette.Get(ExamPalette.Tone.LockerBody));
                         placed++;
                     }
@@ -515,7 +789,7 @@ namespace Igruha.EditorTools
             });
 
             // Зеркальный двойник вешалки: блокаутная стоит справа.
-            Pair(13.5f, x =>
+            Pair(halfW - 0.9f, x =>
             {
                 if (x > 0f)
                 {
@@ -540,12 +814,13 @@ namespace Igruha.EditorTools
                 }
             });
 
-            // Скамьи в дальних углах, за кафедрой: там не бегают.
-            Pair(12.4f, x =>
+            // Скамьи вдоль боковых стен за колоннами парт: ждущие своей
+            // очереди сидят там же, где и в настоящем классе, — у стены.
+            Pair(halfW - 0.75f, x =>
             {
                 for (int i = 0; i < 2; i++)
                 {
-                    float z = 9.4f + i * 2.0f;
+                    float z = halfD - 3.4f - i * 2.0f;
                     if (ExamDress.Prop(group, $"Pew_{i}", PewPath, new Vector3(x, 0f, z),
                             x < 0f ? 90f : -90f) != null)
                     {
@@ -555,10 +830,12 @@ namespace Igruha.EditorTools
             });
 
             // Глобусы на плинтах по краям кафедры: пара опознавательных знаков
-            // «здесь начальство», и обе — на оси симметрии зала.
-            Pair(5.3f, x =>
+            // «здесь начальство», и обе — на оси симметрии зала. Z считается
+            // от стены: абсолютные 11.2 после ужатия зала оказались бы за ней.
+            float globeZ = halfD - config.PodiumDepth * 0.5f;
+            Pair(config.PodiumWidth * 0.5f + 0.9f, x =>
             {
-                GameObject plinth = ExamDress.Prop(group, "Plinth", PlinthPath, new Vector3(x, 0f, 11.2f), 0f);
+                GameObject plinth = ExamDress.Prop(group, "Plinth", PlinthPath, new Vector3(x, 0f, globeZ), 0f);
                 if (plinth == null)
                 {
                     return;
@@ -566,7 +843,7 @@ namespace Igruha.EditorTools
 
                 placed++;
                 float top = ExamDress.WorldSize(plinth).y;
-                if (ExamDress.Prop(group, "Globe", GlobePath, new Vector3(x, top, 11.2f), x < 0f ? 30f : -30f) != null)
+                if (ExamDress.Prop(group, "Globe", GlobePath, new Vector3(x, top, globeZ), x < 0f ? 30f : -30f) != null)
                 {
                     placed++;
                 }
@@ -687,7 +964,8 @@ namespace Igruha.EditorTools
             float platformsZ = config.HallDepth * 0.5f - config.PodiumDepth - 2.16f - config.PlatformDepth * 0.5f;
             float offset = (config.PlatformWidth + config.PlatformGap) * 0.5f;
 
-            foreach (float z in new[] { -11f, -8f, 0f, 8f })
+            float halfD = config.HallDepth * 0.5f;
+            foreach (float z in new[] { -halfD * 0.85f, -halfD * 0.42f, 0f, halfD * 0.62f })
             {
                 Pair(inX - 1.2f, x =>
                 {
@@ -711,7 +989,7 @@ namespace Igruha.EditorTools
                 new Color(1f, 0.97f, 0.9f), 5.5f, 46f));
 
             Beam(group, "PodiumBeam",
-                new Vector3(0f, config.CeilingHeight - 0.5f, config.HallDepth * 0.5f - config.PodiumDepth * 0.5f - 1.0f),
+                new Vector3(0f, config.CeilingHeight - 0.5f, config.HallDepth * 0.5f - config.PodiumDepth * 0.5f - 0.8f),
                 new Color(1f, 0.95f, 0.86f), 6.5f, 34f);
 
             // Рассеянный поднимается выше стандартного: зал перекрыт потолком,

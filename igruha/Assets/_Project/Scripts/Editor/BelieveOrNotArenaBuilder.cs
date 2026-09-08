@@ -36,6 +36,9 @@ namespace Igruha.EditorTools
         private const string ArenaRoot = "_Arena";
         private const float WallThickness = 0.4f;
 
+        /// <summary>Толщина ковра вокруг стола, м. Сантиметр — это ворс, а не ступенька.</summary>
+        private const float CarpetThickness = 0.01f;
+
         // ========== 1. АССЕТЫ ==========
 
         [MenuItem("Igruha/Верю не верю/1. Создать ассеты")]
@@ -205,6 +208,7 @@ namespace Igruha.EditorTools
             BuildHall(parent, config);
             GameObject table = BuildTable(parent, config);
             BuildBarrier(parent, config);
+            BuildCarpet(parent, config);
             BuildLamp(parent, config);
             BelieveOrNotHall.Build(parent, config, config.HallWidth * 0.5f - WallThickness * 0.5f);
 
@@ -329,6 +333,48 @@ namespace Igruha.EditorTools
             collider.center = new Vector3(0f, config.TableHeight + config.BarrierHeight * 0.5f, 0f);
 
             SetLayer(barrier, "Ignore Raycast");
+        }
+
+        /// <summary>
+        /// Ковёр вокруг стола — круг по свободной зоне зрителей.
+        ///
+        /// Свободная зона обязана оставаться пустой и ровной, и ковёр её
+        /// не нарушает: он лежит, а не стоит, толщиной в сантиметр, без
+        /// коллайдера и на <c>Default</c>, где камера его не видит вовсе.
+        ///
+        /// Зачем он есть. Пол зала — тон сукна, уведённый в темноту впятеро;
+        /// в ужатом зале ровно этот тон занимает всю нижнюю половину кадра
+        /// зрителя и читается не полом, а провалом. Круг ковра даёт полу
+        /// границу: у сцены появляется край, у стола — площадка, и зритель
+        /// видит, где кончается место, на котором идёт кон.
+        ///
+        /// Радиус берётся от свободной зоны, а не числом: ковёр обязан
+        /// кончаться там же, где начинается мебель, — иначе он или обрежется
+        /// об неё, или оставит между собой и ней полосу голого пола.
+        /// </summary>
+        private static void BuildCarpet(Transform parent, BelieveOrNotConfig config)
+        {
+            var carpet = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            carpet.name = "Carpet";
+            carpet.transform.SetParent(parent, false);
+            carpet.transform.localScale = new Vector3(
+                config.SpectatorZoneRadius * 2f, CarpetThickness * 0.5f, config.SpectatorZoneRadius * 2f);
+            carpet.transform.localPosition = new Vector3(0f, CarpetThickness * 0.5f, 0f);
+
+            var collider = carpet.GetComponent<Collider>();
+            if (collider != null)
+            {
+                // Опору держит пол зала под ковром. Второй коллайдер здесь —
+                // это ступенька в сантиметр ровно там, где весь кон бегают.
+                Object.DestroyImmediate(collider);
+            }
+
+            var renderer = carpet.GetComponent<MeshRenderer>();
+            Material tone = BelieveOrNotPaletteAssets.Get(BelieveOrNotPaletteAssets.Tone.Carpet);
+            if (renderer != null && tone != null)
+            {
+                renderer.sharedMaterial = tone;
+            }
         }
 
         private static void BuildLamp(Transform parent, BelieveOrNotConfig config)

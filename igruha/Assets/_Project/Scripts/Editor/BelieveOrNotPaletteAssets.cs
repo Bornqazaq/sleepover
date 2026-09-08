@@ -44,7 +44,10 @@ namespace Igruha.EditorTools
             Ceiling,
 
             /// <summary>Матовый тёмный металл: шнур подвеса лампы.</summary>
-            Shade
+            Shade,
+
+            /// <summary>Ковёр вокруг стола: тон бархата стен, чуть выведенный из темноты.</summary>
+            Carpet
         }
 
         private const string MaterialsRoot = "Assets/_Project/Materials";
@@ -114,6 +117,17 @@ namespace Igruha.EditorTools
         private const float CeilingDrop = 0.5f;
 
         /// <summary>
+        /// Во сколько раз ковёр темнее бархата шторы.
+        ///
+        /// Ковёр светлее пола (0.16 против 0.22 от своего источника, но
+        /// источники разные: пол снят с зелёного сукна, ковёр — с красного
+        /// бархата) ровно настолько, чтобы круг вокруг стола читался кругом.
+        /// Ярче нельзя: за пределами лампы он подхватывает свет бара и
+        /// начинает спорить со столом.
+        /// </summary>
+        private const float CarpetDrop = 0.16f;
+
+        /// <summary>
         /// Насколько альбедо дерева стола ниже замера тумбы. Это не вкус,
         /// а арифметика света: у столешницы освещённость единица (лампа даёт
         /// 4 канделы с 1.8 м), а у тумбы в углу зала — около четверти. Одно
@@ -163,6 +177,7 @@ namespace Igruha.EditorTools
                 case Tone.Wall: return Dim(velvet, WallDrop);
                 case Tone.Ceiling: return Dim(velvet, WallDrop * CeilingDrop);
                 case Tone.Shade: return ShadeColour;
+                case Tone.Carpet: return Dim(velvet, CarpetDrop);
                 default: return Color.magenta;
             }
         }
@@ -245,6 +260,11 @@ namespace Igruha.EditorTools
                     break;
                 case Tone.Shade:
                     Opaque(material, color, 0.25f, 0.6f);
+                    break;
+                // Ковёр матовее пола: ворс блика не даёт вовсе, а любой блик
+                // на нём стал бы вторым светлым пятном прямо под столом.
+                case Tone.Carpet:
+                    Opaque(material, color, 0.02f, 0f);
                     break;
             }
         }

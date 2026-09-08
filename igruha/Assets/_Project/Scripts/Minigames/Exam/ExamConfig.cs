@@ -55,24 +55,41 @@ namespace Igruha.Minigames.Exam
         [SerializeField] private float stuckTeleportSeconds = 3f;
 
         [Header("Арена, в ширинах персонажа (1 ШП = 0.72 м)")]
+        //
+        // ⚠️ Зал ужат на треть 08.09 и это правка по замечанию геймдизайнера,
+        // а не подгонка чисел. Было 40 × 36 ШП (28.80 × 25.92 м) при потолке
+        // 8 ШП: 746 м² пола на восьмерых, из которых игра занимала меньше
+        // трети. С уровня глаз это читалось не классом, а ангаром — персонаж
+        // в кадре становился фигуркой, парты у стен игрушечными, а между
+        // зоной возврата и платформами лежала полоса голого пола шириной
+        // в пять метров, по которой просто бежали.
+        //
+        // Стало 27 × 28 ШП (19.44 × 20.16 м), 392 м² — ровно вдвое меньше.
+        // Раскладка по глубине сходится нацело: кафедра 4 + проход 3 +
+        // площадка 6 + разбег 5 + зона возврата 4 + запас камеры 6 = 28 ШП.
+        // По ширине: две площадки по 8 + зазор 2 = 18, и по 4.5 ШП (3.24 м)
+        // остаётся с боков — там встают ряды парт, а не пустой пол.
         [SerializeField] private float unitsPerWidth = 0.72f;
-        [SerializeField] private float hallWidth = 40f;
-        [Tooltip("36, а не 30: при 30 за спиной Ученика остаётся 0.7 м и камера прижата к затылку")]
-        [SerializeField] private float hallDepth = 36f;
-        [SerializeField] private float ceilingHeight = 8f;
-        [SerializeField] private float platformWidth = 12f;
-        [SerializeField] private float platformDepth = 10f;
+        [Tooltip("27 = 18 ШП под площадки + по 4.5 ШП боковых нефов под ряды парт")]
+        [SerializeField] private float hallWidth = 27f;
+        [Tooltip("28 = 4 кафедра + 3 проход + 6 площадка + 5 разбег + 4 возврат + 6 запас камеры")]
+        [SerializeField] private float hallDepth = 28f;
+        [Tooltip("6.5 ШП = 4.68 м. На 8 ШП зал читался ратушей: потолок выше доски вдвое")]
+        [SerializeField] private float ceilingHeight = 6.5f;
+        [Tooltip("8 × 6 ШП = 24.9 м² — семеро помещаются с запасом на толкучку, но без пустоты")]
+        [SerializeField] private float platformWidth = 8f;
+        [SerializeField] private float platformDepth = 6f;
         [Tooltip("Зазор между платформами. НЕ пропасть: перекрыт невидимым полом")]
         [SerializeField] private float platformGap = 2f;
-        [SerializeField] private float podiumWidth = 10f;
-        [SerializeField] private float podiumDepth = 5f;
+        [SerializeField] private float podiumWidth = 8f;
+        [SerializeField] private float podiumDepth = 4f;
         [SerializeField] private float podiumHeight = 1f;
-        [SerializeField] private float returnZoneWidth = 26f;
-        [SerializeField] private float returnZoneDepth = 5f;
+        [SerializeField] private float returnZoneWidth = 18f;
+        [SerializeField] private float returnZoneDepth = 4f;
         [Tooltip("От зоны возврата до ближайшей платформы")]
-        [SerializeField] private float returnToPlatformGap = 6f;
+        [SerializeField] private float returnToPlatformGap = 5f;
         [Tooltip("Запас за зоной возврата: камере нужно ~4.5 м позади персонажа")]
-        [SerializeField] private float cameraSlackDepth = 7f;
+        [SerializeField] private float cameraSlackDepth = 6f;
         [Tooltip("Глубина ямы под платформами")]
         [SerializeField] private float pitDepth = 10f;
 
