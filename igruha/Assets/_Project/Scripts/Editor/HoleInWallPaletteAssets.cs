@@ -68,33 +68,7 @@ namespace Igruha.EditorTools
             Lane2,
 
             /// <summary>То же для третьей дорожки.</summary>
-            Lane3,
-
-            /// <summary>Одежда зала, тон первый — подфаза 4.7.</summary>
-            Crowd0,
-
-            /// <summary>Одежда зала, тон второй.</summary>
-            Crowd1,
-
-            /// <summary>Одежда зала, тон третий.</summary>
-            Crowd2,
-
-            /// <summary>Одежда зала, тон четвёртый.</summary>
-            Crowd3,
-
-            /// <summary>Одежда зала, тон пятый.</summary>
-            Crowd4
-        }
-
-        /// <summary>
-        /// Тон одежды зрителя по его номеру. Заворачивается по кругу вместе
-        /// с <see cref="HoleInWallPalette.CrowdTone"/>: сколько тонов в наборе —
-        /// дело палитры, а не рассадки.
-        /// </summary>
-        internal static Tone CrowdWearTone(int index)
-        {
-            int count = HoleInWallPalette.CrowdWear.Length;
-            return Tone.Crowd0 + ((index % count) + count) % count;
+            Lane3
         }
 
         /// <summary>
@@ -194,11 +168,6 @@ namespace Igruha.EditorTools
                 case Tone.Lane1: return HoleInWallPalette.LaneAccent(1);
                 case Tone.Lane2: return HoleInWallPalette.LaneAccent(2);
                 case Tone.Lane3: return HoleInWallPalette.LaneAccent(3);
-                case Tone.Crowd0: return HoleInWallPalette.CrowdTone(0);
-                case Tone.Crowd1: return HoleInWallPalette.CrowdTone(1);
-                case Tone.Crowd2: return HoleInWallPalette.CrowdTone(2);
-                case Tone.Crowd3: return HoleInWallPalette.CrowdTone(3);
-                case Tone.Crowd4: return HoleInWallPalette.CrowdTone(4);
                 default: return Color.magenta;
             }
         }
@@ -282,17 +251,6 @@ namespace Igruha.EditorTools
                 case Tone.Lane2:
                 case Tone.Lane3:
                     HoleInWallMaterials.ConfigureEmissive(material, color, HoleInWallPalette.LaneAccentEmission);
-                    break;
-
-                // Одежда зала: матовая и несветящаяся. Разбор — в шапке
-                // HoleInWallPalette.CrowdWear: четыреста светящихся зрителей
-                // съели бы bloom'ом контур выреза.
-                case Tone.Crowd0:
-                case Tone.Crowd1:
-                case Tone.Crowd2:
-                case Tone.Crowd3:
-                case Tone.Crowd4:
-                    HoleInWallMaterials.ConfigureOpaque(material, color, HoleInWallPalette.CrowdSmoothness, 0f);
                     break;
 
                 case Tone.Water:
