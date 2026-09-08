@@ -179,6 +179,11 @@ namespace Igruha.EditorTools
             Debug.Log(CircusDress.Report(), arenaRoot);
             Debug.Log(CircusPalette.Report(), arenaRoot);
 
+            // Физика декора — последним шагом сборки. Дресс срезает коллайдеры
+            // моделей, и всё, что поставлено в зал само по себе, без коробки
+            // блокаута, до этого шага проходилось насквозь.
+            PropColliders.Build(arenaRoot);
+
             var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(scene);
             UnityEditor.SceneManagement.EditorSceneManager.SaveScene(scene);

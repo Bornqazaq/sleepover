@@ -146,6 +146,11 @@ namespace Igruha.EditorTools
             Debug.Log(BelieveOrNotDress.Report(arena), arena);
             BelieveOrNotPaletteAssets.Flush();
 
+            // Физика декора — последним шагом сборки. Дресс срезает коллайдеры
+            // моделей, и всё, что поставлено в зал само по себе, без коробки
+            // блокаута, до этого шага проходилось насквозь.
+            PropColliders.Build(arena);
+
             EditorSceneManager.MarkAllScenesDirty();
             EditorSceneManager.SaveOpenScenes();
 
