@@ -233,6 +233,12 @@ namespace Igruha.EditorTools
             Debug.Log(CarryItemDress.Report(), arena);
             Debug.Log(CarryItemPalette.Report(), arena);
 
+            // Физика декора — последним шагом сборки. Дресс срезает коллайдеры
+            // моделей, и всё, что поставлено в зал само по себе, без коробки
+            // блокаута, до этого шага проходилось насквозь.
+            PropColliders.Build(arena);
+            PropColliders.Build(traps);
+
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
         }
 

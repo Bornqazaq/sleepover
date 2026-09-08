@@ -140,6 +140,11 @@ namespace Igruha.EditorTools
             Debug.Log(HoleInWallDress.MeasurementReport(), arena);
             HoleInWallPaletteAssets.Flush();
 
+            // Физика декора — последним шагом сборки. Дресс срезает коллайдеры
+            // моделей, и всё, что поставлено в зал само по себе, без коробки
+            // блокаута, до этого шага проходилось насквозь.
+            PropColliders.Build(arena.gameObject);
+
             Debug.Log(
                 $"🧱 Арена «Дырки в стене» построена: {config.TrackCount} дорожек, " +
                 $"арена {config.ArenaWidth:F1}×{config.ArenaDepth:F1} м, путь стены {config.WallTravel:F1} м, " +

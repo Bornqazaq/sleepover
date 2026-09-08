@@ -244,6 +244,11 @@ namespace Igruha.EditorTools
             ExamVfx.Build(root, config);
             ExamPalette.Flush();
 
+            // Физика декора — последним шагом сборки. Дресс срезает коллайдеры
+            // моделей, и всё, что поставлено в зал само по себе, без коробки
+            // блокаута, до этого шага проходилось насквозь.
+            PropColliders.Build(root);
+
             WireMinigameReferences(root);
 
             Debug.Log($"📚 Арена «Экзамена» построена: зал {config.HallWidth:F1}×{config.HallDepth:F1} м, " +

@@ -68,6 +68,11 @@ namespace Igruha.EditorTools
 
             MemoryRunPalette.Flush();
 
+            // Физика декора — последним шагом сборки. Дресс срезает коллайдеры
+            // моделей, и всё, что поставлено в зал само по себе, без коробки
+            // блокаута, до этого шага проходилось насквозь.
+            PropColliders.Build(arena.gameObject);
+
             Debug.Log(MemoryRunDress.Report(), arena);
             Debug.Log(MemoryRunPalette.Report(), arena);
             Debug.Log(MemoryRunEnvironment.Report(), arena);

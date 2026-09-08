@@ -891,6 +891,8 @@ MonoBehaviour:
   spectatorPanel: {fileID: 1324044314}
   spectatorText: {fileID: 1002941266}
   countdownText: {fileID: 931738522}
+  statusText: {fileID: 0}
+  restartButton: {fileID: 0}
 --- !u!224 &150850381
 RectTransform:
   m_ObjectHideFlags: 0
@@ -12610,6 +12612,9 @@ MonoBehaviour:
   nextAction: {fileID: 592073515761840383, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   previousAction: {fileID: -2996187274519451318, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   spectatorMode: 0
+  cameraRig: {fileID: 0}
+  spectatorPitch: 12
+  firstPersonRig: {fileID: 0}
 --- !u!1 &1247046250
 GameObject:
   m_ObjectHideFlags: 0
