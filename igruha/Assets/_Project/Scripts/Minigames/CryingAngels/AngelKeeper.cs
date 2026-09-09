@@ -160,6 +160,19 @@ namespace Igruha.Minigames.CryingAngels
             }
         }
 
+        /// <summary>
+        /// Риг принадлежит локальному игроку: спрятать линзу перед его камерой и
+        /// включить его личную тьму. Раздача ролей идёт на каждой машине, так
+        /// что у чужих Водящих метод получает false.
+        /// </summary>
+        public void SetLocalView(bool ownedLocally)
+        {
+            if (rigInstance != null && rigInstance.TryGetComponent(out KeeperLocalView view))
+            {
+                view.Apply(ownedLocally);
+            }
+        }
+
         /// <summary>Фонарь горит. Выключен на стартовом отсчёте и после конца раунда.</summary>
         public void SetBeamVisible(bool visible)
         {

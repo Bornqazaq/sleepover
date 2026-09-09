@@ -642,6 +642,7 @@ namespace Igruha.Minigames.CryingAngels
             SetDummyBotsRunning(RoundActive);
             keeper?.ApplyTurnSpeed(firstPersonRig, KeeperTurnSpeed);
             keeper?.SetBeamVisible(BeamEnabled);
+            keeper?.SetLocalView(IsLocal(keeperPlayerId));
             network?.ConfigureKeeper(keeper, IsLocal(keeperPlayerId), firstPersonRig);
             ApplyRoleCamera();
         }
