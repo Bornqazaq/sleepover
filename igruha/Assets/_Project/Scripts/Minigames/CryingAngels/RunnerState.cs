@@ -132,6 +132,8 @@ namespace Igruha.Minigames.CryingAngels
 
             Current = phase;
             motor.MovementLocked = phase != Phase.Free;
+            // Разбор сетевых жалоб «не замерзает»: одна строка на смену состояния, у каждой машины своя.
+            Debug.Log($"❄️ Ангелы [{name}]: по сети → {phase}, блокировка {motor.MovementLocked}", this);
             Changed?.Invoke(Current);
         }
 
