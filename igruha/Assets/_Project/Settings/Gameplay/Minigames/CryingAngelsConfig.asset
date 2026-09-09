@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e5355c2cb66524c4a9d73322244a69fd, type: 3}
   m_Name: CryingAngelsConfig
   m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.CryingAngels.CryingAngelsConfig
+  arenaRadius: 21.6
   startCountdown: 3
   turnSpeedAtFewestRunners: 60
   turnSpeedAtMostRunners: 90
@@ -26,5 +27,9 @@ MonoBehaviour:
   freezePoseCount: 6
   statuesRemainAsCover: 0
   beamColorFeedback: 1
-  beamColorIdle: {r: 1, g: 1, b: 1, a: 1}
+  beamColorIdle: {r: 1, g: 0.79, b: 0.46, a: 1}
   beamColorPetrifying: {r: 1, g: 0, b: 0, a: 1}
+  botSweepInterval: {x: 2.5, y: 5}
+  botPauseDuration: {x: 0.6, y: 1.8}
+  botReverseChance: 0.45
+  botHoldOnTarget: 5

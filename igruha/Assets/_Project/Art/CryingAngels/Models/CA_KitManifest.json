@@ -1,0 +1,352 @@
+[
+  {
+    "name": "CA_WeepingAngel",
+    "triangles": 13134,
+    "vertices": 6915,
+    "dimensions": [
+      1.0,
+      0.9587500095367432,
+      2.0899999141693115
+    ]
+  },
+  {
+    "name": "CA_PrayingAngel",
+    "triangles": 13134,
+    "vertices": 6915,
+    "dimensions": [
+      1.0,
+      0.9587500095367432,
+      2.0899999141693115
+    ]
+  },
+  {
+    "name": "CA_WarningAngel",
+    "triangles": 13134,
+    "vertices": 6915,
+    "dimensions": [
+      1.0,
+      0.9587500095367432,
+      2.0899999141693115
+    ]
+  },
+  {
+    "name": "CA_FallenVisage",
+    "triangles": 2332,
+    "vertices": 1226,
+    "dimensions": [
+      1.0,
+      0.9587500095367432,
+      0.8400000333786011
+    ]
+  },
+  {
+    "name": "CA_Reliquary",
+    "triangles": 1304,
+    "vertices": 704,
+    "dimensions": [
+      1.0,
+      0.9587500095367432,
+      0.8349999785423279
+    ]
+  },
+  {
+    "name": "CA_BrokenPlinth",
+    "triangles": 1224,
+    "vertices": 656,
+    "dimensions": [
+      1.0,
+      0.9587500095367432,
+      0.8574999570846558
+    ]
+  },
+  {
+    "name": "CA_FlutedColumn",
+    "triangles": 2368,
+    "vertices": 1220,
+    "dimensions": [
+      1.600000023841858,
+      1.5399999618530273,
+      8.800000190734863
+    ]
+  },
+  {
+    "name": "CA_ArchedWallBay",
+    "triangles": 7060,
+    "vertices": 3862,
+    "dimensions": [
+      11.100000381469727,
+      1.975000023841858,
+      11.895000457763672
+    ]
+  },
+  {
+    "name": "CA_FloorSector_00",
+    "triangles": 1538,
+    "vertices": 1060,
+    "dimensions": [
+      26.496118545532227,
+      10.735445022583008,
+      0.05600001662969589
+    ]
+  },
+  {
+    "name": "CA_FloorSector_01",
+    "triangles": 1498,
+    "vertices": 1036,
+    "dimensions": [
+      25.023860931396484,
+      18.97944450378418,
+      0.056000009179115295
+    ]
+  },
+  {
+    "name": "CA_FloorSector_02",
+    "triangles": 1538,
+    "vertices": 1060,
+    "dimensions": [
+      18.97272300720215,
+      24.34334945678711,
+      0.056000009179115295
+    ]
+  },
+  {
+    "name": "CA_FloorSector_03",
+    "triangles": 1558,
+    "vertices": 1072,
+    "dimensions": [
+      10.715719223022461,
+      26.451210021972656,
+      0.05600001662969589
+    ]
+  },
+  {
+    "name": "CA_FloorSector_04",
+    "triangles": 1678,
+    "vertices": 1144,
+    "dimensions": [
+      10.735445022583008,
+      26.496118545532227,
+      0.056000009179115295
+    ]
+  },
+  {
+    "name": "CA_FloorSector_05",
+    "triangles": 1498,
+    "vertices": 1036,
+    "dimensions": [
+      18.97944450378418,
+      24.34334945678711,
+      0.056000009179115295
+    ]
+  },
+  {
+    "name": "CA_FloorSector_06",
+    "triangles": 1598,
+    "vertices": 1096,
+    "dimensions": [
+      24.34334945678711,
+      18.97272300720215,
+      0.056000009179115295
+    ]
+  },
+  {
+    "name": "CA_FloorSector_07",
+    "triangles": 1758,
+    "vertices": 1192,
+    "dimensions": [
+      27.01676368713379,
+      10.715719223022461,
+      0.056000009179115295
+    ]
+  },
+  {
+    "name": "CA_FloorSector_08",
+    "triangles": 1538,
+    "vertices": 1060,
+    "dimensions": [
+      26.007919311523438,
+      10.735445022583008,
+      0.056000009179115295
+    ]
+  },
+  {
+    "name": "CA_FloorSector_09",
+    "triangles": 1638,
+    "vertices": 1120,
+    "dimensions": [
+      24.34334945678711,
+      18.97944450378418,
+      0.056000009179115295
+    ]
+  },
+  {
+    "name": "CA_FloorSector_10",
+    "triangles": 1598,
+    "vertices": 1096,
+    "dimensions": [
+      18.97272300720215,
+      24.34334945678711,
+      0.056000009179115295
+    ]
+  },
+  {
+    "name": "CA_FloorSector_11",
+    "triangles": 1638,
+    "vertices": 1120,
+    "dimensions": [
+      10.715719223022461,
+      26.007919311523438,
+      0.056000009179115295
+    ]
+  },
+  {
+    "name": "CA_FloorSector_12",
+    "triangles": 1638,
+    "vertices": 1120,
+    "dimensions": [
+      10.735445022583008,
+      26.938657760620117,
+      0.05600001662969589
+    ]
+  },
+  {
+    "name": "CA_FloorSector_13",
+    "triangles": 1498,
+    "vertices": 1036,
+    "dimensions": [
+      19.05473518371582,
+      24.34334945678711,
+      0.056000009179115295
+    ]
+  },
+  {
+    "name": "CA_FloorSector_14",
+    "triangles": 1458,
+    "vertices": 1012,
+    "dimensions": [
+      24.34334945678711,
+      18.97272300720215,
+      0.056000009179115295
+    ]
+  },
+  {
+    "name": "CA_FloorSector_15",
+    "triangles": 1538,
+    "vertices": 1060,
+    "dimensions": [
+      26.919185638427734,
+      10.715719223022461,
+      0.05600001662969589
+    ]
+  },
+  {
+    "name": "CA_KeeperDais",
+    "triangles": 9016,
+    "vertices": 4728,
+    "dimensions": [
+      4.320000171661377,
+      4.320000171661377,
+      0.38099998235702515
+    ]
+  },
+  {
+    "name": "CA_DomeSector",
+    "triangles": 1316,
+    "vertices": 760,
+    "dimensions": [
+      19.935644149780273,
+      11.042196273803711,
+      6.8159990310668945
+    ]
+  },
+  {
+    "name": "CA_CornerWeb",
+    "triangles": 1042,
+    "vertices": 549,
+    "dimensions": [
+      0.7218000292778015,
+      0.009200000204145908,
+      0.7215588688850403
+    ]
+  },
+  {
+    "name": "CA_ShatteredPillar",
+    "triangles": 2388,
+    "vertices": 1256,
+    "dimensions": [
+      1.0499999523162842,
+      1.059249997138977,
+      2.340831756591797
+    ]
+  },
+  {
+    "name": "CA_MourningObelisk",
+    "triangles": 1690,
+    "vertices": 897,
+    "dimensions": [
+      1.0499999523162842,
+      0.8582500219345093,
+      2.4817628860473633
+    ]
+  },
+  {
+    "name": "CA_ShroudedFigure",
+    "triangles": 2076,
+    "vertices": 1140,
+    "dimensions": [
+      1.0800000429153442,
+      0.9185500144958496,
+      2.2917630672454834
+    ]
+  },
+  {
+    "name": "CA_Sarcophagus",
+    "triangles": 3584,
+    "vertices": 1820,
+    "dimensions": [
+      2.4200000762939453,
+      1.0499999523162842,
+      0.9200000166893005
+    ]
+  },
+  {
+    "name": "CA_FallenColumn",
+    "triangles": 696,
+    "vertices": 360,
+    "dimensions": [
+      2.0,
+      1.5408282279968262,
+      0.8090125322341919
+    ]
+  },
+  {
+    "name": "CA_FuneraryUrn",
+    "triangles": 1818,
+    "vertices": 917,
+    "dimensions": [
+      0.9160000085830688,
+      0.8399999737739563,
+      0.8600000143051147
+    ]
+  },
+  {
+    "name": "CA_StoneFragments",
+    "triangles": 1020,
+    "vertices": 544,
+    "dimensions": [
+      1.380659818649292,
+      1.496960163116455,
+      0.12838849425315857
+    ]
+  },
+  {
+    "name": "CA_TatteredBanner",
+    "triangles": 304,
+    "vertices": 183,
+    "dimensions": [
+      1.600000023841858,
+      0.23989005386829376,
+      3.990466594696045
+    ]
+  }
+]

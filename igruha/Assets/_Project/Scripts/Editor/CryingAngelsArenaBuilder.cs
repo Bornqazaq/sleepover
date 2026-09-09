@@ -116,6 +116,12 @@ namespace Igruha.EditorTools
             // блокаута, до этого шага проходилось насквозь.
             PropColliders.Build(arenaRoot);
 
+            // Art is reapplied after blockout rebuilding and keeps its own visual-only root.
+            if (AssetDatabase.IsValidFolder(CryingAngelsGalleryAssets.Prefabs))
+            {
+                CryingAngelsGalleryBuilder.Apply(UnityEngine.SceneManagement.SceneManager.GetActiveScene());
+            }
+
             // Оформление интерфейса — тем же прогоном: иначе пересборка арены
             // вернула бы серые прямоугольники шаблона.
             UiSkinPass.Apply();

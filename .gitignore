@@ -171,3 +171,6 @@ igruha/[Aa]ssets/_Project/Audio/**/Probe.meta
 # Забракованные варианты звука: нужны только для приёмки на слух на машине,
 # где их сгенерировали. В LFS они весят втрое больше победителей.
 igruha/Assets/_Project/Audio/*/Probe/
+
+# Python bytecode from tools/
+__pycache__/
