@@ -253,7 +253,21 @@ namespace Igruha.EditorTools
             Igruha.Minigames.CryingAngels.CryingAngelsMinigame game=null;
             foreach(var root in scene.GetRootGameObjects()) { game=root.GetComponentInChildren<Igruha.Minigames.CryingAngels.CryingAngelsMinigame>(true); if(game!=null) break; }
             if(game==null) throw new InvalidOperationException("CryingAngelsMinigame not found in scene; keeper darkness unbound.");
-            var gameSo=new SerializedObject(game); gameSo.FindProperty("keeperDarkness").objectReferenceValue=darkness; gameSo.ApplyModifiedPropertiesWithoutUndo();
+            var gameSo=new SerializedObject(game); gameSo.FindProperty("keeperDarkness").objectReferenceValue=darkness;
+            gameSo.FindProperty("screamer").objectReferenceValue=SetupKeeperScreamer(scene, game.gameObject);
+            gameSo.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>Touch screamer lives next to the minigame; the flash needs the vignette's canvas.</summary>
+        private static Igruha.Minigames.CryingAngels.KeeperScreamer SetupKeeperScreamer(Scene scene, GameObject host)
+        {
+            var screamer=host.GetComponent<Igruha.Minigames.CryingAngels.KeeperScreamer>();
+            if(screamer==null) screamer=host.AddComponent<Igruha.Minigames.CryingAngels.KeeperScreamer>();
+            Canvas canvas=null;
+            foreach(var root in scene.GetRootGameObjects()) { var vignette=root.GetComponentInChildren<Igruha.Minigames.CryingAngels.PetrificationVignette>(true); if(vignette!=null){ canvas=vignette.GetComponentInParent<Canvas>(true); break; } }
+            if(canvas==null) throw new InvalidOperationException("PetrificationVignette canvas not found; screamer flash unbound.");
+            var so=new SerializedObject(screamer); so.FindProperty("overlayCanvas").objectReferenceValue=canvas; so.ApplyModifiedPropertiesWithoutUndo();
+            return screamer;
         }
 
         private static void SetupKeeperArt()

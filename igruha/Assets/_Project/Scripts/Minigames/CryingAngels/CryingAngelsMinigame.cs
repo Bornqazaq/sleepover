@@ -47,6 +47,8 @@ namespace Igruha.Minigames.CryingAngels
         [SerializeField] private FirstPersonCameraRig firstPersonRig;
         [Tooltip("Кромешная тьма на машине Водящего: гасит луну и окна, оставляет фонарь. Заполняет билдер арта")]
         [SerializeField] private KeeperDarkness keeperDarkness;
+        [Tooltip("Скример касания: дошедший вылетает Водящему в лицо. Заполняет билдер арта")]
+        [SerializeField] private KeeperScreamer screamer;
 
         [Header("Бегущий")]
         [Tooltip("Рамка окаменения на экране своего игрока")]
@@ -217,6 +219,8 @@ namespace Igruha.Minigames.CryingAngels
         protected override void OnRoundEnded()
         {
             SetDummyBotsRunning(false);
+            // Скример не переживает конец раунда: призрак и вспышка на результатах — мусор.
+            screamer?.Stop();
             RestoreRunnersAfterRound();
             SetBeamEnabled(false);
             ReleaseAllRunners();
@@ -742,6 +746,7 @@ namespace Igruha.Minigames.CryingAngels
                 // конец раунда только что вернул туда всех.
                 if (RoundActive)
                 {
+                    PlayTouchScreamer(runner);
                     ApplyRunnerRetired(runner);
                 }
             }
@@ -1371,12 +1376,34 @@ namespace Igruha.Minigames.CryingAngels
             runner.TouchOrder = ++touchCounter;
             runner.BestRadius = 0f;
 
+            PlayTouchScreamer(runner);
             RetireRunner(runner);
 
             if (AllRunnersTouched())
             {
                 EndMinigame();
             }
+        }
+
+        /// <summary>
+        /// Момент касания на этой машине — до того, как аватар дошедшего снимут
+        /// с арены: призраку нужна живая модель. Зовётся и у авторитета, и у
+        /// клиента по приехавшему флагу, поэтому сцена одинаковая везде.
+        /// </summary>
+        private void PlayTouchScreamer(RunnerRecord runner)
+        {
+            if (screamer == null)
+            {
+                return;
+            }
+
+            screamer.Play(
+                runner.PlayerId,
+                runner.Avatar != null ? runner.Avatar.gameObject : null,
+                keeperAvatar != null ? keeperAvatar.transform : null,
+                firstPersonRig,
+                keeper != null ? keeper.Beam : null,
+                IsLocal(keeperPlayerId));
         }
 
         /// <summary>
