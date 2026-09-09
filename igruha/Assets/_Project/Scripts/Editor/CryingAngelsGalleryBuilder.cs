@@ -19,6 +19,8 @@ namespace Igruha.EditorTools
         private const float ArtRadius = 28.08f;
         // Every fourth bay keeps its moon glass; the rest are boarded with dark panes.
         private const int LitBayStep = 4;
+        // Torch strength against a full-range cookie; the old 720 was tuned against a cookie that peaked at 0.19.
+        private const float TorchIntensity = 400f;
         private static readonly string[] HighModels = { "CA_WeepingAngel", "CA_PrayingAngel", "CA_WarningAngel" };
         private static readonly string[] LowModels = { "CA_FallenVisage", "CA_Reliquary", "CA_BrokenPlinth" };
 
@@ -248,17 +250,44 @@ namespace Igruha.EditorTools
                 light.color=new Color(1f,.79f,.46f);
                 light.shadows=LightShadows.Soft;
                 light.shadowBias=.01f; light.shadowNormalBias=.06f;
-                light.intensity=720f; light.innerSpotAngle=24f; light.shadowCustomResolution=2048;
+                light.intensity=TorchIntensity; light.innerSpotAngle=24f; light.shadowCustomResolution=2048;
                 light.cookie=CryingAngelsGalleryAssets.EnsureTorchCookie();
                 var beam=root.GetComponentInChildren<Igruha.Minigames.CryingAngels.KeeperBeam>(true);
-                var beamSo=new SerializedObject(beam); beamSo.FindProperty("intensity").floatValue=720f; beamSo.ApplyModifiedPropertiesWithoutUndo();
+                var beamSo=new SerializedObject(beam); beamSo.FindProperty("intensity").floatValue=TorchIntensity; beamSo.ApplyModifiedPropertiesWithoutUndo();
                 var cone=root.GetComponentInChildren<Igruha.Minigames.CryingAngels.KeeperBeamCone>(true);
                 var coneSo=new SerializedObject(cone);coneSo.FindProperty("alpha").floatValue=.16f;coneSo.ApplyModifiedPropertiesWithoutUndo();
                 cone.GetComponent<MeshRenderer>().sharedMaterial=CryingAngelsGalleryAssets.EnsureMaterial("CA_KeeperBeam","Igruha/CryingAngels/KeeperBeam");
                 SetupBeamDust(cone.transform);
+                SetupKeeperLocalView(root);
                 PrefabUtility.SaveAsPrefabAsset(root,keeperPath);
             }
             finally { PrefabUtility.UnloadPrefabContents(root); }
+        }
+
+        /// <summary>The keeper's own eyes: no lens in front of the camera, and a grade that drowns the hall so only the beam remains.</summary>
+        private static void SetupKeeperLocalView(GameObject root)
+        {
+            var existing=root.transform.Find("KeeperNightVolume");
+            if(existing!=null) Object.DestroyImmediate(existing.gameObject);
+            var volume=Group(root.transform,"KeeperNightVolume").gameObject.AddComponent<Volume>();
+            volume.isGlobal=true; volume.priority=20; volume.enabled=false;
+            string path=CryingAngelsGalleryAssets.Materials+"/CA_KeeperGrade.asset";
+            var profile=AssetDatabase.LoadAssetAtPath<VolumeProfile>(path);
+            if(profile==null){ profile=ScriptableObject.CreateInstance<VolumeProfile>(); AssetDatabase.CreateAsset(profile,path); }
+            var grade=Ensure<ColorAdjustments>(profile);
+            // -1.6 EV: moonlit stone (~0.1) sinks to black after contrast, beam-lit stone (several units) stays readable.
+            grade.postExposure.Override(-1.6f); grade.contrast.Override(30f); grade.saturation.Override(-12f);
+            LiftGammaGain stale; if(profile.TryGet(out stale)) { profile.Remove<LiftGammaGain>(); Object.DestroyImmediate(stale,true); }
+            var vignette=Ensure<Vignette>(profile);
+            vignette.intensity.Override(.58f); vignette.smoothness.Override(.55f); vignette.color.Override(Color.black);
+            volume.sharedProfile=profile; EditorUtility.SetDirty(profile);
+            var view=root.GetComponent<Igruha.Minigames.CryingAngels.KeeperLocalView>();
+            if(view==null) view=root.AddComponent<Igruha.Minigames.CryingAngels.KeeperLocalView>();
+            var lens=root.GetComponentsInChildren<Transform>(true).First(t=>t.name=="TorchLens").gameObject;
+            var so=new SerializedObject(view);
+            var hidden=so.FindProperty("hiddenForOwner"); hidden.arraySize=1; hidden.GetArrayElementAtIndex(0).objectReferenceValue=lens;
+            var owner=so.FindProperty("ownerOnly"); owner.arraySize=1; owner.GetArrayElementAtIndex(0).objectReferenceValue=volume;
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static void SetupBeamDust(Transform cone)

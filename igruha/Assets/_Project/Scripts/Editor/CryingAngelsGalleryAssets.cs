@@ -115,20 +115,30 @@ namespace Igruha.EditorTools
             var existing = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
             if (existing != null) return existing;
             const int size = 256;
-            var texture = new Texture2D(size, size, TextureFormat.RGB24, false);
+            var texture = new Texture2D(size, size, TextureFormat.RGB24, false, true);
             var pixels = new Color[size * size];
+            var values = new float[size * size];
+            float peak = 0f;
             for (int y = 0; y < size; y++)
             for (int x = 0; x < size; x++)
             {
                 float u = (x + .5f) / size * 2f - 1f, v = (y + .5f) / size * 2f - 1f;
                 float r = Mathf.Sqrt(u * u + v * v);
                 float angle = Mathf.Atan2(v, u);
-                float core = Mathf.SmoothStep(1f, 0f, Mathf.InverseLerp(.08f, .62f, r)) * .75f + .25f;
+                // Wide hot core: the cone is only 35 degrees, a tight core lit a coin-sized patch of the hall.
+                float core = Mathf.SmoothStep(1f, 0f, Mathf.InverseLerp(.10f, .80f, r)) * .70f + .30f;
                 float ring = Mathf.Exp(-Mathf.Pow((r - .70f) / .06f, 2f)) * .22f;
                 float unevenness = 1f - .10f * (Mathf.Sin(angle * 3f + 1.1f) * .5f + .5f) - .08f * (Mathf.Sin(angle * 7f + r * 9f) * .5f + .5f);
                 float rim = 1f - Mathf.SmoothStep(.80f, .99f, r);
                 float value = Mathf.Clamp01((core + ring) * unevenness * rim);
-                pixels[y * size + x] = new Color(value, value * .985f, value * .96f);
+                values[y * size + x] = value; if (value > peak) peak = value;
+            }
+            // Normalise to a full-range mask: the first cookie peaked at 0.19 and quietly ate 80% of the torch,
+            // so the intensity tuned against it looked right while the light itself was five times too weak.
+            for (int i = 0; i < values.Length; i++)
+            {
+                float value = peak > 0f ? values[i] / peak : 0f;
+                pixels[i] = new Color(value, value * .985f, value * .96f);
             }
             texture.SetPixels(pixels); texture.Apply();
             File.WriteAllBytes(path, texture.EncodeToPNG());
