@@ -16,7 +16,7 @@ namespace Igruha.EditorTools
         private static readonly Color[] Colors = {
             new Color(.66f,.70f,.73f),new Color(.15f,.22f,.29f),new Color(.40f,.48f,.54f),
             new Color(.39f,.46f,.51f),new Color(.34f,.23f,.105f),new Color(.045f,.062f,.071f),
-            new Color(.22f,.78f,.42f),new Color(.052f,.075f,.09f),new Color(.33f,.43f,.47f)
+            new Color(.45f,.64f,1f),new Color(.052f,.075f,.09f),new Color(.33f,.43f,.47f)
         };
 
         internal static void Import()
@@ -98,7 +98,7 @@ namespace Igruha.EditorTools
             foreach (CubemapFace face in Enum.GetValues(typeof(CubemapFace)))
             {
                 if (face == CubemapFace.Unknown) continue;
-                Color tint = face == CubemapFace.PositiveY ? new Color(.008f, .028f, .014f) : face == CubemapFace.NegativeY ? new Color(.002f, .005f, .003f) : new Color(.004f, .014f, .007f);
+                Color tint = face == CubemapFace.PositiveY ? new Color(.010f, .018f, .034f) : face == CubemapFace.NegativeY ? new Color(.003f, .004f, .008f) : new Color(.006f, .010f, .020f);
                 for (int i = 0; i < pixels.Length; i++) pixels[i] = tint;
                 cube.SetPixels(pixels, face);
             }

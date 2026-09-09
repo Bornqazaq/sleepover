@@ -37,7 +37,7 @@ namespace Igruha.EditorTools
         {
             var root=new GameObject("ScatteredRemains");root.transform.SetParent(gallery,false);
             var random=new System.Random(933);
-            const int FragmentGroups=65;
+            const int FragmentGroups=36;
             for(int i=0;i<FragmentGroups;i++)
             {
                 float angle=(float)random.NextDouble()*Mathf.PI*2;

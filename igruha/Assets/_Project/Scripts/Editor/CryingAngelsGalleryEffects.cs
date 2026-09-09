@@ -9,14 +9,14 @@ namespace Igruha.EditorTools
     {
         private const string MeshPath = CryingAngelsGalleryAssets.Art + "/Models/CA_LightShaft.asset";
         private const int PlaneCount = 3;
-        private const int WindowPairs = 2;
+        private const int LitBays = 4;
         private const float WindowOffset = 2.76f;
         private const float WindowHeight = 8.7f;
 
         internal static void Build(Transform gallery, float radius)
         {
             var material = CryingAngelsGalleryAssets.EnsureMaterial("CA_Moonbeams", "Igruha/CryingAngels/LightShaft");
-            material.SetColor("_BaseColor",new Color(.14f,.40f,.20f,.04f));
+            material.SetColor("_BaseColor",new Color(.16f,.28f,.50f,.045f));
             EditorUtility.SetDirty(material);
             var mesh=AssetDatabase.LoadAssetAtPath<Mesh>(MeshPath);
             if(mesh==null)
@@ -24,10 +24,11 @@ namespace Igruha.EditorTools
                 mesh=MakeBeam(); AssetDatabase.CreateAsset(mesh,MeshPath);
             }
             var root=new GameObject("WindowShafts");root.transform.SetParent(gallery,false);
-            for(int i=0;i<WindowPairs;i++)
+            for(int i=0;i<LitBays;i++)
             {
-                float angle=(i*180f)*Mathf.Deg2Rad;
-                Vector3 outward=new Vector3(Mathf.Cos(angle),0,Mathf.Sin(angle));
+                // Same convention as the builder's bay loop: Blender +X,+Y is Unity +X,-Z.
+                float angle=(i*360f/LitBays)*Mathf.Deg2Rad;
+                Vector3 outward=new Vector3(Mathf.Cos(angle),0,-Mathf.Sin(angle));
                 Vector3 tangent=new Vector3(-outward.z,0,outward.x);
                 for(int side=-1;side<=1;side+=2)
                 {
