@@ -23,6 +23,8 @@ namespace Igruha.Minigames.CryingAngels
         private PlayerController motor;
         private PlayerPushAbility pushAbility;
         private CapsuleCollider capsule;
+        private Rigidbody body;
+        private RigidbodyConstraints bodyConstraints;
         private KeeperBeam beam;
         private VisionCone vision;
         private GameObject rigInstance;
@@ -44,6 +46,7 @@ namespace Igruha.Minigames.CryingAngels
             motor = GetComponent<PlayerController>();
             pushAbility = GetComponent<PlayerPushAbility>();
             capsule = GetComponent<CapsuleCollider>();
+            body = GetComponent<Rigidbody>();
         }
 
         /// <summary>
@@ -57,6 +60,16 @@ namespace Igruha.Minigames.CryingAngels
         {
             motor.MovementLocked = true;
             motor.ImpulseImmune = true;
+
+            // Блокировка и иммунитет закрывают ввод и удары, но не физику: чужая
+            // капсула, вошедшая в Водящего на хосте, выдавливала его с постамента
+            // депенетрацией. Горизонталь замораживаем на теле; вертикаль остаётся
+            // гравитации, чтобы поставленный чуть выше пола Водящий на него сел.
+            if (body != null)
+            {
+                bodyConstraints = body.constraints;
+                body.constraints = bodyConstraints | RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ;
+            }
 
             if (pushAbility != null)
             {
@@ -148,6 +161,11 @@ namespace Igruha.Minigames.CryingAngels
             motor.MovementLocked = false;
             motor.ImpulseImmune = false;
             beamYawDriven = false;
+
+            if (body != null)
+            {
+                body.constraints = bodyConstraints;
+            }
 
             if (pushAbility != null)
             {
