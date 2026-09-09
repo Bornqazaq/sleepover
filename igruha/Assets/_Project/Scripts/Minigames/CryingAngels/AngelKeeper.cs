@@ -1,6 +1,7 @@
 using UnityEngine;
 using Igruha.Core.CameraSystems;
 using Igruha.Core.Player;
+using Unity.Netcode;
 using Igruha.Core.Vision;
 
 namespace Igruha.Minigames.CryingAngels
@@ -24,7 +25,9 @@ namespace Igruha.Minigames.CryingAngels
         private PlayerPushAbility pushAbility;
         private CapsuleCollider capsule;
         private Rigidbody body;
-        private RigidbodyConstraints bodyConstraints;
+        private NetworkObject networkObject;
+        private bool pinned;
+        private Vector3 anchor;
         private KeeperBeam beam;
         private VisionCone vision;
         private GameObject rigInstance;
@@ -47,6 +50,7 @@ namespace Igruha.Minigames.CryingAngels
             pushAbility = GetComponent<PlayerPushAbility>();
             capsule = GetComponent<CapsuleCollider>();
             body = GetComponent<Rigidbody>();
+            networkObject = GetComponent<NetworkObject>();
         }
 
         /// <summary>
@@ -63,13 +67,13 @@ namespace Igruha.Minigames.CryingAngels
 
             // Блокировка и иммунитет закрывают ввод и удары, но не физику: чужая
             // капсула, вошедшая в Водящего на хосте, выдавливала его с постамента
-            // депенетрацией. Горизонталь замораживаем на теле; вертикаль остаётся
-            // гравитации, чтобы поставленный чуть выше пола Водящий на него сел.
-            if (body != null)
-            {
-                bodyConstraints = body.constraints;
-                body.constraints = bodyConstraints | RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ;
-            }
+            // депенетрацией. Якорь ставится по событию переноса (перенос по сети
+            // приезжает владельцу отдельным RPC), и каждый физический такт тело
+            // возвращается на якорь по горизонтали. Не constraints: замороженные
+            // оси не пропускали и сам перенос на постамент — Водящий оставался
+            // на точке спавна. Вертикаль остаётся гравитации.
+            motor.Teleported -= PinAfterTeleport;
+            motor.Teleported += PinAfterTeleport;
 
             if (pushAbility != null)
             {
@@ -94,6 +98,47 @@ namespace Igruha.Minigames.CryingAngels
             }
 
             SetBeamVisible(false);
+        }
+
+        /// <summary>Тело перенесено (на постамент): отсюда оно больше не сдвигается по горизонтали.</summary>
+        private void PinAfterTeleport()
+        {
+            if (body == null)
+            {
+                return;
+            }
+
+            anchor = body.position;
+            pinned = true;
+        }
+
+        private void Unpin() => pinned = false;
+
+        /// <summary>
+        /// Якорь держит только та машина, что симулирует тело: владелец в сети,
+        /// любая — в соло. У остальных транспорт везёт NetworkTransform, и
+        /// правка Rigidbody.position спорила бы с ним каждый такт.
+        /// </summary>
+        private bool SimulatesBody => networkObject == null || !networkObject.IsSpawned || networkObject.IsOwner;
+
+        private void FixedUpdate()
+        {
+            if (!pinned || body == null || !SimulatesBody)
+            {
+                return;
+            }
+
+            Vector3 position = body.position;
+            float dx = position.x - anchor.x;
+            float dz = position.z - anchor.z;
+            if (dx * dx + dz * dz < 0.000001f)
+            {
+                return;
+            }
+
+            body.position = new Vector3(anchor.x, position.y, anchor.z);
+            Vector3 velocity = body.linearVelocity;
+            body.linearVelocity = new Vector3(0f, velocity.y, 0f);
         }
 
         /// <summary>
@@ -162,10 +207,8 @@ namespace Igruha.Minigames.CryingAngels
             motor.ImpulseImmune = false;
             beamYawDriven = false;
 
-            if (body != null)
-            {
-                body.constraints = bodyConstraints;
-            }
+            motor.Teleported -= PinAfterTeleport;
+            Unpin();
 
             if (pushAbility != null)
             {
@@ -223,6 +266,11 @@ namespace Igruha.Minigames.CryingAngels
 
         private void OnDestroy()
         {
+            if (motor != null)
+            {
+                motor.Teleported -= PinAfterTeleport;
+            }
+
             if (rigInstance != null)
             {
                 Destroy(rigInstance);
