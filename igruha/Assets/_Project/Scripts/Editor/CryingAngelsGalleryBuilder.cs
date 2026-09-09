@@ -129,7 +129,7 @@ namespace Igruha.EditorTools
             var existing = Root(scene, "_Lighting");
             foreach (var light in existing.GetComponentsInChildren<Light>(true)) light.enabled = false;
             var lights = Group(parent, "Moonlight");
-            var moon = AddLight(lights, "ColdMoon", LightType.Directional, new Vector3(0,12,0), new Color(.66f,.74f,.92f), 2.0f);
+            var moon = AddLight(lights, "ColdMoon", LightType.Directional, new Vector3(0,12,0), new Color(.66f,.74f,.92f), 1.35f);
             moon.transform.rotation = Quaternion.Euler(48f,-32f,0f);
             moon.shadows = LightShadows.Soft;
             moon.shadowBias = .025f;
@@ -140,9 +140,9 @@ namespace Igruha.EditorTools
             RenderSettings.customReflectionTexture = CryingAngelsGalleryAssets.EnsureNightReflection();
             RenderSettings.reflectionIntensity = 1f;
             RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(.22f,.27f,.38f);
-            RenderSettings.ambientEquatorColor = new Color(.14f,.17f,.26f);
-            RenderSettings.ambientGroundColor = new Color(.05f,.06f,.10f);
+            RenderSettings.ambientSkyColor = new Color(.14f,.18f,.26f);
+            RenderSettings.ambientEquatorColor = new Color(.09f,.11f,.17f);
+            RenderSettings.ambientGroundColor = new Color(.04f,.05f,.08f);
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.ExponentialSquared;
             RenderSettings.fogColor = new Color(.010f,.018f,.036f);
@@ -152,13 +152,13 @@ namespace Igruha.EditorTools
                 // Same bay convention as the architecture loop: Blender +X,+Y maps to Unity +X,-Z.
                 float a = i * LitBayStep * 360f / BayCount * Mathf.Deg2Rad;
                 Vector3 dir = new Vector3(Mathf.Cos(a),0f,-Mathf.Sin(a));
-                var window = AddLight(lights,"WindowBounce_"+i,LightType.Spot,dir*(radius-1.2f)+Vector3.up*8.5f,new Color(.55f,.72f,1f),20f);
+                var window = AddLight(lights,"WindowBounce_"+i,LightType.Spot,dir*(radius-1.2f)+Vector3.up*8.5f,new Color(.55f,.72f,1f),14f);
                 window.range = 21f; window.spotAngle = 58f; window.innerSpotAngle = 24f;
                 window.transform.rotation = Quaternion.LookRotation(dir*(-6f)+Vector3.down*8f);
                 window.shadows = LightShadows.None;
             }
             // Moon through the oculus: a soft pool on the dais so the hall has a readable centre.
-            var oculus = AddLight(lights,"OculusMoon",LightType.Spot,new Vector3(0f,17.5f,0f),new Color(.62f,.76f,1f),42f);
+            var oculus = AddLight(lights,"OculusMoon",LightType.Spot,new Vector3(0f,17.5f,0f),new Color(.62f,.76f,1f),28f);
             oculus.range = 24f; oculus.spotAngle = 78f; oculus.innerSpotAngle = 30f;
             oculus.transform.rotation = Quaternion.Euler(90f,0f,0f);
             oculus.shadows = LightShadows.None;
