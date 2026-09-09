@@ -228,6 +228,14 @@ namespace Igruha.Minigames.CryingAngels
             {
                 ClearKeeper(keeperAvatar);
             }
+
+            for (int i = 0; i < runners.Count; i++)
+            {
+                if (runners[i].Avatar != null)
+                {
+                    runners[i].Avatar.ClearSpeedCap(this);
+                }
+            }
             PublishRunnerStates();
             ClearStatues();
             vignette?.Track(null);
@@ -911,6 +919,11 @@ namespace Igruha.Minigames.CryingAngels
             state.Configure(config);
             state.ResetState();
 
+            // Бегущие в этой игре идут, а не бегут: потолок скорости ставится
+            // на каждой машине при раздаче ролей (владелец двигает сам себя)
+            // и снимается вместе с ролью, иначе он уехал бы в хаб.
+            ApplyRunnerSpeedCap(avatar);
+
             if (!avatar.TryGetComponent(out FreezePoseDriver poseDriver))
             {
                 poseDriver = avatar.gameObject.AddComponent<FreezePoseDriver>();
@@ -1098,8 +1111,19 @@ namespace Igruha.Minigames.CryingAngels
         /// на объекте висит зависящий от него драйвер, и напишет об этом
         /// в консоль. Пересдача роли обратно в Бегущие включает их снова.
         /// </summary>
-        private static void ClearRunnerLeftovers(PlayerController avatar)
+        private void ApplyRunnerSpeedCap(PlayerController avatar)
         {
+            if (config == null || avatar.Config == null)
+            {
+                return;
+            }
+
+            avatar.ApplySpeedCap(this, avatar.Config.MaxSpeed * config.RunnerSpeedMultiplier);
+        }
+
+        private void ClearRunnerLeftovers(PlayerController avatar)
+        {
+            avatar.ClearSpeedCap(this);
             if (avatar.TryGetComponent(out FreezePoseDriver poseDriver))
             {
                 poseDriver.enabled = false;

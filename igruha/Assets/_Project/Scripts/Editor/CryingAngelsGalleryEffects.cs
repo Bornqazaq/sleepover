@@ -16,7 +16,7 @@ namespace Igruha.EditorTools
         internal static void Build(Transform gallery, float radius)
         {
             var material = CryingAngelsGalleryAssets.EnsureMaterial("CA_Moonbeams", "Igruha/CryingAngels/LightShaft");
-            material.SetColor("_BaseColor",new Color(.12f,.22f,.36f,.035f));
+            material.SetColor("_BaseColor",new Color(.14f,.40f,.20f,.04f));
             EditorUtility.SetDirty(material);
             var mesh=AssetDatabase.LoadAssetAtPath<Mesh>(MeshPath);
             if(mesh==null)

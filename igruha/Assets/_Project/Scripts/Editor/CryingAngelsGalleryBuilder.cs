@@ -125,7 +125,7 @@ namespace Igruha.EditorTools
             var existing = Root(scene, "_Lighting");
             foreach (var light in existing.GetComponentsInChildren<Light>(true)) light.enabled = false;
             var lights = Group(parent, "Moonlight");
-            var moon = AddLight(lights, "ColdMoon", LightType.Directional, new Vector3(0,12,0), new Color(.30f,.43f,.68f), 1.3f);
+            var moon = AddLight(lights, "ColdMoon", LightType.Directional, new Vector3(0,12,0), new Color(.34f,.72f,.44f), 1.0f);
             moon.transform.rotation = Quaternion.Euler(48f,-32f,0f);
             moon.shadows = LightShadows.Soft;
             moon.shadowBias = .025f;
@@ -136,18 +136,18 @@ namespace Igruha.EditorTools
             RenderSettings.customReflectionTexture = CryingAngelsGalleryAssets.EnsureNightReflection();
             RenderSettings.reflectionIntensity = 1f;
             RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(.16f,.20f,.28f);
-            RenderSettings.ambientEquatorColor = new Color(.10f,.13f,.19f);
-            RenderSettings.ambientGroundColor = new Color(.05f,.06f,.09f);
+            RenderSettings.ambientSkyColor = new Color(.10f,.25f,.15f);
+            RenderSettings.ambientEquatorColor = new Color(.06f,.16f,.09f);
+            RenderSettings.ambientGroundColor = new Color(.03f,.09f,.05f);
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.ExponentialSquared;
-            RenderSettings.fogColor = new Color(.012f,.020f,.036f);
+            RenderSettings.fogColor = new Color(.006f,.030f,.014f);
             RenderSettings.fogDensity = .022f;
             for (int i = 0; i < 2; i++)
             {
                 float a = i*Mathf.PI;
                 Vector3 dir = new Vector3(Mathf.Cos(a),0f,Mathf.Sin(a));
-                var window = AddLight(lights,"WindowBounce_"+i,LightType.Spot,dir*(radius-1.2f)+Vector3.up*8.5f,new Color(.38f,.60f,1f),22f);
+                var window = AddLight(lights,"WindowBounce_"+i,LightType.Spot,dir*(radius-1.2f)+Vector3.up*8.5f,new Color(.42f,1f,.55f),22f);
                 window.range = 19f; window.spotAngle = 56f; window.innerSpotAngle = 24f;
                 window.transform.rotation = Quaternion.LookRotation(dir*(-6f)+Vector3.down*8f);
                 window.shadows = LightShadows.None;
@@ -165,7 +165,7 @@ namespace Igruha.EditorTools
             var grain = Ensure<FilmGrain>(profile);
             grain.type.Override(FilmGrainLookup.Medium1); grain.intensity.Override(.26f); grain.response.Override(.78f);
             var grade = Ensure<ColorAdjustments>(profile);
-            grade.saturation.Override(-8f); grade.contrast.Override(14f);
+            grade.saturation.Override(4f); grade.contrast.Override(14f); grade.colorFilter.Override(new Color(.80f,1f,.84f));
             volume.sharedProfile = profile; EditorUtility.SetDirty(profile);
         }
 
@@ -179,13 +179,13 @@ namespace Igruha.EditorTools
         private static void SetupAtmosphere(Transform parent,float radius)
         {
             var mat = CryingAngelsGalleryAssets.EnsureMaterial("CA_GroundMist","Igruha/CryingAngels/GalleryMist");
-            mat.SetColor("_BaseColor",new Color(.04f,.065f,.095f,.24f)); EditorUtility.SetDirty(mat);
+            mat.SetColor("_BaseColor",new Color(.05f,.13f,.07f,.26f)); EditorUtility.SetDirty(mat);
             var go = Group(parent,"FloorMist").gameObject;
             go.transform.localPosition = Vector3.up*.26f;
             var ps = go.AddComponent<ParticleSystem>(); ps.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);
             ps.useAutoRandomSeed=false; ps.randomSeed=913;
             var main=ps.main; main.loop=true; main.prewarm=true; main.startLifetime=26f; main.startSpeed=.045f;
-            main.startSize=new ParticleSystem.MinMaxCurve(3.5f,6.5f); main.startColor=new Color(.72f,.84f,1f,.7f);
+            main.startSize=new ParticleSystem.MinMaxCurve(3.5f,6.5f); main.startColor=new Color(.70f,1f,.78f,.7f);
             main.maxParticles=80; main.simulationSpace=ParticleSystemSimulationSpace.Local;
             var emission=ps.emission; emission.rateOverTime=2.4f;
             var shape=ps.shape; shape.shapeType=ParticleSystemShapeType.Circle; shape.radius=radius*.86f; shape.rotation=new Vector3(90,0,0); shape.radiusThickness=.75f;
