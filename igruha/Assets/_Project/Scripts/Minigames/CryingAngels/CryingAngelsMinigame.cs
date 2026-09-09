@@ -45,6 +45,8 @@ namespace Igruha.Minigames.CryingAngels
         [SerializeField] private GameObject keeperRigPrefab;
         [Tooltip("Риг обзора от первого лица со сцены — ему задаётся потолок скорости поворота")]
         [SerializeField] private FirstPersonCameraRig firstPersonRig;
+        [Tooltip("Кромешная тьма на машине Водящего: гасит луну и окна, оставляет фонарь. Заполняет билдер арта")]
+        [SerializeField] private KeeperDarkness keeperDarkness;
 
         [Header("Бегущий")]
         [Tooltip("Рамка окаменения на экране своего игрока")]
@@ -643,6 +645,7 @@ namespace Igruha.Minigames.CryingAngels
             keeper?.ApplyTurnSpeed(firstPersonRig, KeeperTurnSpeed);
             keeper?.SetBeamVisible(BeamEnabled);
             keeper?.SetLocalView(IsLocal(keeperPlayerId));
+            keeperDarkness?.SetPitchBlack(keeper != null && IsLocal(keeperPlayerId));
             network?.ConfigureKeeper(keeper, IsLocal(keeperPlayerId), firstPersonRig);
             ApplyRoleCamera();
         }

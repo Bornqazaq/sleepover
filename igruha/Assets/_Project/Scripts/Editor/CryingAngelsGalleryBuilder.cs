@@ -101,6 +101,7 @@ namespace Igruha.EditorTools
             CryingAngelsGalleryEffects.Build(gallery.transform, radius);
             CryingAngelsGalleryLayout.AddDetails(gallery.transform, radius);
             SetupKeeperArt();
+            SetupKeeperDarkness(scene, gallery.transform);
             Physics.SyncTransforms();
         }
 
@@ -235,6 +236,26 @@ namespace Igruha.EditorTools
             renderer.shadowCastingMode = ShadowCastingMode.Off; renderer.receiveShadows = false;
         }
 
+        /// <summary>The keeper's machine drops every moon source and keeps the torch; the minigame flips it on role assignment.</summary>
+        private static void SetupKeeperDarkness(Scene scene, Transform gallery)
+        {
+            var darkness=gallery.gameObject.AddComponent<Igruha.Minigames.CryingAngels.KeeperDarkness>();
+            var lights=gallery.Find("Moonlight").GetComponentsInChildren<Light>(true);
+            var visuals=new System.Collections.Generic.List<Renderer>();
+            visuals.AddRange(gallery.Find("WindowShafts").GetComponentsInChildren<Renderer>(true));
+            visuals.AddRange(gallery.Find("FloorMist").GetComponentsInChildren<Renderer>(true));
+            var so=new SerializedObject(darkness);
+            var lightsProp=so.FindProperty("moonLights"); lightsProp.arraySize=lights.Length;
+            for(int i=0;i<lights.Length;i++) lightsProp.GetArrayElementAtIndex(i).objectReferenceValue=lights[i];
+            var visualsProp=so.FindProperty("moonVisuals"); visualsProp.arraySize=visuals.Count;
+            for(int i=0;i<visuals.Count;i++) visualsProp.GetArrayElementAtIndex(i).objectReferenceValue=visuals[i];
+            so.ApplyModifiedPropertiesWithoutUndo();
+            Igruha.Minigames.CryingAngels.CryingAngelsMinigame game=null;
+            foreach(var root in scene.GetRootGameObjects()) { game=root.GetComponentInChildren<Igruha.Minigames.CryingAngels.CryingAngelsMinigame>(true); if(game!=null) break; }
+            if(game==null) throw new InvalidOperationException("CryingAngelsMinigame not found in scene; keeper darkness unbound.");
+            var gameSo=new SerializedObject(game); gameSo.FindProperty("keeperDarkness").objectReferenceValue=darkness; gameSo.ApplyModifiedPropertiesWithoutUndo();
+        }
+
         private static void SetupKeeperArt()
         {
             const string configPath="Assets/_Project/Settings/Gameplay/Minigames/CryingAngelsConfig.asset";
@@ -275,8 +296,8 @@ namespace Igruha.EditorTools
             var profile=AssetDatabase.LoadAssetAtPath<VolumeProfile>(path);
             if(profile==null){ profile=ScriptableObject.CreateInstance<VolumeProfile>(); AssetDatabase.CreateAsset(profile,path); }
             var grade=Ensure<ColorAdjustments>(profile);
-            // -1.6 EV: moonlit stone (~0.1) sinks to black after contrast, beam-lit stone (several units) stays readable.
-            grade.postExposure.Override(-1.6f); grade.contrast.Override(30f); grade.saturation.Override(-12f);
+            // No exposure drop: darkness comes from KeeperDarkness switching the moon off, so the torch keeps its full strength.
+            grade.postExposure.Override(0f); grade.contrast.Override(18f); grade.saturation.Override(-12f);
             LiftGammaGain stale; if(profile.TryGet(out stale)) { profile.Remove<LiftGammaGain>(); Object.DestroyImmediate(stale,true); }
             var vignette=Ensure<Vignette>(profile);
             vignette.intensity.Override(.58f); vignette.smoothness.Override(.55f); vignette.color.Override(Color.black);
