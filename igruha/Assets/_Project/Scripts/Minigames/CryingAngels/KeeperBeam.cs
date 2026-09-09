@@ -56,6 +56,17 @@ namespace Igruha.Minigames.CryingAngels
             ResolveCone()?.SetVisible(visible);
         }
 
+        /// <summary>Кратковременный всполох фонаря (скример касания): множитель к базовой яркости, 1 — норма.</summary>
+        public void SetIntensityScale(float scale)
+        {
+            if (beam == null)
+            {
+                beam = GetComponent<Light>();
+            }
+
+            beam.intensity = intensity * Mathf.Max(0f, scale);
+        }
+
         /// <summary>Цвет луча — обратная связь по счётчику окаменения (14.7).</summary>
         public void SetColor(Color color)
         {

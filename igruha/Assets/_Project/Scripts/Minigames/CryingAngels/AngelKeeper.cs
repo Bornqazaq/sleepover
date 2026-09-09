@@ -33,6 +33,9 @@ namespace Igruha.Minigames.CryingAngels
         /// <summary>Конус засветки Водящего. По нему в 14.5 считается попадание луча.</summary>
         public VisionCone Vision => vision;
 
+        /// <summary>Фонарь Водящего: визуал луча. Null, пока риг не навешен.</summary>
+        public KeeperBeam Beam => beam;
+
         /// <summary>Точка, из которой светит фонарь — она же начало лучей проверки.</summary>
         public Transform BeamOrigin => rigInstance != null ? rigInstance.transform : transform;
 
