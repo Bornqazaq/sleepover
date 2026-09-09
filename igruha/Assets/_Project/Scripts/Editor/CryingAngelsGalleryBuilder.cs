@@ -47,10 +47,11 @@ namespace Igruha.EditorTools
             var environment = Group(gallery.transform, "Architecture");
             var covers = arena.Find("Covers");
             Transform floor = arena.Find("Floor");
-            CryingAngelsGalleryLayout.Build(covers,floor.localScale.x*.5f);
+            // The floor collider overhangs the wall on purpose; strip that back to the playable radius.
+            float radius = floor.localScale.x * .5f - (CryingAngelsArenaBuilder.WallThickness + CryingAngelsArenaBuilder.FloorOverhang);
+            CryingAngelsGalleryLayout.Build(covers,radius);
             // A dark mortar surface remains underneath the thin Blender paving mesh.
             floor.GetComponent<Renderer>().sharedMaterial = AssetDatabase.LoadAssetAtPath<Material>(CryingAngelsGalleryAssets.Materials + "/CA_BlueSlate.mat");
-            float radius = floor.localScale.x * .5f;
             float ratio = radius / ArtRadius;
             var paving = Group(gallery.transform, "MarblePaving");
             paving.position = Vector3.up * floor.GetComponent<Collider>().bounds.max.y;

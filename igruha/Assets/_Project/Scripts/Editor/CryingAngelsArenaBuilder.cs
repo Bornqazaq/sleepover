@@ -25,7 +25,10 @@ namespace Igruha.EditorTools
         private const float LowCoverHeight = 0.864f;   // 1.2 ШП — присед прячет, стоя видно голову
         private const float HighCoverHeight = 2.16f;   // 3 ШП — выше прыжка с земли
         private const float WallHeight = 4.32f;
-        private const float WallThickness = 0.4f;
+        internal const float WallThickness = 0.4f;
+        // Пол заходит за стену: примитив пола — многоугольник, и между его хордой и
+        // внутренней гранью стены на стыках сегментов оставались карманы, в которые проваливался игрок.
+        internal const float FloorOverhang = 1.2f;
         private const float PedestalRadius = 2.16f;
         private const float PedestalHeight = 0.36f;
         private const float MinPassage = 1.44f;        // 2 ШП между укрытиями
@@ -136,7 +139,8 @@ namespace Igruha.EditorTools
             Transform floor = EnsurePrimitive(root.transform, "Floor", PrimitiveType.Cube);
             floor.gameObject.layer = groundLayer;
             floor.position = new Vector3(0f, -0.2f, 0f);
-            floor.localScale = new Vector3(radius * 2f, 0.2f, radius * 2f);
+            float floorRadius = radius + WallThickness + FloorOverhang;
+            floor.localScale = new Vector3(floorRadius * 2f, 0.2f, floorRadius * 2f);
         }
 
         private static void BuildPedestal(GameObject root, int groundLayer)
