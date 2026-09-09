@@ -23,7 +23,7 @@ MonoBehaviour:
   petrifyGainMultiplier: 1
   petrifyDecayMultiplier: 0.5
   petrifyAnimationDuration: 0.5
-  runnerSpeedMultiplier: 0.6
+  runnerSpeedMultiplier: 0.5
   freezePoseCount: 6
   statuesRemainAsCover: 0
   beamColorFeedback: 1

@@ -17,6 +17,8 @@ namespace Igruha.EditorTools
         private const string GalleryName = "_MoonlitGallery";
         private const int BayCount = 16;
         private const float ArtRadius = 28.08f;
+        // Every fourth bay keeps its moon glass; the rest are boarded with dark panes.
+        private const int LitBayStep = 4;
         private static readonly string[] HighModels = { "CA_WeepingAngel", "CA_PrayingAngel", "CA_WarningAngel" };
         private static readonly string[] LowModels = { "CA_FallenVisage", "CA_Reliquary", "CA_BrokenPlinth" };
 
@@ -62,7 +64,7 @@ namespace Igruha.EditorTools
                 var bay = CryingAngelsGalleryAssets.Place("CA_ArchedWallBay", environment,
                     outward * (radius + .42f) + Vector3.down * .10f, Quaternion.Euler(0f, 90f + angle, 0f));
                 bay.transform.localScale = new Vector3(ratio, 1f, 1f);
-                if(i!=0 && i!=8)
+                if(i%LitBayStep!=0)
                 {
                     var darkGlass=AssetDatabase.LoadAssetAtPath<Material>(CryingAngelsGalleryAssets.Materials+"/CA_Crevices.mat");
                     foreach(var renderer in bay.GetComponentsInChildren<Renderer>())
@@ -92,6 +94,7 @@ namespace Igruha.EditorTools
             foreach (Transform wall in arena.Find("Wall")) wall.GetComponent<Renderer>().enabled = false;
             SetupLighting(scene, gallery.transform, radius);
             SetupAtmosphere(gallery.transform, radius);
+            SetupNightSky(gallery.transform);
             CryingAngelsGalleryEffects.Build(gallery.transform, radius);
             CryingAngelsGalleryLayout.AddDetails(gallery.transform, radius);
             SetupKeeperArt();
@@ -125,7 +128,7 @@ namespace Igruha.EditorTools
             var existing = Root(scene, "_Lighting");
             foreach (var light in existing.GetComponentsInChildren<Light>(true)) light.enabled = false;
             var lights = Group(parent, "Moonlight");
-            var moon = AddLight(lights, "ColdMoon", LightType.Directional, new Vector3(0,12,0), new Color(.34f,.72f,.44f), 1.0f);
+            var moon = AddLight(lights, "ColdMoon", LightType.Directional, new Vector3(0,12,0), new Color(.66f,.74f,.92f), 2.0f);
             moon.transform.rotation = Quaternion.Euler(48f,-32f,0f);
             moon.shadows = LightShadows.Soft;
             moon.shadowBias = .025f;
@@ -136,22 +139,28 @@ namespace Igruha.EditorTools
             RenderSettings.customReflectionTexture = CryingAngelsGalleryAssets.EnsureNightReflection();
             RenderSettings.reflectionIntensity = 1f;
             RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(.10f,.25f,.15f);
-            RenderSettings.ambientEquatorColor = new Color(.06f,.16f,.09f);
-            RenderSettings.ambientGroundColor = new Color(.03f,.09f,.05f);
+            RenderSettings.ambientSkyColor = new Color(.22f,.27f,.38f);
+            RenderSettings.ambientEquatorColor = new Color(.14f,.17f,.26f);
+            RenderSettings.ambientGroundColor = new Color(.05f,.06f,.10f);
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.ExponentialSquared;
-            RenderSettings.fogColor = new Color(.006f,.030f,.014f);
-            RenderSettings.fogDensity = .022f;
-            for (int i = 0; i < 2; i++)
+            RenderSettings.fogColor = new Color(.010f,.018f,.036f);
+            RenderSettings.fogDensity = .017f;
+            for (int i = 0; i < BayCount / LitBayStep; i++)
             {
-                float a = i*Mathf.PI;
-                Vector3 dir = new Vector3(Mathf.Cos(a),0f,Mathf.Sin(a));
-                var window = AddLight(lights,"WindowBounce_"+i,LightType.Spot,dir*(radius-1.2f)+Vector3.up*8.5f,new Color(.42f,1f,.55f),22f);
-                window.range = 19f; window.spotAngle = 56f; window.innerSpotAngle = 24f;
+                // Same bay convention as the architecture loop: Blender +X,+Y maps to Unity +X,-Z.
+                float a = i * LitBayStep * 360f / BayCount * Mathf.Deg2Rad;
+                Vector3 dir = new Vector3(Mathf.Cos(a),0f,-Mathf.Sin(a));
+                var window = AddLight(lights,"WindowBounce_"+i,LightType.Spot,dir*(radius-1.2f)+Vector3.up*8.5f,new Color(.55f,.72f,1f),20f);
+                window.range = 21f; window.spotAngle = 58f; window.innerSpotAngle = 24f;
                 window.transform.rotation = Quaternion.LookRotation(dir*(-6f)+Vector3.down*8f);
                 window.shadows = LightShadows.None;
             }
+            // Moon through the oculus: a soft pool on the dais so the hall has a readable centre.
+            var oculus = AddLight(lights,"OculusMoon",LightType.Spot,new Vector3(0f,17.5f,0f),new Color(.62f,.76f,1f),42f);
+            oculus.range = 24f; oculus.spotAngle = 78f; oculus.innerSpotAngle = 30f;
+            oculus.transform.rotation = Quaternion.Euler(90f,0f,0f);
+            oculus.shadows = LightShadows.None;
             var volume = Group(parent, "GalleryGrade").gameObject.AddComponent<Volume>();
             volume.isGlobal = true; volume.priority = 10;
             string path = CryingAngelsGalleryAssets.Materials + "/CA_GalleryGrade.asset";
@@ -161,11 +170,11 @@ namespace Igruha.EditorTools
             bloom.intensity.Override(.34f); bloom.threshold.Override(.95f); bloom.scatter.Override(.6f);
             Ensure<Tonemapping>(profile).mode.Override(TonemappingMode.ACES);
             var vignette = Ensure<Vignette>(profile);
-            vignette.intensity.Override(.42f); vignette.smoothness.Override(.46f); vignette.color.Override(Color.black);
+            vignette.intensity.Override(.34f); vignette.smoothness.Override(.46f); vignette.color.Override(Color.black);
             var grain = Ensure<FilmGrain>(profile);
             grain.type.Override(FilmGrainLookup.Medium1); grain.intensity.Override(.26f); grain.response.Override(.78f);
             var grade = Ensure<ColorAdjustments>(profile);
-            grade.saturation.Override(4f); grade.contrast.Override(14f); grade.colorFilter.Override(new Color(.80f,1f,.84f));
+            grade.saturation.Override(-4f); grade.contrast.Override(12f); grade.colorFilter.Override(new Color(.92f,.95f,1f));
             volume.sharedProfile = profile; EditorUtility.SetDirty(profile);
         }
 
@@ -179,13 +188,13 @@ namespace Igruha.EditorTools
         private static void SetupAtmosphere(Transform parent,float radius)
         {
             var mat = CryingAngelsGalleryAssets.EnsureMaterial("CA_GroundMist","Igruha/CryingAngels/GalleryMist");
-            mat.SetColor("_BaseColor",new Color(.05f,.13f,.07f,.26f)); EditorUtility.SetDirty(mat);
+            mat.SetColor("_BaseColor",new Color(.07f,.10f,.16f,.24f)); EditorUtility.SetDirty(mat);
             var go = Group(parent,"FloorMist").gameObject;
             go.transform.localPosition = Vector3.up*.26f;
             var ps = go.AddComponent<ParticleSystem>(); ps.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);
             ps.useAutoRandomSeed=false; ps.randomSeed=913;
             var main=ps.main; main.loop=true; main.prewarm=true; main.startLifetime=26f; main.startSpeed=.045f;
-            main.startSize=new ParticleSystem.MinMaxCurve(3.5f,6.5f); main.startColor=new Color(.70f,1f,.78f,.7f);
+            main.startSize=new ParticleSystem.MinMaxCurve(3.5f,6.5f); main.startColor=new Color(.74f,.84f,1f,.7f);
             main.maxParticles=80; main.simulationSpace=ParticleSystemSimulationSpace.Local;
             var emission=ps.emission; emission.rateOverTime=2.4f;
             var shape=ps.shape; shape.shapeType=ParticleSystemShapeType.Circle; shape.radius=radius*.86f; shape.rotation=new Vector3(90,0,0); shape.radiusThickness=.75f;
@@ -193,6 +202,34 @@ namespace Igruha.EditorTools
             size.size=new ParticleSystem.MinMaxCurve(1f,new AnimationCurve(new Keyframe(0,0),new Keyframe(.15f,1),new Keyframe(.85f,1),new Keyframe(1,0)));
             var renderer=ps.GetComponent<ParticleSystemRenderer>(); renderer.sharedMaterial=mat;
             renderer.renderMode=ParticleSystemRenderMode.HorizontalBillboard; renderer.shadowCastingMode=ShadowCastingMode.Off; renderer.receiveShadows=false;
+        }
+
+        /// <summary>Through the oculus the camera would see its clear colour; give it a night sky and a moon instead.</summary>
+        private static void SetupNightSky(Transform parent)
+        {
+            var sky = Group(parent, "NightSky");
+            var backdrop = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            backdrop.name = "SkyBackdrop"; backdrop.transform.SetParent(sky, false);
+            backdrop.transform.localPosition = Vector3.up * 70f; backdrop.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
+            backdrop.transform.localScale = new Vector3(320f, 320f, 1f);
+            var night = CryingAngelsGalleryAssets.EnsureMaterial("CA_NightSky", "Universal Render Pipeline/Unlit");
+            night.SetColor("_BaseColor", new Color(.010f, .016f, .034f)); EditorUtility.SetDirty(night);
+            Decorate(backdrop, night);
+            var moon = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            moon.name = "MoonDisc"; moon.transform.SetParent(sky, false);
+            // Off-centre so the disc shows through the oculus from the far side of the hall, not straight above the dais.
+            moon.transform.localPosition = new Vector3(-9f, 62f, 12f); moon.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
+            moon.transform.localScale = new Vector3(7.5f, 1f, 7.5f);
+            var glow = CryingAngelsGalleryAssets.EnsureMaterial("CA_MoonDisc", "Universal Render Pipeline/Unlit");
+            glow.SetColor("_BaseColor", new Color(.86f, .91f, 1f) * 2.4f); EditorUtility.SetDirty(glow);
+            Decorate(moon, glow);
+        }
+
+        private static void Decorate(GameObject go, Material material)
+        {
+            Object.DestroyImmediate(go.GetComponent<Collider>());
+            var renderer = go.GetComponent<MeshRenderer>(); renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = ShadowCastingMode.Off; renderer.receiveShadows = false;
         }
 
         private static void SetupKeeperArt()

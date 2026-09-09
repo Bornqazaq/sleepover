@@ -1,10 +1,16 @@
-"""Deterministic night-gallery layout, shared by Unity and the Blender source."""
+"""Deterministic night-gallery layout, shared by Unity and the Blender source.
+
+Third pass (scale pass): far fewer exhibits than the ring layout, arranged as
+islands with open lanes between them so the keeper can actually catch runners
+crossing the floor. Scale spans four octaves: knee-high plinths, human-sized
+statues, four-metre giants, ruined wall segments and columns up to the dome.
+"""
 import json, math, random
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[2]
 OUT=ROOT/'igruha/Assets/_Project/Art/CryingAngels/CA_NightLayout.json'
-rng=random.Random(932)
+rng=random.Random(935)
 highs=['WeepingAngel','ShroudedFigure','ShatteredPillar','WarningAngel','MourningObelisk','PrayingAngel']
 lows=['Sarcophagus','FallenVisage','FuneraryUrn','FallenColumn','Reliquary','BrokenPlinth']
 sizes={
@@ -13,52 +19,104 @@ sizes={
  'MourningObelisk':(1.12,2.8,.94),'PrayingAngel':(1.2,2.35,1.05),
  'Sarcophagus':(2.4,.864,1.06),'FallenVisage':(1.16,.864,1.05),
  'FuneraryUrn':(.98,.864,.92),'FallenColumn':(2.35,.864,.98),
- 'Reliquary':(1.4,.864,1.08),'BrokenPlinth':(1.18,.864,1.05)}
-rows=[];counts=[0,0]
-def add(name,model,x,z,yaw,size):
- rows.append(dict(name=name,model='CA_'+model,position=dict(x=x,y=size[1]/2,z=z),size=dict(zip(('x','y','z'),size)),yaw=yaw))
+ 'Reliquary':(1.4,.864,1.08),'BrokenPlinth':(1.18,.864,1.05),
+ 'GreatColumn':(1.95,16.2,1.95),'RuinedWall':(5.5,3.4,1.3)}
+GIANT={'WeepingAngel':(2.3,4.6,2.1),'PrayingAngel':(2.3,4.6,2.1),'WarningAngel':(2.3,4.6,2.1),'ShroudedFigure':(2.2,4.5,1.9)}
+# Dome coffer height by radius (art units); columns are stretched to meet it.
+DOME=[(9,18.48),(14,17.84),(19,16.55),(23,14.88),(26,13.40),(28,11.84)]
+def ceiling(r):
+ if r<=DOME[0][0]:return DOME[0][1]
+ for (r0,z0),(r1,z1) in zip(DOME,DOME[1:]):
+  if r<=r1:return z0+(z1-z0)*(r-r0)/(r1-r0)
+ return DOME[-1][1]
+rows=[]
+def polar(r,deg):
+ a=math.radians(deg);return r*math.sin(a),r*math.cos(a)
+def add(name,model,x,z,yaw,size,group):
+ rows.append(dict(name=name,model='CA_'+model,position=dict(x=x,y=size[1]/2,z=z),size=dict(zip(('x','y','z'),size)),yaw=yaw,group=group))
 PEDESTAL_RADIUS=2.16;PEDESTAL_GAP=1.3
-for ring,(radius,count,offset) in enumerate([(4.6,4,0),(7.8,8,22.5),(10.9,12,0),(13.9,18,5),(17.2,24,4),(21.6,32,5.625)]):
- for i in range(count):
-  high=i%8<3
-  pool=highs if high else lows; index=1 if high else 0
-  model=pool[(counts[index]+ring)%len(pool)];counts[index]+=1
-  if ring!=4 and model in ('Sarcophagus','FallenColumn'):model=['FuneraryUrn','FallenVisage'][i%2]
-  a=math.radians(offset+i*360/count+rng.uniform(-1,1));r=radius+rng.uniform(-.24,.24)
-  scale=rng.uniform(.94,1.04);sz=sizes[model];sz=(sz[0]*scale,sz[1],sz[2]*scale)
-  add(f'Cover_Gallery_{ring}_{i:02}_'+('High' if high else 'Low'),model,r*math.sin(a),r*math.cos(a),math.degrees(a)+rng.uniform(-14,14),sz)
-# Protect all eight unchanged outer spawns with an intentional tall exhibit.
+# Eight tall screens keep the unchanged outer spawns out of the opening sweep.
 for i in range(8):
- a=i*math.pi/4
- add(f'Cover_SpawnScreen_{i+1:02}_High',highs[i%6],24.6*math.sin(a),24.6*math.cos(a),i*45,(1.65,2.4,1.12))
+ x,z=polar(24.6,i*45)
+ add(f'Cover_SpawnScreen_{i+1:02}_High',highs[i%6],x,z,i*45,(1.65,2.4,1.12),f'screen{i}')
+# Near the dais: the final dash has something to break line of sight, but stays a dash.
+for i,(r,deg,model) in enumerate([(5.3,15,'MourningObelisk'),(5.3,135,'ShroudedFigure'),(5.3,255,'Reliquary'),(7.6,75,'FallenVisage'),(7.6,195,'WeepingAngel'),(7.6,315,'FuneraryUrn')]):
+ x,z=polar(r,deg);high=model in highs
+ add(f'Cover_Inner_{i:02}_'+('High' if high else 'Low'),model,x,z,deg+rng.uniform(-20,20),sizes[model],f'inner{i}')
+# Columns to the dome, scattered rather than on a ring.
+for i,(r,deg) in enumerate([(9.8,40),(12.6,110),(10.4,175),(14.0,230),(11.2,300),(17.5,20),(19.2,150),(16.4,265)]):
+ x,z=polar(r,deg);h=ceiling(r)+.35
+ add(f'Cover_Column_{i:02}_High','GreatColumn',x,z,rng.uniform(0,360),(1.95,h,1.95),f'column{i}')
+# Long ruined walls, tangential: a wall reads as a wall, not as another statue.
+for i,(r,deg,tilt) in enumerate([(15.6,70,95),(19.0,205,80),(13.5,330,70),(20.2,120,100),(17.0,260,85),(21.0,285,92)]):
+ x,z=polar(r,deg)
+ add(f'Cover_Wall_{i:02}_High','RuinedWall',x,z,deg+tilt,sizes['RuinedWall'],f'wall{i}')
+# Giants: twice human height, visible from anywhere in the hall.
+for i,(r,deg,model) in enumerate([(9.6,100,'WeepingAngel'),(14.8,165,'PrayingAngel'),(11.8,245,'WarningAngel'),(18.2,315,'WeepingAngel'),(16.6,45,'ShroudedFigure')]):
+ x,z=polar(r,deg)
+ add(f'Cover_Giant_{i:02}_High',model,x,z,deg+180+rng.uniform(-25,25),GIANT[model],f'giant{i}')
+# Islands of two to four human-scale exhibits; the lanes between islands stay open.
+islands=[(9.0,20,3),(13.2,65,3),(10.5,140,4),(16.8,100,3),(12.2,205,3),(19.4,180,3),(9.5,320,3),(15.5,290,4),(20.5,235,3),(21.6,60,3),(18.9,335,3),(14.3,20,2)]
+hi=0;lo=0
+for n,(r,deg,count) in enumerate(islands):
+ cx,cz=polar(r,deg)
+ for i in range(count):
+  high=i%2==1
+  pool=highs if high else lows
+  model=pool[(hi if high else lo)%len(pool)]
+  if high:hi+=1
+  else:lo+=1
+  if model in ('Sarcophagus','FallenColumn') and count>2:model=['FuneraryUrn','FallenVisage'][i%2]
+  a=math.radians(deg+i*360/count+rng.uniform(-30,30));d=rng.uniform(1.3,2.2)
+  scale=rng.uniform(.92,1.06);sz=sizes[model];sz=(sz[0]*scale,sz[1],sz[2]*scale)
+  add(f'Cover_Island_{n:02}_{i}_'+('High' if high else 'Low'),model,cx+d*math.sin(a),cz+d*math.cos(a),math.degrees(a)+rng.uniform(-30,30),sz,f'island{n}')
 
-# Conservative circles enclose each rotated box. Offending pairs are pushed
-# apart deterministically; the intentional spawn screens never move.
-MIN_GAP=1.5
-def radius_of(r): return math.hypot(r['size']['x'],r['size']['z'])/2
+# Conservative circles enclose each rotated box. Neighbours inside one island may
+# stand close; anything else keeps a lane wide enough to be caught in.
+GAP_ISLAND=1.5;GAP_LANE=3.0
+def radius_of(r): return r['radius'] if 'radius' in r else math.hypot(r['size']['x'],r['size']['z'])/2
+def needed(a,b):
+ if 'radius' in a or 'radius' in b:return PEDESTAL_GAP
+ return GAP_ISLAND if a['group']==b['group'] else GAP_LANE
 def gap_of(a,b):
  dx=a['position']['x']-b['position']['x'];dz=a['position']['z']-b['position']['z']
  return math.hypot(dx,dz)-radius_of(a)-radius_of(b),dx,dz
-for _ in range(400):
- worst=None
+def fixed(r): return 'radius' in r or 'SpawnScreen' in r['name'] or 'Column' in r['name']
+WALL_RADIUS=28.08
+# The dais takes part in the push as an immovable circle; the wall clamps radially.
+rows.append(dict(name='Dais',position=dict(x=0,y=0,z=0),radius=PEDESTAL_RADIUS,group='dais'))
+def clamp(r):
+ if 'radius' in r:return
+ d=math.hypot(r['position']['x'],r['position']['z']);limit=WALL_RADIUS-1.0-radius_of(r)
+ if d>limit:r['position']['x']*=limit/d;r['position']['z']*=limit/d
+# Relax every offending pair a little per sweep (Jacobi style); one-worst-pair
+# updates oscillate once islands and lanes compete.
+for sweep in range(600):
+ moved=False
  for i,a in enumerate(rows):
   for b in rows[i+1:]:
-   g,dx,dz=gap_of(a,b)
-   if g<MIN_GAP and (worst is None or g<worst[0]):worst=(g,a,b,dx,dz)
- if worst is None:break
- g,a,b,dx,dz=worst;d=math.hypot(dx,dz) or 1.0;push=(MIN_GAP-g)+.02
- fixed_a='SpawnScreen' in a['name'];fixed_b='SpawnScreen' in b['name']
- wa=0 if fixed_a else (1 if fixed_b else .5);wb=0 if fixed_b else (1 if fixed_a else .5)
- a['position']['x']+=dx/d*push*wa;a['position']['z']+=dz/d*push*wa
- b['position']['x']-=dx/d*push*wb;b['position']['z']-=dz/d*push*wb
-minimum=(999,None)
+   g,dx,dz=gap_of(a,b);short=needed(a,b)-g
+   if short<=0:continue
+   moved=True;d=math.hypot(dx,dz) or 1.0;push=(short+.03)*.5
+   if d<.01:dx,dz=1.0,0.0;d=1.0
+   wa=0 if fixed(a) else (1 if fixed(b) else .5);wb=0 if fixed(b) else (1 if fixed(a) else .5)
+   a['position']['x']+=dx/d*push*wa;a['position']['z']+=dz/d*push*wa
+   b['position']['x']-=dx/d*push*wb;b['position']['z']-=dz/d*push*wb
+   clamp(a);clamp(b)
+ if not moved:break
+rows.remove(next(r for r in rows if 'radius' in r))
+minimum=(999,None);lane=(999,None)
 for i,a in enumerate(rows):
  for b in rows[i+1:]:
   g,_,_=gap_of(a,b)
   if g<minimum[0]:minimum=(g,(a['name'],b['name']))
+  if a['group']!=b['group'] and g<lane[0]:lane=(g,(a['name'],b['name']))
 assert minimum[0]>=1.44,minimum
-# Nothing may crowd the keeper's dais: the final dash must stay a dash.
-pedestal=min(math.hypot(r['position']['x'],r['position']['z'])-math.hypot(r['size']['x'],r['size']['z'])/2-PEDESTAL_RADIUS for r in rows)
-assert pedestal>=PEDESTAL_GAP,pedestal
-OUT.write_text(json.dumps(dict(referenceRadius=28.08,covers=rows),indent=2)+'\n')
-print(json.dumps(dict(covers=len(rows),high=sum(r['name'].endswith('High') for r in rows),minimumConservativeGap=minimum,pedestalGap=round(pedestal,2))))
+assert lane[0]>=2.9,lane
+pedestal=min(math.hypot(r['position']['x'],r['position']['z'])-radius_of(r)-PEDESTAL_RADIUS for r in rows)
+assert pedestal>=PEDESTAL_GAP-.02,pedestal
+outer=max(math.hypot(r['position']['x'],r['position']['z'])+radius_of(r) for r in rows)
+assert outer<=WALL_RADIUS-1.0,outer
+for r in rows: del r['group']
+OUT.write_text(json.dumps(dict(referenceRadius=WALL_RADIUS,covers=rows),indent=2)+'\n')
+print(json.dumps(dict(covers=len(rows),high=sum(r['name'].endswith('High') for r in rows),minimumGap=round(minimum[0],2),minimumLane=round(lane[0],2),pedestalGap=round(pedestal,2),outermost=round(outer,2))))
