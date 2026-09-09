@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -1381,7 +1382,7 @@ namespace Igruha.Minigames.CryingAngels
 
             if (AllRunnersTouched())
             {
-                EndMinigame();
+                EndRoundAfterScreamer();
             }
         }
 
@@ -1400,10 +1401,39 @@ namespace Igruha.Minigames.CryingAngels
             screamer.Play(
                 runner.PlayerId,
                 runner.Avatar != null ? runner.Avatar.gameObject : null,
-                keeperAvatar != null ? keeperAvatar.transform : null,
+                keeperAvatar != null ? keeperAvatar.gameObject : null,
                 firstPersonRig,
                 keeper != null ? keeper.Beam : null,
-                IsLocal(keeperPlayerId));
+                IsLocal(keeperPlayerId),
+                IsLocal(runner.PlayerId));
+        }
+
+        /// <summary>
+        /// Последнее касание закрывает раунд — но не в тот же кадр. Конец раунда
+        /// обрывает скример, и последний дошедший (а в катке на троих это
+        /// каждый второй) не видел его никогда: вместо лица — сразу «Итоги
+        /// раунда». Раунд доживает длительность сцены; истёкший таймер
+        /// закрывает его сам, поэтому проверка RoundActive обязательна.
+        /// </summary>
+        private void EndRoundAfterScreamer()
+        {
+            float delay = screamer != null ? screamer.Duration : 0f;
+            if (delay <= 0f)
+            {
+                EndMinigame();
+                return;
+            }
+
+            StartCoroutine(EndRoundDelayed(delay));
+        }
+
+        private IEnumerator EndRoundDelayed(float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            if (RoundActive)
+            {
+                EndMinigame();
+            }
         }
 
         /// <summary>

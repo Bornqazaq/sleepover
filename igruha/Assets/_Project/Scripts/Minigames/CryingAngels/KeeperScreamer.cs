@@ -16,6 +16,11 @@ namespace Igruha.Minigames.CryingAngels
     /// продолжают идти к постаменту, и Водящий обязан вернуться к лучу
     /// меньше чем через секунду.
     ///
+    /// Момент двусторонний: Водящему в лицо вылетает дошедший, а дошедшему —
+    /// Водящий (зеркало, по камере наблюдателя: свой аватар в этот же тик
+    /// снимается с арены, и камера уходит к оставшимся). Остальные видят
+    /// только всполох на экране.
+    ///
     /// Призрак — копия модели дошедшего, а не сам аватар: аватар едет под
     /// NetworkTransform и снимается с арены в тот же тик. Появляется он там,
     /// куда Водящий смотрит, а не там, где реально стоял игрок: пугает лицо
@@ -71,6 +76,9 @@ namespace Igruha.Minigames.CryingAngels
         [SerializeField] private float shakeAmplitude = 2.4f;
         [SerializeField] private float shakeFrequency = 28f;
 
+        /// <summary>Сколько длится сцена: столько раунд обязан дожить после последнего касания.</summary>
+        public float Duration => duration;
+
         /// <summary>Скример пошёл: номер игрока, который дотронулся. Точка для звука.</summary>
         public event Action<int> Started;
 
@@ -80,11 +88,13 @@ namespace Igruha.Minigames.CryingAngels
         private Animator ghostAnimator;
         private GameObject lamp;
 
-        public void Play(int playerId, GameObject victimAvatar, Transform keeperRoot, FirstPersonCameraRig rig, KeeperBeam beam, bool localIsKeeper)
+        public void Play(int playerId, GameObject victimAvatar, GameObject keeperAvatar, FirstPersonCameraRig rig, KeeperBeam beam, bool localIsKeeper, bool localIsToucher)
         {
             Stop();
             Started?.Invoke(playerId);
-            running = StartCoroutine(Run(victimAvatar, keeperRoot, rig, beam, localIsKeeper));
+            Debug.Log($"🎃 Ангелы: скример касания игрока {playerId} — я {(localIsKeeper ? "Водящий" : localIsToucher ? "дошедший" : "зритель")}, " +
+                      $"дошедший={(victimAvatar != null ? victimAvatar.name : "нет")}, Водящий={(keeperAvatar != null ? keeperAvatar.name : "нет")}, риг={(rig != null)}", this);
+            running = StartCoroutine(Run(victimAvatar, keeperAvatar, rig, beam, localIsKeeper, localIsToucher));
         }
 
         /// <summary>Оборвать сцену: конец раунда или смена ролей посреди неё.</summary>
@@ -109,9 +119,10 @@ namespace Igruha.Minigames.CryingAngels
             Stop();
         }
 
-        private IEnumerator Run(GameObject victimAvatar, Transform keeperRoot, FirstPersonCameraRig rig, KeeperBeam beam, bool localIsKeeper)
+        private IEnumerator Run(GameObject victimAvatar, GameObject keeperAvatar, FirstPersonCameraRig rig, KeeperBeam beam, bool localIsKeeper, bool localIsToucher)
         {
-            bool eyes = localIsKeeper && rig != null && keeperRoot != null;
+            bool eyes = localIsKeeper && rig != null;
+            bool mirror = !eyes && localIsToucher && keeperAvatar != null;
             Vector3 forward = Vector3.forward;
             Vector3 eye = Vector3.zero;
             Vector3 modelScale = Vector3.one;
@@ -120,19 +131,27 @@ namespace Igruha.Minigames.CryingAngels
 
             if (eyes)
             {
-                forward = rig.transform.forward;
-                forward.y = 0f;
-                forward = forward.sqrMagnitude > 0.0001f ? forward.normalized : keeperRoot.forward;
-                eye = rig.EyePosition;
                 basePitch = rig.Pitch;
                 ghost = BuildGhost(victimAvatar, out modelScale, out modelTwist);
-                if (ghost != null)
-                {
-                    LightGhost(forward, eye);
-                }
+            }
+            else if (mirror)
+            {
+                ghost = BuildGhost(keeperAvatar, out modelScale, out modelTwist);
             }
 
-            float flashAlpha = localIsKeeper ? keeperFlashAlpha : othersFlashAlpha;
+            if (ghost != null)
+            {
+                lamp = new GameObject("KeeperScreamerLamp");
+                lamp.transform.SetParent(transform, false);
+                var light = lamp.AddComponent<Light>();
+                light.type = LightType.Point;
+                light.color = ghostLightColor;
+                light.intensity = ghostLightIntensity;
+                light.range = ghostLightRange;
+                light.shadows = LightShadows.None;
+            }
+
+            float flashAlpha = localIsKeeper || localIsToucher ? keeperFlashAlpha : othersFlashAlpha;
             float elapsed = 0f;
             while (elapsed < duration)
             {
@@ -148,21 +167,35 @@ namespace Igruha.Minigames.CryingAngels
 
                 beam?.SetIntensityScale(torchDim);
 
-                if (eyes)
+                // Глаз и взгляд берутся каждый кадр: у Водящего риг крутится мышью,
+                // у дошедшего камера в этот же тик уходит к наблюдению за другими.
+                bool haveEye = TryResolveEye(eyes, rig, out eye, out forward);
+                if (ghost != null && haveEye)
                 {
                     float lunge = Mathf.SmoothStep(lungeFrom, lungeTo, Mathf.Clamp01(elapsed / lungeTime));
-                    if (ghost != null)
+                    // Призрак растёт из темноты: первые кадры он меньше, чем настоящий.
+                    float pop = Mathf.SmoothStep(0.6f, 1f, Mathf.Clamp01(elapsed / lungeTime));
+                    Vector3 flat = new Vector3(forward.x, 0f, forward.z);
+                    flat = flat.sqrMagnitude > 0.0001f ? flat.normalized : Vector3.forward;
+                    ghost.transform.rotation = Quaternion.LookRotation(-flat) * Quaternion.Euler(0f, facingOffset, 0f) * modelTwist;
+                    ghost.transform.localScale = modelScale * pop;
+                    // Лицом к зрителю — по плечам, а не по forward модели: у персонажей
+                    // модель смотрит кто вдоль +Z корня, кто против, и один общий
+                    // разворот показывал половине ростера затылок.
+                    float yawError = Vector3.SignedAngle(GhostFacing(), -flat, Vector3.up);
+                    ghost.transform.rotation = Quaternion.AngleAxis(yawError, Vector3.up) * ghost.transform.rotation;
+                    // Лицо — в центр кадра: ставим по кости головы, а не по корню,
+                    // иначе низкий или присевший персонаж уезжает под нижний край экрана.
+                    Vector3 targetHead = eye + forward * lunge + Vector3.down * faceDrop;
+                    ghost.transform.position += targetHead - HeadAnchor();
+                    if (lamp != null)
                     {
-                        // Призрак растёт из темноты: первые кадры он меньше, чем настоящий.
-                        float pop = Mathf.SmoothStep(0.6f, 1f, Mathf.Clamp01(elapsed / lungeTime));
-                        ghost.transform.rotation = Quaternion.LookRotation(-forward) * Quaternion.Euler(0f, facingOffset, 0f) * modelTwist;
-                        ghost.transform.localScale = modelScale * pop;
-                        // Лицо — в центр кадра: ставим по кости головы, а не по корню,
-                        // иначе низкий или присевший персонаж уезжает под нижний край экрана.
-                        Vector3 targetHead = eye + forward * lunge + Vector3.down * faceDrop;
-                        ghost.transform.position += targetHead - HeadAnchor();
+                        lamp.transform.position = eye + forward * lampForward + Vector3.down * lampDrop;
                     }
+                }
 
+                if (eyes)
+                {
                     float fade = 1f - Mathf.Clamp01(elapsed / duration);
                     float shake = Mathf.Sin(elapsed * shakeFrequency * Mathf.PI * 2f) * shakeAmplitude * fade;
                     rig.SetView(rig.Yaw, basePitch + shake);
@@ -221,6 +254,52 @@ namespace Igruha.Minigames.CryingAngels
             return clone;
         }
 
+        /// <summary>Откуда смотрит зритель сцены: глаз рига Водящего или главная камера дошедшего.</summary>
+        private static bool TryResolveEye(bool eyes, FirstPersonCameraRig rig, out Vector3 eye, out Vector3 forward)
+        {
+            if (eyes)
+            {
+                eye = rig.EyePosition;
+                forward = rig.transform.forward;
+                return true;
+            }
+
+            Camera camera = Camera.main;
+            if (camera == null)
+            {
+                eye = Vector3.zero;
+                forward = Vector3.forward;
+                return false;
+            }
+
+            eye = camera.transform.position;
+            forward = camera.transform.forward;
+            return true;
+        }
+
+        /// <summary>Куда смотрит призрак сейчас: перпендикуляр к линии плеч, для не-гуманоида — forward.</summary>
+        private Vector3 GhostFacing()
+        {
+            if (ghostAnimator != null && ghostAnimator.isHuman)
+            {
+                Transform left = ghostAnimator.GetBoneTransform(HumanBodyBones.LeftUpperArm);
+                Transform right = ghostAnimator.GetBoneTransform(HumanBodyBones.RightUpperArm);
+                if (left != null && right != null)
+                {
+                    Vector3 across = right.position - left.position;
+                    across.y = 0f;
+                    if (across.sqrMagnitude > 0.0001f)
+                    {
+                        return Vector3.Cross(across, Vector3.up).normalized;
+                    }
+                }
+            }
+
+            Vector3 forward = ghost.transform.forward;
+            forward.y = 0f;
+            return forward.sqrMagnitude > 0.0001f ? forward.normalized : Vector3.forward;
+        }
+
         private Vector3 HeadAnchor()
         {
             Transform head = ghostAnimator != null && ghostAnimator.isHuman ? ghostAnimator.GetBoneTransform(HumanBodyBones.Head) : null;
@@ -241,24 +320,6 @@ namespace Igruha.Minigames.CryingAngels
                 Destroy(lamp);
                 lamp = null;
             }
-        }
-
-        /// <summary>
-        /// Лампа под подбородком призрака: единственное, что его освещает,
-        /// когда фонарь погас. Стоит в мире между глазами и призраком, ниже
-        /// линии взгляда — свет снизу, как фонарик под подбородком.
-        /// </summary>
-        private void LightGhost(Vector3 towardGhost, Vector3 eye)
-        {
-            lamp = new GameObject("KeeperScreamerLamp");
-            lamp.transform.SetParent(transform, false);
-            lamp.transform.position = eye + towardGhost * lampForward + Vector3.down * lampDrop;
-            var light = lamp.AddComponent<Light>();
-            light.type = LightType.Point;
-            light.color = ghostLightColor;
-            light.intensity = ghostLightIntensity;
-            light.range = ghostLightRange;
-            light.shadows = LightShadows.None;
         }
 
         private void SetFlash(float alpha)
