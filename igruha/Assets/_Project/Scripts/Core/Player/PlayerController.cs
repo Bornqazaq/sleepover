@@ -74,6 +74,9 @@ namespace Igruha.Core.Player
         /// </summary>
         public bool CrouchInputSuppressed { get; set; }
 
+        /// <summary>Ноги поставлены: замах удара, ввод движения не читается, тело тормозит.</summary>
+        public bool FeetPlanted => plantTimer > 0f;
+
         /// <summary>
         /// «Замри»: ввод движения и прыжка обрублен, тело гасит бег и стоит.
         /// В отличие от нокдауна персонаж не падает и не отыгрывает клип, а
@@ -193,6 +196,8 @@ namespace Igruha.Core.Player
         private bool movementLocked;
         private bool facingOverridden;
         private Component surfaceSource;
+        private float plantTimer;
+        private float plantBrakeMultiplier = 1f;
         private Component speedCapSource;
 
         /// <summary>Потолок скорости от внешней роли, м/с. Ноль — потолка нет.</summary>
@@ -361,9 +366,22 @@ namespace Igruha.Core.Player
                 return;
             }
 
-            ReadJumpInput();
             Vector2 moveInput = ReadMoveInput();
-            ApplyLocomotion(moveInput);
+            if (plantTimer > 0f)
+            {
+                // Замах: движение не читается, прыжок под ним сгорает, тело
+                // оседает по обычной кривой торможения, только резче. Не
+                // MovementLocked: та блокировка — чужая (заморозка, роль), и
+                // снимать её отсюда было бы гонкой с её владельцем.
+                plantTimer -= Time.fixedDeltaTime;
+                inputReader?.ConsumeJump();
+                jumpBufferTimer = 0f;
+                ApplyLocomotion(Vector2.zero, plantBrakeMultiplier);
+                return;
+            }
+
+            ReadJumpInput();
+            ApplyLocomotion(moveInput, 1f);
             TryStepUp(ToCameraRelative(moveInput));
             TryJump();
         }
@@ -470,6 +488,23 @@ namespace Igruha.Core.Player
         /// По сети не гоняется: множитель детерминирован и одинаков на всех
         /// машинах, потому что зависит только от того, где стоит персонаж.
         /// </summary>
+        /// <summary>
+        /// Поставить ноги на указанное время: ввод движения не читается, тело
+        /// тормозит с множителем к обычному торможению. Повторный вызов только
+        /// продлевает, не укорачивает. Зовёт удар; годится любому действию,
+        /// под которым персонаж по клипу стоит.
+        /// </summary>
+        public void PlantFeet(float seconds, float brakeMultiplier)
+        {
+            if (seconds <= 0f)
+            {
+                return;
+            }
+
+            plantTimer = Mathf.Max(plantTimer, seconds);
+            plantBrakeMultiplier = Mathf.Max(1f, brakeMultiplier);
+        }
+
         public void ApplySurface(Component source, float accelerationMultiplier, float decelerationMultiplier)
         {
             surfaceSource = source;
@@ -654,7 +689,7 @@ namespace Igruha.Core.Player
             return raw.sqrMagnitude < config.InputDeadzone * config.InputDeadzone ? Vector2.zero : raw;
         }
 
-        private void ApplyLocomotion(Vector2 moveInput)
+        private void ApplyLocomotion(Vector2 moveInput, float brakeMultiplier)
         {
             Vector3 desiredDirection = ToCameraRelative(moveInput);
             MoveIntent = Vector3.ClampMagnitude(desiredDirection, 1f);
@@ -674,7 +709,7 @@ namespace Igruha.Core.Player
             bool accelerating = desiredVelocity.sqrMagnitude > 0.01f;
             float rate = accelerating
                 ? config.Acceleration * AccelerationMultiplier
-                : config.Deceleration * DecelerationMultiplier;
+                : config.Deceleration * DecelerationMultiplier * brakeMultiplier;
             if (!IsGrounded)
             {
                 rate *= config.AirControl;

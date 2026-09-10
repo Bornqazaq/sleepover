@@ -82,6 +82,8 @@ namespace Igruha.Core.Player
             cooldownTimer = self.Config.PushCooldown;
             impactTimer = self.Config.PunchImpactDelay;
             impactPending = true;
+            // Ноги — в пол: замах с разбега оседает в стойку, а не скользит под клипом.
+            self.PlantFeet(self.Config.PunchPlantDuration, self.Config.PunchBrakeMultiplier);
             PunchStarted?.Invoke();
         }
 
