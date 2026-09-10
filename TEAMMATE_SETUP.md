@@ -1,99 +1,98 @@
-# Настройка среды разработки — проект «Комната»
+# Настройка среды разработки — проект «Комната» (`sleepover`)
 
-Цель: собрать на второй машине среду, идентичную основной, чтобы работать над
-игрой параллельно. Доступ к Git-репозиторию и Linear настраивать не нужно — он
-выдаётся отдельно.
+Цель: за один вечер собрать на новой машине среду, идентичную основной, и
+работать над игрой параллельно через Claude Code. Инструкция написана так,
+чтобы её мог выполнить **Claude Code целиком сам**: команды точные, проверки
+после каждого шага, известные грабли собраны в конце.
 
-Инструкция покрывает **macOS и Windows**. Где команды различаются, приведены обе;
-где нет — блок один на обе платформы. Windows-колонка написана по факту реальной
-установки 26.08 и включает грабли, на которые там наступаешь гарантированно
-(раздел «Частые проблемы»).
+Обновлено **10.09.2026** по факту двух живых установок: macOS (Apple Silicon,
+основная машина) и Windows (26.08). Что не проверено руками — помечено.
 
-Стек проекта: Unity 6.3 (6000.3.11f1), URP, C#, онлайн-мультиплеер (NGO + Relay +
-Lobby).
+Доступ к Git-репозиторию и Linear выдаётся отдельно, здесь не настраивается.
 
 ---
 
-## Часть 1. Базовые инструменты
+## 0. Если читает Claude Code
 
-Ставь по порядку, уже установленное пропускай.
+1. Сначала прочитай `CLAUDE.md` (корень) и `igruha/CLAUDE.md` — процесс и
+   правила кода, включая раздел 🔒 «Заморожено». Потом `STATE.md` — единый
+   статус проекта, сверху самое свежее.
+2. Выполняй разделы по порядку, после каждого — блок «Проверка». Не переходи
+   дальше с красной проверкой.
+3. Всё, что зависит от машины (пути, версии, ключи), кладётся **в конфиги
+   пользователя**, а не в репозиторий: `~/.claude.json`, `.claude/settings.local.json`
+   (он в `.gitignore`). В репозитории лежат только общие `.claude/settings.json`
+   и скиллы `.claude/skills/`.
+4. Не трогай `main` напрямую и не делай `git pull` при открытом Unity —
+   раздел 3.3.
+
+Стек: Unity **6000.3.11f1**, URP 17.3, Netcode for GameObjects 1.10 + Relay +
+Lobby, Cinemachine 3.1.7, Multiplayer Play Mode 2.0.2, MCP for Unity
+(`com.coplaydev.unity-mcp`, ветка `main` с GitHub).
+
+---
+
+## 1. Базовые инструменты
 
 ### 1.1. Пакетный менеджер
 
-**macOS — Homebrew.** Если ещё нет:
+**macOS — Homebrew:**
 
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
-**Windows — winget.** Уже встроен в Windows 10/11, ставить нечего. При первом
-запуске он просит принять соглашения источников, а в неинтерактивной оболочке
-падает с `0x8a150042`. Поэтому ниже везде добавлены флаги
+**Windows — winget** встроен. В неинтерактивной оболочке при первом запуске
+падает с `0x8a150042`, поэтому ко всем командам ниже добавлять
 `--accept-source-agreements --accept-package-agreements`.
 
-### 1.2. Всё остальное одной таблицей
+### 1.2. Инструменты
 
-| Инструмент | macOS | Windows |
-|---|---|---|
-| Git | `brew install git` | `winget install Git.Git` |
-| Git LFS | `brew install git-lfs` | входит в установщик Git |
-| Node.js | `brew install node` | `winget install OpenJS.NodeJS.LTS` |
-| Python | `brew install python` | `winget install Python.Python.3.13` |
-| uv | `brew install uv` | `winget install astral-sh.uv` |
-| .NET SDK | `brew install dotnet-sdk` | `winget install Microsoft.DotNet.SDK.9` |
+| Инструмент | macOS | Windows | Зачем |
+|---|---|---|---|
+| Git | `brew install git` | `winget install Git.Git` | репозиторий |
+| Git LFS | `brew install git-lfs` | в установщике Git | модели, текстуры, звук — **обязателен** |
+| Node.js LTS | `brew install node` | `winget install OpenJS.NodeJS.LTS` | Claude Code |
+| Python 3 | `brew install python` | `winget install Python.Python.3.13` | инструменты в `tools/` |
+| uv | `brew install uv` | `winget install astral-sh.uv` | `uvx` для MCP-серверов Blender и Unity |
 
-Windows-команды нужно дополнить флагами из 1.1, например:
+.NET SDK **не нужен**: компиляция без редактора делается самим Unity в
+batchmode (раздел 5). На основной машине dotnet не стоит.
 
-```powershell
-winget install --id OpenJS.NodeJS.LTS --exact --silent `
-  --accept-source-agreements --accept-package-agreements
-```
-
-После установки Git на обеих платформах:
+После установки Git:
 
 ```bash
 git lfs install
 ```
 
-Зачем что нужно:
-
-- **Git LFS обязателен** — проект хранит модели, текстуры и аудио через LFS. Без
-  него при клоне вместо файлов подтянутся текстовые указатели на ~130 байт.
-- **Node.js** — для Claude Code.
-- **uv** — запускает MCP-сервер Blender.
-- **.NET SDK** — им проверяется компиляция C#, когда Unity закрыт
-  (`dotnet build`). В инструкции его раньше не было, но в работе он используется —
-  см. `STATE.md`, раздел 3.7.
-
-Проверка, что всё встало (пути в новой оболочке, старая PATH не подхватит):
+Проверка (в новом окне терминала — PATH читается при старте оболочки):
 
 ```bash
-git --version && git lfs version && node --version && python --version && uv --version && dotnet --version
+git --version && git lfs version && node --version && python3 --version && uv --version && which uvx
 ```
+
+Запомни абсолютный путь `uvx` (macOS: `~/.local/bin/uvx` или
+`/opt/homebrew/bin/uvx`) — он понадобится, если поднимать Unity MCP по stdio.
 
 ---
 
-## Часть 2. Unity
+## 2. Unity
 
 ### 2.1. Unity Hub
 
-**macOS:** скачать с https://unity.com/download и установить.
-
-**Windows:**
+macOS: https://unity.com/download. Windows:
 
 ```powershell
-winget install --id Unity.UnityHub --exact --silent `
-  --accept-source-agreements --accept-package-agreements
+winget install --id Unity.UnityHub --exact --silent --accept-source-agreements --accept-package-agreements
 ```
 
 ### 2.2. Unity Editor 6000.3.11f1 — ТОЧНО эта версия
 
-Версия и ченджсет зафиксированы в `igruha/ProjectSettings/ProjectVersion.txt`:
-`6000.3.11f1`, ченджсет `3000ef702840`. Другая версия даст рассинхрон проекта.
+Версия и ченджсет — в `igruha/ProjectSettings/ProjectVersion.txt`:
+`6000.3.11f1`, ченджсет `3000ef702840`. Другая версия пересоберёт Library и
+разъедется с напарником.
 
-**Через GUI:** Unity Hub → Installs → Install Editor → `6000.3.11f1`.
-
-**Через CLI** (быстрее и не требует кликов):
+GUI: Unity Hub → Installs → Install Editor → 6000.3.11f1. CLI:
 
 macOS:
 
@@ -111,222 +110,313 @@ Windows:
   --module windows-il2cpp mac-mono --childModules
 ```
 
-**Модули нужны кросс-платформенные на обеих машинах** — раздатка для плейтестов
-собирается сразу под Mac и Windows (`igruha/Builds/sleepover-Mac.zip` и
-`sleepover-Windows.zip`). Поэтому маковая машина берёт Windows-модули, а
-Windows-машина — Mac-модуль. Свою родную платформу редактор умеет из коробки.
+Модули — **кросс-платформенные**: раздатка для плейтестов собирается сразу
+под Mac и Windows, поэтому маковая машина ставит Windows-модули, а
+Windows-машина — Mac-модуль. ~11 ГБ, 20–40 минут.
 
-Займёт ~11 ГБ и 20–40 минут. Проверка:
+Где лежит редактор (нужно для раздела 5):
 
-```
-Unity Hub -- --headless editors --installed
-```
+- macOS: `~/Unity/Hub/Editor/6000.3.11f1/Unity.app/Contents/MacOS/Unity`
+  (на основной машине именно так, не в `/Applications`);
+- Windows: `C:\Program Files\Unity\Hub\Editor\6000.3.11f1\Editor\Unity.exe`.
 
-### 2.3. Клонирование проекта
+Проверка: `Unity Hub -- --headless editors --installed` показывает 6000.3.11f1.
+
+### 2.3. Клонирование
 
 ```bash
-git clone <URL-репозитория>
+git clone <URL-репозитория> sleepover
 cd sleepover
 git lfs pull
 ```
 
-Важно: проект Unity лежит во вложенной папке — открывать в Unity Hub нужно
-`sleepover/igruha` (там, где `Assets`), а не корень репозитория.
+LFS-объектов больше 5 ГБ — первый `pull` долгий, это норма. Проверка: любой
+файл в `igruha/Assets/_Project/Art/` весит сотни килобайт, а не ~130 байт
+(указатель).
 
-Проверка, что LFS отработал: любой файл из `igruha/Assets/_Project/Art/Textures/`
-должен весить сотни килобайт, а не ~130 байт.
+**Проект Unity — вложенная папка `sleepover/igruha`** (где `Assets`). В Hub
+добавлять именно её, не корень репозитория.
 
 ### 2.4. Первый запуск
 
-- Войти в аккаунт Unity в Hub — **без лицензии редактор не стартует.**
-- Hub → Add → Add project from disk → выбрать `sleepover/igruha`.
-- Дождаться импорта. Первый раз он долгий: ассетов на несколько гигабайт плюс
-  Package Manager тянет `com.coplaydev.unity-mcp` с GitHub (нужен git в PATH).
-- Проверить **Console (Window → General → Console)** — должно быть 0 ошибок
-  компиляции.
-- При диалоге про Addressables/Legacy Bundles — Ignore.
+1. Войти в аккаунт Unity в Hub — без лицензии редактор не стартует.
+2. Hub → Add → Add project from disk → `sleepover/igruha`.
+3. Первый импорт долгий: несколько ГБ ассетов, Package Manager тянет
+   `com.coplaydev.unity-mcp` с GitHub (нужен `git` в PATH).
+4. Console (Window → General → Console): **0 ошибок компиляции**.
+5. Диалог про Addressables / Legacy Bundles — Ignore.
 
 ---
 
-## Часть 3. Claude Code
+## 3. Git-процесс — коротко, но обязательно
 
-### 3.1. Установка
+Полная формулировка — `CLAUDE.md`, раздел 5. Здесь то, без чего сломаешь
+работу второму.
+
+### 3.1. Ветки
+
+- **В `main` напрямую не коммитить никогда**, даже однострочный фикс.
+- Работа — в ветке на фичу/фазу. Закрыл, протестировал → мердж в `main`.
+- `main` подтягивать в свою ветку часто, а не раз в неделю.
+- Правишь `Core/`, общие префабы, аниматоры, ввод — **предупреди второго до
+  мерджа**, в топике `warnings` (3.4).
+- Коммит на русском, с ID тикета: `IGR-151: сетевой синхрон выстрелов Duck Hunt`.
+
+### 3.2. Сцены и префабы
+
+Одна сцена = один владелец в моменте. `.unity` и `.prefab` не мержатся
+по-человечески. Кто делает свою мини-игру, чужую сцену не открывает на запись.
+
+### 3.3. Перед `git pull` / `merge` — закрыть Unity
+
+Иначе редактор и git пишут в одни файлы: Unity пересоздаёт `.meta` с новыми
+GUID, ссылки в сценах и префабах рвутся. Проверено на практике 15.08.
+
+### 3.4. Топик `warnings` в общей ТГ-группе
+
+Всё, что второй должен узнать **раньше, чем сделает pull**, идёт туда:
+затронутый Core, переделанная общая сцена, изменённые правила. Запись в
+`STATE.md` приезжает тем же мерджем, о котором предупреждает, поэтому файлом
+предупредить нельзя by design.
+
+### 3.5. Git LFS — новые ассеты
+
+Новые анимации класть **без модели внутри** (клип ~1 МБ вместо ~85 МБ).
+Что идёт через LFS — в `.gitattributes`.
+
+---
+
+## 4. Claude Code и MCP
+
+### 4.1. Claude Code
 
 ```bash
 npm install -g @anthropic-ai/claude-code
 claude doctor
+cd sleepover && claude
 ```
 
-### 3.2. Первый запуск и вход
+Войти в аккаунт Anthropic. На основной машине — Claude Code 2.1.x.
+
+### 4.2. Разрешения
+
+`.claude/settings.json` в репозитории уже выдаёт разрешения на
+`mcp__unity__*`, `mcp__UnityMCP__*`, `mcp__linear__*` и безопасные git-команды.
+Имена MCP-серверов ниже должны совпадать **буква в букву**: `unity`,
+`UnityMCP`, `blender`, `linear`, `higgsfield`.
+
+Свои локальные разрешения и пути — в `.claude/settings.local.json` (не
+коммитится).
+
+### 4.3. Unity MCP — рабочая схема: HTTP
+
+Мост со стороны Unity уже в проекте (`Packages/manifest.json` →
+`com.coplaydev.unity-mcp`, версия пакета 10.x). В версии 10 мост **сам
+поднимает HTTP-сервер**, отдельный Python-процесс не нужен.
+
+В Unity: **Window → MCP for Unity** → транспорт **HTTP**, порт **8080** →
+Start Server. Статус — зелёный `Session Active`.
+
+Клиент (два имени на один адрес — под оба префикса разрешений):
 
 ```bash
-cd путь/к/sleepover
-claude
+claude mcp add --scope user --transport http unity    http://127.0.0.1:8080/mcp
+claude mcp add --scope user --transport http UnityMCP http://127.0.0.1:8080/mcp
 ```
 
-Войти в аккаунт Anthropic.
+Проверка: новая сессия `claude` → `/mcp` → `unity` Connected при открытом
+редакторе с запущенным сервером. Без редактора — Disconnected, это норма.
 
-### 3.3. Прочитать CLAUDE.md
-
-В корне репозитория `CLAUDE.md` — навигация и процесс, в `igruha/CLAUDE.md` —
-правила кода (SOLID, `[SerializeField]`, server-authority NGO) и раздел
-🔒 «Заморожено». Claude Code читает их сам, но прочти глазами: там сетевые
-конвенции и список того, что править запрещено.
-
----
-
-## Часть 4. MCP-серверы
-
-Ставим **в user scope** (`--scope user`) — тогда серверы работают из любой папки,
-а не только из той, где выполнялась команда. Это отличается от старой редакции
-инструкции и снимает добрую половину вопросов «`/mcp` ничего не видит».
-
-### 4.1. Unity MCP (CoplayDev)
-
-Пакет уже прописан в `igruha/Packages/manifest.json` и приедет с git. Подключаем
-клиента:
+**Запасная схема — stdio через uvx** (если HTTP не поднялся). Версию пина
+взять из `igruha/Library/PackageCache/com.coplaydev.unity-mcp*/package.json`,
+путь `uvx` — абсолютный:
 
 ```bash
-claude mcp add --scope user --transport http unity http://127.0.0.1:8080/mcp
+claude mcp add --scope user UnityMCP -- /Users/<user>/.local/bin/uvx --from mcpforunityserver==10.1.0 mcp-for-unity
 ```
 
-Сервер поднимается со стороны Unity: **Window → MCP for Unity → Start Server**,
-статус должен стать зелёным `Session Active`. Пока редактор не запущен, сервер
-будет числиться отключённым — это нормально.
+Проверка сервера отдельно: `uvx --from mcpforunityserver==10.1.0 mcp-for-unity --help`
+печатает справку. Обновился пакет в манифесте — перечитать версию, иначе мост
+и сервер разъедутся.
 
-Имя сервера должно быть ровно `unity`: в `.claude/settings.json` проекта
-разрешения выданы на префикс `mcp__unity__`.
+Правила работы через MCP (из `CLAUDE.md`):
 
-### 4.2. Blender MCP
+- после любых правок C# — `refresh_unity`, затем `read_console` (errors);
+- **не делать `refresh_unity`, пока пользователь в плей-моде** — перекомпиляция
+  перезагрузит домен и убьёт его прогон; сначала `manage_editor` → проверить
+  `isPlaying`;
+- сцены, префабы, ScriptableObject'ы правит агент через MCP, пользователю
+  остаётся плейтест.
 
-Нужен Blender **4.x, не 5.x** — аддон заявляет поддержку до четвёртой ветки.
+### 4.4. Blender MCP
 
-macOS: скачать 4.5 LTS с https://www.blender.org/download/
-
-Windows:
+**Blender 5.2 LTS работает** (проверено на основной машине с локальным
+аддоном, `tools/BLENDER.md`). Windows-установка 26.08 делалась на 4.5 — тоже
+работает. Брать актуальный LTS с https://www.blender.org/download/ или:
 
 ```powershell
-winget install --id BlenderFoundation.Blender --exact --version 4.5.5 --silent `
-  --accept-source-agreements --accept-package-agreements
+winget install --id BlenderFoundation.Blender --exact --silent --accept-source-agreements --accept-package-agreements
 ```
 
-Дальше подключаем сервер и ставим аддон **его же командой** — так версия
-протокола аддона гарантированно совпадёт с версией сервера:
+Сервер и аддон — одной парой команд, чтобы версии протокола совпали:
 
 ```bash
 claude mcp add --scope user blender -- uvx blender-mcp
 uvx blender-mcp install-addon
 ```
 
-Не качать `addon.py` с GitHub вручную: ветка `main` там может уйти вперёд
-опубликованного пакета, а две копии аддона в папке подерутся за порт 9876.
+Не качать `addon.py` с GitHub руками: две копии аддона дерутся за порт 9876.
 
-В Blender: Edit → Preferences → Add-ons → включить «Interface: Blender MCP».
-Затем в 3D-вьюпорте клавиша **N** → вкладка **BlenderMCP** → Start MCP Server.
-
-**Сервер приходится включать при каждом запуске Blender.** Чтобы не жать вручную,
-можно положить автостарт в `scripts/startup/` пользовательского конфига Blender
-(`%APPDATA%\Blender Foundation\Blender\4.5\scripts\startup\` на Windows,
-`~/Library/Application Support/Blender/4.5/scripts/startup/` на macOS):
-
-```python
-"""Автозапуск сокет-сервера BlenderMCP при старте Blender."""
-
-import bpy
-
-_START_DELAY_SECONDS = 1.0
-
-
-def _start_server():
-    try:
-        bpy.ops.blendermcp.start_server()
-    except Exception as error:  # noqa: BLE001 - стартап не должен ронять Blender
-        print(f"[blendermcp] автозапуск не удался: {error}")
-    return None
-
-
-def register():
-    bpy.app.timers.register(_start_server, first_interval=_START_DELAY_SECONDS)
-
-
-def unregister():
-    if bpy.app.timers.is_registered(_start_server):
-        bpy.app.timers.unregister(_start_server)
-```
-
-Файл достаточно удалить, чтобы вернуть ручной режим.
-
-### 4.3. Higgsfield MCP
+В Blender: Edit → Preferences → Add-ons → включить «Blender MCP». Сервер
+надо стартовать при каждом запуске Blender: либо **N** → вкладка
+**BlenderMCP** → Start MCP Server, либо запускать Blender скриптом из
+репозитория, который включает аддон и поднимает сервер сам:
 
 ```bash
-claude mcp add --scope user --transport http higgsfield https://mcp.higgsfield.ai/mcp
+open -a Blender --args --python "$PWD/tools/blender_start.py"
 ```
 
-Затем `claude` → `/mcp` → авторизация через браузер (регистрация бесплатная).
+(Windows: `& 'C:\Program Files\Blender Foundation\Blender 4.5\blender.exe' --python tools\blender_start.py`.)
 
-### 4.4. Linear MCP
+Без MCP-клиента Blender тоже управляем: `python3 tools/blender_client.py
+get_scene_info`, `execute_code --file <скрипт>`, `get_viewport_screenshot`.
+Генераторы арта лежат в `tools/blender/` (пример — арена «Плачущих ангелов»).
+
+### 4.5. Linear MCP
 
 ```bash
 claude mcp add --scope user --transport http linear https://mcp.linear.app/mcp
 ```
 
-Затем `claude` → `/mcp` → вход в Linear. Использовать именно `/mcp`-эндпоинт:
-старый `/sse` устарел и даёт ошибку авторизации.
+Именно `/mcp`: старый `/sse` отдаёт 404. На голый запрос сервер отвечает 401 —
+это приглашение к OAuth, не ошибка. В `claude` → `/mcp` → войти в Linear через
+браузер.
 
-### 4.5. Проверка всех разом
+Команда **IGRUHA**, проект **«Комната (Party-game)»**, эпики EPIC 0–24.
+Статусы двигает агент сам, по факту работы: взял — `In Progress`, закрыл —
+`Done`. Локальных копий тикетов не заводим. Если Linear MCP не поднялся —
+сказать вслух, а не пропустить молча.
+
+### 4.6. Higgsfield MCP (промо-графика, опционально)
+
+```bash
+claude mcp add --scope user --transport http higgsfield https://mcp.higgsfield.ai/mcp
+```
+
+`/mcp` → авторизация в браузере. Без авторизации сервер числится
+«requires authentication» — на работу с Unity не влияет.
+
+### 4.7. Проверка всех разом
 
 ```bash
 claude mcp list
 ```
 
-Ожидаемо: `blender` — Connected; `unity` — Connected, если редактор запущен и
-сервер стартован; `higgsfield` и `linear` — Connected после авторизации.
+Ожидаемо: `blender` Connected (при запущенном Blender с сервером), `unity` и
+`UnityMCP` Connected при запущенном редакторе, `linear` и `higgsfield` —
+после авторизации. **Новые серверы видны только со следующего запуска
+сессии** `claude`.
 
 ---
 
-## Часть 5. Skills (плагин для Claude Code)
+## 5. Компиляция без редактора — Unity batchmode
 
-Сначала добавить маркетплейс, потом плагин — одной командой `plugin install` он
-не найдётся:
+Когда редактор закрыт (или MCP отвалился), проверять C# так. Нужно, чтобы
+Unity не была открыта на этом проекте.
+
+macOS:
+
+```bash
+"$HOME/Unity/Hub/Editor/6000.3.11f1/Unity.app/Contents/MacOS/Unity" \
+  -batchmode -nographics -quit -projectPath "$PWD/igruha" -logFile /tmp/unity_compile.log
+grep -c "error CS" /tmp/unity_compile.log   # 0 = чисто
+grep "error CS" /tmp/unity_compile.log | head
+```
+
+Windows (PowerShell):
+
+```powershell
+& 'C:\Program Files\Unity\Hub\Editor\6000.3.11f1\Editor\Unity.exe' `
+  -batchmode -nographics -quit -projectPath "$PWD\igruha" -logFile "$env:TEMP\unity_compile.log"
+Select-String -Path "$env:TEMP\unity_compile.log" -Pattern 'error CS'
+```
+
+Первый прогон на свежей машине долгий (импорт), дальше — 1–2 минуты. Код
+возврата Unity может быть ненулевым и при чистой компиляции — смотреть на
+`error CS` в логе, а не на код. Ошибки — в `Editor.log`, а не в консоли.
+
+---
+
+## 6. Сетевые прогоны
+
+### 6.1. В редакторе — Multiplayer Play Mode
+
+Пакет `com.unity.multiplayer.playmode` 2.0.2 в проекте. Сценарий
+`igruha/Assets/Settings/PlayMode/Host + Client.asset`: главный редактор —
+хост, виртуальные игроки Player 2 и Player 3 — клиенты. Роль решает
+`NetworkRoleResolver`: главный редактор → Host, виртуальный игрок без тега →
+Client; тегами `Host`/`Client` в сценарии можно переопределить.
+
+Window → Multiplayer → Play Mode Scenarios → активировать «Host + Client» →
+Play. Виртуальные игроки стартуют 20–40 с, их логи — в
+`igruha/Library/VP/<id>/Logs/Editor.log`, у Player 2 включён стрим в консоль
+главного редактора. Управлять виртуальным игроком можно, кликнув в его окно.
+
+Редактор восьмерых не тянет (2 кадра в минуту) — для 5+ игроков билды.
+
+### 6.2. Билды и автопрогон
+
+Тестовый билд — `igruha/Builds/Autotest/`, отдельно от раздаточного.
+Аргументы запуска (`Core/Session/LaunchArguments.cs`): `--autostart <Игра>`,
+`--wait-players N`, `--bot` (персонажем управляет болванка). Скрипты стенда —
+`tools/autorun-*.sh` и `tools/autorun-report.sh` (сличение логов). Подробности
+и грабли — `STATE.md`, поиск по слову «стенд».
+
+Раздатка для плейтестов: `sleepover-Mac.zip` и `sleepover-Windows.zip`, сборка
+через `tools/dist-mac` / `tools/dist-windows`. Старые сборки после пересборки
+удалять, чтобы не раздать по ошибке.
+
+---
+
+## 7. Скиллы
+
+### 7.1. Скиллы репозитория (приезжают с git)
+
+`.claude/skills/` — конвейер мини-игры, пять фаз строго по порядку:
+`/mg-spec` → `/mg-tickets` → `/mg-blockout` → `/mg-net` → `/mg-art`, плюс
+`/mg-check` перед закрытием тикета. Какая модель и уровень рассуждения под
+какую фазу — таблица в `CLAUDE.md`, раздел 3.
+
+### 7.2. Плагин mattpocock/skills
 
 ```bash
 claude plugin marketplace add mattpocock/skills
 claude plugin install mattpocock-skills@mattpocock
 ```
 
-Проверка: в сессии набрать `/mattpocock-skills` — появится список команд
-(`code-review`, `grill-me`, `to-spec`, `improve-codebase-architecture` и др.).
-
----
-
-## Часть 6. Опционально — сетевая зона
-
-- **Netcode for GameObjects (NGO)** — основной сетевой фреймворк, уже в проекте.
-- **Unity Relay + Lobby** — через Unity Gaming Services, нужен вход в аккаунт
-  Unity и привязка проекта к UGS.
+Проверка: `/mattpocock-skills` показывает список (`code-review`, `grilling`,
+`tdd`, `diagnosing-bugs` и др.).
 
 ---
 
 ## Итоговый чеклист
 
-- [ ] Пакетный менеджер (Homebrew / winget)
-- [ ] Git + Git LFS (`git lfs install`)
-- [ ] Node.js
-- [ ] Python + uv
-- [ ] .NET SDK
-- [ ] Unity Hub
-- [ ] Unity Editor 6000.3.11f1 + кросс-платформенные модули сборки
-- [ ] Клонирован репозиторий + `git lfs pull`, файлы не указатели
-- [ ] Вход в аккаунт Unity (лицензия)
-- [ ] Проект `igruha` открывается, Console без ошибок
-- [ ] Claude Code установлен (`claude doctor` ок), вход в Anthropic
-- [ ] Прочитан `CLAUDE.md` (корневой и `igruha/`)
-- [ ] Unity MCP подключён (Connected при запущенном редакторе)
-- [ ] Blender 4.x + аддон через `uvx blender-mcp install-addon`
-- [ ] Higgsfield MCP авторизован
-- [ ] Linear MCP авторизован
-- [ ] `claude plugin install mattpocock-skills@mattpocock`
-- [ ] `claude mcp list` показывает все четыре сервера
+- [ ] Homebrew / winget
+- [ ] Git + Git LFS (`git lfs install`), Node.js, Python 3, uv (`uvx` найден)
+- [ ] Unity Hub, вход в аккаунт (лицензия)
+- [ ] Unity Editor 6000.3.11f1 + кросс-платформенные модули
+- [ ] Репозиторий склонирован, `git lfs pull`, файлы не указатели
+- [ ] Проект `igruha` открыт, Console без ошибок
+- [ ] Прочитаны `CLAUDE.md` (оба), `STATE.md` сверху
+- [ ] Claude Code (`claude doctor` ок), вход в Anthropic
+- [ ] Unity MCP: Window → MCP for Unity → HTTP 8080 → Start; `unity` и `UnityMCP` Connected
+- [ ] Blender + аддон через `uvx blender-mcp install-addon`, `blender` Connected
+- [ ] Linear MCP авторизован (`/mcp`), тикеты видны
+- [ ] Higgsfield MCP (опционально)
+- [ ] `claude mcp list` — все серверы на месте
+- [ ] Плагин mattpocock-skills установлен, `/mg-spec` и остальные скиллы видны
+- [ ] Batchmode-компиляция из раздела 5 отработала, `error CS` = 0
+- [ ] Прочитан раздел 3: ветки, «закрыть Unity перед pull», топик `warnings`
 
 ---
 
@@ -334,49 +424,49 @@ claude plugin install mattpocock-skills@mattpocock
 
 ### Общие
 
-- **`/mcp` пишет «No MCP servers configured»** — серверы поставлены в local scope
-  вместо user. `claude mcp list` покажет реальное состояние. Лечится повторной
-  установкой с `--scope user`.
-- **Unity MCP не Connected** — не нажат Start Server в окне Unity, либо редактор
-  не запущен. Без запущенного редактора подключения не будет по определению.
-- **Blender MCP отвалился** — сервер останавливается вместе с Blender; при новом
-  запуске нажать Start MCP Server заново или положить автостарт из 4.2.
-- **Git подтянул файлы на ~130 байт вместо моделей** — забыт `git lfs install`
-  до клона или `git lfs pull` после.
-- **Розовые материалы в сцене** — ассет не под URP; конвертировать или заменить.
+- **`/mcp` пишет «No MCP servers configured»** — серверы добавлены не в тот
+  scope или в другой папке. `claude mcp list` покажет правду; переставить с
+  `--scope user`. Новые серверы видны только в новой сессии.
+- **`unity` не Connected** — не нажат Start Server в окне MCP for Unity, не
+  тот транспорт/порт (нужен HTTP 8080), либо редактор закрыт.
+- **`refresh_unity` отвечает timeout 60 s** — редактор занят (импорт,
+  компиляция большого проекта). Подождать и проверить `read_console`; сам
+  refresh обычно уже прошёл.
+- **После `refresh_unity` Unity открыла чужую сцену** — билдеры арен сносят
+  `_Arena` активной сцены; перед сборкой арены сверять активную сцену.
+- **Blender MCP отвалился** — сервер живёт, пока живёт Blender; перезапустить
+  Start MCP Server или стартовать Blender через `tools/blender_start.py`.
+- **Git подтянул файлы на ~130 байт** — забыт `git lfs install` до клона или
+  `git lfs pull` после.
+- **Розовые материалы** — ассет не под URP; конвертировать или заменить.
+- **Unity не открывает проект: «already opened»** при закрытом редакторе —
+  остался `igruha/Temp/UnityLockfile` после аварийного выхода; удалить.
+- **В `main` после мерджа появились «изменения» в `.meta`/сценах, которых не
+  делал** — pull делался при открытом Unity (раздел 3.3).
 
 ### Только Windows
 
-- **Unity ругается «Unity is running as administrator».** Проверить UAC:
+- **«Unity is running as administrator»** — отключён UAC:
 
   ```powershell
   (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System').EnableLUA
   ```
 
-  Если `0` — UAC отключён, и тогда **любой** процесс у члена группы
-  «Администраторы» получает полный админский токен. Галочка «Запускать от имени
-  администратора» в свойствах ярлыка при этом не стоит, и кнопка Unity «Restart
-  as a standard user» не помогает: понижать права не во что. Лечится возвратом
-  `EnableLUA` в `1` и перезагрузкой.
+  Если `0`, любой процесс админа получает полный токен, и кнопка «Restart as a
+  standard user» не помогает. Вернуть `EnableLUA` в `1` и перезагрузиться.
+  Unity исполняет скрипты стор-ассетов — под админом это полный доступ к системе.
 
-  Почему это важно: Unity исполняет скрипты из проекта и стор-ассетов, и под
-  админом любой из них получает полный доступ к системе.
-
-- **Unity Hub CLI падает с `Cannot find module '--headless'`.** Оболочка
-  унаследовала переменную `ELECTRON_RUN_AS_NODE=1` (её выставляют VS Code и
-  Cursor), и Hub запускается как голый Node вместо Electron. Запускать Hub из
-  обычного терминала либо снять переменную:
+- **Unity Hub CLI: `Cannot find module '--headless'`** — оболочка унаследовала
+  `ELECTRON_RUN_AS_NODE=1` от VS Code / Cursor. Снять:
 
   ```powershell
   Remove-Item Env:ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue
   ```
 
-- **winget падает с `0x8a150042`** — не приняты соглашения источников; добавить
-  `--accept-source-agreements --accept-package-agreements`.
-
-- **Только что установленную программу не видно в терминале** — PATH читается при
-  старте оболочки. Открыть новое окно терминала.
-
-- **PowerShell-скрипт с кириллицей выдаёт кракозябры или ParserError** — файл
-  сохранён в UTF-8 без BOM, а PowerShell 5.1 читает его в системной кодировке.
-  Сохранять с BOM либо писать вывод скриптов латиницей.
+- **winget `0x8a150042`** — добавить `--accept-source-agreements --accept-package-agreements`.
+- **Свежую программу не видно в терминале** — открыть новое окно.
+- **PowerShell-скрипт с кириллицей даёт кракозябры / ParserError** — файл в
+  UTF-8 без BOM, PowerShell 5.1 читает системную кодировку. Сохранять с BOM или
+  писать вывод латиницей.
+- **Пути в `igruha/.claude/settings.local.json` вида `C:/Users/...`** — это
+  локальный файл конкретной машины, он в `.gitignore`; на другой машине свой.
