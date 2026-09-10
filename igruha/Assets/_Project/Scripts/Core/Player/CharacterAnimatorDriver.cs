@@ -26,6 +26,9 @@ namespace Igruha.Core.Player
         private static readonly int EmotePlayHash = Animator.StringToHash("EmotePlay");
         private static readonly int EmoteStopHash = Animator.StringToHash("EmoteStop");
         private static readonly int FireParameterHash = Animator.StringToHash("Fire");
+        private static readonly int PunchStateHash = Animator.StringToHash("Punch");
+        /// <summary>На сколько продлевать стойку каждый кадр удара: чуть больше кадра, чтобы она кончилась вместе с клипом.</summary>
+        private const float PunchPlantHold = 0.1f;
 
         /// <summary>
         /// Имя слоя ружья в контроллере. Слой отдельный и лежит поверх основного:
@@ -118,6 +121,8 @@ namespace Igruha.Core.Player
 
         private void Update()
         {
+            HoldFeetWhilePunching();
+
             if (animator != null && motor != null)
             {
                 animator.SetFloat(SpeedParameterHash, motor.NormalizedSpeed);
@@ -140,6 +145,33 @@ namespace Igruha.Core.Player
         /// зовёт NetworkPlayerController, получив состояние по сети.
         /// </summary>
         public void ApplyCrouchVisual() => UpdateCrouchSquash();
+
+        /// <summary>
+        /// Стойка держится столько, сколько идёт клип удара, а не фиксированные
+        /// доли секунды: клипы у персонажей разной длины (0.7–1.4 с), и стойка
+        /// короче клипа возвращала бег под замах — тот же лёд, только позже.
+        /// Отпускаем, как только начался переход из удара обратно в локомоцию.
+        /// </summary>
+        private void HoldFeetWhilePunching()
+        {
+            if (motor == null || animator == null || motor.Config == null)
+            {
+                return;
+            }
+
+            AnimatorStateInfo current = animator.GetCurrentAnimatorStateInfo(0);
+            bool inPunch = current.shortNameHash == PunchStateHash;
+            if (animator.IsInTransition(0))
+            {
+                int next = animator.GetNextAnimatorStateInfo(0).shortNameHash;
+                inPunch = next == PunchStateHash;
+            }
+
+            if (inPunch)
+            {
+                motor.PlantFeet(PunchPlantHold, motor.Config.PunchBrakeMultiplier);
+            }
+        }
 
         private void UpdateCrouchSquash()
         {
