@@ -90,6 +90,10 @@ namespace Igruha.Core.Player
         [SerializeField] private float punchImpactDelay = 0.25f;
         [Tooltip("Множитель силы при ударе в лицо: отлёт назад должен быть заметно мощнее подсечки со спины")]
         [SerializeField] private float faceHitForceMultiplier = 1.35f;
+        [Tooltip("Сколько секунд после начала замаха ноги стоят: ввод движения не читается, тело тормозит. Без этого бегущий бьёт и едет по полу на прежней скорости, а клип удара стоит на месте — выходит лёд")]
+        [SerializeField] private float punchPlantDuration = 0.35f;
+        [Tooltip("Во сколько раз торможение под замахом резче обычного: удар с разбега должен осесть в стойку, а не докатиться")]
+        [SerializeField] private float punchBrakeMultiplier = 1.6f;
 
         [Header("Падение от удара (knockdown)")]
         [Tooltip("Порог: изменение скорости (м/с) от импульса/удара, после которого персонаж падает")]
@@ -135,6 +139,8 @@ namespace Igruha.Core.Player
         public float PushArcAngle => pushArcAngle;
         public float PunchReach => punchReach;
         public float PunchImpactDelay => punchImpactDelay;
+        public float PunchPlantDuration => punchPlantDuration;
+        public float PunchBrakeMultiplier => punchBrakeMultiplier;
         public float FaceHitForceMultiplier => faceHitForceMultiplier;
 
         public float KnockdownVelocityThreshold => knockdownVelocityThreshold;
