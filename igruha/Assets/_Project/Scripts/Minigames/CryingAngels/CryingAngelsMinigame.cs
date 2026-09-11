@@ -54,6 +54,8 @@ namespace Igruha.Minigames.CryingAngels
         [Header("Бегущий")]
         [Tooltip("Рамка окаменения на экране своего игрока")]
         [SerializeField] private PetrificationVignette vignette;
+        [Tooltip("Вспышка, кромка и надпись «ты в луче» на экране своего игрока. Заполняет билдер арта")]
+        [SerializeField] private BeamCaughtFeedback caughtFeedback;
         [Tooltip("Камера наблюдателя: дошедший смотрит за оставшимися до конца раунда")]
         [SerializeField] private SpectatorCamera spectator;
 
@@ -245,7 +247,7 @@ namespace Igruha.Minigames.CryingAngels
             }
             PublishRunnerStates();
             ClearStatues();
-            vignette?.Track(null);
+            TrackLocalRunner(null);
             Hud?.HideCountdown();
         }
 
@@ -1054,14 +1056,19 @@ namespace Igruha.Minigames.CryingAngels
         /// </summary>
         private void BindVignette()
         {
-            if (vignette == null)
-            {
-                return;
-            }
-
             SessionPlayer local = SessionScoreboard.Current?.LocalPlayer;
             RunnerRecord localRunner = local != null ? FindRunner(local.Id) : null;
-            vignette.Track(localRunner?.State);
+            TrackLocalRunner(localRunner?.State);
+        }
+
+        /// <summary>
+        /// Всё, что показывает состояние своего Бегущего на экране, следит за
+        /// одним и тем же состоянием: рамка окаменения и ответ на луч.
+        /// </summary>
+        private void TrackLocalRunner(RunnerState state)
+        {
+            vignette?.Track(state);
+            caughtFeedback?.Track(state);
         }
 
         private void OnRunnerLit(Collider body) => SetRunnerFrozen(body, true);
@@ -1477,7 +1484,7 @@ namespace Igruha.Minigames.CryingAngels
             {
                 // Рамку окаменения снимаем вместе с аватаром: своего Бегущего
                 // на арене больше нет, а рамка осталась бы висеть до конца раунда.
-                vignette?.Track(null);
+                TrackLocalRunner(null);
                 spectator?.Activate(Players);
             }
         }
@@ -1500,7 +1507,7 @@ namespace Igruha.Minigames.CryingAngels
                 spectator.Deactivate();
             }
 
-            vignette?.Track(runner.State);
+            TrackLocalRunner(runner.State);
         }
 
         private static bool IsLocal(int playerId)

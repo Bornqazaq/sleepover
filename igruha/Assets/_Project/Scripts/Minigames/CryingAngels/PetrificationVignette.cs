@@ -9,13 +9,14 @@ namespace Igruha.Minigames.CryingAngels
     /// секунды — счёт в углу превращает панику в арифметику.
     ///
     /// Показывает состояние только своего игрока. Текстура градиента рисуется
-    /// кодом: на каркасе заводить арт-ассет ради рамки незачем, а в арт-фазе
-    /// её заменит настоящая (IGR-293).
+    /// кодом (<see cref="RadialVignetteSprite"/>): на каркасе заводить арт-ассет
+    /// ради рамки незачем, а в арт-фазе её заменит настоящая (IGR-293).
     /// </summary>
     [RequireComponent(typeof(Image))]
     public sealed class PetrificationVignette : MonoBehaviour
     {
-        private const int TextureSize = 128;
+        // Центр чистый до половины радиуса, дальше плавно к непрозрачному краю.
+        private const float ClearRadius = 0.45f;
 
         [Tooltip("Цвет окаменения по краям экрана")]
         [SerializeField] private Color stoneColor = new Color(0.45f, 0.44f, 0.42f, 1f);
@@ -33,7 +34,7 @@ namespace Igruha.Minigames.CryingAngels
         {
             image = GetComponent<Image>();
             image.raycastTarget = false;
-            image.sprite = BuildVignetteSprite();
+            image.sprite = RadialVignetteSprite.Create("PetrificationVignette", ClearRadius, out generated);
             SetAlpha(0f);
         }
 
@@ -62,40 +63,6 @@ namespace Igruha.Minigames.CryingAngels
             c.a = alpha;
             image.color = c;
             image.enabled = alpha > 0.001f;
-        }
-
-        /// <summary>
-        /// Радиальный градиент: прозрачный центр, плотные края. Одна текстура
-        /// на всю игру, растягивается Image'ом на любой экран.
-        /// </summary>
-        private Sprite BuildVignetteSprite()
-        {
-            generated = new Texture2D(TextureSize, TextureSize, TextureFormat.Alpha8, false)
-            {
-                name = "PetrificationVignette",
-                wrapMode = TextureWrapMode.Clamp,
-                filterMode = FilterMode.Bilinear
-            };
-
-            var pixels = new Color32[TextureSize * TextureSize];
-            Vector2 center = new Vector2(TextureSize * 0.5f, TextureSize * 0.5f);
-            float maxDistance = center.magnitude;
-
-            for (int y = 0; y < TextureSize; y++)
-            {
-                for (int x = 0; x < TextureSize; x++)
-                {
-                    float distance = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), center) / maxDistance;
-                    // Центр чистый до половины радиуса, дальше плавно к непрозрачному краю.
-                    float alpha = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.45f, 1f, distance));
-                    pixels[y * TextureSize + x] = new Color32(255, 255, 255, (byte)(alpha * 255f));
-                }
-            }
-
-            generated.SetPixels32(pixels);
-            generated.Apply(false, true);
-
-            return Sprite.Create(generated, new Rect(0f, 0f, TextureSize, TextureSize), new Vector2(0.5f, 0.5f));
         }
 
         private void OnDestroy()

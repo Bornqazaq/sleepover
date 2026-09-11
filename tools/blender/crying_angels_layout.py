@@ -12,14 +12,23 @@ ROOT=Path(__file__).resolve().parents[2]
 OUT=ROOT/'igruha/Assets/_Project/Art/CryingAngels/CA_NightLayout.json'
 rng=random.Random(935)
 highs=['WeepingAngel','ShroudedFigure','ShatteredPillar','WarningAngel','MourningObelisk','PrayingAngel']
-lows=['Sarcophagus','FallenVisage','FuneraryUrn','FallenColumn','Reliquary','BrokenPlinth']
+# Only solid-topped pieces hide a crouched head: the urn is narrow, the visage and reliquary crest are open.
+# A sarcophagus stretched to LOW_H reads as a chest tomb, a plinth as a taller plinth.
+lows=['BrokenPlinth','Sarcophagus']
+# Low exhibits hide a crouched character completely: the crouch capsule is 0.8 m, but the crouch
+# clip keeps the visual head at up to LOW_H_HEAD m on the tallest roster member (measured in the
+# editor 11.09). The keeper's eye is at 2.06 m on the dais and looks down, so the box must clear
+# that head with a margin: LOW_H. The shortest standing capsule is 1.65 m and the head ray hits
+# 0.05 below its top (1.60), so anything under 1.60 keeps a standing runner lit.
+LOW_H_HEAD=1.49
+LOW_H=1.56
 sizes={
  'WeepingAngel':(1.2,2.3,1.05),'ShroudedFigure':(1.1,2.2,.94),
  'ShatteredPillar':(1.15,3.2,1.15),'WarningAngel':(1.18,2.25,1.05),
  'MourningObelisk':(1.12,2.8,.94),'PrayingAngel':(1.2,2.35,1.05),
- 'Sarcophagus':(2.4,.864,1.06),'FallenVisage':(1.16,.864,1.05),
- 'FuneraryUrn':(.98,.864,.92),'FallenColumn':(2.35,.864,.98),
- 'Reliquary':(1.4,.864,1.08),'BrokenPlinth':(1.18,.864,1.05),
+ 'Sarcophagus':(2.4,LOW_H,1.06),'FallenVisage':(1.16,LOW_H,1.05),
+ 'FuneraryUrn':(.98,LOW_H,.92),'FallenColumn':(2.35,LOW_H,.98),
+ 'Reliquary':(1.4,LOW_H,1.08),'BrokenPlinth':(1.18,LOW_H,1.05),
  'GreatColumn':(1.95,16.2,1.95),'RuinedWall':(5.5,3.4,1.3)}
 GIANT={'WeepingAngel':(2.3,4.6,2.1),'PrayingAngel':(2.3,4.6,2.1),'WarningAngel':(2.3,4.6,2.1),'ShroudedFigure':(2.2,4.5,1.9)}
 # Dome coffer height by radius (art units); columns are stretched to meet it.
@@ -42,7 +51,8 @@ for i in range(8):
 # Near the dais: the final dash has something to break line of sight, but stays a dash.
 # Low only: a tall exhibit 3.6 m from the keeper's eye eclipses a 15-degree wedge all the way to the wall,
 # and runners walk up the visible beam without ever being lit (net watch 09.09).
-for i,(r,deg,model) in enumerate([(5.3,15,'Reliquary'),(5.3,135,'BrokenPlinth'),(5.3,255,'Reliquary'),(7.6,75,'FallenVisage'),(7.6,195,'FuneraryUrn'),(7.6,315,'FallenVisage')]):
+# Plinths only: the keeper looks down from 2.06 m, and this close a domed sarcophagus lid loses height at its edges.
+for i,(r,deg,model) in enumerate([(5.3,15,'BrokenPlinth'),(5.3,135,'BrokenPlinth'),(5.3,255,'BrokenPlinth'),(7.6,75,'BrokenPlinth'),(7.6,195,'BrokenPlinth'),(7.6,315,'BrokenPlinth')]):
  x,z=polar(r,deg);high=model in highs
  add(f'Cover_Inner_{i:02}_'+('High' if high else 'Low'),model,x,z,deg+rng.uniform(-20,20),sizes[model],f'inner{i}')
 # Columns to the dome, scattered rather than on a ring.
@@ -71,7 +81,8 @@ for n,(r,deg,count) in enumerate(islands):
   model=pool[(hi if high else lo)%len(pool)]
   if high:hi+=1
   else:lo+=1
-  if model in ('Sarcophagus','FallenColumn') and count>2:model=['FuneraryUrn','FallenVisage'][i%2]
+  # A 2.4 m chest does not fit a three-piece island with the 1.5 m gaps; islands of two keep it.
+  if model=='Sarcophagus' and count>2:model='BrokenPlinth'
   a=math.radians(deg+i*360/count+rng.uniform(-30,30));d=rng.uniform(1.3,2.2)
   scale=rng.uniform(.92,1.06);sz=sizes[model];sz=(sz[0]*scale,sz[1],sz[2]*scale)
   add(f'Cover_Island_{n:02}_{i}_'+('High' if high else 'Low'),model,cx+d*math.sin(a),cz+d*math.cos(a),math.degrees(a)+rng.uniform(-30,30),sz,f'island{n}')
@@ -93,11 +104,12 @@ rows.append(dict(name='Dais',position=dict(x=0,y=0,z=0),radius=PEDESTAL_RADIUS,g
 # Tall exhibits keep their distance from the dais even after the push: from 2 m up a statue
 # 4 m from the keeper's eye eclipses a wedge wider than the beam, and the hall behind it goes blind.
 TALL_MIN_RADIUS=11.5
+def is_tall(r): return 'radius' not in r and r['name'].endswith('High') and 'SpawnScreen' not in r['name']
 def clamp(r):
  if 'radius' in r:return
  d=math.hypot(r['position']['x'],r['position']['z']);limit=WALL_RADIUS-1.0-radius_of(r)
  if d>limit:r['position']['x']*=limit/d;r['position']['z']*=limit/d;return
- if r['size']['y']>1.0 and 'SpawnScreen' not in r['name']:
+ if is_tall(r):
   floor_r=TALL_MIN_RADIUS+radius_of(r)
   if d<floor_r and d>0:r['position']['x']*=floor_r/d;r['position']['z']*=floor_r/d
 # Relax every offending pair a little per sweep (Jacobi style); one-worst-pair
@@ -128,7 +140,7 @@ pedestal=min(math.hypot(r['position']['x'],r['position']['z'])-radius_of(r)-PEDE
 assert pedestal>=PEDESTAL_GAP-.02,pedestal
 outer=max(math.hypot(r['position']['x'],r['position']['z'])+radius_of(r) for r in rows)
 assert outer<=WALL_RADIUS-1.0,outer
-nearest_tall=min(math.hypot(r['position']['x'],r['position']['z'])-radius_of(r) for r in rows if r['size']['y']>1.0 and 'SpawnScreen' not in r['name'])
+nearest_tall=min(math.hypot(r['position']['x'],r['position']['z'])-radius_of(r) for r in rows if is_tall(r))
 assert nearest_tall>=TALL_MIN_RADIUS-.05,nearest_tall
 for r in rows: del r['group']
 OUT.write_text(json.dumps(dict(referenceRadius=WALL_RADIUS,covers=rows),indent=2)+'\n')
