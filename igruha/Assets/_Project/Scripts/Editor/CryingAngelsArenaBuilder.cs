@@ -22,7 +22,7 @@ namespace Igruha.EditorTools
         private const string KeeperRigPath = "Assets/_Project/Prefabs/Minigames/CryingAngels/KeeperRig.prefab";
 
         // Высоты — от персонажа, не от зала. Не масштабируются.
-        private const float LowCoverHeight = 0.864f;   // 1.2 ШП — присед прячет, стоя видно голову
+        private const float LowCoverHeight = 1.56f;   // присед прячет целиком (макушка присевшего — до 1.49 м, глаз Водящего — 2.06 м), стоя (капсула от 1.65) видно голову
         private const float HighCoverHeight = 2.16f;   // 3 ШП — выше прыжка с земли
         private const float WallHeight = 4.32f;
         internal const float WallThickness = 0.4f;

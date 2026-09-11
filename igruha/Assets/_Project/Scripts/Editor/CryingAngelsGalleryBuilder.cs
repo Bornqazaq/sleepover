@@ -255,7 +255,34 @@ namespace Igruha.EditorTools
             if(game==null) throw new InvalidOperationException("CryingAngelsMinigame not found in scene; keeper darkness unbound.");
             var gameSo=new SerializedObject(game); gameSo.FindProperty("keeperDarkness").objectReferenceValue=darkness;
             gameSo.FindProperty("screamer").objectReferenceValue=SetupKeeperScreamer(scene, game.gameObject);
+            gameSo.FindProperty("caughtFeedback").objectReferenceValue=SetupCaughtFeedback(scene);
             gameSo.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>Runner-side "you are in the beam" overlay: sits on the vignette's canvas, right above the vignette.</summary>
+        private static Igruha.Minigames.CryingAngels.BeamCaughtFeedback SetupCaughtFeedback(Scene scene)
+        {
+            Igruha.Minigames.CryingAngels.PetrificationVignette vignette=null;
+            foreach(var root in scene.GetRootGameObjects()) { vignette=root.GetComponentInChildren<Igruha.Minigames.CryingAngels.PetrificationVignette>(true); if(vignette!=null) break; }
+            if(vignette==null) throw new InvalidOperationException("PetrificationVignette not found; beam feedback unbound.");
+            var canvas=vignette.GetComponentInParent<Canvas>(true);
+            var feedback=canvas.GetComponentInChildren<Igruha.Minigames.CryingAngels.BeamCaughtFeedback>(true);
+            if(feedback==null)
+            {
+                var go=new GameObject("BeamCaughtFeedback",typeof(RectTransform));
+                go.layer=canvas.gameObject.layer;
+                go.transform.SetParent(vignette.transform.parent,false);
+                go.transform.SetSiblingIndex(vignette.transform.GetSiblingIndex()+1);
+                var rect=go.GetComponent<RectTransform>();
+                rect.anchorMin=Vector2.zero; rect.anchorMax=Vector2.one; rect.offsetMin=Vector2.zero; rect.offsetMax=Vector2.zero;
+                feedback=go.AddComponent<Igruha.Minigames.CryingAngels.BeamCaughtFeedback>();
+            }
+            var hudText=canvas.GetComponentInChildren<TMPro.TMP_Text>(true);
+            if(hudText!=null && hudText.font!=null)
+            {
+                var so=new SerializedObject(feedback); so.FindProperty("font").objectReferenceValue=hudText.font; so.ApplyModifiedPropertiesWithoutUndo();
+            }
+            return feedback;
         }
 
         /// <summary>Touch screamer lives next to the minigame; the flash needs the vignette's canvas.</summary>

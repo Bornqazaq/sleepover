@@ -19,7 +19,7 @@ MonoBehaviour:
   verticalLookLimit: 20
   touchRadius: 1.08
   stepHearingRadius: 4.32
-  petrifyThreshold: 4
+  petrifyThreshold: 2
   petrifyGainMultiplier: 1
   petrifyDecayMultiplier: 0.5
   petrifyAnimationDuration: 0.5
