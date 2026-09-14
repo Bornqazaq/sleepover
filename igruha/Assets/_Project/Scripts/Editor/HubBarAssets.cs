@@ -29,7 +29,7 @@ namespace Igruha.EditorTools
                 ?? throw new InvalidOperationException("Could not import the bar lettering font");
         }
 
-        internal static GameObject Prop(string relativePath, Transform parent, string name)
+        internal static GameObject Prop(string relativePath, Transform parent, string name, string sourceRoot = Shops)
         {
             string bakedPath = Folder + "/Props/" + Path.GetFileName(relativePath);
             var baked = AssetDatabase.LoadAssetAtPath<GameObject>(bakedPath);
@@ -39,7 +39,7 @@ namespace Igruha.EditorTools
                 instance.name = name;
                 return instance;
             }
-            var source = AssetDatabase.LoadAssetAtPath<GameObject>(Shops + relativePath);
+            var source = AssetDatabase.LoadAssetAtPath<GameObject>(sourceRoot + relativePath);
             if (source == null) throw new InvalidOperationException("Hub prop missing: " + relativePath);
             var result = new GameObject(name);
             result.transform.SetParent(parent, false);
