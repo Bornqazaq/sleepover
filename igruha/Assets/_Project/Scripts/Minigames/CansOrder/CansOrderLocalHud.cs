@@ -81,6 +81,24 @@ namespace Igruha.Minigames.CansOrder
         private CansOrderMinigame rules;
         private byte lastRevealStage = MinigameStageState.NoStage;
 
+        private void OnEnable()
+        {
+            lastRevealStage = MinigameStageState.NoStage;
+            lastStage = MinigameStageState.NoStage;
+            lastSeconds = -1;
+        }
+
+        private void OnDisable()
+        {
+            // These labels can live outside this component's hierarchy.
+            // Hide them explicitly when the local player falls into the pit.
+            ShowShelfHints(false);
+            if (label != null) label.enabled = false;
+            if (bar != null) bar.enabled = false;
+            if (revealLabel != null) revealLabel.enabled = false;
+            if (lastCircleLabel != null) lastCircleLabel.enabled = false;
+        }
+
         private void Awake()
         {
             if (stageState == null)

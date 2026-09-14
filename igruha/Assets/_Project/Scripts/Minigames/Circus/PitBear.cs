@@ -8,6 +8,9 @@ namespace Igruha.Minigames.Circus
     /// <summary>Server-driven pursuit; clients reproduce the same telegraph before the impact.</summary>
     public sealed class PitBear : MonoBehaviour
     {
+        public const float ContactSeconds = .72f;
+        public const float StrikeSeconds = 1.8f;
+        private static readonly int StrikeState = Animator.StringToHash("Strike");
         // Existing values are kept because the state is replicated as a byte.
         public enum BearState { Patrol, WindUp, Chase, Taunt, Attack, Recovery, Watching }
 
@@ -22,14 +25,17 @@ namespace Igruha.Minigames.Circus
         [SerializeField] private float turnSpeed = 150f;
         [SerializeField] private float wallMargin = .8f;
         [SerializeField] private float acceleration = 6f;
-        [Header("Attack — matches Bruno_Strike, 1.5 seconds")]
-        [SerializeField] private float attackContactTime = .55f;
-        [SerializeField] private float attackDuration = 1.5f;
-        [SerializeField] private float attackRecovery = .45f;
+        [Header("Attack — matches Bruno_Strike, 1.8 seconds")]
+        [SerializeField] private float attackContactTime = ContactSeconds;
+        [SerializeField] private float attackDuration = StrikeSeconds;
+        [SerializeField] private float attackRecovery = .3f;
 
         public event Action<PlayerController, Vector3> Caught;
+        public event Action<Vector3> ImpactShown;
         public BearState State => state;
         public PlayerController Target { get; private set; }
+        public PlayerController AttackVictim => attackVictim;
+        public int PresentationTargetId { get; set; } = -1;
         public Transform VisualRoot => visualRoot;
         public float AnimatorSpeed => currentSpeed;
 
@@ -54,6 +60,10 @@ namespace Igruha.Minigames.Circus
         private Vector3 attackDirection, previousPosition;
         private bool visualPositionKnown;
         private BearState state = BearState.Patrol;
+        private float visualAttackStartedAt;
+        private CircusBearFeedback feedback;
+
+        private void Awake() => feedback = GetComponent<CircusBearFeedback>();
 
         public void Configure(float chase, float patrol, float strike, float windUp, float knockback, float pit)
         {
@@ -175,8 +185,8 @@ namespace Igruha.Minigames.Circus
         {
             float previous=attackElapsed;attackElapsed+=dt;
             // Short committed lunge; no homing or turning during the swipe.
-            float lungeTime=Mathf.Max(0,Mathf.Min(attackElapsed,attackContactTime)-Mathf.Max(previous,.28f));
-            MoveBy(attackDirection*(lungeTime*1.65f));currentSpeed=0;
+            float lungeTime=Mathf.Max(0,Mathf.Min(attackElapsed,attackContactTime)-Mathf.Max(previous,.47f));
+            MoveBy(attackDirection*(lungeTime*2.2f));currentSpeed=0;
             if(!hitEvaluated && attackElapsed>=attackContactTime)
             {
                 hitEvaluated=true;
@@ -200,13 +210,35 @@ namespace Igruha.Minigames.Circus
             }
         }
 
-        public void ApplyNetworkState(BearState next,float animatorSpeed)
-        {SetState(next);currentSpeed=animatorSpeed;}
+        public void ApplyNetworkState(BearState next,float animatorSpeed,float elapsed=0)
+        {SetState(next,elapsed);currentSpeed=animatorSpeed;}
 
         public void PlayStrike()
+        { PlayStrike(0); }
+
+        private void PlayStrike(float elapsed)
         {
-            if(animator!=null){animator.ResetTrigger(roarParameter);animator.ResetTrigger(alertParameter);}
-            Trigger(strikeParameter);
+            visualAttackStartedAt=Time.time-elapsed;
+            if(animator!=null)
+            {
+                animator.ResetTrigger(roarParameter);animator.ResetTrigger(alertParameter);animator.ResetTrigger(strikeParameter);
+                animator.CrossFadeInFixedTime(StrikeState,.065f,0,Mathf.Min(elapsed,attackDuration));
+            }
+            feedback?.Attack(elapsed);
+        }
+
+        /// <summary>One impact cue at the same instant as the player's fall.
+        /// A contact RPC can precede a batched phase update: never show damage in an idle pose.</summary>
+        public void ShowImpact(Vector3 point,bool synchronizePose)
+        {
+            if(synchronizePose && (state!=BearState.Attack || Time.time-visualAttackStartedAt<attackContactTime))
+            {
+                state=BearState.Attack;
+                visualAttackStartedAt=Time.time-attackContactTime;
+                if(animator!=null)animator.Play(StrikeState,0,attackContactTime/attackDuration);
+            }
+            feedback?.Impact(point);
+            ImpactShown?.Invoke(point);
         }
 
         private void Patrol(float dt)
@@ -237,12 +269,12 @@ namespace Igruha.Minigames.Circus
             direction.y=0;if(direction.sqrMagnitude<.0001f)return;
             transform.rotation=Quaternion.RotateTowards(transform.rotation,Quaternion.LookRotation(direction),turnSpeed*dt);
         }
-        private void SetState(BearState next)
+        private void SetState(BearState next,float elapsed=0)
         {
             if(state==next)return;state=next;Trace("State "+next);
             if(next==BearState.Taunt)Trigger(roarParameter);
             if(next==BearState.WindUp)Trigger(alertParameter);
-            if(next==BearState.Attack)PlayStrike();
+            if(next==BearState.Attack)PlayStrike(elapsed);
             if(next==BearState.Patrol)patrolAngle=Mathf.Atan2(transform.position.x,transform.position.z)*Mathf.Rad2Deg;
         }
         private void LateUpdate()

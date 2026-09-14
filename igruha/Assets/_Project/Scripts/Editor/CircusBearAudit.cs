@@ -70,16 +70,23 @@ namespace Igruha.EditorTools
                     bear.ApplyNetworkState(PitBear.BearState.Patrol,0);bear.ApplyNetworkState(PitBear.BearState.Attack,0);animator.Update(.04f);
                     int strike=Animator.StringToHash("Strike");
                     Require(animator.GetCurrentAnimatorStateInfo(0).shortNameHash==strike || animator.GetNextAnimatorStateInfo(0).shortNameHash==strike,"Replicated Attack plays the swipe before the hit");
-                    bear.Tick(.54f,player,false);Require(hits==0,"No damage during anticipation");
-                    bear.Tick(.02f,player,false);Require(hits==1,"One impact at 0.55 seconds");
+                    bear.Tick(PitBear.ContactSeconds-.01f,player,false);Require(hits==0,"No damage during anticipation");
+                    bear.Tick(.02f,player,false);Require(hits==1,"One impact at authored contact");
                     bear.Tick(.5f,null,true);Require(bear.State==PitBear.BearState.Attack && hits==1,"Follow-through survives target removal and taunt");
-                    bear.Tick(.5f,null,true);Require(bear.State==PitBear.BearState.Recovery,"Attack enters recovery");
-                    Vector3 at=bear.transform.position;bear.Tick(.3f,null,false);
+                    bear.Tick(.6f,null,true);Require(bear.State==PitBear.BearState.Recovery,"Attack enters recovery");
+                    Vector3 at=bear.transform.position;bear.Tick(.2f,null,false);
                     Require(bear.State==PitBear.BearState.Recovery && bear.transform.position==at,"Planted recovery pause");
                     Reset(bear,0);player.transform.position=new Vector3(0,100.05f,2);bear.Tick(.01f,player,false);
-                    player.transform.position=new Vector3(4,100.05f,0);bear.Tick(.6f,player,false);
+                    player.transform.position=new Vector3(4,100.05f,0);bear.Tick(.75f,player,false);
                     Require(hits==1,"Sideways dodge avoids a committed attack");
                     Require(Quaternion.Angle(bear.transform.rotation,Quaternion.identity)<.001f,"Swipe does not home after the dodge");
+                    bear.ApplyNetworkState(PitBear.BearState.Patrol,0);
+                    bear.ApplyNetworkState(PitBear.BearState.Attack,0,.45f);
+                    animator.Update(.08f);
+                    Require(animator.GetCurrentAnimatorStateInfo(0).shortNameHash==strike,"Late phase snapshot still displays Strike");
+                    Require(animator.GetCurrentAnimatorStateInfo(0).normalizedTime>.24f,"Late snapshot seeks into anticipation");
+                    bear.ShowImpact(player.transform.position,true);animator.Update(0);
+                    Require(animator.GetCurrentAnimatorStateInfo(0).normalizedTime>=PitBear.ContactSeconds/PitBear.StrikeSeconds-.01f,"Contact cue cannot arrive while the bear is visually idle");
                     output.AppendLine("Replicated swipe, delayed single hit, uninterrupted follow-through, recovery and dodge PASS.");
                 }
                 finally{UnityEngine.Object.DestroyImmediate(target);}

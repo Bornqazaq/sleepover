@@ -46,7 +46,7 @@ namespace Igruha.EditorTools
                 m.SetFloat("_Cull", fabric ? 0f : 2f);
                 m.SetTexture("_BaseMap", i >= 12 && i <= 19 && i != 15 && i != 16 && i != 17 && i != 18 ? grain : null);
                 bool coat=i==12 || i==13 || i==14 || i==19;
-                m.SetTexture("_BumpMap",coat?normal:null);m.SetFloat("_BumpScale",.28f);
+                m.SetTexture("_BumpMap",coat?normal:null);m.SetFloat("_BumpScale",coat?.48f:.28f);
                 if(coat && normal!=null)m.EnableKeyword("_NORMALMAP");else m.DisableKeyword("_NORMALMAP");
                 string surface = i < 2 ? "CN_WoodGrain" : fabric ? "CN_Fabric" : i == 6 || i == 7 || i == 8 ? "CN_Sand" : null;
                 if (surface != null) m.SetTexture("_BaseMap",AssetDatabase.LoadAssetAtPath<Texture2D>(Art+"/Textures/"+surface+".png"));
@@ -69,17 +69,7 @@ namespace Igruha.EditorTools
                 importer.isReadable = false;
                 if (bear)
                 {
-                    importer.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
-                    importer.motionNodeName = "Root";
-                    var clips = importer.defaultClipAnimations;
-                    foreach (var clip in clips)
-                    {
-                        string[] titles = { "Idle", "Walk", "Run", "Strike", "Roar", "Alert" };
-                        foreach (string title in titles) if (clip.name.Contains("Bruno_" + title)) clip.name = "Bruno_" + title;
-                        clip.loopTime = clip.name == "Bruno_Idle" || clip.name == "Bruno_Walk" || clip.name == "Bruno_Run";
-                        clip.lockRootRotation = true; clip.lockRootPositionXZ = true; clip.lockRootHeightY = true;
-                    }
-                    importer.clipAnimations = clips;
+                    ConfigureBearImport(importer);
                 }
                 foreach (var entry in map) importer.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), entry.Key),entry.Value);
                 importer.SaveAndReimport();
@@ -95,6 +85,38 @@ namespace Igruha.EditorTools
                 finally { UnityEngine.Object.DestroyImmediate(wrapper); }
             }
             BuildAnimator(); CircusNightProps.BuildCanPrefab(); AssetDatabase.SaveAssets();
+        }
+
+        internal static void ImportBear()
+        {
+            var importer = (ModelImporter)AssetImporter.GetAtPath(BearModel);
+            ConfigureBearImport(importer);
+            importer.SaveAndReimport();
+            BuildAnimator();
+            foreach (string name in new[] { "CN_UmberFur", "CN_FurTips", "CN_DarkFur", "CN_Muzzle" })
+            {
+                var material = Material(name);
+                material.SetFloat("_Smoothness", .12f);
+                material.SetFloat("_BumpScale", .48f);
+                EditorUtility.SetDirty(material);
+            }
+            AssetDatabase.SaveAssets();
+        }
+
+        private static void ConfigureBearImport(ModelImporter importer)
+        {
+            importer.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
+            importer.motionNodeName = "Root";
+            importer.animationCompression = ModelImporterAnimationCompression.Off;
+            var clips = importer.defaultClipAnimations;
+            foreach (var clip in clips)
+            {
+                foreach (string title in new[] { "Idle", "Walk", "Run", "Strike", "Roar", "Alert" })
+                    if (clip.name.Contains("Bruno_" + title)) clip.name = "Bruno_" + title;
+                clip.loopTime = clip.name == "Bruno_Idle" || clip.name == "Bruno_Walk" || clip.name == "Bruno_Run";
+                clip.lockRootRotation = true; clip.lockRootPositionXZ = true; clip.lockRootHeightY = true;
+            }
+            importer.clipAnimations = clips;
         }
 
         internal static Material EnsureMaterial(string name)

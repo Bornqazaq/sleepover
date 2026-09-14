@@ -1,0 +1,11 @@
+{
+  "job_id": "build-d51ed88cab",
+  "result": "succeeded",
+  "platform": "StandaloneOSX",
+  "output_path": "Builds/CircusImpactTest/sleepover.app",
+  "duration_seconds": 32.014819,
+  "completed_at": "2026-09-14T10:52:24Z",
+  "total_size_mb": 1295.27,
+  "errors": 0,
+  "warnings": 0
+}
