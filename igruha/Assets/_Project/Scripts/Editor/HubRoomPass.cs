@@ -147,8 +147,6 @@ namespace Igruha.EditorTools
         private static void ShadowTier(Light light, int tier)
         {
             // The existing URP asset uses High=1024 and Medium=512. Keep the shared asset untouched.
-            light.shadowResolution = LightShadowResolution.FromQualitySettings;
-            light.shadowCustomResolution = -1;
             var data = light.GetComponent<UniversalAdditionalLightData>();
             if (data == null) data = light.gameObject.AddComponent<UniversalAdditionalLightData>();
             var serialized = new SerializedObject(data);
