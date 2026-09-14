@@ -63,16 +63,16 @@ namespace Igruha.EditorTools
             foreach (int index in source.triangles) batch.Indices.Add(start + index);
         }
 
-        internal void Build(Transform parent, string name, bool castShadows = true)
+        internal void Build(Transform parent, string name, bool castShadows = true, string folder = Folder)
         {
-            HubCozyMaterials.EnsureFolder(Folder + "/Meshes");
+            HubCozyMaterials.EnsureFolder(folder + "/Meshes");
             foreach (var pair in batches)
             {
                 string meshName = name + "_" + pair.Key.name;
                 var mesh = new Mesh { name = meshName };
                 mesh.SetVertices(pair.Value.Vertices); mesh.SetTriangles(pair.Value.Indices, 0);
                 mesh.RecalculateNormals(); mesh.RecalculateBounds();
-                string path = Folder + "/Meshes/" + meshName + ".asset";
+                string path = folder + "/Meshes/" + meshName + ".asset";
                 var stored = AssetDatabase.LoadAssetAtPath<Mesh>(path);
                 if (stored == null) { AssetDatabase.CreateAsset(mesh, path); stored = mesh; }
                 else { EditorUtility.CopySerialized(mesh, stored); Object.DestroyImmediate(mesh); EditorUtility.SetDirty(stored); }
