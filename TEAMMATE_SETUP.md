@@ -5,8 +5,8 @@
 чтобы её мог выполнить **Claude Code целиком сам**: команды точные, проверки
 после каждого шага, известные грабли собраны в конце.
 
-Обновлено **10.09.2026** по факту двух живых установок: macOS (Apple Silicon,
-основная машина) и Windows (26.08). Что не проверено руками — помечено.
+Обновлено **14.09.2026**: уточнены пути macOS и установка Synty до первого
+запуска по проверке машины нового участника. Что не проверено руками — помечено.
 
 Доступ к Git-репозиторию и Linear выдаётся отдельно, здесь не настраивается.
 
@@ -116,8 +116,10 @@ Windows-машина — Mac-модуль. ~11 ГБ, 20–40 минут.
 
 Где лежит редактор (нужно для раздела 5):
 
-- macOS: `~/Unity/Hub/Editor/6000.3.11f1/Unity.app/Contents/MacOS/Unity`
-  (на основной машине именно так, не в `/Applications`);
+- macOS: `/Applications/Unity/Hub/Editor/6000.3.11f1/Unity.app/Contents/MacOS/Unity`
+  (на машине нового участника); на основной машине —
+  `~/Unity/Hub/Editor/6000.3.11f1/Unity.app/Contents/MacOS/Unity`.
+  Перед запуском проверить фактический путь в Unity Hub;
 - Windows: `C:\Program Files\Unity\Hub\Editor\6000.3.11f1\Editor\Unity.exe`.
 
 Проверка: `Unity Hub -- --headless editors --installed` показывает 6000.3.11f1.
@@ -138,6 +140,14 @@ LFS-объектов больше 5 ГБ — первый `pull` долгий, �
 добавлять именно её, не корень репозитория.
 
 ### 2.4. Первый запуск
+
+**До открытия проекта, включая batchmode, установить паки Synty.**
+`igruha/Assets/Synty/` не приезжает с git. Паки берутся с командного аккаунта;
+состав и GUID префабов — в `docs/art/synty-library.json`, распаковщик —
+`tools/unpack-unitypackage.py`. На проверенной машине 14 папок и все 8198
+префабов каталога совпадают по пути и GUID. Проверять соответствие каталогу,
+а не только число папок. Запуск без паков может обнулить ссылки на текстуры
+материалов при импорте даже без сохранения сцены (STATE.md, раздел 3.94).
 
 1. Войти в аккаунт Unity в Hub — без лицензии редактор не стартует.
 2. Hub → Add → Add project from disk → `sleepover/igruha`.
@@ -187,6 +197,31 @@ GUID, ссылки в сценах и префабах рвутся. Прове�
 ---
 
 ## 4. Claude Code и MCP
+
+### Codex / расширение OpenAI в IDE
+
+Codex использует собственные настройки MCP; записи из `~/.claude.json`
+не означают, что эти серверы подключены к Codex. На Mac нового участника
+проверены следующие команды:
+
+```bash
+codex mcp add unityMCP --url http://127.0.0.1:8080/mcp
+codex mcp add blender -- /opt/homebrew/bin/uvx blender-mcp
+codex mcp add linear --url https://mcp.linear.app/mcp
+codex mcp list
+```
+
+На другой машине подставить путь из `command -v uvx` (Windows: `where uvx`).
+Если сервер уже настроен, повторно добавлять его не нужно. Linear требует
+OAuth в браузере; повторный вход — `codex mcp login linear`.
+После настройки начать новую сессию Codex, чтобы она получила инструменты.
+Конфигурация пользователя — `~/.codex/config.toml`; рекомендуемые таймауты
+для Unity и Blender: `startup_timeout_sec = 60`, `tool_timeout_sec = 120`.
+Правила проекта для Codex подключены через корневой `AGENTS.md`.
+Имя `unityMCP` совпадает с авторегистрацией пакета Unity: отдельный
+дубликат `unity` создавать не нужно.
+
+Справка: [официальная документация MCP](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
 
 ### 4.1. Claude Code
 
@@ -327,7 +362,11 @@ Unity не была открыта на этом проекте.
 macOS:
 
 ```bash
-"$HOME/Unity/Hub/Editor/6000.3.11f1/Unity.app/Contents/MacOS/Unity" \
+UNITY_EDITOR="/Applications/Unity/Hub/Editor/6000.3.11f1/Unity.app/Contents/MacOS/Unity"
+if [ ! -x "$UNITY_EDITOR" ]; then
+  UNITY_EDITOR="$HOME/Unity/Hub/Editor/6000.3.11f1/Unity.app/Contents/MacOS/Unity"
+fi
+"$UNITY_EDITOR" \
   -batchmode -nographics -quit -projectPath "$PWD/igruha" -logFile /tmp/unity_compile.log
 grep -c "error CS" /tmp/unity_compile.log   # 0 = чисто
 grep "error CS" /tmp/unity_compile.log | head
@@ -342,8 +381,18 @@ Select-String -Path "$env:TEMP\unity_compile.log" -Pattern 'error CS'
 ```
 
 Первый прогон на свежей машине долгий (импорт), дальше — 1–2 минуты. Код
-возврата Unity может быть ненулевым и при чистой компиляции — смотреть на
-`error CS` в логе, а не на код. Ошибки — в `Editor.log`, а не в консоли.
+возврата, ошибки и завершение проверяются вместе: одного отсутствия
+`error CS` недостаточно, если Unity не запустилась, прервала импорт или
+не получила лицензию. При `-logFile` читать именно указанный файл;
+успешный прогон заканчивается `Exiting batchmode successfully now!`.
+
+Компиляция в редакторе не подтверждает готовность standalone-сборки.
+На Mac нового участника Windows Mono находится в
+`/Applications/Unity/Hub/Editor/6000.3.11f1/PlaybackEngines/WindowsStandaloneSupport`,
+а Mac-модуль — внутри `Unity.app/Contents/PlaybackEngines`.
+Проверять оба расположения или поддержку платформы через Unity API.
+Для проверки macOS-сборки отдельно нужен доступный Metal toolchain;
+на 14.09.2026 `xcrun --find metal` на этой машине его не находит.
 
 ---
 
@@ -406,6 +455,7 @@ claude plugin install mattpocock-skills@mattpocock
 - [ ] Unity Hub, вход в аккаунт (лицензия)
 - [ ] Unity Editor 6000.3.11f1 + кросс-платформенные модули
 - [ ] Репозиторий склонирован, `git lfs pull`, файлы не указатели
+- [ ] До запуска Unity установлены Synty, пути и GUID сверены с каталогом
 - [ ] Проект `igruha` открыт, Console без ошибок
 - [ ] Прочитаны `CLAUDE.md` (оба), `STATE.md` сверху
 - [ ] Claude Code (`claude doctor` ок), вход в Anthropic

@@ -1,6 +1,7 @@
 # Local Blender control
 
-Verified on Blender 5.2.0 LTS with the existing `addon` (Blender MCP).
+Verified on Blender 5.2.0 LTS with Blender MCP. The launch script detects
+both installed module names: `blender_mcp` and the older `addon`.
 The bridge listens on localhost:9876. No external generation service is needed
 for direct scene editing. External AI generation services require separate setup.
 
