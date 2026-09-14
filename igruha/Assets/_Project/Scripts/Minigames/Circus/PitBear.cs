@@ -1,239 +1,263 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using Igruha.Core.Player;
 
 namespace Igruha.Minigames.Circus
 {
-    /// <summary>
-    /// Медведь в яме. Первый серверный NPC в проекте, поэтому написан так,
-    /// чтобы в фазе 3 уйти под сервер без переписывания: всё, что меняет
-    /// состояние мира, идёт через <see cref="Tick"/>, который зовёт владелец
-    /// арены, и через одно событие <see cref="Caught"/>. Клиенту останется
-    /// только не звать Tick и получать позицию через NetworkTransform.
-    ///
-    /// Победить медведя нельзя: здоровья у него нет, задача — не убить,
-    /// а честно побегать пять секунд. Догоняет он срезанием по хорде,
-    /// а не скоростью: 5.5 м/с против 6.5 у игрока.
-    ///
-    /// <b>Как поменять серую заготовку на настоящего медведя:</b>
-    /// 1. Положить модель ребёнком в <c>Visual</c> и удалить оттуда примитивы.
-    /// 2. Назначить <c>animator</c> — аниматор модели.
-    /// 3. Если у ассета другие имена параметров, вписать их в поля
-    ///    <c>speedParameter</c> / <c>strikeParameter</c> / <c>roarParameter</c>.
-    /// Кода это не трогает: логика не знает, как медведь выглядит.
-    /// </summary>
+    /// <summary>Server-driven pursuit; clients reproduce the same telegraph before the impact.</summary>
     public sealed class PitBear : MonoBehaviour
     {
-        public enum BearState
-        {
-            /// <summary>В яме никого — медведь наматывает круги.</summary>
-            Patrol,
-            /// <summary>Разворачивается и разгоняется, ещё не бьёт.</summary>
-            WindUp,
-            /// <summary>Гонится за ближайшим.</summary>
-            Chase,
-            /// <summary>Встал на задние лапы под нижней клеткой: рёв, удар по решётке, урона нет.</summary>
-            Taunt
-        }
+        // Existing values are kept because the state is replicated as a byte.
+        public enum BearState { Patrol, WindUp, Chase, Taunt, Attack, Recovery, Watching }
 
-        [Header("Тушка — меняется на ассет без правок кода")]
-        [Tooltip("Корень визуала. Сюда кладётся модель медведя вместо серых примитивов")]
+        [Header("Original bear")]
         [SerializeField] private Transform visualRoot;
-        [Tooltip("Аниматор модели. Пусто — анимаций нет, логика работает как есть")]
         [SerializeField] private Animator animator;
-        [Tooltip("Float-параметр скорости в аниматоре")]
         [SerializeField] private string speedParameter = "Speed";
-        [Tooltip("Trigger удара лапой")]
         [SerializeField] private string strikeParameter = "Strike";
-        [Tooltip("Trigger рёва")]
         [SerializeField] private string roarParameter = "Roar";
+        [SerializeField] private string alertParameter = "Alert";
+        [Header("Weight and steering")]
+        [SerializeField] private float turnSpeed = 150f;
+        [SerializeField] private float wallMargin = .8f;
+        [SerializeField] private float acceleration = 6f;
+        [Header("Attack — matches Bruno_Strike, 1.5 seconds")]
+        [SerializeField] private float attackContactTime = .55f;
+        [SerializeField] private float attackDuration = 1.5f;
+        [SerializeField] private float attackRecovery = .45f;
 
-        [Header("Движение")]
-        [Tooltip("Скорость поворота корпуса, °/с")]
-        [SerializeField] private float turnSpeed = 220f;
-        [Tooltip("Насколько близко к борту медведь подходит, м")]
-        [SerializeField] private float wallMargin = 0.8f;
-
-        /// <summary>Медведь достал игрока. Второй аргумент — импульс отлёта.</summary>
         public event Action<PlayerController, Vector3> Caught;
+        public BearState State => state;
+        public PlayerController Target { get; private set; }
+        public Transform VisualRoot => visualRoot;
+        public float AnimatorSpeed => currentSpeed;
 
-        private float chaseSpeed = 5.5f;
-        private float patrolSpeed = 2.5f;
-        private float strikeRadius = 1.5f;
-        private float windUpDuration = 3f;
-        private float knockbackSpeed = 8f;
-        private float pitRadius = 8.64f;
-
-        private float windUpLeft;
-        private float patrolAngle;
+        private sealed class Runner
+        {
+            internal PlayerController Player;
+            internal Animator Animator;
+            internal float StandingTime;
+            internal bool Ready;
+        }
+        private readonly List<Runner> runners = new List<Runner>(8);
+        private static readonly int FlyBack = Animator.StringToHash("FlyBack");
+        private static readonly int FallForward = Animator.StringToHash("FallForward");
+        private static readonly int StandUpBack = Animator.StringToHash("StandUpFromBack");
+        private static readonly int StandUpForward = Animator.StringToHash("StandUpFromForward");
+        private float chaseSpeed = 5.5f, patrolSpeed = 2.1f, strikeRadius = 2.35f;
+        private float windUpDuration = 3f, knockbackSpeed = 8f, pitRadius = 8.64f;
+        private float windUpLeft, patrolAngle, currentSpeed, attackElapsed, recoveryLeft;
+        private float patrolPauseIn = 9f, patrolPauseLeft;
+        private bool hitEvaluated;
+        private PlayerController attackVictim;
+        private Vector3 attackDirection, previousPosition;
+        private bool visualPositionKnown;
         private BearState state = BearState.Patrol;
 
-        public BearState State => state;
-
-        /// <summary>Кого гонит прямо сейчас. Null — никого.</summary>
-        public PlayerController Target { get; private set; }
-
-        /// <summary>Корень визуала — сюда кладут модель вместо серых примитивов.</summary>
-        public Transform VisualRoot => visualRoot;
-
-        /// <summary>
-        /// Числа приходят снаружи: они лежат в конфиге «Секундомера», а медведь
-        /// живёт в общей папке арены и про конкретную игру знать не должен.
-        /// </summary>
         public void Configure(float chase, float patrol, float strike, float windUp, float knockback, float pit)
         {
-            chaseSpeed = chase;
-            patrolSpeed = patrol;
-            strikeRadius = strike;
-            windUpDuration = windUp;
-            knockbackSpeed = knockback;
-            pitRadius = pit;
+            chaseSpeed=chase; patrolSpeed=patrol; strikeRadius=strike; windUpDuration=windUp;
+            knockbackSpeed=knockback; pitRadius=pit; runners.Clear(); Target=null;
+            currentSpeed=0; windUpLeft=0; attackVictim=null; state=BearState.Patrol;
+            patrolPauseIn=9; patrolPauseLeft=0; visualPositionKnown=false;
+        }
+
+        /// <summary>Called when the hatch opens, while the player is still above the pit.</summary>
+        public void RegisterFallen(PlayerController player)
+        {
+            if(player==null)return;
+            ForgetRunner(player);
+            runners.Add(new Runner { Player=player, Animator=player.GetComponentInChildren<Animator>() });
+        }
+
+        public void ForgetRunner(PlayerController player)
+        {
+            for(int i=runners.Count-1;i>=0;i--)
+                if(runners[i].Player==null || runners[i].Player==player)runners.RemoveAt(i);
         }
 
         /// <summary>
-        /// Шаг ИИ. Зовёт владелец арены — в фазе 3 только на сервере.
-        /// Единственная точка, которая двигает медведя и решает, кого он достал.
+        /// The head start begins only after landing AND completing the get-up.
+        /// Remote motors are disabled: use their replicated animation and observed floor position.
+        /// Readiness latches, so jumping later cannot renew protection.
         /// </summary>
-        public void Tick(float deltaTime, PlayerController nearest, bool someoneOnLowestCage)
+        public bool CanChase(PlayerController player,float deltaTime)
         {
-            if (nearest == null)
+            for(int i=0;i<runners.Count;i++)
             {
-                Target = null;
-                // Медведь дразнит того, кто на последней ступени: рёв и удар
-                // по решётке. Урона нет — игрок на грани и так в худшем
-                // положении из всех, добивать его помехами незачем.
-                SetState(someoneOnLowestCage ? BearState.Taunt : BearState.Patrol);
-                Patrol(deltaTime);
-                return;
-            }
-
-            if (Target != nearest)
-            {
-                // Новая жертва — новый разгон: у выпавшего должен быть
-                // честный забег, а не мгновенная смерть.
-                Target = nearest;
-                windUpLeft = windUpDuration;
-                SetState(BearState.WindUp);
-            }
-
-            Vector3 toTarget = nearest.transform.position - transform.position;
-            toTarget.y = 0f;
-            float distance = toTarget.magnitude;
-
-            FaceTowards(toTarget, deltaTime);
-
-            if (windUpLeft > 0f)
-            {
-                windUpLeft -= deltaTime;
-                SetAnimatorSpeed(0f);
-                if (windUpLeft <= 0f)
+                Runner runner=runners[i];if(runner.Player!=player)continue;
+                if(runner.Ready)return true;
+                bool onFloor=player.transform.position.y<=transform.position.y+.65f;
+                bool recovering=RecoveryAnimation(runner.Animator);
+                if(player.enabled)
                 {
-                    SetState(BearState.Chase);
+                    onFloor &= player.IsGrounded;
+                    recovering |= player.IsKnockedDown || player.MovementLocked;
                 }
-
-                return;
+                else
+                {
+                    RaycastHit hit;
+                    onFloor &= Physics.Raycast(player.transform.position+Vector3.up*.25f,Vector3.down,out hit,.6f,
+                        Physics.DefaultRaycastLayers,QueryTriggerInteraction.Ignore) && hit.point.y<=transform.position.y+.3f;
+                }
+                runner.StandingTime=onFloor && !recovering ? runner.StandingTime+deltaTime : 0;
+                runner.Ready=runner.StandingTime>=.3f;
+                if(runner.Ready)Trace("Ready "+player.name+"; full head start begins after recovery");
+                return runner.Ready;
             }
+            return false;
+        }
 
-            SetState(BearState.Chase);
-            MoveBy(toTarget.normalized * (chaseSpeed * deltaTime));
-            SetAnimatorSpeed(chaseSpeed);
+        private static bool RecoveryAnimation(Animator a)
+        {
+            if(a==null || !a.isInitialized)return false;
+            return IsRecovery(a.GetCurrentAnimatorStateInfo(0).shortNameHash) ||
+                (a.IsInTransition(0) && IsRecovery(a.GetNextAnimatorStateInfo(0).shortNameHash));
+        }
+        private static bool IsRecovery(int hash)=>hash==FlyBack || hash==FallForward || hash==StandUpBack || hash==StandUpForward;
 
-            if (distance > strikeRadius)
+        /// <summary>Only the authoritative minigame calls Tick; impacts are decided here.</summary>
+        public void Tick(float deltaTime,PlayerController nearest,bool someoneOnLowestCage)
+        {
+            if(deltaTime<=0)return;
+            if(state==BearState.Attack){TickAttack(deltaTime);return;}
+            if(state==BearState.Recovery)
             {
+                currentSpeed=0;recoveryLeft-=deltaTime;
+                if(recoveryLeft>0)return;
+                SetState(BearState.Chase);
+            }
+            if(nearest==null)
+            {
+                Target=null;
+                for(int i=0;i<runners.Count;i++)
+                    if(runners[i].Player!=null && !runners[i].Ready)
+                    {
+                        SetState(BearState.Watching);currentSpeed=0;
+                        FaceTowards(runners[i].Player.transform.position-transform.position,deltaTime);
+                        return;
+                    }
+                SetState(someoneOnLowestCage?BearState.Taunt:BearState.Patrol);
+                if(someoneOnLowestCage)currentSpeed=0;else Patrol(deltaTime);
                 return;
             }
+            if(Target!=nearest)
+            {
+                Target=nearest;windUpLeft=windUpDuration;currentSpeed=0;
+                SetState(BearState.WindUp);
+                // This frame's delta belongs to the preceding state. Starting a
+                // target on a long frame must still grant the full head start.
+                if(windUpDuration>0)
+                {
+                    FaceTowards(nearest.transform.position-transform.position,deltaTime);
+                    return;
+                }
+            }
+            Vector3 delta=nearest.transform.position-transform.position;delta.y=0;
+            FaceTowards(delta,deltaTime);
+            if(windUpLeft>0)
+            {
+                windUpLeft-=deltaTime;currentSpeed=0;
+                if(windUpLeft<=0)SetState(BearState.Chase);
+                return;
+            }
+            SetState(BearState.Chase);
+            if(delta.magnitude<=strikeRadius && Vector3.Dot(transform.forward,delta.normalized)>.75f)
+            {
+                attackVictim=nearest;attackDirection=transform.forward;attackElapsed=0;hitEvaluated=false;
+                currentSpeed=0;SetState(BearState.Attack);return;
+            }
+            Steer(delta,chaseSpeed,deltaTime);
+        }
 
-            Vector3 impulse = toTarget.sqrMagnitude > 0.0001f ? toTarget.normalized : transform.forward;
-            impulse.y = 0.35f;
+        private void TickAttack(float dt)
+        {
+            float previous=attackElapsed;attackElapsed+=dt;
+            // Short committed lunge; no homing or turning during the swipe.
+            float lungeTime=Mathf.Max(0,Mathf.Min(attackElapsed,attackContactTime)-Mathf.Max(previous,.28f));
+            MoveBy(attackDirection*(lungeTime*1.65f));currentSpeed=0;
+            if(!hitEvaluated && attackElapsed>=attackContactTime)
+            {
+                hitEvaluated=true;
+                if(attackVictim!=null)
+                {
+                    Vector3 delta=attackVictim.transform.position-transform.position;
+                    float vertical=Mathf.Abs(delta.y);delta.y=0;
+                    if(vertical<1.3f && delta.magnitude<=strikeRadius+.1f && Vector3.Dot(attackDirection,delta.normalized)>.35f)
+                    {
+                        Vector3 impulse=(delta.sqrMagnitude>.001f?delta.normalized:attackDirection)+Vector3.up*.35f;
+                        var victim=attackVictim;ForgetRunner(victim);Target=null;
+                        Trace("Contact "+victim.name+" at "+attackElapsed.ToString("F2")+" s");
+                        Caught?.Invoke(victim,impulse.normalized*knockbackSpeed);
+                    }
+                }
+            }
+            if(attackElapsed>=attackDuration)
+            {
+                attackVictim=null;recoveryLeft=attackRecovery;
+                SetState(BearState.Recovery);
+            }
+        }
+
+        public void ApplyNetworkState(BearState next,float animatorSpeed)
+        {SetState(next);currentSpeed=animatorSpeed;}
+
+        public void PlayStrike()
+        {
+            if(animator!=null){animator.ResetTrigger(roarParameter);animator.ResetTrigger(alertParameter);}
             Trigger(strikeParameter);
-            Target = null;
-            Caught?.Invoke(nearest, impulse.normalized * knockbackSpeed);
         }
 
-        /// <summary>
-        /// Показать состояние, решённое сервером. Клиент медведя не двигает —
-        /// позицию везёт серверный NetworkTransform, — но рёв и скорость
-        /// в аниматоре обязаны совпасть у всех, иначе на одной машине медведь
-        /// встаёт на лапы, а на другой молча идёт мимо.
-        /// </summary>
-        public void ApplyNetworkState(BearState next, float animatorSpeed)
+        private void Patrol(float dt)
         {
-            SetState(next);
-            SetAnimatorSpeed(animatorSpeed);
+            if(patrolPauseLeft>0){patrolPauseLeft-=dt;currentSpeed=0;return;}
+            patrolPauseIn-=dt;
+            if(patrolPauseIn<=0){patrolPauseLeft=1.2f;patrolPauseIn=9f;currentSpeed=0;return;}
+            float radius=Mathf.Max(1,pitRadius-wallMargin*2);
+            patrolAngle+=patrolSpeed/radius*dt*Mathf.Rad2Deg;
+            float variedRadius=radius-.3f+.3f*Mathf.Sin(patrolAngle*Mathf.Deg2Rad*1.7f);
+            Vector3 target=Quaternion.Euler(0,patrolAngle+18,0)*Vector3.forward*variedRadius;
+            Vector3 delta=target-transform.position;delta.y=0;FaceTowards(delta,dt);Steer(delta,patrolSpeed,dt);
         }
-
-        /// <summary>Скорость для аниматора по текущему состоянию — её же реплицируем.</summary>
-        public float AnimatorSpeed =>
-            state == BearState.Chase ? chaseSpeed : (state == BearState.Patrol ? patrolSpeed : 0f);
-
-        private void Patrol(float deltaTime)
+        private void Steer(Vector3 direction,float speed,float dt)
         {
-            float radius = Mathf.Max(1f, pitRadius - wallMargin * 2f);
-            patrolAngle += patrolSpeed / radius * deltaTime * Mathf.Rad2Deg;
-            Vector3 target = Quaternion.Euler(0f, patrolAngle, 0f) * Vector3.forward * radius;
-            Vector3 delta = target - transform.position;
-            delta.y = 0f;
-
-            FaceTowards(delta, deltaTime);
-            MoveBy(Vector3.ClampMagnitude(delta, patrolSpeed * deltaTime));
-            SetAnimatorSpeed(patrolSpeed);
+            float alignment=direction.sqrMagnitude>.001f?Vector3.Dot(transform.forward,direction.normalized):0;
+            float wanted=speed*Mathf.InverseLerp(.15f,.9f,alignment);
+            currentSpeed=Mathf.MoveTowards(currentSpeed,wanted,acceleration*dt);
+            MoveBy(transform.forward*(currentSpeed*dt));
         }
-
-        /// <summary>Держим медведя внутри ямы: за борт ему нельзя ни при какой погоне.</summary>
         private void MoveBy(Vector3 delta)
         {
-            Vector3 next = transform.position + delta;
-            Vector2 flat = new Vector2(next.x, next.z);
-            float limit = Mathf.Max(0.5f, pitRadius - wallMargin);
-            if (flat.magnitude > limit)
-            {
-                flat = flat.normalized * limit;
-                next.x = flat.x;
-                next.z = flat.y;
-            }
-
-            transform.position = next;
+            Vector3 next=transform.position+delta;Vector2 flat=new Vector2(next.x,next.z);
+            flat=Vector2.ClampMagnitude(flat,Mathf.Max(.5f,pitRadius-wallMargin));next.x=flat.x;next.z=flat.y;transform.position=next;
         }
-
-        private void FaceTowards(Vector3 direction, float deltaTime)
+        private void FaceTowards(Vector3 direction,float dt)
         {
-            if (direction.sqrMagnitude < 0.0001f)
-            {
-                return;
-            }
-
-            Quaternion wanted = Quaternion.LookRotation(direction.normalized, Vector3.up);
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, wanted, turnSpeed * deltaTime);
+            direction.y=0;if(direction.sqrMagnitude<.0001f)return;
+            transform.rotation=Quaternion.RotateTowards(transform.rotation,Quaternion.LookRotation(direction),turnSpeed*dt);
         }
-
         private void SetState(BearState next)
         {
-            if (state == next)
-            {
-                return;
-            }
-
-            state = next;
-            if (next == BearState.Taunt)
-            {
-                Trigger(roarParameter);
-            }
+            if(state==next)return;state=next;Trace("State "+next);
+            if(next==BearState.Taunt)Trigger(roarParameter);
+            if(next==BearState.WindUp)Trigger(alertParameter);
+            if(next==BearState.Attack)PlayStrike();
+            if(next==BearState.Patrol)patrolAngle=Mathf.Atan2(transform.position.x,transform.position.z)*Mathf.Rad2Deg;
         }
-
-        private void SetAnimatorSpeed(float value)
+        private void LateUpdate()
         {
-            if (animator != null && !string.IsNullOrEmpty(speedParameter))
-            {
-                animator.SetFloat(speedParameter, value);
-            }
+            if(animator==null || Time.deltaTime<=0)return;
+            float distance=Vector3.Distance(transform.position,previousPosition);
+            float speed=visualPositionKnown && distance<chaseSpeed*Time.deltaTime*3 ? distance/Time.deltaTime : 0;
+            previousPosition=transform.position;visualPositionKnown=true;
+            if(state!=BearState.Patrol && state!=BearState.Chase)speed=0;
+            animator.SetFloat(speedParameter,Mathf.Min(speed,chaseSpeed),.13f,Time.deltaTime);
         }
+        [System.Diagnostics.Conditional("UNITY_EDITOR"),System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
+        private void Trace(string message) => Debug.Log("[CircusBear "+Time.time.ToString("F2")+"] "+message,this);
 
         private void Trigger(string parameter)
-        {
-            if (animator != null && !string.IsNullOrEmpty(parameter))
-            {
-                animator.SetTrigger(parameter);
-            }
-        }
+        {if(animator!=null && !string.IsNullOrEmpty(parameter))animator.SetTrigger(parameter);}
     }
 }

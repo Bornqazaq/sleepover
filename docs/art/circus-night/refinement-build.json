@@ -1,0 +1,17 @@
+{
+  "unity": "6000.3.11f1",
+  "platform": "StandaloneOSX",
+  "development": true,
+  "scenes": [
+    "Boot",
+    "Hub",
+    "Stopwatch",
+    "CansOrder"
+  ],
+  "result": "succeeded",
+  "errors": 0,
+  "warnings": 0,
+  "duration_seconds": 37.492469,
+  "size_mb": 889.25,
+  "job_id": "build-801c75ceb6"
+}

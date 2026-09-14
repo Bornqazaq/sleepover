@@ -29,13 +29,13 @@ namespace Igruha.Minigames.Circus
         [Tooltip("Скорость погони, м/с. Меньше, чем у игрока (6.5), и это принципиально: медведь догоняет срезанием по хорде, а не скоростью. Дай ему быстрее игрока — и забега нет, есть мгновенная смерть")]
         [SerializeField] private float chaseSpeed = 5.5f;
         [Tooltip("Скорость патрулирования пустой ямы, м/с")]
-        [SerializeField] private float patrolSpeed = 2.5f;
-        [Tooltip("Сколько секунд медведь разворачивается и разгоняется, прежде чем впервые ударить. Это фора выпавшему: без неё он умирает, не успев встать")]
+        [SerializeField] private float patrolSpeed = 2.1f;
+        [Tooltip("Фора после приземления и завершения подъёма. Всё это время медведь наблюдает и не приближается")]
         [SerializeField] private float firstAttackDelay = 3f;
 
         [Header("Удар")]
         [Tooltip("Радиус удара лапой, м")]
-        [SerializeField] private float strikeRadius = 1.5f;
+        [SerializeField] private float strikeRadius = 2.35f;
         [Tooltip("Скорость отлёта от удара, м/с")]
         [SerializeField] private float knockbackSpeed = 8f;
 
