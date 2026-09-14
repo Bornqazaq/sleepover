@@ -1,0 +1,13 @@
+{
+  "mesh_vertices": 20065,
+  "triangles": 38726,
+  "bones": 23,
+  "actions": [
+    "Bruno_Alert",
+    "Bruno_Idle",
+    "Bruno_Roar",
+    "Bruno_Run",
+    "Bruno_Strike",
+    "Bruno_Walk"
+  ]
+}

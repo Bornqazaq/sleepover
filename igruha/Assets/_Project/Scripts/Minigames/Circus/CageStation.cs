@@ -352,6 +352,23 @@ namespace Igruha.Minigames.Circus
             // ApplyNetworkCageLevel в правилах обеих игр).
             Level = config.MaxLevelSteps;
             LockOccupant(true);
+            if (Igruha.Core.Minigame.NetworkClock.Now - startTime >= rise)
+            {
+                // A client can receive DoorsOpen only after the server has finished
+                // raising the cage. Replaying the whole displacement in one physics
+                // step both carries and pushes its passenger, sometimes onto the roof.
+                // Place the cage and its local passenger once, before opening the floor.
+                platform.SnapTo(config.ExecutionDropHeight);
+                if (occupant != null && occupant.enabled && occupant.gameObject.activeInHierarchy)
+                {
+                    Vector3 position = occupant.Position;
+                    position.y = config.ExecutionDropHeight + .04f;
+                    occupant.TeleportTo(position, occupant.transform.rotation);
+                }
+                HandleArrived();
+                OpenDoors(openDuration);
+                return;
+            }
             platform.MoveTo(config.ExecutionDropHeight, rise, startTime);
 
             StartCoroutine(OpenWhenRaised(openDuration, startTime + rise));

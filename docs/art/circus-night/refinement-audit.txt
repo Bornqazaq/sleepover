@@ -1,0 +1,25 @@
+Player: falling, four recovery states, grounded readiness and full head start PASS.
+Aza: falling, four recovery states, grounded readiness and full head start PASS.
+Boss: falling, four recovery states, grounded readiness and full head start PASS.
+Fat: falling, four recovery states, grounded readiness and full head start PASS.
+Girl: falling, four recovery states, grounded readiness and full head start PASS.
+Milez: falling, four recovery states, grounded readiness and full head start PASS.
+MyBoy: falling, four recovery states, grounded readiness and full head start PASS.
+Shlanga: falling, four recovery states, grounded readiness and full head start PASS.
+Replicated swipe, delayed single hit, uninterrupted follow-through, recovery and dodge PASS.
+Stopwatch: 8 cage bindings, scoreboard, bear, original art, camera post processing and missing-script checks PASS.
+  Bruno_Idle: 6.00 s, sampled y=0.00..2.24
+  Bruno_Walk: 1.00 s, sampled y=-0.02..2.24
+  Bruno_Run: 0.80 s, sampled y=-0.01..2.32
+  Bruno_Strike: 1.50 s, sampled y=0.00..2.25
+  Bruno_Roar: 3.20 s, sampled y=0.00..3.44
+  Bruno_Alert: 3.00 s, sampled y=0.00..2.25
+  Stationary taunt, resumed patrol and 144 skinned animation samples PASS.
+CansOrder: 8 cage bindings, scoreboard, bear, original art, camera post processing and missing-script checks PASS.
+  Bruno_Idle: 6.00 s, sampled y=0.00..2.24
+  Bruno_Walk: 1.00 s, sampled y=-0.02..2.24
+  Bruno_Run: 0.80 s, sampled y=-0.01..2.32
+  Bruno_Strike: 1.50 s, sampled y=0.00..2.25
+  Bruno_Roar: 3.20 s, sampled y=0.00..3.44
+  Bruno_Alert: 3.00 s, sampled y=0.00..2.25
+  Stationary taunt, resumed patrol and 144 skinned animation samples PASS.

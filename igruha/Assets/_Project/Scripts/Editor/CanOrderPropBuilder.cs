@@ -179,6 +179,10 @@ namespace Igruha.EditorTools
             // в CircusUiWiring.
             CircusUiWiring.ApplyCansOrder();
 
+            CircusNightProps.BuildCanPrefab();
+            CircusNightProps.Apply(GameObject.Find("_Arena").transform);
+            CircusNightBuilder.ApplyActive();
+
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(scene);
             UnityEditor.SceneManagement.EditorSceneManager.SaveScene(scene);
 
@@ -301,7 +305,7 @@ namespace Igruha.EditorTools
             var rows = new List<(GameObject label, GameObject score, MeshFilter[] cells)>(PanelRows * 4);
             for (int face = 0; face < 4; face++)
             {
-                BuildPanelFace(rootGo.transform, scoreboard.transform.position.y, face, rows);
+                BuildPanelFace(rootGo.transform, arena.ScoreboardHeight, face, rows);
             }
 
             var panel = rootGo.AddComponent<CanOrderArrangementPanel>();

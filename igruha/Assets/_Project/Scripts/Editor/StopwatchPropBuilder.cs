@@ -79,7 +79,7 @@ namespace Igruha.EditorTools
                 placed++;
             }
 
-            int faces = BuildScreenHud();
+            int faces = BuildLocalFeedback();
 
             // Кнопки только что появились — перевязываем звук, чтобы
             // StopwatchAudio получил их ссылки. Ставить звук раньше нечего:
@@ -93,39 +93,24 @@ namespace Igruha.EditorTools
             }
 
             var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+            if (arena != null)
+            {
+                CircusNightProps.Apply(arena.transform);
+                CircusCraftBuilder.ApplyWindowsAndHud(arena.transform);
+            }
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(scene);
             UnityEditor.SceneManagement.EditorSceneManager.SaveScene(scene);
-            Debug.Log($"Реквизит «Секундомера» расставлен: кнопок {placed} из {stations.Length} клеток, граней табло {faces} (включая экранное).");
+            Debug.Log($"Реквизит «Секундомера» расставлен: кнопок {placed} из {stations.Length} клеток, граней табло {faces}.");
         }
 
 
-        // Экранное табло. Размеры в пикселях канваса.
-        private const float HudWidth = 600f;
-        private const float HudPadding = 18f;
-        private const float HudTitleHeight = 50f;
-        private const float HudSubtitleHeight = 42f;
-        private const float HudRowHeight = 40f;
-        private const int HudRowCapacity = 8;
-        private const float HudTitleFont = 34f;
-        private const float HudSubtitleFont = 29f;
-        private const float HudRowFont = 26f;
-
-        /// <summary>
-        /// Личное табло в углу экрана. Через прутья клетки мировое табло
-        /// читается плохо, а результаты — единственное, что игроку в этот
-        /// момент нужно разобрать точно.
-        ///
-        /// Своего кода не требует: это ещё одна грань <see cref="WorldScoreboard"/>.
-        /// Правила игры пишут содержимое один раз, и оно приезжает и на четыре
-        /// грани над ямой, и сюда. Мировое табло при этом остаётся —
-        /// по нему читается общая картина, по экранному свои цифры.
-        /// </summary>
-        private static int BuildScreenHud()
+        /// <summary>Оставляет личную подсказку; результаты читаются на четырёх гранях над ареной.</summary>
+        private static int BuildLocalFeedback()
         {
             GameObject canvas = GameObject.Find("_UI/Canvas");
             if (canvas == null)
             {
-                Debug.LogWarning("StopwatchPropBuilder: не найден _UI/Canvas — экранное табло не построено.");
+                Debug.LogWarning("StopwatchPropBuilder: не найден _UI/Canvas — личная подсказка не построена.");
                 return 0;
             }
 
@@ -135,75 +120,15 @@ namespace Igruha.EditorTools
                 Object.DestroyImmediate(existing.gameObject);
             }
 
-            TMP_FontAsset font = FindFont();
-            float height = HudTitleHeight + HudSubtitleHeight + HudRowHeight * HudRowCapacity + HudPadding * 2f;
-
-            var rootGo = new GameObject(HudObjectName, typeof(RectTransform));
-            rootGo.transform.SetParent(canvas.transform, false);
-            var root = (RectTransform)rootGo.transform;
-            // Левый верхний угол: центр занят таймером, низ — подсказками.
-            root.anchorMin = new Vector2(0f, 1f);
-            root.anchorMax = new Vector2(0f, 1f);
-            root.pivot = new Vector2(0f, 1f);
-            root.anchoredPosition = new Vector2(28f, -28f);
-            root.sizeDelta = new Vector2(HudWidth, height);
-
-            var backdrop = rootGo.AddComponent<Image>();
-            backdrop.color = new Color(0.02f, 0.02f, 0.04f, 0.72f);
-            backdrop.raycastTarget = false;
-
-            float cursor = -HudPadding;
-            TMP_Text title = MakeHudText(root, "Title", font, HudTitleFont, TextAlignmentOptions.MidlineLeft,
-                cursor, HudTitleHeight, HudPadding, HudWidth - HudPadding * 2f);
-            title.color = new Color(1f, 0.86f, 0.45f);
-            cursor -= HudTitleHeight;
-            TMP_Text subtitle = MakeHudText(root, "Subtitle", font, HudSubtitleFont, TextAlignmentOptions.MidlineLeft,
-                cursor, HudSubtitleHeight, HudPadding, HudWidth - HudPadding * 2f);
-            cursor -= HudSubtitleHeight;
-
-            var labels = new TMP_Text[HudRowCapacity];
-            var values = new TMP_Text[HudRowCapacity];
-            for (int i = 0; i < HudRowCapacity; i++)
-            {
-                float y = cursor - HudRowHeight * i;
-                labels[i] = MakeHudText(root, $"Row_{i + 1}_Label", font, HudRowFont, TextAlignmentOptions.MidlineLeft,
-                    y, HudRowHeight, HudPadding, (HudWidth - HudPadding * 2f) * 0.6f);
-                values[i] = MakeHudText(root, $"Row_{i + 1}_Value", font, HudRowFont, TextAlignmentOptions.MidlineRight,
-                    y, HudRowHeight, HudPadding + (HudWidth - HudPadding * 2f) * 0.6f, (HudWidth - HudPadding * 2f) * 0.4f);
-                // Значение — то, ради чего игрок сюда смотрит: держим его ярче подписи.
-                labels[i].color = new Color(0.78f, 0.80f, 0.86f);
-            }
-
-            var face = rootGo.AddComponent<WorldScoreboardFace>();
-            var faceSo = new SerializedObject(face);
-            faceSo.FindProperty("title").objectReferenceValue = title;
-            faceSo.FindProperty("subtitle").objectReferenceValue = subtitle;
-            // Панель рассчитана на восемь строк, а лобби бывает и на двоих:
-            // без подрезки нижняя половина остаётся пустым тёмным
-            // прямоугольником в четверть экрана. Мировым граням это поле
-            // не ставится — им обрезать нечего.
-            faceSo.FindProperty("autoHeightPanel").objectReferenceValue = root;
-            SerializedProperty labelsProperty = faceSo.FindProperty("rowLabels");
-            SerializedProperty valuesProperty = faceSo.FindProperty("rowValues");
-            labelsProperty.arraySize = HudRowCapacity;
-            valuesProperty.arraySize = HudRowCapacity;
-            for (int i = 0; i < HudRowCapacity; i++)
-            {
-                labelsProperty.GetArrayElementAtIndex(i).objectReferenceValue = labels[i];
-                valuesProperty.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
-            }
-
-            faceSo.ApplyModifiedPropertiesWithoutUndo();
-
-            BuildStatusLine(canvas.transform, font, root);
-            return RegisterFaces(face);
+            BuildStatusLine(canvas.transform, FindFont());
+            return RegisterFaces();
         }
 
         /// <summary>
-        /// Крупная строка «отсчёт идёт» под панелью. Единственный элемент
+        /// Крупная строка «отсчёт идёт» внизу экрана. Единственный элемент
         /// интерфейса, у каждого игрока свой: остальное — общее табло.
         /// </summary>
-        private static void BuildStatusLine(Transform canvas, TMP_FontAsset font, RectTransform panel)
+        private static void BuildStatusLine(Transform canvas, TMP_FontAsset font)
         {
             Transform existing = canvas.Find(StatusObjectName);
             if (existing != null)
@@ -214,11 +139,10 @@ namespace Igruha.EditorTools
             var go = new GameObject(StatusObjectName, typeof(RectTransform));
             go.transform.SetParent(canvas, false);
             var rect = (RectTransform)go.transform;
-            rect.anchorMin = new Vector2(0f, 1f);
-            rect.anchorMax = new Vector2(0f, 1f);
-            rect.pivot = new Vector2(0f, 1f);
-            rect.anchoredPosition = new Vector2(panel.anchoredPosition.x, panel.anchoredPosition.y - panel.sizeDelta.y - 14f);
-            rect.sizeDelta = new Vector2(HudWidth, 56f);
+            rect.anchorMin = rect.anchorMax = new Vector2(.5f, 0f);
+            rect.pivot = new Vector2(.5f, 0f);
+            rect.anchoredPosition = new Vector2(0f, 132f);
+            rect.sizeDelta = new Vector2(900f, 60f);
 
             var text = go.AddComponent<TextMeshProUGUI>();
             if (font != null)
@@ -229,7 +153,7 @@ namespace Igruha.EditorTools
             text.fontSizeMin = 26f;
             text.fontSizeMax = 44f;
             text.enableAutoSizing = true;
-            text.alignment = TextAlignmentOptions.MidlineLeft;
+            text.alignment = TextAlignmentOptions.Center;
             text.textWrappingMode = TextWrappingModes.NoWrap;
             text.raycastTarget = false;
             text.text = string.Empty;
@@ -241,12 +165,8 @@ namespace Igruha.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        /// <summary>
-        /// Собрать грани заново: четыре над ямой плюс экранная. Билдер арены
-        /// знает только про свои четыре и при пересборке затирает список,
-        /// поэтому экранную грань дописываем здесь.
-        /// </summary>
-        private static int RegisterFaces(WorldScoreboardFace hud)
+        /// <summary>Перепривязать четыре грани общего табло после пересборки.</summary>
+        private static int RegisterFaces()
         {
             GameObject boardGo = GameObject.Find("_Arena/Scoreboard");
             if (boardGo == null)
@@ -256,48 +176,14 @@ namespace Igruha.EditorTools
             }
 
             var board = boardGo.GetComponent<WorldScoreboard>();
-            var faces = new List<WorldScoreboardFace>(5);
+            var faces = new List<WorldScoreboardFace>(4);
             faces.AddRange(boardGo.GetComponentsInChildren<WorldScoreboardFace>(true));
-            faces.Add(hud);
             board.SetFaces(faces);
             board.Clear();
 
-            // Грани собраны — осталось вернуть само табло контроллеру.
-            // Поле `board` у StopwatchScoreboard — обычный [SerializeField],
-            // и пересборка арены обнуляет его вместе со старым Scoreboard.
-            // Одна эта пустая ссылка гасит игру целиком: и четыре грани над
-            // ямой, и экранную панель, потому что пишет в них всех один
-            // WorldScoreboard. Разбор — в CircusUiWiring.
+            // Вернуть табло контроллеру после пересборки арены.
             CircusUiWiring.ApplyStopwatch();
             return faces.Count;
-        }
-
-        private static TMP_Text MakeHudText(RectTransform parent, string name, TMP_FontAsset font, float fontSize,
-            TextAlignmentOptions alignment, float top, float height, float left, float width)
-        {
-            var go = new GameObject(name, typeof(RectTransform));
-            go.transform.SetParent(parent, false);
-            var rect = (RectTransform)go.transform;
-            rect.anchorMin = new Vector2(0f, 1f);
-            rect.anchorMax = new Vector2(0f, 1f);
-            rect.pivot = new Vector2(0f, 1f);
-            rect.anchoredPosition = new Vector2(left, top);
-            rect.sizeDelta = new Vector2(width, height);
-
-            var text = go.AddComponent<TextMeshProUGUI>();
-            if (font != null)
-            {
-                text.font = font;
-            }
-
-            text.fontSizeMin = fontSize * 0.6f;
-            text.fontSizeMax = fontSize;
-            text.enableAutoSizing = true;
-            text.alignment = alignment;
-            text.textWrappingMode = TextWrappingModes.NoWrap;
-            text.raycastTarget = false;
-            text.text = string.Empty;
-            return text;
         }
 
         private static TMP_FontAsset FindFont()
@@ -373,8 +259,7 @@ namespace Igruha.EditorTools
                 pedestal.transform.localScale = new Vector3(PedestalDiameter, PedestalHeight * 0.5f, PedestalDiameter);
                 pedestal.GetComponent<MeshRenderer>().enabled = false;
 
-                CircusDress.Prop(root.transform, "Barrel", CircusDress.BarrelPath,
-                    root.transform.position, 0f, PedestalHeight);
+                CircusCraftBuilder.Add(root.transform, "CN_ButtonPedestal", Vector3.zero);
 
                 // Ободок, в который утоплен купол. Без него красный шар просто
                 // лежит на бочке и не читается кнопкой.

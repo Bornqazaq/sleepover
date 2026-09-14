@@ -1470,6 +1470,7 @@ namespace Igruha.Minigames.CansOrder
                 c.Entry.Alive = false;
                 c.Entry.Solved = false;
                 c.InPit = true;
+                bear?.RegisterFallen(c.Session.Avatar);
 
                 // Банка из руки возвращается до падения: она кинематическая
                 // и прицеплена к персонажу — иначе улетит в яму вместе с ним,
@@ -1966,6 +1967,17 @@ namespace Igruha.Minigames.CansOrder
                     continue;
                 }
 
+                if (!bear.CanChase(c.Session.Avatar, Time.deltaTime))
+                {
+                    continue;
+                }
+
+                // Keep a chosen runner: two nearby players must not reset the head start every frame.
+                if (bear.Target == c.Session.Avatar)
+                {
+                    return c.Session.Avatar;
+                }
+
                 float sqr = (c.Session.Avatar.transform.position - bearPosition).sqrMagnitude;
                 if (sqr < nearestSqr)
                 {
@@ -2241,6 +2253,7 @@ namespace Igruha.Minigames.CansOrder
             // Из состава раунда — иначе беглец получит место, хотя его нет
             // в матче. Ростер сессии чистит Core, здесь свой локальный список.
             RemovePlayer(playerId);
+            bear?.ForgetRunner(c.Session.Avatar);
 
             if (c.Entry.Alive)
             {
@@ -2648,6 +2661,7 @@ namespace Igruha.Minigames.CansOrder
                 return;
             }
 
+            // The replicated Attack state starts the swipe before this impact RPC.
             Contestant c = Find(playerId);
             if (c == null)
             {

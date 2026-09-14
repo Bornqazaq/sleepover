@@ -47,11 +47,11 @@ MonoBehaviour:
   twoPlayerTieThreshold: 0.05
   bearSpeed: 5.5
   bearFirstAttackDelay: 3
-  bearStrikeRadius: 1.5
+  bearStrikeRadius: 2.35
   bearKnockbackSpeed: 8
   bearKnockdownDuration: 1.5
   bodyDespawnDelay: 1.5
-  bearPatrolSpeed: 2.5
+  bearPatrolSpeed: 2.1
   distractionFirstSubround: 3
   distractionRampSubrounds: 4
   tickPeriodRange: {x: 0.75, y: 1.35}

@@ -1,0 +1,35 @@
+igruha/Builds/CircusNightTest/logs/refinement-20260911/editor-client.log:[CircusBear 75.97] State Watching
+igruha/Builds/CircusNightTest/logs/refinement-20260911/editor-client.log:[CircusBear 229.40] State WindUp
+igruha/Builds/CircusNightTest/logs/refinement-20260911/editor-client.log:[CircusBear 232.41] State Chase
+igruha/Builds/CircusNightTest/logs/refinement-20260911/editor-client.log:[CircusBear 232.83] State Attack
+igruha/Builds/CircusNightTest/logs/refinement-20260911/editor-client.log:[CircusBear 234.36] State Recovery
+igruha/Builds/CircusNightTest/logs/refinement-20260911/editor-client.log:[CircusBear 234.80] State Patrol
+igruha/Builds/CircusNightTest/logs/refinement-20260911/host.log:📍 [Hub] игроки расставлены по SpawnPoint (1)
+igruha/Builds/CircusNightTest/logs/refinement-20260911/host.log:HubManager: жду состав для 'Stopwatch': 1/2
+igruha/Builds/CircusNightTest/logs/refinement-20260911/host.log:HubManager: жду состав для 'Stopwatch': 2/2
+igruha/Builds/CircusNightTest/logs/refinement-20260911/host.log:HubManager: жду состав для 'Stopwatch': 2/2
+igruha/Builds/CircusNightTest/logs/refinement-20260911/host.log:HubManager: жду состав для 'Stopwatch': 2/2
+igruha/Builds/CircusNightTest/logs/refinement-20260911/host.log:HubManager: автопрогон 1/2: запускаю 'Stopwatch' на 2 игроков
+igruha/Builds/CircusNightTest/logs/refinement-20260911/host.log:📍 [Stopwatch] игроки расставлены по SpawnPoint (2)
+igruha/Builds/CircusNightTest/logs/refinement-20260911/host.log:[CircusBear 110.73] State Taunt
+igruha/Builds/CircusNightTest/logs/refinement-20260911/host.log:[CircusBear 112.74] State Watching
+igruha/Builds/CircusNightTest/logs/refinement-20260911/host.log:⭐ [СЕРВЕР] Игрок 1: место 1, всего очков 1
+igruha/Builds/CircusNightTest/logs/refinement-20260911/host.log:⭐ [СЕРВЕР] Игрок 2: место 2, всего очков 0
+igruha/Builds/CircusNightTest/logs/refinement-20260911/host.log:🏠 HOST: раунд закрыт, возвращаю всех в 'Hub'
+igruha/Builds/CircusNightTest/logs/refinement-20260911/host.log:📍 [Hub] игроки расставлены по SpawnPoint (2)
+igruha/Builds/CircusNightTest/logs/refinement-20260911/host.log:HubManager: автопрогон 2/2: запускаю 'CansOrder' на 2 игроков
+igruha/Builds/CircusNightTest/logs/refinement-20260911/host.log:📍 [CansOrder] игроки расставлены по SpawnPoint (2)
+igruha/Builds/CircusNightTest/logs/refinement-20260911/host.log:[CircusBear 285.22] State Taunt
+igruha/Builds/CircusNightTest/logs/refinement-20260911/host.log:[CircusBear 292.24] State Watching
+igruha/Builds/CircusNightTest/logs/refinement-20260911/host.log:[CircusBear 294.14] Ready Milez(Clone); full head start begins after recovery
+igruha/Builds/CircusNightTest/logs/refinement-20260911/host.log:[CircusBear 294.14] State WindUp
+igruha/Builds/CircusNightTest/logs/refinement-20260911/host.log:⭐ [СЕРВЕР] Игрок 1: место 1, всего очков 2
+igruha/Builds/CircusNightTest/logs/refinement-20260911/host.log:⭐ [СЕРВЕР] Игрок 2: место 2, всего очков 0
+igruha/Builds/CircusNightTest/logs/refinement-20260911/host.log:🏠 HOST: раунд закрыт, возвращаю всех в 'Hub'
+igruha/Builds/CircusNightTest/logs/refinement-20260911/host.log:HubManager: очередь автопрогона кончилась — остаёмся в хабе
+igruha/Builds/CircusNightTest/logs/refinement-20260911/host.log:📍 [Hub] игроки расставлены по SpawnPoint (2)
+igruha/Builds/CircusNightTest/logs/refinement-20260911/client.log:[CircusBear 114.13] State Taunt
+igruha/Builds/CircusNightTest/logs/refinement-20260911/client.log:[CircusBear 116.13] State Watching
+igruha/Builds/CircusNightTest/logs/refinement-20260911/client.log:[CircusBear 288.91] State Taunt
+igruha/Builds/CircusNightTest/logs/refinement-20260911/client.log:[CircusBear 295.93] State Watching
+igruha/Builds/CircusNightTest/logs/refinement-20260911/client.log:[CircusBear 297.86] State WindUp

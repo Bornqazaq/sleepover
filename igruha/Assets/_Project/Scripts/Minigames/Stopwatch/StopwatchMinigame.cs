@@ -616,6 +616,7 @@ namespace Igruha.Minigames.Stopwatch
 
                 c.Alive = false;
                 c.InPit = true;
+                bear?.RegisterFallen(c.Session.Avatar);
                 eliminatedThisSubround.Add(c.Session.Id);
                 c.Cage?.RaiseAndOpenDoors(config.HatchOpenSeconds, startedAt);
             }
@@ -681,6 +682,17 @@ namespace Igruha.Minigames.Stopwatch
                 if (c.Elimination != null && c.Elimination.IsEliminated)
                 {
                     continue;
+                }
+
+                if (!bear.CanChase(c.Session.Avatar, Time.deltaTime))
+                {
+                    continue;
+                }
+
+                // Keep a chosen runner: two nearby players must not reset the head start every frame.
+                if (bear.Target == c.Session.Avatar)
+                {
+                    return c.Session.Avatar;
                 }
 
                 float sqr = (c.Session.Avatar.transform.position - bearPosition).sqrMagnitude;
@@ -864,6 +876,7 @@ namespace Igruha.Minigames.Stopwatch
             // Из состава раунда — иначе беглец получит место, хотя его нет
             // в матче. Ростер сессии чистит Core, здесь свой локальный список.
             RemovePlayer(playerId);
+            bear?.ForgetRunner(c.Session.Avatar);
 
             if (c.Alive)
             {
@@ -931,6 +944,7 @@ namespace Igruha.Minigames.Stopwatch
                 return;
             }
 
+            // The replicated Attack state starts the swipe before this impact RPC.
             Contestant c = Find(playerId);
             if (c == null)
             {

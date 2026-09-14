@@ -188,6 +188,9 @@ namespace Igruha.EditorTools
             // вернула бы серые прямоугольники шаблона.
             UiSkinPass.Apply();
 
+            // Preserve the shared original art direction on future blockout/prop rebuilds.
+            CircusNightBuilder.ApplyActive();
+
             var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(scene);
             UnityEditor.SceneManagement.EditorSceneManager.SaveScene(scene);
@@ -759,9 +762,7 @@ namespace Igruha.EditorTools
             // Так сделано затем, чтобы яма не осталась пустой ни на одной
             // машине: «медведь не заспавнился» искали бы в сетевом коде.
             //
-            // 1. Анимированный зверь (CircusBeast) — humanoid Synty на клипах
-            //    игрока. Он единственный из трёх умеет ходить: у статуи и
-            //    коробок костей нет, и по яме они ездят, не переставляя лап.
+            // Original Blender bear, with its own generic skeleton and five authored clips.
             Animator beast = CircusBeast.Build(visual, CircusDress.BearHeight);
             if (beast != null)
             {
