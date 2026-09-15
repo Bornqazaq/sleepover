@@ -1,0 +1,115 @@
+{
+  "ticket": "IGR-528",
+  "generator": "Built-in imagegen edit",
+  "baseCommit": "c526377",
+  "referenceSource": "Unity CharacterRoster prefabs rendered in temporary PreviewRenderUtility scenes, sampled at idle t=0.25. Two views per identity, no prefab changes.",
+  "references": [
+    {
+      "id": "Karlan",
+      "path": "tools/art/references/console-cast/Karlan.png"
+    },
+    {
+      "id": "Boss",
+      "path": "tools/art/references/console-cast/Boss.png"
+    },
+    {
+      "id": "Shlanga",
+      "path": "tools/art/references/console-cast/Shlanga.png"
+    },
+    {
+      "id": "Fat",
+      "path": "tools/art/references/console-cast/Fat.png"
+    },
+    {
+      "id": "MyBoy",
+      "path": "tools/art/references/console-cast/MyBoy.png"
+    },
+    {
+      "id": "Girl",
+      "path": "tools/art/references/console-cast/Girl.png"
+    },
+    {
+      "id": "Milez",
+      "path": "tools/art/references/console-cast/Milez.png"
+    },
+    {
+      "id": "Aza",
+      "path": "tools/art/references/console-cast/Aza.png"
+    }
+  ],
+  "originalCoverDirectory": "igruha/Assets/_Project/Art/Hub/Console/Covers (baseCommit)",
+  "sharedPrompt": "Use case: identity-preserve, compositing. Asset: finished landscape 16:9 mini-game cover. Image 1 is the edit target. All later images are strict identity references of this game's EXISTING 3D characters; each reference shows two views of ONE character. Use those exact character designs, head shapes, visible eye whites, eyelids, skin colours, recognizable hair, body proportions and clothing. Match the slightly rough mischievous cartoon game-model style, not new kawaii children or black-dot-eyed toys. Integrate their material shading, coloured bounce light and soft contact shadows into the existing cover. Keep the original camera composition, environment, key props and lighting palette except the explicit cast changes below. Preserve readable silhouettes at thumbnail size. No title, UI, watermark or text; existing clothing symbols are allowed. Output only the final cover, not a character sheet. Specific edits: ",
+  "covers": [
+    {
+      "id": "Exam",
+      "references": [
+        "Girl",
+        "Karlan",
+        "Boss"
+      ],
+      "prompt": "Use case: identity-preserve, compositing. Edit the FIRST image: the landscape quiz-show cover. Images 2, 3, 4 are strict character identity references, each showing two views of ONE existing game character. Replace only the cast and match their rendering to these game models. Left contestant: Girl from image 2, blonde ponytail, dark skateboard T-shirt, denim shorts, wristbands and cheek plaster. Right contestant: Karlan from image 3, short brown hair, grey hoodie and grey joggers, white sneakers, distinctive large oval head, heavy upper eyelids, visible eye whites and unimpressed expression. Host behind the central podium: Boss from image 4, stocky build, charcoal zip jacket over white shirt, gold chain, cropped side-part hair, cheek plaster, forearm tattoos and knowing smirk. Preserve their actual face shapes, eye construction, hair silhouettes, stocky body proportions, skin tones, outfits and recognizable details; pose them naturally as competing players and a confident presenter. These are the game's own slightly rough mischievous cartoon adults, NOT new cute toy children, NOT black-dot eyes. Preserve the original camera, two podiums and buttons, stage layout, giant star, warm/cool stage lighting, material colours and 16:9 framing. Replace the tiny generic audience faces with soft out-of-focus silhouettes consistent with this cast. Integrate lighting and contact shadows, keep the characters in the same left/right/central positions. No title, words, logo, watermark or interface. Output one finished cover, not a character sheet."
+    },
+    {
+      "id": "CryingAngels",
+      "references": [
+        "Karlan",
+        "Boss"
+      ],
+      "edit": "Replace the little explorer on the left with Karlan (image 2): grey hoodie and joggers, white sneakers, brown cropped hair, large oval head and sleepy skeptical eyes. He cautiously grips the existing flashlight, no beanie, scarf or backpack. The central winged statue becomes a carved stone caricature of Boss (image 3): the stocky head and cropped side-part, charcoal jacket shape rendered in the same grey stone, hands covering the eyes. Keep the stone wings, pedestal and aged stone treatment so it is clearly a museum statue. Keep moonlit museum, blue mist and warm flashlight beam exactly composed as before. These two transformations should make the cast belong to our game."
+    },
+    {
+      "id": "MemoryRun",
+      "references": [
+        "Shlanga"
+      ],
+      "edit": "Replace the tiny bundled-up runner in the lower-left foreground with Shlanga (image 2): distinctly tall very thin lanky body, long skinny arms and legs, large square brown glasses, brown hair, grey T-shirt, red striped boxer shorts, bare feet, half-lidded eyes. Capture his hesitant balancing step onto the same first glowing tile, arms slightly out, head turned enough to recognize his glasses and face. No hat, backpack or boots. Keep the three-column stepping-stone path, mint safe tiles, lavender sky, vines and glowing doorway. His lanky silhouette must remain the game's actual design, not a stocky toddler."
+    },
+    {
+      "id": "CarryItem",
+      "references": [
+        "Fat",
+        "Milez"
+      ],
+      "edit": "Replace the two toy construction workers with our two existing players. Left: Fat (image 2), round heavy body, large exposed belly below bright yellow short T-shirt, blue shorts, bare feet, brown hair, smirking sleepy eyes. Right: Milez (image 3), dark skin, short curly hair, over-ear headphones, green varsity jacket with mustard sleeves, white T-shirt, crossbody bag, cuffed blue jeans and bright sneakers. They carry the same large transparent blue water jug together, leaning with its weight and gripping it naturally. Keep their actual outfits, no construction uniforms, hard hats or new moustaches. Preserve jug, water inside, wooden footbridge, sunny sandy obstacle course and tank in the distance."
+    },
+    {
+      "id": "HoleInWall",
+      "references": [
+        "Aza",
+        "Girl"
+      ],
+      "edit": "Replace the left helmeted contestant with Aza (image 2): stocky body, blue sports jersey with the white number 7, navy shorts, white socks, blue shoes, brown hair, characteristic facial spots. Replace the right contestant with Girl (image 3): blonde ponytail, dark skateboard T-shirt, denim shorts, bracelets, mismatched socks, dark shoes. Both seen from behind in the existing matching balance poses, heads turned slightly to reveal recognizable profiles, joined by the same rope around their waists. Remove helmets to reveal their actual hair. Keep pink moving wall, two human-shaped openings, blue pool and warm yellow platforms. Adjust the hole silhouettes only enough to fit their stockier proportions and current arm/leg poses."
+    },
+    {
+      "id": "DuckHunt",
+      "references": [
+        "MyBoy",
+        "Aza",
+        "Milez",
+        "Boss"
+      ],
+      "edit": "Replace the live rubber-duck runners with our actual human game characters; 'duck' is a gameplay role, not their species. Closest lower-left runner is MyBoy (image 2): dark brown skin, large round glasses, short brown hair, red/blue plaid shirt, red suspenders, brown trousers and loafers. Another visible runner on a middle level is Aza (image 3), blue number-7 jersey, navy shorts and blue shoes. A third runner higher up is Milez (image 4), headphones, green/yellow varsity jacket and jeans. Hunter on the opposing right-hand lift is Boss (image 5), stocky charcoal tracksuit, white shirt, gold chain, tattooed forearms and cheek plaster, operating the existing playful toy launcher. Keep the five-storey tower, ramps, colour bands, water, lift and environment. The small duck at the very top can remain a golden trophy ornament, and background duck balloons remain scenery. No living cartoon ducks or helmets on our main cast. Make the faces and silhouettes of the closer two characters clearly recognizable."
+    },
+    {
+      "id": "Stopwatch",
+      "references": [
+        "Fat",
+        "MyBoy"
+      ],
+      "edit": "Keep the big red button, hanging cage, circus bear, stage and warm lighting. Replace the dark rabbit-like paws in the extreme foreground with Fat's short broad bare human hands reaching toward the button, with small edges of his yellow T-shirt sleeves (image 2). Remove the bunny-shaped spectators; softly blurred background audience uses the human silhouettes and proportions of Fat and MyBoy (image 3, plaid shirt, round glasses, red suspenders). Keep the bear as the actual non-player circus animal. The red button remains the clear central focal point. No additional foreground face or new main subject."
+    },
+    {
+      "id": "CansOrder",
+      "references": [
+        "MyBoy"
+      ],
+      "edit": "Replace only the white glove and red circus ringmaster cuff moving the red can with MyBoy's bare dark brown hand and the end of his distinctive red/blue plaid shirt sleeve, as shown in image 2. Keep the exact hand grip readable and anatomically clean, the red can still being lifted above the stack. Preserve all five coloured cans, their patterns, table, curtains, lamps, composition, light and camera. Do not add a head or a new character body. This is a close-up of our character's hand playing the puzzle."
+    }
+  ],
+  "unchanged": [
+    {
+      "id": "BelieveOrNot",
+      "reason": "No character imagery to replace."
+    }
+  ]
+}
