@@ -91,6 +91,7 @@ namespace Igruha.EditorTools
             Set(menu, "libraryView", view); Set(menu, "screenRoot", root.gameObject); Set(menu, "hintText", hint);
             Set(menu, "cardsParent", null); Set(menu, "captionText", null);
             menu.ApplyModifiedPropertiesWithoutUndo();
+            HubConsoleShellBuilder.Wrap(screen, root, (ConsoleMenu)menu.targetObject);
         }
 
         private static ConsoleGameCard CreateCard(Transform parent)
