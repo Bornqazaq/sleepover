@@ -28,5 +28,7 @@ namespace Igruha.Core.Hub
         /// экран, собранный посреди выбора, стоял бы тёмным.
         /// </summary>
         void SyncScreen();
+        void SetPage(ConsolePage page);
+        string SeriesSummary { get; }
     }
 }

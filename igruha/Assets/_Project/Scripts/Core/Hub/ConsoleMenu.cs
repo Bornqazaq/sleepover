@@ -29,6 +29,8 @@ namespace Igruha.Core.Hub
     /// вернётся с сервера. Так у всех, включая его самого, одна и та же
     /// картинка, и рассинхрону взяться неоткуда.
     /// </summary>
+    public enum ConsolePage { Home, Party, Library }
+
     public sealed class ConsoleMenu : MonoBehaviour
     {
         [Header("Данные")]
@@ -45,6 +47,38 @@ namespace Igruha.Core.Hub
         [Tooltip("Строка подсказки управления в самом низу экрана")]
         [SerializeField] private TMP_Text hintText;
         [SerializeField] private ConsoleLibraryView libraryView;
+        [SerializeField] private ConsoleShellView shellView;
+        public ConsolePage Page { get; private set; }
+        public MinigameCatalog Catalog => catalog;
+        public bool CanHost => HasAuthority;
+        public bool IsLoading => loader != null && loader.IsLoading;
+        public void RequestPage(ConsolePage page)
+        {
+            if (!IsOpen || !HasAuthority || IsLoading) return;
+            if (Relay != null) Relay.SetPage(page); else ApplyPage(page);
+        }
+        public void ApplyPage(ConsolePage page)
+        {
+            if (!System.Enum.IsDefined(typeof(ConsolePage), page)) page = ConsolePage.Home;
+            Page = page;
+            if (shellView != null) shellView.ShowPage(page);
+            Refresh();
+        }
+        public void SelectGame(int index)
+        {
+            if (!IsOpen || !HasAuthority || Page != ConsolePage.Library || !catalog.IsPlayable(index)) return;
+            if (Relay != null) Relay.SetCursor(index); else ApplyCursor(index);
+        }
+        public void StartFullGame()
+        {
+            if (!IsOpen || !HasAuthority || Page != ConsolePage.Party) return;
+            if (PartySeries.Start(catalog, loader)) RequestOpenState(false);
+        }
+        public void Back()
+        {
+            if (!IsOpen || !HasAuthority) return;
+            if (Page == ConsolePage.Home) RequestOpenState(false); else RequestPage(ConsolePage.Home);
+        }
 
         [Header("Камера")]
         [Tooltip("Камера всех игроков на время меню смотрит сюда — на телевизор")]
@@ -67,6 +101,8 @@ namespace Igruha.Core.Hub
 
         /// <summary>Приставка включена — её экран виден всем.</summary>
         public bool IsOpen { get; private set; }
+        public bool BlocksPause => IsOpen || closedOnFrame == Time.frameCount;
+        private int closedOnFrame = -1;
 
         private readonly List<CardView> cards = new List<CardView>(16);
         private int cursor;
@@ -76,11 +112,33 @@ namespace Igruha.Core.Hub
 
         /// <summary>Ввод отобран нами. Держим отдельно, чтобы вернуть ровно то, что забрали.</summary>
         private bool controlSuppressed;
+        private readonly Dictionary<Renderer, bool> hiddenRenderers = new Dictionary<Renderer, bool>();
+        private readonly HashSet<PlayerController> hiddenAvatars = new HashSet<PlayerController>();
+        private void HideWorldPlayers()
+        {
+            var players = SessionScoreboard.Current?.Players;
+            if (players == null) return;
+            foreach (var player in players)
+            {
+                if (player.Avatar == null || !hiddenAvatars.Add(player.Avatar)) continue;
+                foreach (var renderer in player.Avatar.GetComponentsInChildren<Renderer>(true))
+                {
+                    hiddenRenderers[renderer] = renderer.enabled;
+                    renderer.enabled = false;
+                }
+            }
+        }
+        private void RestoreWorldPlayers()
+        {
+            foreach (var pair in hiddenRenderers) if (pair.Key != null) pair.Key.enabled = pair.Value;
+            hiddenRenderers.Clear(); hiddenAvatars.Clear();
+        }
 
         private void Awake()
         {
             Active = this;
             BuildCards();
+            if (shellView != null) shellView.Initialize(this);
 
             if (screenRoot != null)
             {
@@ -91,8 +149,14 @@ namespace Igruha.Core.Hub
             Relay?.SyncScreen();
         }
 
+        private void LateUpdate()
+        {
+            if (IsOpen) { Cursor.lockState = CursorLockMode.None; Cursor.visible = true; SuppressControl(true); HideWorldPlayers(); }
+        }
+
         private void OnDestroy()
         {
+            RestoreWorldPlayers();
             // Сцена меняется вместе с запуском игры, а аватар её переживает:
             // он сетевой и живёт дольше хаба. Не вернув ему ввод здесь, мы
             // высадили бы игрока в мини-игру обездвиженным — и починить это
@@ -178,11 +242,13 @@ namespace Igruha.Core.Hub
 
             if (Relay != null)
             {
+                Relay.SetPage(ConsolePage.Home);
                 Relay.SetCursor(cursor);
                 Relay.SetMenuOpen(true);
                 return;
             }
 
+            ApplyPage(ConsolePage.Home);
             ApplyCursor(cursor);
             ApplyOpen(true);
         }
@@ -218,6 +284,11 @@ namespace Igruha.Core.Hub
                 return;
             }
 
+            if (shellView != null && Page != ConsolePage.Library)
+            {
+                shellView.HandleKeyboard();
+                return;
+            }
             int step = ReadStep();
             if (step != 0)
             {
@@ -233,7 +304,7 @@ namespace Igruha.Core.Hub
 
             if (WasCancelled())
             {
-                RequestOpenState(false);
+                Back();
             }
         }
 
@@ -326,9 +397,9 @@ namespace Igruha.Core.Hub
             ApplyOpen(open);
         }
 
-        private void Launch()
+        public void Launch()
         {
-            if (catalog == null || !catalog.IsPlayable(cursor))
+            if (!IsOpen || !HasAuthority || Page != ConsolePage.Library || catalog == null || !catalog.IsPlayable(cursor))
             {
                 return;
             }
@@ -338,8 +409,8 @@ namespace Igruha.Core.Hub
 
             // Экран гасим у всех до загрузки: сцена сменится, но управление и
             // камеру надо вернуть людям здесь, пока этот объект ещё жив.
-            RequestOpenState(false);
-            loader?.Load(game);
+            PartySeries.Reset();
+            if (loader != null && loader.TryLoad(game)) RequestOpenState(false);
         }
 
         // ---------- применение общего состояния ----------
@@ -356,6 +427,7 @@ namespace Igruha.Core.Hub
             }
 
             IsOpen = open;
+            if (!open) { closedOnFrame = Time.frameCount; RestoreWorldPlayers(); }
             openedThisFrame = open;
 
             if (screenRoot != null)
@@ -371,6 +443,7 @@ namespace Igruha.Core.Hub
             }
 
             ApplyCamera(open);
+            if (open) { Cursor.lockState = CursorLockMode.None; Cursor.visible = true; }
             SuppressControl(open);
             Refresh();
         }
@@ -385,6 +458,7 @@ namespace Igruha.Core.Hub
         private void Refresh()
         {
             if (libraryView != null) libraryView.ShowSelection(cursor, HasAuthority);
+            if (hintText != null) hintText.text = HasAuthority ? "Стрелки — выбор     Enter — играть     Esc — назад" : "Игру выбирает хост";
             for (int i = 0; i < cards.Count; i++)
             {
                 bool playable = catalog != null && catalog.IsPlayable(i);
@@ -418,6 +492,12 @@ namespace Igruha.Core.Hub
                 return;
             }
 
+            var currentAvatar = SessionScoreboard.Current?.LocalPlayer?.Avatar;
+            if (currentAvatar != null)
+            {
+                cameraController.Apply(CameraMode.ThirdPerson, currentAvatar.CameraTarget);
+                return;
+            }
             if (restoreTarget != null)
             {
                 cameraController.Apply(restoreMode, restoreTarget);

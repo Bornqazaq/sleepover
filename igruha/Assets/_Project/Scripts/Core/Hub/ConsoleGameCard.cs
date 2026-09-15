@@ -4,7 +4,7 @@ using UnityEngine.UI;
 
 namespace Igruha.Core.Hub
 {
-    public sealed class ConsoleGameCard : MonoBehaviour
+    public sealed class ConsoleGameCard : MonoBehaviour, UnityEngine.EventSystems.IPointerClickHandler
     {
         [SerializeField] private Image cover;
         [SerializeField] private Image border;
@@ -15,8 +15,12 @@ namespace Igruha.Core.Hub
         [SerializeField] private Color idleSurface = new Color(0.09f, 0.16f, 0.18f);
         [SerializeField] private Color selectedSurface = new Color(0.19f, 0.29f, 0.30f);
 
+        public int CatalogIndex { get; set; }
+        public void OnPointerClick(UnityEngine.EventSystems.PointerEventData e) => ConsoleMenu.Active?.SelectGame(CatalogIndex);
+
         public void Bind(string label, Sprite artwork, bool playable)
         {
+            border.raycastTarget = true;
             title.text = playable ? label : label + " · скоро";
             cover.sprite = artwork;
             cover.enabled = artwork != null;

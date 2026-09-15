@@ -41,6 +41,7 @@ namespace Igruha.Core.Hub
             for (int i = 0; i < count; i++)
             {
                 ConsoleGameCard card = i == 0 ? cardTemplate : Instantiate(cardTemplate, cardStrip);
+                card.CatalogIndex = i;
                 card.name = $"GameCard_{i:00}";
                 ((RectTransform)card.transform).anchoredPosition = new Vector2(i * cardPitch, 0f);
                 MinigameDefinition game = catalog.Get(i);

@@ -123,7 +123,7 @@ namespace Igruha.Core.UI
             // Той же клавишей выключают телевизор. Пока идёт выбор игры, Esc
             // принадлежит экрану приставки: иначе одно нажатие и погасило бы
             // экран, и открыло паузу поверх.
-            if (ConsoleMenu.Active != null && ConsoleMenu.Active.IsOpen)
+            if (ConsoleMenu.Active != null && ConsoleMenu.Active.BlocksPause)
             {
                 return;
             }
