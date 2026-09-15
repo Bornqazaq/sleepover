@@ -22,48 +22,49 @@ namespace Igruha.Core.Minigame
     {
         public bool IsLoading { get; private set; }
 
-        public void Load(MinigameDefinition definition)
+        public void Load(MinigameDefinition definition) => TryLoad(definition);
+
+        public bool TryLoad(MinigameDefinition definition)
         {
             if (IsLoading)
             {
-                return;
+                return false;
             }
 
             if (definition == null)
             {
                 Debug.LogError($"{name}: у мини-игры нет определения — загружать нечего.", this);
-                return;
+                return false;
             }
 
             if (string.IsNullOrEmpty(definition.SceneName))
             {
                 Debug.LogError($"{name}: у мини-игры '{definition.DisplayName}' не задано имя сцены.", this);
-                return;
+                return false;
             }
 
             NetworkManager network = NetworkManager.Singleton;
             if (network != null && network.IsListening)
             {
-                LoadNetworked(network, definition);
-                return;
+                return LoadNetworked(network, definition);
             }
 
-            LoadLocal(definition);
+            return LoadLocal(definition);
         }
 
-        private void LoadNetworked(NetworkManager network, MinigameDefinition definition)
+        private bool LoadNetworked(NetworkManager network, MinigameDefinition definition)
         {
             if (!network.IsServer)
             {
                 Debug.LogWarning($"{name}: клиент не грузит сцену — это делает хост", this);
-                return;
+                return false;
             }
 
             string sceneName = definition.SceneName;
             if (!BuildSceneCatalog.TryResolvePath(sceneName, out string scenePath))
             {
                 Debug.LogError($"{name}: сцены '{sceneName}' нет в Build Settings — по сети она не загрузится.", this);
-                return;
+                return false;
             }
 
             IsLoading = true;
@@ -72,16 +73,17 @@ namespace Igruha.Core.Minigame
             {
                 IsLoading = false;
                 Debug.LogError($"{name}: NGO не смог загрузить '{sceneName}': {status}", this);
-                return;
+                return false;
             }
 
             Debug.Log($"🗺️ HOST: гружу мини-игру '{sceneName}' — клиенты синхронизируются");
-            IsLoading = false;
+            return true;
         }
 
-        private void LoadLocal(MinigameDefinition definition)
+        private bool LoadLocal(MinigameDefinition definition)
         {
             string sceneName = definition.SceneName;
+            if (!BuildSceneCatalog.TryResolvePath(sceneName, out _)) return false;
 
             IsLoading = true;
             AsyncOperation operation = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Single);
@@ -89,10 +91,11 @@ namespace Igruha.Core.Minigame
             {
                 IsLoading = false;
                 Debug.LogError($"{name}: сцены '{sceneName}' нет в Build Settings — загружать нечего.", this);
-                return;
+                return false;
             }
 
             operation.completed += OnSceneLoaded;
+            return true;
         }
 
         private void OnSceneLoaded(AsyncOperation operation)
