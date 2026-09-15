@@ -1,0 +1,51 @@
+{
+  "generator": "image_gen built-in",
+  "base": "Use case: stylized-concept. Asset type: landscape 16:9 cover illustration for one mini-game in a polished cozy party-game console menu. Handcrafted stylized 3D diorama illustration, soft beveled forms, beautifully composed bold readable silhouettes, rich harmonious colours, tactile matte materials, soft shadows and cinematic rim light, subtle grain. One clear focal subject, centered within generous safe margins so the image also crops well as a small thumbnail. Render edge to edge, no rounded frame, no inset panels. No words, titles, letters, logos or watermark. This is cover artwork, not a screenshot or UI mockup. Subject: ",
+  "covers": [
+    {
+      "id": "CryingAngels",
+      "brief": "A moonlit museum corridor with a winged stone angel statue covering its eyes, one warm flashlight beam slicing through teal mist, playful spooky atmosphere, no horror gore. Deep midnight teal, turquoise stone, amber beam.",
+      "source": "/Users/aemsolutions/.codex/generated_images/01a09f25-1dbb-7882-93f8-14b89fe8439c/exec-b590e319-fad4-4f9d-b3d6-46cf91b66086.png"
+    },
+    {
+      "id": "Stopwatch",
+      "brief": "A large tactile red push button on a brass podium in a whimsical circus arena, a suspended round cage in the background above a friendly bear silhouette, timing suspense. Warm coral red, cream and deep plum. No clock numbers.",
+      "source": "/Users/aemsolutions/.codex/generated_images/01a09f25-1dbb-7882-93f8-14b89fe8439c/exec-07c6b0de-067e-40ed-a9eb-9e5924a91065.png"
+    },
+    {
+      "id": "CansOrder",
+      "brief": "Five chunky colourful metal cans arranged in a puzzle on a wooden circus table, one can being moved, circus velvet backdrop and soft marquee lights. Terracotta, teal, mustard, pale blue, violet. No text or labels.",
+      "source": "/Users/aemsolutions/.codex/generated_images/01a09f25-1dbb-7882-93f8-14b89fe8439c/exec-46c1d9f1-d58d-4e09-afaa-6877b2a73768.png"
+    },
+    {
+      "id": "Exam",
+      "brief": "A whimsical quiz-show stage with two large answer platforms, one coral and one teal, each with a small stylized contestant, a host podium in background, dramatic stage lights. No letters or question text.",
+      "source": "/Users/aemsolutions/.codex/generated_images/01a09f25-1dbb-7882-93f8-14b89fe8439c/exec-aa38b706-8208-4c7c-87b9-970ada9592be.png"
+    },
+    {
+      "id": "BelieveOrNot",
+      "brief": "Two mysterious small wooden boxes and two facedown illustrated cards on a green velvet table, playful bluffing game, one card slightly lifted showing a simple checkmark, warm intimate stage spotlight. Petrol green, gold and vermilion.",
+      "source": "/Users/aemsolutions/.codex/generated_images/01a09f25-1dbb-7882-93f8-14b89fe8439c/exec-c57541fe-cfa4-4be3-ad4f-690ccee2a73e.png"
+    },
+    {
+      "id": "MemoryRun",
+      "brief": "A floating path made of three columns of square stepping tiles recedes toward a glowing rounded door; selected stepping stones glow mint and the others stay indigo, a small playful runner silhouette hesitates at first tile. Memory challenge, lavender, teal, amber.",
+      "source": "/Users/aemsolutions/.codex/generated_images/01a09f25-1dbb-7882-93f8-14b89fe8439c/exec-90c2c8cb-af50-4feb-8399-279be7d7a4d7.png"
+    },
+    {
+      "id": "CarryItem",
+      "brief": "Two chunky playful toy-like construction workers carrying a big translucent blue water jug together on a sunny obstacle course with a waiting water tank. Warm orange workwear, sky blue water, golden sand, expressive dynamic composition.",
+      "source": "/Users/aemsolutions/.codex/generated_images/01a09f25-1dbb-7882-93f8-14b89fe8439c/exec-27acc3b2-12f8-4672-a895-68ca92c186d0.png"
+    },
+    {
+      "id": "HoleInWall",
+      "brief": "A colourful game-show obstacle wall glides above a blue pool with two clearly visible human-shaped cutouts, two tiny playful contestants connected by a rope trying matching poses. Coral pink wall, turquoise water and butter-yellow accents.",
+      "source": "/Users/aemsolutions/.codex/generated_images/01a09f25-1dbb-7882-93f8-14b89fe8439c/exec-959eae38-58cf-4e6e-800e-2d84fb6a9678.png"
+    },
+    {
+      "id": "DuckHunt",
+      "brief": "A whimsical tall five-storey obstacle tower with colourful platforms and ramps, small yellow rubber-duck-themed runners climbing upward, an opposing lift platform with a stylized toy blaster silhouette, playful competition. Saturated sky blue, leaf green and sunny yellow; no gore.",
+      "source": "/Users/aemsolutions/.codex/generated_images/01a09f25-1dbb-7882-93f8-14b89fe8439c/exec-bab77fbe-2f08-400b-bb37-40276203b988.png"
+    }
+  ]
+}

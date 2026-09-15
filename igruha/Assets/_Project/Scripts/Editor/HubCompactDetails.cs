@@ -109,19 +109,7 @@ namespace Igruha.EditorTools
             g.Build(root,"PopcornMachine");
             Label(root,"POPCORN",p+new Vector3(.274f,.69f,0),270,1.05f,new Vector2(.58f,.12f));
         }
-        private static void FitTelevision()
-        {
-            // New TV is square to the room. Keeping the old 1.6-degree canvas yaw buries half the UI in its screen.
-            var screen=Require("_Pit/TvScreen").GetComponent<RectTransform>();
-            screen.rotation=Quaternion.identity;screen.position=new Vector3(0,.97f,2.735f);screen.localScale=Vector3.one*.00312f;
-            var bg=screen.Find("Background").GetComponent<UnityEngine.UI.Image>();bg.color=HubCozyMaterials.Hex("142D2C");
-            var header=screen.Find("Background/Header").GetComponent<TMP_Text>();header.color=HubCozyMaterials.Hex("E8D9B8");
-            var title=screen.Find("Background/Cards/Card_00/Title").GetComponent<TMP_Text>();
-            title.rectTransform.anchorMin=Vector2.zero;title.rectTransform.anchorMax=Vector2.one;title.rectTransform.sizeDelta=new Vector2(-12,-20);title.rectTransform.anchoredPosition=Vector2.zero;
-            title.enableAutoSizing=true;title.fontSizeMin=12;title.fontSizeMax=21;
-            var menu=Require("HubManager").GetComponent<Igruha.Core.Hub.ConsoleMenu>();var so=new SerializedObject(menu);
-            so.FindProperty("idleColor").colorValue=HubCozyMaterials.Hex("254B44");so.FindProperty("selectedColor").colorValue=HubCozyMaterials.Hex("AF7145");so.FindProperty("lockedColor").colorValue=HubCozyMaterials.Hex("303A36");so.ApplyModifiedPropertiesWithoutUndo();
-        }
+        private static void FitTelevision() => HubConsoleMenuBuilder.Apply();
         internal static void Label(Transform parent,string text,Vector3 pos,float yaw,float size,Vector2 rect)
         {
             var go=new GameObject("Label_"+text);go.transform.SetParent(parent,false);go.transform.SetPositionAndRotation(pos,Quaternion.Euler(0,yaw,0));

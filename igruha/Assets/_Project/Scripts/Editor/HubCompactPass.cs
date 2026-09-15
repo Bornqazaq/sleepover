@@ -30,13 +30,11 @@ namespace Igruha.EditorTools
             foreach(string name in new[]{RootName,"_HubCozy","_HubBarCozy","_HubRoomCozy","_HubLoungeFinish","_HubEntryCozy","_HubCameraOcclusion"})
             {var go=GameObject.Find(name);if(go!=null)Object.DestroyImmediate(go);}
             foreach(Transform t in Require("_Lighting").transform.Cast<Transform>().ToArray())Object.DestroyImmediate(t.gameObject);
-            var keep = new[]{"PitFloor","PitWall_N","PitWall_S","PitWall_W","PitWall_E","TvScreen","SofaZone"};
+            var keep = new[]{"PitFloor","PitWall_N","PitWall_S","PitWall_W","PitWall_E","TvScreen","SofaZone","TvCameraFocus"};
             foreach(Transform t in Require("_Pit").transform.Cast<Transform>().ToArray())if(!keep.Contains(t.name))Object.DestroyImmediate(t.gameObject);
             Root=new GameObject(RootName).transform;
             Shell(); HubCompactArchitecture.Build(Root); HubCompactFurniture.Build(Root); HubCompactLighting.Apply(Root); Spawns();
-            // Layout controllers may dirty this template at edit-time while rendering the world-space TV.
-            foreach(var t in Require("_Pit/TvScreen").GetComponentsInChildren<RectTransform>(true))if(t.name=="Card_00")
-            { t.localPosition=Vector3.zero;t.anchorMin=Vector2.zero;t.anchorMax=Vector2.zero;t.anchoredPosition=Vector2.zero;t.sizeDelta=Vector2.zero;t.pivot=Vector2.one*.5f; }
+            HubConsoleCameraPass.Apply();
             Physics.SyncTransforms(); AssetDatabase.SaveAssets();EditorSceneManager.MarkSceneDirty(scene);
             Debug.Log("Compact Hub B: shell 24x24 -> 20x20 m; pit 8x7 m retained. " + Audit());
         }
@@ -81,6 +79,9 @@ namespace Igruha.EditorTools
                 if(AssetDatabase.GetAssetPath(f.sharedMesh).StartsWith("Assets/Synty/"))store++;
                 foreach(var mat in r.sharedMaterials)if(mat==null||mat.shader==null||!mat.shader.isSupported)throw new InvalidOperationException("Bad material: "+r.name);
             }
+            var console = new SerializedObject(Require("HubManager").GetComponent<Igruha.Core.Hub.ConsoleMenu>());
+            if (console.FindProperty("tvCameraFocus").objectReferenceValue == null || console.FindProperty("libraryView").objectReferenceValue == null)
+                throw new InvalidOperationException("Hub console must retain its camera focus and library view.");
             if(missing!=0||store!=0)throw new InvalidOperationException("missingScripts="+missing+" Synty meshes="+store);
             return "Missing scripts: "+missing+"; direct Synty render meshes: "+store+"; renderers: "+meshes+"; triangles: "+tris+"; colliders: "+roots.Sum(go=>go.GetComponentsInChildren<Collider>(true).Length)+".";
         }
