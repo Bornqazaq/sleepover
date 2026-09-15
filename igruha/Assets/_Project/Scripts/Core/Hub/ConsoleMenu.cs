@@ -284,9 +284,9 @@ namespace Igruha.Core.Hub
                 return;
             }
 
-            if (shellView != null && Page != ConsolePage.Library)
+            if (shellView != null)
             {
-                shellView.HandleKeyboard();
+                shellView.RestoreFocusIfNeeded();
                 return;
             }
             int step = ReadStep();

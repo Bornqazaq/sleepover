@@ -2,7 +2,7 @@ using Igruha.Core.Minigame;
 using Igruha.Core.Session;
 using TMPro;
 using UnityEngine;
-using UnityEngine.InputSystem;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace Igruha.Core.Hub
@@ -22,13 +22,23 @@ namespace Igruha.Core.Hub
         private ConsoleMenu menu;
         private IHubPartyProfiles service;
         private float nextRefresh, messageUntil;
-        private int homeChoice, lastOwnCharacter = -2;
+        private int lastOwnCharacter = -2;
+        private bool focusPending;
+        private Button libraryLaunch;
+        private TMP_Text startText;
+        private Selectable lastHomeControl;
+        private ConsoleLibraryView libraryView;
         private string lastName;
         private int availableCount, cachedCount = -1;
 
         public void Initialize(ConsoleMenu owner)
         {
             menu = owner;
+            startText = start.GetComponentInChildren<TMP_Text>();
+            lastHomeControl = fullGame;
+            libraryView = library.GetComponent<ConsoleLibraryView>();
+            libraryLaunch = library.transform.Find("FeaturedGame/Launch").GetComponent<Button>();
+            libraryView.ConfigureNavigation(libraryLaunch, back);
             fullGame.onClick.AddListener(() => menu.RequestPage(ConsolePage.Party));
             singleGame.onClick.AddListener(() => menu.RequestPage(ConsolePage.Library));
             back.onClick.AddListener(menu.Back);
@@ -45,16 +55,39 @@ namespace Igruha.Core.Hub
 
         public void ShowPage(ConsolePage page)
         {
+            if (home.activeSelf && page != ConsolePage.Home && EventSystem.current != null)
+            {
+                var selected = EventSystem.current.currentSelectedGameObject;
+                if (selected == fullGame.gameObject) lastHomeControl = fullGame;
+                else if (selected == singleGame.gameObject) lastHomeControl = singleGame;
+            }
             home.SetActive(page == ConsolePage.Home);
             party.SetActive(page == ConsolePage.Party);
             library.SetActive(page == ConsolePage.Library);
             back.gameObject.SetActive(page != ConsolePage.Home);
-            if (page != ConsolePage.Party && nameInput.isFocused) nameInput.DeactivateInputField();
+            if (page != ConsolePage.Party) { nameInput.DeactivateInputField(); RestoreName(); }
             nextRefresh = 0;
+            focusPending = true;
         }
-        private void OnDisable() { if (nameInput != null) nameInput.DeactivateInputField(); }
+        private void OnEnable() { focusPending = true; }
+        private void OnDisable()
+        {
+            if (nameInput != null) nameInput.DeactivateInputField();
+            var events = EventSystem.current;
+            if (events != null && events.currentSelectedGameObject != null &&
+                events.currentSelectedGameObject.transform.IsChildOf(transform)) events.SetSelectedGameObject(null);
+        }
         private void OnDestroy() { if (service != null) service.ProfileResult -= OnResult; }
-        private void OnResult(string message) { status.text = message; messageUntil = Time.unscaledTime + 4f; }
+        private void OnResult(string message)
+        {
+            status.text = message; messageUntil = Time.unscaledTime + 4f;
+            RestoreName();
+        }
+        private void RestoreName()
+        {
+            var own = SessionScoreboard.Current?.LocalPlayer;
+            if (own != null) { nameInput.SetTextWithoutNotify(own.DisplayName); lastName = own.DisplayName; }
+        }
         private void SaveName() { service?.ChangeOwnName(nameInput.text); nameInput.DeactivateInputField(); }
 
         private void Update()
@@ -62,6 +95,18 @@ namespace Igruha.Core.Hub
             if (menu == null || Time.unscaledTime < nextRefresh) return;
             nextRefresh = Time.unscaledTime + .15f;
             Refresh();
+            var selected = EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null;
+            bool invalid = selected == null || !selected.activeInHierarchy;
+            for (int i = 0; i < skins.Length; i++)
+                if (selected == skins[i].gameObject && !skins[i].interactable) invalid = true;
+            if (focusPending || invalid) { focusPending = false; FocusPage(); }
+        }
+        private void FocusPage()
+        {
+            if (EventSystem.current == null) return;
+            if (menu.Page == ConsolePage.Home) { if (menu.CanHost) (lastHomeControl != null ? lastHomeControl : fullGame).Select(); }
+            else if (menu.Page == ConsolePage.Library) { if (menu.CanHost) libraryView.FocusSelection(); }
+            else if (nameInput.interactable) saveName.Select();
         }
         public void Refresh()
         {
@@ -98,7 +143,6 @@ namespace Igruha.Core.Hub
                 if (player != null && player.Avatar == null) ready = false;
             }
             start.interactable = authority && ready && availableCount > 0 && !menu.IsLoading;
-            var startText = start.GetComponentInChildren<TMP_Text>();
             startText.text = authority ? "НАЧАТЬ ИГРУ  →" : "ЗАПУСКАЕТ ХОСТ";
             nameInput.interactable = saveName.interactable = own?.Avatar != null;
             if (own != null && !nameInput.isFocused && lastName != own.DisplayName)
@@ -116,29 +160,39 @@ namespace Igruha.Core.Hub
                 skinFrames[i].color = i == ownCharacter ? new Color(.96f, .74f, .48f) : taken
                     ? new Color(.12f, .17f, .18f) : new Color(.30f, .43f, .44f);
             }
+            if (menu.Page == ConsolePage.Party) ConfigurePartyNavigation();
             if (ownCharacter != lastOwnCharacter) { lastOwnCharacter = ownCharacter; nextRefresh = 0; }
             if (Time.unscaledTime >= messageUntil)
                 status.text = !ready ? "Ждём, пока все выберут персонажа…" : availableCount == 0
                     ? "Для полной игры нужно минимум два участника." : "Меняй своё имя и выбирай свободный облик. Занятые облики затемнены.";
         }
 
-        public void HandleKeyboard()
+        private void ConfigurePartyNavigation()
         {
-            // TMP owns Enter/Esc while editing; it must not start a match or close the television.
-            if (nameInput.isFocused) return;
-            var k = Keyboard.current; var g = Gamepad.current;
-            if ((k != null && k.escapeKey.wasPressedThisFrame) || (g != null && g.buttonEast.wasPressedThisFrame))
-            { menu.Back(); return; }
-            if (menu.Page == ConsolePage.Home)
+            Selectable previous = saveName;
+            Link(nameInput, back, start, null, saveName);
+            Link(saveName, back, start, nameInput, null);
+            for (int i = 0; i < skins.Length; i++)
             {
-                bool move = k != null && (k.downArrowKey.wasPressedThisFrame || k.upArrowKey.wasPressedThisFrame ||
-                    k.leftArrowKey.wasPressedThisFrame || k.rightArrowKey.wasPressedThisFrame);
-                move |= g != null && (g.dpad.down.wasPressedThisFrame || g.dpad.up.wasPressedThisFrame);
-                if (move) { homeChoice = 1 - homeChoice; (homeChoice == 0 ? fullGame : singleGame).Select(); }
-                if ((k != null && k.enterKey.wasPressedThisFrame) || (g != null && g.buttonSouth.wasPressedThisFrame))
-                    menu.RequestPage(homeChoice == 0 ? ConsolePage.Party : ConsolePage.Library);
+                if (!skins[i].interactable) continue;
+                var nav = previous.navigation; nav.selectOnRight = skins[i]; previous.navigation = nav;
+                Link(skins[i], back, start, previous, null);
+                previous = skins[i];
             }
-            // Party uses normal selectable navigation, so Enter activates the focused control only.
+            Link(back, start, saveName, null, null);
+            Link(start, previous, back, saveName, null);
+        }
+        private static void Link(Selectable item, Selectable up, Selectable down, Selectable left, Selectable right)
+        {
+            item.navigation = new Navigation { mode = Navigation.Mode.Explicit,
+                selectOnUp = up, selectOnDown = down, selectOnLeft = left, selectOnRight = right };
+        }
+        public void RestoreFocusIfNeeded()
+        {
+            // Clicking empty space must not strand keyboard focus on a disabled/inactive page.
+            var events = EventSystem.current;
+            if (events != null && (events.currentSelectedGameObject == null || !events.currentSelectedGameObject.activeInHierarchy))
+                FocusPage();
         }
     }
 }

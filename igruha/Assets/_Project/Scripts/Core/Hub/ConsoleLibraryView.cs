@@ -3,11 +3,12 @@ using Igruha.Core.Minigame;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
 namespace Igruha.Core.Hub
 {
     /// <summary>Presentation only. The catalog and ConsoleMenu remain responsible for selection and launch.</summary>
-    public sealed class ConsoleLibraryView : MonoBehaviour
+    public sealed class ConsoleLibraryView : MonoBehaviour, IScrollHandler
     {
         [SerializeField] private ConsoleArtworkLibrary artwork;
         [SerializeField] private ConsoleGameCard cardTemplate;
@@ -32,6 +33,8 @@ namespace Igruha.Core.Hub
         private MinigameCatalog catalog;
         private float targetX;
         private float velocity;
+        private int selectedIndex;
+        private Button launchButton, backButton;
 
         public void Initialize(MinigameCatalog source)
         {
@@ -55,10 +58,12 @@ namespace Igruha.Core.Hub
 
         public void ShowSelection(int index, bool authority)
         {
+            selectedIndex = index;
             MinigameDefinition game = catalog != null ? catalog.Get(index) : null;
             ConsoleArtworkLibrary.Entry art = artwork != null ? artwork.Find(game) : null;
             Color accent = art != null ? art.Accent : new Color(0.95f, 0.74f, 0.51f);
-            for (int i = 0; i < cards.Count; i++) cards[i].SetSelected(i == index, accent);
+            for (int i = 0; i < cards.Count; i++) { cards[i].SetSelected(i == index, accent); cards[i].interactable = authority && catalog.IsPlayable(i); }
+            if (launchButton != null) launchButton.interactable = authority && catalog.IsPlayable(index);
             heroCover.sprite = art?.Cover;
             heroCover.enabled = heroCover.sprite != null;
             heroAccent.color = accent;
@@ -76,7 +81,44 @@ namespace Igruha.Core.Hub
             previousPage.SetActive(first > 0);
             nextPage.SetActive(first + visibleCards < cards.Count);
             progress.rectTransform.anchorMax = new Vector2(cards.Count > 0 ? (float)(index + 1) / cards.Count : 0f, 1f);
+            if (launchButton != null && index >= 0 && index < cards.Count)
+            {
+                var nav = launchButton.navigation; nav.selectOnDown = cards[index]; launchButton.navigation = nav;
+                if (backButton != null) backButton.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnDown = launchButton, selectOnUp = cards[index] };
+            }
             if (!isActiveAndEnabled) SnapStrip();
+        }
+
+        public void ConfigureNavigation(Button launch, Button back)
+        {
+            launchButton = launch; backButton = back;
+            previousPage.GetComponent<Button>().onClick.AddListener(() => Browse(-1));
+            nextPage.GetComponent<Button>().onClick.AddListener(() => Browse(1));
+            for (int i = 0; i < cards.Count; i++)
+            {
+                int left = catalog.NextPlayable(i, -1), right = catalog.NextPlayable(i, 1);
+                cards[i].navigation = new Navigation { mode = Navigation.Mode.Explicit,
+                    selectOnLeft = left >= 0 ? cards[left] : null, selectOnRight = right >= 0 ? cards[right] : null,
+                    selectOnUp = launchButton, selectOnDown = backButton };
+            }
+            launchButton.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnUp = backButton,
+                selectOnDown = cards.Count > 0 ? cards[0] : null };
+        }
+        private void Browse(int direction)
+        {
+            if (ConsoleMenu.Active == null || !ConsoleMenu.Active.CanHost) return;
+            int index = catalog.NextPlayable(selectedIndex, direction);
+            if (index < 0) return;
+            ConsoleMenu.Active.SelectGame(index);
+            cards[index].Select();
+        }
+        public void OnScroll(PointerEventData e)
+        {
+            if (Mathf.Abs(e.scrollDelta.y) > .01f) Browse(e.scrollDelta.y < 0 ? 1 : -1);
+        }
+        public void FocusSelection()
+        {
+            if (selectedIndex >= 0 && selectedIndex < cards.Count && cards[selectedIndex].IsInteractable()) cards[selectedIndex].Select();
         }
 
         private void OnEnable() => SnapStrip();
