@@ -1,0 +1,14 @@
+{
+  "generator": "built-in image_gen.imagegen",
+  "date": "2026-09-15",
+  "assets": [
+    {
+      "file": "igruha/Assets/_Project/Art/Hub/Original/Textures/HoneyOak.png",
+      "prompt": "Use case: stylized-concept. Asset type: tileable albedo texture for wooden floor boards in a cozy stylized Unity basement party game. Generate a square seamless honey oak wood surface texture, grain running vertically, straight top-down orthographic material scan without perspective. ONE continuous board surface spanning whole image, no plank seams or borders (planks modeled separately). Quiet handcrafted wood grain with very subtle curved growth streaks, a few tiny natural knots, warm medium caramel oak, medium value with gentle color variation, matte and tactile, stylized painterly game quality. Flat even neutral lighting, NO baked shadows, NO shiny highlights, NO vignette, NO text, no logos. Seamless edge matching in both directions. Avoid high contrast black lines, aged damage, overly busy photographic grain. This is actual in-game material, not a rendered room or product mockup."
+    },
+    {
+      "file": "igruha/Assets/_Project/Art/Hub/Original/Textures/LoungeWeave.png",
+      "prompt": "Use case: stylized-concept. Asset type: actual diffuse rug texture for Unity cozy basement game lounge, rectangle 3:2 landscape. Flat perfectly top-down orthographic view of ONE flatwoven wool area rug, full image filled edge to edge by the rug surface. Warm oatmeal natural weave, subtle terracotta and faded forest green geometric border, three understated small geometric diamond medallions spaced across the centre, quiet broad negative space around them. Crafted cozy vintage textile, elegant large motifs legible from gameplay distance. Even neutral diffuse light. NO perspective, NO floor outside rug, NO cast shadows, NO vignette, NO text, no logos. Texture only, not a product scene. Border inset within frame, edges straight, low contrast fabric variation. Warm but muted colors, avoid neon colors or busy tiny patterns."
+    }
+  ]
+}
