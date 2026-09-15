@@ -46,6 +46,7 @@ namespace Igruha.Minigames.Stopwatch
         [SerializeField] private CageStation[] cages = System.Array.Empty<CageStation>();
         [Tooltip("Медведь в яме")]
         [SerializeField] private PitBear bear;
+        [SerializeField] private CircusAttackPresentation attackPresentation;
         [Tooltip("Камера наблюдателя — включается выбывшему")]
         [SerializeField] private SpectatorCamera spectator;
         [Tooltip("Отвлекалки: тик, рёв, толпа, прожекторы")]
@@ -64,7 +65,7 @@ namespace Igruha.Minigames.Stopwatch
             public bool FaultedThisSubround;
             public float TotalDeviation;
             public StopwatchDebugBot Bot;
-            public PlayerElimination Elimination;
+            public CircusKnockout Elimination;
             /// <summary>Упал в яму и ещё не убит медведем.</summary>
             public bool InPit;
             public bool LocallyControlled;
@@ -109,6 +110,8 @@ namespace Igruha.Minigames.Stopwatch
         private float currentTarget;
         private float currentTickPeriod;
         private bool matchOver;
+        private bool waitingForPitFinale;
+        private float finaleClearAt = -1f;
 
         /// <summary>Тип текущего подраунда. Наружу — отладочным болванкам соло-прогона.</summary>
         public StopwatchSubroundType CurrentType => currentType;
@@ -199,6 +202,8 @@ namespace Igruha.Minigames.Stopwatch
             random = new System.Random(System.Environment.TickCount);
             subround = 0;
             matchOver = false;
+            waitingForPitFinale = false;
+            finaleClearAt = -1f;
 
             AssignCages();
 
@@ -298,13 +303,14 @@ namespace Igruha.Minigames.Stopwatch
                     // Компонент вешаем здесь, а не в префаб персонажа: префаб
                     // общий на все мини-игры, и лишний компонент уехал бы
                     // в те, где смерти насмерть нет вовсе.
-                    contestant.Elimination = avatar.GetComponent<PlayerElimination>();
+                    contestant.Elimination = avatar.GetComponent<CircusKnockout>();
                     if (contestant.Elimination == null)
                     {
-                        contestant.Elimination = avatar.gameObject.AddComponent<PlayerElimination>();
+                        contestant.Elimination = avatar.gameObject.AddComponent<CircusKnockout>();
                     }
 
                     contestant.Elimination.BodyHidden += HandleBodyHidden;
+                    if (contestant.LocallyControlled) attackPresentation?.Bind(avatar, contestant.Session.Id);
                 }
 
                 contestants.Add(contestant);
@@ -370,6 +376,7 @@ namespace Igruha.Minigames.Stopwatch
             LocalButton = null;
             distractions?.Stop();
             spectator?.Deactivate();
+            attackPresentation?.ResetPresentation();
             stageState?.StopSequence();
             scoreboard?.Clear();
         }
@@ -441,8 +448,8 @@ namespace Igruha.Minigames.Stopwatch
                 case StagePause:
                     if (AliveCount < 2)
                     {
-                        matchOver = true;
-                        EndMinigame();
+                        waitingForPitFinale = true;
+                        TryFinishPitFinale();
                         return;
                     }
 
@@ -616,6 +623,7 @@ namespace Igruha.Minigames.Stopwatch
 
                 c.Alive = false;
                 c.InPit = true;
+                if (c.LocallyControlled) attackPresentation?.BeginPit();
                 bear?.RegisterFallen(c.Session.Avatar);
                 eliminatedThisSubround.Add(c.Session.Id);
                 c.Cage?.RaiseAndOpenDoors(config.HatchOpenSeconds, startedAt);
@@ -661,10 +669,37 @@ namespace Igruha.Minigames.Stopwatch
             }
 
             bear.Tick(Time.deltaTime, FindNearestInPit(), SomeoneOnLowestCage());
-            network?.PublishBearState((byte)bear.State);
+            int targetId = -1;
+            var target = bear.AttackVictim != null ? bear.AttackVictim : bear.Target;
+            for (int i = 0; i < contestants.Count; i++)
+                if (contestants[i].Session.Avatar == target && target != null) targetId = contestants[i].Session.Id;
+            bear.PresentationTargetId = targetId;
+            network?.PublishBearState((byte)bear.State, targetId);
+            if (waitingForPitFinale) TryFinishPitFinale();
         }
 
         /// <summary>Ближайшая к медведю жертва среди упавших в яму.</summary>
+        // In a two-player game the old hatch timer ended the whole minigame
+        // before landing, head start and attack could happen. Keep the final
+        // chase playable, then let the loser reach spectator before results.
+        private void TryFinishPitFinale()
+        {
+            for (int i = 0; i < contestants.Count; i++)
+            {
+                Contestant c = contestants[i];
+                if (c.Session.Avatar != null && (c.InPit || (c.Elimination != null && c.Elimination.IsPresenting)))
+                {
+                    finaleClearAt = -1f;
+                    return;
+                }
+            }
+            if (finaleClearAt < 0) finaleClearAt = Time.time + 1f;
+            if (Time.time < finaleClearAt) return;
+            waitingForPitFinale = false;
+            matchOver = true;
+            EndMinigame();
+        }
+
         private PlayerController FindNearestInPit()
         {
             PlayerController nearest = null;
@@ -736,6 +771,7 @@ namespace Igruha.Minigames.Stopwatch
 
                 c.InPit = false;
 
+                bear.ShowImpact(victim.transform.position + Vector3.up, false);
                 c.Elimination?.Eliminate(victim.transform.position, impulse);
                 // Гибель решил сервер — остальные её только отыгрывают.
                 network?.AnnounceCaught(c.Session.Id, victim.transform.position, impulse);
@@ -744,7 +780,7 @@ namespace Igruha.Minigames.Stopwatch
         }
 
         /// <summary>Тело исчезло — выбывший переходит в наблюдатели.</summary>
-        private void HandleBodyHidden(PlayerElimination elimination)
+        private void HandleBodyHidden(CircusKnockout elimination)
         {
             for (int i = 0; i < contestants.Count; i++)
             {
@@ -916,17 +952,18 @@ namespace Igruha.Minigames.Stopwatch
         }
 
         /// <summary>Состояние медведя пришло из сети — показать, не считая ИИ.</summary>
-        public void ApplyNetworkBearState(byte state)
+        public void ApplyNetworkBearState(byte state, float elapsed = 0f, int targetId = -1)
         {
             if (HasAuthority || bear == null)
             {
                 return;
             }
 
+            bear.PresentationTargetId = targetId;
             var next = (PitBear.BearState)state;
             bear.ApplyNetworkState(next, next == PitBear.BearState.Chase
                 ? config.BearSpeed
-                : (next == PitBear.BearState.Patrol ? config.BearPatrolSpeed : 0f));
+                : (next == PitBear.BearState.Patrol ? config.BearPatrolSpeed : 0f), elapsed);
         }
 
         /// <summary>
@@ -953,6 +990,7 @@ namespace Igruha.Minigames.Stopwatch
 
             c.InPit = false;
 
+            bear?.ShowImpact(hitPoint + Vector3.up, true);
             c.Elimination?.Eliminate(hitPoint, impulse);
         }
 
@@ -1097,6 +1135,8 @@ namespace Igruha.Minigames.Stopwatch
 
             if (doorsOpen)
             {
+                c.InPit = true;
+                if (c.LocallyControlled) attackPresentation?.BeginPit();
                 // Тот же номер, что у авторитета, и от того же момента: конец
                 // стадии минус её длительность. Опоздавшая машина застаёт
                 // подъём уже законченным и просто открывает дно.

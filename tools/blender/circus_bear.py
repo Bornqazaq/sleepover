@@ -67,11 +67,13 @@ def oval(name, pos, scale, mat=fur, bone=None, segments=24, rings=16):
 # Interlocking anatomical masses are voxel-unioned, smoothed and decimated into a continuous skin.
 oval('Ribcage',(0,-.17,1.26),(.65,1.05,.61))
 oval('Haunches',(0,-.94,1.15),(.61,.60,.62))
-oval('ShoulderHump',(0,.39,1.53),(.70,.65,.70))
+oval('ShoulderHump',(0,.32,1.51),(.67,.76,.61))
 oval('Neck',(0,.91,1.44),(.55,.68,.48))
 oval('Skull',(0,1.40,1.54),(.43,.50,.33))
 oval('Brow',(0,1.60,1.70),(.37,.30,.145))
 oval('SnoutBase',(0,1.78,1.43),(.29,.44,.225))
+for sign in (-1,1):
+    oval('OrbitalRidge',(sign*.286,1.744,1.681),(.10,.087,.071))
 for side,x in [('L',.51),('R',-.51)]:
     oval('ForeShoulder'+side,(x,.37,1.25),(.31,.40,.62))
     oval('ForeShin'+side,(x,.37,.67),(.235,.28,.46))
@@ -86,22 +88,29 @@ bpy.context.view_layer.objects.active=parts[0]; bpy.ops.object.join(); skin=bpy.
 remesh=skin.modifiers.new('Anatomy union','REMESH'); remesh.mode='VOXEL'; remesh.voxel_size=.037; remesh.use_smooth_shade=True
 bpy.ops.object.modifier_apply(modifier=remesh.name)
 smooth=skin.modifiers.new('Sculpt smoothing','SMOOTH'); smooth.factor=.8; smooth.iterations=6; bpy.ops.object.modifier_apply(modifier=smooth.name)
+# Inset sockets belong to the continuous face, rather than stacked eyelid beads.
+for sign in (-1,1):
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=24,ring_count=16,location=(sign*.286,1.806,1.679))
+    cutter=bpy.context.object;cutter.scale=(.057,.038,.043)
+    bpy.ops.object.transform_apply(location=False,rotation=False,scale=True)
+    bpy.context.view_layer.objects.active=skin
+    socket=skin.modifiers.new('Inset eye socket','BOOLEAN');socket.operation='DIFFERENCE';socket.object=cutter
+    bpy.ops.object.modifier_apply(modifier=socket.name);bpy.data.objects.remove(cutter,do_unlink=True)
+    bpy.context.view_layer.objects.active=skin
 dec=skin.modifiers.new('Game topology','DECIMATE'); dec.ratio=.36; bpy.ops.object.modifier_apply(modifier=dec.name)
+bpy.ops.object.select_all(action='DESELECT');skin.select_set(True);bpy.context.view_layer.objects.active=skin
 bpy.ops.object.transform_apply(location=True,rotation=True,scale=True)
 bpy.ops.object.mode_set(mode='EDIT');bpy.ops.mesh.select_all(action='SELECT');bpy.ops.uv.smart_project(island_margin=.02);bpy.ops.object.mode_set(mode='OBJECT')
 parts=[skin]
 
 # Small ears sit in the fur; narrower eyes and a tapered, flat-nosed muzzle.
 for side,s in [('L',1),('R',-1)]:
-    ear=oval('Ear'+side,(s*.365,1.16,1.875),(.135,.10,.15),fur,'Head');ear.rotation_euler.y=s*.23
-    oval('EarInner'+side,(s*.365,1.259,1.895),(.080,.023,.085),darkfur,'Head')
-    oval('EyeSocket'+side,(s*.289,1.749,1.68),(.078,.026,.045),fur,'Head')
-    oval('Eye'+side,(s*.29,1.784,1.68),(.037,.017,.029),eye,'Head')
-    oval('Pupil'+side,(s*.29,1.798,1.68),(.022,.006,.025),black,'Head')
-    oval('LowerLid'+side,(s*.29,1.78,1.651),(.059,.025,.019),fur,'Head')
-    oval('Brow'+side,(s*.29,1.748,1.734),(.10,.051,.038),fur,'Head')
-    oval('BlinkLid'+side,(s*.29,1.805,1.719),(.047,.012,.010),fur,'Lid.'+side)
-    oval('EyeGlint'+side,(s*.279,1.804,1.691),(.006,.003,.006),claw,'Head',12,8)
+    ear=oval('Ear'+side,(s*.365,1.16,1.875),(.135,.10,.15),fur,'Ear.'+side);ear.rotation_euler.y=s*.23
+    oval('EarInner'+side,(s*.365,1.259,1.895),(.080,.023,.085),darkfur,'Ear.'+side)
+    oval('Eye'+side,(s*.286,1.798,1.679),(.033,.018,.026),eye,'Head')
+    oval('Pupil'+side,(s*.286,1.813,1.679),(.020,.005,.022),black,'Head')
+    oval('BlinkLid'+side,(s*.286,1.816,1.712),(.034,.009,.004),fur,'Lid.'+side)
+    oval('EyeGlint'+side,(s*.278,1.818,1.689),(.003,.002,.003),claw,'Head',12,8)
 # Muzzle colouring lives on the continuous skin, avoiding a floating circular mask.
 skin.data.materials.append(muzzle)
 for poly in skin.data.polygons:
@@ -111,6 +120,7 @@ oval('Nose',(0,2.125,1.49),(.185,.10,.10),black,'Head')
 for side,s in [('L',1),('R',-1)]:
     oval('Nostril'+side,(s*.11,2.215,1.48),(.025,.008,.015),black,'Head',16,10)
 oval('MouthLine',(0,1.96,1.286),(.215,.24,.022),black,'Head')
+oval('MouthInterior',(0,1.77,1.29),(.185,.26,.085),mouth,'Head')
 oval('LowerJaw',(0,1.85,1.251),(.24,.32,.072),muzzle,'Jaw')
 oval('Tongue',(0,1.97,1.305),(.115,.14,.015),mouth,'Jaw')
 for side,s in [('L',1),('R',-1)]:
@@ -120,8 +130,8 @@ for side,s in [('L',1),('R',-1)]:
     for limb,y in [('Fore',.79),('Hind',-.91)]:
         for i in range(4):
             x=s*.51+(i-1.5)*.105
-            oval(limb+'Toe'+side+str(i),(x,y+.255,.17),(.087,.18,.10),fur,limb+'Paw.'+side,12,8)
-            o=oval(limb+'Claw'+side+str(i),(x,y+.396,.134),(.034,.118,.045),claw,limb+'Paw.'+side,12,8); o.rotation_euler.x=-.23
+            oval(limb+'Toe'+side+str(i),(x,y+.255,.17),(.087,.18,.10),fur,limb+'Toes.'+side,12,8)
+            o=oval(limb+'Claw'+side+str(i),(x,y+.396,.134),(.034,.118,.045),claw,limb+'Toes.'+side,12,8); o.rotation_euler.x=-.23
 
 # Broad, curved locks lie against the coat and follow the anatomy. Their tapered
 # ends break up the silhouette; they do not read as isolated triangular rivets.
@@ -157,22 +167,27 @@ def bone(name,head,tail,parent=None):
     if parent:b.parent=arm.edit_bones[parent]
     bones[name]=(Vector(head),Vector(tail));return b
 bone('Root',(0,0,0),(0,0,.3))
-bone('Pelvis',(0,-.95,1.12),(0,-.35,1.34),'Root')
-bone('Spine',(0,-.35,1.34),(0,.51,1.62),'Pelvis')
-bone('Neck',(0,.51,1.62),(0,1.15,1.64),'Spine')
+bone('Pelvis',(0,-.95,1.12),(0,-.55,1.26),'Root')
+bone('Lumbar',(0,-.55,1.26),(0,-.10,1.44),'Pelvis')
+bone('Spine',(0,-.10,1.44),(0,.38,1.63),'Lumbar')
+bone('Chest',(0,.38,1.63),(0,.68,1.62),'Spine')
+bone('Neck',(0,.68,1.62),(0,1.15,1.64),'Chest')
 bone('Head',(0,1.15,1.64),(0,1.92,1.55),'Neck')
 bone('Jaw',(0,1.54,1.30),(0,2.04,1.25),'Head')
 bone('Tail',(0,-1.34,1.29),(0,-1.65,1.29),'Pelvis')
 for side,s in [('L',1),('R',-1)]:
     x=.51*s
-    bone('Scapula.'+side,(x,.10,1.63),(x,.38,1.38),'Spine')
+    bone('Scapula.'+side,(x,.10,1.63),(x,.38,1.38),'Chest')
     bone('ForeUpper.'+side,(x,.38,1.38),(x,.20,.73),'Scapula.'+side)
     bone('ForeLower.'+side,(x,.20,.73),(x,.66,.23),'ForeUpper.'+side)
     bone('ForePaw.'+side,(x,.66,.23),(x,1.09,.16),'ForeLower.'+side)
     bone('HindUpper.'+side,(x,-.86,1.22),(x,-.64,.62),'Pelvis')
     bone('HindLower.'+side,(x,-.64,.62),(x,-1.03,.20),'HindUpper.'+side)
     bone('HindPaw.'+side,(x,-1.03,.20),(x,-.59,.16),'HindLower.'+side)
-    bone('Lid.'+side,(s*.29,1.805,1.719),(s*.29,1.805,1.77),'Head')
+    bone('ForeToes.'+side,(x,.97,.17),(x,1.25,.13),'ForePaw.'+side)
+    bone('HindToes.'+side,(x,-.73,.17),(x,-.43,.13),'HindPaw.'+side)
+    bone('Lid.'+side,(s*.286,1.816,1.712),(s*.286,1.816,1.763),'Head')
+    bone('Ear.'+side,(s*.365,1.16,1.78),(s*.365,1.16,1.99),'Head')
 bpy.ops.object.mode_set(mode='OBJECT')
 
 def segdist(p,a,b):
@@ -187,20 +202,41 @@ for o in parts:
             side='L' if p.x>=0 else 'R'
             limb='Fore' if abs(p.y-.44)<abs(p.y+.9) else 'Hind'
             def distribution(candidates):
-                ds=sorted([(n,segdist(p,*bones[n])) for n in candidates],key=lambda x:x[1])[:3]
+                ds=[(n,segdist(p,*bones[n])) for n in candidates]
                 ws=[math.exp(-d*8) for n,d in ds];total=sum(ws)
                 return [(nd[0],w/total) for nd,w in zip(ds,ws)]
             def ease(value,low,high):
                 t=max(0,min(1,(value-low)/(high-low)));return t*t*(3-2*t)
             if p.z<.34:weights=[(limb+'Paw.'+side,1)]
             else:
-                trunk=distribution(['Pelvis','Spine','Neck','Head'])
+                trunk=distribution(['Pelvis','Lumbar','Spine','Chest','Neck','Head'])
                 legweights=distribution([limb+'Upper.'+side,limb+'Lower.'+side,limb+'Paw.'+side])
                 amount=ease(abs(p.x),.18,.43)*(1-ease(p.z,1.02,1.60))
+                if limb=='Fore':
+                    # Let the shoulder cap travel with the raised upper arm.
+                    # A hard height cutoff pinched the coat during the swipe.
+                    amount=ease(abs(p.x),.20,.55)*(1-ease(p.z,1.30,2.12))*(1-ease(p.y,.80,1.20))
                 amount=max(amount,1-ease(p.z,.34,.53))
                 weights=[(n,w*(1-amount)) for n,w in trunk]+[(n,w*amount) for n,w in legweights]
         for n,w in weights:o.vertex_groups[n].add([v.index],w,'REPLACE')
-    mod=o.modifiers.new('Bruno skeleton','ARMATURE');mod.object=rig
+    if o==skin:
+        # Bone heat follows the connected sculpt around the shoulder socket.
+        # Height-based weights fold back on themselves in a high paw lift.
+        o.vertex_groups.clear()
+        for b in arm.bones:
+            b.use_deform=not (b.name in ('Root','Jaw','Tail') or b.name.startswith(('Lid.','Ear.','ForeToes.','HindToes.')))
+        bpy.ops.object.select_all(action='DESELECT');o.select_set(True);rig.select_set(True)
+        bpy.context.view_layer.objects.active=rig
+        bpy.ops.object.parent_set(type='ARMATURE_AUTO')
+        bpy.context.view_layer.objects.active=o
+        bpy.ops.object.mode_set(mode='WEIGHT_PAINT')
+        bpy.ops.object.vertex_group_smooth(group_select_mode='ALL',factor=.5,repeat=4)
+        bpy.ops.object.vertex_group_normalize_all(lock_active=False)
+        bpy.ops.object.mode_set(mode='OBJECT')
+        for b in arm.bones:b.use_deform=True
+    mod=next((m for m in o.modifiers if m.type=='ARMATURE'),None)
+    if mod is None:mod=o.modifiers.new('Bruno skeleton','ARMATURE')
+    mod.object=rig
 
 exec(compile(Path(__file__).with_name('circus_bear_motion.py').read_text(), 'circus_bear_motion.py', 'exec'))
 

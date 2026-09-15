@@ -140,6 +140,8 @@ namespace Igruha.EditorTools
             var light=go.AddComponent<Light>();light.type=type;light.color=color;light.intensity=intensity;light.range=range;
             light.spotAngle=cone;light.innerSpotAngle=cone*.55f;light.shadows=shadows?LightShadows.Soft:LightShadows.None;
             light.shadowStrength=.85f;light.shadowBias=.025f;light.shadowNormalBias=.12f;
+            if(name.StartsWith("Bruno_"))
+            {light.shadowStrength=.9f;light.shadowBias=.015f;light.shadowNormalBias=.07f;light.shadowResolution=LightShadowResolution.High;}
             if(shadows)go.AddComponent<UniversalAdditionalLightData>().usePipelineSettings=false;
             return light;
         }
@@ -161,7 +163,7 @@ namespace Igruha.EditorTools
             // Two low key lights sit below the scoreboard: its box cannot shadow the whole pit.
             Light(rig,"Bruno_WarmKey",LightType.Spot,new Vector3(-4,6.8f,-3),new Vector3(0,0,1),Warm,245,19,102,true);
             Light(rig,"Bruno_Rim",LightType.Spot,new Vector3(4,7,4),new Vector3(0,1,-1),Cool,175,20,96,true);
-            Light(rig,"PitReadability",LightType.Point,new Vector3(-2,3.4f,2.8f),Vector3.zero,new Color(1f,.92f,.78f),65,17);
+            Light(rig,"PitReadability",LightType.Point,new Vector3(-2,3.4f,2.8f),Vector3.zero,new Color(1f,.92f,.78f),48,17);
             for (int i=0;i<config.CageAnchorCount;i++)
             {
                 Vector3 dir=Quaternion.Euler(0,config.GetAnchorAngle(i),0)*Vector3.forward;

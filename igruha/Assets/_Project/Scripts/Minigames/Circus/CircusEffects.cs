@@ -103,7 +103,7 @@ namespace Igruha.Minigames.Circus
 
             if (bear != null)
             {
-                bear.Caught += OnBearCaught;
+                bear.ImpactShown += OnBearImpact;
             }
 
             if (controller != null)
@@ -124,7 +124,7 @@ namespace Igruha.Minigames.Circus
 
             if (bear != null)
             {
-                bear.Caught -= OnBearCaught;
+                bear.ImpactShown -= OnBearImpact;
             }
 
             if (controller != null)
@@ -255,7 +255,7 @@ namespace Igruha.Minigames.Circus
             landingBurst.Play(true);
         }
 
-        private void OnBearCaught(PlayerController player, Vector3 hitPoint)
+        private void OnBearImpact(Vector3 hitPoint)
         {
             if (catchImpact == null)
             {
