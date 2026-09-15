@@ -44,6 +44,7 @@ namespace Igruha.Core.Hub
         [SerializeField] private TMP_Text captionText;
         [Tooltip("Строка подсказки управления в самом низу экрана")]
         [SerializeField] private TMP_Text hintText;
+        [SerializeField] private ConsoleLibraryView libraryView;
 
         [Header("Камера")]
         [Tooltip("Камера всех игроков на время меню смотрит сюда — на телевизор")]
@@ -114,6 +115,11 @@ namespace Igruha.Core.Hub
         /// </summary>
         private void BuildCards()
         {
+            if (libraryView != null)
+            {
+                libraryView.Initialize(catalog);
+                return;
+            }
             if (cardsParent == null || cardsParent.childCount == 0)
             {
                 Debug.LogError($"{name}: ConsoleMenu без образца карточки — экран будет пустым", this);
@@ -378,6 +384,7 @@ namespace Igruha.Core.Hub
 
         private void Refresh()
         {
+            if (libraryView != null) libraryView.ShowSelection(cursor, HasAuthority);
             for (int i = 0; i < cards.Count; i++)
             {
                 bool playable = catalog != null && catalog.IsPlayable(i);
