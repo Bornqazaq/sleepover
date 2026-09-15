@@ -71,15 +71,19 @@ namespace Igruha.EditorTools
 
         internal static TMP_FontAsset Font(bool bold)
         {
-            string path = Folder + "/Fonts/Console" + (bold ? "Bold" : "Regular") + ".asset";
+            string path = Folder + "/Fonts/ConsoleHD" + (bold ? "Bold" : "Regular") + ".asset";
             var font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(path);
-            if (font != null) return font;
+            if (font != null)
+            {
+                AddSymbolFallback(font, bold);
+                return font;
+            }
             HubCozyMaterials.EnsureFolder(Folder + "/Fonts");
             string source = bold ? "Assets/TextMesh Pro/Examples & Extras/Fonts/Roboto-Bold.ttf" : "Assets/TextMesh Pro/Fonts/LiberationSans.ttf";
-            font = TMP_FontAsset.CreateFontAsset(AssetDatabase.LoadAssetAtPath<Font>(source), 64, 7,
-                GlyphRenderMode.SDFAA, 1024, 1024, AtlasPopulationMode.Dynamic, false);
-            font.name = bold ? "Console Bold" : "Console Regular";
-            string characters = new string(Enumerable.Range(32, 95).Concat(Enumerable.Range(0x400, 96)).Select(c => (char)c).ToArray()) + "–—·…" + (bold ? "←→" : string.Empty);
+            font = TMP_FontAsset.CreateFontAsset(AssetDatabase.LoadAssetAtPath<Font>(source), 96, 12,
+                GlyphRenderMode.SDF, 2048, 2048, AtlasPopulationMode.Dynamic, false);
+            font.name = bold ? "Console HD Bold" : "Console HD Regular";
+            string characters = new string(Enumerable.Range(32, 95).Concat(Enumerable.Range(0x400, 96)).Select(c => (char)c).ToArray()) + "–—·…" + (bold ? "←→↑↓" : string.Empty);
             font.TryAddCharacters(characters, out string missing);
             if (!string.IsNullOrEmpty(missing)) Debug.LogWarning("Console font missing glyphs: " + missing);
             AssetDatabase.CreateAsset(font, path);
@@ -87,7 +91,18 @@ namespace Igruha.EditorTools
             AssetDatabase.AddObjectToAsset(font.material, font);
             // Catalog titles may grow: dynamic mode uses this bundled TTF, never an OS font.
             EditorUtility.SetDirty(font);
+            AddSymbolFallback(font, bold);
             return font;
+        }
+        private static void AddSymbolFallback(TMP_FontAsset font, bool bold)
+        {
+            if (bold) return;
+            var symbols = Font(true);
+            if (!font.fallbackFontAssetTable.Contains(symbols))
+            {
+                font.fallbackFontAssetTable.Add(symbols);
+                EditorUtility.SetDirty(font);
+            }
         }
     }
 }

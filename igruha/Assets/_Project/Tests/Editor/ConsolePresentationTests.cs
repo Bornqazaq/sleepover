@@ -52,6 +52,11 @@ namespace Igruha.Tests
                 Assert.That(focus, Is.Not.Null, "Compact room rebuild must preserve TV focus");
                 Assert.That(data.FindProperty("cameraController").objectReferenceValue, Is.Not.Null);
                 Assert.That(data.FindProperty("libraryView").objectReferenceValue, Is.Not.Null);
+                var shell = data.FindProperty("shellView").objectReferenceValue;
+                Assert.That(shell, Is.Not.Null);
+                var input = new SerializedObject(shell).FindProperty("nameInput").objectReferenceValue as Behaviour;
+                Assert.That(input, Is.Not.Null);
+                Assert.That(input.enabled, Is.True, "Saved profile input must receive pointer and keyboard events");
                 var framing = roots.SelectMany(root => root.GetComponentsInChildren<ConsoleCameraFraming>(true)).Single();
                 Assert.That(framing.GetComponent<CinemachineCamera>().Follow, Is.EqualTo(focus));
                 var frameData = new SerializedObject(framing);

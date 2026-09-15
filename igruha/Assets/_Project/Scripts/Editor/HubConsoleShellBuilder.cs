@@ -43,25 +43,18 @@ namespace Igruha.EditorTools
             // A smooth low-cost gradient keeps the key art visible and the menu readable.
             for (int i = 0; i < 48; i++)
                 Box(home, "Shade_" + i, i * 16, 0, 16, 720, new Color(.018f,.055f,.06f, Mathf.Lerp(.90f, 0f, Mathf.Pow(i / 47f, 1.9f))));
-            Label(home, "SmallBrand", "ДОБРО ПОЖАЛОВАТЬ ДОМОЙ", 62, 78, 510, 24, 16, Gold, true);
-            Label(home, "Title", "SLEEPOVER", 58, 119, 560, 92, 70, Cream, true);
-            Label(home, "Tagline", "Друзья рядом. Ночь только начинается.", 63, 213, 490, 38, 23, Cream);
-            var full = Button(home, "FullGame", "ПОЛНАЯ ИГРА", 64, 315, 425, 102, Gold, Ink, 27);
-            Label(full.transform, "Description", "Все мини-игры · вперемешку · без повторов", 22, 61, 382, 23, 16, Ink);
-            ((RectTransform)full.GetComponentInChildren<TMP_Text>().transform).anchoredPosition = new Vector2(22, -17);
-            full.GetComponentInChildren<TMP_Text>().alignment = TextAlignmentOptions.Left;
-            full.GetComponentInChildren<TMP_Text>().rectTransform.sizeDelta = new Vector2(365, 36);
-            var single = Button(home, "SingleGame", "ВЫБРАТЬ МИНИ-ИГРУ", 64, 433, 425, 102, new Color(.08f,.16f,.18f,.96f), Cream, 25);
-            Label(single.transform, "Description", "Один раунд любимой игры", 22, 61, 382, 23, 17, Muted);
-            single.GetComponentInChildren<TMP_Text>().alignment = TextAlignmentOptions.Left;
-            single.GetComponentInChildren<TMP_Text>().rectTransform.anchoredPosition = new Vector2(22, -17);
-            single.GetComponentInChildren<TMP_Text>().rectTransform.sizeDelta = new Vector2(382, 36);
-            Box(single.transform, "Accent", 0, 0, 3, 102, Muted);
-            Label(full.transform, "Arrow", "→", 372, 20, 30, 32, 25, Ink, true);
+            Label(home, "SmallBrand", "ДОБРО ПОЖАЛОВАТЬ ДОМОЙ", 62, 78, 510, 24, 15, Gold, true).characterSpacing = 2;
+            Label(home, "Title", "SLEEPOVER", 58, 116, 560, 92, 72, Cream, true).characterSpacing = 1;
+            Label(home, "Tagline", "Друзья рядом. Ночь только начинается.", 63, 211, 495, 54, 21, Cream);
+            Label(home, "Modes", "ВЫБЕРИ, КАК ПРОВЕДЁМ ВЕЧЕР", 65, 282, 510, 23, 13, Muted, true).characterSpacing = 2;
+            var full = HomeButton(home, "FullGame", "ПОЛНАЯ ИГРА", "Все мини-игры · вперемешку · без повторов", 322);
+            var single = HomeButton(home, "SingleGame", "ВЫБРАТЬ МИНИ-ИГРУ", "Один раунд любимой игры", 443);
+            full.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnDown = single, selectOnUp = single };
+            single.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnDown = full, selectOnUp = full };
             shell.fullGame = full; shell.singleGame = single;
             shell.homeCount = Label(home, "Connected", "В КОМНАТЕ  00 / 08", 930, 40, 288, 30, 18, Cream, true);
             shell.homeCount.alignment = TextAlignmentOptions.Right;
-            shell.footer = Label(home, "Controls", "", 64, 656, 950, 28, 15, Muted);
+            shell.footer = Label(home, "Controls", "", 64, 656, 950, 28, 16, Muted);
             Box(home, "LowerRule", 64, 626, 1152, 1, new Color(.7f,.8f,.8f,.25f));
 
             var party = Rect(root, "Party", 0, 0, 1280, 720); shell.party = party.gameObject; Paint(party, Ink);
@@ -93,10 +86,10 @@ namespace Igruha.EditorTools
                 if (i > 3) r.gameObject.SetActive(false);
             }
             Box(party, "ProfileDock", 48, 501, 1184, 112, new Color(.1f,.19f,.21f));
-            Label(party, "ProfileHeading", "ТВОЁ ИМЯ", 66, 514, 278, 22, 13, Muted, true);
+            Label(party, "ProfileHeading", "ТВОЁ ИМЯ", 66, 514, 278, 22, 14, Muted, true);
             shell.nameInput = Input(party, 66, 544, 245, 46);
             shell.saveName = Button(party, "SaveName", "OK", 319, 544, 56, 46, Line, Cream, 17);
-            Label(party, "Looks", "ТВОЙ ОБЛИК", 411, 514, 330, 22, 13, Muted, true);
+            Label(party, "Looks", "ТВОЙ ОБЛИК", 411, 514, 330, 22, 14, Muted, true);
             shell.skins = new Button[8]; shell.skinFrames = new Image[8]; shell.portraits = new Sprite[8];
             string[] names = { "Karlan", "Boss", "Shlanga", "Fat", "MyBoy", "Girl", "Milez", "Aza" };
             for (int i = 0; i < 8; i++)
@@ -114,12 +107,23 @@ namespace Igruha.EditorTools
             Label(party, "StartHint", "Собери друзей — дальше игры сменяются сами", 48, 670, 830, 24, 17, Muted);
 
             shell.library = library.gameObject;
+            library.GetComponent<Image>().raycastTarget = true;
+            foreach (string arrowName in new[] { "PreviousPage", "NextPage" })
+            {
+                var arrowObject = library.Find(arrowName).gameObject;
+                var arrowButton = arrowObject.AddComponent<Button>();
+                arrowButton.targetGraphic = arrowObject.GetComponent<TMP_Text>();
+                arrowButton.targetGraphic.raycastTarget = true;
+                arrowButton.navigation = new Navigation { mode = Navigation.Mode.None };
+                Feedback(arrowButton);
+            }
             shell.back = Button(root, "Back", "←  НАЗАД", 1068, 26, 164, 38, Ink, Cream, 17);
             // Keep the existing library cover count clear of the Back button.
             var page = library.Find("Page").GetComponent<TMP_Text>();
             page.rectTransform.anchoredPosition = new Vector2(854, -28);
             page.rectTransform.sizeDelta = new Vector2(176, 32);
             var launch = library.Find("FeaturedGame/Launch").gameObject.AddComponent<Button>();
+            Feedback(launch);
             launch.targetGraphic = launch.GetComponent<Image>(); launch.targetGraphic.raycastTarget = true;
             UnityEditor.Events.UnityEventTools.AddPersistentListener(launch.onClick, menu.Launch);
             var so = new SerializedObject(menu);
@@ -132,23 +136,53 @@ namespace Igruha.EditorTools
         private static TMP_InputField Input(Transform parent, float x, float y, float w, float h)
         {
             var r = Rect(parent, "NameInput", x, y, w, h); var image = Paint(r, Ink); image.raycastTarget = true;
-            var input = r.gameObject.AddComponent<TMP_InputField>();
-            var viewport = Rect(r, "Viewport", 10, 5, w - 20, h - 10); viewport.gameObject.AddComponent<RectMask2D>();
-            var text = (TextMeshProUGUI)Label(viewport, "Text", "", 0, 0, w - 20, h - 10, 21, Cream);
-            text.alignment = TextAlignmentOptions.MidlineLeft; text.richText = false;
+            var input = r.gameObject.AddComponent<ConsoleNameInputField>();
+            var viewport = Rect(r, "Viewport", 12, 5, w - 24, h - 10); viewport.gameObject.AddComponent<RectMask2D>();
+            var text = (TextMeshProUGUI)Label(viewport, "Text", "", 0, 0, w - 24, h - 10, 22, Cream);
+            text.alignment = TextAlignmentOptions.Left; text.richText = false;
+            text.margin = new Vector4(0, 0, 4, 0); // Space for the scaled caret at the right scroll boundary.
             input.textViewport = viewport; input.textComponent = text; input.targetGraphic = image;
             input.characterLimit = 20; input.lineType = TMP_InputField.LineType.SingleLine; input.richText = false;
+            text.textWrappingMode = TextWrappingModes.NoWrap;
+            input.caretWidth = 2; input.caretBlinkRate = .85f;
             input.customCaretColor = true; input.caretColor = Gold; input.selectionColor = new Color(.6f,.7f,.7f,.4f);
+            Feedback(input);
+            input.enabled = true;
             return input;
         }
         private static Button Button(Transform p, string n, string t, float x, float y, float w, float h, Color bg, Color fg, float size)
         {
             var r = Rect(p,n,x,y,w,h); var image = Paint(r,bg); image.raycastTarget = true;
             var b = r.gameObject.AddComponent<Button>(); b.targetGraphic = image;
-            var colors = b.colors; colors.highlightedColor = new Color(1.12f,1.12f,1.12f); colors.selectedColor = new Color(1.16f,1.16f,1.16f);
+            var colors = b.colors; colors.normalColor = new Color(.84f,.89f,.90f); colors.highlightedColor = Color.white; colors.selectedColor = Color.white;
             colors.pressedColor = new Color(.75f,.85f,.85f); colors.disabledColor = new Color(.35f,.38f,.38f,.7f); colors.fadeDuration = .12f; b.colors = colors;
             var label = Label(r,"Label",t,12,0,w-24,h,size,fg,true); label.alignment = TextAlignmentOptions.Center;
+            Feedback(b);
             return b;
+        }
+        private static Button HomeButton(Transform parent, string name, string title, string description, float y)
+        {
+            Box(parent, name + "Shadow", 68, y + 5, 455, 106, new Color(0, 0, 0, .35f));
+            var button = Button(parent, name, title, 64, y, 455, 106, Ink, Cream, 25);
+            button.transition = Selectable.Transition.None;
+            var heading = button.GetComponentInChildren<TMP_Text>();
+            heading.alignment = TextAlignmentOptions.Left;
+            heading.rectTransform.anchoredPosition = new Vector2(24, -18);
+            heading.rectTransform.sizeDelta = new Vector2(380, 34);
+            var subtitle = Label(button.transform, "Description", description, 24, 60, 413, 28, 17, Muted);
+            var arrow = Label(button.transform, "Arrow", "→", 410, 19, 27, 34, 25, Cream, true);
+            var rim = button.transform.Find("FocusOutline").GetComponent<Image>();
+            button.GetComponent<ConsoleButtonFeedback>().Configure(rim, (Image)button.targetGraphic, heading, subtitle, arrow, true);
+            return button;
+        }
+        private static void Feedback(Selectable control)
+        {
+            var bounds = ((RectTransform)control.transform).rect;
+            var rim = Box(control.transform, "FocusOutline", 0, 0, bounds.width, bounds.height, new Color(Gold.r, Gold.g, Gold.b, 0));
+            rim.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+            rim.type = Image.Type.Sliced; rim.fillCenter = false;
+            Stretch(rim.rectTransform, -2);
+            control.gameObject.AddComponent<ConsoleButtonFeedback>().Configure(rim);
         }
         private static void Stretch(RectTransform r, float inset)
         { r.anchorMin = Vector2.zero; r.anchorMax = Vector2.one; r.offsetMin = Vector2.one * inset; r.offsetMax = Vector2.one * -inset; }
