@@ -1,0 +1,148 @@
+{
+  "materials": [
+    {
+      "name": "HS_Ink",
+      "color": [
+        0.018,
+        0.033,
+        0.075,
+        1
+      ],
+      "roughness": 0.55,
+      "metallic": 0,
+      "emission": 0
+    },
+    {
+      "name": "HS_Blue",
+      "color": [
+        0.026,
+        0.12,
+        0.34,
+        1
+      ],
+      "roughness": 0.38,
+      "metallic": 0.2,
+      "emission": 0
+    },
+    {
+      "name": "HS_Teal",
+      "color": [
+        0.015,
+        0.43,
+        0.52,
+        1
+      ],
+      "roughness": 0.38,
+      "metallic": 0.15,
+      "emission": 0
+    },
+    {
+      "name": "HS_Coral",
+      "color": [
+        0.95,
+        0.15,
+        0.19,
+        1
+      ],
+      "roughness": 0.5,
+      "metallic": 0,
+      "emission": 0
+    },
+    {
+      "name": "HS_Ivory",
+      "color": [
+        0.86,
+        0.91,
+        0.87,
+        1
+      ],
+      "roughness": 0.32,
+      "metallic": 0,
+      "emission": 0
+    },
+    {
+      "name": "HS_Gold",
+      "color": [
+        0.94,
+        0.55,
+        0.14,
+        1
+      ],
+      "roughness": 0.3,
+      "metallic": 0.65,
+      "emission": 0
+    },
+    {
+      "name": "HS_Steel",
+      "color": [
+        0.23,
+        0.32,
+        0.4,
+        1
+      ],
+      "roughness": 0.32,
+      "metallic": 0.7,
+      "emission": 0
+    },
+    {
+      "name": "HS_Glow",
+      "color": [
+        0.1,
+        0.84,
+        1,
+        1
+      ],
+      "roughness": 0.3,
+      "metallic": 0,
+      "emission": 2
+    },
+    {
+      "name": "HS_WarmGlow",
+      "color": [
+        1,
+        0.64,
+        0.22,
+        1
+      ],
+      "roughness": 0.35,
+      "metallic": 0,
+      "emission": 2
+    },
+    {
+      "name": "HS_Skin",
+      "color": [
+        0.72,
+        0.4,
+        0.25,
+        1
+      ],
+      "roughness": 0.8,
+      "metallic": 0,
+      "emission": 0
+    },
+    {
+      "name": "HS_Hair",
+      "color": [
+        0.065,
+        0.032,
+        0.025,
+        1
+      ],
+      "roughness": 0.85,
+      "metallic": 0,
+      "emission": 0
+    },
+    {
+      "name": "HS_White",
+      "color": [
+        0.97,
+        0.97,
+        0.88,
+        1
+      ],
+      "roughness": 0.65,
+      "metallic": 0,
+      "emission": 0
+    }
+  ]
+}

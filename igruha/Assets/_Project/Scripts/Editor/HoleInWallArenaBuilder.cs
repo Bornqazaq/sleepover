@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -16,9 +15,8 @@ namespace Igruha.EditorTools
     /// <summary>
     /// Строит арену «Дырки в стене» из примитивов: общий бассейн, четыре
     /// платформы над ним, по стене на дорожку, точки спавна и зону воды.
-    /// Геометрия одевается моделями пака и красится палитрой прямо здесь
-    /// (фаза 4): дресс — слой поверх коробок, сами коробки, их коллайдеры
-    /// и слои остаются теми же, что были на сером блокауте.
+    /// Собственные Blender-модули оформляют игровые коллайдеры.
+    /// Архитектуру, материалы и свет собирает HoleInWallStudioBuilder.
     ///
     /// Всё строится кодом по той же причине, что арены «Экзамена», цирка и
     /// «Рейса на память»: размеры живут в <see cref="HoleInWallConfig"/>, и
@@ -136,14 +134,11 @@ namespace Igruha.EditorTools
 
             EnsureHudStatusLine();
             VerifyLayout(config);
-            ReportMissingModels();
             Debug.Log(HoleInWallDress.MeasurementReport(), arena);
             HoleInWallPaletteAssets.Flush();
 
-            // Физика декора — последним шагом сборки. Дресс срезает коллайдеры
-            // моделей, и всё, что поставлено в зал само по себе, без коробки
-            // блокаута, до этого шага проходилось насквозь.
-            PropColliders.Build(arena.gameObject);
+            // Original studio owns explicit collision volumes. Audience and lighting
+            // sit outside the arena bounds and must not receive generated colliders.
 
             // Оформление интерфейса — тем же прогоном: иначе пересборка арены
             // вернула бы серые прямоугольники шаблона.
@@ -799,13 +794,13 @@ namespace Igruha.EditorTools
         }
 
         /// <summary>
-        /// Коробка блокаута, одетая в модель пака. Геометрия, коллайдер и слой
+        /// Игровой коллайдер с собственной моделью. Геометрия, коллайдер и слой
         /// те же, что на сером блокауте: гаснет только рендерер коробки, модель
         /// садится внутрь по её габаритам. Поэтому выверенная фазами 2–3
         /// планировка не может сдвинуться от арта.
         ///
         /// Слой ставится <b>до</b> дресса: <see cref="SetLayer"/> красит и детей,
-        /// и модели пака уехали бы на <c>Ground</c> вместе с коробкой.
+        /// и визуальные модели уехали бы на <c>Ground</c> вместе с коробкой.
         /// </summary>
         private static GameObject CreateDressedBox(Transform parent, string boxName, Vector3 size, Vector3 position,
             string layerName, HoleInWallDress.Kind kind)
@@ -814,31 +809,6 @@ namespace Igruha.EditorTools
             SetLayer(box, layerName);
             HoleInWallDress.Apply(box, kind, dressRandom);
             return box;
-        }
-
-        /// <summary>
-        /// Модели, которых не нашлось в проекте, — списком и всегда. Паки Synty
-        /// в репозиторий не входят, и на машине без них арена соберётся серой:
-        /// без этой строки разница читалась бы как «арт не сделан».
-        /// </summary>
-        private static void ReportMissingModels()
-        {
-            IReadOnlyList<string> missing = HoleInWallDress.Missing;
-            if (missing.Count == 0)
-            {
-                return;
-            }
-
-            var paths = new string[missing.Count];
-            for (int i = 0; i < missing.Count; i++)
-            {
-                paths[i] = missing[i];
-            }
-
-            Debug.LogWarning(
-                $"«Дырка в стене»: не найдено моделей паков — {missing.Count}. Там, где их нет, арена осталась блокаутом. " +
-                "Поставь паки Synty (POLYGON Nightclubs, POLYGON Generic) и пересобери.\n— " +
-                string.Join("\n— ", paths));
         }
 
         private static GameObject CreateBox(Transform parent, string boxName, Vector3 size, Vector3 position,

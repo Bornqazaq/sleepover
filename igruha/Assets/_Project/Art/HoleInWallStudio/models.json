@@ -1,0 +1,62 @@
+[
+  {
+    "name": "HS_Panel",
+    "vertices": 96,
+    "polygons": 98
+  },
+  {
+    "name": "HS_Portal",
+    "vertices": 1320,
+    "polygons": 1190
+  },
+  {
+    "name": "HS_Spot",
+    "vertices": 720,
+    "polygons": 714
+  },
+  {
+    "name": "HS_Truss",
+    "vertices": 456,
+    "polygons": 266
+  },
+  {
+    "name": "HS_Seat",
+    "vertices": 480,
+    "polygons": 490
+  },
+  {
+    "name": "HS_Ladder",
+    "vertices": 504,
+    "polygons": 294
+  },
+  {
+    "name": "HS_Fan0_Idle",
+    "vertices": 1316,
+    "polygons": 1352
+  },
+  {
+    "name": "HS_Fan0_Cheer",
+    "vertices": 1316,
+    "polygons": 1352
+  },
+  {
+    "name": "HS_Fan1_Idle",
+    "vertices": 1316,
+    "polygons": 1352
+  },
+  {
+    "name": "HS_Fan1_Cheer",
+    "vertices": 1316,
+    "polygons": 1352
+  },
+  {
+    "name": "HS_Fan2_Idle",
+    "vertices": 1316,
+    "polygons": 1352
+  },
+  {
+    "name": "HS_Fan2_Cheer",
+    "vertices": 1316,
+    "polygons": 1352
+  }
+]
