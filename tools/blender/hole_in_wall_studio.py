@@ -225,7 +225,7 @@ box((0,0,8.85),(.32,6,.26),'Ivory',.03)
 export('BathRoofBay')
 
 # Opaque end infill closes the space above the old flat end-wall crown.
-end_pts=[(-29.1,0,3),(29.1,0,3)]+[(31*math.cos(t),0,9*math.sin(t)) for t in [math.asin(3/9)+(math.pi-2*math.asin(3/9))*i/48 for i in range(49)]]
+end_pts=[(-31,0,0),(31,0,0)]+arc(31,9,steps=48)[1:-1]
 face_mesh('Vault end tympanum',end_pts,[tuple(range(len(end_pts)))],'Plaster',.35)
 export('BathRoofEnd')
 

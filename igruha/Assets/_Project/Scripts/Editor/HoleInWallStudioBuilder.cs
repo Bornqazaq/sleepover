@@ -20,6 +20,8 @@ namespace Igruha.EditorTools
         private const string ConfigPath = "Assets/_Project/Settings/Gameplay/Minigames/HoleInWallConfig.asset";
         private const float AudienceRowRise = .75f;
         private const int AudienceRows = 3;
+        private const float VaultSpringY = 14.4f;
+        private const float VaultModelHalfWidth = 31f;
         private static TMP_FontAsset font;
 
         [MenuItem("Igruha/Дырка в стене/Собственная студия — пересобрать")]
@@ -76,6 +78,7 @@ namespace Igruha.EditorTools
             float near = c.ArenaNearZ - 9;
             float centerZ = (far + near) * .5f;
             float floorY = HoleInWallProps.RimTopY(c) - .2f;
+            float vaultScaleX = (half + 9) / VaultModelHalfWidth;
             Panel(shell,"Far promenade",new Vector3(0,floorY,c.ArenaFarZ+4.5f),new Vector3(c.ArenaWidth,.4f,9),Mat("Ivory"),true);
             Panel(shell,"Near promenade",new Vector3(0,floorY,c.ArenaNearZ-4.5f),new Vector3(c.ArenaWidth,.4f,9),Mat("Ivory"),true);
             for(int side=-1;side<=1;side+=2)
@@ -92,11 +95,14 @@ namespace Igruha.EditorTools
                     Panel(shell,"Gallery pier",new Vector3(side*(half+5.8f),(pierBottom+4.7f)*.5f,z-2.9f),new Vector3(.48f,4.7f-pierBottom,.48f),Mat("Ivory"));
                     Place(shell,"BathRailing",new Vector3(side*(half+5.5f),5.18f,z),side*90);
                 }
-                foreach(float z in new[]{near+4,9f,far-4})
+                // Planting lives in the open end promenades, clear of seats and balconies.
+                foreach(float z in new[]{near+4.5f,far-4.5f})
                 {
-                    Place(shell,"PlanterPalm",new Vector3(side*(half+4.5f),floorY+.2f,z),side*25);
-                    Place(shell,"Lifebuoy",new Vector3(side*(half+1.1f),floorY+.2f,z+2),side*90);
+                    var palm=Place(shell,"PlanterPalm",new Vector3(side*(half+2.3f),floorY+.2f,z),side*25);
+                    palm.localScale=Vector3.one*.8f;
                 }
+                foreach(float z in new[]{near+4,9f,far-4})
+                    Place(shell,"Lifebuoy",new Vector3(side*(half+1.1f),floorY+.2f,z+2),side*90);
                 for(float z=near+2;z<far-1;z+=4)
                     Place(shell,"TilePatch",new Vector3(side*(half+2),floorY+.235f,z));
             }
@@ -109,7 +115,7 @@ namespace Igruha.EditorTools
                     for(int bay=0;bay<3;bay++)
                         Place(shell,"BathWindow",new Vector3(side*(11.4f+bay*7.6f),5.7f,z+(back?-.48f:.48f)),back?0:180);
                 Place(shell,"SunMedallion",new Vector3(0,10.2f,z+(back?-.5f:.5f)),back?0:180);
-                Panel(shell,"Crown moulding",new Vector3(0,14.4f,z+(back?-.48f:.48f)),new Vector3(c.ArenaWidth+18,.45f,.55f),Mat("Ivory"));
+                Panel(shell,"Crown moulding",new Vector3(0,VaultSpringY,z+(back?-.48f:.48f)),new Vector3(c.ArenaWidth+18,.45f,.55f),Mat("Ivory"));
             }
             // Contiguous curved bays replace the flat sky card. Glazing transmits daylight;
             // the separate structural ribs still cast the characteristic roof shadows.
@@ -118,24 +124,30 @@ namespace Igruha.EditorTools
             float bayDepth = (far-near)/roofBays;
             for(int bay=0;bay<roofBays;bay++)
             {
-                var roof=Place(shell,"BathRoofBay",new Vector3(0,11.5f,near+(bay+.5f)*bayDepth));
-                roof.localScale=new Vector3(1,1,bayDepth/roofBayDepth);
+                var roof=Place(shell,"BathRoofBay",new Vector3(0,VaultSpringY,near+(bay+.5f)*bayDepth));
+                roof.localScale=new Vector3(vaultScaleX,1,bayDepth/roofBayDepth);
                 roof.GetComponent<Renderer>().shadowCastingMode=ShadowCastingMode.Off;
             }
             for(int bay=0;bay<=roofBays;bay++)
-                Place(shell,"BathRoofRib",new Vector3(0,11.5f,near+bay*bayDepth));
-            foreach(float z in new[]{near,far})
-                Place(shell,"BathRoofEnd",new Vector3(0,11.5f,z),z==far?0:180);
-            for(int side=-1;side<=1;side+=2)
             {
-                Panel(shell,"Vault springing cornice",new Vector3(side*30.35f,12.05f,centerZ),new Vector3(.85f,.4f,far-near),Mat("Ivory"));
-                Panel(shell,"Cornice gold bead",new Vector3(side*29.93f,11.97f,centerZ),new Vector3(.06f,.09f,far-near),Mat("Gold"));
+                var rib=Place(shell,"BathRoofRib",new Vector3(0,VaultSpringY,near+bay*bayDepth));
+                rib.localScale=new Vector3(vaultScaleX,1,1);
             }
-            // Rear deck planting frames the playfield and remains behind every moving wall.
+            foreach(float z in new[]{near,far})
+            {
+                var end=Place(shell,"BathRoofEnd",new Vector3(0,VaultSpringY,z),z==far?0:180);
+                end.localScale=new Vector3(vaultScaleX,1,1);
+            }
             for(int side=-1;side<=1;side+=2)
             {
-                var palm=Place(shell,"PlanterPalm",new Vector3(side*23.5f,floorY+.2f,c.ArenaFarZ+4),side*15);
-                palm.localScale=Vector3.one*1.5f;
+                float corniceX=side*(half+8.42f);
+                Panel(shell,"Vault springing cornice",new Vector3(corniceX,VaultSpringY,centerZ),new Vector3(.55f,.45f,far-near),Mat("Ivory"));
+                Panel(shell,"Cornice gold bead",new Vector3(side*(half+8.12f),VaultSpringY-.13f,centerZ),new Vector3(.06f,.09f,far-near),Mat("Gold"));
+                foreach(float z in new[]{near,far})
+                {
+                    float cornerZ=z+(z==far?-.48f:.48f);
+                    Panel(shell,"Cornice corner block",new Vector3(corniceX,VaultSpringY,cornerZ),new Vector3(.70f,.55f,.70f),Mat("Ivory"));
+                }
             }
         }
 
@@ -438,6 +450,14 @@ namespace Igruha.EditorTools
             foreach(var deck in decks)
                 if(deck.GetComponent<Renderer>().bounds.max.y-c.PlatformSurfaceY>.05f || deck.GetComponent<Collider>()!=null)
                     throw new InvalidOperationException("Deck detail diverges from the collision surface.");
+            var allTransforms=arena.GetComponentsInChildren<Transform>(true);
+            var cornices=allTransforms.Where(t=>t.name=="Crown moulding"||t.name=="Vault springing cornice").ToArray();
+            if(cornices.Length!=4||cornices.Any(t=>Mathf.Abs(t.position.y-VaultSpringY)>.01f))
+                throw new InvalidOperationException("Cornices must meet at one height above the window arches.");
+            foreach(var palm in allTransforms.Where(t=>t.name=="HS_PlanterPalm"))
+                foreach(var solid in allTransforms.Where(t=>t.name=="Gallery pier"||t.name=="Gallery deck"||t.name=="Gallery fascia"||t.name=="Sunwashed masonry"||t.name=="End masonry"||t.name=="Grounded ceramic tier"||t.name=="Rear stage foundation"||t.name=="Rear tier"))
+                    if(palm.GetComponent<Renderer>().bounds.Intersects(solid.GetComponent<Renderer>().bounds))
+                        throw new InvalidOperationException("Palm intersects architecture or spectator seating: "+solid.name);
             int missing=0;
             foreach(Transform t in arena.GetComponentsInChildren<Transform>(true))missing+=GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(t.gameObject);
             var renderers=arena.GetComponentsInChildren<Renderer>(true);
