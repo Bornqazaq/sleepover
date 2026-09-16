@@ -47,50 +47,15 @@ namespace Igruha.Minigames.HoleInWall
     [RequireComponent(typeof(PlayerController))]
     public sealed class PlayerBuoyancy : MonoBehaviour
     {
-        /// <summary>
-        /// Какая доля тела остаётся под водой в покое. 0.75 — человек по грудь:
-        /// голова и плечи над водой, остальное под ней.
-        ///
-        /// Это же число задаёт силу выталкивания: при полном погружении она
-        /// в <c>1 / FloatingShare</c> раза больше веса, при этой доле — ровно
-        /// вес, и глубже тело не тонет.
-        /// </summary>
-        private const float FloatingShare = 0.75f;
-
-        /// <summary>
-        /// Гашение вертикали в воде, 1/с. Подобрано под вход сметённого,
-        /// а он приходит быстро: импульс кидает его вверх на 3.4 м/с, дальше
-        /// 3.15 м падения при тройной гравитации — <b>13.6 м/с</b> на входе
-        /// в воду. Десятка даёт на них 136 м/с², то есть потолок
-        /// <see cref="MaxAcceleration"/>; остановка занимает 0.22 с и около
-        /// 1.5 м. Бассейн глубиной 2.16 м — дна он не достаёт.
-        /// </summary>
-        private const float VerticalDamping = 10f;
-
-        /// <summary>
-        /// Гашение горизонтали, 1/с. Ниже вертикального: вода тормозит,
-        /// но барахтаться в сторону лестницы должно быть можно.
-        ///
-        /// Оно же держит человека внутри бассейна. Сметённый летит назад
-        /// на 9.7 м/с и падает в воду в 6 м от платформы, а борт всего
-        /// в 7.56 м: без гашения он проезжал бы по дну до края и уходил
-        /// за него в пустоту.
-        /// </summary>
-        private const float HorizontalDamping = 6f;
-
-        /// <summary>
-        /// Потолок ускорения от воды, м/с². Ниже — и сметённый на 13.6 м/с
-        /// пробивает бассейн до дна; выше — вход в воду выглядит ударом
-        /// о батут, а не всплеском.
-        ///
-        /// Порог нокдауна им не пробить: за такт это 1.8 м/с против
-        /// <c>knockdownVelocityThreshold = 5</c>, иначе вода валила бы
-        /// с ног сама.
-        /// </summary>
-        private const float MaxAcceleration = 90f;
-
-        /// <summary>Потолок скорости в воде, м/с. Плыть можно, убежать — нет.</summary>
-        private const float SwimSpeed = 1.6f;
+        /// <summary>Под водой остаётся 55% тела: голова и плечи хорошо видны из игровой камеры.</summary>
+        private const float FloatingShare = 0.55f;
+        /// <summary>Сильное торможение входа не даёт пробить бассейн до пола на 13.6 м/с.</summary>
+        private const float VerticalDamping = 16f;
+        private const float HorizontalDamping = 9f;
+        /// <summary>За такт 50 Гц импульс меньше порога нокдауна 5 м/с.</summary>
+        private const float MaxAcceleration = 160f;
+        /// <summary>Короткое ожидание возврата: лёгкий дрейф вместо ходьбы по дну.</summary>
+        private const float SwimSpeed = 0.15f;
 
         /// <summary>Разгон в воде — доля обычного. Вода не даёт стартовать рывком.</summary>
         private const float SwimAcceleration = 0.35f;

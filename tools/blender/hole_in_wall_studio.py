@@ -184,37 +184,30 @@ for variant in range(3):
             sphere(wrist,(.082,.063,.09),'Skin')
         export('Fan%d_%s'%(variant,'Cheer' if cheer else 'Idle'))
 
-# Hero marquee: manufactured chamfered housing and actual extruded Cyrillic lettering.
-def plaque(width, height, depth, y, mat):
-    w,h=width/2,height/2;c=.6
-    outline=[(-w+c,-h),(w-c,-h),(w,-h+c),(w,h-c),(w-c,h),(-w+c,h),(-w,h-c),(-w,-h+c)]
-    verts=[(x,y+dy,z) for dy in (-depth/2,depth/2) for x,z in outline]
-    faces=[tuple(range(7,-1,-1)),tuple(range(8,16))]+[(i,(i+1)%8,(i+1)%8+8,i+8) for i in range(8)]
-    mesh=bpy.data.meshes.new('Chamfered housing');mesh.from_pydata(verts,[],faces);mesh.update()
-    obj=bpy.data.objects.new('Housing',mesh);scene.collection.objects.link(obj)
-    finish(obj,mat)
-    return obj
+# Stage vault: broad paired arcs create depth above the four lanes.
+for radius,height,y,mat,r in [(24,9,0,'Ivory',.26),(23.25,8.5,-.18,'Glow',.07),(24.7,9.6,.3,'Blue',.38)]:
+    points=[(radius*math.cos(i*math.pi/48),y,height*math.sin(i*math.pi/48)) for i in range(49)]
+    path(points,r,mat)
+export('StageVault')
 
-plaque(26,4.5,.7,0,'Blue')
-plaque(25.8,4.3,.08,-.39,'Gold')
-plaque(25.5,4.0,.16,-.47,'Ink')
-font=bpy.data.fonts.load(str(ROOT/'igruha/Assets/TextMesh Pro/Examples & Extras/Fonts/Roboto-Bold.ttf'))
-def lettering(value, width, z, mat, depth=.10, bevel=.018):
-    curve=bpy.data.curves.new('Dimensional lettering','FONT');curve.body=value;curve.font=font
-    curve.align_x='CENTER';curve.align_y='CENTER';curve.size=1;curve.space_character=1.05
-    curve.extrude=depth;curve.bevel_depth=bevel;curve.bevel_resolution=2;curve.resolution_u=6
-    obj=bpy.data.objects.new('Lettering',curve);scene.collection.objects.link(obj)
-    obj.rotation_euler=(math.pi/2,0,0);obj.location=(0,-.68,z)
-    bpy.context.view_layer.update();scale=width/obj.dimensions.x;obj.scale=(scale,scale,1)
-    bpy.ops.object.select_all(action='DESELECT');obj.select_set(True);bpy.context.view_layer.objects.active=obj
-    bpy.ops.object.convert(target='MESH');finish(bpy.context.object,mat)
-lettering('ДЫРКА В СТЕНЕ',22.7,.15,'Ivory',.14,.018)
-# A slender luminous rail and tactile corner fixings frame the logo.
-for s in (-1,1):
-    for z in (-1.62,1.62):
-        for x in (10.9,11.45):tube((s*x,-.61,z),(s*x,-.69,z),.075,'Steel')
-path([(-11.4,-.62,-1.80),(11.4,-.62,-1.80)],.045,'Glow')
-export('Marquee')
+# Floating elliptical light ring, suspended above the water.
+for rad,mat,thick,z in [(1,'Steel',.12,0),(.96,'WarmGlow',.055,-.10)]:
+    path([(7*rad*math.cos(i*math.tau/64),3.3*rad*math.sin(i*math.tau/64),z) for i in range(65)],thick,mat)
+for x in (-4.9,4.9):
+    for y in (-2.1,2.1):tube((x,y,0),(x,y,1.9),.018,'Steel')
+export('Halo')
+
+# Score instrument: recessed display, side badge and three-dimensional chassis.
+box((0,0,0),(5.3,.60,2.8),'Steel',.16)
+box((0,-.36,0),(5.15,.18,2.62),'Blue',.12)
+box((.55,-.48,0),(3.65,.13,2.25),'Ink',.10)
+tube((-1.88,-.48,.10),(-1.88,-.64,.10),.62,'Glow')
+tube((-1.88,-.65,.10),(-1.88,-.69,.10),.53,'Ink')
+for x in (-2.50,2.50):
+    for z in (-1.08,1.08):tube((x,-.45,z),(x,-.53,z),.052,'Gold')
+for x in (-1.8,1.8):box((x,.05,1.67),(.10,.18,.72),'Steel',.02)
+for z in (-.95,0,.95):box((2.59,.02,z),(.09,.65,.12),'Ink',.02)
+export('Scoreboard')
 
 # Repeated folded acoustic cassette. Its fins catch the key at different angles.
 box((0,.10,0),(3.65,.36,5.7),'Ink',.10)

@@ -226,6 +226,9 @@ namespace Igruha.Minigames.HoleInWall
         /// </summary>
         private void ApplyPoseToAnimator()
         {
+            // Forward-running clips must turn with locomotion. Only a held silhouette
+            // faces the wall; this is local minigame orientation, not a rig change.
+            motor.FacingOverride = PoseLayerVisible ? -SweepingWall.TravelDirection : (Vector3?)null;
             if (animator == null || poseLayer == NoLayer)
             {
                 return;

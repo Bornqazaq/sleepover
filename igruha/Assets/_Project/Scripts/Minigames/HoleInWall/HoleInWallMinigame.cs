@@ -611,7 +611,7 @@ namespace Igruha.Minigames.HoleInWall
                 }
 
                 member.Avatar.RequestTeleport(slot.position, slot.rotation);
-                member.Avatar.FacingOverride = -SweepingWall.TravelDirection;
+                member.Avatar.FacingOverride = null;
                 member.Respawner?.SetRespawnPoint(slot);
             }
         }
@@ -1384,6 +1384,7 @@ namespace Igruha.Minigames.HoleInWall
                 return;
             }
 
+            if (!CanHoldPose(playerId)) pose = HoleInWallPose.None;
             if (HasAuthority)
             {
                 ApplyPose(playerId, pose);
@@ -1429,8 +1430,20 @@ namespace Igruha.Minigames.HoleInWall
                 return;
             }
 
+            if (!CanHoldPose(playerId)) pose = HoleInWallPose.None;
             ability.SetPose(pose);
             network?.PublishPose(playerId, pose);
+        }
+
+        private bool CanHoldPose(int playerId)
+        {
+            HoleInWallTrack track = TrackOf(playerId);
+            if (track == null) return false;
+            int index = track.IndexOfMember(playerId);
+            if (index < 0) return false;
+            var member = track.Members[index];
+            return member.Avatar != null && !member.Returning && !member.Avatar.IsKnockedDown &&
+                member.Avatar.Position.y >= config.WaterSurfaceY;
         }
 
         /// <summary>Поза, подтверждённая сервером. Клиент её только применяет.</summary>

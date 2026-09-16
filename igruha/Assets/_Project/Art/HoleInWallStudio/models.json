@@ -60,9 +60,19 @@
     "polygons": 1352
   },
   {
-    "name": "HS_Marquee",
-    "vertices": 4494,
-    "polygons": 3939
+    "name": "HS_StageVault",
+    "vertices": 3456,
+    "polygons": 2016
+  },
+  {
+    "name": "HS_Halo",
+    "vertices": 3168,
+    "polygons": 1848
+  },
+  {
+    "name": "HS_Scoreboard",
+    "vertices": 912,
+    "polygons": 868
   },
   {
     "name": "HS_WallCassette",

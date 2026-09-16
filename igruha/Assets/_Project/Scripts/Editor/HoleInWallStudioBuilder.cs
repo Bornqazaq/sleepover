@@ -118,18 +118,20 @@ namespace Igruha.EditorTools
                 Panel(shell,"Ceiling perimeter light",new Vector3(side*(half+7.35f),13.65f,centerZ),
                     new Vector3(.08f,.09f,far-near-1),Mat("Glow"));
             }
-            for(float x=-half-5;x<half+6;x+=4)
-                Place(shell,"WallCassette",new Vector3(x,10.4f,far-.48f));
-            float signZ=c.ArenaFarZ+3.5f;
-            Place(shell,"Marquee",new Vector3(0,10.05f,signZ));
-            Label(shell,"Subtitle","ДЕРЖИСЬ ВМЕСТЕ  /  ПОПАДИ В ФОРМУ",new Vector3(0,8.72f,signZ-.76f),new Vector2(21,.6f),3.6f,new Color(1,.74f,.40f));
-            // Faceted rays make the title the focal point without a forest of trusses.
-            for(int s=-1;s<=1;s+=2)
-                for(int i=0;i<5;i++)
+            // The room itself is the hero: layered architectural arcs, no title billboard.
+            Place(shell,"StageVault",new Vector3(0,4.6f,far-.8f));
+            var innerVault=Place(shell,"StageVault",new Vector3(0,4.6f,far-3.2f));
+            innerVault.localScale=new Vector3(.96f,.96f,1);
+            for(int side=-1;side<=1;side+=2)
+            {
+                Panel(shell,"Rear pilaster",new Vector3(side*26,7.0f,far-1.0f),new Vector3(1.6f,14,.8f),Mat("Ivory"));
+                Panel(shell,"Pilaster light channel",new Vector3(side*26,7.0f,far-1.48f),new Vector3(.12f,12,.08f),Mat("Glow"));
+            }
+            for(int row=0;row<2;row++)
+                for(int side=-1;side<=1;side+=2)
                 {
-                    Transform ray=Panel(shell,"Stage fan ray",new Vector3(s*(15+i*1.8f),8.5f+i*.62f,signZ+.45f),
-                        new Vector3(.5f,7+i*.5f,.22f),Mat(i%2==0?"Teal":"Blue"));
-                    ray.localRotation=Quaternion.Euler(0,0,-s*(15+i*8));
+                    Transform halo=Place(shell,"Halo",new Vector3(side*11,12.5f,1+row*12));
+                    halo.GetComponent<Renderer>().shadowCastingMode=ShadowCastingMode.Off;
                 }
             Label(shell,"On air","●  В ЭФИРЕ",new Vector3(0,7.2f,near+.5f),new Vector2(10,1.5f),12,new Color(1,.3f,.24f)).transform.localRotation=Quaternion.Euler(0,180,0);
         }
@@ -150,17 +152,26 @@ namespace Igruha.EditorTools
                 r.sharedMaterials=r.sharedMaterials.Select(m=>m.name=="HS_Glow"?accent:m).ToArray();
                 var board=Group(entrances,"Scoreboard_"+i);
                 Vector3 p=new Vector3(x,5.35f,c.WallStartZ+1.25f);
-                Panel(board,"Score surround",p,new Vector3(4.5f,2,.3f),Mat("Steel"));
-                Panel(board,"Score glass",p+new Vector3(0,0,-.18f),new Vector3(4.25f,1.76f,.1f),Mat("Ink"));
-                Label(board,"Lane number",(i+1).ToString("00"),p+new Vector3(-1.6f,0,-.26f),new Vector2(1,1.3f),9,lane);
-                var wall=Label(board,"WallLine","СТЕНА —",p+new Vector3(.45f,.5f,-.26f),new Vector2(2.5f,.5f),3.2f,Color.white);
-                var score=Label(board,"ScoreLine","—",p+new Vector3(.45f,-.22f,-.26f),new Vector2(2.5f,1),10,lane);
+                var instrument=Place(board,"Scoreboard",p);
+                var display=instrument.GetComponent<Renderer>();
+                display.sharedMaterials=display.sharedMaterials.Select(m=>m.name=="HS_Glow"?accent:m).ToArray();
+                Label(board,"Lane number",(i+1).ToString("00"),p+new Vector3(-1.88f,.10f,-.73f),new Vector2(1.05f,1.1f),8,lane);
+                Label(board,"Score caption","ПРОХОДЫ",p+new Vector3(.55f,.94f,-.59f),new Vector2(2.8f,.35f),2.4f,new Color(.7f,.81f,.86f));
+                var score=Label(board,"ScoreLine","00",p+new Vector3(.55f,.18f,-.59f),new Vector2(2.7f,1.1f),11,Color.white);
+                var wall=Label(board,"WallLine","ОЖИДАНИЕ",p+new Vector3(.55f,-.63f,-.59f),new Vector2(3.0f,.38f),2.7f,lane);
+                var progress=new Renderer[c.WallCount];
+                for(int pip=0;pip<c.WallCount;pip++)
+                    progress[pip]=Panel(board,"Progress "+pip,p+new Vector3(.55f+(pip-(c.WallCount-1)*.5f)*.36f,-1.04f,-.60f),
+                        new Vector3(.26f,.07f,.025f),Mat("Steel")).GetComponent<Renderer>();
                 var component=board.gameObject.AddComponent<HoleInWallScoreboard>();
                 var so=new SerializedObject(component);
                 so.FindProperty("game").objectReferenceValue=game;
                 so.FindProperty("track").objectReferenceValue=tracks[i];
                 so.FindProperty("wallLine").objectReferenceValue=wall;
                 so.FindProperty("scoreLine").objectReferenceValue=score;
+                var indicators=so.FindProperty("progressLights");indicators.arraySize=progress.Length;
+                for(int n=0;n<progress.Length;n++)indicators.GetArrayElementAtIndex(n).objectReferenceValue=progress[n];
+                so.FindProperty("accentColor").colorValue=lane;
                 so.ApplyModifiedPropertiesWithoutUndo();
                 for(int side=-1;side<=1;side+=2)
                     Place(entrances,"Spot",new Vector3(x+side*4.7f,.5f,c.WallStartZ+2),0);
@@ -301,14 +312,14 @@ namespace Igruha.EditorTools
             }
             var key=lighting==null?null:lighting.GetComponentInChildren<Light>(true);
             if(key==null)key=Group(studio,"Studio key").gameObject.AddComponent<Light>();
-            key.type=LightType.Directional;key.color=new Color(1,.96f,.89f);key.intensity=1.5f;
-            key.transform.rotation=Quaternion.Euler(48,-32,0);key.shadows=LightShadows.Soft;
-            key.shadowStrength=.88f;key.shadowBias=.035f;key.shadowNormalBias=.20f;
+            key.type=LightType.Directional;key.color=new Color(1,.94f,.84f);key.intensity=1.6f;
+            key.transform.rotation=Quaternion.Euler(52,-26,0);key.shadows=LightShadows.Soft;
+            key.shadowStrength=.88f;key.shadowBias=.035f;key.shadowNormalBias=.14f;
             RenderSettings.sun=key;
             RenderSettings.ambientMode=AmbientMode.Trilight;
             RenderSettings.ambientSkyColor=new Color(.27f,.38f,.57f);
-            RenderSettings.ambientEquatorColor=new Color(.105f,.16f,.26f);
-            RenderSettings.ambientGroundColor=new Color(.035f,.07f,.12f);
+            RenderSettings.ambientEquatorColor=new Color(.16f,.21f,.31f);
+            RenderSettings.ambientGroundColor=new Color(.07f,.105f,.16f);
             RenderSettings.fog=false;
             Transform lights=Group(studio,"Studio light fixtures");
             for(int i=0;i<c.TrackCount;i++)
@@ -330,7 +341,7 @@ namespace Igruha.EditorTools
             if(!profile.TryGet(out Bloom bloom))bloom=profile.Add<Bloom>();
             bloom.intensity.Override(.24f);bloom.threshold.Override(1.15f);bloom.scatter.Override(.6f);
             if(!profile.TryGet(out ColorAdjustments color))color=profile.Add<ColorAdjustments>();
-            color.postExposure.Override(.25f);color.contrast.Override(16);color.saturation.Override(13);
+            color.postExposure.Override(.15f);color.contrast.Override(12);color.saturation.Override(13);
             if(!profile.TryGet(out Vignette vignette))vignette=profile.Add<Vignette>();
             vignette.intensity.Override(.17f);vignette.smoothness.Override(.55f);
             foreach (VolumeComponent component in profile.components)
@@ -385,6 +396,11 @@ namespace Igruha.EditorTools
                 var so=new SerializedObject(board);
                 foreach(string field in new[]{"game","track","wallLine","scoreLine"})
                     if(so.FindProperty(field).objectReferenceValue==null)throw new InvalidOperationException("Missing board reference: "+field);
+                var progress = so.FindProperty("progressLights");
+                if(progress.arraySize!=c.WallCount)throw new InvalidOperationException("Scoreboard progress does not match wall count.");
+                for(int i=0;i<progress.arraySize;i++)
+                    if(progress.GetArrayElementAtIndex(i).objectReferenceValue==null)
+                        throw new InvalidOperationException("Missing scoreboard progress light.");
             }
             int missing=0;
             foreach(Transform t in arena.GetComponentsInChildren<Transform>(true))missing+=GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(t.gameObject);
@@ -425,6 +441,7 @@ namespace Igruha.EditorTools
                 volume.sharedProfile.components.Any(component=>component==null||!AssetDatabase.Contains(component)))
                 throw new InvalidOperationException("Post processing must contain four persistent volume components.");
             string[] dependencies=AssetDatabase.GetDependencies(scene.path,true);
+            if(dependencies.Any(p=>p.Contains("HS_Marquee")))throw new InvalidOperationException("Removed title returned to the studio.");
             string[] purchased=dependencies.Where(p=>p.StartsWith("Assets/Synty/")||p.Contains("/HoleInWall/Polygon")).ToArray();
             if (purchased.Length > 0) throw new InvalidOperationException("Purchased art returned to the studio: " + string.Join(", ", purchased));
             Debug.Log("HIW Studio audit: boards="+boards.Length+", renderers="+renderers.Length+
