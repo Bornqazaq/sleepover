@@ -1,0 +1,70 @@
+{
+  "common_states": 48,
+  "mismatches": [],
+  "reading_fov": [
+    {
+      "q": 1,
+      "host": 40.0,
+      "client": 40.0
+    },
+    {
+      "q": 2,
+      "host": 40.0,
+      "client": 40.0
+    },
+    {
+      "q": 3,
+      "host": 40.0,
+      "client": 40.0
+    },
+    {
+      "q": 4,
+      "host": 40.0,
+      "client": 40.0
+    },
+    {
+      "q": 5,
+      "host": 40.0,
+      "client": 40.0
+    },
+    {
+      "q": 6,
+      "host": 40.0,
+      "client": 40.0
+    },
+    {
+      "q": 7,
+      "host": 40.0,
+      "client": 40.0
+    },
+    {
+      "q": 8,
+      "host": 40.0,
+      "client": 40.0
+    }
+  ],
+  "peers": {
+    "host": {
+      "minY": -7.02,
+      "results": true,
+      "early_options": false,
+      "release_vfx_questions": [
+        1,
+        2,
+        3
+      ],
+      "choice_frame_mean_ms": 29.67
+    },
+    "client": {
+      "minY": -7.16,
+      "results": true,
+      "early_options": false,
+      "release_vfx_questions": [
+        1,
+        2,
+        3
+      ],
+      "choice_frame_mean_ms": 13.88
+    }
+  }
+}

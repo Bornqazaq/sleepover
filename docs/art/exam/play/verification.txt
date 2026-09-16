@@ -1,0 +1,2 @@
+Unity Editor, final hall: 4 local avatars, 8 questions completed; movement, wrong-platform falls, respawn and Results observed. Returned to Hub through the normal results coroutine.
+Final board spacing preview applied during question 5, then saved via the builder after leaving Play Mode.

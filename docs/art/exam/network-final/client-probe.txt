@@ -1,0 +1,651 @@
+Exam original hall observation
+transition q=0 stage=0 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  camera=(0.00, 2.63, -6.00) rot=(0.00, 0.00, 0.00) fov=55
+transition q=1 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(1.00, 0.00, -6.12)
+  camera=(1.00, 1.36, -9.60) rot=(15.69, 5.29, 0.00) fov=55
+settled minY=0.00 q=1 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(1.00, 0.00, -6.12)
+  camera=(1.00, 1.36, -9.60) rot=(15.69, 5.29, 0.00) fov=55
+transition q=1 stage=2 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(1.00, 0.00, -6.12)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=1 stage=2 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(1.00, 0.00, -6.12)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=1 stage=3 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(1.00, 0.00, -6.12)
+  camera=(1.00, 1.36, -9.60) rot=(15.69, 5.29, 0.00) fov=55
+settled minY=0.00 q=1 stage=3 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-2.74, 0.00, -1.60)
+  camera=(-2.51, 1.26, -5.89) rot=(11.57, 2.58, 0.00) fov=55
+frame-sample stage=3 n=635 meanMs=11.03
+transition q=1 stage=4 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.57, 0.00, 0.60)
+  camera=(-4.57, 1.26, -3.40) rot=(12.32, 5.27, 0.00) fov=55
+settled minY=0.00 q=1 stage=4 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.57, 0.00, 0.60)
+  camera=(-4.57, 1.26, -3.40) rot=(12.32, 5.27, 0.00) fov=55
+transition q=1 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.57, 0.00, 0.60)
+  camera=(-4.57, 1.26, -3.40) rot=(12.32, 5.27, 0.00) fov=55
+fall minY=0.00 q=1 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.57, 0.00, 0.60)
+  camera=(-4.57, 1.26, -3.40) rot=(12.32, 5.27, 0.00) fov=55
+fall minY=0.00 q=1 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.57, 0.00, 0.60)
+  camera=(-4.57, 1.26, -3.40) rot=(12.32, 5.27, 0.00) fov=55
+fall minY=0.00 q=1 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.57, 0.00, 0.60)
+  camera=(-4.57, 1.26, -3.40) rot=(12.32, 5.27, 0.00) fov=55
+settled minY=0.00 q=1 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.57, 0.00, 0.60)
+  camera=(-4.57, 1.26, -3.40) rot=(12.32, 5.27, 0.00) fov=55
+fall minY=0.00 q=1 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.57, 0.00, 0.60)
+  camera=(-4.57, 1.26, -3.40) rot=(12.32, 5.29, 0.00) fov=55
+fall minY=0.00 q=1 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.57, 0.00, 0.60)
+  camera=(-4.57, 1.26, -3.40) rot=(12.32, 5.29, 0.00) fov=55
+fall minY=0.00 q=1 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.57, 0.00, 0.60)
+  camera=(-4.57, 1.26, -3.40) rot=(12.32, 5.29, 0.00) fov=55
+fall minY=0.00 q=1 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.57, 0.00, 0.60)
+  camera=(-4.57, 1.26, -3.40) rot=(12.32, 5.29, 0.00) fov=55
+transition q=1 stage=6 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.57, 0.00, 0.60)
+  camera=(-4.57, 1.26, -3.40) rot=(12.32, 5.29, 0.00) fov=55
+settled minY=0.00 q=1 stage=6 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.57, 0.00, 0.60)
+  camera=(-4.57, 1.26, -3.40) rot=(12.32, 5.29, 0.00) fov=55
+transition q=2 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Milez(Clone) pos=(-1.60, 0.10, -4.32)
+  Aza(Clone) pos=(0.00, 0.99, 8.64)
+  camera=(-0.35, 2.71, 7.52) rot=(56.91, 11.10, 0.00) fov=54.99993
+settled minY=-0.02 q=2 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Milez(Clone) pos=(-1.60, 0.00, -4.32)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(1.33, 3.02, 3.53) rot=(20.13, 350.63, 359.94) fov=54.2175
+transition q=2 stage=2 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(-1.60, 0.00, -4.32)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+settled minY=0.00 q=2 stage=2 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(-1.60, 0.00, -4.32)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+transition q=2 stage=3 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(-1.60, 0.00, -4.32)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=2 stage=3 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(0.74, 0.00, -0.18)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+frame-sample stage=3 n=509 meanMs=13.70
+transition q=2 stage=4 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(1.53, 0.00, 1.20)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=2 stage=4 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(1.53, 0.00, 1.20)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=2 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(1.53, 0.00, 1.20)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=2 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(1.53, 0.00, 1.20)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=2 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(1.53, 0.00, 1.20)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=2 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(1.53, 0.00, 1.20)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=2 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(1.53, 0.00, 1.20)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=2 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(1.53, 0.00, 1.20)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=2 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(1.53, 0.00, 1.20)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=2 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(1.53, 0.00, 1.20)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=2 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(1.53, 0.00, 1.20)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=2 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(1.53, 0.00, 1.20)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=2 stage=6 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(1.53, 0.00, 1.20)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=2 stage=6 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(1.53, 0.00, 1.20)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=3 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(0.00, 0.00, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(41.78, 0.02, 0.01) fov=40.06199
+settled minY=0.00 q=3 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(0.00, 0.00, -4.32)
+  camera=(0.00, 2.62, -8.40) rot=(28.17, 5.35, 0.61) fov=54.68637
+transition q=3 stage=2 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(0.00, 0.00, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=3 stage=2 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(0.00, 0.00, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=3 stage=3 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(0.00, 0.00, -4.32)
+  camera=(0.00, 1.26, -8.33) rot=(12.32, 5.29, 0.00) fov=55
+settled minY=0.00 q=3 stage=3 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(1.71, 0.00, 0.85)
+  camera=(1.64, 1.27, -3.38) rot=(11.52, 6.32, 0.00) fov=55
+frame-sample stage=3 n=591 meanMs=11.83
+transition q=3 stage=4 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(1.79, 0.00, 1.07)
+  camera=(1.79, 1.26, -2.94) rot=(12.32, 5.30, 0.00) fov=55
+settled minY=0.00 q=3 stage=4 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-3.68, 0.00, 2.68)
+  camera=(-3.35, 1.26, -1.42) rot=(12.03, 1.31, 0.00) fov=55
+transition q=3 stage=5 Aopen=False Bopen=True board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.21, 0.00, 2.84)
+  camera=(-4.21, 1.26, -1.16) rot=(12.32, 5.26, 0.00) fov=55
+fall minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.21, 0.00, 2.84)
+  camera=(-4.21, 1.26, -1.16) rot=(12.32, 5.26, 0.00) fov=55
+fall minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.21, 0.00, 2.84)
+  camera=(-4.21, 1.26, -1.16) rot=(12.32, 5.27, 0.00) fov=55
+fall minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.21, 0.00, 2.84)
+  camera=(-4.21, 1.26, -1.16) rot=(12.32, 5.27, 0.00) fov=55
+settled minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.21, 0.00, 2.84)
+  camera=(-4.21, 1.26, -1.16) rot=(12.32, 5.27, 0.00) fov=55
+fall minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.21, 0.00, 2.84)
+  camera=(-4.21, 1.26, -1.16) rot=(12.32, 5.29, 0.00) fov=55
+fall minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.21, 0.00, 2.84)
+  camera=(-4.21, 1.26, -1.16) rot=(12.32, 5.29, 0.00) fov=55
+fall minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.21, 0.00, 2.84)
+  camera=(-4.21, 1.26, -1.16) rot=(12.32, 5.29, 0.00) fov=55
+fall minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.21, 0.00, 2.84)
+  camera=(-4.21, 1.26, -1.16) rot=(12.32, 5.29, 0.00) fov=55
+fall minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.21, 0.00, 2.84)
+  camera=(-4.21, 1.26, -1.16) rot=(12.32, 5.29, 0.00) fov=55
+transition q=3 stage=6 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.21, 0.00, 2.84)
+  camera=(-4.21, 1.26, -1.16) rot=(12.32, 5.29, 0.00) fov=55
+settled minY=0.00 q=3 stage=6 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.21, 0.00, 2.84)
+  camera=(-4.21, 1.26, -1.16) rot=(12.32, 5.29, 0.00) fov=55
+transition q=4 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Milez(Clone) pos=(1.60, 0.10, -4.32)
+  Aza(Clone) pos=(0.00, 0.93, 8.64)
+  camera=(-0.23, 2.76, 7.93) rot=(69.21, 13.04, 0.00) fov=54.9999
+settled minY=0.00 q=4 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Milez(Clone) pos=(1.60, 0.00, -4.32)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(1.37, 3.03, 3.42) rot=(19.83, 350.54, 359.94) fov=54.17487
+transition q=4 stage=2 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(1.60, 0.00, -4.32)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+settled minY=0.00 q=4 stage=2 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(1.60, 0.00, -4.32)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+transition q=4 stage=3 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(1.60, 0.00, -4.32)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=4 stage=3 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(-0.60, 0.00, -0.30)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+frame-sample stage=3 n=612 meanMs=11.44
+transition q=4 stage=4 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(-1.65, 0.00, 1.59)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=4 stage=4 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(-1.65, 0.00, 1.59)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=4 stage=5 Aopen=False Bopen=True board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(-1.65, 0.00, 1.59)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=4 stage=5 Aopen=False Bopen=True board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(-1.65, 0.00, 1.59)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=4 stage=5 Aopen=False Bopen=True board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(-1.65, 0.00, 1.59)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=4 stage=5 Aopen=False Bopen=True board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(-1.65, 0.00, 1.59)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=4 stage=5 Aopen=False Bopen=True board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(-1.65, 0.00, 1.59)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=4 stage=5 Aopen=False Bopen=True board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(-1.65, 0.00, 1.59)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=4 stage=5 Aopen=False Bopen=True board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(-1.65, 0.00, 1.59)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=4 stage=5 Aopen=False Bopen=True board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(-1.65, 0.00, 1.59)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=4 stage=5 Aopen=False Bopen=True board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(-1.65, 0.00, 1.59)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=4 stage=6 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(-1.65, 0.00, 1.59)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=4 stage=6 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(-1.65, 0.00, 1.59)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=5 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(3.20, 0.00, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(34.81, 36.98, 8.23) fov=40.08178
+settled minY=0.00 q=5 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(3.20, 0.00, -4.32)
+  camera=(1.70, 2.59, -8.40) rot=(26.20, 25.09, 2.66) fov=54.70178
+transition q=5 stage=2 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(3.20, 0.00, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=5 stage=2 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(3.20, 0.00, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=5 stage=3 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(3.20, 0.00, -4.32)
+  camera=(3.20, 1.26, -8.33) rot=(12.32, 5.29, 0.00) fov=55
+settled minY=0.00 q=5 stage=3 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(3.05, 0.00, 1.54)
+  camera=(3.05, 1.27, -2.77) rot=(11.46, 5.19, 0.00) fov=55
+frame-sample stage=3 n=634 meanMs=11.04
+transition q=5 stage=4 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(3.03, 0.00, 2.07)
+  camera=(3.03, 1.27, -1.94) rot=(12.31, 5.29, 0.00) fov=55
+settled minY=0.00 q=5 stage=4 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-2.43, 0.00, 3.79)
+  camera=(-2.03, 1.26, -0.34) rot=(12.02, 1.10, 0.00) fov=55
+transition q=5 stage=5 Aopen=True Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.15, -0.25, 4.34)
+  camera=(-4.15, 1.19, 0.33) rot=(13.37, 5.28, 0.00) fov=55
+fall minY=-0.25 q=5 stage=5 Aopen=True Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.15, -0.25, 4.34)
+  camera=(-4.15, 1.19, 0.33) rot=(13.37, 5.28, 0.00) fov=55
+fall minY=-3.64 q=5 stage=5 Aopen=True Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.15, -3.64, 4.34)
+  camera=(-4.15, -1.66, 0.99) rot=(18.78, 5.29, 0.00) fov=55
+fall minY=-7.00 q=5 stage=5 Aopen=True Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.15, -7.00, 4.34)
+  camera=(-4.15, -5.73, 0.33) rot=(12.47, 5.29, 0.00) fov=55
+settled minY=-7.00 q=5 stage=5 Aopen=True Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.15, -7.00, 4.34)
+  camera=(-4.15, -5.74, 0.33) rot=(12.38, 5.29, 0.00) fov=55
+fall minY=-7.00 q=5 stage=5 Aopen=True Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.15, -7.00, 4.34)
+  camera=(-4.15, -5.74, 0.33) rot=(12.36, 5.29, 0.00) fov=55
+fall minY=-7.00 q=5 stage=5 Aopen=True Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.15, -7.00, 4.34)
+  camera=(-4.15, -5.74, 0.33) rot=(12.36, 5.29, 0.00) fov=55
+fall minY=-7.00 q=5 stage=5 Aopen=True Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.15, -7.00, 4.34)
+  camera=(-4.15, -5.74, 0.33) rot=(12.36, 5.29, 0.00) fov=55
+fall minY=-7.00 q=5 stage=5 Aopen=True Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.15, -7.00, 4.34)
+  camera=(-4.15, -5.74, 0.33) rot=(12.35, 5.29, 0.00) fov=55
+fall minY=-7.00 q=5 stage=5 Aopen=True Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.15, -7.00, 4.34)
+  camera=(-4.15, -5.74, 0.33) rot=(12.35, 5.29, 0.00) fov=55
+transition q=5 stage=6 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-1.62, 0.00, -4.31)
+  camera=(-1.79, 0.60, -5.30) rot=(16.21, 343.58, 0.00) fov=55
+settled minY=0.00 q=5 stage=6 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-1.63, 0.00, -4.31)
+  camera=(-1.63, 1.26, -8.31) rot=(12.34, 5.29, 0.00) fov=55
+transition q=6 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Milez(Clone) pos=(-3.20, 0.10, -4.32)
+  Aza(Clone) pos=(0.00, 1.16, 8.64)
+  camera=(-0.07, 2.95, 7.74) rot=(44.31, 7.75, 0.00) fov=54.99992
+settled minY=0.00 q=6 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Milez(Clone) pos=(-3.20, 0.00, -4.32)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(1.32, 3.01, 3.57) rot=(4.49, 350.48, 359.94) fov=53.68167
+transition q=6 stage=2 Aopen=False Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Milez(Clone) pos=(-3.20, 0.00, -4.32)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+settled minY=0.00 q=6 stage=2 Aopen=False Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Milez(Clone) pos=(-3.20, 0.00, -4.32)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+transition q=6 stage=3 Aopen=False Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Milez(Clone) pos=(-3.20, 0.00, -4.32)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=6 stage=3 Aopen=False Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Milez(Clone) pos=(0.78, 0.00, -1.82)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+frame-sample stage=3 n=635 meanMs=11.00
+transition q=6 stage=4 Aopen=False Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Milez(Clone) pos=(4.63, 0.00, 0.60)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=6 stage=4 Aopen=False Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Milez(Clone) pos=(4.63, 0.00, 0.60)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=6 stage=5 Aopen=True Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Milez(Clone) pos=(4.63, 0.00, 0.60)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=6 stage=5 Aopen=True Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Milez(Clone) pos=(4.63, 0.00, 0.60)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=6 stage=5 Aopen=True Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Milez(Clone) pos=(4.63, 0.00, 0.60)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=6 stage=5 Aopen=True Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Milez(Clone) pos=(4.63, 0.00, 0.60)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=6 stage=5 Aopen=True Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Milez(Clone) pos=(4.63, 0.00, 0.60)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=6 stage=5 Aopen=True Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Milez(Clone) pos=(4.63, 0.00, 0.60)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=6 stage=5 Aopen=True Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Milez(Clone) pos=(4.63, 0.00, 0.60)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=6 stage=5 Aopen=True Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Milez(Clone) pos=(4.63, 0.00, 0.60)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=6 stage=5 Aopen=True Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Milez(Clone) pos=(4.63, 0.00, 0.60)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=6 stage=5 Aopen=True Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Milez(Clone) pos=(4.63, 0.00, 0.60)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=6 stage=6 Aopen=False Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Milez(Clone) pos=(4.63, 0.00, 0.60)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=6 stage=6 Aopen=False Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Milez(Clone) pos=(4.63, 0.00, 0.60)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=7 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-1.60, 0.00, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(25.80, 339.42, 355.50) fov=40.04158
+settled minY=0.00 q=7 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-1.60, 0.00, -4.32)
+  camera=(-0.84, 2.60, -8.40) rot=(27.66, 355.03, 359.45) fov=54.69558
+transition q=7 stage=2 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-1.60, 0.00, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=7 stage=2 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-1.60, 0.00, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=7 stage=3 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-1.60, 0.00, -4.32)
+  camera=(-1.60, 1.26, -8.33) rot=(12.33, 5.29, 0.00) fov=55
+settled minY=0.00 q=7 stage=3 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-3.71, 0.00, 1.06)
+  camera=(-3.57, 1.26, -3.31) rot=(11.42, 3.77, 0.00) fov=55
+frame-sample stage=3 n=648 meanMs=10.80
+transition q=7 stage=4 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.70, 0.00, 3.56)
+  camera=(-4.70, 1.26, -0.44) rot=(12.32, 5.27, 0.00) fov=55
+settled minY=0.00 q=7 stage=4 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.70, 0.00, 3.56)
+  camera=(-4.70, 1.26, -0.44) rot=(12.32, 5.27, 0.00) fov=55
+transition q=7 stage=5 Aopen=True Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.70, -0.07, 3.56)
+  camera=(-4.70, 1.25, -0.44) rot=(12.56, 5.28, 0.00) fov=55
+fall minY=-0.07 q=7 stage=5 Aopen=True Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.70, -0.07, 3.56)
+  camera=(-4.70, 1.25, -0.44) rot=(12.56, 5.28, 0.00) fov=55
+fall minY=-3.24 q=7 stage=5 Aopen=True Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.70, -3.24, 3.56)
+  camera=(-4.70, -1.26, 1.00) rot=(24.86, 5.29, 0.00) fov=55
+fall minY=-7.00 q=7 stage=5 Aopen=True Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.70, -7.00, 3.56)
+  camera=(-4.70, -5.73, -0.44) rot=(12.56, 5.29, 0.00) fov=55
+settled minY=-7.00 q=7 stage=5 Aopen=True Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.70, -7.00, 3.56)
+  camera=(-4.70, -5.74, -0.44) rot=(12.38, 5.29, 0.00) fov=55
+fall minY=-7.00 q=7 stage=5 Aopen=True Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.70, -7.00, 3.56)
+  camera=(-4.70, -5.74, -0.44) rot=(12.36, 5.29, 0.00) fov=55
+fall minY=-7.00 q=7 stage=5 Aopen=True Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.70, -7.00, 3.56)
+  camera=(-4.70, -5.74, -0.44) rot=(12.35, 5.29, 0.00) fov=55
+fall minY=-7.00 q=7 stage=5 Aopen=True Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.70, -7.00, 3.56)
+  camera=(-4.70, -5.74, -0.44) rot=(12.35, 5.29, 0.00) fov=55
+fall minY=-7.00 q=7 stage=5 Aopen=True Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.70, -7.00, 3.56)
+  camera=(-4.70, -5.74, -0.44) rot=(12.35, 5.29, 0.00) fov=55
+fall minY=-7.00 q=7 stage=5 Aopen=True Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-4.70, -7.00, 3.56)
+  camera=(-4.70, -5.74, -0.44) rot=(12.35, 5.29, 0.00) fov=55
+transition q=7 stage=6 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-1.60, 0.00, -4.31)
+  camera=(-1.91, 0.29, -5.16) rot=(3.10, 342.53, 0.00) fov=55
+settled minY=0.00 q=7 stage=6 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Milez(Clone) pos=(0.00, 0.72, 8.64)
+  Aza(Clone) pos=(-1.60, 0.00, -4.31)
+  camera=(-1.60, 1.26, -8.31) rot=(12.34, 5.29, 0.00) fov=55
+transition q=8 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Milez(Clone) pos=(0.00, 0.10, -4.32)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-0.06, 2.62, 7.92) rot=(69.90, 6.85, 0.00) fov=54.99993
+settled minY=0.00 q=8 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Milez(Clone) pos=(0.00, 0.00, -4.32)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(1.36, 3.03, 3.46) rot=(20.00, 350.56, 359.94) fov=54.19104
+transition q=8 stage=2 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Milez(Clone) pos=(0.00, 0.00, -4.32)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+settled minY=0.00 q=8 stage=2 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Milez(Clone) pos=(0.00, 0.00, -4.32)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+transition q=8 stage=3 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Milez(Clone) pos=(0.00, 0.00, -4.32)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=8 stage=3 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Milez(Clone) pos=(-1.94, 0.00, -0.15)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+frame-sample stage=3 n=643 meanMs=10.88
+transition q=8 stage=4 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Milez(Clone) pos=(-3.63, 0.00, 3.47)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=8 stage=4 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Milez(Clone) pos=(0.99, 0.00, 2.22)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=8 stage=5 Aopen=True Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Milez(Clone) pos=(3.78, 0.01, 1.47)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=8 stage=5 Aopen=True Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Milez(Clone) pos=(3.78, 0.01, 1.47)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=8 stage=5 Aopen=True Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Milez(Clone) pos=(3.78, 0.01, 1.47)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=8 stage=5 Aopen=True Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Milez(Clone) pos=(3.78, 0.00, 1.47)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=8 stage=5 Aopen=True Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Milez(Clone) pos=(3.78, 0.01, 1.47)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=8 stage=5 Aopen=True Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Milez(Clone) pos=(3.78, 0.01, 1.47)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=8 stage=5 Aopen=True Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Milez(Clone) pos=(3.78, 0.00, 1.47)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=8 stage=5 Aopen=True Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Milez(Clone) pos=(3.78, 0.00, 1.47)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=8 stage=5 Aopen=True Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Milez(Clone) pos=(3.78, 0.01, 1.47)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=8 stage=5 Aopen=True Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Milez(Clone) pos=(3.78, 0.00, 1.47)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=8 stage=6 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Milez(Clone) pos=(3.78, 0.00, 1.47)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=8 stage=6 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Milez(Clone) pos=(3.78, 0.01, 1.47)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=8 stage=0 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Milez(Clone) pos=(3.78, 0.01, 1.47)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+RESULTS q=8 stage=0 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Milez(Clone) pos=(3.78, 0.01, 1.47)
+  Aza(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40

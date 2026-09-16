@@ -1,0 +1,122 @@
+Exam original hall observation
+transition q=2 stage=2 Aopen=False Bopen=False board=Отпуск в горах или на море? | А)  Горы | Б)  Море
+  Player_2 pos=(5.82, 0.00, 2.31)
+  Player_1 pos=(-3.03, 0.00, -2.17)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(-1.60, 0.05, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=2 stage=2 Aopen=False Bopen=False board=Отпуск в горах или на море? | А)  Горы | Б)  Море
+  Player_2 pos=(5.82, 0.00, 2.31)
+  Player_1 pos=(-3.03, 0.00, -2.17)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(-1.60, 0.05, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=2 stage=3 Aopen=False Bopen=False board=Отпуск в горах или на море? | А)  Горы | Б)  Море
+  Player_2 pos=(5.82, 0.00, 2.31)
+  Player_1 pos=(-3.03, 0.00, -2.17)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(-1.60, 0.05, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=2 stage=3 Aopen=False Bopen=False board=Отпуск в горах или на море? | А)  Горы | Б)  Море
+  Player_2 pos=(0.07, 0.00, 1.63)
+  Player_1 pos=(-4.66, 0.00, -0.15)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(-4.03, 0.00, -0.50)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+frame-sample stage=3 n=871 meanMs=8.04
+transition q=2 stage=4 Aopen=False Bopen=False board=Отпуск в горах или на море? | А)  Горы | Б)  Море
+  Player_2 pos=(-2.45, 0.00, 1.33)
+  Player_1 pos=(-5.61, 0.00, 0.56)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(-4.94, 0.00, 0.84)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=2 stage=4 Aopen=False Bopen=False board=Отпуск в горах или на море? | А)  Горы | Б)  Море
+  Player_2 pos=(-2.45, 0.00, 1.33)
+  Player_1 pos=(-5.61, 0.00, 0.56)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(-4.94, 0.00, 0.84)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=2 stage=5 Aopen=True Bopen=False board=Отпуск в горах или на море? | А)  Горы | Б)  Море
+  Player_2 pos=(-2.45, 0.00, 1.33)
+  Player_1 pos=(-5.61, 0.00, 0.56)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(-4.94, 0.00, 0.84)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=2 stage=5 Aopen=True Bopen=False board=Отпуск в горах или на море? | А)  Горы | Б)  Море
+  Player_2 pos=(-2.45, 0.00, 1.33)
+  Player_1 pos=(-5.61, 0.00, 0.56)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(-4.94, 0.00, 0.84)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-2.80 q=2 stage=5 Aopen=True Bopen=False board=Отпуск в горах или на море? | А)  Горы | Б)  Море
+  Player_2 pos=(-2.45, -2.80, 1.33)
+  Player_1 pos=(-5.61, 0.00, 0.56)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(-4.94, 0.00, 0.84)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.18 q=2 stage=5 Aopen=True Bopen=False board=Отпуск в горах или на море? | А)  Горы | Б)  Море
+  Player_2 pos=(-2.45, -7.00, 1.33)
+  Player_1 pos=(-5.61, 0.00, 0.56)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(-4.94, 0.00, 0.84)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=-7.18 q=2 stage=5 Aopen=True Bopen=False board=Отпуск в горах или на море? | А)  Горы | Б)  Море
+  Player_2 pos=(-2.45, -7.00, 1.33)
+  Player_1 pos=(-5.61, 0.00, 0.56)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(-4.94, 0.00, 0.84)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.18 q=2 stage=5 Aopen=True Bopen=False board=Отпуск в горах или на море? | А)  Горы | Б)  Море
+  Player_2 pos=(-2.45, -7.00, 1.33)
+  Player_1 pos=(-5.61, 0.00, 0.56)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(-4.94, 0.00, 0.84)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.18 q=2 stage=5 Aopen=True Bopen=False board=Отпуск в горах или на море? | А)  Горы | Б)  Море
+  Player_2 pos=(-2.45, -7.00, 1.33)
+  Player_1 pos=(-5.61, 0.00, 0.56)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(-4.94, 0.00, 0.84)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.18 q=2 stage=5 Aopen=True Bopen=False board=Отпуск в горах или на море? | А)  Горы | Б)  Море
+  Player_2 pos=(-2.45, -7.00, 1.33)
+  Player_1 pos=(-5.61, 0.00, 0.56)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(-4.94, 0.00, 0.84)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.18 q=2 stage=5 Aopen=True Bopen=False board=Отпуск в горах или на море? | А)  Горы | Б)  Море
+  Player_2 pos=(-2.45, -7.00, 1.33)
+  Player_1 pos=(-5.61, 0.00, 0.56)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(-4.94, 0.00, 0.84)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.18 q=2 stage=5 Aopen=True Bopen=False board=Отпуск в горах или на море? | А)  Горы | Б)  Море
+  Player_2 pos=(-2.45, -7.00, 1.33)
+  Player_1 pos=(-5.61, 0.00, 0.56)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(-4.94, 0.00, 0.84)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=2 stage=6 Aopen=False Bopen=False board=Отпуск в горах или на море? | А)  Горы | Б)  Море
+  Player_2 pos=(-2.45, -7.00, 1.33)
+  Player_1 pos=(-5.61, 0.00, 0.56)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(-4.94, 0.00, 0.84)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=-7.00 q=2 stage=6 Aopen=False Bopen=False board=Отпуск в горах или на море? | А)  Горы | Б)  Море
+  Player_2 pos=(-1.60, 0.05, -4.32)
+  Player_1 pos=(-5.61, 0.00, 0.56)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(-4.94, 0.00, 0.84)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=3 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_2 pos=(-1.60, 0.05, -4.32)
+  Player_1 pos=(-5.61, 0.00, 0.56)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(-4.94, 0.00, 0.84)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=3 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_2 pos=(-1.60, 0.05, -4.32)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(0.00, 0.05, -4.32)
+  Player_4 pos=(-4.94, 0.00, 0.84)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
