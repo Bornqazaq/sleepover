@@ -8,35 +8,20 @@ using Igruha.Minigames.Exam;
 namespace Igruha.EditorTools
 {
     /// <summary>
-    /// Эффекты «Экзамена» — подфаза 4.4. Ставит системы частиц на арену
-    /// и перецепляет на них runtime-компонент <see cref="ExamEffects"/>.
-    ///
-    /// <b>Эффект ставится рядом с объектом, а не внутрь его подвижных частей.</b>
-    /// Пыль шва живёт на платформе, а не на створке: створка уезжает вниз
-    /// на 110°, и вложенный в неё партикл уехал бы вместе с ней ровно в тот
-    /// момент, ради которого его и ставили.
-    ///
-    /// <b>Партиклы пака переводятся в ручной запуск.</b> Все FX Synty приходят
-    /// с <c>playOnAwake</c> и зацикливанием: оставь как есть — и пыль будет
-    /// висеть над платформами весь матч.
-    ///
-    /// <b>Размер частицы считается от дистанции кадра, а не копируется.</b>
-    /// «Верю / не верю» убавляла пыль пака с 0.15 до 0.025 — там камера стоит
-    /// в полутора метрах от стола, и родная частица была хлопьями в ладонь.
-    /// Здесь камера зала в пятнадцати метрах от платформ, и на 0.05 м пыль
-    /// вышла невидимой: рендер приёмки показал десяток белых точек вместо
-    /// облака. Взято 0.22 — крупнее родной, потому что и сцена крупнее.
+    /// Original procedural dust and pit haze. Effects use the existing local
+    /// door state on host and client; no separate result timer or network state.
+    /// Systems live outside moving leaves and use our own radial alpha texture.
     /// </summary>
     internal static class ExamVfx
     {
-        private const string DustPath = "Assets/Synty/PolygonParticleFX/Prefabs/FX_Dust_Small_01.prefab";
-        private const string GlowPath = "Assets/Synty/PolygonParticleFX/Prefabs/FX_GlowSpot_02.prefab";
+        private const string DustPath = "OriginalDust";
+        private const string GlowPath = "OriginalGlow";
 
         /// <summary>
         /// Размер частицы пыли. Подобран под дистанцию камеры зала — пятнадцать
         /// метров до платформ, — а не по чужому числу из другой игры.
         /// </summary>
-        private const float DustSize = 0.22f;
+        private const float DustSize = 0.30f;
 
         private static readonly List<string> Notes = new List<string>(4);
         private static int systems;
@@ -58,6 +43,8 @@ namespace Igruha.EditorTools
             systems = 0;
             capacity = 0;
 
+            var previous = arena.transform.Find("Effects");
+            if (previous != null) Object.DestroyImmediate(previous.gameObject);
             Transform root = Group(arena.transform, "Effects");
 
             var component = arena.GetComponent<ExamEffects>();
@@ -73,6 +60,10 @@ namespace Igruha.EditorTools
             EditorUtility.SetDirty(component);
 
             BuildPit(root, config);
+            BuildSunDust(root);
+            var allSystems=root.GetComponentsInChildren<ParticleSystem>(true);systems=allSystems.Length;capacity=0;
+            foreach(var system in allSystems)capacity+=system.main.maxParticles;
+
         }
 
         /// <summary>
@@ -97,19 +88,38 @@ namespace Igruha.EditorTools
             // Шов: узкая полоса ровно по линии, где расходятся половины.
             ParticleSystem seam = Dust(group, "SeamDust", centre + new Vector3(0f, 0.05f, 0f),
                 new Vector3(0.35f, 0.05f, config.PlatformDepth * 0.95f),
-                new Vector3(0f, 0.9f, 0f), 95, 1.1f, 1.6f);
+                new Vector3(0f, 0.9f, 0f), 60, .7f, 1.2f);
 
             // Труха по периметру проёма, сыплющаяся вниз. Скорость направлена
             // в яму: это то, что делает провал провалом, а не исчезновением.
             ParticleSystem rim = Dust(group, "RimDust", centre + new Vector3(0f, -0.15f, 0f),
                 new Vector3(config.PlatformWidth * 0.98f, 0.1f, config.PlatformDepth * 0.98f),
-                new Vector3(0f, -2.2f, 0f), 80, 1.4f, 2.2f);
+                new Vector3(0f, -2.2f, 0f), 48, 1.2f, 1.6f);
 
             // Хлопок при закрытии: короче и выше, чем труха.
             ParticleSystem close = Dust(group, "CloseDust", centre + new Vector3(0f, 0.06f, 0f),
                 new Vector3(config.PlatformWidth * 0.98f, 0.05f, config.PlatformDepth * 0.98f),
-                new Vector3(0f, 0.6f, 0f), 65, 0.8f, 1.2f);
+                new Vector3(0f, 0.6f, 0f), 40, .6f, 1f);
 
+            var mechanism=platform.GetComponent<ExamHatchMechanism>();
+            if(mechanism!=null)
+            {
+                var steam=Dust(group,"PressureRelease",centre+Vector3.down*.15f,
+                    new Vector3(config.PlatformWidth*.9f,.08f,config.PlatformDepth*.80f),Vector3.up*2.8f,32,.4f,.85f);
+                var sm=steam.main;sm.startSize=new ParticleSystem.MinMaxCurve(.25f,.58f);sm.startColor=new Color(.78f,.72f,.59f,.23f);
+                mechanism.Steam=steam;
+                var paper=Dust(group,"ExamPapers",centre+Vector3.down*.1f,
+                    new Vector3(config.PlatformWidth*.75f,.08f,config.PlatformDepth*.7f),Vector3.up*2.2f,18,.5f,2.4f);
+                var pm=paper.main;pm.startSize=new ParticleSystem.MinMaxCurve(.7f,1.3f);pm.gravityModifier=.32f;
+                pm.startRotation3D=true;pm.startRotationX=new ParticleSystem.MinMaxCurve(-3.14f,3.14f);
+                pm.startRotationY=new ParticleSystem.MinMaxCurve(-3.14f,3.14f);
+                var rot=paper.rotationOverLifetime;rot.enabled=true;rot.separateAxes=true;
+                rot.x=new ParticleSystem.MinMaxCurve(-4f,4f);rot.y=new ParticleSystem.MinMaxCurve(-3f,3f);rot.z=new ParticleSystem.MinMaxCurve(-2f,2f);
+                var pr=paper.GetComponent<ParticleSystemRenderer>();pr.renderMode=ParticleSystemRenderMode.Mesh;
+                pr.mesh=PaperMesh();pr.sharedMaterial=ExamHallAssets.Material("Paper");
+                var fade=paper.colorOverLifetime;fade.enabled=false;
+                mechanism.Papers=paper;EditorUtility.SetDirty(mechanism);
+            }
             var bands = new List<Renderer>(4);
             Transform bandGroup = platform.Find("HatchBand");
             if (bandGroup != null)
@@ -198,7 +208,7 @@ namespace Igruha.EditorTools
             lamp.type = LightType.Point;
             lamp.range = config.PitDepth * 1.3f;
             lamp.intensity = 2.8f;
-            lamp.color = new Color(0.62f, 0.70f, 0.88f);
+            lamp.color = new Color(0.72f, 0.62f, 0.43f);
             lamp.shadows = LightShadows.None;
 
             ParticleSystem haze = Dust(group, "PitHaze",
@@ -223,8 +233,7 @@ namespace Igruha.EditorTools
         }
 
         /// <summary>
-        /// Пылевая система с ручным запуском: пак приходит зацикленным
-        /// и играющим с первого кадра, а нам нужен один залп по событию.
+        /// Собственная пылевая система: один залп по событию открытия или закрытия.
         /// </summary>
         private static ParticleSystem Dust(Transform parent, string name, Vector3 position, Vector3 box,
             Vector3 velocity, int burst, float duration, float lifetime)
@@ -242,7 +251,7 @@ namespace Igruha.EditorTools
             main.startLifetime = lifetime;
             main.startSize = DustSize;
             main.startSpeed = 0f;
-            main.startColor = new Color(0.78f, 0.74f, 0.68f, 0.75f);
+            main.startColor = new Color(0.64f, 0.52f, 0.36f, 0.32f);
             main.gravityModifier = 0.08f;
             main.maxParticles = Mathf.Max(burst * 2, 32);
             main.simulationSpace = ParticleSystemSimulationSpace.World;
@@ -273,40 +282,70 @@ namespace Igruha.EditorTools
 
         private static ParticleSystem Spawn(Transform parent, string name, string path, Vector3 position)
         {
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-            if (prefab == null)
-            {
-                Note($"эффект не найден: {path}");
-                return null;
-            }
-
-            var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
-            go.name = name;
-            go.transform.position = position;
-            go.transform.localRotation = Quaternion.identity;
-
-            // Коллайдеры срезаются и здесь. Эффект, ловящий броски и толчки, —
-            // это не эффект, а невидимая преграда посреди арены.
-            foreach (Collider collider in go.GetComponentsInChildren<Collider>(true))
-            {
-                Object.DestroyImmediate(collider, true);
-            }
-
-            foreach (Renderer renderer in go.GetComponentsInChildren<Renderer>(true))
-            {
-                renderer.shadowCastingMode = ShadowCastingMode.Off;
-                renderer.receiveShadows = false;
-            }
-
-            SetLayer(go, LayerMask.NameToLayer("Default"));
-
-            var effect = go.GetComponentInChildren<ParticleSystem>(true);
-            if (effect == null)
-            {
-                Note($"у {name} нет системы частиц");
-            }
-
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false); go.transform.position = position;
+            var effect = go.AddComponent<ParticleSystem>();
+            effect.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = effect.main; main.playOnAwake = false; main.loop = false;
+            var renderer = effect.GetComponent<ParticleSystemRenderer>();
+            renderer.sharedMaterial = DustMaterial(); renderer.shadowCastingMode = ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            var fade = effect.colorOverLifetime; fade.enabled = true;
+            var gradient = new Gradient();
+            gradient.SetKeys(new[] { new GradientColorKey(Color.white, 0), new GradientColorKey(Color.white, 1) },
+                new[] { new GradientAlphaKey(0, 0), new GradientAlphaKey(1, .12f), new GradientAlphaKey(0, 1) });
+            fade.color = gradient;
             return effect;
+        }
+
+        private static Material DustMaterial()
+        {
+            string path = ExamHallAssets.Materials + "/EH_Dust.mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            bool createMaterial=material==null;
+            if(createMaterial) material = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
+            material.SetFloat("_Surface", 1); material.SetFloat("_Blend", 0);
+            material.SetFloat("_ZWrite", 0); material.SetFloat("_Cull", 0);
+            material.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
+            material.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
+            material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT"); material.renderQueue = 3000;
+            string texPath = ExamHallAssets.Art + "/Textures/EH_Dust.asset";
+            var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(texPath);
+            bool createTexture=tex==null;
+            {
+                const int n = 64;
+                if(createTexture)tex = new Texture2D(n, n, TextureFormat.RGBA32, false) { name = "EH_Dust", wrapMode = TextureWrapMode.Clamp };
+                var pixels = new Color[n*n];
+                for (int y=0;y<n;y++) for(int x=0;x<n;x++)
+                {
+                    float r = new Vector2((x+.5f)/n*2-1,(y+.5f)/n*2-1).magnitude;
+                    float noise=Mathf.Clamp01((.60f*Mathf.PerlinNoise(3.1f+x*.07f,9.7f+y*.07f)+.30f*Mathf.PerlinNoise(13.4f+x*.19f,2.3f+y*.19f)+.10f*Mathf.PerlinNoise(5.7f+x*.41f,8.9f+y*.41f))*1.8f-.3f);
+                    float cloud=Mathf.Pow(Mathf.Clamp01(1-r),1.45f)*Mathf.Clamp01(noise);
+                    pixels[y*n+x] = new Color(1,1,1,cloud);
+                }
+                tex.SetPixels(pixels); tex.Apply(); if(createTexture)AssetDatabase.CreateAsset(tex,texPath);else EditorUtility.SetDirty(tex);
+            }
+            material.SetTexture("_BaseMap",tex); if(createMaterial)AssetDatabase.CreateAsset(material,path);else EditorUtility.SetDirty(material);
+            return material;
+        }
+
+        private static Mesh PaperMesh()
+        {
+            string path=ExamHallAssets.Art+"/Models/EH_ParticleSheet.asset";
+            var mesh=AssetDatabase.LoadAssetAtPath<Mesh>(path);
+            if(mesh!=null)return mesh;
+            // Metre-scale copy of the same folded sheet authored in the Blender kit.
+            mesh=new Mesh{name="EH_ParticleSheet"};
+            mesh.vertices=new[]{new Vector3(-.12f,0,-.17f),new Vector3(.12f,.02f,-.17f),new Vector3(.12f,.045f,0),new Vector3(-.12f,.025f,0),new Vector3(-.12f,-.005f,.17f),new Vector3(.12f,.015f,.17f)};
+            mesh.triangles=new[]{0,2,1,0,3,2,3,5,2,3,4,5,0,1,2,0,2,3,3,2,5,3,5,4};
+            mesh.RecalculateNormals();mesh.RecalculateBounds();AssetDatabase.CreateAsset(mesh,path);return mesh;
+        }
+        private static void BuildSunDust(Transform root)
+        {
+            var dust=Dust(root,"SunMotes",new Vector3(0,2.8f,-1),new Vector3(15,4.2f,14),Vector3.up*.06f,0,8,10);
+            var main=dust.main;main.loop=true;main.playOnAwake=true;main.startSize=new ParticleSystem.MinMaxCurve(.014f,.035f);
+            main.startColor=new Color(1,.85f,.54f,.30f);main.maxParticles=90;main.gravityModifier=0;
+            var em=dust.emission;em.rateOverTime=8;
         }
 
         private static Transform Group(Transform parent, string name)
@@ -340,7 +379,7 @@ namespace Igruha.EditorTools
         internal static string Report()
         {
             var report = new StringBuilder();
-            report.Append("✨ «Экзамен», эффекты 4.4 — ")
+            report.Append("✨ «Экзамен», собственные эффекты — ")
                 .Append(systems).Append(" систем частиц, потолок ").Append(capacity).Append(" частиц");
             report.Append("\n   новых сетевых событий 0: эффекты смотрят на створки, которые игра уже раскрыла у всех");
 

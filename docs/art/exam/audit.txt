@@ -1,0 +1,90 @@
+Exam Hall functional art audit
+PASS original Blender art present
+PASS wired platformA
+PASS wired platformB
+PASS wired board
+PASS wired podiumStand
+PASS wired returnZone
+PASS wired podiumCameraRig
+PASS wired hallCameraRig
+PASS wired config
+PASS wired stageState
+PASS wired questionInput
+PASS all renderer materials/shaders resolved
+PASS no Synty/Polygon scene or runtime dependencies (0)
+PASS Platform_A contains player centre
+PASS Platform_A DoorLeft single authoritative floor collider
+PASS Blender leaf metres/orientation match collider
+PASS Platform_A DoorRight single authoritative floor collider
+PASS Blender leaf metres/orientation match collider
+PASS Platform_A four driven rams and both visual pivots
+PASS Platform_A release VFX wired
+PASS Platform_A all mechanism links resolved
+PASS Platform_A standable when closed
+PASS Platform_B contains player centre
+PASS Platform_B DoorLeft single authoritative floor collider
+PASS Blender leaf metres/orientation match collider
+PASS Platform_B DoorRight single authoritative floor collider
+PASS Blender leaf metres/orientation match collider
+PASS Platform_B four driven rams and both visual pivots
+PASS Platform_B release VFX wired
+PASS Platform_B all mechanism links resolved
+PASS Platform_B standable when closed
+PASS clear crossing x=-3.6
+PASS clear crossing x=-3.0
+PASS clear crossing x=-2.4
+PASS clear crossing x=-1.8
+PASS clear crossing x=-1.2
+PASS clear crossing x=-0.6
+PASS clear crossing x=0.0
+PASS clear crossing x=0.6
+PASS clear crossing x=1.2
+PASS clear crossing x=1.8
+PASS clear crossing x=2.4
+PASS clear crossing x=3.0
+PASS clear crossing x=3.6
+PASS eight student spawn markers
+PASS Spawn_Student_3 clear capsule
+PASS Spawn_Student_3 has floor
+PASS Spawn_Student_5 clear capsule
+PASS Spawn_Student_5 has floor
+PASS Spawn_Student_6 clear capsule
+PASS Spawn_Student_6 has floor
+PASS Spawn_Student_4 clear capsule
+PASS Spawn_Student_4 has floor
+PASS Spawn_Student_7 clear capsule
+PASS Spawn_Student_7 has floor
+PASS Spawn_Student_8 clear capsule
+PASS Spawn_Student_8 has floor
+PASS Spawn_Student_2 clear capsule
+PASS Spawn_Student_2 has floor
+PASS Spawn_Student_1 clear capsule
+PASS Spawn_Student_1 has floor
+PASS Spawn_Student_3 direct walk to Platform_A
+PASS Spawn_Student_3 direct walk to Platform_B
+PASS Spawn_Student_5 direct walk to Platform_A
+PASS Spawn_Student_5 direct walk to Platform_B
+PASS Spawn_Student_6 direct walk to Platform_A
+PASS Spawn_Student_6 direct walk to Platform_B
+PASS Spawn_Student_4 direct walk to Platform_A
+PASS Spawn_Student_4 direct walk to Platform_B
+PASS Spawn_Student_7 direct walk to Platform_A
+PASS Spawn_Student_7 direct walk to Platform_B
+PASS Spawn_Student_8 direct walk to Platform_A
+PASS Spawn_Student_8 direct walk to Platform_B
+PASS Spawn_Student_2 direct walk to Platform_A
+PASS Spawn_Student_2 direct walk to Platform_B
+PASS Spawn_Student_1 direct walk to Platform_A
+PASS Spawn_Student_1 direct walk to Platform_B
+PASS effect wired sideA.Platform
+PASS effect wired sideA.SeamDust
+PASS effect wired sideA.RimDust
+PASS effect wired sideA.CloseDust
+PASS effect wired sideB.Platform
+PASS effect wired sideB.SeamDust
+PASS effect wired sideB.RimDust
+PASS effect wired sideB.CloseDust
+PASS sound anchor does not move pit effects
+PASS accessible furniture collision uses Cover
+renderers=167 triangles=279124 materials=21 colliders=48
+failures=0

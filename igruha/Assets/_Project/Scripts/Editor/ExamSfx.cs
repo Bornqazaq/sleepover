@@ -62,7 +62,7 @@ namespace Igruha.EditorTools
             // оттуда, а не с платформы, — иначе он приходит сверху, из места,
             // которое игрок только что покинул.
             float platformsZ = config.HallDepth * 0.5f - config.PodiumDepth - 2.16f - config.PlatformDepth * 0.5f;
-            Transform pit = arena.transform.Find("Effects/Pit");
+            Transform pit = arena.transform.Find("PitSound");
             if (pit == null)
             {
                 var marker = new GameObject("PitSound");

@@ -1,0 +1,17 @@
+{
+  "job_id": "build-eaab8381a1",
+  "unity": "6000.3.11f1",
+  "platform": "StandaloneOSX",
+  "configuration": "development",
+  "output": "igruha/Builds/ExamHallTest/sleepover.app",
+  "scenes": [
+    "Boot",
+    "Hub",
+    "Exam"
+  ],
+  "errors": 0,
+  "warnings": 0,
+  "size_mb": 876.01,
+  "duration_seconds": 35.066139,
+  "completed_at_utc": "2026-09-15T07:10:20.329201Z"
+}
