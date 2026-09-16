@@ -13,12 +13,11 @@ using Object = UnityEngine.Object;
 
 namespace Igruha.EditorTools
 {
-    /// <summary>Original aquastage: octagonal entrances, recessed pool and tiered audience.</summary>
+    /// <summary>Sunlit retro aquatic pavilion with vaulted glazing and ceramic game gates.</summary>
     public static class HoleInWallStudioBuilder
     {
         private const string ScenePath = "Assets/_Project/Scenes/Minigames/HoleInWall.unity";
         private const string ConfigPath = "Assets/_Project/Settings/Gameplay/Minigames/HoleInWallConfig.asset";
-        private const float CeilingY = 15;
         private const float AudienceRowRise = .75f;
         private const int AudienceRows = 3;
         private static TMP_FontAsset font;
@@ -41,8 +40,6 @@ namespace Igruha.EditorTools
             var old = arena.Find("_Studio");
             if (old != null) Object.DestroyImmediate(old.gameObject);
             Transform studio = Group(arena, "_Studio");
-            MakeMaterial("Ink", new Color(.035f,.070f,.15f), .5f);
-            MakeMaterial("Blue", new Color(.055f,.23f,.52f), .4f, .05f);
             EnsureFont();
             Architecture(studio, config);
             PortalsAndBoards(studio, config, tracks);
@@ -73,67 +70,64 @@ namespace Igruha.EditorTools
 
         private static void Architecture(Transform studio, HoleInWallConfig c)
         {
-            Transform shell = Group(studio, "Architecture");
+            Transform shell = Group(studio, "Sunlit aquatic pavilion");
             float half = c.ArenaWidth * .5f;
             float far = c.ArenaFarZ + 9;
             float near = c.ArenaNearZ - 9;
             float centerZ = (far + near) * .5f;
             float floorY = HoleInWallProps.RimTopY(c) - .2f;
-            Panel(shell, "Far apron", new Vector3(0, floorY, c.ArenaFarZ + 4.5f),
-                new Vector3(c.ArenaWidth, .4f, 9), Mat("Ink"), true);
-            Panel(shell, "Near apron", new Vector3(0, floorY, c.ArenaNearZ - 4.5f),
-                new Vector3(c.ArenaWidth, .4f, 9), Mat("Ink"), true);
-            for (int s = -1; s <= 1; s += 2)
-            {
-                Panel(shell, "Side apron", new Vector3(s * (half + 4.5f), floorY, centerZ),
-                    new Vector3(9, .4f, far-near), Mat("Ink"), true);
-                Panel(shell, "Acoustic wall", new Vector3(s * (half + 9), 5.5f, centerZ),
-                    new Vector3(.6f, 19, far-near), Mat("Blue"), true);
-                for (float z = near+3; z < far-1; z += 4)
-                    Place(shell,"WallCassette",new Vector3(s*(half+8.55f),8.8f,z),s*90);
-                Panel(shell,"Wall dado",new Vector3(s*(half+8.55f),4.65f,centerZ),
-                    new Vector3(.35f,.20f,far-near-1),Mat("Gold"));
-                for (float z = c.ArenaNearZ+4; z < c.ArenaFarZ; z += 7)
-                {
-                    var lamp=Place(shell,"Spot",new Vector3(s*(half+2),2.1f,z), s*75);
-                    lamp.localScale=Vector3.one*1.3f;
-                }
-            }
-            Panel(shell,"Back wall",new Vector3(0,5.5f,far),new Vector3(c.ArenaWidth+18,19,.6f),Mat("Blue"),true);
-            Panel(shell,"Front wall",new Vector3(0,5.5f,near),new Vector3(c.ArenaWidth+18,19,.6f),Mat("Blue"),true);
-            Transform roof=Panel(shell,"Roof — open lighting grid",new Vector3(0,CeilingY,centerZ),
-                new Vector3(c.ArenaWidth+18,.35f,far-near),Mat("Ink"));
-            // This shell alone does not occlude the studio key; every solid prop casts.
-            roof.GetComponent<Renderer>().shadowCastingMode=ShadowCastingMode.Off;
-            for (float z=near+3;z<far-1;z+=5.4f)
-                for(float x=-half-4;x<half+5;x+=8)
-                {
-                    Transform coffer=Place(shell,"CeilingCoffer",new Vector3(x,CeilingY-.35f,z));
-                    coffer.GetComponent<Renderer>().shadowCastingMode=ShadowCastingMode.Off;
-                }
+            Panel(shell,"Far promenade",new Vector3(0,floorY,c.ArenaFarZ+4.5f),new Vector3(c.ArenaWidth,.4f,9),Mat("Ivory"),true);
+            Panel(shell,"Near promenade",new Vector3(0,floorY,c.ArenaNearZ-4.5f),new Vector3(c.ArenaWidth,.4f,9),Mat("Ivory"),true);
             for(int side=-1;side<=1;side+=2)
             {
-                Panel(shell,"Ceiling perimeter fascia",new Vector3(side*(half+8),13.9f,centerZ),
-                    new Vector3(1.2f,.8f,far-near),Mat("Blue"));
-                Panel(shell,"Ceiling perimeter light",new Vector3(side*(half+7.35f),13.65f,centerZ),
-                    new Vector3(.08f,.09f,far-near-1),Mat("Glow"));
+                Panel(shell,"Side promenade",new Vector3(side*(half+4.5f),floorY,centerZ),new Vector3(9,.4f,far-near),Mat("Ivory"),true);
+                Panel(shell,"Sunwashed masonry",new Vector3(side*(half+9),6,centerZ),new Vector3(.7f,17,far-near),Mat("Plaster"),true);
+                Panel(shell,"Ceramic wainscot",new Vector3(side*(half+8.58f),.2f,centerZ),new Vector3(.14f,4.5f,far-near),Mat("Mint"));
+                Panel(shell,"Gallery deck",new Vector3(side*(half+7.25f),4.9f,centerZ),new Vector3(3.2f,.48f,far-near),Mat("Ivory"));
+                Panel(shell,"Gallery fascia",new Vector3(side*(half+5.55f),4.85f,centerZ),new Vector3(.18f,.60f,far-near),Mat("Coral"));
+                for(float z=near+3;z<far-1;z+=6)
+                {
+                    Place(shell,"BathWindow",new Vector3(side*(half+8.55f),5.4f,z),side*90);
+                    float pierBottom=floorY+.2f;
+                    Panel(shell,"Gallery pier",new Vector3(side*(half+5.8f),(pierBottom+4.7f)*.5f,z-2.9f),new Vector3(.48f,4.7f-pierBottom,.48f),Mat("Ivory"));
+                    Place(shell,"BathRailing",new Vector3(side*(half+5.5f),5.18f,z),side*90);
+                }
+                foreach(float z in new[]{near+4,9f,far-4})
+                {
+                    Place(shell,"PlanterPalm",new Vector3(side*(half+4.5f),floorY+.2f,z),side*25);
+                    Place(shell,"Lifebuoy",new Vector3(side*(half+1.1f),floorY+.2f,z+2),side*90);
+                }
+                for(float z=near+2;z<far-1;z+=4)
+                    Place(shell,"TilePatch",new Vector3(side*(half+2),floorY+.235f,z));
             }
-            // The room itself is the hero: layered architectural arcs, no title billboard.
-            Place(shell,"StageVault",new Vector3(0,4.6f,far-.8f));
-            var innerVault=Place(shell,"StageVault",new Vector3(0,4.6f,far-3.2f));
-            innerVault.localScale=new Vector3(.96f,.96f,1);
-            for(int side=-1;side<=1;side+=2)
+            foreach(float z in new[]{far,near})
             {
-                Panel(shell,"Rear pilaster",new Vector3(side*26,7.0f,far-1.0f),new Vector3(1.6f,14,.8f),Mat("Ivory"));
-                Panel(shell,"Pilaster light channel",new Vector3(side*26,7.0f,far-1.48f),new Vector3(.12f,12,.08f),Mat("Glow"));
-            }
-            for(int row=0;row<2;row++)
+                bool back=z==far;
+                Panel(shell,"End masonry",new Vector3(0,6,z),new Vector3(c.ArenaWidth+18,17,.7f),Mat("Plaster"),true);
+                Panel(shell,"End ceramic plinth",new Vector3(0,.0f,z+(back?-.43f:.43f)),new Vector3(c.ArenaWidth+18,4.2f,.12f),Mat("Mint"));
                 for(int side=-1;side<=1;side+=2)
-                {
-                    Transform halo=Place(shell,"Halo",new Vector3(side*11,12.5f,1+row*12));
-                    halo.GetComponent<Renderer>().shadowCastingMode=ShadowCastingMode.Off;
-                }
-            Label(shell,"On air","●  В ЭФИРЕ",new Vector3(0,7.2f,near+.5f),new Vector2(10,1.5f),12,new Color(1,.3f,.24f)).transform.localRotation=Quaternion.Euler(0,180,0);
+                    for(int bay=0;bay<3;bay++)
+                        Place(shell,"BathWindow",new Vector3(side*(11.4f+bay*7.6f),5.7f,z+(back?-.48f:.48f)),back?0:180);
+                Place(shell,"SunMedallion",new Vector3(0,10.2f,z+(back?-.5f:.5f)),back?0:180);
+                Panel(shell,"Crown moulding",new Vector3(0,14.4f,z+(back?-.48f:.48f)),new Vector3(c.ArenaWidth+18,.45f,.55f),Mat("Ivory"));
+            }
+            // A high barrel vault with actual structural ribs and open daylight between them.
+            for(float z=near;z<=far;z+=6)
+                Place(shell,"BathRoofRib",new Vector3(0,11.5f,z));
+            for(int i=-5;i<=5;i++)
+            {
+                float x=i*5.1f;
+                float y=11.5f+9*Mathf.Sqrt(1-x*x/(31*31));
+                Panel(shell,"Glazing mullion",new Vector3(x,y,centerZ),new Vector3(.11f,.15f,far-near),Mat("Mint"));
+            }
+            var sky=Panel(shell,"Daylit skylight",new Vector3(0,22,centerZ),new Vector3(c.ArenaWidth+20,.1f,far-near+2),Mat("Glass"));
+            sky.GetComponent<Renderer>().shadowCastingMode=ShadowCastingMode.Off;
+            // Rear deck planting frames the playfield and remains behind every moving wall.
+            for(int side=-1;side<=1;side+=2)
+            {
+                var palm=Place(shell,"PlanterPalm",new Vector3(side*23.5f,floorY+.2f,c.ArenaFarZ+4),side*15);
+                palm.localScale=Vector3.one*1.5f;
+            }
         }
 
         private static void PortalsAndBoards(Transform studio,HoleInWallConfig c,HoleInWallTrack[] tracks)
@@ -144,9 +138,19 @@ namespace Igruha.EditorTools
             {
                 float x=c.TrackCenterX(i);
                 Color lane=HoleInWallPalette.LaneAccent(i);
-                Material accent=MakeMaterial("Lane"+i,lane,.35f,.05f,1.1f);
-                var portal=Place(entrances,"Portal",new Vector3(x,-.1f,c.WallStartZ+1.8f));
+                Material accent=MakeMaterial("Lane"+i,lane,.45f,0,.15f);
+                var portal=Place(entrances,"BathGate",new Vector3(x,-.1f,c.WallStartZ+1.8f));
                 portal.localScale=new Vector3((c.PlatformWidth+.8f)/9.4f,1,1);
+                float deckY=HoleInWallProps.RimTopY(c);
+                for(int side=-1;side<=1;side+=2)
+                {
+                    float footX=x+side*4.75f*portal.localScale.x;
+                    Panel(entrances,"Gate grounded pier",new Vector3(footX,(deckY-.1f)*.5f,c.WallStartZ+1.8f),
+                        new Vector3(.72f,-.1f-deckY,.82f),Mat("Ivory"),true);
+                    Panel(entrances,"Gate pier base",new Vector3(footX,deckY+.12f,c.WallStartZ+1.8f),
+                        new Vector3(1.15f,.24f,1.3f),Mat("Mint"));
+                }
+
                 // Only the emissive channel is lane coded; the architecture stays coherent.
                 var r=portal.GetComponent<Renderer>();
                 r.sharedMaterials=r.sharedMaterials.Select(m=>m.name=="HS_Glow"?accent:m).ToArray();
@@ -155,7 +159,7 @@ namespace Igruha.EditorTools
                 var instrument=Place(board,"Scoreboard",p);
                 var display=instrument.GetComponent<Renderer>();
                 display.sharedMaterials=display.sharedMaterials.Select(m=>m.name=="HS_Glow"?accent:m).ToArray();
-                Label(board,"Lane number",(i+1).ToString("00"),p+new Vector3(-1.88f,.10f,-.73f),new Vector2(1.05f,1.1f),8,lane);
+                Label(board,"Lane number",(i+1).ToString("00"),p+new Vector3(-1.88f,.10f,-.73f),new Vector2(1.05f,1.1f),8,new Color(.035f,.20f,.19f));
                 Label(board,"Score caption","ПРОХОДЫ",p+new Vector3(.55f,.94f,-.59f),new Vector2(2.8f,.35f),2.4f,new Color(.7f,.81f,.86f));
                 var score=Label(board,"ScoreLine","00",p+new Vector3(.55f,.18f,-.59f),new Vector2(2.7f,1.1f),11,Color.white);
                 var wall=Label(board,"WallLine","ОЖИДАНИЕ",p+new Vector3(.55f,-.63f,-.59f),new Vector2(3.0f,.38f),2.7f,lane);
@@ -173,8 +177,6 @@ namespace Igruha.EditorTools
                 for(int n=0;n<progress.Length;n++)indicators.GetArrayElementAtIndex(n).objectReferenceValue=progress[n];
                 so.FindProperty("accentColor").colorValue=lane;
                 so.ApplyModifiedPropertiesWithoutUndo();
-                for(int side=-1;side<=1;side+=2)
-                    Place(entrances,"Spot",new Vector3(x+side*4.7f,.5f,c.WallStartZ+2),0);
             }
         }
 
@@ -182,8 +184,8 @@ namespace Igruha.EditorTools
         {
             Transform tiers=Group(studio,"Audience tiers");
             Transform crowd=Group(studio,"Original audience");
-            Panel(tiers,"Rear stage foundation",new Vector3(0,.9f,c.ArenaFarZ+5.35f),
-                new Vector3(41,5.8f,3.2f),Mat("Ink"),true);
+            Panel(tiers,"Rear stage foundation",new Vector3(0,.8f,c.ArenaFarZ+5.35f),
+                new Vector3(41,6.1f,3.2f),Mat("Mint"),true);
             int count=0;
             for(int side=-1;side<=1;side+=2)
                 for(int row=0;row<AudienceRows;row++)
@@ -191,8 +193,10 @@ namespace Igruha.EditorTools
                     float x=side*(c.ArenaWidth*.5f+2.2f+row*1.5f);
                     float y=-.6f+row*AudienceRowRise;
                     float z=(c.ArenaFarZ+c.ArenaNearZ)*.5f;
-                    Panel(tiers,"Tier",new Vector3(x,y-.42f,z),new Vector3(1.6f,.84f,c.ArenaDepth-3),Mat("Ink"),true);
-                    Panel(tiers,"Tier trim",new Vector3(x-side*.77f,y-.05f,z),new Vector3(.09f,.12f,c.ArenaDepth-3),Mat("WarmGlow"));
+                    float baseY=HoleInWallProps.RimTopY(c);
+                    float tierHeight=y-baseY;
+                    Panel(tiers,"Grounded ceramic tier",new Vector3(x,baseY+tierHeight*.5f,z),new Vector3(1.6f,tierHeight,c.ArenaDepth-3),Mat("Mint"),true);
+                    Panel(tiers,"Tier trim",new Vector3(x-side*.77f,y-.05f,z),new Vector3(.09f,.12f,c.ArenaDepth-3),Mat("Ivory"));
                     for(float seatZ=c.ArenaNearZ+3;seatZ<c.ArenaFarZ-1;seatZ+=1.65f)
                     {
                         float yaw=side*90;
@@ -249,14 +253,14 @@ namespace Igruha.EditorTools
             for(float zz=c.ArenaNearZ+1;zz<c.ArenaFarZ;zz+=1.8f)
                 Panel(finish,"Pool tile seam",new Vector3(0,c.PoolBottomY+.014f,zz),new Vector3(c.ArenaWidth-.6f,.015f,.018f),Mat("Teal"));
             var water=arena.Find("Pool/Water").GetComponent<Renderer>().sharedMaterial;
-            water.SetColor("_ShallowColor",new Color(.025f,.58f,.61f));
-            water.SetColor("_DeepColor",new Color(.012f,.32f,.39f));
+            water.SetColor("_ShallowColor",new Color(.13f,.73f,.69f));
+            water.SetColor("_DeepColor",new Color(.025f,.42f,.47f));
             water.SetFloat("_RippleStrength",.065f);
             water.SetFloat("_RippleScale",1.15f);
             water.SetFloat("_WaveHeight",.055f);
             water.SetFloat("_SpecStrength",1.5f);
             water.SetFloat("_SpecPower",150);
-            water.SetFloat("_FresnelStrength",.18f);
+            water.SetFloat("_FresnelStrength",.24f);
             water.SetFloat("_RefractionStrength",.012f);
             EditorUtility.SetDirty(water);
         }
@@ -269,16 +273,16 @@ namespace Igruha.EditorTools
                 Transform finish=Group(track,"Studio platform details");
                 Transform wallFinish=Group(track.Find("Wall"),"Studio wall frame");
                 float front=-c.WallThickness*.5f-.025f;
-                Panel(wallFinish,"Brushed top cap",new Vector3(0,c.WallHeight+.025f,0),
-                    new Vector3(c.WallWidth+.10f,.10f,c.WallThickness+.06f),Mat("Steel"));
+                Panel(wallFinish,"Folded cardboard top",new Vector3(0,c.WallHeight+.025f,0),
+                    new Vector3(c.WallWidth+.10f,.10f,c.WallThickness+.06f),Mat("Cardboard"));
                 Panel(wallFinish,"Top accent inlay",new Vector3(0,c.WallHeight-.075f,front),
                     new Vector3(c.WallWidth-.12f,.035f,.018f),Mat("Lane"+i));
                 for(int side=-1;side<=1;side+=2)
                 {
-                    Panel(wallFinish,"Edge guard",new Vector3(side*(c.WallWidth*.5f+.025f),c.WallHeight*.5f,0),
-                        new Vector3(.10f,c.WallHeight,c.WallThickness+.04f),Mat("Steel"));
+                    Panel(wallFinish,"Cardboard edge",new Vector3(side*(c.WallWidth*.5f+.025f),c.WallHeight*.5f,0),
+                        new Vector3(.10f,c.WallHeight,c.WallThickness+.04f),Mat("Cardboard"));
                     Panel(wallFinish,"Corner reinforcement",new Vector3(side*(c.WallWidth*.5f-.16f),c.WallHeight-.17f,front),
-                        new Vector3(.28f,.25f,.035f),Mat("Ink"));
+                        new Vector3(.28f,.25f,.035f),Mat("Ivory"));
                     Panel(wallFinish,"Corner fixing",new Vector3(side*(c.WallWidth*.5f-.16f),c.WallHeight-.17f,front-.035f),
                         new Vector3(.07f,.07f,.025f),Mat("Gold"));
                 }
@@ -312,38 +316,30 @@ namespace Igruha.EditorTools
             }
             var key=lighting==null?null:lighting.GetComponentInChildren<Light>(true);
             if(key==null)key=Group(studio,"Studio key").gameObject.AddComponent<Light>();
-            key.type=LightType.Directional;key.color=new Color(1,.94f,.84f);key.intensity=1.6f;
-            key.transform.rotation=Quaternion.Euler(52,-26,0);key.shadows=LightShadows.Soft;
-            key.shadowStrength=.88f;key.shadowBias=.035f;key.shadowNormalBias=.14f;
+            key.type=LightType.Directional;key.color=new Color(1,.88f,.68f);key.intensity=1.85f;
+            key.transform.rotation=Quaternion.Euler(48,-32,0);key.shadows=LightShadows.Soft;
+            key.shadowStrength=.8f;key.shadowBias=.035f;key.shadowNormalBias=.14f;
             RenderSettings.sun=key;
             RenderSettings.ambientMode=AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor=new Color(.27f,.38f,.57f);
-            RenderSettings.ambientEquatorColor=new Color(.16f,.21f,.31f);
-            RenderSettings.ambientGroundColor=new Color(.07f,.105f,.16f);
+            RenderSettings.ambientSkyColor=new Color(.58f,.73f,.78f);
+            RenderSettings.ambientEquatorColor=new Color(.36f,.47f,.43f);
+            RenderSettings.ambientGroundColor=new Color(.22f,.27f,.24f);
             RenderSettings.fog=false;
-            Transform lights=Group(studio,"Studio light fixtures");
-            for(int i=0;i<c.TrackCount;i++)
-            {
-                var p=new Vector3(c.TrackCenterX(i),11,8);
-                var lamp=Place(lights,"Spot",p,0);lamp.localRotation=Quaternion.Euler(55,0,0);
-                var light=Group(lights,"Lane softbox "+i).gameObject.AddComponent<Light>();
-                light.transform.position=p;
-                light.transform.rotation=Quaternion.LookRotation(new Vector3(c.TrackCenterX(i),0,0)-p);
-                light.type=LightType.Spot;light.color=new Color(.36f,.75f,1);light.intensity=360;
-                light.range=25;light.spotAngle=70;light.innerSpotAngle=40;
-                light.shadows=LightShadows.None;
-            }
+            // Broad reflected daylight; no floating fixture meshes in the playfield.
+            var fill=Group(studio,"Reflected pool daylight").gameObject.AddComponent<Light>();
+            fill.type=LightType.Directional;fill.color=new Color(.60f,.85f,1);fill.intensity=.35f;
+            fill.transform.rotation=Quaternion.Euler(25,155,0);fill.shadows=LightShadows.None;
             const string profilePath="Assets/_Project/Settings/Volumes/HoleInWall_OriginalStudio.asset";
             var profile=AssetDatabase.LoadAssetAtPath<VolumeProfile>(profilePath);
             if(profile==null){profile=ScriptableObject.CreateInstance<VolumeProfile>();AssetDatabase.CreateAsset(profile,profilePath);}
             if(!profile.TryGet(out Tonemapping tone))tone=profile.Add<Tonemapping>();
             tone.mode.Override(TonemappingMode.ACES);
             if(!profile.TryGet(out Bloom bloom))bloom=profile.Add<Bloom>();
-            bloom.intensity.Override(.24f);bloom.threshold.Override(1.15f);bloom.scatter.Override(.6f);
+            bloom.intensity.Override(.14f);bloom.threshold.Override(1.15f);bloom.scatter.Override(.6f);
             if(!profile.TryGet(out ColorAdjustments color))color=profile.Add<ColorAdjustments>();
-            color.postExposure.Override(.15f);color.contrast.Override(12);color.saturation.Override(13);
+            color.postExposure.Override(.10f);color.contrast.Override(8);color.saturation.Override(8);
             if(!profile.TryGet(out Vignette vignette))vignette=profile.Add<Vignette>();
-            vignette.intensity.Override(.17f);vignette.smoothness.Override(.55f);
+            vignette.intensity.Override(.08f);vignette.smoothness.Override(.55f);
             foreach (VolumeComponent component in profile.components)
             {
                 if (!AssetDatabase.Contains(component)) AssetDatabase.AddObjectToAsset(component, profile);
@@ -356,7 +352,7 @@ namespace Igruha.EditorTools
             if(camera!=null)
             {
                 camera.GetUniversalAdditionalCameraData().renderPostProcessing=true;
-                camera.clearFlags=CameraClearFlags.SolidColor;camera.backgroundColor=new Color(.015f,.025f,.055f);
+                camera.clearFlags=CameraClearFlags.SolidColor;camera.backgroundColor=new Color(.52f,.77f,.84f);
             }
         }
 
@@ -402,6 +398,14 @@ namespace Igruha.EditorTools
                     if(progress.GetArrayElementAtIndex(i).objectReferenceValue==null)
                         throw new InvalidOperationException("Missing scoreboard progress light.");
             }
+            var gatePiers=arena.GetComponentsInChildren<Transform>(true).Where(t=>t.name=="Gate grounded pier").ToArray();
+            if(gatePiers.Length!=c.TrackCount*2)throw new InvalidOperationException("Each game gate needs two grounded piers.");
+            foreach(var pier in gatePiers)
+            {
+                var bounds=pier.GetComponent<BoxCollider>().bounds;
+                if(Mathf.Abs(bounds.min.y-HoleInWallProps.RimTopY(c))>.01f || Mathf.Abs(bounds.max.y+.1f)>.01f)
+                    throw new InvalidOperationException("Gate pier does not connect deck and gate.");
+            }
             int missing=0;
             foreach(Transform t in arena.GetComponentsInChildren<Transform>(true))missing+=GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(t.gameObject);
             var renderers=arena.GetComponentsInChildren<Renderer>(true);
@@ -441,7 +445,9 @@ namespace Igruha.EditorTools
                 volume.sharedProfile.components.Any(component=>component==null||!AssetDatabase.Contains(component)))
                 throw new InvalidOperationException("Post processing must contain four persistent volume components.");
             string[] dependencies=AssetDatabase.GetDependencies(scene.path,true);
-            if(dependencies.Any(p=>p.Contains("HS_Marquee")))throw new InvalidOperationException("Removed title returned to the studio.");
+            string[] retired={"HS_Marquee","HS_Portal","HS_Spot","HS_Truss","HS_StageVault","HS_Halo","HS_WallCassette","HS_CeilingCoffer"};
+            if(dependencies.Any(p=>retired.Any(n=>p.EndsWith("/"+n+".fbx")||p.EndsWith("/"+n+".asset"))))
+                throw new InvalidOperationException("Retired studio model returned to the aquatic pavilion.");
             string[] purchased=dependencies.Where(p=>p.StartsWith("Assets/Synty/")||p.Contains("/HoleInWall/Polygon")).ToArray();
             if (purchased.Length > 0) throw new InvalidOperationException("Purchased art returned to the studio: " + string.Join(", ", purchased));
             Debug.Log("HIW Studio audit: boards="+boards.Length+", renderers="+renderers.Length+

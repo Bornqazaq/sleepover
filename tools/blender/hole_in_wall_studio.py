@@ -1,4 +1,4 @@
-"""Original television studio modules. Execute through Blender MCP.
+"""Original sunlit aquatic pavilion modules. Execute through Blender MCP.
 
 Creates its own scene; leaves the user's existing Blender scene untouched.
 Source library contains only this scene. Metres, Z up, FBX -Z/Y.
@@ -49,18 +49,28 @@ def material(name, color, roughness=.45, metallic=0, emission=0):
     palette.append(dict(name='HS_' + name, color=[*color, 1], roughness=roughness,
                         metallic=metallic, emission=emission))
 
-material('Ink', (.018,.033,.075), .55)
-material('Blue', (.026,.12,.34), .38, .2)
-material('Teal', (.015,.43,.52), .38, .15)
-material('Coral', (.95,.15,.19), .5)
-material('Ivory', (.86,.91,.87), .32)
-material('Gold', (.94,.55,.14), .3, .65)
+material('Ink', (.024,.115,.13), .65)
+material('Blue', (.055,.32,.34), .40)
+material('Teal', (.025,.60,.64), .35)
+material('Coral', (.92,.26,.17), .5)
+material('Ivory', (.96,.88,.70), .4)
+material('Gold', (.73,.43,.16), .4, .4)
 material('Steel', (.23,.32,.40), .32, .7)
-material('Glow', (.10,.84,1), .3, 0, 2)
-material('WarmGlow', (1,.64,.22), .35, 0, 2)
+material('Glow', (.24,.67,.61), .35, 0, .2)
+material('WarmGlow', (1,.76,.38), .35, 0, .4)
 material('Skin', (.72,.40,.25), .8)
 material('Hair', (.065,.032,.025), .85)
 material('White', (.97,.97,.88), .65)
+
+material('Mint', (.25,.57,.49), .45)
+material('Plaster', (.92,.68,.41), .85)
+material('Tile', (.82,.85,.70), .4)
+material('Glass', (.46,.79,.91), .5, 0, .55)
+material('Sun', (1,.55,.12), .48)
+material('Leaf', (.055,.27,.13), .78)
+material('LeafLight', (.25,.49,.15), .7)
+material('Soil', (.10,.064,.04), 1)
+material('Cardboard', (.72,.50,.27), .82)
 
 parts = []
 def finish(obj, mat):
@@ -120,33 +130,6 @@ def export(name):
 box((0,0,0),(1,1,1),'Ivory',.065)
 export('Panel')
 
-# Octagonal portal: a recognisable stage entrance with a recessed light channel.
-outline=[(-4.7,0,0),(-4.7,0,5.7),(-3.55,0,7),(3.55,0,7),(4.7,0,5.7),(4.7,0,0)]
-path(outline,.31,'Blue')
-path([(x,-.45,z) for x,y,z in outline],.10,'Glow')
-path([(x,.26,z) for x,y,z in outline],.13,'Steel')
-for sign in (-1,1):
-    box((sign*4.7,0,.25),(.9,1.1,.5),'Ink',.08)
-    for z in (1,2.1,3.2,4.3):box((sign*4.7,-.49,z),(.35,.08,.12),'Gold',.015)
-export('Portal')
-
-# A compact actual fixture, rather than a cone pretending to be a lamp.
-box((0,0,.12),(.9,.72,.24),'Ink',.08)
-for x in (-.38,.38):box((x,0,.52),(.12,.28,.9),'Steel',.025)
-tube((0,-.34,.7),(0,.32,.7),.29,'Ink')
-tube((0,-.37,.7),(0,-.345,.7),.245,'WarmGlow')
-for x in (-.35,.35): box((x,-.3,.7),(.09,.35,.62),'Ink',.01)
-for z in (.37,1.03): box((0,-.3,z),(.66,.35,.09),'Ink',.01)
-export('Spot')
-
-# Four-metre triangular lighting truss.
-for y,z in ((-.28,0),(.28,0),(0,.48)):
-    tube((-2,y,z),(2,y,z),.055,'Steel')
-for i in range(8):
-    x=-2+i*.5
-    for y in (-.28,.28):tube((x,y,0),(x+.5,0,.48),.024,'Steel')
-export('Truss')
-
 # Upholstered spectator seat with a pedestal and arms.
 box((0,0,.39),(.58,.58,.13),'Blue',.08)
 box((0,.25,.74),(.58,.14,.65),'Blue',.08)
@@ -184,56 +167,128 @@ for variant in range(3):
             sphere(wrist,(.082,.063,.09),'Skin')
         export('Fan%d_%s'%(variant,'Cheer' if cheer else 'Idle'))
 
-# Stage vault: broad paired arcs create depth above the four lanes.
-for radius,height,y,mat,r in [(24,9,0,'Ivory',.26),(23.25,8.5,-.18,'Glow',.07),(24.7,9.6,.3,'Blue',.38)]:
-    points=[(radius*math.cos(i*math.pi/48),y,height*math.sin(i*math.pi/48)) for i in range(49)]
-    path(points,r,mat)
-export('StageVault')
+# Sunlit aquatic pavilion. New architecture, rather than a dressing over the stage.
+# Mesh strips keep sweeping curves light enough to repeat around the hall.
+def ribbon(points,width,depth,mat):
+    verts=[]
+    for i,p in enumerate(points):
+        p=Vector(p); tangent=Vector(points[min(i+1,len(points)-1)])-Vector(points[max(i-1,0)])
+        side=Vector((-tangent.z,0,tangent.x)).normalized()*width*.5
+        verts.extend([p-side+Vector((0,-depth*.5,0)),p+side+Vector((0,-depth*.5,0)),p-side+Vector((0,depth*.5,0)),p+side+Vector((0,depth*.5,0))])
+    faces=[]
+    for i in range(len(points)-1):
+        a=i*4;b=a+4
+        faces.extend([(a,b,b+1,a+1),(a+2,a+3,b+3,b+2),(a,a+2,b+2,b),(a+1,b+1,b+3,a+3)])
+    faces.extend([(0,1,3,2),(len(verts)-4,len(verts)-2,len(verts)-1,len(verts)-3)])
+    mesh=bpy.data.meshes.new('Architectural sweep');mesh.from_pydata(verts,[],faces);mesh.update()
+    obj=bpy.data.objects.new('Architectural sweep',mesh);scene.collection.objects.link(obj);finish(obj,mat)
+    return obj
 
-# Floating elliptical light ring, suspended above the water.
-for rad,mat,thick,z in [(1,'Steel',.12,0),(.96,'WarmGlow',.055,-.10)]:
-    path([(7*rad*math.cos(i*math.tau/64),3.3*rad*math.sin(i*math.tau/64),z) for i in range(65)],thick,mat)
-for x in (-4.9,4.9):
-    for y in (-2.1,2.1):tube((x,y,0),(x,y,1.9),.018,'Steel')
-export('Halo')
+def arc(rx,rz,base=0,y=0,steps=48):
+    return [(rx*math.cos(i*math.pi/steps),y,base+rz*math.sin(i*math.pi/steps)) for i in range(steps+1)]
 
-# Score instrument: recessed display, side badge and three-dimensional chassis.
-box((0,0,0),(5.3,.60,2.8),'Steel',.16)
-box((0,-.36,0),(5.15,.18,2.62),'Blue',.12)
-box((.55,-.48,0),(3.65,.13,2.25),'Ink',.10)
+# Large vaulted rib, measured from its springing line; six sections span the pool.
+ribbon(arc(31,9),.42,.55,'Mint')
+ribbon(arc(30.5,8.4,y=-.15),.14,.20,'Ivory')
+for t in [math.pi*i/12 for i in range(1,12)]:
+    tube((31*math.cos(t),0,9*math.sin(t)),(30.5*math.cos(t),0,8.4*math.sin(t)),.055,'Gold')
+export('BathRoofRib')
+
+# Arched glazed bay. Pale glass is opaque and softly luminous, no transparent overdraw.
+pts=[(-2.4,0,0),(2.4,0,0)]+arc(2.4,2.4,5,0,32)
+verts=[(0,.08,3.5)]+[(x,.08,z) for x,y,z in pts]
+mesh=bpy.data.meshes.new('Glazed arch');mesh.from_pydata(verts,[],[(0,i+1,(i+1)%len(pts)+1) for i in range(len(pts))]);mesh.update()
+obj=bpy.data.objects.new('Glazed arch',mesh);scene.collection.objects.link(obj);finish(obj,'Glass')
+ribbon([(-2.5,0,0),(-2.5,0,5)]+list(reversed(arc(2.5,2.5,5)))+[(2.5,0,0)],.25,.30,'Ivory')
+for x in (-1.2,0,1.2):box((x,-.10,3.1),(.055,.09,6.1),'Mint',.01)
+for z in (2.4,4.8):box((0,-.10,z),(4.7,.10,.06),'Mint',.01)
+box((0,-.05,-.13),(5.25,.65,.30),'Ivory',.06)
+export('BathWindow')
+
+# Rounded enamel game entrance: actual feet, vertical rails and a curved lintel.
+pts=[(-4.75,0,0),(-4.75,0,5.2)]+list(reversed(arc(4.75,2,5.2)))+[(4.75,0,0)]
+ribbon(pts,.64,.85,'Ivory')
+ribbon([(x,y-.49,z) for x,y,z in pts],.18,.10,'Glow')
+for x in (-4.75,4.75):
+    box((x,0,.2),(1.1,1.3,.4),'Mint',.08)
+    box((x,-.5,2.55),(.16,.12,4.45),'Gold',.03)
+    for z in (1.1,2.5,3.9):tube((x,-.57,z),(x,-.63,z),.08,'Ivory')
+export('BathGate')
+
+# A tactile enamel score counter; existing text anchors remain measured in metres.
+box((0,0,0),(5.3,.6,2.8),'Ivory',.27)
+box((0,-.34,0),(5.02,.15,2.52),'Mint',.20)
+box((.55,-.48,0),(3.65,.13,2.25),'Ink',.13)
 tube((-1.88,-.48,.10),(-1.88,-.64,.10),.62,'Glow')
-tube((-1.88,-.65,.10),(-1.88,-.69,.10),.53,'Ink')
-for x in (-2.50,2.50):
-    for z in (-1.08,1.08):tube((x,-.45,z),(x,-.53,z),.052,'Gold')
-for x in (-1.8,1.8):box((x,.05,1.67),(.10,.18,.72),'Steel',.02)
-for z in (-.95,0,.95):box((2.59,.02,z),(.09,.65,.12),'Ink',.02)
+tube((-1.88,-.65,.10),(-1.88,-.69,.10),.52,'Ivory')
+for x in (-2.45,2.45):
+    for z in (-1.03,1.03):tube((x,-.43,z),(x,-.50,z),.045,'Gold')
+for x in (-1.8,1.8):box((x,.05,1.68),(.10,.18,.74),'Gold',.02)
 export('Scoreboard')
 
-# Repeated folded acoustic cassette. Its fins catch the key at different angles.
-box((0,.10,0),(3.65,.36,5.7),'Ink',.10)
-for i in range(6):
-    obj=box((-1.48+i*.59,-.17,0),(.44,.25,5.24),'Blue',.05)
-    obj.rotation_euler.z=math.radians(-18)
-for z in (-2.72,2.72):box((0,-.18,z),(3.35,.08,.08),'Steel',.015)
-box((1.67,-.17,0),(.055,.08,4.5),'Glow',.012)
-export('WallCassette')
+# A large wall-mounted sun medallion, no text billboard. Warm metal and sculpted waves.
+tube((0,.18,0),(0,0,0),3.7,'Mint')
+tube((0,-.02,0),(0,-.10,0),3.45,'Ivory')
+tube((0,-.12,.45),(0,-.20,.45),1.30,'Sun')
+for i in range(12):
+    t=i*math.tau/12
+    tube((1.63*math.sin(t),-.18,.45+1.63*math.cos(t)),(2.3*math.sin(t),-.18,.45+2.3*math.cos(t)),.11,'Sun')
+for row in range(3):
+    path([(-2.65+j*.166,-.31,-1.5-row*.40+.18*math.sin(j*.34)) for j in range(33)],.12,'Teal')
+export('SunMedallion')
 
-# Ceiling coffers with warm recessed softboxes, supplied in horizontal orientation.
-box((0,0,0),(7.4,4.8,.30),'Blue',.12)
-box((0,0,-.19),(7.0,4.4,.16),'Ink',.10)
-for x in (-3.12,3.12):
-    box((x,0,-.30),(.34,3.85,.13),'Steel',.035)
-    box((x,0,-.38),(.16,3.55,.035),'WarmGlow',.015)
-for y in (-1.9,1.9):box((0,y,-.30),(5.5,.10,.05),'Glow',.02)
-for x in (-1.5,0,1.5):box((x,0,-.30),(.12,3.6,.15),'Blue',.02)
-export('CeilingCoffer')
+# Gallery balcony module. Ends are supported by the building's masonry pilasters.
+for z in (0,1.10):box((0,0,z),(5.9,.12,.12),'Mint',.02)
+for i in range(12):box((-2.75+i*.5,0,.55),(.075,.08,1.1),'Mint',.015)
+box((0,0,1.2),(6,.22,.14),'Ivory',.045)
+export('BathRailing')
+
+# Potted palms have solid leaf ribbons, two-tone fronds and individual central veins.
+tube((0,0,0),(0,0,.8),.7,'Coral')
+tube((0,0,.80),(0,0,.96),.76,'Ivory')
+tube((0,0,.97),(0,0,1.0),.62,'Soil')
+path([(0,0,.9),(.08,.02,2),(.2,.02,3.1),(.38,0,4.1)],.14,'Gold')
+for i in range(9):
+    a=i*math.tau/9
+    verts=[]
+    for j in range(9):
+        t=j/8;dist=t*2.7
+        p=Vector((.38+math.cos(a)*dist,math.sin(a)*dist,4.1+1.05*math.sin(t*math.pi)-.65*t))
+        side=Vector((-math.sin(a),math.cos(a),0))*(.32*math.sin(t*math.pi)+.015)
+        verts.extend([p-side,p+Vector((0,0,.08)),p+side])
+    faces=[]
+    for j in range(8):
+        for k in range(2):faces.append((j*3+k,(j+1)*3+k,(j+1)*3+k+1,j*3+k+1))
+    mesh=bpy.data.meshes.new('Palm frond');mesh.from_pydata(verts,[],faces);mesh.update()
+    ob=bpy.data.objects.new('Palm frond',mesh);scene.collection.objects.link(ob);finish(ob,'Leaf' if i%2 else 'LeafLight')
+    mod=ob.modifiers.new('Leaf thickness','SOLIDIFY');mod.thickness=.025
+    bpy.context.view_layer.objects.active=ob;bpy.ops.object.modifier_apply(modifier=mod.name)
+    for j in range(1,8):
+        t=j/8;dist=t*2.7
+        p=Vector((.38+math.cos(a)*dist,math.sin(a)*dist,4.1+1.05*math.sin(t*math.pi)-.65*t))
+        side=Vector((-math.sin(a),math.cos(a),0))*.30*math.sin(t*math.pi)
+        tube(p+Vector((0,0,.09)),p+side+Vector((0,0,.02)),.016,'LeafLight')
+export('PlanterPalm')
+
+# Lifebuoy rack: poolside prop is visibly bolted to the deck.
+box((0,0,.08),(.8,.7,.16),'Ivory',.08)
+box((0,.08,1.05),(.11,.16,2.0),'Mint',.02)
+for i in range(48):
+    a=i*math.tau/48;b=(i+1)*math.tau/48
+    tube((.58*math.sin(a),-.12,1.3+.58*math.cos(a)),(.58*math.sin(b),-.12,1.3+.58*math.cos(b)),.14,'Ivory' if i//6%2 else 'Coral')
+export('Lifebuoy')
+
+# One tile patch replaces hundreds of separate floor-trim objects.
+for x in range(4):
+    for y in range(4):box((x-1.5,y-1.5,0),(.977,.977,.06),'Tile' if (x+y)%2 else 'Ivory',.012)
+export('TilePatch')
 
 (ART/'palette.json').write_text(json.dumps(dict(materials=palette),indent=2)+'\n')
 (ART/'models.json').write_text(json.dumps(exports,indent=2)+'\n')
 # Library write preserves other unsaved user scenes and excludes them from this asset.
 bpy.data.libraries.write(str(SOURCE/'HoleInWallStudio.blend'),{scene},fake_user=True)
-# Display the portal as a useful model preview; all exports retain origin pivots.
-for obj in scene.objects: obj.hide_set(obj.name!='HS_Portal')
+# Display the rounded game gate; all exports retain origin pivots.
+for obj in scene.objects: obj.hide_set(obj.name!='HS_BathGate')
 for area in bpy.context.screen.areas:
     if area.type=='VIEW_3D':
         area.spaces.active.region_3d.view_distance=15

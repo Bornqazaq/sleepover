@@ -12,7 +12,7 @@ namespace Igruha.EditorTools
             HoleInWallPaletteAssets.Begin(1, "original studio materials");
         }
         internal static Material PaintOf(Kind kind) => HoleInWallStudioAssets.Mat(
-            kind == Kind.PlatformDeck ? "Ivory" : kind == Kind.Ladder ? "Steel" : kind == Kind.PoolRim ? "Blue" : "Ink");
+            kind == Kind.PlatformDeck ? "Ivory" : kind == Kind.Ladder ? "Steel" : kind == Kind.PoolRim ? "Mint" : "Ivory");
         internal static GameObject Apply(GameObject box, Kind kind, System.Random rng)
         {
             if (kind == Kind.None) return null;

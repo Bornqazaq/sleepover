@@ -5,21 +5,6 @@
     "polygons": 98
   },
   {
-    "name": "HS_Portal",
-    "vertices": 1320,
-    "polygons": 1190
-  },
-  {
-    "name": "HS_Spot",
-    "vertices": 720,
-    "polygons": 714
-  },
-  {
-    "name": "HS_Truss",
-    "vertices": 456,
-    "polygons": 266
-  },
-  {
     "name": "HS_Seat",
     "vertices": 480,
     "polygons": 490
@@ -60,28 +45,48 @@
     "polygons": 1352
   },
   {
-    "name": "HS_StageVault",
-    "vertices": 3456,
-    "polygons": 2016
+    "name": "HS_BathRoofRib",
+    "vertices": 656,
+    "polygons": 542
   },
   {
-    "name": "HS_Halo",
-    "vertices": 3168,
-    "polygons": 1848
+    "name": "HS_BathWindow",
+    "vertices": 820,
+    "polygons": 829
+  },
+  {
+    "name": "HS_BathGate",
+    "vertices": 944,
+    "polygons": 888
   },
   {
     "name": "HS_Scoreboard",
-    "vertices": 912,
+    "vertices": 624,
+    "polygons": 574
+  },
+  {
+    "name": "HS_SunMedallion",
+    "vertices": 2664,
+    "polygons": 1554
+  },
+  {
+    "name": "HS_BathRailing",
+    "vertices": 1440,
+    "polygons": 1470
+  },
+  {
+    "name": "HS_PlanterPalm",
+    "vertices": 2142,
+    "polygons": 1434
+  },
+  {
+    "name": "HS_Lifebuoy",
+    "vertices": 1344,
     "polygons": 868
   },
   {
-    "name": "HS_WallCassette",
-    "vertices": 960,
-    "polygons": 980
-  },
-  {
-    "name": "HS_CeilingCoffer",
-    "vertices": 1056,
-    "polygons": 1078
+    "name": "HS_TilePatch",
+    "vertices": 1536,
+    "polygons": 1568
   }
 ]

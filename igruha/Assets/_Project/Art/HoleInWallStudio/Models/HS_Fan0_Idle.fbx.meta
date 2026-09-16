@@ -12,8 +12,18 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: HS_Cardboard
+    second: {fileID: 2100000, guid: fa2e06ffe548b4fc79f225b62f063720, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: HS_Coral
     second: {fileID: 2100000, guid: a718a31b8303445209a412173d8dad7a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: HS_Glass
+    second: {fileID: 2100000, guid: ba1fde2f7bd6146fd819034c9430788b, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
@@ -42,8 +52,33 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: HS_Leaf
+    second: {fileID: 2100000, guid: 480fb5569532244bbaf85997a3b81eb9, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: HS_LeafLight
+    second: {fileID: 2100000, guid: d1529cc6ab4b1476c81d64ada20fde7f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: HS_Mint
+    second: {fileID: 2100000, guid: 2f29d5876ffe04f95b3fcb8adba9ee57, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: HS_Plaster
+    second: {fileID: 2100000, guid: 1e06c29dc1a964e7dae44f8e6e42fc94, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: HS_Skin
     second: {fileID: 2100000, guid: bcfcbb1c464574e1f89ec6a0df19c300, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: HS_Soil
+    second: {fileID: 2100000, guid: 3dbc6e7134a044bd38bddca15a849839, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
@@ -52,8 +87,18 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: HS_Sun
+    second: {fileID: 2100000, guid: 6ac0efc7512424bbb99bd3d9b205ca8a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: HS_Teal
     second: {fileID: 2100000, guid: 7ae32f905588e4355919b16aa1eb8792, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: HS_Tile
+    second: {fileID: 2100000, guid: 757034eaed8144bf98aa6f6b218b62ea, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
