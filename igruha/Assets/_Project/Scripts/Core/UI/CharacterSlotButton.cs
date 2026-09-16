@@ -1,6 +1,7 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using Igruha.Core.Player;
 
 namespace Igruha.Core.UI
@@ -15,9 +16,14 @@ namespace Igruha.Core.UI
     /// «персонажа уже взяли».
     /// </summary>
     [RequireComponent(typeof(Button))]
-    public sealed class CharacterSlotButton : MonoBehaviour
+    public sealed class CharacterSlotButton : MonoBehaviour, IPointerEnterHandler, ISelectHandler
     {
         [SerializeField] private TMP_Text label;
+        [SerializeField] private TMP_Text statusLabel;
+        [SerializeField] private Image portrait, border, selectionMark;
+        private Color accent = Color.white;
+        private bool focused;
+        public bool IsAvailable => available;
         [Tooltip("Цвет надписи занятого слота")]
         [SerializeField] private Color takenColor = new Color(0.55f, 0.55f, 0.55f, 1f);
 
@@ -45,6 +51,7 @@ namespace Igruha.Core.UI
 
         public void Bind(int rosterIndex, CharacterDefinition definition, bool taken, CharacterSelectScreen owner)
         {
+            if (button == null) button = GetComponent<Button>();
             index = rosterIndex;
             character = definition;
             screen = owner;
@@ -70,9 +77,34 @@ namespace Igruha.Core.UI
                 return;
             }
 
-            label.text = taken ? $"{definition.DisplayName} — занят" : definition.DisplayName;
+            label.text = taken && statusLabel == null ? $"{definition.DisplayName} — занят" : definition.DisplayName;
             label.color = taken ? takenColor : defaultColor;
+            if (statusLabel != null) statusLabel.text = taken ? "УЖЕ В КОМПАНИИ" : available ? "ВЫБРАТЬ" : "НЕДОСТУПЕН";
+            if (portrait != null) portrait.color = available ? Color.white : new Color(.45f, .45f, .45f, .6f);
+            SetFocused(focused);
         }
+
+        public void SetPortrait(CharacterSelectionView.Portrait art)
+        {
+            if (portrait != null) { portrait.sprite = art?.Face; portrait.enabled = portrait.sprite != null; }
+            accent = art?.Accent ?? Color.white;
+        }
+
+        public void SetFocused(bool value)
+        {
+            focused = value && available;
+            if (border != null) border.color = focused ? accent : new Color(.2f, .29f, .30f, 1);
+            if (selectionMark != null) { selectionMark.enabled = focused; selectionMark.color = accent; }
+            if (statusLabel != null && available) { statusLabel.text = focused ? "ТВОЙ ВЫБОР" : "ВЫБРАТЬ"; statusLabel.color = focused ? accent : new Color(.64f, .72f, .71f); }
+        }
+
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            if (!available || button == null || !button.interactable) return;
+            button.Select();
+            screen?.PreviewCharacter(index);
+        }
+        public void OnSelect(BaseEventData eventData) { if (available) screen?.PreviewCharacter(index); }
 
         /// <summary>
         /// Погасить или вернуть кнопку, не трогая подпись: намерение уже

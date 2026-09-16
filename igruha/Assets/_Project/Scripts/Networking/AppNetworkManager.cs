@@ -16,6 +16,7 @@ using Igruha.Networking;
 /// </summary>
 public class AppNetworkManager : MonoBehaviour
 {
+    public bool RoomReady { get; private set; }
     [SerializeField] private string gameplaySceneName = "Hub";
 
     [Tooltip("Табло катки: сервер спавнит его один раз, счёт живёт между мини-играми")]
@@ -236,6 +237,8 @@ public class AppNetworkManager : MonoBehaviour
         if (NetworkManager.Singleton != null)
         {
             NetworkManager.Singleton.OnServerStarted -= HandleServerStarted;
+            if (NetworkManager.Singleton.SceneManager != null)
+                NetworkManager.Singleton.SceneManager.OnLoadEventCompleted -= OnInitialRoomLoaded;
         }
     }
 
@@ -366,6 +369,9 @@ public class AppNetworkManager : MonoBehaviour
     {
         NetworkManager.Singleton.OnServerStarted -= HandleServerStarted;
 
+        RoomReady = false;
+        NetworkManager.Singleton.SceneManager.OnLoadEventCompleted += OnInitialRoomLoaded;
+
         // Табло поднимаем до загрузки сцены: мини-игра ждёт готовый ростер
         SpawnSessionManager();
         LoadGameplayScene();
@@ -389,6 +395,13 @@ public class AppNetworkManager : MonoBehaviour
         DontDestroyOnLoad(instance.gameObject);
 
         Debug.Log("🏆 HOST: табло катки заспавнено и переживёт смену сцен");
+    }
+
+    private void OnInitialRoomLoaded(string scene, LoadSceneMode mode, System.Collections.Generic.List<ulong> completed, System.Collections.Generic.List<ulong> timedOut)
+    {
+        if (scene != gameplaySceneName && !scene.EndsWith("/" + gameplaySceneName + ".unity")) return;
+        RoomReady = true;
+        NetworkManager.Singleton.SceneManager.OnLoadEventCompleted -= OnInitialRoomLoaded;
     }
 
     private void LoadGameplayScene()

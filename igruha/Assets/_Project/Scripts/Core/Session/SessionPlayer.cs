@@ -10,7 +10,8 @@ namespace Igruha.Core.Session
     public sealed class SessionPlayer
     {
         public int Id { get; }
-        public string DisplayName { get; }
+        public string DisplayName { get; set; }
+        public int CharacterIndex { get; set; } = -1;
         public PlayerController Avatar { get; set; }
         public int Score { get; set; }
 

@@ -41,7 +41,7 @@ namespace Igruha.Networking
     /// Спавнится сервером один раз (AppNetworkManager) и переживает смену сцен,
     /// чтобы счёт не сбрасывался между мини-играми.
     /// </summary>
-    public sealed class NetworkSessionManager : NetworkBehaviour, ISessionScoreboard
+    public sealed class NetworkSessionManager : NetworkBehaviour, ISessionScoreboard, ISessionScoreReset
     {
         private readonly NetworkList<SessionPlayerState> roster = new NetworkList<SessionPlayerState>();
 
@@ -68,6 +68,7 @@ namespace Igruha.Networking
         public override void OnNetworkSpawn()
         {
             base.OnNetworkSpawn();
+            DontDestroyOnLoad(gameObject);
 
             roster.OnListChanged += OnRosterChanged;
             SessionScoreboard.RegisterNetworked(this);
@@ -87,6 +88,7 @@ namespace Igruha.Networking
         {
             roster.OnListChanged -= OnRosterChanged;
             SessionScoreboard.Unregister(this);
+            if (IsServer) PartySeries.Reset();
 
             if (IsServer && NetworkManager != null)
             {
@@ -229,6 +231,7 @@ namespace Igruha.Networking
                     byId[id] = player;
                 }
 
+                player.DisplayName = state.DisplayName.ToString();
                 player.Score = state.Score;
                 mirror.Add(player);
             }
@@ -316,6 +319,19 @@ namespace Igruha.Networking
 
                 Debug.Log($"⭐ [СЕРВЕР] {state.DisplayName}: место {entries[i].Place}, всего очков {state.Score}");
             }
+        }
+
+        public bool RenamePlayer(ulong clientId, string name)
+        {
+            if (!IsServer || !PartyDisplayName.TryNormalize(name, out var valid)) return false;
+            int index = IndexOf((int)clientId); if (index < 0) return false;
+            var state = roster[index]; state.DisplayName = new FixedString32Bytes(valid); roster[index] = state;
+            return true;
+        }
+        public void ResetScores()
+        {
+            if (!IsServer) return;
+            for (int i = 0; i < roster.Count; i++) { var state = roster[i]; state.Score = 0; roster[i] = state; }
         }
 
         // ========== ОСОБЫЕ РОЛИ ==========

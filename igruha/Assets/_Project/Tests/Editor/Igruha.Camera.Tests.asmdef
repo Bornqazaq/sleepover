@@ -1,0 +1,6 @@
+{
+    "name": "Igruha.Camera.Tests",
+    "references": ["Igruha.Core", "Unity.Cinemachine"],
+    "includePlatforms": ["Editor"],
+    "optionalUnityReferences": ["TestAssemblies"]
+}

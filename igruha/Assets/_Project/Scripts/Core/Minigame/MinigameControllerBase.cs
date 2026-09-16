@@ -370,6 +370,13 @@ namespace Igruha.Core.Minigame
                 yield break;
             }
 
+            if (PartySeries.Active)
+            {
+                var seriesLoader = gameObject.AddComponent<MinigameLoader>();
+                if (PartySeries.Advance(seriesLoader)) yield break;
+                Destroy(seriesLoader);
+            }
+
             if (string.IsNullOrEmpty(hubSceneName))
             {
                 Debug.LogError($"{name}: не задано имя сцены хаба — возвращаться некуда", this);
@@ -457,7 +464,7 @@ namespace Igruha.Core.Minigame
             // Переигрывать вправе только тот, кто объявляет фазы: в сетевой
             // катке сцену перезагружает сервер, клиент за собой её утащить
             // не может.
-            hud?.SetRestartAvailable(HasAuthority);
+            hud?.SetRestartAvailable(HasAuthority && !PartySeries.Active);
             hud?.ShowResults(finalResults, playerList);
         }
 
@@ -471,7 +478,7 @@ namespace Igruha.Core.Minigame
         /// </summary>
         private void HandleRestartRequested()
         {
-            if (!HasAuthority)
+            if (!HasAuthority || PartySeries.Active)
             {
                 return;
             }

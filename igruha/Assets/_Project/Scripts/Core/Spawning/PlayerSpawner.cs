@@ -25,7 +25,6 @@ namespace Igruha.Core.Spawning
         [SerializeField] private SpawnRole defaultRole = SpawnRole.Default;
 
         private readonly List<SessionPlayer> spawned = new List<SessionPlayer>(8);
-        private readonly List<CharacterDefinition> availableCharacters = new List<CharacterDefinition>(8);
 
         public IReadOnlyList<SessionPlayer> SpawnedPlayers => spawned;
 
@@ -49,21 +48,32 @@ namespace Igruha.Core.Spawning
                 return spawned;
             }
 
-            CollectAvailableCharacters();
-
             SessionManager session = SessionManager.Instance;
             session?.ClearPlayers();
+            var used = new HashSet<int>();
 
-            for (int i = 0; i < debugPlayerCount; i++)
+            int playerCount = LocalPartyProfile.PlayerCount > 0 ? LocalPartyProfile.PlayerCount : debugPlayerCount;
+            for (int i = 0; i < playerCount; i++)
             {
-                SpawnPoint point = spawnPoints.GetSpreadPoint(defaultRole, i, debugPlayerCount);
+                SpawnPoint point = spawnPoints.GetSpreadPoint(defaultRole, i, playerCount);
                 if (point == null)
                 {
                     break;
                 }
 
                 bool isHuman = i == 0;
-                GameObject prefabToSpawn = isHuman ? humanCharacter.Prefab : PickRandomAvailablePrefab();
+                int chosen = LocalPartyProfile.CharacterOf(i);
+                if (chosen < 0 || chosen >= roster.Characters.Count || !roster.Characters[chosen].IsAvailable || used.Contains(chosen))
+                {
+                    chosen = -1;
+                    if (isHuman) for (int k = 0; k < roster.Characters.Count; k++)
+                        if (roster.Characters[k] == humanCharacter) chosen = k;
+                    if (chosen < 0) for (int k = 0; k < roster.Characters.Count; k++)
+                        if (roster.Characters[k].IsAvailable && !used.Contains(k)) { chosen = k; break; }
+                }
+                if (chosen < 0) break;
+                used.Add(chosen);
+                GameObject prefabToSpawn = roster.Characters[chosen].Prefab;
 
                 GameObject instance = Instantiate(prefabToSpawn, point.transform.position, point.transform.rotation);
                 instance.name = $"Player_{i + 1}";
@@ -83,6 +93,9 @@ namespace Igruha.Core.Spawning
                     Avatar = instance.GetComponent<PlayerController>()
                 };
 
+                LocalPartyProfile.Restore(player);
+                player.CharacterIndex = chosen;
+                LocalPartyProfile.Save(player);
                 spawned.Add(player);
                 session?.RegisterPlayer(player);
             }
@@ -90,25 +103,6 @@ namespace Igruha.Core.Spawning
             SceneCameraGuard.ValidateSingleActiveCameraAndListener();
 
             return spawned;
-        }
-
-        /// <summary>Пересобрать список персонажей с назначенным префабом (заглушки ростера пропускаются).</summary>
-        private void CollectAvailableCharacters()
-        {
-            availableCharacters.Clear();
-            IReadOnlyList<CharacterDefinition> characters = roster.Characters;
-            for (int i = 0; i < characters.Count; i++)
-            {
-                if (characters[i].IsAvailable)
-                {
-                    availableCharacters.Add(characters[i]);
-                }
-            }
-        }
-
-        private GameObject PickRandomAvailablePrefab()
-        {
-            return availableCharacters[Random.Range(0, availableCharacters.Count)].Prefab;
         }
 
         private CharacterDefinition FindFirstAvailableCharacter()

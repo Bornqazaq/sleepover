@@ -11,7 +11,7 @@ namespace Igruha.Core.Session
     /// В сетевой катке его подменяет NetworkSessionManager — эта реализация
     /// молча уходит на второй план (см. SessionScoreboard).
     /// </summary>
-    public sealed class SessionManager : MonoBehaviour, ISessionScoreboard
+    public sealed class SessionManager : MonoBehaviour, ISessionScoreboard, ISessionScoreReset
     {
         public static SessionManager Instance { get; private set; }
 
@@ -90,6 +90,13 @@ namespace Igruha.Core.Session
                 player.Score += Mathf.Max(0, playerCount - entries[i].Place);
             }
 
+            foreach (var player in players) LocalPartyProfile.Save(player);
+            ScoresChanged?.Invoke();
+        }
+
+        public void ResetScores()
+        {
+            foreach (var player in players) { player.Score = 0; LocalPartyProfile.Save(player); }
             ScoresChanged?.Invoke();
         }
 

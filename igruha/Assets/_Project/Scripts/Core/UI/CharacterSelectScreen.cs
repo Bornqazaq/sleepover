@@ -27,10 +27,15 @@ namespace Igruha.Core.UI
         [SerializeField] private ThirdPersonCameraRig cameraRig;
         [Tooltip("Строка обратного отсчёта. Пусто — отсчёт просто не показывается")]
         [SerializeField] private TMP_Text countdownLabel;
+        [SerializeField] private CharacterSelectionView presentation;
+        [SerializeField, Min(1)] private float localChoiceSeconds = 30f;
 
         private Action<int> onChosen;
         private CharacterRoster roster;
         private ICharacterSelection selection;
+        private float localDeadline;
+        private float countdownDuration;
+        private int pendingIndex = -1;
 
         /// <summary>Экран открыт и ждёт решения.</summary>
         public bool IsOpen { get; private set; }
@@ -41,11 +46,12 @@ namespace Igruha.Core.UI
         /// <param name="characterRoster">Кого показывать.</param>
         /// <param name="networkSelection">
         /// Сетевой выбор: гасит занятые и ведёт отсчёт. Пусто — одиночный
-        /// режим, где занятых не бывает и торопиться некуда.
+        /// режим с локальным случайным выбором по истечении срока.
         /// </param>
         /// <param name="chosenCallback">Индекс выбранного персонажа в ростере.</param>
         public void Show(CharacterRoster characterRoster, ICharacterSelection networkSelection, Action<int> chosenCallback)
         {
+            if (selection != null) selection.Changed -= HandleSelectionChanged;
             onChosen = chosenCallback;
             roster = characterRoster;
             selection = networkSelection;
@@ -72,40 +78,70 @@ namespace Igruha.Core.UI
             // отработал (кэш Button), и Bind() упадёт на null-компоненте.
             panel.SetActive(true);
             IsOpen = true;
+            pendingIndex = -1;
+            localDeadline = Time.realtimeSinceStartup + Mathf.Max(1f, localChoiceSeconds);
+            presentation?.Initialize(this, roster, slots);
 
             if (selection != null)
             {
                 selection.Changed += HandleSelectionChanged;
                 selection.ReportReady();
             }
+            if (!IsOpen) return;
 
             RefreshSlots();
+            if (UnityEngine.EventSystems.EventSystem.current != null)
+                for (int i = 0; i < slots.Length; i++)
+                    if (slots[i].IsAvailable)
+                    {
+                        UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(slots[i].gameObject);
+                        break;
+                    }
+            countdownDuration = selection != null ? Mathf.Max(1f, selection.SecondsLeft) : Mathf.Max(1f, localChoiceSeconds);
+            presentation?.SetPending(false);
+            UpdateCountdown();
         }
 
         private void Update()
         {
-            if (!IsOpen || selection == null)
+            if (!IsOpen)
             {
                 return;
             }
 
-            if (countdownLabel != null)
-            {
-                countdownLabel.text = $"Автовыбор через {Mathf.CeilToInt(selection.SecondsLeft)} с";
-            }
+            UpdateCountdown();
 
             // Сервер закрепил персонажа — сам он это сделал или по истечении
             // срока, экрану больше висеть незачем.
-            if (selection.HasChosen)
+            if (selection != null && selection.HasChosen)
             {
                 Close(-1);
             }
+            else if (selection == null && Time.realtimeSinceStartup >= localDeadline)
+            {
+                // Local session only. Network expiry remains entirely server-authoritative.
+                int count = 0;
+                int chosen = -1;
+                for (int i = 0; i < roster.Characters.Count; i++)
+                    if (roster.Characters[i].IsAvailable && UnityEngine.Random.Range(0, ++count) == 0) chosen = i;
+                Close(chosen);
+            }
         }
+
+        private void UpdateCountdown()
+        {
+            float remaining = selection != null ? selection.SecondsLeft : Mathf.Max(0, localDeadline - Time.realtimeSinceStartup);
+            if (countdownLabel != null) countdownLabel.text = $"Автовыбор через {Mathf.CeilToInt(remaining)} с";
+            presentation?.SetCountdown(remaining, countdownDuration);
+        }
+
+        public void PreviewCharacter(int index) { if (IsOpen && pendingIndex < 0) presentation?.Focus(index); }
 
         /// <summary>Вызывается CharacterSlotButton при клике по доступному слоту.</summary>
         public void OnSlotChosen(int characterIndex)
         {
-            if (!IsOpen)
+            if (!IsOpen || pendingIndex >= 0 || characterIndex < 0 || characterIndex >= roster.Characters.Count
+                || !roster.Characters[characterIndex].IsAvailable || (selection != null && selection.IsTaken(characterIndex)))
             {
                 return;
             }
@@ -117,11 +153,13 @@ namespace Igruha.Core.UI
                 return;
             }
 
-            selection.Choose(characterIndex);
-
             // Экран не закрываем: ждём, пока сервер подтвердит. Слоты гасим,
             // чтобы не сыпать намерениями по второму разу.
+            // Do this before Choose: a host can confirm synchronously in the call.
+            pendingIndex = characterIndex;
             SetSlotsInteractable(false);
+            presentation?.SetPending(true);
+            selection.Choose(characterIndex);
         }
 
         private void HandleSelectionChanged()
@@ -137,6 +175,11 @@ namespace Igruha.Core.UI
                 return;
             }
 
+            if (pendingIndex >= 0 && selection != null && selection.IsTaken(pendingIndex))
+            {
+                pendingIndex = -1;
+                presentation?.SetPending(false);
+            }
             RefreshSlots();
         }
 
@@ -149,6 +192,8 @@ namespace Igruha.Core.UI
                 bool taken = selection != null && i < characters.Count && selection.IsTaken(i);
                 slots[i].Bind(i, character, taken, this);
             }
+            presentation?.RefreshAvailability();
+            if (pendingIndex >= 0) SetSlotsInteractable(false);
         }
 
         private void SetSlotsInteractable(bool interactable)
@@ -182,7 +227,13 @@ namespace Igruha.Core.UI
             Action<int> callback = onChosen;
             onChosen = null;
             selection = null;
+            pendingIndex = -1;
             callback?.Invoke(characterIndex);
+        }
+
+        private void OnDestroy()
+        {
+            if (selection != null) selection.Changed -= HandleSelectionChanged;
         }
     }
 }

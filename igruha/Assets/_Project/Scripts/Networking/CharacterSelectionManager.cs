@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 using Igruha.Core.Minigame;
+using Igruha.Core.Hub;
 using Igruha.Core.Player;
 using Igruha.Core.Session;
 
@@ -25,25 +26,10 @@ namespace Igruha.Networking
     }
 
     /// <summary>
-    /// Выбор персонажа под авторитетом сервера.
-    ///
-    /// <b>Тело игрока создаётся только после выбора.</b> Прежде персонаж
-    /// выдавался прямо в одобрении подключения, потому что NGO берёт префаб
-    /// именно там, — и выбора у игрока не было вовсе. Теперь одобрение
-    /// объект не создаёт (<c>CreatePlayerObject = false</c>), а спавнит его
-    /// этот компонент, когда решено, кем играть. Менять модель уже
-    /// заспавненного тела было бы вторым путём к тому же результату и лишним
-    /// источником рассинхрона.
-    ///
-    /// Двое одного персонажа взять не могут: занятость держит сервер, клиент
-    /// её только читает. Гонку двух кликов в один кадр разрешает порядок
-    /// прихода на сервер — второму приходит отказ, и он выбирает заново.
-    ///
-    /// Кто не выбрал за отведённое время, получает случайного свободного:
-    /// иначе один задумавшийся держит всю комнату, ведь хаб ждёт, пока у всех
-    /// появятся тела.
+    /// Server-owned character reservations, initial timed selection, and profile changes in the party room.
+    /// A skin is owned by one client; switching replaces the player object and releases the old reservation.
     /// </summary>
-    public sealed class CharacterSelectionManager : NetworkBehaviour, ICharacterSelection
+    public sealed class CharacterSelectionManager : NetworkBehaviour, ICharacterSelection, IHubPartyProfiles
     {
         [Tooltip("Ростер персонажей — тот же, что показывает экран выбора")]
         [SerializeField] private CharacterRoster roster;
@@ -67,6 +53,56 @@ namespace Igruha.Networking
         private float localDeadline;
 
         public event Action Changed;
+        public event Action<string> ProfileResult;
+        public int CharacterOf(int playerId)
+        {
+            int index = IndexOfClient((ulong)playerId);
+            return index >= 0 ? claims[index].CharacterIndex : -1;
+        }
+        public void ChangeOwnName(string value)
+        {
+            if (IsSpawned) RenameRpc(value ?? string.Empty);
+        }
+        public void ChangeOwnCharacter(int index) { if (IsSpawned) ChangeCharacterRpc(index); }
+
+        [Rpc(SendTo.Server)]
+        private void RenameRpc(string value, RpcParams rpcParams = default)
+        {
+            ulong sender = rpcParams.Receive.SenderClientId;
+            bool success = HubPartyProfiles.CanEdit && GetComponent<NetworkSessionManager>().RenamePlayer(sender, value);
+            ProfileResultRpc(sender, success ? "Имя сохранено" : "Имя: до 14 русских или 20 латинских букв, без специальных знаков.");
+        }
+
+        [Rpc(SendTo.Server)]
+        private void ChangeCharacterRpc(int characterIndex, RpcParams rpcParams = default)
+        {
+            ulong sender = rpcParams.Receive.SenderClientId;
+            int claimIndex = IndexOfClient(sender);
+            if (!HubPartyProfiles.CanEdit || claimIndex < 0 || roster == null || characterIndex < 0 ||
+                characterIndex >= roster.Characters.Count || !roster.Characters[characterIndex].IsAvailable) return;
+            if (claims[claimIndex].CharacterIndex == characterIndex) return;
+            if (IsTaken(characterIndex)) { ProfileResultRpc(sender, "Этот облик уже занят. Выбери другой."); return; }
+            var prefab = roster.Characters[characterIndex].Prefab;
+            if (!prefab.TryGetComponent(out NetworkObject prefabObject) || !IsRegisteredNetworkPrefab(prefabObject.PrefabIdHash)) return;
+            if (!NetworkManager.ConnectedClients.TryGetValue(sender, out var client) || client.PlayerObject == null) return;
+            var old = client.PlayerObject;
+            var position = old.transform.position; var rotation = old.transform.rotation;
+            var instance = Instantiate(prefab, position, rotation).GetComponent<NetworkObject>();
+            // Remove the old registration before assigning the new PlayerObject to this client.
+            old.Despawn();
+            instance.SpawnAsPlayerObject(sender);
+            claims[claimIndex] = new CharacterClaim { ClientId = sender, CharacterIndex = characterIndex };
+            var player = SessionScoreboard.Current?.FindPlayer((int)sender);
+            if (player != null) player.Avatar = instance.GetComponent<PlayerController>();
+            ProfileResultRpc(sender, "Облик изменён");
+            Debug.Log($"PARTY PROFILE {sender}: character={characterIndex}");
+        }
+
+        [Rpc(SendTo.Everyone)]
+        private void ProfileResultRpc(ulong recipient, string message)
+        {
+            if (NetworkManager.LocalClientId == recipient) ProfileResult?.Invoke(message);
+        }
 
         public bool HasChosen => IsSpawned && IndexOfClient(NetworkManager.LocalClientId) >= 0;
 

@@ -13,7 +13,7 @@ namespace Igruha.Core.CameraSystems
     /// </summary>
     [RequireComponent(typeof(CinemachineOrbitalFollow))]
     [RequireComponent(typeof(CinemachineDeoccluder))]
-    public sealed class ThirdPersonCameraRig : MonoBehaviour
+    public sealed class ThirdPersonCameraRig : CinemachineExtension
     {
         [SerializeField] private InputActionReference lookAction;
 
@@ -36,7 +36,7 @@ namespace Igruha.Core.CameraSystems
         [SerializeField] private bool lockCursor = true;
 
         [Header("Формат камеры — орбита от третьего лица, как в GTA 5. Не менять")]
-        [Tooltip("Слои сплошной геометрии: Ground, Cover, PlayerBarrier. Default сюда не входит намеренно — там триггеры чекпоинтов и ловушек и сами персонажи")]
+        [Tooltip("Сплошная геометрия: Ground, Cover, PlayerBarrier. CameraOnly добавляется кодом для отделки без контактов с игроком. Default исключён: там триггеры и персонажи")]
         [SerializeField] private LayerMask occluders;
         [Tooltip("Насколько близко камера подходит к точке обхода, когда её прижало к стене")]
         [SerializeField] private float minDistanceFromTarget = 0.25f;
@@ -78,6 +78,12 @@ namespace Igruha.Core.CameraSystems
 
         private Transform pivotTarget;
         private CapsuleCollider pivotCapsule;
+        private Vector3 collisionPivot;
+        private bool hasCollisionPivot;
+        private Vector3 previousCameraPosition;
+        private bool hasPreviousCameraPosition;
+        private const float CollisionPadding = 0.01f;
+        private const string CameraOnlyLayer = "CameraOnly";
 
         /// <summary>
         /// Накопленное смещение мыши, ещё не отданное камере.
@@ -115,8 +121,9 @@ namespace Igruha.Core.CameraSystems
             }
         }
 
-        private void Awake()
+        protected override void Awake()
         {
+            base.Awake();
             orbit = GetComponent<CinemachineOrbitalFollow>();
             deoccluder = GetComponent<CinemachineDeoccluder>();
             TryGetComponent(out cam);
@@ -147,6 +154,9 @@ namespace Igruha.Core.CameraSystems
                 return;
             }
 
+            // Декоративные балки могут иметь отдельные прокси без контактов
+            // с игроками. Остальные сцены сохраняют прежнюю маску геометрии.
+            occluders |= LayerMask.GetMask(CameraOnlyLayer);
             deoccluder.CollideAgainst = occluders;
             deoccluder.MinimumDistanceFromTarget = minDistanceFromTarget;
 
@@ -165,7 +175,7 @@ namespace Igruha.Core.CameraSystems
             // служит корень персонажа — то есть его ступни. Камера съезжала
             // к ним по лучу и упиралась в ноги с полуметра: кадр занимали
             // голени и пол, обзор пропадал целиком. Высота уточняется каждый
-            // кадр в LateUpdate — она едет от приседа.
+            // кадр перед расчётом Cinemachine — она едет от приседа.
             avoidance.UseFollowTarget.Enabled = true;
             avoidance.UseFollowTarget.YOffset = fallbackPivotHeight;
             deoccluder.AvoidObstacles = avoidance;
@@ -182,8 +192,10 @@ namespace Igruha.Core.CameraSystems
         /// кадр в точности прежний, вплотную — камера стоит над головой и
         /// смотрит вперёд, а персонаж уходит под нижний край кадра.
         /// </summary>
-        private void LateUpdate()
+        public override void PrePipelineMutateCameraStateCallback(
+            CinemachineVirtualCameraBase vcam, ref CameraState state, float deltaTime)
         {
+            hasCollisionPivot = false;
             if (cam == null || composer == null || deoccluder == null)
             {
                 return;
@@ -197,28 +209,46 @@ namespace Igruha.Core.CameraSystems
 
             if (!ReferenceEquals(target, pivotTarget))
             {
+                hasPreviousCameraPosition = false;
                 pivotTarget = target;
-                target.TryGetComponent(out pivotCapsule);
+                // Hub передаёт дочерний CameraTarget на высоте груди, сеть —
+                // корень игрока. Капсула и мировая макушка одинаковы в обоих случаях.
+                pivotCapsule = target.GetComponentInParent<CapsuleCollider>();
             }
 
-            // Присед меняет высоту капсулы, и точка обхода обязана ехать с ней:
-            // постоянные два метра в лазу оказались бы внутри перекрытия, а луч
-            // обхода — внутри геометрии, откуда он не видит ничего.
-            float pivotHeight = pivotCapsule != null
-                ? pivotCapsule.center.y + pivotCapsule.height * 0.5f + pivotHeadroom
-                : fallbackPivotHeight;
+            Vector3 up = target.up;
+            Vector3 origin = target.position;
+            float pivotHeight = fallbackPivotHeight;
+            if (pivotCapsule != null)
+            {
+                origin = pivotCapsule.transform.TransformPoint(pivotCapsule.center);
+                Vector3 head = pivotCapsule.transform.TransformPoint(
+                    pivotCapsule.center + Vector3.up * (pivotCapsule.height * 0.5f));
+                pivotHeight = Vector3.Dot(head - target.position, up) + pivotHeadroom;
+            }
+
+            // Начинаем внутри свободной капсулы, а не над головой: на лестнице
+            // и в прыжке даже правильная макушка с запасом может уйти в потолок.
+            // Проверки здесь только читают физику для текущего кадра камеры.
+            collisionPivot = ConstrainToGeometry(origin, target.position + up * pivotHeight);
+            pivotHeight = Vector3.Dot(collisionPivot - target.position, up);
+            hasCollisionPivot = true;
 
             CinemachineDeoccluder.ObstacleAvoidance avoidance = deoccluder.AvoidObstacles;
             avoidance.UseFollowTarget.YOffset = pivotHeight;
             deoccluder.AvoidObstacles = avoidance;
 
-            // Ближе этого камера не подходит физически: деокклюдер начинает
-            // пробу от суммы минимальной дистанции и радиуса пробника.
+            // Здесь штатный деокклюдер уже прижал камеру. Последняя проверка
+            // может подтянуть её ещё ближе; подъём взгляда при этом сохраняется.
             float closest = minDistanceFromTarget + probeRadius;
             float far = Mathf.Max(aimLiftDistance, closest + 0.01f);
 
-            Vector3 pivot = target.position + target.rotation * (Vector3.up * pivotHeight);
-            float distance = Vector3.Distance(cam.State.GetFinalPosition(), pivot);
+            // В PrePipeline cam.State уже сброшен к сырой орбите. Берём
+            // сохранённый итог прошлого кадра, иначе подъём взгляда у стены
+            // никогда не включается, даже когда камера вплотную к голове.
+            Vector3 cameraPosition = hasPreviousCameraPosition && cam.PreviousStateIsValid
+                ? previousCameraPosition : state.GetFinalPosition();
+            float distance = Vector3.Distance(cameraPosition, collisionPivot);
             float lift = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(closest, far, distance));
 
             Vector3 aim = restAimOffset;
@@ -226,8 +256,59 @@ namespace Igruha.Core.CameraSystems
             composer.TargetOffset = aim;
         }
 
-        private void OnEnable()
+        protected override void PostPipelineStageCallback(
+            CinemachineVirtualCameraBase vcam, CinemachineCore.Stage stage,
+            ref CameraState state, float deltaTime)
         {
+            if (stage != CinemachineCore.Stage.Finalize || !hasCollisionPivot)
+            {
+                return;
+            }
+
+            // Деокклюдер пропускает начало луча на MinimumDistance + CameraRadius,
+            // а затем сглаживает приближение. В тесном углу начало бывает уже
+            // за стеной. Последний sweep без пропуска удерживает итоговый кадр
+            // внутри комнаты, сохраняя обычное плавное отдаление Cinemachine.
+            Vector3 previousPosition = state.GetFinalPosition();
+            Vector3 safePosition = ConstrainToGeometry(collisionPivot, previousPosition);
+            previousCameraPosition = safePosition;
+            hasPreviousCameraPosition = true;
+            Vector3 correction = safePosition - previousPosition;
+            if (correction.sqrMagnitude < Epsilon * Epsilon)
+            {
+                return;
+            }
+
+            state.PositionCorrection += correction;
+            if (state.HasLookAt()
+                && (state.ReferenceLookAt - safePosition).sqrMagnitude > Epsilon * Epsilon)
+            {
+                // Сохраняем смещение цели в кадре, уже рассчитанное композером.
+                Vector2 screenOffset = state.RawOrientation.GetCameraRotationToTarget(
+                    state.ReferenceLookAt - previousPosition, state.ReferenceUp);
+                Quaternion look = Quaternion.LookRotation(
+                    state.ReferenceLookAt - safePosition, state.ReferenceUp);
+                state.RawOrientation = look.ApplyCameraRotation(-screenOffset, state.ReferenceUp);
+            }
+        }
+
+        private Vector3 ConstrainToGeometry(Vector3 origin, Vector3 destination)
+        {
+            Vector3 offset = destination - origin;
+            float distance = offset.magnitude;
+            if (distance > Epsilon && Physics.SphereCast(
+                origin, probeRadius, offset / distance, out RaycastHit hit,
+                distance, occluders, QueryTriggerInteraction.Ignore))
+            {
+                return origin + offset / distance * Mathf.Max(0f, hit.distance - CollisionPadding);
+            }
+
+            return destination;
+        }
+
+        protected override void OnEnable()
+        {
+            base.OnEnable();
             if (lookAction != null)
             {
                 lookAction.action.performed += OnLookPerformed;

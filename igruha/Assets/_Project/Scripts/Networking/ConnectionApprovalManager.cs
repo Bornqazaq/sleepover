@@ -92,6 +92,12 @@ namespace Igruha.Networking
 
             // ✅ Все проверки пройдены — одобрить подключение
             response.Approved = true;
+            var app = GetComponent<AppNetworkManager>();
+            if (request.ClientNetworkId != NetworkManager.ServerClientId && app != null && !app.RoomReady)
+            {
+                response.Pending = true;
+                StartCoroutine(WaitForRoom(response, app));
+            }
 
             // Тело здесь не создаём намеренно. NGO берёт префаб именно в
             // одобрении, то есть до того, как игрок вообще увидел экран
@@ -103,6 +109,18 @@ namespace Igruha.Networking
             Debug.Log($"✅ Client {request.ClientNetworkId} APPROVED — тело появится после выбора персонажа");
         }
 
+
+        private System.Collections.IEnumerator WaitForRoom(NetworkManager.ConnectionApprovalResponse response, AppNetworkManager app)
+        {
+            float deadline = Time.realtimeSinceStartup + 15f;
+            while (app != null && !app.RoomReady && Time.realtimeSinceStartup < deadline) yield return null;
+            // Recheck capacity after pending approvals so simultaneous joins cannot overfill the room.
+            yield return null;
+            var network = NetworkManager.Singleton;
+            response.Approved = app != null && app.RoomReady && network != null && network.ConnectedClients.Count < MAX_PLAYERS;
+            if (!response.Approved) response.Reason = "Комната ещё загружается или уже заполнена";
+            response.Pending = false;
+        }
 
         /// <summary>
         /// Точка спавна по кругу вокруг центра арены — детерминированно от ClientId,

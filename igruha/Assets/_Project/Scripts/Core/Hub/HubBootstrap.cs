@@ -40,6 +40,16 @@ namespace Igruha.Core.Hub
                  "игру вразнобой, и 15 с хватало только на редакторский стенд")]
         [SerializeField] private float networkRosterTimeout = 180f;
 
+        private PlayerController boundAvatar;
+        private bool booted;
+
+        private void LateUpdate()
+        {
+            if (!booted) return;
+            var avatar = SessionScoreboard.Current?.LocalPlayer?.Avatar;
+            if (avatar != null && avatar != boundAvatar) BindAvatar(avatar);
+        }
+
         private void Start()
         {
             StartCoroutine(Boot());
@@ -78,9 +88,9 @@ namespace Igruha.Core.Hub
                     yield break;
                 }
 
-                int chosenIndex = -1;
-                bool choiceMade = false;
-                characterSelect.Show(roster, null, picked =>
+                int chosenIndex = LocalPartyProfile.CharacterOf(0);
+                bool choiceMade = chosenIndex >= 0 && chosenIndex < roster.Characters.Count;
+                if (!choiceMade) characterSelect.Show(roster, null, picked =>
                 {
                     chosenIndex = picked;
                     choiceMade = true;
@@ -102,6 +112,7 @@ namespace Igruha.Core.Hub
             }
 
             yield return BindLocalPlayer(players, networked);
+            booted = true;
         }
 
         /// <summary>
@@ -217,15 +228,21 @@ namespace Igruha.Core.Hub
                 }
             }
 
+            BindAvatar(avatar);
+        }
+
+        private void BindAvatar(PlayerController avatar)
+        {
+            boundAvatar = avatar;
             RestoreLocalControl(avatar);
 
-            if (cameraController != null)
+            if (cameraController != null && (ConsoleMenu.Active == null || !ConsoleMenu.Active.IsOpen))
             {
                 // CameraTarget — точка на уровне груди, а не корень капсулы: персонажи
                 // разного роста иначе кадрируются по-разному (см. PlayerController.CameraTarget).
                 cameraController.Apply(CameraMode.ThirdPerson, avatar.CameraTarget);
             }
-            else
+            else if (cameraController == null)
             {
                 Debug.LogError($"{name}: не назначен cameraController — камера останется на месте вместо выбранного персонажа", this);
             }

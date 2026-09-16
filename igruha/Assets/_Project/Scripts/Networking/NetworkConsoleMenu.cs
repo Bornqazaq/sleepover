@@ -5,20 +5,8 @@ using Igruha.Core.Hub;
 namespace Igruha.Networking
 {
     /// <summary>
-    /// Сетевая половина экрана приставки: держит общее состояние меню и
-    /// раздаёт его всем.
-    ///
-    /// Состояния всего два — включён ли экран и что на нём подсвечено, — и оба
-    /// это <b>состояние</b>, а не событие: подключившийся посреди выбора обязан
-    /// увидеть тот же экран, что и остальные. Поэтому NetworkVariable, а не RPC.
-    ///
-    /// Пишет только сервер. Клиенту сюда слать нечего: по правилам приставки
-    /// выбирает хост, а хост и есть сервер. Значит и валидировать нечего —
-    /// нет ни одного пути, которым клиент мог бы тронуть это состояние.
-    ///
-    /// Живёт на объекте сессии, а не в сцене хаба: хаб перезагружается между
-    /// мини-играми, а сессия — нет. Сам экран в новой сцене находит себя сам
-    /// через <see cref="ConsoleMenu.Active"/>.
+    /// The host publishes TV power, page and library cursor as persistent room state.
+    /// Late joiners see the current page. Personal profile requests use CharacterSelectionManager.
     /// </summary>
     public sealed class NetworkConsoleMenu : NetworkBehaviour, IConsoleMenuRelay
     {
@@ -28,7 +16,17 @@ namespace Igruha.Networking
         private readonly NetworkVariable<int> cursor = new NetworkVariable<int>(
             0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
+        private readonly NetworkVariable<int> page = new NetworkVariable<int>(0);
+        private readonly NetworkVariable<Unity.Collections.FixedString128Bytes> seriesSummary = new NetworkVariable<Unity.Collections.FixedString128Bytes>();
+        public string SeriesSummary => seriesSummary.Value.ToString();
         public bool HasAuthority => IsServer;
+        public void SetPage(ConsolePage value) { if (IsServer) page.Value = (int)value; }
+        private void Update()
+        {
+            if (IsSpawned && IsServer && seriesSummary.Value.ToString() != Igruha.Core.Minigame.PartySeries.Summary)
+                seriesSummary.Value = new Unity.Collections.FixedString128Bytes(Igruha.Core.Minigame.PartySeries.Summary);
+        }
+        private void OnPageChanged(int before, int after) => ApplyToScreen();
 
         public override void OnNetworkSpawn()
         {
@@ -36,6 +34,7 @@ namespace Igruha.Networking
 
             menuOpen.OnValueChanged += OnMenuOpenChanged;
             cursor.OnValueChanged += OnCursorChanged;
+            page.OnValueChanged += OnPageChanged;
 
             // Экран мог быть включён до того, как эта копия появилась:
             // применяем то, что уже лежит в состоянии.
@@ -47,6 +46,7 @@ namespace Igruha.Networking
         {
             menuOpen.OnValueChanged -= OnMenuOpenChanged;
             cursor.OnValueChanged -= OnCursorChanged;
+            page.OnValueChanged -= OnPageChanged;
 
             if (ReferenceEquals(ConsoleMenu.Relay, this))
             {
@@ -98,6 +98,7 @@ namespace Igruha.Networking
                 return;
             }
 
+            screen.ApplyPage((ConsolePage)page.Value);
             screen.ApplyCursor(cursor.Value);
             screen.ApplyOpen(menuOpen.Value);
         }
