@@ -576,21 +576,15 @@ namespace Igruha.Minigames.Exam
                 case StageReveal:
                     questionInput?.Close();
 
-                    // Ведущему камеру НЕ возвращаем: он остаётся за кафедрой
-                    // до конца вопроса, а места для 3rd person там нет. Между
-                    // кафедрой (z=11.16) и дальней стеной (z=12.96) 1.8 м при
-                    // требуемых правилом камеры ~4.5 (igruha/CLAUDE.md, 2a):
-                    // риг уезжал за стену, деокклюдер подтягивал камеру
-                    // вплотную к спине, и кадр вставал на уровне пояса — ни
-                    // Ведущего в рост, ни доски. Повернуть было некуда: сзади
-                    // стена с доской, спереди невидимая стенка возвышения.
-                    //
-                    // Фиксированная камера кафедры держится весь его ход и
-                    // возвращается там, где Ведущий с кафедры сходит, —
-                    // в ReleasePreviousHost и OnRoundEnded.
-                    if (!FindEntryPlayer(match.HostPlayerId).IsLocal)
+                    // Три секунды чтения: высокий силуэт ученика (особенно
+                    // Шланги) может закрыть мировую доску в обычной орбите.
+                    // Показываем ему существующий общий план; Ведущий пока
+                    // остаётся в кадре кафедры. При выборе вернётся 3rd person.
+                    if (!FindEntryPlayer(match.HostPlayerId).IsLocal &&
+                        cameraController != null && hallCameraRig != null)
                     {
-                        RestoreHostCamera();
+                        cameraController.Apply(CameraMode.Fixed, hallCameraRig);
+                        CutReadingTransition();
                     }
 
                     // Текст уходит клиентам ровно в этот момент и ни секундой
@@ -648,6 +642,11 @@ namespace Igruha.Minigames.Exam
                     // ради чего он его писал: кто куда побежит и кто провалится.
                     // Камера кафедры смотрит НА кафедру — с неё этого не видно
                     // вовсе, и вся развязка проходила бы мимо него.
+                    if (!FindEntryPlayer(match.HostPlayerId).IsLocal)
+                    {
+                        RestoreHostCamera();
+                        CutReadingTransition();
+                    }
                     ApplyHallCamera();
 
                     for (int i = 0; i < bots.Count; i++)
@@ -1384,6 +1383,14 @@ namespace Igruha.Minigames.Exam
             }
 
             cameraController.Apply(CameraMode.Fixed, hallCameraRig);
+        }
+
+        // The reading shot lasts only three seconds. Cut between these local
+        // positions so the shared two-second blend does not consume the shot.
+        // No shared camera settings are changed.
+        private static void CutReadingTransition()
+        {
+            Camera.main?.GetComponent<Unity.Cinemachine.CinemachineBrain>()?.ResetState();
         }
 
         private void RestoreHostCamera()

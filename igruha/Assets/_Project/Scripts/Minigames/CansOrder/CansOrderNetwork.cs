@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
+using Igruha.Minigames.Circus;
 using Igruha.Core.Minigame;
 
 namespace Igruha.Minigames.CansOrder
@@ -240,7 +241,7 @@ namespace Igruha.Minigames.CansOrder
         /// рёв и стойка на лапах — решение сервера: иначе на одной машине
         /// медведь дразнит клетку, а на другой молча ходит кругами.
         /// </summary>
-        private readonly NetworkVariable<byte> bearState = new NetworkVariable<byte>();
+        private readonly NetworkVariable<CircusBearSnapshot> bearState = new NetworkVariable<CircusBearSnapshot>();
 
         /// <summary>Буфер под расстановку, приехавшую по сети. Поле, а не локальная переменная: круг за кругом одно и то же.</summary>
         private readonly List<int> incoming = new List<int>(8);
@@ -543,17 +544,17 @@ namespace Igruha.Minigames.CansOrder
         // ========== МЕДВЕДЬ ==========
 
         /// <summary>Сервер объявил, в каком состоянии медведь. Двигают его серверный ИИ и NetworkTransform.</summary>
-        public void PublishBearState(byte state)
+        public void PublishBearState(byte state, int targetId)
         {
-            if (!IsSpawned || !IsServer || bearState.Value == state)
+            if (!IsSpawned || !IsServer || (bearState.Value.State == state && bearState.Value.TargetId == targetId))
             {
                 return;
             }
 
-            bearState.Value = state;
+            bearState.Value = new CircusBearSnapshot { State = state, StartedAt = NetworkManager.ServerTime.Time, TargetId = targetId };
         }
 
-        private void OnBearStateChanged(byte previous, byte current)
+        private void OnBearStateChanged(CircusBearSnapshot previous, CircusBearSnapshot current)
         {
             if (!IsServer)
             {
@@ -561,7 +562,7 @@ namespace Igruha.Minigames.CansOrder
             }
         }
 
-        private void ApplyBearState() => game?.ApplyNetworkBearState(bearState.Value);
+        private void ApplyBearState() => game?.ApplyNetworkBearState(bearState.Value.State, Mathf.Max(0, (float)(NetworkManager.ServerTime.Time - bearState.Value.StartedAt)), bearState.Value.TargetId);
 
         // ========== УХОД ИГРОКА ==========
 

@@ -1,0 +1,12 @@
+Second refinement — measurement scope
+
+Geometry (after TMP initialization): first pass 109 renderers / 174568 triangles / 37 colliders; refinement 167 / 279124 / 48. Shared characters excluded from these arena counts.
+3 shadow-casting window spots, URP high additional-light shadow tier; global render-pipeline asset unchanged. No particle shadows. 48 authored FBX models vs 34.
+
+Controlled shadow-cost comparison, final room and SAME pose of 4 local avatars in Play Mode, HallCameraRig FOV40, 1600x900. A single synchronous editor call prevents game simulation between samples. 12 warmup + 48 Camera.Render + one-pixel GPU readbacks per state. Three window shadows OFF: 6.03 ms; ON: 9.74 ms. Difference +3.71 ms. This is rendering/readback cost, not gameplay FPS.
+
+Matched static room snapshots: before refinement 22.88 ms; final empty room 7.08 ms. Separate runs and editor/OS workload make these unsuitable as an acceleration claim; controlled shadow cost above is the useful local comparison.
+
+Observed full matches: local 4-avatar phase-3 frame samples weighted mean 14.99 ms. Two graphical localhost apps phase-3 means host 29.67 ms / client 13.88 ms, versus previous run 11.40 / 11.40 ms. Camera roles alternate; window focus, desktop load and capture stalls were uncontrolled. These numbers are observations, not a hardware budget or clean regression ratio. Dedicated hardware profiling and 8-player graphical load were not performed.
+
+Full host/client test used final geometry/mechanism/font and 18-paper/32-dust release. Afterwards only dust color/size/alpha texture were softened; final visual was re-recorded with real OpenDoors/CloseDoors in isolated Play Mode. No event/count/network logic changed in that last adjustment.

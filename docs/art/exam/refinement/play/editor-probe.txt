@@ -1,0 +1,917 @@
+Exam original hall observation
+transition q=0 stage=0 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(2.25, 0.00, -6.12)
+  Player_3 pos=(0.45, 0.00, -6.12)
+  Player_2 pos=(-1.35, 0.00, -6.12)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.39, -9.60) rot=(15.74, 4.84, 0.00) fov=55
+transition q=1 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(2.25, 0.00, -6.12)
+  Player_3 pos=(0.45, 0.00, -6.12)
+  Player_2 pos=(-1.35, 0.00, -6.12)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+settled minY=0.00 q=1 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(0.45, 0.00, -6.12)
+  Player_2 pos=(-1.35, 0.00, -6.12)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+transition q=1 stage=2 Aopen=False Bopen=False board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(0.45, 0.00, -6.12)
+  Player_2 pos=(-1.35, 0.00, -6.12)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+settled minY=0.00 q=1 stage=2 Aopen=False Bopen=False board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(0.45, 0.00, -6.12)
+  Player_2 pos=(-1.35, 0.00, -6.12)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=1 stage=3 Aopen=False Bopen=False board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(0.45, 0.00, -6.12)
+  Player_2 pos=(-1.35, 0.00, -6.12)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=1 stage=3 Aopen=False Bopen=False board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(2.06, 0.00, -0.48)
+  Player_2 pos=(2.48, 0.00, -1.69)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+frame-sample stage=3 n=447 meanMs=16.87
+transition q=1 stage=4 Aopen=False Bopen=False board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(3.58, 0.00, 4.90)
+  Player_2 pos=(5.46, 0.00, 1.76)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+settled minY=0.00 q=1 stage=4 Aopen=False Bopen=False board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(3.58, 0.00, 4.90)
+  Player_2 pos=(-0.35, 0.00, 1.73)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+transition q=1 stage=5 Aopen=False Bopen=True board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(3.58, 0.00, 4.90)
+  Player_2 pos=(-4.41, 0.00, 1.72)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+fall minY=0.00 q=1 stage=5 Aopen=False Bopen=True board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(3.58, 0.00, 4.90)
+  Player_2 pos=(-4.41, 0.00, 1.72)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+mechanism q=1 elapsed=0.104 core=21.3 visual=21.3 papers=0 steam=0
+mechanism q=1 elapsed=0.437 core=24.7 visual=24.7 papers=0 steam=0
+fall minY=0.00 q=1 stage=5 Aopen=False Bopen=True board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(3.58, 0.00, 4.90)
+  Player_2 pos=(-4.41, 0.00, 1.72)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+mechanism q=1 elapsed=0.534 core=98.0 visual=111.4 papers=18 steam=32
+mechanism q=1 elapsed=0.637 core=110.0 visual=110.0 papers=18 steam=32
+mechanism q=1 elapsed=0.735 core=110.0 visual=110.0 papers=18 steam=32
+fall minY=0.00 q=1 stage=5 Aopen=False Bopen=True board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(3.58, 0.00, 4.90)
+  Player_2 pos=(-4.41, 0.00, 1.72)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+settled minY=0.00 q=1 stage=5 Aopen=False Bopen=True board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(3.58, 0.00, 4.90)
+  Player_2 pos=(-4.41, 0.00, 1.72)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+fall minY=0.00 q=1 stage=5 Aopen=False Bopen=True board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(3.58, 0.00, 4.90)
+  Player_2 pos=(-4.41, 0.00, 1.72)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+fall minY=0.00 q=1 stage=5 Aopen=False Bopen=True board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(3.58, 0.00, 4.90)
+  Player_2 pos=(-4.41, 0.00, 1.72)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+fall minY=0.00 q=1 stage=5 Aopen=False Bopen=True board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(3.58, 0.00, 4.90)
+  Player_2 pos=(-4.41, 0.00, 1.72)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+fall minY=0.00 q=1 stage=5 Aopen=False Bopen=True board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(3.58, 0.00, 4.90)
+  Player_2 pos=(-4.41, 0.00, 1.72)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+fall minY=0.00 q=1 stage=5 Aopen=False Bopen=True board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(3.58, 0.00, 4.90)
+  Player_2 pos=(-4.41, 0.00, 1.72)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+transition q=1 stage=6 Aopen=False Bopen=False board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(3.58, 0.00, 4.90)
+  Player_2 pos=(-4.41, 0.00, 1.72)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+settled minY=0.00 q=1 stage=6 Aopen=False Bopen=False board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(3.58, 0.00, 4.90)
+  Player_2 pos=(-4.41, 0.00, 1.72)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+transition q=2 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(3.58, 0.00, 4.90)
+  Player_2 pos=(-4.41, 0.00, 1.72)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+settled minY=0.00 q=2 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(-1.60, 0.00, -4.32)
+  Player_3 pos=(3.58, 0.00, 4.90)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+transition q=2 stage=2 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(-1.60, 0.00, -4.32)
+  Player_3 pos=(3.58, 0.00, 4.90)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+settled minY=0.00 q=2 stage=2 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(-1.60, 0.00, -4.32)
+  Player_3 pos=(3.58, 0.00, 4.90)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=2 stage=3 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(-1.60, 0.00, -4.32)
+  Player_3 pos=(3.58, 0.00, 4.90)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=2 stage=3 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(-2.49, 0.00, 1.33)
+  Player_3 pos=(-1.84, 0.00, 3.05)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+frame-sample stage=3 n=496 meanMs=15.51
+transition q=2 stage=4 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(-2.73, 0.00, 2.50)
+  Player_3 pos=(-4.83, 0.00, 2.07)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+settled minY=0.00 q=2 stage=4 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(1.80, 0.00, 2.04)
+  Player_3 pos=(0.94, 0.01, 2.40)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+transition q=2 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(2.06, 0.00, 1.85)
+  Player_3 pos=(4.84, 0.00, 2.63)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+fall minY=0.00 q=2 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(2.06, 0.00, 1.85)
+  Player_3 pos=(4.84, 0.00, 2.63)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+mechanism q=2 elapsed=0.115 core=25.1 visual=25.4 papers=18 steam=32
+mechanism q=2 elapsed=0.229 core=28.6 visual=35.6 papers=18 steam=32
+mechanism q=2 elapsed=0.321 core=53.8 visual=92.4 papers=18 steam=32
+mechanism q=2 elapsed=0.415 core=73.9 visual=112.0 papers=18 steam=32
+mechanism q=2 elapsed=0.506 core=94.7 visual=112.1 papers=18 steam=32
+fall minY=0.00 q=2 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(2.06, 0.00, 1.85)
+  Player_3 pos=(4.84, 0.00, 2.63)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+fall minY=0.00 q=2 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(2.06, 0.00, 1.85)
+  Player_3 pos=(4.84, 0.00, 2.63)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+settled minY=0.00 q=2 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(2.06, 0.00, 1.85)
+  Player_3 pos=(4.84, 0.00, 2.63)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+fall minY=0.00 q=2 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(2.06, 0.00, 1.85)
+  Player_3 pos=(4.84, 0.00, 2.63)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+fall minY=0.00 q=2 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(2.06, 0.00, 1.85)
+  Player_3 pos=(4.84, 0.00, 2.63)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+fall minY=0.00 q=2 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(2.06, 0.00, 1.85)
+  Player_3 pos=(4.84, 0.00, 2.63)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+fall minY=0.00 q=2 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(2.06, 0.00, 1.85)
+  Player_3 pos=(4.84, 0.00, 2.63)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+fall minY=0.00 q=2 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(2.06, 0.00, 1.85)
+  Player_3 pos=(4.84, 0.00, 2.63)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+transition q=2 stage=6 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(2.06, 0.00, 1.85)
+  Player_3 pos=(4.84, 0.00, 2.63)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+settled minY=0.00 q=2 stage=6 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(2.06, 0.00, 1.85)
+  Player_3 pos=(4.84, 0.00, 2.63)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+transition q=3 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(2.06, 0.00, 1.85)
+  Player_3 pos=(4.84, 0.00, 2.63)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-3.15, 0.00, -6.12)
+  camera=(-3.15, 1.35, -9.60) rot=(15.55, 4.84, 0.00) fov=55
+settled minY=0.00 q=3 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(2.06, 0.00, 1.85)
+  Player_3 pos=(4.84, 0.00, 2.63)
+  Player_2 pos=(0.00, 0.00, -4.32)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  camera=(1.33, 2.99, 3.55) rot=(19.98, 350.16, 359.95) fov=54.20489
+transition q=3 stage=2 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(2.06, 0.00, 1.85)
+  Player_3 pos=(4.84, 0.00, 2.63)
+  Player_2 pos=(0.00, 0.00, -4.32)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+settled minY=0.00 q=3 stage=2 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(2.06, 0.00, 1.85)
+  Player_3 pos=(4.84, 0.00, 2.63)
+  Player_2 pos=(0.00, 0.00, -4.32)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+transition q=3 stage=3 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(2.06, 0.00, 1.85)
+  Player_3 pos=(4.84, 0.00, 2.63)
+  Player_2 pos=(0.00, 0.00, -4.32)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+settled minY=0.00 q=3 stage=3 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(-2.17, 0.00, 1.35)
+  Player_3 pos=(4.65, 0.00, 2.54)
+  Player_2 pos=(-2.48, 0.00, 0.70)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+frame-sample stage=3 n=450 meanMs=15.54
+transition q=3 stage=4 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(-2.12, 0.00, 1.55)
+  Player_3 pos=(4.65, 0.00, 2.54)
+  Player_2 pos=(-4.26, 0.00, 4.65)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=3 stage=4 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(1.92, 0.00, 1.87)
+  Player_3 pos=(-0.79, 0.00, 4.42)
+  Player_2 pos=(-4.26, 0.00, 4.65)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=3 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(1.92, 0.00, 1.87)
+  Player_3 pos=(-2.61, 0.00, 5.05)
+  Player_2 pos=(-4.26, 0.00, 4.65)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=3 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(1.92, 0.00, 1.87)
+  Player_3 pos=(-2.61, 0.00, 5.05)
+  Player_2 pos=(-4.26, 0.00, 4.65)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+mechanism q=3 elapsed=0.102 core=25.6 visual=26.9 papers=18 steam=32
+mechanism q=3 elapsed=0.278 core=26.7 visual=30.1 papers=18 steam=32
+mechanism q=3 elapsed=0.381 core=65.6 visual=106.8 papers=18 steam=32
+mechanism q=3 elapsed=0.487 core=88.3 visual=113.2 papers=18 steam=32
+mechanism q=3 elapsed=0.584 core=110.0 visual=110.0 papers=18 steam=32
+fall minY=-4.14 q=3 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(1.92, 0.00, 1.87)
+  Player_3 pos=(-2.61, 0.00, 5.05)
+  Player_2 pos=(-4.26, -4.14, 4.65)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.14 q=3 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(1.92, 0.00, 1.87)
+  Player_3 pos=(-2.61, 0.00, 5.05)
+  Player_2 pos=(-4.26, -7.00, 4.65)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=-7.14 q=3 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(1.92, 0.00, 1.87)
+  Player_3 pos=(-2.61, 0.00, 5.05)
+  Player_2 pos=(-4.26, -7.00, 4.65)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.14 q=3 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(1.92, 0.00, 1.87)
+  Player_3 pos=(-2.61, 0.00, 5.05)
+  Player_2 pos=(-4.26, -7.00, 4.65)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.14 q=3 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(1.92, 0.00, 1.87)
+  Player_3 pos=(-2.61, 0.00, 5.05)
+  Player_2 pos=(-4.26, -7.00, 4.65)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.14 q=3 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(1.92, 0.00, 1.87)
+  Player_3 pos=(-2.61, 0.00, 5.05)
+  Player_2 pos=(-4.26, -7.00, 4.65)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.14 q=3 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(1.92, 0.00, 1.87)
+  Player_3 pos=(-2.61, 0.00, 5.05)
+  Player_2 pos=(-4.26, -7.00, 4.65)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.14 q=3 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(1.92, 0.00, 1.87)
+  Player_3 pos=(-2.61, 0.00, 5.05)
+  Player_2 pos=(-4.26, -7.00, 4.65)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=3 stage=6 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(1.92, 0.00, 1.87)
+  Player_3 pos=(-2.61, 0.00, 5.05)
+  Player_2 pos=(-4.26, -7.00, 4.65)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=-7.00 q=3 stage=6 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(1.92, 0.00, 1.87)
+  Player_3 pos=(-2.61, 0.00, 5.05)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=4 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(1.92, 0.00, 1.87)
+  Player_3 pos=(-2.61, 0.00, 5.05)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=4 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(1.92, 0.00, 1.87)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(0.81, 2.65, -4.34) rot=(69.93, 98.64, 18.05) fov=54.67346
+transition q=4 stage=2 Aopen=False Bopen=False board=Сова или жаворонок? | А)  Сова | Б)  Жаворонок
+  Player_4 pos=(1.92, 0.00, 1.87)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -0.31) rot=(12.33, 184.84, 0.00) fov=55
+settled minY=0.00 q=4 stage=2 Aopen=False Bopen=False board=Сова или жаворонок? | А)  Сова | Б)  Жаворонок
+  Player_4 pos=(1.92, 0.00, 1.87)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=4 stage=3 Aopen=False Bopen=False board=Сова или жаворонок? | А)  Сова | Б)  Жаворонок
+  Player_4 pos=(1.92, 0.00, 1.87)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=4 stage=3 Aopen=False Bopen=False board=Сова или жаворонок? | А)  Сова | Б)  Жаворонок
+  Player_4 pos=(4.52, 0.00, 0.99)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-3.43, 0.00, 1.16)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+frame-sample stage=3 n=498 meanMs=14.06
+transition q=4 stage=4 Aopen=False Bopen=False board=Сова или жаворонок? | А)  Сова | Б)  Жаворонок
+  Player_4 pos=(4.52, 0.00, 0.99)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-3.71, 0.00, 1.99)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+settled minY=0.00 q=4 stage=4 Aopen=False Bopen=False board=Сова или жаворонок? | А)  Сова | Б)  Жаворонок
+  Player_4 pos=(4.52, 0.00, 0.99)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(2.01, 0.00, 3.12)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+transition q=4 stage=5 Aopen=False Bopen=True board=Сова или жаворонок? | А)  Сова | Б)  Жаворонок
+  Player_4 pos=(4.52, 0.00, 0.99)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(3.82, 0.00, 3.48)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+fall minY=0.00 q=4 stage=5 Aopen=False Bopen=True board=Сова или жаворонок? | А)  Сова | Б)  Жаворонок
+  Player_4 pos=(4.52, 0.00, 0.99)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(3.82, 0.00, 3.48)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+fall minY=-3.13 q=4 stage=5 Aopen=False Bopen=True board=Сова или жаворонок? | А)  Сова | Б)  Жаворонок
+  Player_4 pos=(4.52, -0.63, 1.08)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(3.82, -3.13, 3.48)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+fall minY=-7.17 q=4 stage=5 Aopen=False Bopen=True board=Сова или жаворонок? | А)  Сова | Б)  Жаворонок
+  Player_4 pos=(4.52, -6.84, 1.08)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(3.82, -7.00, 3.48)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+settled minY=-7.17 q=4 stage=5 Aopen=False Bopen=True board=Сова или жаворонок? | А)  Сова | Б)  Жаворонок
+  Player_4 pos=(4.52, -7.00, 1.08)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(3.82, -7.00, 3.48)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+fall minY=-7.17 q=4 stage=5 Aopen=False Bopen=True board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(4.52, -7.00, 1.08)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(3.82, -7.00, 3.48)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+fall minY=-7.17 q=4 stage=5 Aopen=False Bopen=True board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(4.52, -7.00, 1.08)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(3.82, -7.00, 3.48)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+fall minY=-7.17 q=4 stage=5 Aopen=False Bopen=True board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(4.52, -7.00, 1.08)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(3.82, -7.00, 3.48)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+fall minY=-7.17 q=4 stage=5 Aopen=False Bopen=True board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(4.52, -7.00, 1.08)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(3.82, -7.00, 3.48)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+fall minY=-7.17 q=4 stage=5 Aopen=False Bopen=True board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(4.52, -7.00, 1.08)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(3.82, -7.00, 3.48)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+transition q=4 stage=6 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(4.52, -7.00, 1.08)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(3.82, -7.00, 3.48)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+settled minY=-7.00 q=4 stage=6 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(1.60, 1.65, -4.32)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+transition q=5 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(1.60, 1.65, -4.32)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+settled minY=0.00 q=5 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(3.20, 0.00, -4.32)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+transition q=5 stage=2 Aopen=False Bopen=False board=Позвонить или написать? | А)  Позвонить | Б)  Написать
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(3.20, 0.00, -4.32)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+settled minY=0.00 q=5 stage=2 Aopen=False Bopen=False board=Позвонить или написать? | А)  Позвонить | Б)  Написать
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(3.20, 0.00, -4.32)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=5 stage=3 Aopen=False Bopen=False board=Позвонить или написать? | А)  Позвонить | Б)  Написать
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(3.20, 0.00, -4.32)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=5 stage=3 Aopen=False Bopen=False board=Позвонить или написать? | А)  Позвонить | Б)  Написать
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(3.16, 0.00, 0.62)
+  Player_2 pos=(-2.76, 0.00, 1.30)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+frame-sample stage=3 n=501 meanMs=13.96
+transition q=5 stage=4 Aopen=False Bopen=False board=Позвонить или написать? | А)  Позвонить | Б)  Написать
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(3.16, 0.00, 0.64)
+  Player_2 pos=(-3.53, 0.00, 4.99)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+settled minY=0.00 q=5 stage=4 Aopen=False Bopen=False board=Позвонить или написать? | А)  Позвонить | Б)  Написать
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-2.55, 0.00, 0.96)
+  Player_2 pos=(-3.53, 0.00, 4.99)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+transition q=5 stage=5 Aopen=True Bopen=False board=Позвонить или написать? | А)  Позвонить | Б)  Написать
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.61, 0.00, 1.08)
+  Player_2 pos=(-3.53, 0.00, 4.99)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+fall minY=0.00 q=5 stage=5 Aopen=True Bopen=False board=Позвонить или написать? | А)  Позвонить | Б)  Написать
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.61, 0.00, 1.08)
+  Player_2 pos=(-3.53, 0.00, 4.99)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+fall minY=-2.91 q=5 stage=5 Aopen=True Bopen=False board=Позвонить или написать? | А)  Позвонить | Б)  Написать
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.61, -2.91, 1.10)
+  Player_2 pos=(-3.53, 0.00, 4.99)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+fall minY=-7.00 q=5 stage=5 Aopen=True Bopen=False board=Позвонить или написать? | А)  Позвонить | Б)  Написать
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.61, -7.00, 1.10)
+  Player_2 pos=(-3.53, 0.00, 4.99)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+settled minY=-7.00 q=5 stage=5 Aopen=True Bopen=False board=Позвонить или написать? | А)  Позвонить | Б)  Написать
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.61, -7.00, 1.10)
+  Player_2 pos=(-3.53, 0.00, 4.99)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+fall minY=-7.00 q=5 stage=5 Aopen=True Bopen=False board=Позвонить или написать? | А)  Позвонить | Б)  Написать
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.61, -7.00, 1.10)
+  Player_2 pos=(-3.53, 0.00, 4.99)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+fall minY=-7.00 q=5 stage=5 Aopen=True Bopen=False board=Позвонить или написать? | А)  Позвонить | Б)  Написать
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.61, -7.00, 1.10)
+  Player_2 pos=(-3.53, 0.00, 4.99)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+fall minY=-7.00 q=5 stage=5 Aopen=True Bopen=False board=Позвонить или написать? | А)  Позвонить | Б)  Написать
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.61, -7.00, 1.10)
+  Player_2 pos=(-3.53, 0.00, 4.99)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+fall minY=-7.00 q=5 stage=5 Aopen=True Bopen=False board=Позвонить или написать? | А)  Позвонить | Б)  Написать
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.61, -7.00, 1.10)
+  Player_2 pos=(-3.53, 0.00, 4.99)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+fall minY=-7.00 q=5 stage=5 Aopen=True Bopen=False board=Позвонить или написать? | А)  Позвонить | Б)  Написать
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.61, -7.00, 1.10)
+  Player_2 pos=(-3.53, 0.00, 4.99)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+transition q=5 stage=6 Aopen=False Bopen=False board=Позвонить или написать? | А)  Позвонить | Б)  Написать
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.61, -7.00, 1.10)
+  Player_2 pos=(-3.53, 0.00, 4.99)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+settled minY=-7.00 q=5 stage=6 Aopen=False Bopen=False board=Позвонить или написать? | А)  Позвонить | Б)  Написать
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(0.00, 0.00, -4.32)
+  Player_2 pos=(-3.53, 0.00, 4.99)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+transition q=6 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(0.00, 0.00, -4.32)
+  Player_2 pos=(-3.53, 0.00, 4.99)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+settled minY=0.00 q=6 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(-3.20, 0.00, -4.32)
+  Player_3 pos=(0.00, 0.00, -4.32)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+transition q=6 stage=2 Aopen=False Bopen=False board=Сова или жаворонок? | А)  Сова | Б)  Жаворонок
+  Player_4 pos=(-3.20, 0.00, -4.32)
+  Player_3 pos=(0.00, 0.00, -4.32)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+settled minY=0.00 q=6 stage=2 Aopen=False Bopen=False board=Сова или жаворонок? | А)  Сова | Б)  Жаворонок
+  Player_4 pos=(-3.20, 0.00, -4.32)
+  Player_3 pos=(0.00, 0.00, -4.32)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=6 stage=3 Aopen=False Bopen=False board=Сова или жаворонок? | А)  Сова | Б)  Жаворонок
+  Player_4 pos=(-3.20, 0.00, -4.32)
+  Player_3 pos=(0.00, 0.00, -4.32)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=6 stage=3 Aopen=False Bopen=False board=Сова или жаворонок? | А)  Сова | Б)  Жаворонок
+  Player_4 pos=(-3.59, 0.00, 1.42)
+  Player_3 pos=(3.45, 0.00, 0.29)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+frame-sample stage=3 n=478 meanMs=14.64
+transition q=6 stage=4 Aopen=False Bopen=False board=Сова или жаворонок? | А)  Сова | Б)  Жаворонок
+  Player_4 pos=(-3.76, 0.00, 3.87)
+  Player_3 pos=(4.91, 0.00, 2.25)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+settled minY=0.00 q=6 stage=4 Aopen=False Bopen=False board=Сова или жаворонок? | А)  Сова | Б)  Жаворонок
+  Player_4 pos=(2.00, 0.00, 3.59)
+  Player_3 pos=(-0.85, 0.03, 2.00)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+transition q=6 stage=5 Aopen=False Bopen=True board=Сова или жаворонок? | А)  Сова | Б)  Жаворонок
+  Player_4 pos=(4.94, 0.00, 3.45)
+  Player_3 pos=(-3.91, 0.00, 1.87)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+fall minY=0.00 q=6 stage=5 Aopen=False Bopen=True board=Сова или жаворонок? | А)  Сова | Б)  Жаворонок
+  Player_4 pos=(4.94, 0.00, 3.45)
+  Player_3 pos=(-3.91, 0.00, 1.87)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+fall minY=-2.82 q=6 stage=5 Aopen=False Bopen=True board=Сова или жаворонок? | А)  Сова | Б)  Жаворонок
+  Player_4 pos=(4.94, -2.82, 3.45)
+  Player_3 pos=(-3.91, 0.00, 1.87)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+fall minY=-7.03 q=6 stage=5 Aopen=False Bopen=True board=Сова или жаворонок? | А)  Сова | Б)  Жаворонок
+  Player_4 pos=(4.94, -7.00, 3.45)
+  Player_3 pos=(-3.91, 0.00, 1.87)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+settled minY=-7.03 q=6 stage=5 Aopen=False Bopen=True board=Сова или жаворонок? | А)  Сова | Б)  Жаворонок
+  Player_4 pos=(4.94, -7.00, 3.45)
+  Player_3 pos=(-3.91, 0.00, 1.87)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+fall minY=-7.03 q=6 stage=5 Aopen=False Bopen=True board=Сова или жаворонок? | А)  Сова | Б)  Жаворонок
+  Player_4 pos=(4.94, -7.00, 3.45)
+  Player_3 pos=(-3.91, 0.00, 1.87)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+fall minY=-7.03 q=6 stage=5 Aopen=False Bopen=True board=Сова или жаворонок? | А)  Сова | Б)  Жаворонок
+  Player_4 pos=(4.94, -7.00, 3.45)
+  Player_3 pos=(-3.91, 0.00, 1.87)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+fall minY=-7.03 q=6 stage=5 Aopen=False Bopen=True board=Сова или жаворонок? | А)  Сова | Б)  Жаворонок
+  Player_4 pos=(4.94, -7.00, 3.45)
+  Player_3 pos=(-3.91, 0.00, 1.87)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+fall minY=-7.03 q=6 stage=5 Aopen=False Bopen=True board=Сова или жаворонок? | А)  Сова | Б)  Жаворонок
+  Player_4 pos=(4.94, -7.00, 3.45)
+  Player_3 pos=(-3.91, 0.00, 1.87)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+fall minY=-7.03 q=6 stage=5 Aopen=False Bopen=True board=Сова или жаворонок? | А)  Сова | Б)  Жаворонок
+  Player_4 pos=(4.94, -7.00, 3.45)
+  Player_3 pos=(-3.91, 0.00, 1.87)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+transition q=6 stage=6 Aopen=False Bopen=False board=Сова или жаворонок? | А)  Сова | Б)  Жаворонок
+  Player_4 pos=(4.94, -7.00, 3.45)
+  Player_3 pos=(-3.91, 0.00, 1.87)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+settled minY=-7.00 q=6 stage=6 Aopen=False Bopen=False board=Сова или жаворонок? | А)  Сова | Б)  Жаворонок
+  Player_4 pos=(1.60, 1.65, -4.32)
+  Player_3 pos=(-3.91, 0.00, 1.87)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+transition q=7 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(1.60, 1.65, -4.32)
+  Player_3 pos=(-3.91, 0.00, 1.87)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(1.60, 0.00, -4.32)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+settled minY=0.00 q=7 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(1.60, 0.00, -4.32)
+  Player_3 pos=(-3.91, 0.00, 1.87)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  camera=(1.32, 2.99, 3.58) rot=(20.06, 350.24, 359.95) fov=54.21595
+transition q=7 stage=2 Aopen=False Bopen=False board=Вопрос не состоялся |  | 
+  Player_4 pos=(1.60, 0.00, -4.32)
+  Player_3 pos=(-3.91, 0.00, 1.87)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+settled minY=0.00 q=7 stage=2 Aopen=False Bopen=False board=Вопрос не состоялся |  | 
+  Player_4 pos=(1.60, 0.00, -4.32)
+  Player_3 pos=(-3.91, 0.00, 1.87)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+transition q=7 stage=6 Aopen=False Bopen=False board=Вопрос не состоялся |  | 
+  Player_4 pos=(1.60, 0.00, -4.32)
+  Player_3 pos=(-3.91, 0.00, 1.87)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+settled minY=0.00 q=7 stage=6 Aopen=False Bopen=False board=Вопрос не состоялся |  | 
+  Player_4 pos=(1.60, 0.00, -4.32)
+  Player_3 pos=(-3.91, 0.00, 1.87)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+transition q=8 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(1.60, 0.00, -4.32)
+  Player_3 pos=(-3.91, 0.00, 1.87)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+settled minY=0.00 q=8 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(1.60, 0.00, -4.32)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  Player_1 pos=(0.00, 0.00, -4.32)
+  camera=(1.30, 2.38, -0.34) rot=(24.96, 202.37, 0.77) fov=54.66724
+transition q=8 stage=2 Aopen=False Bopen=False board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(1.60, 0.00, -4.32)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  Player_1 pos=(0.00, 0.00, -4.32)
+  camera=(0.00, 1.26, -0.31) rot=(12.33, 184.84, 0.00) fov=55
+settled minY=0.00 q=8 stage=2 Aopen=False Bopen=False board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(1.60, 0.00, -4.32)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  Player_1 pos=(0.00, 0.00, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=8 stage=3 Aopen=False Bopen=False board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(1.60, 0.00, -4.32)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  Player_1 pos=(0.00, 0.00, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=8 stage=3 Aopen=False Bopen=False board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(4.31, 0.00, 0.62)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(2.23, 0.00, 0.04)
+  Player_1 pos=(0.00, 0.00, -4.32)
+  camera=(0.00, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+frame-sample stage=3 n=480 meanMs=14.60
+transition q=8 stage=4 Aopen=False Bopen=False board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(4.48, 0.00, 0.93)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(4.21, 0.00, 2.32)
+  Player_1 pos=(0.00, 0.00, -4.32)
+  camera=(0.00, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+settled minY=0.00 q=8 stage=4 Aopen=False Bopen=False board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(-0.67, 0.00, 3.16)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-1.61, 0.00, 1.58)
+  Player_1 pos=(0.00, 0.00, -4.32)
+  camera=(0.00, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+transition q=8 stage=5 Aopen=True Bopen=False board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(-1.44, 0.00, 3.52)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-4.77, 0.00, 1.07)
+  Player_1 pos=(0.00, 0.00, -4.32)
+  camera=(0.00, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+fall minY=0.00 q=8 stage=5 Aopen=True Bopen=False board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(-1.44, 0.00, 3.52)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-4.77, 0.00, 1.07)
+  Player_1 pos=(0.00, 0.00, -4.32)
+  camera=(0.00, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+fall minY=-2.73 q=8 stage=5 Aopen=True Bopen=False board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(-1.44, -2.30, 3.52)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-4.77, -2.73, 1.08)
+  Player_1 pos=(0.00, 0.00, -4.32)
+  camera=(0.00, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+fall minY=-7.11 q=8 stage=5 Aopen=True Bopen=False board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(-1.44, -7.00, 3.52)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-4.77, -7.00, 1.08)
+  Player_1 pos=(0.00, 0.00, -4.32)
+  camera=(0.00, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+settled minY=-7.11 q=8 stage=5 Aopen=True Bopen=False board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(-1.44, -7.00, 3.52)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-4.77, -7.00, 1.08)
+  Player_1 pos=(0.00, 0.00, -4.32)
+  camera=(0.00, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+fall minY=-7.11 q=8 stage=5 Aopen=True Bopen=False board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(-1.44, -7.00, 3.52)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-4.77, -7.00, 1.08)
+  Player_1 pos=(0.00, 0.00, -4.32)
+  camera=(0.00, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+fall minY=-7.11 q=8 stage=5 Aopen=True Bopen=False board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(-1.44, -7.00, 3.52)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-4.77, -7.00, 1.08)
+  Player_1 pos=(0.00, 0.00, -4.32)
+  camera=(0.00, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+fall minY=-7.11 q=8 stage=5 Aopen=True Bopen=False board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(-1.44, -7.00, 3.52)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-4.77, -7.00, 1.08)
+  Player_1 pos=(0.00, 0.00, -4.32)
+  camera=(0.00, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+fall minY=-7.11 q=8 stage=5 Aopen=True Bopen=False board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(-1.44, -7.00, 3.52)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-4.77, -7.00, 1.08)
+  Player_1 pos=(0.00, 0.00, -4.32)
+  camera=(0.00, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+fall minY=-7.11 q=8 stage=5 Aopen=True Bopen=False board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(-1.44, -7.00, 3.52)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-4.77, -7.00, 1.08)
+  Player_1 pos=(0.00, 0.00, -4.32)
+  camera=(0.00, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+transition q=8 stage=6 Aopen=False Bopen=False board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(-1.44, -7.00, 3.52)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-4.77, -7.00, 1.08)
+  Player_1 pos=(0.00, 0.00, -4.32)
+  camera=(0.00, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+settled minY=-7.00 q=8 stage=6 Aopen=False Bopen=False board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(1.60, 0.00, -4.32)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  Player_1 pos=(0.00, 0.00, -4.32)
+  camera=(0.00, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+transition q=8 stage=0 Aopen=False Bopen=False board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(1.60, 0.00, -4.32)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  Player_1 pos=(0.00, 0.00, -4.32)
+  camera=(0.00, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+RESULTS q=8 stage=0 Aopen=False Bopen=False board=Что бесит сильнее — чавканье или опоздания? | А)  Чавканье | Б)  Опоздания
+  Player_4 pos=(1.60, 0.00, -4.32)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  Player_1 pos=(0.00, 0.00, -4.32)
+  camera=(0.00, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55

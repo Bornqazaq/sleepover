@@ -1,0 +1,651 @@
+Exam original hall observation
+transition q=0 stage=0 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  camera=(0.00, 2.63, -6.00) rot=(0.00, 0.00, 0.00) fov=55
+transition q=1 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-7.00, 0.00, -6.12)
+  camera=(0.06, 2.53, 7.45) rot=(60.20, 5.01, 0.00) fov=54.99998
+settled minY=0.00 q=1 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-7.00, 0.00, -6.12)
+  camera=(1.34, 3.00, 3.52) rot=(19.90, 350.62, 359.94) fov=54.19291
+transition q=1 stage=2 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-7.00, 0.00, -6.12)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+settled minY=0.00 q=1 stage=2 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-7.00, 0.00, -6.12)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+transition q=1 stage=3 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-7.00, 0.00, -6.12)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=1 stage=3 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-3.12, 0.00, -3.35)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+frame-sample stage=3 n=558 meanMs=12.49
+transition q=1 stage=4 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(3.97, 0.00, 1.76)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=1 stage=4 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-0.67, 0.00, 1.52)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=1 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-3.57, 0.00, 1.38)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=1 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-3.57, 0.00, 1.38)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-1.84 q=1 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-3.57, -1.84, 1.38)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-6.87 q=1 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-3.57, -6.86, 1.38)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=-6.95 q=1 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-3.57, -6.94, 1.38)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.00 q=1 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-3.57, -7.00, 1.38)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.00 q=1 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-3.57, -7.00, 1.38)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.00 q=1 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-3.57, -7.00, 1.38)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.00 q=1 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-3.57, -7.00, 1.38)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.00 q=1 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-3.57, -7.00, 1.38)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=1 stage=6 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-3.20, 0.10, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=1 stage=6 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-3.20, 0.00, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=2 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player(Clone) pos=(-1.60, 0.00, -4.32)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(39.16, 339.40, 355.08) fov=40.03653
+settled minY=0.00 q=2 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player(Clone) pos=(-1.60, 0.00, -4.32)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-0.14, 3.82, -8.47) rot=(37.69, 345.87, 356.91) fov=52.19981
+transition q=2 stage=2 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player(Clone) pos=(-1.60, 0.00, -4.32)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-1.60, 1.26, -8.33) rot=(12.32, 5.29, 0.00) fov=55
+settled minY=0.00 q=2 stage=2 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player(Clone) pos=(-1.60, 0.00, -4.32)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-1.60, 1.26, -8.33) rot=(12.32, 5.29, 0.00) fov=55
+transition q=2 stage=3 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player(Clone) pos=(-1.60, 0.00, -4.32)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-1.60, 1.26, -8.33) rot=(12.32, 5.29, 0.00) fov=55
+settled minY=0.00 q=2 stage=3 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player(Clone) pos=(2.11, 0.00, 0.34)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(1.88, 1.26, -3.95) rot=(11.55, 7.95, 0.00) fov=55
+frame-sample stage=3 n=453 meanMs=15.49
+transition q=2 stage=4 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player(Clone) pos=(5.58, 0.00, 4.72)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(5.58, 1.26, 0.72) rot=(12.32, 5.29, 0.00) fov=55
+settled minY=0.00 q=2 stage=4 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player(Clone) pos=(0.15, 0.00, 2.92)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.56, 1.28, -0.95) rot=(12.59, 1.18, 0.00) fov=55
+transition q=2 stage=5 Aopen=False Bopen=True board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player(Clone) pos=(-4.91, 0.00, 1.25)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-4.91, 1.26, -2.75) rot=(12.33, 5.27, 0.00) fov=55
+fall minY=0.00 q=2 stage=5 Aopen=False Bopen=True board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player(Clone) pos=(-4.91, 0.00, 1.25)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-4.91, 1.26, -2.75) rot=(12.33, 5.27, 0.00) fov=55
+fall minY=0.00 q=2 stage=5 Aopen=False Bopen=True board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player(Clone) pos=(-4.91, 0.00, 1.25)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-4.91, 1.26, -2.75) rot=(12.33, 5.27, 0.00) fov=55
+fall minY=0.00 q=2 stage=5 Aopen=False Bopen=True board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player(Clone) pos=(-4.91, 0.00, 1.25)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-4.91, 1.26, -2.75) rot=(12.33, 5.27, 0.00) fov=55
+settled minY=0.00 q=2 stage=5 Aopen=False Bopen=True board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player(Clone) pos=(-4.91, 0.00, 1.25)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-4.91, 1.26, -2.75) rot=(12.33, 5.27, 0.00) fov=55
+fall minY=0.00 q=2 stage=5 Aopen=False Bopen=True board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player(Clone) pos=(-4.91, 0.00, 1.25)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-4.91, 1.26, -2.75) rot=(12.32, 5.29, 0.00) fov=55
+fall minY=0.00 q=2 stage=5 Aopen=False Bopen=True board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player(Clone) pos=(-4.91, 0.00, 1.25)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-4.91, 1.26, -2.75) rot=(12.32, 5.29, 0.00) fov=55
+fall minY=0.00 q=2 stage=5 Aopen=False Bopen=True board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player(Clone) pos=(-4.91, 0.00, 1.25)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-4.91, 1.26, -2.75) rot=(12.32, 5.29, 0.00) fov=55
+fall minY=0.00 q=2 stage=5 Aopen=False Bopen=True board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player(Clone) pos=(-4.91, 0.00, 1.25)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-4.91, 1.26, -2.75) rot=(12.32, 5.29, 0.00) fov=55
+fall minY=0.00 q=2 stage=5 Aopen=False Bopen=True board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player(Clone) pos=(-4.91, 0.00, 1.25)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-4.91, 1.26, -2.75) rot=(12.32, 5.29, 0.00) fov=55
+transition q=2 stage=6 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player(Clone) pos=(-4.91, 0.00, 1.25)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-4.91, 1.26, -2.75) rot=(12.32, 5.29, 0.00) fov=55
+settled minY=0.00 q=2 stage=6 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player(Clone) pos=(-4.91, 0.00, 1.25)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-4.91, 1.26, -2.75) rot=(12.32, 5.29, 0.00) fov=55
+transition q=3 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player(Clone) pos=(0.00, 1.36, 8.64)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-0.18, 3.02, 7.98) rot=(68.59, 14.67, 0.00) fov=54.99984
+settled minY=0.00 q=3 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(0.00, 0.00, -4.32)
+  camera=(1.34, 3.00, 3.51) rot=(19.86, 350.60, 359.94) fov=54.1899
+transition q=3 stage=2 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(0.00, 0.00, -4.32)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+settled minY=0.00 q=3 stage=2 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(0.00, 0.00, -4.32)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+transition q=3 stage=3 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(0.00, 0.00, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=3 stage=3 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(2.94, 0.00, -0.98)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+frame-sample stage=3 n=405 meanMs=17.27
+transition q=3 stage=4 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(6.53, 0.00, 3.12)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=3 stage=4 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(1.94, 0.00, 3.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=3 stage=5 Aopen=False Bopen=True board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-4.84, 0.00, 4.42)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-4.84, 0.00, 4.42)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-4.84, 0.00, 4.42)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-4.84, 0.00, 4.42)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-4.84, 0.00, 4.42)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-4.84, 0.00, 4.42)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-4.84, 0.00, 4.42)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-4.84, 0.00, 4.42)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-4.84, 0.00, 4.42)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-4.84, 0.00, 4.42)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=3 stage=6 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-4.84, 0.00, 4.42)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=3 stage=6 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-4.84, 0.00, 4.42)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=4 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player(Clone) pos=(1.60, 0.10, -4.32)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(39.16, 20.63, 4.92) fov=40.05201
+settled minY=0.00 q=4 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player(Clone) pos=(1.60, 0.00, -4.32)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.84, 2.60, -8.40) rot=(27.48, 15.64, 1.72) fov=54.69577
+transition q=4 stage=2 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(1.60, 0.00, -4.32)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 5.29, 0.00) fov=55
+settled minY=0.00 q=4 stage=2 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(1.60, 0.00, -4.32)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 5.29, 0.00) fov=55
+transition q=4 stage=3 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(1.60, 0.00, -4.32)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(1.60, 1.26, -8.33) rot=(12.32, 5.29, 0.00) fov=55
+settled minY=0.00 q=4 stage=3 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(0.39, 0.00, -3.10)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(1.59, 1.26, -8.32) rot=(12.30, 5.19, 0.00) fov=55
+frame-sample stage=3 n=431 meanMs=18.01
+transition q=4 stage=4 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(-3.17, 0.00, 0.50)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-3.17, 1.26, -3.51) rot=(12.32, 5.28, 0.00) fov=55
+settled minY=0.00 q=4 stage=4 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(-3.17, 0.00, 0.50)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-3.17, 1.26, -3.51) rot=(12.32, 5.28, 0.00) fov=55
+transition q=4 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(-3.17, 0.00, 0.50)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-3.17, 1.26, -3.51) rot=(12.32, 5.28, 0.00) fov=55
+fall minY=0.00 q=4 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(-3.17, 0.00, 0.50)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-3.17, 1.26, -3.51) rot=(12.32, 5.28, 0.00) fov=55
+fall minY=0.00 q=4 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(-3.17, 0.00, 0.50)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-3.17, 1.26, -3.51) rot=(12.32, 5.28, 0.00) fov=55
+fall minY=0.00 q=4 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(-3.17, 0.00, 0.50)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-3.17, 1.26, -3.51) rot=(12.32, 5.28, 0.00) fov=55
+settled minY=0.00 q=4 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(-3.17, 0.00, 0.50)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-3.17, 1.26, -3.51) rot=(12.32, 5.28, 0.00) fov=55
+fall minY=0.00 q=4 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(-3.17, 0.00, 0.50)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-3.17, 1.26, -3.51) rot=(12.32, 5.28, 0.00) fov=55
+fall minY=0.00 q=4 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(-3.17, 0.00, 0.50)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-3.17, 1.26, -3.51) rot=(12.32, 5.29, 0.00) fov=55
+fall minY=0.00 q=4 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(-3.17, 0.00, 0.50)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-3.17, 1.26, -3.51) rot=(12.32, 5.29, 0.00) fov=55
+fall minY=0.00 q=4 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(-3.17, 0.00, 0.50)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-3.17, 1.26, -3.51) rot=(12.32, 5.29, 0.00) fov=55
+transition q=4 stage=6 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(-3.17, 0.00, 0.50)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-3.17, 1.26, -3.51) rot=(12.32, 5.29, 0.00) fov=55
+settled minY=0.00 q=4 stage=6 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Player(Clone) pos=(-3.17, 0.00, 0.50)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-3.17, 1.26, -3.51) rot=(12.32, 5.29, 0.00) fov=55
+transition q=5 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player(Clone) pos=(0.00, 0.82, 8.64)
+  Girl(Clone) pos=(3.20, 0.10, -4.32)
+  camera=(-0.39, 2.42, 6.94) rot=(43.85, 8.19, 0.00) fov=54.99999
+settled minY=0.00 q=5 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(3.20, 0.00, -4.32)
+  camera=(1.37, 3.01, 3.41) rot=(19.57, 350.52, 359.94) fov=54.14968
+transition q=5 stage=2 Aopen=False Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(3.20, 0.00, -4.32)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+settled minY=0.00 q=5 stage=2 Aopen=False Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(3.20, 0.00, -4.32)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+transition q=5 stage=3 Aopen=False Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(3.20, 0.00, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=5 stage=3 Aopen=False Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(0.31, 0.00, -0.46)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+frame-sample stage=3 n=423 meanMs=16.58
+transition q=5 stage=4 Aopen=False Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-3.43, 0.00, 4.54)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=5 stage=4 Aopen=False Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(1.16, 0.00, 3.81)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=5 stage=5 Aopen=False Bopen=True board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(1.54, -0.01, 3.75)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-0.01 q=5 stage=5 Aopen=False Bopen=True board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(1.54, -0.01, 3.75)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-1.09 q=5 stage=5 Aopen=False Bopen=True board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(1.54, -1.09, 3.75)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-6.72 q=5 stage=5 Aopen=False Bopen=True board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(1.54, -6.72, 3.75)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=-7.01 q=5 stage=5 Aopen=False Bopen=True board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(1.54, -7.01, 3.75)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.13 q=5 stage=5 Aopen=False Bopen=True board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(1.54, -7.00, 3.75)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.13 q=5 stage=5 Aopen=False Bopen=True board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(1.54, -7.00, 3.75)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.13 q=5 stage=5 Aopen=False Bopen=True board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(1.54, -7.00, 3.75)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.13 q=5 stage=5 Aopen=False Bopen=True board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(1.54, -7.00, 3.75)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.13 q=5 stage=5 Aopen=False Bopen=True board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(1.54, -7.00, 3.75)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=5 stage=6 Aopen=False Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-3.20, 0.10, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=5 stage=6 Aopen=False Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-3.20, 0.00, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=6 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player(Clone) pos=(-3.20, 0.96, -4.32)
+  Girl(Clone) pos=(-3.20, 0.00, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(29.62, 323.16, 352.10) fov=40.25987
+settled minY=0.00 q=6 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player(Clone) pos=(-3.20, 0.00, -4.32)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-1.62, 2.65, -8.40) rot=(27.05, 344.68, 358.26) fov=54.67422
+transition q=6 stage=2 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player(Clone) pos=(-3.20, 0.00, -4.32)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-3.20, 1.26, -8.33) rot=(12.33, 5.29, 0.00) fov=55
+settled minY=0.00 q=6 stage=2 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player(Clone) pos=(-3.20, 0.00, -4.32)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-3.20, 1.26, -8.33) rot=(12.33, 5.29, 0.00) fov=55
+transition q=6 stage=3 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player(Clone) pos=(-3.20, 0.00, -4.32)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-3.20, 1.26, -8.33) rot=(12.33, 5.29, 0.00) fov=55
+settled minY=0.00 q=6 stage=3 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player(Clone) pos=(-5.05, 0.00, 0.61)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-4.95, 1.26, -3.66) rot=(11.62, 4.14, 0.00) fov=55
+frame-sample stage=3 n=340 meanMs=20.62
+transition q=6 stage=4 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player(Clone) pos=(-5.17, 0.00, 0.92)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-5.17, 1.27, -3.08) rot=(12.32, 5.29, 0.00) fov=55
+settled minY=0.00 q=6 stage=4 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player(Clone) pos=(0.24, 0.00, 3.13)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-0.11, 1.26, -1.02) rot=(11.96, 9.08, 0.00) fov=55
+transition q=6 stage=5 Aopen=False Bopen=True board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player(Clone) pos=(1.68, -0.18, 3.73)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(1.68, 1.21, -0.28) rot=(12.96, 5.29, 0.00) fov=55
+fall minY=-0.18 q=6 stage=5 Aopen=False Bopen=True board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player(Clone) pos=(1.68, -0.18, 3.73)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(1.68, 1.21, -0.28) rot=(12.96, 5.29, 0.00) fov=55
+fall minY=-3.47 q=6 stage=5 Aopen=False Bopen=True board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player(Clone) pos=(1.68, -3.47, 3.73)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(1.68, -1.44, 1.00) rot=(23.15, 5.29, 0.00) fov=55
+fall minY=-7.14 q=6 stage=5 Aopen=False Bopen=True board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player(Clone) pos=(1.68, -7.00, 3.73)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(1.68, -5.73, -0.28) rot=(12.45, 5.29, 0.00) fov=55
+settled minY=-7.14 q=6 stage=5 Aopen=False Bopen=True board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player(Clone) pos=(1.68, -7.00, 3.73)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(1.68, -5.74, -0.28) rot=(12.37, 5.29, 0.00) fov=55
+fall minY=-7.14 q=6 stage=5 Aopen=False Bopen=True board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player(Clone) pos=(1.68, -7.00, 3.73)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(1.68, -5.74, -0.28) rot=(12.34, 5.29, 0.00) fov=55
+fall minY=-7.14 q=6 stage=5 Aopen=False Bopen=True board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player(Clone) pos=(1.68, -7.00, 3.73)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(1.68, -5.74, -0.28) rot=(12.34, 5.29, 0.00) fov=55
+fall minY=-7.14 q=6 stage=5 Aopen=False Bopen=True board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player(Clone) pos=(1.68, -7.00, 3.73)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(1.68, -5.74, -0.28) rot=(12.32, 5.29, 0.00) fov=55
+fall minY=-7.14 q=6 stage=5 Aopen=False Bopen=True board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player(Clone) pos=(1.68, -7.00, 3.73)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(1.68, -5.74, -0.28) rot=(12.32, 5.29, 0.00) fov=55
+transition q=6 stage=6 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player(Clone) pos=(-1.60, 0.00, -4.29)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-1.35, 0.66, -5.05) rot=(21.82, 20.43, 0.00) fov=55
+settled minY=0.00 q=6 stage=6 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player(Clone) pos=(-1.60, 0.00, -4.27)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-1.60, 1.26, -8.27) rot=(12.34, 5.29, 0.00) fov=55
+transition q=7 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player(Clone) pos=(0.00, 1.36, 8.64)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-0.05, 3.00, 7.92) rot=(69.16, 7.72, 0.00) fov=54.99989
+settled minY=-0.01 q=7 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-1.61, 0.00, -4.66)
+  camera=(1.32, 2.99, 3.57) rot=(19.98, 350.65, 359.94) fov=54.21284
+transition q=7 stage=2 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-1.61, 0.00, -4.66)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+settled minY=0.00 q=7 stage=2 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-1.61, 0.00, -4.66)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+transition q=7 stage=3 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-1.61, 0.00, -4.66)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=7 stage=3 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(0.37, 0.00, -1.02)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+frame-sample stage=3 n=334 meanMs=20.99
+transition q=7 stage=4 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(3.05, 0.00, 3.92)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=7 stage=4 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-0.90, 0.00, 1.82)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=7 stage=5 Aopen=True Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-3.05, 0.00, 0.68)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=7 stage=5 Aopen=True Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-3.05, 0.00, 0.68)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=7 stage=5 Aopen=True Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-3.05, 0.00, 0.68)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=7 stage=5 Aopen=True Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-3.05, 0.00, 0.68)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=7 stage=5 Aopen=True Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-3.05, 0.00, 0.68)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=7 stage=5 Aopen=True Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-3.05, 0.00, 0.68)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=7 stage=5 Aopen=True Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-3.05, 0.00, 0.68)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=7 stage=5 Aopen=True Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-3.05, 0.00, 0.68)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=7 stage=5 Aopen=True Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-3.05, 0.00, 0.68)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=7 stage=5 Aopen=True Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-3.05, 0.00, 0.68)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=7 stage=6 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-3.05, 0.00, 0.68)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=7 stage=6 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player(Clone) pos=(0.00, 0.72, 8.64)
+  Girl(Clone) pos=(-3.05, 0.00, 0.68)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=8 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player(Clone) pos=(0.00, 0.00, -4.32)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(41.79, 0.02, 0.01) fov=40.05684
+settled minY=0.00 q=8 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player(Clone) pos=(0.00, 0.00, -4.32)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 2.62, -8.40) rot=(28.11, 5.35, 0.60) fov=54.68904
+transition q=8 stage=2 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(0.00, 0.00, -4.32)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 1.26, -8.33) rot=(12.32, 5.29, 0.00) fov=55
+settled minY=0.00 q=8 stage=2 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(0.00, 0.00, -4.32)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 1.26, -8.33) rot=(12.32, 5.29, 0.00) fov=55
+transition q=8 stage=3 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(0.00, 0.00, -4.32)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(0.00, 1.26, -8.33) rot=(12.32, 5.29, 0.00) fov=55
+settled minY=0.00 q=8 stage=3 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(3.40, 0.00, 0.27)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(3.14, 1.26, -4.09) rot=(11.60, 7.61, 0.00) fov=55
+frame-sample stage=3 n=378 meanMs=18.57
+transition q=8 stage=4 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(5.11, 0.00, 2.59)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(5.11, 1.26, -1.41) rot=(12.32, 5.29, 0.00) fov=55
+settled minY=0.00 q=8 stage=4 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(5.11, 0.00, 2.59)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(5.11, 1.26, -1.41) rot=(12.32, 5.29, 0.00) fov=55
+transition q=8 stage=5 Aopen=False Bopen=True board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(5.11, -0.14, 2.59)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(5.11, 1.24, -1.41) rot=(12.66, 5.29, 0.00) fov=55
+fall minY=-0.14 q=8 stage=5 Aopen=False Bopen=True board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(5.11, -0.14, 2.59)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(5.11, 1.24, -1.41) rot=(12.66, 5.29, 0.00) fov=55
+fall minY=-3.15 q=8 stage=5 Aopen=False Bopen=True board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(5.11, -3.15, 2.59)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(5.11, -1.14, 1.00) rot=(26.28, 5.29, 0.00) fov=55
+fall minY=-7.26 q=8 stage=5 Aopen=False Bopen=True board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(5.11, -7.00, 2.59)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(5.11, -5.73, -1.41) rot=(12.48, 5.29, 0.00) fov=55
+settled minY=-7.26 q=8 stage=5 Aopen=False Bopen=True board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(5.11, -7.00, 2.59)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(5.11, -5.74, -1.41) rot=(12.36, 5.29, 0.00) fov=55
+fall minY=-7.26 q=8 stage=5 Aopen=False Bopen=True board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(5.11, -7.00, 2.59)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(5.11, -5.74, -1.41) rot=(12.34, 5.29, 0.00) fov=55
+fall minY=-7.26 q=8 stage=5 Aopen=False Bopen=True board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(5.11, -7.00, 2.59)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(5.11, -5.74, -1.41) rot=(12.34, 5.29, 0.00) fov=55
+fall minY=-7.26 q=8 stage=5 Aopen=False Bopen=True board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(5.11, -7.00, 2.59)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(5.11, -5.74, -1.41) rot=(12.34, 5.29, 0.00) fov=55
+fall minY=-7.26 q=8 stage=5 Aopen=False Bopen=True board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(5.11, -7.00, 2.59)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(5.11, -5.74, -1.41) rot=(12.34, 5.29, 0.00) fov=55
+fall minY=-7.26 q=8 stage=5 Aopen=False Bopen=True board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(5.11, -7.00, 2.59)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(5.11, -5.74, -1.41) rot=(12.34, 5.29, 0.00) fov=55
+transition q=8 stage=6 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(-1.57, 0.00, -4.30)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-1.19, 1.13, -4.78) rot=(9.77, 301.20, 0.00) fov=55
+settled minY=0.00 q=8 stage=6 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(-1.56, 0.00, -4.29)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-1.56, 1.26, -8.30) rot=(12.34, 5.29, 0.00) fov=55
+transition q=8 stage=0 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(-1.56, 0.00, -4.29)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-1.56, 1.26, -8.30) rot=(12.34, 5.29, 0.00) fov=55
+RESULTS q=8 stage=0 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Player(Clone) pos=(-1.56, 0.00, -4.29)
+  Girl(Clone) pos=(0.00, 0.72, 8.64)
+  camera=(-1.56, 1.26, -8.30) rot=(12.34, 5.29, 0.00) fov=55

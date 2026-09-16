@@ -33,11 +33,12 @@ namespace Igruha.EditorTools
             serialized.FindProperty("animator").objectReferenceValue=animator;
             serialized.FindProperty("turnSpeed").floatValue=150f;
             serialized.FindProperty("acceleration").floatValue=6f;
-            serialized.FindProperty("attackContactTime").floatValue=.55f;
-            serialized.FindProperty("attackDuration").floatValue=1.5f;
-            serialized.FindProperty("attackRecovery").floatValue=.45f;
+            serialized.FindProperty("attackContactTime").floatValue=PitBear.ContactSeconds;
+            serialized.FindProperty("attackDuration").floatValue=PitBear.StrikeSeconds;
+            serialized.FindProperty("attackRecovery").floatValue=.3f;
             serialized.FindProperty("alertParameter").stringValue="Alert";
             serialized.ApplyModifiedPropertiesWithoutUndo();
+            CircusBearPolishBuilder.Dress(bear,animator);
             EditorSceneManager.MarkSceneDirty(bear.gameObject.scene);
         }
     }

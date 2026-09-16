@@ -1,0 +1,51 @@
+Two actual NGO players: Editor host + standalone Mac client, loopback.
+Only scores seeded to reach the final hatch. Phase, fall, head-start and attack clocks left normal.
+Cans: host loses, client survives. Stopwatch: client loses, host survives.
+
+HOST (relative seconds per minigame)
+CansOrderMinigame START
+1.00 natural hatch, exactly one survivor
+1.00 Patrol phase=Round
+1.01 Watching phase=Round
+5.84 WindUp phase=Round
+9.06 Chase phase=Round
+9.78 Attack phase=Round
+10.56 contact; victim=Shlanga(Clone)
+11.59 Recovery phase=Round
+11.89 Patrol phase=Round
+12.61 spectator target=Игрок 2
+13.06 RESULTS; contact=True localSpectator=True mode=ThirdPerson
+StopwatchMinigame START
+1.00 natural hatch, exactly one survivor
+1.00 Patrol phase=Round
+1.01 Watching phase=Round
+7.36 WindUp phase=Round
+10.37 Chase phase=Round
+12.72 Attack phase=Round
+13.44 contact; victim=Boss(Clone)
+14.52 Recovery phase=Round
+14.82 Patrol phase=Round
+16.00 RESULTS; contact=True localSpectator=False mode=ThirdPerson
+
+CLIENT (application seconds)
+[CircusKnockout 52.45] Shlanga(Clone): Contact; collapse begins, local motor=False
+[CircusKnockout 53.99] Shlanga(Clone): Body hidden; spectator event at 1.57 s
+[CircusView 85.00] Attack view; target=1
+[CircusKnockout 85.70] Boss(Clone): Contact; collapse begins, local motor=True
+[CircusKnockout 87.24] Boss(Clone): Body hidden; spectator event at 1.56 s
+[CircusView 87.26] Return from attack view; spectator=True
+
+PASS: 8 characters x owner/remote; collapse, spectator event, ownership and get-up reset
+
+FINAL CAMERA VISUAL CHECK (Editor solo, 4 contestants; host/client logic unchanged)
+CansOrderMinigame START
+1.00 natural hatch, local loses and other three survive
+1.00 Patrol phase=Round
+1.01 Watching phase=Round
+6.28 WindUp phase=Round
+9.28 Chase phase=Round
+10.29 Attack phase=Round
+11.02 contact; victim=Player_1
+12.10 Recovery phase=Round
+12.40 Patrol phase=Round
+13.07 spectator target=Игрок 4

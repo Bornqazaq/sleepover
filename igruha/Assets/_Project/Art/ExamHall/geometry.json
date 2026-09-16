@@ -1,0 +1,242 @@
+[
+  {
+    "name": "EH_Lectern",
+    "vertices": 980,
+    "polygons": 868
+  },
+  {
+    "name": "EH_Parquet_0",
+    "vertices": 9728,
+    "polygons": 7296
+  },
+  {
+    "name": "EH_Parquet_1",
+    "vertices": 4544,
+    "polygons": 3408
+  },
+  {
+    "name": "EH_Parquet_2",
+    "vertices": 848,
+    "polygons": 636
+  },
+  {
+    "name": "EH_Parquet_3",
+    "vertices": 848,
+    "polygons": 636
+  },
+  {
+    "name": "EH_SideArchitecture_-1",
+    "vertices": 3136,
+    "polygons": 2940
+  },
+  {
+    "name": "EH_SideArchitecture_1",
+    "vertices": 3136,
+    "polygons": 2940
+  },
+  {
+    "name": "EH_EndArchitecture_Rear",
+    "vertices": 1824,
+    "polygons": 1710
+  },
+  {
+    "name": "EH_EndArchitecture_Front",
+    "vertices": 1824,
+    "polygons": 1710
+  },
+  {
+    "name": "EH_ArchedWindow",
+    "vertices": 867,
+    "polygons": 795
+  },
+  {
+    "name": "EH_CeilingRib_0",
+    "vertices": 224,
+    "polygons": 210
+  },
+  {
+    "name": "EH_CeilingRib_1",
+    "vertices": 224,
+    "polygons": 210
+  },
+  {
+    "name": "EH_CeilingRib_2",
+    "vertices": 224,
+    "polygons": 210
+  },
+  {
+    "name": "EH_CeilingRib_3",
+    "vertices": 224,
+    "polygons": 210
+  },
+  {
+    "name": "EH_CeilingRib_4",
+    "vertices": 224,
+    "polygons": 210
+  },
+  {
+    "name": "EH_CeilingLongitudinals",
+    "vertices": 160,
+    "polygons": 150
+  },
+  {
+    "name": "EH_BoardFrame",
+    "vertices": 608,
+    "polygons": 560
+  },
+  {
+    "name": "EH_DoorLeafA",
+    "vertices": 2136,
+    "polygons": 1774
+  },
+  {
+    "name": "EH_DoorLeafB",
+    "vertices": 2136,
+    "polygons": 1774
+  },
+  {
+    "name": "EH_Hinge",
+    "vertices": 216,
+    "polygons": 126
+  },
+  {
+    "name": "EH_GapBridge",
+    "vertices": 256,
+    "polygons": 240
+  },
+  {
+    "name": "EH_Dais",
+    "vertices": 704,
+    "polygons": 648
+  },
+  {
+    "name": "EH_SchoolDesk",
+    "vertices": 640,
+    "polygons": 600
+  },
+  {
+    "name": "EH_Bookcase",
+    "vertices": 4512,
+    "polygons": 4230
+  },
+  {
+    "name": "EH_Chandelier",
+    "vertices": 1326,
+    "polygons": 1088
+  },
+  {
+    "name": "EH_Sconce",
+    "vertices": 226,
+    "polygons": 204
+  },
+  {
+    "name": "EH_Clock",
+    "vertices": 996,
+    "polygons": 670
+  },
+  {
+    "name": "EH_SignA",
+    "vertices": 120,
+    "polygons": 106
+  },
+  {
+    "name": "EH_SignB",
+    "vertices": 120,
+    "polygons": 106
+  },
+  {
+    "name": "EH_PitMasonry",
+    "vertices": 14336,
+    "polygons": 13216
+  },
+  {
+    "name": "EH_PitFloorDetail",
+    "vertices": 640,
+    "polygons": 600
+  },
+  {
+    "name": "EH_PortraitFrame",
+    "vertices": 256,
+    "polygons": 240
+  },
+  {
+    "name": "EH_FrontPilaster",
+    "vertices": 288,
+    "polygons": 270
+  },
+  {
+    "name": "EH_EntranceDoor",
+    "vertices": 536,
+    "polygons": 496
+  },
+  {
+    "name": "EH_Globe",
+    "vertices": 17806,
+    "polygons": 12582
+  },
+  {
+    "name": "EH_AstronomyMap",
+    "vertices": 1834,
+    "polygons": 1730
+  },
+  {
+    "name": "EH_BookTower",
+    "vertices": 1152,
+    "polygons": 1080
+  },
+  {
+    "name": "EH_CuriosityCabinet",
+    "vertices": 748,
+    "polygons": 644
+  },
+  {
+    "name": "EH_OwlPrize",
+    "vertices": 2282,
+    "polygons": 2110
+  },
+  {
+    "name": "EH_Abacus",
+    "vertices": 2988,
+    "polygons": 2560
+  },
+  {
+    "name": "EH_Stationery",
+    "vertices": 256,
+    "polygons": 176
+  },
+  {
+    "name": "EH_CoatStand",
+    "vertices": 464,
+    "polygons": 406
+  },
+  {
+    "name": "EH_FloorCompass",
+    "vertices": 1188,
+    "polygons": 1166
+  },
+  {
+    "name": "EH_PistonBarrel",
+    "vertices": 200,
+    "polygons": 146
+  },
+  {
+    "name": "EH_PistonRod",
+    "vertices": 32,
+    "polygons": 18
+  },
+  {
+    "name": "EH_Gear",
+    "vertices": 798,
+    "polygons": 722
+  },
+  {
+    "name": "EH_HatchBeam",
+    "vertices": 1768,
+    "polygons": 1572
+  },
+  {
+    "name": "EH_LooseSheet",
+    "vertices": 6,
+    "polygons": 4
+  }
+]

@@ -1,0 +1,5 @@
+Maximum-length board check
+Text_Header length=26 truncated=False fontSize=25.5 lines=1
+Text_Question length=80 truncated=False fontSize=38.8 lines=2
+Text_OptionA length=34 truncated=False fontSize=36.26 lines=1
+Text_OptionB length=34 truncated=False fontSize=36.26 lines=1

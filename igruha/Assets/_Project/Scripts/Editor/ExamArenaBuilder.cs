@@ -7,8 +7,8 @@ using Igruha.Minigames.Exam;
 namespace Igruha.EditorTools
 {
     /// <summary>
-    /// Строит арену «Экзамена» из примитивов: зал, две платформы со створками,
-    /// кафедру, доску и зону возврата. Геометрия серая — арт приезжает в фазе 4.
+    /// Строит игровую геометрию «Экзамена», затем собственный зал из Blender.
+    /// Створки, рабочие зоны и ссылки игры воспроизводятся одной командой.
     ///
     /// Всё строится кодом, а не руками, по той же причине, что и цирк:
     /// размеры живут в <see cref="ExamConfig"/>, и пересобрать арену после
@@ -17,177 +17,28 @@ namespace Igruha.EditorTools
     public static class ExamArenaBuilder
     {
         private const string Root = "_Arena";
-        private const float WallThickness = 0.4f;
-        private const float BoardThickness = 0.2f;
-
-        /// <summary>Поле от края доски до текста, в метрах.</summary>
-        private const float BoardMargin = 0.18f;
-
-        /// <summary>Мировой размер одного юнита холста доски: 1 юнит = 1 см.</summary>
-        private const float BoardUnitScale = 0.01f;
-
-        /// <summary>Насколько камера Ведущего поднята над кафедрой, в метрах.</summary>
-        private const float PodiumCameraLift = 2.35f;
-
-        /// <summary>Насколько камера Ведущего отставлена от кафедры в зал, в метрах.</summary>
-        private const float PodiumCameraDistance = 7.2f;
-
-        /// <summary>Сдвиг камеры Ведущего вбок — ракурс в три четверти, в метрах.</summary>
+        private const float WallThickness = .4f;
+        private const float BoardThickness = .2f;
+        private const float BoardMargin = .18f;
+        private const float BoardUnitScale = .01f;
+        private const float PodiumCameraDistance = 9f;
         private const float PodiumCameraSide = 2.6f;
-
-        /// <summary>Наклон камеры Ведущего вниз, в градусах.</summary>
-        private const float PodiumCameraPitch = 4f;
-
-        /// <summary>Доворот камеры Ведущего на кафедру, в градусах.</summary>
-        private const float PodiumCameraYaw = -19f;
-
-        /// <summary>
-        /// Насколько камера зала отставлена за ближний край платформ, в метрах.
-        ///
-        /// Число не на глаз: у фиксированного рига поле зрения 40°, то есть
-        /// по горизонтали 65.8° при 16:9, полуугол 32.9° и тангенс 0.647.
-        /// Крайняя точка площадок теперь ±6.48 м, значит камере нужно
-        /// 6.48 / 0.647 = 10.0 м до их центра; 9.2 за ближним краем дают
-        /// 11.36 — кадр с полями. До задней стены при этом остаётся 1.6 м.
-        ///
-        /// Было 11.5 при площадках ±9.36: после того как зал ужали, прежнее
-        /// число отодвинуло бы камеру в стену и добавило бы в кадр ровно то,
-        /// от чего избавлялись, — пустой пол перед площадками.
-        /// </summary>
+        private const float PodiumCameraHeight = 3.5f;
+        private const float PodiumCameraPitch = -2.5f;
+        private const float PodiumCameraYaw = -12f;
+        // Preserve the gameplay overview independently of the taller architecture.
         private const float HallCameraDistance = 9.2f;
-
-        /// <summary>Насколько камера зала опущена под потолок, в метрах.</summary>
-        private const float HallCameraDrop = 0.6f;
-
-        /// <summary>Наклон камеры зала вниз, в градусах.</summary>
+        private const float HallCameraHeight = 4.08f;
         private const float HallCameraPitch = 12.5f;
-
-        /// <summary>Яркость ламп класса.</summary>
-        private const float LampIntensity = 4f;
-
-        /// <summary>Запас в яме по бокам под размах створок, в метрах.</summary>
         private const float DoorSwingClearance = 1.6f;
-
-        /// <summary>На сколько верх стенок ямы утоплен под пол зала, в метрах.</summary>
-        private const float PitWallSink = 0.05f;
-
-        /// <summary>На сколько буква варианта поднята над створками, в метрах.</summary>
-        private const float LetterLift = 0.06f;
-
-        /// <summary>Логический размер холста с буквой — в мир его переводит масштаб.</summary>
+        // Camera retreat space below the unchanged floor opening.
+        private const float PitEndClearance = 2.52f;
+        private const float PitWallSink = .05f;
+        private const float LetterLift = .06f;
         private const float LetterCanvasUnits = 400f;
-
-        /// <summary>Какую долю меньшей стороны платформы занимает буква.</summary>
-        private const float LetterFitFactor = 0.55f;
-
-        /// <summary>
-        /// Насколько буква на полу разбелена относительно цвета варианта.
-        ///
-        /// Была затемнена на четверть — так она не спорила со светлым
-        /// блокаутом площадки. Дресс 4.1 настелил площадку тёмным деревом,
-        /// и тёмно-синяя буква на тёмно-коричневом настиле перестала читаться
-        /// вовсе: рендер приёмки показал «Б» едва различимой. Теперь буква
-        /// светлее фона, а не темнее, и цвет варианта в ней сохраняется.
-        /// </summary>
-        private const float LetterFloorLift = 0.4f;
-
-        /// <summary>Доля цвета варианта в покрытии платформы — намёк, а не заливка.</summary>
-        private const float PlatformTint = 0.3f;
-
-        /// <summary>Толщина рамки доски, в метрах.</summary>
-        private const float BoardFrameThickness = 0.12f;
-
-        /// <summary>
-        /// Доля ширины зала, которую занимает доска.
-        ///
-        /// Три числа доски (ширина, высота, центр) раньше стояли константами
-        /// прямо в двух методах — в самой доске и в её рамке. Разъехаться им
-        /// мешало только внимание: рамка считалась по своей копии тех же
-        /// множителей. Теперь множитель один на оба места.
-        /// </summary>
-        private const float BoardWidthFactor = 0.5f;
-
-        /// <summary>Доля высоты зала, которую занимает доска.</summary>
-        private const float BoardHeightFactor = 0.44f;
-
-        /// <summary>
-        /// На какой доле высоты зала стоит центр доски.
-        ///
-        /// Поднято с 0.56 после рендера ужатого зала: нижняя строка доски —
-        /// вариант Б — оказалась ровно за монитором Ведущего. Это арифметика
-        /// параллакса, а не случайность. Камера зала подошла к площадкам
-        /// на два метра ближе, угол на доску стал круче, и луч к нижней строке
-        /// пошёл через ту высоту, на которой стоит монитор. Строку варианта
-        /// нельзя закрывать ничем: по ней Ученик и выбирает, куда бежать.
-        ///
-        /// Лечится с двух сторон сразу — доска выше, тумба Ведущего ниже
-        /// (см. <see cref="HostDeskHeight"/>): запас между лучом и верхом
-        /// монитора выходит 27 см вместо минус пяти.
-        /// </summary>
-        private const float BoardCenterFactor = 0.6f;
-
-        /// <summary>Высота тумбы Ведущего, м. Ниже монитор не опустить — он стоит на ней.</summary>
-        private const float HostDeskHeight = 0.85f;
-
-        /// <summary>Высота парты, в метрах.</summary>
-        private const float DeskHeight = 0.75f;
-
-        /// <summary>
-        /// Сколько парт вдоль каждой боковой стены.
-        ///
-        /// Было три, и они кучкой стояли у зоны возврата: на рендере приёмки
-        /// это читалось не классом, а шестью стульями, забытыми посреди
-        /// спортзала. Пять коробок по два места растягивают колонну на всю
-        /// длину площадки — боковой неф становится рядом парт, смотрящих
-        /// на доску, то есть тем, чем в классе и должен быть.
-        /// </summary>
-        private const int DesksPerSide = 5;
-
-        /// <summary>Отступ ЦЕНТРА колонны парт от боковой стены, в метрах.</summary>
-        private const float DeskWallGap = 1.4f;
-
-        /// <summary>Z ближайшей к доске парты, в метрах.</summary>
-        private const float DeskFirstZ = 4.2f;
-
-        /// <summary>Шаг между партами, в метрах.</summary>
-        private const float DeskSpacing = 1.55f;
-
-        /// <summary>Ширина коробки парты по X: два места рядом.</summary>
-        private const float DeskWidth = 1.5f;
-
-        /// <summary>Глубина коробки парты по Z — столешница вместе со скамьёй.</summary>
-        private const float DeskDepth = 0.95f;
-
-        /// <summary>
-        /// Насколько низ подвеса указателя утоплен под потолок, в метрах.
-        ///
-        /// Было абсолютное 3.9 при потолке 5.76. Потолок опустился до 4.68,
-        /// и абсолютное число оставило бы указателю 0.13 м подвеса — табличка
-        /// висела бы приклеенной к перекрытию. Считаем от потолка: подвес
-        /// всегда читается верёвкой, какой бы ни стала высота зала.
-        /// </summary>
-        private const float SignDropFromCeiling = 1f;
-
-        /// <summary>Высота самой таблички указателя, в метрах.</summary>
-        private const float SignPlateHeight = 0.95f;
-
-        /// <summary>Ширина таблички указателя, в метрах.</summary>
-        private const float SignPlateWidth = 1.8f;
-
-        /// <summary>
-        /// Насколько указатель отодвинут от внутреннего края своей площадки
-        /// к внешнему, в долях её ширины.
-        ///
-        /// Висел строго над центром площадки — и в ужатом зале обе таблички
-        /// встали ровно перед доской: с камеры зала «А» и «Б» закрывали текст
-        /// вопроса, то есть указатель отнимал ровно то, ради чего сам и висит.
-        /// 0.78 уводит их к боковым стенам, оставляя середину кадра доске,
-        /// и при этом каждая табличка остаётся над своей площадкой.
-        /// </summary>
-        private const float SignOutwardFactor = 0.78f;
-
-        /// <summary>Зерно генератора дресса. Фиксировано: пересборка обязана давать ту же арену.</summary>
-        private const int DressSeed = 20260904;
+        private const float LetterFitFactor = .55f;
+        private const float LetterFloorLift = .4f;
+        private const float PlatformTint = .3f;
 
         [MenuItem("Igruha/Экзамен/Построить арену")]
         public static void Build()
@@ -200,6 +51,7 @@ namespace Igruha.EditorTools
                 return;
             }
 
+            if (ExamHallAssets.Material("Plaster") == null) ExamHallAssets.Import();
             var existing = GameObject.Find(Root);
             if (existing != null)
             {
@@ -208,12 +60,7 @@ namespace Igruha.EditorTools
 
             var root = new GameObject(Root);
 
-            // У дресса свой генератор случайных чисел. Общий с билдером сдвинул
-            // бы последовательность, по которой раскладываются геймплейные
-            // объекты, и проверенная планировка поехала бы от смены модели.
-            var dressRandom = new System.Random(DressSeed);
-            ExamDress.Begin();
-            ExamPalette.Begin();
+
 
             // Раскладка по глубине от дальней стены: кафедра → проход →
             // платформы → проход → зона возврата → запас для камеры.
@@ -233,33 +80,27 @@ namespace Igruha.EditorTools
             BuildHallCamera(root.transform, config, platformsZ);
             BuildBoard(root.transform, config, far);
             BuildReturnZone(root.transform, config, returnZ);
-            BuildDecor(root.transform, config, platformsZ, podiumZ, far);
-
-            // Арт строится той же пересборкой, что и блокаут: всё, что не
-            // воспроизводится ею, теряется при первом слиянии веток — YAML
-            // сцены слияние не переживает.
-            ExamDress.Build(root, config, dressRandom);
-            ExamSurfaces.Apply(root, config, dressRandom);
-            ExamEnvironment.Build(root, config, dressRandom);
+            ExamHallBuilder.Apply(root, config);
             ExamVfx.Build(root, config);
-            ExamPalette.Flush();
-
-            // Физика декора — последним шагом сборки. Дресс срезает коллайдеры
-            // моделей, и всё, что поставлено в зал само по себе, без коробки
-            // блокаута, до этого шага проходилось насквозь.
-            PropColliders.Build(root);
 
             // Оформление интерфейса — тем же прогоном: иначе пересборка арены
             // вернула бы серые прямоугольники шаблона.
             UiSkinPass.Apply();
 
             WireMinigameReferences(root);
+            for(int i=1;i<=8;i++)
+            {
+                var spawn=GameObject.Find("Spawn_Student_"+i);
+                if(spawn!=null)spawn.transform.position=new Vector3(-3.15f+(i-1)*.9f,.1f,-6.12f);
+            }
+            var specialSpawn = GameObject.Find("Spawn_Host_Special");
+            if (specialSpawn != null)
+                specialSpawn.transform.SetPositionAndRotation(root.transform.Find("HostStand").position,
+                    root.transform.Find("HostStand").rotation);
 
             Debug.Log($"📚 Арена «Экзамена» построена: зал {config.HallWidth:F1}×{config.HallDepth:F1} м, " +
                       $"платформы {config.PlatformWidth:F1}×{config.PlatformDepth:F1} м", root);
-            Debug.Log(ExamDress.Report(), root);
-            Debug.Log(ExamPalette.Report(), root);
-            Debug.Log(ExamEnvironment.Report(), root);
+
             Debug.Log(ExamVfx.Report(), root);
             Debug.Log(ExamSfx.Build(root, config), root);
 
@@ -384,7 +225,7 @@ namespace Igruha.EditorTools
             SetLayer(CreateBox(parent, "Ceiling", new Vector3(config.HallWidth, WallThickness, config.HallDepth),
                 new Vector3(0f, h + WallThickness * 0.5f, 0f), new Color(0.86f, 0.86f, 0.88f)), "Ground");
 
-            BuildCeilingLights(parent, config);
+
 
             // ⚠️ Стены обязаны лежать на Ground: геометрия на Default для камеры
             // прозрачна, и деоклюдер выпустит её наружу (igruha/CLAUDE.md, 2a).
@@ -398,34 +239,6 @@ namespace Igruha.EditorTools
                 new Vector3(halfW, h * 0.5f, 0f), Color.white), "Ground");
         }
 
-        /// <summary>
-        /// Лампы класса. Появились вместе с потолком: он отсекает направленный
-        /// свет, и без ламп зал держится на одном ambient — плоско и темно.
-        /// </summary>
-        private static void BuildCeilingLights(Transform parent, ExamConfig config)
-        {
-            var lights = new GameObject("CeilingLights");
-            lights.transform.SetParent(parent, false);
-
-            float x = config.HallWidth * 0.25f;
-            float z = config.HallDepth * 0.25f;
-            float y = config.CeilingHeight - 0.4f;
-
-            for (int i = 0; i < 4; i++)
-            {
-                var go = new GameObject("Lamp_" + (i + 1));
-                go.transform.SetParent(lights.transform, false);
-                go.transform.localPosition = new Vector3(i < 2 ? -x : x, y, i % 2 == 0 ? -z : z);
-
-                var light = go.AddComponent<Light>();
-                light.type = LightType.Point;
-                light.range = config.HallDepth * 0.6f;
-                light.intensity = LampIntensity;
-                light.color = new Color(1f, 0.96f, 0.88f);
-                light.shadows = LightShadows.None;
-            }
-        }
-
         /// <summary>Яма под платформами: туда улетают те, кто выбрал неверно.</summary>
         private static void BuildPit(Transform parent, ExamConfig config, float platformsZ)
         {
@@ -434,7 +247,7 @@ namespace Igruha.EditorTools
             // она втыкалась бы в стенку ямы у всех на глазах.
             float width = config.PlatformWidth * 2f + config.PlatformGap + DoorSwingClearance * 2f;
             var pitColor = new Color(0.12f, 0.12f, 0.14f);
-            var pit = CreateBox(parent, "PitFloor", new Vector3(width, WallThickness, config.PlatformDepth),
+            var pit = CreateBox(parent, "PitFloor", new Vector3(width, WallThickness, config.PlatformDepth + PitEndClearance * 2f),
                 new Vector3(0f, -config.PitDepth, platformsZ), pitColor);
             SetLayer(pit, "Ground");
 
@@ -443,7 +256,7 @@ namespace Igruha.EditorTools
             // Верх стенок уходит чуть ниже пола: вровень с ним они снова дают
             // ту же полосу z-fighting'а, из-за которой мерцали площадки.
             // Щели не будет — пол зала толще этого запаса.
-            float depth = config.PlatformDepth;
+            float depth = config.PlatformDepth + PitEndClearance * 2f;
             float wallHeight = config.PitDepth - PitWallSink;
             float wallY = -PitWallSink - wallHeight * 0.5f;
 
@@ -581,7 +394,7 @@ namespace Igruha.EditorTools
             // человек за кафедрой на фоне доски.
             var rig = new GameObject("PodiumCameraRig");
             rig.transform.SetParent(parent, false);
-            rig.transform.position = new Vector3(PodiumCameraSide, config.PodiumHeight + PodiumCameraLift,
+            rig.transform.position = new Vector3(PodiumCameraSide, PodiumCameraHeight,
                 z - PodiumCameraDistance);
             rig.transform.rotation = Quaternion.Euler(PodiumCameraPitch, PodiumCameraYaw, 0f);
         }
@@ -600,7 +413,7 @@ namespace Igruha.EditorTools
             rig.transform.SetParent(parent, false);
             rig.transform.position = new Vector3(
                 0f,
-                config.CeilingHeight - HallCameraDrop,
+                HallCameraHeight,
                 platformsZ - config.PlatformDepth * 0.5f - HallCameraDistance);
             rig.transform.rotation = Quaternion.Euler(HallCameraPitch, 0f, 0f);
         }
@@ -661,9 +474,9 @@ namespace Igruha.EditorTools
         /// </summary>
         private static void BuildBoard(Transform parent, ExamConfig config, float farZ)
         {
-            float width = config.HallWidth * BoardWidthFactor;
-            float height = config.CeilingHeight * BoardHeightFactor;
-            float centerY = config.CeilingHeight * BoardCenterFactor;
+            float width = ExamHallBuilder.BoardWidth;
+            float height = ExamHallBuilder.BoardHeight;
+            float centerY = ExamHallBuilder.BoardCenter;
             float z = farZ - 0.3f;
 
             var board = CreateBox(parent, "Board", new Vector3(width, height, BoardThickness),
@@ -687,14 +500,14 @@ namespace Igruha.EditorTools
             // Раскладка сверху вниз: шапка, вопрос в две строки, два варианта.
             // Доли от высоты холста, чтобы ни одна строка не вышла за доску.
             TMP_Text header = CreateBoardLine(canvasRect, "Text_Header", canvasWidth,
-                canvasHeight * 0.15f, canvasHeight * 0.41f, canvasHeight * 0.11f, "Header");
+                canvasHeight * 0.11f, canvasHeight * 0.44f, canvasHeight * 0.10f, "Header");
             TMP_Text question = CreateBoardLine(canvasRect, "Text_Question", canvasWidth,
-                canvasHeight * 0.40f, canvasHeight * 0.12f, canvasHeight * 0.18f, "Question");
+                canvasHeight * 0.34f, canvasHeight * 0.18f, canvasHeight * 0.18f, "Question");
             question.textWrappingMode = TextWrappingModes.Normal;
             TMP_Text optionA = CreateBoardLine(canvasRect, "Text_OptionA", canvasWidth,
-                canvasHeight * 0.19f, canvasHeight * -0.19f, canvasHeight * 0.14f, "OptionA");
+                canvasHeight * 0.16f, canvasHeight * -0.09f, canvasHeight * 0.14f, "OptionA");
             TMP_Text optionB = CreateBoardLine(canvasRect, "Text_OptionB", canvasWidth,
-                canvasHeight * 0.19f, canvasHeight * -0.39f, canvasHeight * 0.14f, "OptionB");
+                canvasHeight * 0.16f, canvasHeight * -0.29f, canvasHeight * 0.14f, "OptionB");
 
             var boardComponent = canvasGo.AddComponent<ExamBoard>();
             var so = new SerializedObject(boardComponent);
@@ -744,208 +557,7 @@ namespace Igruha.EditorTools
             marker.transform.position = new Vector3(0f, 0.1f, z);
         }
 
-        /// <summary>
-        /// Обстановка класса: парты у стен, шкаф, вешалка, компьютер на
-        /// кафедре, рамка доски и подвесные указатели вариантов.
-        ///
-        /// Всё ещё блокаут из примитивов — настоящий арт приезжает в фазе 4.
-        /// Смысл здесь не в красоте: пустая коробка не читается как класс,
-        /// а вариант, написанный только на полу, с уровня глаз почти не виден.
-        ///
-        /// ⚠️ Мебель НЕ на слое Ground. Ground для камеры непрозрачен, и
-        /// деоклюдер начал бы дёргать кадр на каждой парте (igruha/CLAUDE.md,
-        /// 2a). Игрокам мебель при этом остаётся препятствием: коллайдер
-        /// работает независимо от слоя.
-        /// </summary>
-        private static void BuildDecor(Transform parent, ExamConfig config, float platformsZ, float podiumZ, float farZ)
-        {
-            var decor = new GameObject("Decor");
-            decor.transform.SetParent(parent, false);
-
-            BuildDeskRows(decor.transform, config);
-            BuildCabinet(decor.transform, config, farZ);
-            BuildCoatRack(decor.transform, config);
-            BuildHostComputer(decor.transform, config, podiumZ);
-            BuildBoardFrame(decor.transform, config, farZ);
-            BuildOverheadSigns(decor.transform, config, platformsZ);
-        }
-
-        /// <summary>
-        /// Парты в боковых нефах — колонна вдоль каждой стены, лицом к доске.
-        ///
-        /// Колонна начинается у дальнего края площадки и тянется до зоны
-        /// возврата: там, где раньше было три метра голого пола между партой
-        /// и платформой, теперь ряд. Ширина нефа 3.24 м, коробка 1.5 —
-        /// метр с лишним прохода вдоль стены остаётся, и промахнувшийся мимо
-        /// площадки в нём не застревает.
-        /// </summary>
-        private static void BuildDeskRows(Transform parent, ExamConfig config)
-        {
-            var wood = new Color(0.55f, 0.4f, 0.28f);
-            float x = config.HallWidth * 0.5f - DeskWallGap;
-            float halfWidth = DeskWidth * 0.5f;
-
-            for (int side = 0; side < 2; side++)
-            {
-                float sideX = side == 0 ? -x : x;
-
-                for (int i = 0; i < DesksPerSide; i++)
-                {
-                    float z = DeskFirstZ - i * DeskSpacing;
-                    var desk = new GameObject("Desk_" + (side == 0 ? "L" : "R") + (i + 1));
-                    desk.transform.SetParent(parent, false);
-                    desk.transform.localPosition = new Vector3(sideX, 0f, z);
-
-                    CreateBox(desk.transform, "Top", new Vector3(DeskWidth, 0.08f, DeskDepth * 0.72f),
-                        new Vector3(0f, DeskHeight, DeskDepth * 0.14f), wood);
-                    CreateBox(desk.transform, "LegL", new Vector3(0.1f, DeskHeight, DeskDepth * 0.6f),
-                        new Vector3(-halfWidth + 0.05f, DeskHeight * 0.5f, DeskDepth * 0.14f), wood * 0.8f);
-                    CreateBox(desk.transform, "LegR", new Vector3(0.1f, DeskHeight, DeskDepth * 0.6f),
-                        new Vector3(halfWidth - 0.05f, DeskHeight * 0.5f, DeskDepth * 0.14f), wood * 0.8f);
-                    CreateBox(desk.transform, "Bench", new Vector3(DeskWidth, 0.08f, 0.34f),
-                        new Vector3(0f, DeskHeight * 0.6f, -DeskDepth * 0.42f), wood * 0.9f);
-                }
-            }
-        }
-
-        /// <summary>Шкаф у дальней стены, со стороны кафедры.</summary>
-        private static void BuildCabinet(Transform parent, ExamConfig config, float farZ)
-        {
-            float x = config.HallWidth * 0.5f - 1.2f;
-            CreateBox(parent, "Cabinet", new Vector3(1.8f, 2.3f, 0.6f),
-                new Vector3(-x, 1.15f, farZ - 0.6f), new Color(0.42f, 0.31f, 0.22f));
-        }
-
-        /// <summary>Вешалка у боковой стены: стойка и перекладина.</summary>
-        private static void BuildCoatRack(Transform parent, ExamConfig config)
-        {
-            float x = config.HallWidth * 0.5f - 0.9f;
-            var metal = new Color(0.3f, 0.31f, 0.34f);
-
-            var rack = new GameObject("CoatRack");
-            rack.transform.SetParent(parent, false);
-            rack.transform.localPosition = new Vector3(x, 0f, -2.5f);
-
-            CreateBox(rack.transform, "Post", new Vector3(0.1f, 1.9f, 0.1f), new Vector3(0f, 0.95f, 0f), metal);
-            CreateBox(rack.transform, "Bar", new Vector3(0.08f, 0.08f, 2.4f), new Vector3(0f, 1.85f, 0f), metal);
-        }
-
-        /// <summary>Тумба с ретро-монитором на кафедре (спека 4.6).</summary>
-        private static void BuildHostComputer(Transform parent, ExamConfig config, float podiumZ)
-        {
-            var desk = new GameObject("HostDesk");
-            desk.transform.SetParent(parent, false);
-            desk.transform.localPosition = new Vector3(0f, config.PodiumHeight, podiumZ - 1.3f);
-
-            CreateBox(desk.transform, "Stand", new Vector3(1.4f, HostDeskHeight, 0.65f),
-                new Vector3(0f, HostDeskHeight * 0.5f, 0f), new Color(0.5f, 0.36f, 0.25f));
-            // Монитор стоит по центру стола, а не сбоку. Сдвинут туда на 4.3:
-            // замер зеркальности зала показал его единственным предметом
-            // у оси, у которого нет пары, — а правило симметрии в этой игре
-            // проверяется числом и исключений не терпит. Коллайдеры декора
-            // при этом не появились и не исчезли, только переехали на 0.35 м
-            // на высоте двух метров над недоступным Ученику возвышением.
-            CreateBox(desk.transform, "Monitor", new Vector3(0.55f, 0.45f, 0.5f),
-                new Vector3(0f, HostDeskHeight + 0.225f, 0f), new Color(0.78f, 0.76f, 0.7f));
-            CreateBox(desk.transform, "Screen", new Vector3(0.42f, 0.32f, 0.02f),
-                new Vector3(0f, HostDeskHeight + 0.245f, -0.26f), new Color(0.15f, 0.35f, 0.2f));
-        }
-
-        /// <summary>Рамка доски — четыре бруска по периметру.</summary>
-        private static void BuildBoardFrame(Transform parent, ExamConfig config, float farZ)
-        {
-            float width = config.HallWidth * BoardWidthFactor;
-            float height = config.CeilingHeight * BoardHeightFactor;
-            float centerY = config.CeilingHeight * BoardCenterFactor;
-            float z = farZ - 0.3f - BoardThickness * 0.5f - BoardFrameThickness * 0.5f;
-            var frame = new Color(0.35f, 0.25f, 0.16f);
-
-            CreateBox(parent, "BoardFrame_Top", new Vector3(width + BoardFrameThickness * 2f, BoardFrameThickness, BoardFrameThickness),
-                new Vector3(0f, centerY + height * 0.5f, z), frame);
-            CreateBox(parent, "BoardFrame_Bottom", new Vector3(width + BoardFrameThickness * 2f, BoardFrameThickness, BoardFrameThickness),
-                new Vector3(0f, centerY - height * 0.5f, z), frame);
-            CreateBox(parent, "BoardFrame_Left", new Vector3(BoardFrameThickness, height, BoardFrameThickness),
-                new Vector3(-width * 0.5f - BoardFrameThickness * 0.5f, centerY, z), frame);
-            CreateBox(parent, "BoardFrame_Right", new Vector3(BoardFrameThickness, height, BoardFrameThickness),
-                new Vector3(width * 0.5f + BoardFrameThickness * 0.5f, centerY, z), frame);
-        }
-
-        /// <summary>
-        /// Подвесные указатели А и Б над платформами.
-        ///
-        /// Буква на полу читается только сверху, а глаза персонажа в метре
-        /// с небольшим над ней: с уровня игрока площадки различались плохо.
-        /// Указатель виден с любой точки зала и с обеих сторон.
-        /// </summary>
-        private static void BuildOverheadSigns(Transform parent, ExamConfig config, float platformsZ)
-        {
-            float offset = (config.PlatformWidth + config.PlatformGap) * 0.5f
-                           + config.PlatformWidth * 0.5f * SignOutwardFactor;
-
-            float signHeight = config.CeilingHeight - SignDropFromCeiling - SignPlateHeight * 0.5f;
-
-            for (int i = 0; i < 2; i++)
-            {
-                ExamSide side = i == 0 ? ExamSide.A : ExamSide.B;
-                float x = i == 0 ? -offset : offset;
-
-                var sign = new GameObject("Sign_" + (side == ExamSide.A ? "A" : "B"));
-                sign.transform.SetParent(parent, false);
-                sign.transform.localPosition = new Vector3(x, signHeight, platformsZ);
-
-                // Подвес ровно от верха таблички до потолка: посчитанный
-                // «на глаз» он протыкал перекрытие и торчал над классом.
-                float plateHalf = SignPlateHeight * 0.5f;
-                float ropeLength = config.CeilingHeight - signHeight - plateHalf;
-                CreateBox(sign.transform, "Rope", new Vector3(0.06f, ropeLength, 0.06f),
-                    new Vector3(0f, plateHalf + ropeLength * 0.5f, 0f), new Color(0.3f, 0.3f, 0.32f));
-                CreateBox(sign.transform, "Plate", new Vector3(SignPlateWidth, SignPlateHeight, 0.1f),
-                    Vector3.zero, new Color(0.93f, 0.92f, 0.88f));
-
-                // Обе стороны: с одной надписью табличка читалась бы с изнанки
-                // зеркально — половине зала.
-                CreateSignFace(sign.transform, "Face_Front", side, new Vector3(0f, 0f, -0.07f), 0f);
-                CreateSignFace(sign.transform, "Face_Back", side, new Vector3(0f, 0f, 0.07f), 180f);
-            }
-        }
-
-        private static void CreateSignFace(Transform parent, string name, ExamSide side, Vector3 localPosition, float yaw)
-        {
-            var canvasGo = new GameObject(name, typeof(Canvas));
-            canvasGo.transform.SetParent(parent, false);
-            canvasGo.transform.localPosition = localPosition;
-            canvasGo.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
-            canvasGo.GetComponent<Canvas>().renderMode = RenderMode.WorldSpace;
-
-            var rect = (RectTransform)canvasGo.transform;
-            rect.sizeDelta = new Vector2(SignPlateWidth * 100f, SignPlateHeight * 100f);
-            rect.localScale = Vector3.one * 0.01f;
-
-            var text = new GameObject("Letter", typeof(TextMeshProUGUI));
-            text.transform.SetParent(canvasGo.transform, false);
-            var textRect = (RectTransform)text.transform;
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = Vector2.zero;
-            textRect.offsetMax = Vector2.zero;
-
-            var tmp = text.GetComponent<TextMeshProUGUI>();
-            tmp.text = side == ExamSide.A ? "А" : "Б";
-            tmp.fontSize = SignPlateHeight * 85f;
-            tmp.alignment = TextAlignmentOptions.Center;
-            tmp.textWrappingMode = TextWrappingModes.NoWrap;
-            tmp.color = SideColor(side);
-        }
-
-        /// <summary>
-        /// Цвет варианта: один и тот же на полу, на указателе и на рамке люка.
-        ///
-        /// Синий с янтарным взяты не на вкус: эта пара различима при всех
-        /// распространённых формах дальтонизма, а красный с зелёным — нет.
-        /// Дресс 4.1 и палитра 4.2 берут цвет отсюда, а не заводят свой:
-        /// разойдись они, «синее = вариант А» перестало бы работать ровно там,
-        /// где нужнее всего.
-        /// </summary>
+        /// <summary>Semantic side colors also used by legacy editor palette tools.</summary>
         internal static Color SideColor(ExamSide side) => side == ExamSide.A
             ? new Color(0.16f, 0.42f, 0.72f)
             : new Color(0.78f, 0.5f, 0.09f);
@@ -970,25 +582,7 @@ namespace Igruha.EditorTools
             return go;
         }
 
-        private static Material blockoutMaterial;
-
-        private static Material GetBlockoutMaterial(Color color)
-        {
-            if (blockoutMaterial == null)
-            {
-                Shader shader = Shader.Find("Universal Render Pipeline/Lit");
-                if (shader == null)
-                {
-                    Debug.LogError("Шейдер 'Universal Render Pipeline/Lit' не найден — блокаут будет фиолетовым в сборке");
-                    return null;
-                }
-
-                blockoutMaterial = new Material(shader);
-            }
-
-            var instance = new Material(blockoutMaterial) { color = color };
-            return instance;
-        }
+        private static Material GetBlockoutMaterial(Color color) => ExamHallAssets.Material("Plaster");
 
         private static void SetLayer(GameObject go, string layerName)
         {

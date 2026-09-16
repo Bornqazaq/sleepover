@@ -1,0 +1,122 @@
+Exam original hall observation
+transition q=1 stage=2 Aopen=False Bopen=False board=Кошки или собаки? | А)  Кошки | Б)  Собаки
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(5.00, 0.00, -6.12)
+  Player_1 pos=(-7.00, 0.00, -6.12)
+  Player_2 pos=(-3.00, 0.00, -6.12)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=1 stage=2 Aopen=False Bopen=False board=Кошки или собаки? | А)  Кошки | Б)  Собаки
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(5.00, 0.00, -6.12)
+  Player_1 pos=(-7.00, 0.00, -6.12)
+  Player_2 pos=(-3.00, 0.00, -6.12)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=1 stage=3 Aopen=False Bopen=False board=Кошки или собаки? | А)  Кошки | Б)  Собаки
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(5.00, 0.00, -6.12)
+  Player_1 pos=(-7.00, 0.00, -6.12)
+  Player_2 pos=(-3.00, 0.00, -6.12)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=1 stage=3 Aopen=False Bopen=False board=Кошки или собаки? | А)  Кошки | Б)  Собаки
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(4.96, 0.00, -0.43)
+  Player_1 pos=(-7.00, 0.00, -6.12)
+  Player_2 pos=(0.51, 0.00, -1.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+frame-sample stage=3 n=897 meanMs=7.81
+transition q=1 stage=4 Aopen=False Bopen=False board=Кошки или собаки? | А)  Кошки | Б)  Собаки
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(4.97, 0.00, 2.85)
+  Player_1 pos=(-7.00, 0.00, -6.12)
+  Player_2 pos=(5.18, 0.00, 4.32)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=1 stage=4 Aopen=False Bopen=False board=Кошки или собаки? | А)  Кошки | Б)  Собаки
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(4.97, 0.00, 2.85)
+  Player_1 pos=(-7.00, 0.00, -6.12)
+  Player_2 pos=(-0.36, 0.00, 2.96)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=1 stage=5 Aopen=False Bopen=True board=Кошки или собаки? | А)  Кошки | Б)  Собаки
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(4.97, 0.00, 2.85)
+  Player_1 pos=(-7.00, 0.00, -6.12)
+  Player_2 pos=(-4.42, 0.00, 1.98)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=1 stage=5 Aopen=False Bopen=True board=Кошки или собаки? | А)  Кошки | Б)  Собаки
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(4.97, 0.00, 2.85)
+  Player_1 pos=(-7.00, 0.00, -6.12)
+  Player_2 pos=(-4.42, 0.00, 1.98)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-2.97 q=1 stage=5 Aopen=False Bopen=True board=Кошки или собаки? | А)  Кошки | Б)  Собаки
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(4.97, -2.97, 2.85)
+  Player_1 pos=(-7.00, 0.00, -6.12)
+  Player_2 pos=(-4.42, 0.00, 1.98)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.01 q=1 stage=5 Aopen=False Bopen=True board=Кошки или собаки? | А)  Кошки | Б)  Собаки
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(4.97, -7.00, 2.85)
+  Player_1 pos=(-7.00, 0.00, -6.12)
+  Player_2 pos=(-4.42, 0.00, 1.98)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=-7.01 q=1 stage=5 Aopen=False Bopen=True board=Кошки или собаки? | А)  Кошки | Б)  Собаки
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(4.97, -7.00, 2.85)
+  Player_1 pos=(-7.00, 0.00, -6.12)
+  Player_2 pos=(-4.42, 0.00, 1.98)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.01 q=1 stage=5 Aopen=False Bopen=True board=Кошки или собаки? | А)  Кошки | Б)  Собаки
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(4.97, -7.00, 2.85)
+  Player_1 pos=(-7.00, 0.00, -6.12)
+  Player_2 pos=(-4.42, 0.00, 1.98)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.01 q=1 stage=5 Aopen=False Bopen=True board=Кошки или собаки? | А)  Кошки | Б)  Собаки
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(4.97, -7.00, 2.85)
+  Player_1 pos=(-7.00, 0.00, -6.12)
+  Player_2 pos=(-4.42, 0.00, 1.98)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.01 q=1 stage=5 Aopen=False Bopen=True board=Кошки или собаки? | А)  Кошки | Б)  Собаки
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(4.97, -7.00, 2.85)
+  Player_1 pos=(-7.00, 0.00, -6.12)
+  Player_2 pos=(-4.42, 0.00, 1.98)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.01 q=1 stage=5 Aopen=False Bopen=True board=Кошки или собаки? | А)  Кошки | Б)  Собаки
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(4.97, -7.00, 2.85)
+  Player_1 pos=(-7.00, 0.00, -6.12)
+  Player_2 pos=(-4.42, 0.00, 1.98)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.01 q=1 stage=5 Aopen=False Bopen=True board=Кошки или собаки? | А)  Кошки | Б)  Собаки
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(4.97, -7.00, 2.85)
+  Player_1 pos=(-7.00, 0.00, -6.12)
+  Player_2 pos=(-4.42, 0.00, 1.98)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=1 stage=6 Aopen=False Bopen=False board=Кошки или собаки? | А)  Кошки | Б)  Собаки
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(4.97, -7.00, 2.85)
+  Player_1 pos=(-7.00, 0.00, -6.12)
+  Player_2 pos=(-4.42, 0.00, 1.98)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=-7.00 q=1 stage=6 Aopen=False Bopen=False board=Кошки или собаки? | А)  Кошки | Б)  Собаки
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(1.60, 0.00, -4.32)
+  Player_1 pos=(-7.00, 0.00, -6.12)
+  Player_2 pos=(-4.42, 0.00, 1.98)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=2 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_4 pos=(1.60, 0.00, -4.32)
+  Player_1 pos=(-7.00, 0.00, -6.12)
+  Player_2 pos=(-4.42, 0.00, 1.98)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=2 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_3 pos=(-1.60, 0.00, -4.32)
+  Player_4 pos=(1.60, 0.00, -4.32)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-4.42, 0.00, 1.98)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40

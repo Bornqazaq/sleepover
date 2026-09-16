@@ -1,0 +1,12 @@
+{
+  "players": 2,
+  "questions": 8,
+  "settled_comparisons": 48,
+  "public_state_mismatches": [],
+  "early_options_errors": 0,
+  "results_observed": true,
+  "minimum_y": {
+    "host": -7.27,
+    "client": -7.26
+  }
+}

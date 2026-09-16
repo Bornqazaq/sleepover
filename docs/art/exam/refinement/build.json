@@ -1,0 +1,18 @@
+{
+  "job_id": "build-51782cb4b5",
+  "unity": "6000.3.11f1",
+  "platform": "StandaloneOSX",
+  "configuration": "development, LZ4",
+  "output": "igruha/Builds/ExamHallTest/sleepover.app",
+  "scenes": [
+    "Boot",
+    "Hub",
+    "Exam"
+  ],
+  "errors": 0,
+  "warnings": 0,
+  "size_mb": 877.49,
+  "duration_seconds": 26.350732,
+  "completed_at_utc": "2026-09-15T10:43:23.393947Z",
+  "network_test_build": "build-1857628198 (same geometry, font, runtime mechanism; before final dust appearance refinement)"
+}
