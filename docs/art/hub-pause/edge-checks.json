@@ -1,0 +1,34 @@
+[
+  {
+    "name": "Empty selection returns to resume",
+    "passed": true
+  },
+  {
+    "name": "Host exit explains disconnection",
+    "passed": true
+  },
+  {
+    "name": "Round exit explains spectating",
+    "passed": true
+  },
+  {
+    "name": "TV opens separately",
+    "passed": true
+  },
+  {
+    "name": "Escape closes TV without pause",
+    "passed": true
+  },
+  {
+    "name": "Next Escape opens pause",
+    "passed": true
+  },
+  {
+    "name": "First click cannot quit",
+    "passed": true
+  },
+  {
+    "name": "Confirmed exit stops Editor Play",
+    "passed": true
+  }
+]

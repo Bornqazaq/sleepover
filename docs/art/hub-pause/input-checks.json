@@ -1,0 +1,58 @@
+[
+  {
+    "name": "Escape opens pause",
+    "passed": true
+  },
+  {
+    "name": "Initial keyboard focus",
+    "passed": true
+  },
+  {
+    "name": "Down selects exit",
+    "passed": true
+  },
+  {
+    "name": "Up selects resume",
+    "passed": true
+  },
+  {
+    "name": "Exit requires confirmation",
+    "passed": true
+  },
+  {
+    "name": "Escape cancels exit without resuming",
+    "passed": true
+  },
+  {
+    "name": "Enter resumes game",
+    "passed": true
+  },
+  {
+    "name": "Reopen focuses resume",
+    "passed": true
+  },
+  {
+    "name": "Mouse hover selects exit",
+    "passed": true
+  },
+  {
+    "name": "Mouse click opens confirmation",
+    "passed": true
+  },
+  {
+    "name": "Stay button cancels exit",
+    "passed": true
+  },
+  {
+    "name": "Escape resumes game",
+    "passed": true
+  },
+  {
+    "name": "Gameplay input is suppressed",
+    "passed": true
+  },
+  {
+    "name": "Prior enabled actions restored",
+    "passed": true
+  }
+]
