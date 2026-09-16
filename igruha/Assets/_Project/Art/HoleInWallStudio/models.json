@@ -58,5 +58,20 @@
     "name": "HS_Fan2_Cheer",
     "vertices": 1316,
     "polygons": 1352
+  },
+  {
+    "name": "HS_Marquee",
+    "vertices": 4494,
+    "polygons": 3939
+  },
+  {
+    "name": "HS_WallCassette",
+    "vertices": 960,
+    "polygons": 980
+  },
+  {
+    "name": "HS_CeilingCoffer",
+    "vertices": 1056,
+    "polygons": 1078
   }
 ]

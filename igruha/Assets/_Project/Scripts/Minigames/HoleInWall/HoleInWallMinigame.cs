@@ -70,6 +70,11 @@ namespace Igruha.Minigames.HoleInWall
         [Tooltip("Стадии внутри раунда: стадия = стена")]
         [SerializeField] private MinigameStageState stageState;
 
+        [Header("Оформление верёвки")]
+        [SerializeField] private Material ropeMaterial;
+        [SerializeField] private Material ropeTracerMaterial;
+        [SerializeField] private Material ropeCollarMaterial;
+
         private readonly List<PairAssignment.Pair> pairs = new List<PairAssignment.Pair>(4);
         private readonly List<HoleInWallTrack> playingTracks = new List<HoleInWallTrack>(4);
         private readonly Dictionary<int, HoleInWallTrack> trackByPlayer = new Dictionary<int, HoleInWallTrack>(8);
@@ -629,6 +634,9 @@ namespace Igruha.Minigames.HoleInWall
                 config.TetherPullAcceleration, config.TetherHardLimit);
             tether.Bind(track.Members[0].Avatar, track.Members[1].Avatar);
             track.Tether = tether;
+            if (ropeMaterial != null && ropeTracerMaterial != null && ropeCollarMaterial != null)
+                holder.AddComponent<HoleInWallRopeVisual>().Initialize(tether,
+                    ropeMaterial, ropeTracerMaterial, ropeCollarMaterial);
 
             // ⚠️ Пока трос натянут, детектор застревания обязан молчать: игрок
             // на натянутом тросе выглядит для него точно как зажатый геометрией,

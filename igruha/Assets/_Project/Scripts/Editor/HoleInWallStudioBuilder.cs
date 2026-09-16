@@ -50,6 +50,11 @@ namespace Igruha.EditorTools
             PoolFinish(arena, studio, config);
             StageFinish(arena, config);
             Lighting(studio, config);
+            var gameData=new SerializedObject(Object.FindFirstObjectByType<HoleInWallMinigame>());
+            gameData.FindProperty("ropeMaterial").objectReferenceValue=MakeMaterial("Rope",new Color(.93f,.83f,.59f),.26f);
+            gameData.FindProperty("ropeTracerMaterial").objectReferenceValue=MakeMaterial("RopeTracer",new Color(.045f,.42f,.46f),.3f);
+            gameData.FindProperty("ropeCollarMaterial").objectReferenceValue=Mat("Gold");
+            gameData.ApplyModifiedPropertiesWithoutUndo();
             foreach (Renderer renderer in studio.GetComponentsInChildren<Renderer>())
             {
                 bool isFan = renderer.GetComponentInParent<HoleInWallCrowd>() != null;
@@ -84,13 +89,10 @@ namespace Igruha.EditorTools
                     new Vector3(9, .4f, far-near), Mat("Ink"), true);
                 Panel(shell, "Acoustic wall", new Vector3(s * (half + 9), 5.5f, centerZ),
                     new Vector3(.6f, 19, far-near), Mat("Blue"), true);
-                for (float z = near+2; z < far; z += 4)
-                {
-                    Panel(shell, "Wall rib", new Vector3(s*(half+8.6f), 6, z),
-                        new Vector3(.6f, 17, .24f), Mat("Ink"));
-                    Panel(shell, "Wall luminous slot", new Vector3(s*(half+8.21f), 7, z),
-                        new Vector3(.05f, 6, .12f), Mat("Glow"));
-                }
+                for (float z = near+3; z < far-1; z += 4)
+                    Place(shell,"WallCassette",new Vector3(s*(half+8.55f),8.8f,z),s*90);
+                Panel(shell,"Wall dado",new Vector3(s*(half+8.55f),4.65f,centerZ),
+                    new Vector3(.35f,.20f,far-near-1),Mat("Gold"));
                 for (float z = c.ArenaNearZ+4; z < c.ArenaFarZ; z += 7)
                 {
                     var lamp=Place(shell,"Spot",new Vector3(s*(half+2),2.1f,z), s*75);
@@ -103,20 +105,24 @@ namespace Igruha.EditorTools
                 new Vector3(c.ArenaWidth+18,.35f,far-near),Mat("Ink"));
             // This shell alone does not occlude the studio key; every solid prop casts.
             roof.GetComponent<Renderer>().shadowCastingMode=ShadowCastingMode.Off;
-            for (float z=near+3;z<far;z+=7)
+            for (float z=near+3;z<far-1;z+=5.4f)
+                for(float x=-half-4;x<half+5;x+=8)
+                {
+                    Transform coffer=Place(shell,"CeilingCoffer",new Vector3(x,CeilingY-.35f,z));
+                    coffer.GetComponent<Renderer>().shadowCastingMode=ShadowCastingMode.Off;
+                }
+            for(int side=-1;side<=1;side+=2)
             {
-                Transform rib=Panel(shell,"Ceiling ribbon",new Vector3(0,CeilingY-.55f,z),
-                    new Vector3(c.ArenaWidth+17,.38f,.65f),Mat("Blue"));
-                rib.GetComponent<Renderer>().shadowCastingMode=ShadowCastingMode.Off;
-                Transform led=Panel(shell,"Ceiling light",new Vector3(0,CeilingY-.76f,z-.25f),
-                    new Vector3(c.ArenaWidth+14,.06f,.10f),Mat("Glow"));
-                led.GetComponent<Renderer>().shadowCastingMode=ShadowCastingMode.Off;
+                Panel(shell,"Ceiling perimeter fascia",new Vector3(side*(half+8),13.9f,centerZ),
+                    new Vector3(1.2f,.8f,far-near),Mat("Blue"));
+                Panel(shell,"Ceiling perimeter light",new Vector3(side*(half+7.35f),13.65f,centerZ),
+                    new Vector3(.08f,.09f,far-near-1),Mat("Glow"));
             }
+            for(float x=-half-5;x<half+6;x+=4)
+                Place(shell,"WallCassette",new Vector3(x,10.4f,far-.48f));
             float signZ=c.ArenaFarZ+3.5f;
-            Panel(shell,"Hero sign surround",new Vector3(0,8.9f,signZ),new Vector3(24,3.1f,.6f),Mat("Gold"));
-            Panel(shell,"Hero sign",new Vector3(0,8.9f,signZ-.36f),new Vector3(23.5f,2.75f,.15f),Mat("Ink"));
-            Label(shell,"Title","ДЫРКА В СТЕНЕ",new Vector3(0,9.2f,signZ-.48f),new Vector2(22,1.7f),17,Mat("Ivory").color);
-            Label(shell,"Subtitle","ДЕРЖИСЬ ВМЕСТЕ  /  ПОПАДИ В ФОРМУ",new Vector3(0,8.05f,signZ-.5f),new Vector2(21,.6f),3.9f,new Color(1,.66f,.3f));
+            Place(shell,"Marquee",new Vector3(0,10.05f,signZ));
+            Label(shell,"Subtitle","ДЕРЖИСЬ ВМЕСТЕ  /  ПОПАДИ В ФОРМУ",new Vector3(0,8.72f,signZ-.76f),new Vector2(21,.6f),3.6f,new Color(1,.74f,.40f));
             // Faceted rays make the title the focal point without a forest of trusses.
             for(int s=-1;s<=1;s+=2)
                 for(int i=0;i<5;i++)
@@ -250,6 +256,21 @@ namespace Igruha.EditorTools
             {
                 Transform track=arena.Find("Track_"+i);
                 Transform finish=Group(track,"Studio platform details");
+                Transform wallFinish=Group(track.Find("Wall"),"Studio wall frame");
+                float front=-c.WallThickness*.5f-.025f;
+                Panel(wallFinish,"Brushed top cap",new Vector3(0,c.WallHeight+.025f,0),
+                    new Vector3(c.WallWidth+.10f,.10f,c.WallThickness+.06f),Mat("Steel"));
+                Panel(wallFinish,"Top accent inlay",new Vector3(0,c.WallHeight-.075f,front),
+                    new Vector3(c.WallWidth-.12f,.035f,.018f),Mat("Lane"+i));
+                for(int side=-1;side<=1;side+=2)
+                {
+                    Panel(wallFinish,"Edge guard",new Vector3(side*(c.WallWidth*.5f+.025f),c.WallHeight*.5f,0),
+                        new Vector3(.10f,c.WallHeight,c.WallThickness+.04f),Mat("Steel"));
+                    Panel(wallFinish,"Corner reinforcement",new Vector3(side*(c.WallWidth*.5f-.16f),c.WallHeight-.17f,front),
+                        new Vector3(.28f,.25f,.035f),Mat("Ink"));
+                    Panel(wallFinish,"Corner fixing",new Vector3(side*(c.WallWidth*.5f-.16f),c.WallHeight-.17f,front-.035f),
+                        new Vector3(.07f,.07f,.025f),Mat("Gold"));
+                }
                 for(int side=0;side<2;side++)
                 {
                     var original=track.Find("FloorHalf_"+side).GetComponent<Renderer>();
@@ -352,6 +373,7 @@ namespace Igruha.EditorTools
         [MenuItem("Igruha/Дырка в стене/Проверить собственную студию")]
         public static void Audit()
         {
+            Physics.SyncTransforms();
             var scene=UnityEngine.SceneManagement.SceneManager.GetActiveScene();
             if(scene.path!=ScenePath)throw new InvalidOperationException("Audit requires HoleInWall.");
             var arena=GameObject.Find("_Arena");
