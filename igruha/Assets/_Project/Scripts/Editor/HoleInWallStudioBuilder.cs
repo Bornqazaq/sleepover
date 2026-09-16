@@ -111,17 +111,26 @@ namespace Igruha.EditorTools
                 Place(shell,"SunMedallion",new Vector3(0,10.2f,z+(back?-.5f:.5f)),back?0:180);
                 Panel(shell,"Crown moulding",new Vector3(0,14.4f,z+(back?-.48f:.48f)),new Vector3(c.ArenaWidth+18,.45f,.55f),Mat("Ivory"));
             }
-            // A high barrel vault with actual structural ribs and open daylight between them.
-            for(float z=near;z<=far;z+=6)
-                Place(shell,"BathRoofRib",new Vector3(0,11.5f,z));
-            for(int i=-5;i<=5;i++)
+            // Contiguous curved bays replace the flat sky card. Glazing transmits daylight;
+            // the separate structural ribs still cast the characteristic roof shadows.
+            const float roofBayDepth = 6;
+            int roofBays = Mathf.CeilToInt((far-near)/roofBayDepth);
+            float bayDepth = (far-near)/roofBays;
+            for(int bay=0;bay<roofBays;bay++)
             {
-                float x=i*5.1f;
-                float y=11.5f+9*Mathf.Sqrt(1-x*x/(31*31));
-                Panel(shell,"Glazing mullion",new Vector3(x,y,centerZ),new Vector3(.11f,.15f,far-near),Mat("Mint"));
+                var roof=Place(shell,"BathRoofBay",new Vector3(0,11.5f,near+(bay+.5f)*bayDepth));
+                roof.localScale=new Vector3(1,1,bayDepth/roofBayDepth);
+                roof.GetComponent<Renderer>().shadowCastingMode=ShadowCastingMode.Off;
             }
-            var sky=Panel(shell,"Daylit skylight",new Vector3(0,22,centerZ),new Vector3(c.ArenaWidth+20,.1f,far-near+2),Mat("Glass"));
-            sky.GetComponent<Renderer>().shadowCastingMode=ShadowCastingMode.Off;
+            for(int bay=0;bay<=roofBays;bay++)
+                Place(shell,"BathRoofRib",new Vector3(0,11.5f,near+bay*bayDepth));
+            foreach(float z in new[]{near,far})
+                Place(shell,"BathRoofEnd",new Vector3(0,11.5f,z),z==far?0:180);
+            for(int side=-1;side<=1;side+=2)
+            {
+                Panel(shell,"Vault springing cornice",new Vector3(side*30.35f,12.05f,centerZ),new Vector3(.85f,.4f,far-near),Mat("Ivory"));
+                Panel(shell,"Cornice gold bead",new Vector3(side*29.93f,11.97f,centerZ),new Vector3(.06f,.09f,far-near),Mat("Gold"));
+            }
             // Rear deck planting frames the playfield and remains behind every moving wall.
             for(int side=-1;side<=1;side+=2)
             {
@@ -291,14 +300,24 @@ namespace Igruha.EditorTools
                     var original=track.Find("FloorHalf_"+side).GetComponent<Renderer>();
                     original.sharedMaterial=Mat(side==0?"Coral":"Teal");
                     float x=(side==0?-1:1)*c.PlatformWidth*.25f;
+                    var deck=Place(finish,side==0?"DeckCoral":"DeckTeal",new Vector3(x,.012f,0));
+                    deck.localScale=new Vector3(c.PlatformWidth*.5f/6*.985f,1,c.PlatformDepth/5*.98f);
+                    deck.GetComponent<Renderer>().shadowCastingMode=ShadowCastingMode.Off;
                     for(int k=0;k<3;k++)
                     {
-                        Transform stripe=Panel(finish,"Inset grip stripe",new Vector3(x,.023f,-c.PlatformDepth*.5f+.24f+k*.12f),
+                        Transform stripe=Panel(finish,"Inset grip stripe",new Vector3(x,.040f,-c.PlatformDepth*.5f+.24f+k*.12f),
                             new Vector3(c.PlatformWidth*.43f,.009f,.035f),Mat("Ink"));
                         stripe.GetComponent<Renderer>().shadowCastingMode=ShadowCastingMode.Off;
                     }
-                    Label(finish,"Deck lane",(i+1).ToString("00"),new Vector3(x,.031f,-.95f),new Vector2(1.6f,.6f),3.5f,Color.white)
+                    Label(finish,"Deck lane",(i+1).ToString("00"),new Vector3(x,.042f,-.95f),new Vector2(1.6f,.6f),3.5f,Color.white)
                         .transform.localRotation=Quaternion.Euler(90,0,0);
+                }
+                for(int edge=-1;edge<=1;edge+=2)
+                {
+                    var fascia=Place(finish,"DeckFascia",new Vector3(0,0,edge*(c.PlatformDepth*.5f+.015f)),edge<0?0:180);
+                    fascia.localScale=new Vector3(c.PlatformWidth/12,1,1);
+                    var sideFascia=Place(finish,"DeckFascia",new Vector3(edge*(c.PlatformWidth*.5f+.015f),0,0),edge*90);
+                    sideFascia.localScale=new Vector3(c.PlatformDepth/12,1,1);
                 }
                 for(int s=-1;s<=1;s+=2)
                     Panel(finish,"Platform bumper",new Vector3(s*(c.PlatformWidth*.5f-.22f),-.31f,-c.PlatformDepth*.5f-.025f),
@@ -406,6 +425,19 @@ namespace Igruha.EditorTools
                 if(Mathf.Abs(bounds.min.y-HoleInWallProps.RimTopY(c))>.01f || Mathf.Abs(bounds.max.y+.1f)>.01f)
                     throw new InvalidOperationException("Gate pier does not connect deck and gate.");
             }
+            var roofs=arena.GetComponentsInChildren<Transform>(true).Where(t=>t.name=="HS_BathRoofBay").OrderBy(t=>t.position.z).ToArray();
+            if(roofs.Length==0)throw new InvalidOperationException("Vault glazing is missing.");
+            for(int i=1;i<roofs.Length;i++)
+                if(Mathf.Abs(roofs[i-1].GetComponent<Renderer>().bounds.max.z-roofs[i].GetComponent<Renderer>().bounds.min.z)>.025f)
+                    throw new InvalidOperationException("Open gap between roof bays.");
+            foreach(var name in new[]{"Glass","GlassLight"})
+                if(!Mat(name).IsKeywordEnabled("_EMISSION") || (Mat(name).globalIlluminationFlags & MaterialGlobalIlluminationFlags.EmissiveIsBlack)!=0)
+                    throw new InvalidOperationException("Daylit glass lost emission after import.");
+            var decks=arena.GetComponentsInChildren<Transform>(true).Where(t=>t.name=="HS_DeckCoral"||t.name=="HS_DeckTeal").ToArray();
+            if(decks.Length!=c.TrackCount*2)throw new InvalidOperationException("Each platform needs two rubber deck halves.");
+            foreach(var deck in decks)
+                if(deck.GetComponent<Renderer>().bounds.max.y-c.PlatformSurfaceY>.05f || deck.GetComponent<Collider>()!=null)
+                    throw new InvalidOperationException("Deck detail diverges from the collision surface.");
             int missing=0;
             foreach(Transform t in arena.GetComponentsInChildren<Transform>(true))missing+=GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(t.gameObject);
             var renderers=arena.GetComponentsInChildren<Renderer>(true);

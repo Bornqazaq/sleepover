@@ -71,6 +71,11 @@ material('Leaf', (.055,.27,.13), .78)
 material('LeafLight', (.25,.49,.15), .7)
 material('Soil', (.10,.064,.04), 1)
 material('Cardboard', (.72,.50,.27), .82)
+material('GlassLight', (.65,.84,.86), .26, .05, .32)
+material('GlassShade', (.27,.54,.61), .32, .10, .22)
+material('RoofEnamel', (.71,.79,.72), .38)
+material('RubberCoral', (.81,.24,.17), .84)
+material('RubberTeal', (.025,.51,.54), .84)
 
 parts = []
 def finish(obj, mat):
@@ -194,15 +199,62 @@ for t in [math.pi*i/12 for i in range(1,12)]:
     tube((31*math.cos(t),0,9*math.sin(t)),(30.5*math.cos(t),0,8.4*math.sin(t)),.055,'Gold')
 export('BathRoofRib')
 
-# Arched glazed bay. Pale glass is opaque and softly luminous, no transparent overdraw.
-pts=[(-2.4,0,0),(2.4,0,0)]+arc(2.4,2.4,5,0,32)
-verts=[(0,.08,3.5)]+[(x,.08,z) for x,y,z in pts]
-mesh=bpy.data.meshes.new('Glazed arch');mesh.from_pydata(verts,[],[(0,i+1,(i+1)%len(pts)+1) for i in range(len(pts))]);mesh.update()
-obj=bpy.data.objects.new('Glazed arch',mesh);scene.collection.objects.link(obj);finish(obj,'Glass')
-ribbon([(-2.5,0,0),(-2.5,0,5)]+list(reversed(arc(2.5,2.5,5)))+[(2.5,0,0)],.25,.30,'Ivory')
-for x in (-1.2,0,1.2):box((x,-.10,3.1),(.055,.09,6.1),'Mint',.01)
-for z in (2.4,4.8):box((0,-.10,z),(4.7,.10,.06),'Mint',.01)
-box((0,-.05,-.13),(5.25,.65,.30),'Ivory',.06)
+# Glazed barrel-vault bay: curved solid panels follow the ribs, with visible glazing bars.
+# Geometry faces both indoors and outdoors. The glazing is lit opaque, avoiding overdraw.
+def face_mesh(name, verts, faces, mat, thickness=0):
+    mesh=bpy.data.meshes.new(name);mesh.from_pydata(verts,[],faces);mesh.update()
+    obj=bpy.data.objects.new(name,mesh);scene.collection.objects.link(obj);finish(obj,mat)
+    if thickness:
+        bpy.context.view_layer.objects.active=obj
+        mod=obj.modifiers.new('Physical thickness','SOLIDIFY');mod.thickness=thickness
+        bpy.ops.object.modifier_apply(modifier=mod.name)
+    return obj
+
+for i in range(24):
+    a=i*math.pi/24;b=(i+1)*math.pi/24
+    # Three narrow subdivisions keep curvature smooth inside each glazed panel.
+    for j in range(3):
+        u=a+(b-a)*j/3;v=a+(b-a)*(j+1)/3
+        face_mesh('Curved roof pane',[(31.05*math.cos(t),y,9.05*math.sin(t)) for y,t in [(-3,u),(-3,v),(3,v),(3,u)]],[(0,1,2,3)],
+                  'RoofEnamel' if i in (0,1,22,23) else ('GlassLight' if i%3 else 'Glass'),.08)
+    x=31*math.cos(a);z=9*math.sin(a)
+    box((x,0,z-.10),(.12,6,.16),'Mint',.015)
+    for y in (-1,1):
+        ribbon([(31*math.cos(t),y,9*math.sin(t)-.09) for t in (a,(a+b)/2,b)],.065,.085,'Ivory')
+box((0,0,8.85),(.32,6,.26),'Ivory',.03)
+export('BathRoofBay')
+
+# Opaque end infill closes the space above the old flat end-wall crown.
+end_pts=[(-29.1,0,3),(29.1,0,3)]+[(31*math.cos(t),0,9*math.sin(t)) for t in [math.asin(3/9)+(math.pi-2*math.asin(3/9))*i/48 for i in range(49)]]
+face_mesh('Vault end tympanum',end_pts,[tuple(range(len(end_pts)))],'Plaster',.35)
+export('BathRoofEnd')
+
+# Deep arched window: stepped stone reveal, split glazing, fanlight and substantial sill.
+# Front is -Y; narrow material variations make individual panes readable in game.
+for col in range(4):
+    for row in range(3):
+        x=-2.25+(col+.5)*1.125;z=.28+(row+.5)*1.52
+        box((x,.02,z),(1.09,.075,1.48),'GlassLight' if (row+col)%3==0 else 'Glass',.012)
+for i in range(8):
+    a=i*math.pi/8;b=(i+1)*math.pi/8
+    verts=[(0,.02,4.95)]+[(2.23*math.cos(t),.02,4.95+2.23*math.sin(t)) for t in (a,(a+b)/2,b)]
+    face_mesh('Fanlight pane',verts,[tuple(range(4))],'GlassLight' if i%2 else 'Glass',.075)
+    tube((0,-.03,4.95),(2.23*math.cos(a),-.03,4.95+2.23*math.sin(a)),.042,'Mint')
+for rx,base,width,depth,y,mat in [(2.51,4.95,.32,.62,.0,'Ivory'),(2.27,4.95,.10,.12,-.34,'Mint'),(2.75,4.95,.12,.16,-.10,'Tile')]:
+    ribbon([(-rx,y,.02),(-rx,y,base)]+list(reversed(arc(rx,rx,base,y)))+[(rx,y,.02)],width,depth,mat)
+for x in (-1.125,0,1.125):box((x,-.02,2.54),(.072,.16,4.8),'Mint',.012)
+for z in (.23,1.80,3.32,4.95):box((0,-.03,z),(4.55,.18,.085),'Mint',.012)
+# Radial voussoirs break up the stone arch without a noisy texture.
+for i in range(13):
+    t=math.pi*i/12
+    tube((2.40*math.cos(t),-.335,4.95+2.40*math.sin(t)),(2.64*math.cos(t),-.335,4.95+2.64*math.sin(t)),.017,'Gold')
+for side in (-1,1):
+    for z in (1.4,2.8,4.2):box((side*2.51,-.33,z),(.30,.012,.026),'Gold',0)
+    box((side*1.88,-.19,-.40),(.40,.58,.53),'Tile',.08)
+box((0,-.13,-.10),(5.7,.95,.24),'Ivory',.06)
+box((0,-.35,-.24),(5.40,.62,.12),'Gold',.025)
+box((0,-.22,7.48),(.45,.60,.63),'Ivory',.05)
+box((0,-.54,7.47),(.18,.05,.24),'Sun',.02)
 export('BathWindow')
 
 # Rounded enamel game entrance: actual feet, vertical rails and a curved lintel.
@@ -213,6 +265,22 @@ for x in (-4.75,4.75):
     box((x,0,.2),(1.1,1.3,.4),'Mint',.08)
     box((x,-.5,2.55),(.16,.12,4.45),'Gold',.03)
     for z in (1.1,2.5,3.9):tube((x,-.57,z),(x,-.63,z),.08,'Ivory')
+# Recessed column flutes, collar joints and a crest give the entrance weight.
+for side in (-1,1):
+    x=side*4.75
+    for z in (.60,4.65,5.18):
+        box((x,-.02,z),(.87,1.0,.18),'Tile',.035)
+        box((x,-.535,z),(.68,.045,.055),'Gold',.012)
+    for dx in (-.21,.21):box((x+dx,-.446,2.60),(.045,.035,3.65),'Mint',.008)
+    for z in (1.35,3.85):
+        for dx in (-.31,.31):tube((x+dx,-.48,z),(x+dx,-.51,z),.036,'Gold')
+ribbon([(x,y+.22,z+.15) for x,y,z in pts],.12,.18,'Mint')
+for t in [math.pi*i/16 for i in range(1,16)]:
+    tube((4.52*math.cos(t),-.445,5.2+1.77*math.sin(t)),(4.96*math.cos(t),-.445,5.2+2.23*math.sin(t)),.017,'Gold')
+tube((0,-.02,7.52),(0,-.48,7.52),.49,'Mint')
+tube((0,-.49,7.52),(0,-.53,7.52),.37,'Ivory')
+for row in range(2):
+    path([(-.28+j*.056,-.55,7.45+row*.16+.035*math.sin(j*.8)) for j in range(11)],.022,'Gold')
 export('BathGate')
 
 # A tactile enamel score counter; existing text anchors remain measured in metres.
@@ -282,6 +350,30 @@ export('Lifebuoy')
 for x in range(4):
     for y in range(4):box((x-1.5,y-1.5,0),(.977,.977,.06),'Tile' if (x+y)%2 else 'Ivory',.012)
 export('TilePatch')
+
+# Moulded rubber deck inset, 6 by 5 metres; top is only millimetres above the collider.
+for variant in ('Coral','Teal'):
+    rubber='Rubber'+variant
+    for col in range(6):
+        for row in range(5):
+            box((-2.5+col,-2+row,0),(.965,.965,.024),rubber,.015)
+    # Shallow lozenges catch highlights without changing the collision surface.
+    for col in range(22):
+        for row in range(17):
+            ob=box((-2.77+col*.263,-2.18+row*.263,.016),(.105,.048,.007),rubber,0)
+            ob.rotation_euler.z=math.pi/4
+    export('Deck'+variant)
+
+# Ceramic perimeter module, scaled along X only: enamel face, recessed grille, rubber fenders.
+box((0,0,-.23),(12,.18,.40),'Ivory',.045)
+box((0,-.105,-.22),(11.5,.07,.23),'Mint',.025)
+for x in range(24):box((-5.52+x*.48,-.145,-.22),(.028,.02,.19),'Gold',0)
+box((0,-.15,-.23),(2.5,.055,.17),'Ink',.02)
+for i in range(15):box((-.98+i*.14,-.185,-.23),(.045,.02,.12),'Steel',0)
+for side in (-1,1):
+    box((side*5.65,-.14,-.23),(.34,.15,.39),'Ink',.06)
+    for z in (-.1,-.36):tube((side*5.3,-.15,z),(side*5.3,-.19,z),.055,'Gold')
+export('DeckFascia')
 
 (ART/'palette.json').write_text(json.dumps(dict(materials=palette),indent=2)+'\n')
 (ART/'models.json').write_text(json.dumps(exports,indent=2)+'\n')

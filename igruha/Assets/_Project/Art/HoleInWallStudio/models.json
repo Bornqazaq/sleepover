@@ -50,14 +50,24 @@
     "polygons": 542
   },
   {
+    "name": "HS_BathRoofBay",
+    "vertices": 3552,
+    "polygons": 3362
+  },
+  {
+    "name": "HS_BathRoofEnd",
+    "vertices": 102,
+    "polygons": 53
+  },
+  {
     "name": "HS_BathWindow",
-    "vertices": 820,
-    "polygons": 829
+    "vertices": 3640,
+    "polygons": 3446
   },
   {
     "name": "HS_BathGate",
-    "vertices": 944,
-    "polygons": 888
+    "vertices": 3768,
+    "polygons": 3292
   },
   {
     "name": "HS_Scoreboard",
@@ -88,5 +98,20 @@
     "name": "HS_TilePatch",
     "vertices": 1536,
     "polygons": 1568
+  },
+  {
+    "name": "HS_DeckCoral",
+    "vertices": 5872,
+    "polygons": 5184
+  },
+  {
+    "name": "HS_DeckTeal",
+    "vertices": 5872,
+    "polygons": 5184
+  },
+  {
+    "name": "HS_DeckFascia",
+    "vertices": 888,
+    "polygons": 780
   }
 ]

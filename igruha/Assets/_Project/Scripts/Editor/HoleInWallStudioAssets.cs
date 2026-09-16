@@ -152,6 +152,10 @@ namespace Igruha.EditorTools
             if (emission > 0) material.EnableKeyword("_EMISSION");
             else material.DisableKeyword("_EMISSION");
             material.SetColor("_EmissionColor", color * emission);
+            // URP validation otherwise treats imported emissive surfaces as black and
+            // can drop the emission variant during a later reimport or editor reload.
+            material.globalIlluminationFlags = emission > 0
+                ? MaterialGlobalIlluminationFlags.BakedEmissive : MaterialGlobalIlluminationFlags.EmissiveIsBlack;
             EditorUtility.SetDirty(material);
             return material;
         }
