@@ -1,0 +1,14 @@
+{
+  "players": 2,
+  "questions": 8,
+  "settled_comparisons": 48,
+  "public_state_mismatches": [],
+  "early_options_errors": 0,
+  "results_observed": true,
+  "minimum_y": {
+    "host": -7.06,
+    "client": -7.0
+  },
+  "reading_camera_fov40_both_machines": true,
+  "choice_has_one_host_fov40_and_one_student_fov55": true
+}

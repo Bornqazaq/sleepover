@@ -1,0 +1,981 @@
+Exam original hall observation
+transition q=1 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(5.00, 0.00, -6.12)
+  Player_3 pos=(1.00, 0.00, -6.12)
+  Player_1 pos=(-7.00, 0.00, -6.12)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  camera=(-7.00, 1.48, -8.75) rot=(23.01, 4.84, 0.00) fov=55
+settled minY=0.00 q=1 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(5.00, 0.00, -6.12)
+  Player_3 pos=(1.00, 0.00, -6.12)
+  Player_1 pos=(-7.00, 0.00, -6.12)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  camera=(-7.00, 1.48, -8.75) rot=(23.01, 4.84, 0.00) fov=55
+transition q=1 stage=2 Aopen=False Bopen=False board=Что хуже — громкий сосед или холодная батарея? | А)  Сосед | Б)  Батарея
+  Player_4 pos=(5.00, 0.00, -6.12)
+  Player_3 pos=(1.00, 0.00, -6.12)
+  Player_1 pos=(-7.00, 0.00, -6.12)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  camera=(-7.32, 1.17, -8.75) rot=(17.00, 11.84, 0.00) fov=55
+settled minY=0.00 q=1 stage=2 Aopen=False Bopen=False board=Что хуже — громкий сосед или холодная батарея? | А)  Сосед | Б)  Батарея
+  Player_4 pos=(5.00, 0.00, -6.12)
+  Player_3 pos=(1.00, 0.00, -6.12)
+  Player_1 pos=(-7.00, 0.00, -6.12)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  camera=(-7.00, 1.48, -8.75) rot=(23.01, 4.84, 0.00) fov=55
+transition q=1 stage=3 Aopen=False Bopen=False board=Что хуже — громкий сосед или холодная батарея? | А)  Сосед | Б)  Батарея
+  Player_4 pos=(5.00, 0.00, -6.12)
+  Player_3 pos=(1.00, 0.00, -6.12)
+  Player_1 pos=(-7.00, 0.00, -6.12)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  camera=(-7.00, 1.48, -8.75) rot=(23.01, 4.84, 0.00) fov=55
+settled minY=0.00 q=1 stage=3 Aopen=False Bopen=False board=Что хуже — громкий сосед или холодная батарея? | А)  Сосед | Б)  Батарея
+  Player_4 pos=(0.76, 0.00, -2.11)
+  Player_3 pos=(-2.58, 0.00, -1.51)
+  Player_1 pos=(-7.00, 0.00, -6.12)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  camera=(-7.00, 1.48, -8.75) rot=(23.01, 4.84, 0.00) fov=55
+frame-sample stage=3 n=288 meanMs=30.23
+transition q=1 stage=4 Aopen=False Bopen=False board=Что хуже — громкий сосед или холодная батарея? | А)  Сосед | Б)  Батарея
+  Player_4 pos=(-5.31, 0.00, 3.62)
+  Player_3 pos=(-6.02, 0.00, 2.93)
+  Player_1 pos=(-5.70, 0.00, -1.38)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  camera=(-7.76, 1.28, -1.63) rot=(23.91, 83.45, 0.00) fov=55
+settled minY=0.00 q=1 stage=4 Aopen=False Bopen=False board=Что хуже — громкий сосед или холодная батарея? | А)  Сосед | Б)  Батарея
+  Player_4 pos=(-5.31, 0.00, 3.62)
+  Player_3 pos=(-6.02, 0.00, 2.93)
+  Player_1 pos=(-0.88, 1.70, -4.71)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  camera=(-5.36, 1.30, -5.24) rot=(349.84, 87.17, 0.00) fov=55
+transition q=1 stage=5 Aopen=True Bopen=False board=Что хуже — громкий сосед или холодная батарея? | А)  Сосед | Б)  Батарея
+  Player_4 pos=(-5.31, 0.00, 3.62)
+  Player_3 pos=(-6.02, 0.00, 2.93)
+  Player_1 pos=(1.83, 0.34, -0.55)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  camera=(3.64, 2.85, -3.84) rot=(26.35, 337.98, 0.00) fov=55
+fall minY=0.00 q=1 stage=5 Aopen=True Bopen=False board=Что хуже — громкий сосед или холодная батарея? | А)  Сосед | Б)  Батарея
+  Player_4 pos=(-5.31, 0.00, 3.62)
+  Player_3 pos=(-6.02, 0.00, 2.93)
+  Player_1 pos=(1.83, 0.34, -0.55)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  camera=(3.64, 2.85, -3.84) rot=(26.35, 337.98, 0.00) fov=55
+fall minY=-3.38 q=1 stage=5 Aopen=True Bopen=False board=Что хуже — громкий сосед или холодная батарея? | А)  Сосед | Б)  Батарея
+  Player_4 pos=(-5.31, -3.38, 3.62)
+  Player_3 pos=(-6.02, -3.17, 2.93)
+  Player_1 pos=(1.05, 0.00, -0.95)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  camera=(2.24, 1.72, -4.50) rot=(19.22, 346.30, 0.00) fov=55
+fall minY=-7.02 q=1 stage=5 Aopen=True Bopen=False board=Что хуже — громкий сосед или холодная батарея? | А)  Сосед | Б)  Батарея
+  Player_4 pos=(-5.31, -7.00, 3.62)
+  Player_3 pos=(-6.02, -7.00, 2.93)
+  Player_1 pos=(2.47, 0.00, -1.29)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  camera=(3.33, 1.72, -4.99) rot=(19.24, 349.05, 0.00) fov=55
+settled minY=-7.02 q=1 stage=5 Aopen=True Bopen=False board=Что хуже — громкий сосед или холодная батарея? | А)  Сосед | Б)  Батарея
+  Player_4 pos=(-5.31, -7.00, 3.62)
+  Player_3 pos=(-6.02, -7.00, 2.93)
+  Player_1 pos=(2.94, 0.00, -1.20)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  camera=(3.54, 1.72, -4.95) rot=(19.25, 349.81, 0.00) fov=55
+fall minY=-7.02 q=1 stage=5 Aopen=True Bopen=False board=Что хуже — громкий сосед или холодная батарея? | А)  Сосед | Б)  Батарея
+  Player_4 pos=(-5.31, -7.00, 3.62)
+  Player_3 pos=(-6.02, -7.00, 2.93)
+  Player_1 pos=(5.30, 0.00, -0.74)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  camera=(6.30, 1.72, -4.41) rot=(19.21, 348.62, 0.00) fov=55
+fall minY=-7.02 q=1 stage=5 Aopen=True Bopen=False board=Что хуже — громкий сосед или холодная батарея? | А)  Сосед | Б)  Батарея
+  Player_4 pos=(-5.31, -7.00, 3.62)
+  Player_3 pos=(-6.02, -7.00, 2.93)
+  Player_1 pos=(5.89, 0.00, -3.18)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  camera=(7.13, 1.72, -6.44) rot=(20.31, 345.62, 0.00) fov=55
+fall minY=-7.02 q=1 stage=5 Aopen=True Bopen=False board=Что хуже — громкий сосед или холодная батарея? | А)  Сосед | Б)  Батарея
+  Player_4 pos=(-5.31, -7.00, 3.62)
+  Player_3 pos=(-6.02, -7.00, 2.93)
+  Player_1 pos=(3.20, 0.00, -4.38)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  camera=(4.83, 1.72, -7.88) rot=(19.10, 343.01, 0.00) fov=55
+fall minY=-7.02 q=1 stage=5 Aopen=True Bopen=False board=Что хуже — громкий сосед или холодная батарея? | А)  Сосед | Б)  Батарея
+  Player_4 pos=(-5.31, -7.00, 3.62)
+  Player_3 pos=(-6.02, -7.00, 2.93)
+  Player_1 pos=(2.67, 0.00, -4.54)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  camera=(3.88, 1.72, -8.18) rot=(19.15, 346.51, 0.00) fov=55
+fall minY=-7.02 q=1 stage=5 Aopen=True Bopen=False board=Что хуже — громкий сосед или холодная батарея? | А)  Сосед | Б)  Батарея
+  Player_4 pos=(-5.31, -7.00, 3.62)
+  Player_3 pos=(-6.02, -7.00, 2.93)
+  Player_1 pos=(2.67, 0.00, -4.54)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  camera=(3.88, 1.72, -8.18) rot=(19.15, 346.51, 0.00) fov=55
+transition q=1 stage=6 Aopen=False Bopen=False board=Что хуже — громкий сосед или холодная батарея? | А)  Сосед | Б)  Батарея
+  Player_4 pos=(-5.31, -7.00, 3.62)
+  Player_3 pos=(-6.02, -7.00, 2.93)
+  Player_1 pos=(2.67, 0.00, -4.54)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  camera=(3.88, 1.72, -8.18) rot=(19.15, 346.52, 0.00) fov=55
+settled minY=-7.00 q=1 stage=6 Aopen=False Bopen=False board=Что хуже — громкий сосед или холодная батарея? | А)  Сосед | Б)  Батарея
+  Player_4 pos=(1.60, 0.00, -4.32)
+  Player_3 pos=(0.00, 0.00, -4.32)
+  Player_1 pos=(2.67, 0.00, -4.54)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  camera=(3.88, 1.72, -8.18) rot=(19.15, 346.52, 0.00) fov=55
+transition q=2 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(1.60, 0.00, -4.32)
+  Player_3 pos=(0.00, 0.00, -4.32)
+  Player_1 pos=(2.67, 0.00, -4.54)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  camera=(3.88, 1.72, -8.18) rot=(19.15, 346.52, 0.00) fov=55
+settled minY=0.00 q=2 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(1.60, 0.00, -4.32)
+  Player_3 pos=(0.00, 0.00, -4.32)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  camera=(1.50, 3.05, 3.52) rot=(20.24, 348.36, 359.99) fov=54.24258
+transition q=2 stage=2 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(1.60, 0.00, -4.32)
+  Player_3 pos=(0.00, 0.00, -4.32)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+settled minY=0.00 q=2 stage=2 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(1.60, 0.00, -4.32)
+  Player_3 pos=(0.00, 0.00, -4.32)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+transition q=2 stage=3 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(1.60, 0.00, -4.32)
+  Player_3 pos=(0.00, 0.00, -4.32)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+settled minY=0.00 q=2 stage=3 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(4.73, 0.00, 0.53)
+  Player_3 pos=(1.33, 0.00, 1.43)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(0.94, 0.01, 0.82)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+frame-sample stage=3 n=236 meanMs=29.70
+transition q=2 stage=4 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(5.06, 0.00, 1.03)
+  Player_3 pos=(1.93, 0.00, 4.41)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(2.21, 0.00, 3.27)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=2 stage=4 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(5.06, 0.00, 1.03)
+  Player_3 pos=(-2.40, 0.00, 1.05)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(2.21, 0.00, 3.27)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=2 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(5.06, 0.00, 1.03)
+  Player_3 pos=(-2.60, 0.00, 0.90)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(2.21, 0.00, 3.27)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=2 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(5.06, 0.00, 1.03)
+  Player_3 pos=(-2.60, 0.00, 0.90)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(2.21, 0.00, 3.27)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=2 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(5.06, 0.00, 1.03)
+  Player_3 pos=(-2.60, 0.00, 0.90)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(2.21, 0.00, 3.27)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=2 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(5.06, 0.00, 1.03)
+  Player_3 pos=(-2.60, 0.00, 0.90)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(2.21, 0.00, 3.27)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=2 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(5.06, 0.00, 1.03)
+  Player_3 pos=(-2.60, 0.00, 0.90)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(2.21, 0.00, 3.27)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=2 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(5.06, 0.00, 1.03)
+  Player_3 pos=(-2.60, 0.00, 0.90)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(2.21, 0.00, 3.27)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=2 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(5.06, 0.00, 1.03)
+  Player_3 pos=(-2.60, 0.00, 0.90)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(2.21, 0.00, 3.27)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=2 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(5.06, 0.00, 1.03)
+  Player_3 pos=(-2.60, 0.00, 0.90)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(2.21, 0.00, 3.27)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=2 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(5.06, 0.00, 1.03)
+  Player_3 pos=(-2.60, 0.00, 0.90)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(2.21, 0.00, 3.27)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=2 stage=5 Aopen=True Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(5.06, 0.00, 1.03)
+  Player_3 pos=(-2.60, 0.00, 0.90)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(2.21, 0.00, 3.27)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=2 stage=6 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(5.06, 0.00, 1.03)
+  Player_3 pos=(-2.60, 0.00, 0.90)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(2.21, 0.00, 3.27)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=2 stage=6 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(5.06, 0.00, 1.03)
+  Player_3 pos=(-2.60, 0.00, 0.90)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(2.21, 0.00, 3.27)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=3 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(5.06, 0.00, 1.03)
+  Player_3 pos=(-2.60, 0.00, 0.90)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(2.21, 0.00, 3.27)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=3 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(5.06, 0.00, 1.03)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(0.00, 0.00, -4.32)
+  Player_2 pos=(2.21, 0.00, 3.27)
+  camera=(0.00, 2.55, -4.04) rot=(79.55, 182.23, 357.33) fov=54.71737
+transition q=3 stage=2 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(5.06, 0.00, 1.03)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-1.34, 0.00, -0.16)
+  Player_2 pos=(2.21, 0.00, 3.27)
+  camera=(-0.34, 1.15, -4.49) rot=(10.02, 352.43, 0.00) fov=55
+settled minY=0.00 q=3 stage=2 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(5.06, 0.00, 1.03)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(1.03, 0.00, -1.83)
+  Player_2 pos=(2.21, 0.00, 3.27)
+  camera=(4.42, 1.26, -3.82) rot=(12.60, 305.22, 0.00) fov=55
+transition q=3 stage=3 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(5.06, 0.00, 1.03)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(1.03, 0.00, -1.84)
+  Player_2 pos=(2.21, 0.00, 3.27)
+  camera=(4.49, 1.26, -3.87) rot=(12.32, 305.32, 0.00) fov=55
+settled minY=0.00 q=3 stage=3 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(-0.65, 0.00, 2.24)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(1.03, 0.00, -1.84)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(4.49, 1.26, -3.87) rot=(12.32, 305.32, 0.00) fov=55
+frame-sample stage=3 n=277 meanMs=27.42
+transition q=3 stage=4 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(-1.44, 0.00, 2.41)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(1.45, 0.00, -4.06)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(2.10, 0.52, -7.96) rot=(1.94, 355.58, 0.00) fov=55
+settled minY=0.00 q=3 stage=4 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(-1.44, 0.00, 2.41)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-1.04, 0.00, -3.54)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(-0.38, 0.52, -7.66) rot=(1.88, 355.61, 0.00) fov=55
+transition q=3 stage=5 Aopen=False Bopen=True board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(-1.44, 0.00, 2.41)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-2.55, 0.00, -3.74)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(-1.91, 0.52, -7.58) rot=(2.02, 355.50, 0.00) fov=55
+fall minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(-1.44, 0.00, 2.41)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-2.55, 0.00, -3.74)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(-1.91, 0.52, -7.58) rot=(2.02, 355.50, 0.00) fov=55
+fall minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(-1.44, 0.00, 2.41)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-1.75, 0.00, -4.50)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(-1.28, 0.52, -8.62) rot=(1.89, 357.11, 0.00) fov=55
+fall minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(-1.44, 0.00, 2.41)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-1.56, 0.00, -3.91)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(-0.71, 0.52, -8.26) rot=(1.80, 354.72, 0.00) fov=55
+settled minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(-1.44, 0.00, 2.41)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-1.69, 0.00, -3.72)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(-0.88, 0.52, -8.04) rot=(1.78, 354.74, 0.00) fov=55
+fall minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(-1.44, 0.00, 2.41)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-1.79, 0.00, -3.59)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(-1.15, 0.71, -7.68) rot=(4.50, 356.02, 0.00) fov=55
+fall minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(-1.44, 0.00, 2.41)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(0.03, 0.00, -2.15)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(-1.16, 1.99, -6.33) rot=(22.54, 13.55, 0.00) fov=55
+fall minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(-1.44, 0.00, 2.41)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(2.95, 1.60, -0.56)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(2.01, 4.04, -4.05) rot=(30.38, 17.71, 0.00) fov=55
+fall minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(-1.44, 0.00, 2.41)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(4.51, 0.00, 0.79)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(4.82, 3.07, -2.41) rot=(41.12, 358.64, 0.00) fov=55
+fall minY=-4.49 q=3 stage=5 Aopen=False Bopen=True board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(-1.44, 0.00, 2.41)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(3.90, -4.49, 3.84)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(5.25, -0.29, 1.44) rot=(53.13, 335.32, 0.00) fov=55
+transition q=3 stage=6 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(-1.44, 0.00, 2.41)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(3.27, -7.00, 5.20)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(5.04, -3.59, 3.18) rot=(48.64, 323.23, 0.00) fov=55
+settled minY=-7.00 q=3 stage=6 Aopen=False Bopen=False board=Что хуже — опоздать на час или не прийти вообще? | А)  Опоздать | Б)  Не прийти
+  Player_4 pos=(-1.44, 0.00, 2.41)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-3.66, 0.00, -5.03)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(-2.02, 2.28, -8.15) rot=(28.16, 336.96, 0.00) fov=55
+transition q=4 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(-1.44, 0.00, 2.41)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-3.66, 0.00, -5.03)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(-3.65, 2.19, -8.62) rot=(26.56, 4.56, 0.00) fov=55
+settled minY=0.00 q=4 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(1.60, 0.00, -4.32)
+  Player_1 pos=(-3.49, 0.00, -2.87)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(-3.32, 2.19, -6.58) rot=(25.86, 2.44, 0.00) fov=55
+transition q=4 stage=2 Aopen=False Bopen=False board=Что важнее в друге — честность или доброта? | А)  Честность | Б)  Доброта
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(1.60, 0.00, -4.32)
+  Player_1 pos=(-1.83, 0.00, -4.05)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(-0.55, 1.04, -7.91) rot=(9.10, 346.44, 0.00) fov=55
+settled minY=0.00 q=4 stage=2 Aopen=False Bopen=False board=Что важнее в друге — честность или доброта? | А)  Честность | Б)  Доброта
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(1.60, 0.00, -4.32)
+  Player_1 pos=(-1.83, 0.00, -4.05)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(-0.90, 1.26, -7.94) rot=(12.32, 351.39, 0.00) fov=55
+transition q=4 stage=3 Aopen=False Bopen=False board=Что важнее в друге — честность или доброта? | А)  Честность | Б)  Доброта
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(1.60, 0.00, -4.32)
+  Player_1 pos=(-1.83, 0.00, -4.05)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(-0.90, 1.26, -7.94) rot=(12.32, 351.39, 0.00) fov=55
+settled minY=0.00 q=4 stage=3 Aopen=False Bopen=False board=Что важнее в друге — честность или доброта? | А)  Честность | Б)  Доброта
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(4.02, 0.00, 0.88)
+  Player_1 pos=(-1.83, 0.00, -4.05)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(-0.90, 1.26, -7.94) rot=(12.32, 351.39, 0.00) fov=55
+frame-sample stage=3 n=264 meanMs=28.60
+transition q=4 stage=4 Aopen=False Bopen=False board=Что важнее в друге — честность или доброта? | А)  Честность | Б)  Доброта
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(5.00, 0.00, 3.01)
+  Player_1 pos=(-2.38, 1.24, -3.22)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(-0.85, 2.84, -7.00) rot=(13.88, 346.55, 0.00) fov=55
+settled minY=0.00 q=4 stage=4 Aopen=False Bopen=False board=Что важнее в друге — честность или доброта? | А)  Честность | Б)  Доброта
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-0.79, 0.01, 1.83)
+  Player_1 pos=(-4.49, 0.00, -3.74)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(-3.47, 1.32, -7.59) rot=(13.11, 349.95, 0.00) fov=55
+transition q=4 stage=5 Aopen=False Bopen=True board=Что важнее в друге — честность или доброта? | А)  Честность | Б)  Доброта
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.94, 0.00, 0.98)
+  Player_1 pos=(-4.49, 0.00, -3.74)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(-3.47, 1.32, -7.59) rot=(13.11, 349.95, 0.00) fov=55
+fall minY=0.00 q=4 stage=5 Aopen=False Bopen=True board=Что важнее в друге — честность или доброта? | А)  Честность | Б)  Доброта
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.94, 0.00, 0.98)
+  Player_1 pos=(-4.49, 0.00, -3.74)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(-3.47, 1.32, -7.59) rot=(13.11, 349.95, 0.00) fov=55
+fall minY=0.00 q=4 stage=5 Aopen=False Bopen=True board=Что важнее в друге — честность или доброта? | А)  Честность | Б)  Доброта
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.94, 0.00, 0.98)
+  Player_1 pos=(-4.49, 0.00, -3.74)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(-3.47, 1.32, -7.59) rot=(13.11, 349.95, 0.00) fov=55
+fall minY=0.00 q=4 stage=5 Aopen=False Bopen=True board=Что важнее в друге — честность или доброта? | А)  Честность | Б)  Доброта
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.94, 0.00, 0.98)
+  Player_1 pos=(-4.49, 0.00, -3.74)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(-3.47, 1.32, -7.59) rot=(13.11, 349.95, 0.00) fov=55
+settled minY=0.00 q=4 stage=5 Aopen=False Bopen=True board=Что важнее в друге — честность или доброта? | А)  Честность | Б)  Доброта
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.94, 0.00, 0.98)
+  Player_1 pos=(-4.49, 0.00, -3.74)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(-3.47, 1.32, -7.59) rot=(13.11, 349.95, 0.00) fov=55
+fall minY=0.00 q=4 stage=5 Aopen=False Bopen=True board=Что важнее в друге — честность или доброта? | А)  Честность | Б)  Доброта
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.94, 0.00, 0.98)
+  Player_1 pos=(-4.49, 0.00, -3.74)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(-5.13, 1.41, -7.64) rot=(14.43, 14.15, 0.00) fov=55
+fall minY=0.00 q=4 stage=5 Aopen=False Bopen=True board=Что важнее в друге — честность или доброта? | А)  Честность | Б)  Доброта
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.94, 0.00, 0.98)
+  Player_1 pos=(-4.49, 0.00, -3.74)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(-6.14, 1.66, -7.23) rot=(18.28, 30.11, 0.00) fov=55
+fall minY=0.00 q=4 stage=5 Aopen=False Bopen=True board=Что важнее в друге — честность или доброта? | А)  Честность | Б)  Доброта
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.94, 0.00, 0.98)
+  Player_1 pos=(-4.49, 0.00, -3.74)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(-6.14, 1.66, -7.23) rot=(18.28, 30.11, 0.00) fov=55
+fall minY=0.00 q=4 stage=5 Aopen=False Bopen=True board=Что важнее в друге — честность или доброта? | А)  Честность | Б)  Доброта
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.94, 0.00, 0.98)
+  Player_1 pos=(-4.49, 0.00, -3.74)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(-6.14, 1.66, -7.23) rot=(18.28, 30.11, 0.00) fov=55
+fall minY=0.00 q=4 stage=5 Aopen=False Bopen=True board=Что важнее в друге — честность или доброта? | А)  Честность | Б)  Доброта
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.94, 0.00, 0.98)
+  Player_1 pos=(-4.49, 0.00, -3.74)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(-6.14, 1.66, -7.23) rot=(18.28, 30.11, 0.00) fov=55
+transition q=4 stage=6 Aopen=False Bopen=False board=Что важнее в друге — честность или доброта? | А)  Честность | Б)  Доброта
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.94, 0.00, 0.98)
+  Player_1 pos=(-4.49, 0.00, -3.74)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(-6.14, 1.66, -7.23) rot=(18.28, 30.11, 0.00) fov=55
+settled minY=0.00 q=4 stage=6 Aopen=False Bopen=False board=Что важнее в друге — честность или доброта? | А)  Честность | Б)  Доброта
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.94, 0.00, 0.98)
+  Player_1 pos=(-4.49, 0.00, -3.74)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(-6.14, 1.66, -7.23) rot=(18.28, 30.11, 0.00) fov=55
+transition q=5 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.94, 0.00, 0.98)
+  Player_1 pos=(-4.49, 0.00, -3.74)
+  Player_2 pos=(4.10, 0.00, 4.88)
+  camera=(-6.14, 1.66, -7.23) rot=(18.28, 30.11, 0.00) fov=55
+settled minY=0.00 q=5 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(3.20, 0.00, -4.32)
+  Player_3 pos=(-4.94, 0.00, 0.98)
+  Player_1 pos=(-4.49, 0.00, -3.74)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  camera=(-6.14, 1.66, -7.23) rot=(18.28, 30.11, 0.00) fov=55
+transition q=5 stage=2 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player_4 pos=(3.20, 0.00, -4.32)
+  Player_3 pos=(-4.94, 0.00, 0.98)
+  Player_1 pos=(-4.13, 0.00, -3.11)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  camera=(-5.93, 1.66, -6.88) rot=(17.72, 30.26, 0.00) fov=55
+settled minY=0.00 q=5 stage=2 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player_4 pos=(3.20, 0.00, -4.32)
+  Player_3 pos=(-4.94, 0.00, 0.98)
+  Player_1 pos=(-2.11, 0.00, -0.69)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  camera=(-2.86, 1.26, -4.59) rot=(12.35, 15.93, 0.00) fov=55
+transition q=5 stage=3 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player_4 pos=(3.20, 0.00, -4.32)
+  Player_3 pos=(-4.94, 0.00, 0.98)
+  Player_1 pos=(1.38, 1.51, -3.84)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  camera=(-0.68, 2.02, -7.74) rot=(2.90, 30.52, 0.00) fov=55
+settled minY=0.00 q=5 stage=3 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player_4 pos=(-1.43, 0.00, -0.74)
+  Player_3 pos=(0.61, 0.00, 2.77)
+  Player_1 pos=(1.59, 0.00, -2.23)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  camera=(5.78, 1.06, -3.68) rot=(8.97, 294.85, 0.00) fov=55
+frame-sample stage=3 n=604 meanMs=11.59
+transition q=5 stage=4 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player_4 pos=(-3.30, 0.00, 1.19)
+  Player_3 pos=(2.00, 0.00, 2.91)
+  Player_1 pos=(-8.03, 2.74, 5.98)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  camera=(-9.14, 4.92, 4.19) rot=(45.16, 38.77, 0.00) fov=55
+settled minY=-0.04 q=5 stage=4 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player_4 pos=(-3.30, 0.00, 1.19)
+  Player_3 pos=(-2.17, 0.00, 3.04)
+  Player_1 pos=(-2.75, 1.69, 9.02)
+  Player_2 pos=(0.00, 0.72, 8.64)
+  camera=(-6.66, 3.85, 8.40) rot=(24.07, 85.77, 0.00) fov=55
+transition q=5 stage=5 Aopen=True Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player_4 pos=(-3.30, 0.00, 1.19)
+  Player_3 pos=(-2.17, 0.00, 3.04)
+  Player_1 pos=(8.02, 0.98, 4.34)
+  Player_2 pos=(0.04, 0.72, 8.57)
+  camera=(5.91, 3.39, 7.68) rot=(26.76, 152.52, 0.00) fov=55
+fall minY=0.00 q=5 stage=5 Aopen=True Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player_4 pos=(-3.30, 0.00, 1.19)
+  Player_3 pos=(-2.17, 0.00, 3.04)
+  Player_1 pos=(8.02, 0.98, 4.34)
+  Player_2 pos=(0.04, 0.72, 8.57)
+  camera=(5.91, 3.39, 7.68) rot=(26.76, 152.52, 0.00) fov=55
+fall minY=-2.76 q=5 stage=5 Aopen=True Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player_4 pos=(-3.30, -2.76, 1.19)
+  Player_3 pos=(-2.17, -2.48, 3.04)
+  Player_1 pos=(9.08, 2.41, 1.69)
+  Player_2 pos=(0.04, 0.72, 8.57)
+  camera=(8.71, 4.31, 5.65) rot=(21.44, 179.31, 0.00) fov=55
+fall minY=-7.17 q=5 stage=5 Aopen=True Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player_4 pos=(-3.30, -7.00, 1.19)
+  Player_3 pos=(-2.17, -7.00, 3.04)
+  Player_1 pos=(9.08, 1.04, -1.57)
+  Player_2 pos=(0.04, 0.72, 8.57)
+  camera=(8.76, 3.69, 2.38) rot=(28.51, 180.10, 0.00) fov=55
+settled minY=-7.17 q=5 stage=5 Aopen=True Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player_4 pos=(-3.30, -7.00, 1.19)
+  Player_3 pos=(-2.17, -7.00, 3.04)
+  Player_1 pos=(9.06, 0.98, -2.23)
+  Player_2 pos=(0.04, 0.72, 8.57)
+  camera=(9.15, 3.22, 1.86) rot=(25.89, 186.12, 0.00) fov=55
+fall minY=-7.17 q=5 stage=5 Aopen=True Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player_4 pos=(-3.30, -7.00, 1.19)
+  Player_3 pos=(-2.17, -7.00, 3.04)
+  Player_1 pos=(8.54, 0.00, -4.32)
+  Player_2 pos=(0.04, 0.72, 8.57)
+  camera=(8.53, 2.24, -0.44) rot=(26.68, 184.32, 0.00) fov=55
+fall minY=-7.17 q=5 stage=5 Aopen=True Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player_4 pos=(-3.30, -7.00, 1.19)
+  Player_3 pos=(-2.17, -7.00, 3.04)
+  Player_1 pos=(9.16, 0.00, -6.54)
+  Player_2 pos=(0.04, 0.72, 8.57)
+  camera=(6.79, 2.10, -3.62) rot=(24.47, 145.52, 0.00) fov=55
+fall minY=-7.17 q=5 stage=5 Aopen=True Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player_4 pos=(-3.30, -7.00, 1.19)
+  Player_3 pos=(-2.17, -7.00, 3.04)
+  Player_1 pos=(9.16, 1.49, -6.87)
+  Player_2 pos=(0.04, 0.72, 8.57)
+  camera=(5.69, 3.46, -6.10) rot=(24.07, 107.72, 0.00) fov=55
+fall minY=-7.17 q=5 stage=5 Aopen=True Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player_4 pos=(-3.30, -7.00, 1.19)
+  Player_3 pos=(-2.17, -7.00, 3.04)
+  Player_1 pos=(9.16, 0.00, -5.31)
+  Player_2 pos=(0.04, 0.72, 8.57)
+  camera=(6.36, 2.43, -7.89) rot=(28.70, 53.19, 0.00) fov=55
+fall minY=-7.17 q=5 stage=5 Aopen=True Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player_4 pos=(-3.30, -7.00, 1.19)
+  Player_3 pos=(-2.17, -7.00, 3.04)
+  Player_1 pos=(9.11, 1.39, -2.09)
+  Player_2 pos=(0.04, 0.72, 8.57)
+  camera=(6.73, 3.06, -5.32) rot=(18.37, 42.04, 0.00) fov=55
+transition q=5 stage=6 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player_4 pos=(-3.30, -7.00, 1.19)
+  Player_3 pos=(-2.17, -7.00, 3.04)
+  Player_1 pos=(9.16, 0.96, 0.70)
+  Player_2 pos=(0.04, 0.72, 8.57)
+  camera=(6.76, 3.00, -2.48) rot=(23.24, 42.68, 0.00) fov=55
+settled minY=-7.00 q=5 stage=6 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Player_4 pos=(1.60, 0.00, -4.32)
+  Player_3 pos=(0.00, 0.00, -4.32)
+  Player_1 pos=(7.80, 0.33, 5.96)
+  Player_2 pos=(0.04, 0.72, 8.57)
+  camera=(3.77, 1.71, 5.34) rot=(11.61, 87.07, 0.00) fov=55
+transition q=6 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(1.60, 0.00, -4.32)
+  Player_3 pos=(0.00, 0.00, -4.32)
+  Player_1 pos=(9.16, 1.53, 6.27)
+  Player_2 pos=(0.04, 0.72, 8.57)
+  camera=(5.11, 2.34, 5.85) rot=(6.06, 88.94, 0.00) fov=55
+settled minY=0.00 q=6 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(1.60, 0.00, -4.32)
+  Player_3 pos=(0.00, 0.00, -4.32)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-3.20, 0.00, -4.32)
+  camera=(-0.76, 2.62, 3.98) rot=(17.63, 15.01, 359.41) fov=54.67272
+transition q=6 stage=2 Aopen=False Bopen=False board=ауфа | А)  афуа | Б)  афуыаыу
+  Player_4 pos=(1.60, 0.00, -4.32)
+  Player_3 pos=(0.00, 0.00, -4.32)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-3.20, 0.00, -4.32)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+settled minY=0.00 q=6 stage=2 Aopen=False Bopen=False board=ауфа | А)  афуа | Б)  афуыаыу
+  Player_4 pos=(1.60, 0.00, -4.32)
+  Player_3 pos=(0.00, 0.00, -4.32)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-3.20, 0.00, -4.32)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+transition q=6 stage=3 Aopen=False Bopen=False board=ауфа | А)  афуа | Б)  афуыаыу
+  Player_4 pos=(1.60, 0.00, -4.32)
+  Player_3 pos=(0.00, 0.00, -4.32)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-3.20, 0.00, -4.32)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+settled minY=0.00 q=6 stage=3 Aopen=False Bopen=False board=ауфа | А)  афуа | Б)  афуыаыу
+  Player_4 pos=(2.69, 0.00, 1.44)
+  Player_3 pos=(1.83, 0.00, 1.24)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(1.16, 0.00, -0.41)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+frame-sample stage=3 n=471 meanMs=18.90
+transition q=6 stage=4 Aopen=False Bopen=False board=ауфа | А)  афуа | Б)  афуыаыу
+  Player_4 pos=(3.24, 0.00, 4.38)
+  Player_3 pos=(2.24, 0.00, 2.49)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(4.84, 0.00, 2.90)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=6 stage=4 Aopen=False Bopen=False board=ауфа | А)  афуа | Б)  афуыаыу
+  Player_4 pos=(-2.60, 0.00, 4.87)
+  Player_3 pos=(2.24, 0.00, 2.49)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(4.84, 0.00, 2.90)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=6 stage=5 Aopen=False Bopen=True board=ауфа | А)  афуа | Б)  афуыаыу
+  Player_4 pos=(-4.94, 0.00, 5.07)
+  Player_3 pos=(2.24, 0.00, 2.49)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(4.84, 0.00, 2.90)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=6 stage=5 Aopen=False Bopen=True board=ауфа | А)  афуа | Б)  афуыаыу
+  Player_4 pos=(-4.94, 0.00, 5.07)
+  Player_3 pos=(2.24, 0.00, 2.49)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(4.84, 0.00, 2.90)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-2.91 q=6 stage=5 Aopen=False Bopen=True board=ауфа | А)  афуа | Б)  афуыаыу
+  Player_4 pos=(-4.94, 0.00, 5.07)
+  Player_3 pos=(2.24, -2.86, 2.49)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(4.84, -2.91, 2.90)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.15 q=6 stage=5 Aopen=False Bopen=True board=ауфа | А)  афуа | Б)  афуыаыу
+  Player_4 pos=(-4.94, 0.00, 5.07)
+  Player_3 pos=(2.24, -7.00, 2.49)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(4.84, -7.00, 2.90)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=-7.15 q=6 stage=5 Aopen=False Bopen=True board=ауфа | А)  афуа | Б)  афуыаыу
+  Player_4 pos=(-4.94, 0.00, 5.07)
+  Player_3 pos=(2.24, -7.00, 2.49)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(4.84, -7.00, 2.90)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.15 q=6 stage=5 Aopen=False Bopen=True board=ауфа | А)  афуа | Б)  афуыаыу
+  Player_4 pos=(-4.94, 0.00, 5.07)
+  Player_3 pos=(2.24, -7.00, 2.49)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(4.84, -7.00, 2.90)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.15 q=6 stage=5 Aopen=False Bopen=True board=ауфа | А)  афуа | Б)  афуыаыу
+  Player_4 pos=(-4.94, 0.00, 5.07)
+  Player_3 pos=(2.24, -7.00, 2.49)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(4.84, -7.00, 2.90)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.15 q=6 stage=5 Aopen=False Bopen=True board=ауфа | А)  афуа | Б)  афуыаыу
+  Player_4 pos=(-4.94, 0.00, 5.07)
+  Player_3 pos=(2.24, -7.00, 2.49)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(4.84, -7.00, 2.90)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.15 q=6 stage=5 Aopen=False Bopen=True board=ауфа | А)  афуа | Б)  афуыаыу
+  Player_4 pos=(-4.94, 0.00, 5.07)
+  Player_3 pos=(2.24, -7.00, 2.49)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(4.84, -7.00, 2.90)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.15 q=6 stage=5 Aopen=False Bopen=True board=ауфа | А)  афуа | Б)  афуыаыу
+  Player_4 pos=(-4.94, 0.00, 5.07)
+  Player_3 pos=(2.24, -7.00, 2.49)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(4.84, -7.00, 2.90)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=6 stage=6 Aopen=False Bopen=False board=ауфа | А)  афуа | Б)  афуыаыу
+  Player_4 pos=(-4.94, 0.00, 5.07)
+  Player_3 pos=(2.24, -7.00, 2.49)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(4.84, -7.00, 2.90)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=-7.00 q=6 stage=6 Aopen=False Bopen=False board=ауфа | А)  афуа | Б)  афуыаыу
+  Player_4 pos=(-4.94, 0.00, 5.07)
+  Player_3 pos=(0.00, 0.00, -4.32)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=7 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(-4.94, 0.00, 5.07)
+  Player_3 pos=(0.00, 0.00, -4.32)
+  Player_1 pos=(0.00, 0.72, 8.64)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=7 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(-4.94, 0.00, 5.07)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-1.60, 0.00, -4.32)
+  Player_2 pos=(-1.60, 1.65, -4.32)
+  camera=(-0.81, 2.65, -4.33) rot=(70.95, 270.10, 341.73) fov=54.67508
+transition q=7 stage=2 Aopen=False Bopen=False board=Что раздражает больше — спойлеры или реклама? | А)  Спойлеры | Б)  Реклама
+  Player_4 pos=(-4.94, 0.00, 5.07)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-1.60, 0.00, -4.32)
+  Player_2 pos=(-1.60, 1.65, -4.32)
+  camera=(-1.60, 1.26, -0.31) rot=(12.32, 184.84, 0.00) fov=55
+settled minY=0.00 q=7 stage=2 Aopen=False Bopen=False board=Что раздражает больше — спойлеры или реклама? | А)  Спойлеры | Б)  Реклама
+  Player_4 pos=(-4.94, 0.00, 5.07)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-1.60, 0.00, -4.32)
+  Player_2 pos=(-1.60, 1.65, -4.32)
+  camera=(-1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+transition q=7 stage=3 Aopen=False Bopen=False board=Что раздражает больше — спойлеры или реклама? | А)  Спойлеры | Б)  Реклама
+  Player_4 pos=(-4.94, 0.00, 5.07)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-1.60, 0.00, -4.32)
+  Player_2 pos=(-1.60, 1.65, -4.32)
+  camera=(-1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+settled minY=0.00 q=7 stage=3 Aopen=False Bopen=False board=Что раздражает больше — спойлеры или реклама? | А)  Спойлеры | Б)  Реклама
+  Player_4 pos=(-2.14, 0.00, 2.51)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-1.60, 0.00, -4.33)
+  Player_2 pos=(-3.07, 0.00, 0.34)
+  camera=(-1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+frame-sample stage=3 n=557 meanMs=12.56
+transition q=7 stage=4 Aopen=False Bopen=False board=Что раздражает больше — спойлеры или реклама? | А)  Спойлеры | Б)  Реклама
+  Player_4 pos=(-2.14, 0.00, 2.51)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-1.60, 0.00, -4.33)
+  Player_2 pos=(-3.13, 0.00, 0.54)
+  camera=(-1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+settled minY=0.00 q=7 stage=4 Aopen=False Bopen=False board=Что раздражает больше — спойлеры или реклама? | А)  Спойлеры | Б)  Реклама
+  Player_4 pos=(-2.14, 0.00, 2.51)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-1.60, 0.00, -4.33)
+  Player_2 pos=(1.18, 0.00, 3.97)
+  camera=(-1.60, 1.26, -8.33) rot=(12.32, 4.84, 0.00) fov=55
+transition q=7 stage=5 Aopen=False Bopen=True board=Что раздражает больше — спойлеры или реклама? | А)  Спойлеры | Б)  Реклама
+  Player_4 pos=(-2.14, 0.00, 2.51)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-1.60, 0.00, -4.33)
+  Player_2 pos=(1.45, 0.00, 4.19)
+  camera=(-1.88, 1.67, -8.17) rot=(18.33, 9.04, 0.00) fov=55
+fall minY=0.00 q=7 stage=5 Aopen=False Bopen=True board=Что раздражает больше — спойлеры или реклама? | А)  Спойлеры | Б)  Реклама
+  Player_4 pos=(-2.14, 0.00, 2.51)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-1.60, 0.00, -4.33)
+  Player_2 pos=(1.45, 0.00, 4.19)
+  camera=(-1.88, 1.67, -8.17) rot=(18.33, 9.04, 0.00) fov=55
+fall minY=-3.97 q=7 stage=5 Aopen=False Bopen=True board=Что раздражает больше — спойлеры или реклама? | А)  Спойлеры | Б)  Реклама
+  Player_4 pos=(-2.14, 0.00, 2.51)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-1.60, 0.00, -4.33)
+  Player_2 pos=(1.45, -3.97, 4.19)
+  camera=(-1.88, 1.67, -8.17) rot=(18.33, 9.04, 0.00) fov=55
+fall minY=-7.17 q=7 stage=5 Aopen=False Bopen=True board=Что раздражает больше — спойлеры или реклама? | А)  Спойлеры | Б)  Реклама
+  Player_4 pos=(-2.14, 0.00, 2.51)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-1.60, 0.00, -4.33)
+  Player_2 pos=(1.45, -7.00, 4.19)
+  camera=(-1.88, 1.67, -8.17) rot=(18.33, 9.04, 0.00) fov=55
+settled minY=-7.17 q=7 stage=5 Aopen=False Bopen=True board=Что раздражает больше — спойлеры или реклама? | А)  Спойлеры | Б)  Реклама
+  Player_4 pos=(-2.14, 0.00, 2.51)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-1.60, 0.00, -4.33)
+  Player_2 pos=(1.45, -7.00, 4.19)
+  camera=(-1.88, 1.67, -8.17) rot=(18.33, 9.04, 0.00) fov=55
+fall minY=-7.17 q=7 stage=5 Aopen=False Bopen=True board=Что раздражает больше — спойлеры или реклама? | А)  Спойлеры | Б)  Реклама
+  Player_4 pos=(-2.14, 0.00, 2.51)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-1.60, 0.00, -4.33)
+  Player_2 pos=(1.45, -7.00, 4.19)
+  camera=(-1.56, 1.96, -8.04) rot=(22.97, 4.32, 0.00) fov=55
+fall minY=-7.17 q=7 stage=5 Aopen=False Bopen=True board=Что раздражает больше — спойлеры или реклама? | А)  Спойлеры | Б)  Реклама
+  Player_4 pos=(-2.14, 0.00, 2.51)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-1.60, 0.00, -4.33)
+  Player_2 pos=(1.45, -7.00, 4.19)
+  camera=(-1.56, 1.96, -8.04) rot=(22.97, 4.32, 0.00) fov=55
+fall minY=-7.17 q=7 stage=5 Aopen=False Bopen=True board=Что раздражает больше — спойлеры или реклама? | А)  Спойлеры | Б)  Реклама
+  Player_4 pos=(-2.14, 0.00, 2.51)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-1.57, 0.00, -3.96)
+  Player_2 pos=(1.45, -7.00, 4.19)
+  camera=(-1.55, 1.96, -7.85) rot=(22.37, 4.46, 0.00) fov=55
+fall minY=-7.17 q=7 stage=5 Aopen=False Bopen=True board=Что раздражает больше — спойлеры или реклама? | А)  Спойлеры | Б)  Реклама
+  Player_4 pos=(-2.14, 0.00, 2.51)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-1.38, 0.00, -2.41)
+  Player_2 pos=(1.45, -7.00, 4.19)
+  camera=(-1.40, 1.96, -6.13) rot=(22.85, 4.59, 0.00) fov=55
+fall minY=-7.17 q=7 stage=5 Aopen=False Bopen=True board=Что раздражает больше — спойлеры или реклама? | А)  Спойлеры | Б)  Реклама
+  Player_4 pos=(-2.14, 0.00, 2.51)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-2.84, 0.00, -2.35)
+  Player_2 pos=(1.45, -7.00, 4.19)
+  camera=(-2.60, 1.96, -6.07) rot=(22.88, 1.04, 0.00) fov=55
+transition q=7 stage=6 Aopen=False Bopen=False board=Что раздражает больше — спойлеры или реклама? | А)  Спойлеры | Б)  Реклама
+  Player_4 pos=(-2.14, 0.00, 2.51)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-3.13, 0.00, -4.27)
+  Player_2 pos=(1.45, -7.00, 4.19)
+  camera=(-3.06, 1.96, -7.54) rot=(24.83, 3.92, 0.00) fov=55
+settled minY=-7.00 q=7 stage=6 Aopen=False Bopen=False board=Что раздражает больше — спойлеры или реклама? | А)  Спойлеры | Б)  Реклама
+  Player_4 pos=(-2.14, 0.00, 2.51)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-1.73, 0.00, -4.75)
+  Player_2 pos=(-1.52, 0.00, -4.07)
+  camera=(-1.71, 1.96, -8.56) rot=(22.60, 4.78, 0.00) fov=55
+transition q=8 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(-2.14, 0.00, 2.51)
+  Player_3 pos=(0.00, 0.72, 8.64)
+  Player_1 pos=(-1.62, 0.00, 0.19)
+  Player_2 pos=(-1.34, 0.00, -3.61)
+  camera=(-1.62, 1.99, -3.85) rot=(21.99, 4.72, 0.00) fov=55
+settled minY=0.00 q=8 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(0.00, 0.00, -4.32)
+  Player_1 pos=(-0.79, 0.00, 4.24)
+  Player_2 pos=(-1.34, 0.00, -3.61)
+  camera=(-0.83, 2.01, 0.69) rot=(24.43, 5.60, 0.00) fov=55
+transition q=8 stage=2 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(0.23, 0.00, -5.07)
+  Player_1 pos=(-5.85, 0.00, 7.16)
+  Player_2 pos=(-1.34, 0.00, -3.61)
+  camera=(-5.47, 1.34, 3.55) rot=(14.60, 358.80, 0.00) fov=55
+settled minY=0.00 q=8 stage=2 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(0.23, 0.00, -5.07)
+  Player_1 pos=(-6.95, 0.00, 6.63)
+  Player_2 pos=(-1.34, 0.00, -3.61)
+  camera=(-8.12, 1.43, 8.42) rot=(24.45, 149.79, 0.00) fov=55
+transition q=8 stage=3 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(0.23, 0.00, -5.07)
+  Player_1 pos=(-2.26, 1.20, -2.68)
+  Player_2 pos=(-1.34, 0.00, -3.61)
+  camera=(-6.02, 2.67, -3.88) rot=(14.18, 76.11, 0.00) fov=55
+settled minY=0.00 q=8 stage=3 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-2.47, 0.00, 0.05)
+  Player_1 pos=(-2.97, 0.00, -5.24)
+  Player_2 pos=(-2.95, 0.00, 1.82)
+  camera=(-4.41, 1.27, -8.93) rot=(12.67, 26.00, 0.00) fov=55
+frame-sample stage=3 n=923 meanMs=7.82
+transition q=8 stage=4 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.26, 0.00, 3.60)
+  Player_1 pos=(0.78, 1.03, -2.88)
+  Player_2 pos=(-3.57, 0.00, 3.89)
+  camera=(0.49, 2.47, -7.02) rot=(13.42, 8.47, 0.00) fov=55
+settled minY=0.00 q=8 stage=4 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.26, 0.00, 3.60)
+  Player_1 pos=(0.87, 0.00, -3.31)
+  Player_2 pos=(-3.57, 0.00, 3.89)
+  camera=(0.94, 1.21, -7.33) rot=(11.59, 4.42, 0.00) fov=55
+transition q=8 stage=5 Aopen=True Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.26, 0.00, 3.60)
+  Player_1 pos=(1.23, 0.00, -2.62)
+  Player_2 pos=(-3.57, 0.00, 3.89)
+  camera=(1.17, 1.21, -6.64) rot=(11.51, 5.80, 0.00) fov=55
+fall minY=0.00 q=8 stage=5 Aopen=True Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.26, 0.00, 3.60)
+  Player_1 pos=(1.23, 0.00, -2.62)
+  Player_2 pos=(-3.57, 0.00, 3.89)
+  camera=(1.17, 1.21, -6.64) rot=(11.51, 5.80, 0.00) fov=55
+fall minY=-3.82 q=8 stage=5 Aopen=True Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.26, -3.52, 3.60)
+  Player_1 pos=(1.23, 0.00, -2.62)
+  Player_2 pos=(-3.57, -3.82, 3.89)
+  camera=(1.17, 1.21, -6.64) rot=(11.51, 5.80, 0.00) fov=55
+fall minY=-7.28 q=8 stage=5 Aopen=True Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.26, -7.00, 3.60)
+  Player_1 pos=(1.23, 0.00, -2.62)
+  Player_2 pos=(-3.57, -7.00, 3.89)
+  camera=(1.17, 1.21, -6.64) rot=(11.51, 5.80, 0.00) fov=55
+settled minY=-7.28 q=8 stage=5 Aopen=True Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.26, -7.00, 3.60)
+  Player_1 pos=(1.23, 0.00, -2.62)
+  Player_2 pos=(-3.57, -7.00, 3.89)
+  camera=(1.17, 1.21, -6.64) rot=(11.51, 5.80, 0.00) fov=55
+fall minY=-7.28 q=8 stage=5 Aopen=True Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.26, -7.00, 3.60)
+  Player_1 pos=(1.23, 0.00, -2.62)
+  Player_2 pos=(-3.57, -7.00, 3.89)
+  camera=(1.17, 1.21, -6.64) rot=(11.51, 5.80, 0.00) fov=55
+fall minY=-7.28 q=8 stage=5 Aopen=True Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.26, -7.00, 3.60)
+  Player_1 pos=(1.23, 0.00, -2.62)
+  Player_2 pos=(-3.57, -7.00, 3.89)
+  camera=(1.17, 1.21, -6.64) rot=(11.51, 5.80, 0.00) fov=55
+fall minY=-7.28 q=8 stage=5 Aopen=True Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.26, -7.00, 3.60)
+  Player_1 pos=(1.23, 0.00, -2.62)
+  Player_2 pos=(-3.57, -7.00, 3.89)
+  camera=(1.17, 1.21, -6.64) rot=(11.51, 5.80, 0.00) fov=55
+fall minY=-7.28 q=8 stage=5 Aopen=True Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.26, -7.00, 3.60)
+  Player_1 pos=(1.23, 0.00, -2.62)
+  Player_2 pos=(-3.57, -7.00, 3.89)
+  camera=(1.17, 1.21, -6.64) rot=(11.51, 5.80, 0.00) fov=55
+fall minY=-7.28 q=8 stage=5 Aopen=True Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.26, -7.00, 3.60)
+  Player_1 pos=(1.23, 0.00, -2.62)
+  Player_2 pos=(-3.57, -7.00, 3.89)
+  camera=(1.17, 1.21, -6.64) rot=(11.51, 5.80, 0.00) fov=55
+transition q=8 stage=6 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(-4.26, -7.00, 3.60)
+  Player_1 pos=(1.23, 0.00, -2.62)
+  Player_2 pos=(-3.57, -7.00, 3.89)
+  camera=(1.17, 1.21, -6.64) rot=(11.51, 5.80, 0.00) fov=55
+settled minY=-7.00 q=8 stage=6 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(0.00, 0.00, -4.32)
+  Player_1 pos=(1.23, 0.00, -2.62)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  camera=(1.17, 1.21, -6.64) rot=(11.51, 5.80, 0.00) fov=55
+transition q=8 stage=0 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(0.00, 0.00, -4.32)
+  Player_1 pos=(1.23, 0.00, -2.62)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  camera=(1.17, 1.21, -6.64) rot=(11.51, 5.80, 0.00) fov=55
+RESULTS q=8 stage=0 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Player_4 pos=(0.00, 0.72, 8.64)
+  Player_3 pos=(0.00, 0.00, -4.32)
+  Player_1 pos=(1.23, 0.00, -2.62)
+  Player_2 pos=(-1.60, 0.00, -4.32)
+  camera=(1.17, 1.21, -6.64) rot=(11.51, 5.80, 0.00) fov=55

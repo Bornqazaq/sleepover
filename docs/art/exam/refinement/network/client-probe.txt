@@ -1,0 +1,670 @@
+Exam original hall observation
+transition q=0 stage=0 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  camera=(0.00, 2.63, -6.00) rot=(0.00, 0.00, 0.00) fov=55
+transition q=1 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Shlanga(Clone) pos=(-3.09, 0.00, -6.15)
+  Boss(Clone) pos=(0.45, 0.00, -6.12)
+  camera=(0.45, 1.37, -9.60) rot=(15.95, 5.29, 0.00) fov=55
+settled minY=0.00 q=1 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Shlanga(Clone) pos=(0.01, 0.72, 8.64)
+  Boss(Clone) pos=(0.45, 0.00, -6.12)
+  camera=(0.45, 1.37, -9.60) rot=(15.94, 5.29, 0.00) fov=55
+transition q=1 stage=2 Aopen=False Bopen=False board=ввфц | А)  вцф | Б)  вцфвцф
+  Shlanga(Clone) pos=(0.03, 0.72, 8.63)
+  Boss(Clone) pos=(0.45, 0.00, -6.12)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=1 stage=2 Aopen=False Bopen=False board=ввфц | А)  вцф | Б)  вцфвцф
+  Shlanga(Clone) pos=(0.00, 0.72, 8.64)
+  Boss(Clone) pos=(0.45, 0.00, -6.12)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=1 stage=3 Aopen=False Bopen=False board=ввфц | А)  вцф | Б)  вцфвцф
+  Shlanga(Clone) pos=(0.03, 0.72, 8.63)
+  Boss(Clone) pos=(0.45, 0.00, -6.12)
+  camera=(0.45, 1.37, -9.60) rot=(15.95, 5.29, 0.00) fov=55
+settled minY=0.00 q=1 stage=3 Aopen=False Bopen=False board=ввфц | А)  вцф | Б)  вцфвцф
+  Shlanga(Clone) pos=(0.00, 0.72, 8.64)
+  Boss(Clone) pos=(2.04, 0.00, -0.47)
+  camera=(1.94, 1.26, -4.82) rot=(11.44, 6.38, 0.00) fov=55
+frame-sample stage=3 n=466 meanMs=15.04
+transition q=1 stage=4 Aopen=False Bopen=False board=ввфц | А)  вцф | Б)  вцфвцф
+  Shlanga(Clone) pos=(0.02, 0.72, 8.63)
+  Boss(Clone) pos=(2.64, 0.00, 1.66)
+  camera=(2.64, 1.26, -2.35) rot=(12.32, 5.30, 0.00) fov=55
+settled minY=0.00 q=1 stage=4 Aopen=False Bopen=False board=ввфц | А)  вцф | Б)  вцфвцф
+  Shlanga(Clone) pos=(0.02, 0.72, 8.63)
+  Boss(Clone) pos=(-1.42, 0.00, 4.02)
+  camera=(-1.35, 1.26, -0.02) rot=(12.17, 4.12, 0.00) fov=55
+transition q=1 stage=5 Aopen=False Bopen=True board=ввфц | А)  вцф | Б)  вцфвцф
+  Shlanga(Clone) pos=(0.19, 0.72, 8.57)
+  Boss(Clone) pos=(-1.42, 0.00, 4.02)
+  camera=(-1.42, 1.26, 0.02) rot=(12.32, 5.29, 0.00) fov=55
+mechanism q=1 elapsed=0.187 core=63.0 visual=104.3 papers=18 steam=32
+fall minY=0.00 q=1 stage=5 Aopen=False Bopen=True board=ввфц | А)  вцф | Б)  вцфвцф
+  Shlanga(Clone) pos=(0.19, 0.72, 8.57)
+  Boss(Clone) pos=(-1.42, 0.00, 4.02)
+  camera=(-1.42, 1.26, 0.02) rot=(12.32, 5.29, 0.00) fov=55
+mechanism q=1 elapsed=0.338 core=65.0 visual=106.3 papers=18 steam=32
+mechanism q=1 elapsed=0.422 core=98.0 visual=111.4 papers=18 steam=32
+mechanism q=1 elapsed=0.510 core=110.0 visual=110.0 papers=18 steam=32
+mechanism q=1 elapsed=0.608 core=110.0 visual=110.0 papers=18 steam=32
+fall minY=0.00 q=1 stage=5 Aopen=False Bopen=True board=ввфц | А)  вцф | Б)  вцфвцф
+  Shlanga(Clone) pos=(0.53, 0.72, 8.45)
+  Boss(Clone) pos=(-1.42, 0.00, 4.02)
+  camera=(-1.42, 1.26, 0.02) rot=(12.32, 5.29, 0.00) fov=55
+settled minY=0.00 q=1 stage=5 Aopen=False Bopen=True board=ввфц | А)  вцф | Б)  вцфвцф
+  Shlanga(Clone) pos=(0.01, 0.72, 8.64)
+  Boss(Clone) pos=(-1.42, 0.00, 4.02)
+  camera=(-1.42, 1.26, 0.02) rot=(12.32, 5.29, 0.00) fov=55
+fall minY=0.00 q=1 stage=5 Aopen=False Bopen=True board=ввфц | А)  вцф | Б)  вцфвцф
+  Shlanga(Clone) pos=(0.02, 0.72, 8.64)
+  Boss(Clone) pos=(-1.42, 0.00, 4.02)
+  camera=(-1.42, 1.26, 0.02) rot=(12.32, 5.29, 0.00) fov=55
+fall minY=0.00 q=1 stage=5 Aopen=False Bopen=True board=ввфц | А)  вцф | Б)  вцфвцф
+  Shlanga(Clone) pos=(0.01, 0.72, 8.64)
+  Boss(Clone) pos=(-1.42, 0.00, 4.02)
+  camera=(-1.42, 1.26, 0.02) rot=(12.32, 5.29, 0.00) fov=55
+fall minY=0.00 q=1 stage=5 Aopen=False Bopen=True board=ввфц | А)  вцф | Б)  вцфвцф
+  Shlanga(Clone) pos=(0.00, 0.72, 8.64)
+  Boss(Clone) pos=(-1.42, 0.00, 4.02)
+  camera=(-1.42, 1.26, 0.02) rot=(12.32, 5.29, 0.00) fov=55
+fall minY=0.00 q=1 stage=5 Aopen=False Bopen=True board=ввфц | А)  вцф | Б)  вцфвцф
+  Shlanga(Clone) pos=(0.02, 0.72, 8.64)
+  Boss(Clone) pos=(-1.42, 0.00, 4.02)
+  camera=(-1.42, 1.26, 0.02) rot=(12.32, 5.29, 0.00) fov=55
+fall minY=0.00 q=1 stage=5 Aopen=False Bopen=True board=ввфц | А)  вцф | Б)  вцфвцф
+  Shlanga(Clone) pos=(0.15, 0.72, 8.64)
+  Boss(Clone) pos=(-1.42, 0.00, 4.02)
+  camera=(-1.42, 1.26, 0.02) rot=(12.32, 5.29, 0.00) fov=55
+transition q=1 stage=6 Aopen=False Bopen=False board=ввфц | А)  вцф | Б)  вцфвцф
+  Shlanga(Clone) pos=(0.04, 0.72, 8.64)
+  Boss(Clone) pos=(-1.42, 0.00, 4.02)
+  camera=(-1.42, 1.26, 0.02) rot=(12.32, 5.29, 0.00) fov=55
+settled minY=0.00 q=1 stage=6 Aopen=False Bopen=False board=ввфц | А)  вцф | Б)  вцфвцф
+  Shlanga(Clone) pos=(0.03, 0.72, 8.64)
+  Boss(Clone) pos=(-1.42, 0.00, 4.02)
+  camera=(-1.42, 1.26, 0.02) rot=(12.32, 5.29, 0.00) fov=55
+transition q=2 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Shlanga(Clone) pos=(0.23, 0.72, 8.64)
+  Boss(Clone) pos=(-0.20, 0.72, 8.64)
+  camera=(-0.26, 2.58, 7.38) rot=(53.94, 8.52, 0.00) fov=54.99988
+settled minY=0.00 q=2 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Shlanga(Clone) pos=(-1.60, 0.00, -4.32)
+  Boss(Clone) pos=(-0.28, 0.72, 8.64)
+  camera=(1.21, 3.07, 3.48) rot=(20.33, 349.11, 359.97) fov=54.23043
+transition q=2 stage=2 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(-1.60, 0.00, -4.32)
+  Boss(Clone) pos=(-0.28, 0.72, 8.64)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+settled minY=0.00 q=2 stage=2 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(-1.60, 0.00, -4.32)
+  Boss(Clone) pos=(-0.28, 0.72, 8.64)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+transition q=2 stage=3 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(-1.60, 0.00, -4.32)
+  Boss(Clone) pos=(-0.28, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=2 stage=3 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(-3.62, 0.00, -0.01)
+  Boss(Clone) pos=(-0.28, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+frame-sample stage=3 n=366 meanMs=20.28
+transition q=2 stage=4 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(-4.04, 0.00, 0.86)
+  Boss(Clone) pos=(-0.28, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=2 stage=4 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(-4.03, 0.00, 0.86)
+  Boss(Clone) pos=(-0.28, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=2 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(-4.04, 0.00, 0.86)
+  Boss(Clone) pos=(-0.28, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=2 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(-4.04, 0.00, 0.86)
+  Boss(Clone) pos=(-0.28, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+mechanism q=2 elapsed=0.106 core=36.0 visual=55.2 papers=18 steam=32
+mechanism q=2 elapsed=0.200 core=37.6 visual=59.4 papers=18 steam=32
+mechanism q=2 elapsed=0.303 core=58.1 visual=98.6 papers=18 steam=32
+mechanism q=2 elapsed=0.403 core=80.5 visual=113.5 papers=18 steam=32
+fall minY=-0.61 q=2 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(-3.97, -0.61, 1.22)
+  Boss(Clone) pos=(-0.28, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+mechanism q=2 elapsed=0.501 core=110.0 visual=110.0 papers=18 steam=32
+fall minY=-0.61 q=2 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(-4.04, 0.00, 0.86)
+  Boss(Clone) pos=(-0.28, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=-0.61 q=2 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(-4.04, 0.00, 0.86)
+  Boss(Clone) pos=(-0.28, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-0.61 q=2 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(-4.04, 0.00, 0.86)
+  Boss(Clone) pos=(-0.28, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-0.61 q=2 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(-4.03, -0.38, 1.15)
+  Boss(Clone) pos=(-0.28, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-0.71 q=2 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(-4.04, -0.42, 1.05)
+  Boss(Clone) pos=(-0.28, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-0.81 q=2 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(-4.04, 0.00, 0.86)
+  Boss(Clone) pos=(-0.28, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-0.94 q=2 stage=5 Aopen=True Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(-4.04, -0.51, 0.98)
+  Boss(Clone) pos=(-0.28, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=2 stage=6 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(-4.04, 0.00, 0.86)
+  Boss(Clone) pos=(-0.28, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=2 stage=6 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(-4.04, 0.00, 0.90)
+  Boss(Clone) pos=(-0.28, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=3 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Shlanga(Clone) pos=(0.00, 0.72, 8.64)
+  Boss(Clone) pos=(0.00, 0.00, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(41.78, 0.06, 0.01) fov=40.14896
+settled minY=0.00 q=3 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Shlanga(Clone) pos=(0.35, 0.72, 8.64)
+  Boss(Clone) pos=(0.00, 0.00, -4.32)
+  camera=(0.00, 2.63, -8.40) rot=(28.21, 5.35, 0.61) fov=54.68492
+transition q=3 stage=2 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(0.35, 0.72, 8.64)
+  Boss(Clone) pos=(0.00, 0.00, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=3 stage=2 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(0.35, 0.72, 8.64)
+  Boss(Clone) pos=(0.00, 0.00, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=3 stage=3 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(0.35, 0.72, 8.64)
+  Boss(Clone) pos=(0.00, 0.00, -4.32)
+  camera=(0.00, 1.26, -8.33) rot=(12.32, 5.29, 0.00) fov=55
+settled minY=0.00 q=3 stage=3 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(0.35, 0.72, 8.64)
+  Boss(Clone) pos=(-2.07, 0.00, 1.06)
+  camera=(-1.97, 1.28, -3.19) rot=(11.63, 4.08, 0.00) fov=55
+frame-sample stage=3 n=412 meanMs=16.95
+transition q=3 stage=4 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(0.35, 0.72, 8.64)
+  Boss(Clone) pos=(-2.22, 0.00, 1.45)
+  camera=(-2.22, 1.26, -2.56) rot=(12.32, 5.28, 0.00) fov=55
+settled minY=0.00 q=3 stage=4 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(0.35, 0.72, 8.64)
+  Boss(Clone) pos=(-2.22, 0.00, 1.45)
+  camera=(-2.22, 1.26, -2.56) rot=(12.32, 5.28, 0.00) fov=55
+transition q=3 stage=5 Aopen=False Bopen=True board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(0.40, 0.72, 8.61)
+  Boss(Clone) pos=(-2.22, 0.00, 1.45)
+  camera=(-2.22, 1.26, -2.56) rot=(12.32, 5.28, 0.00) fov=55
+fall minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(0.40, 0.72, 8.61)
+  Boss(Clone) pos=(-2.22, 0.00, 1.45)
+  camera=(-2.22, 1.26, -2.56) rot=(12.32, 5.28, 0.00) fov=55
+mechanism q=3 elapsed=0.105 core=36.9 visual=57.6 papers=18 steam=32
+mechanism q=3 elapsed=0.204 core=58.1 visual=98.7 papers=18 steam=32
+mechanism q=3 elapsed=0.301 core=79.3 visual=113.4 papers=18 steam=32
+mechanism q=3 elapsed=0.405 core=102.1 visual=110.7 papers=18 steam=32
+mechanism q=3 elapsed=0.502 core=110.0 visual=110.0 papers=18 steam=32
+fall minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(0.35, 0.72, 8.64)
+  Boss(Clone) pos=(-2.22, 0.00, 1.45)
+  camera=(-2.22, 1.26, -2.56) rot=(12.32, 5.28, 0.00) fov=55
+fall minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(0.35, 0.72, 8.64)
+  Boss(Clone) pos=(-2.22, 0.00, 1.45)
+  camera=(-2.22, 1.26, -2.56) rot=(12.32, 5.28, 0.00) fov=55
+settled minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(0.35, 0.72, 8.64)
+  Boss(Clone) pos=(-2.22, 0.00, 1.45)
+  camera=(-2.22, 1.26, -2.56) rot=(12.32, 5.28, 0.00) fov=55
+fall minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(0.35, 0.72, 8.64)
+  Boss(Clone) pos=(-2.22, 0.00, 1.45)
+  camera=(-2.22, 1.26, -2.56) rot=(12.32, 5.28, 0.00) fov=55
+fall minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(0.35, 0.72, 8.64)
+  Boss(Clone) pos=(-2.22, 0.00, 1.45)
+  camera=(-2.22, 1.26, -2.56) rot=(12.32, 5.28, 0.00) fov=55
+fall minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(0.35, 0.72, 8.64)
+  Boss(Clone) pos=(-2.22, 0.00, 1.45)
+  camera=(-2.22, 1.26, -2.56) rot=(12.32, 5.28, 0.00) fov=55
+fall minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(0.35, 0.72, 8.64)
+  Boss(Clone) pos=(-2.22, 0.00, 1.45)
+  camera=(-2.22, 1.26, -2.56) rot=(12.32, 5.28, 0.00) fov=55
+fall minY=0.00 q=3 stage=5 Aopen=False Bopen=True board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(0.35, 0.72, 8.64)
+  Boss(Clone) pos=(-2.22, 0.00, 1.45)
+  camera=(-2.22, 1.26, -2.56) rot=(12.32, 5.28, 0.00) fov=55
+transition q=3 stage=6 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(0.35, 0.72, 8.64)
+  Boss(Clone) pos=(-2.22, 0.00, 1.45)
+  camera=(-2.22, 1.26, -2.56) rot=(12.32, 5.28, 0.00) fov=55
+settled minY=0.00 q=3 stage=6 Aopen=False Bopen=False board=Пельмени со сметаной или с майонезом? | А)  Сметана | Б)  Майонез
+  Shlanga(Clone) pos=(0.35, 0.72, 8.64)
+  Boss(Clone) pos=(-2.22, 0.00, 1.45)
+  camera=(-2.22, 1.26, -2.56) rot=(12.32, 5.28, 0.00) fov=55
+transition q=4 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Shlanga(Clone) pos=(0.54, 0.72, 8.63)
+  Boss(Clone) pos=(-0.18, 0.72, 8.64)
+  camera=(-0.22, 2.74, 8.14) rot=(74.74, 10.77, 0.00) fov=54.99964
+settled minY=0.00 q=4 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Shlanga(Clone) pos=(0.57, 0.72, 8.60)
+  Boss(Clone) pos=(-0.18, 0.72, 8.64)
+  camera=(1.27, 3.07, 3.46) rot=(20.32, 349.64, 359.96) fov=54.22373
+transition q=4 stage=2 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(1.60, 0.00, -4.32)
+  Boss(Clone) pos=(-0.18, 0.72, 8.64)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+settled minY=0.00 q=4 stage=2 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(1.60, 0.00, -4.32)
+  Boss(Clone) pos=(-0.18, 0.72, 8.64)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+transition q=4 stage=3 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(1.60, 0.00, -4.32)
+  Boss(Clone) pos=(-0.18, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=4 stage=3 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(0.87, 0.00, -2.72)
+  Boss(Clone) pos=(-0.18, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+frame-sample stage=3 n=564 meanMs=12.25
+transition q=4 stage=4 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(-2.36, 0.00, 4.32)
+  Boss(Clone) pos=(-0.18, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=4 stage=4 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(-2.36, 0.00, 4.32)
+  Boss(Clone) pos=(-0.18, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=4 stage=5 Aopen=True Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(-2.36, 0.00, 4.32)
+  Boss(Clone) pos=(-0.18, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=4 stage=5 Aopen=True Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(-2.36, 0.00, 4.32)
+  Boss(Clone) pos=(-0.18, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-2.06 q=4 stage=5 Aopen=True Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(-2.36, -2.06, 4.32)
+  Boss(Clone) pos=(-0.18, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-6.96 q=4 stage=5 Aopen=True Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(-2.36, -6.96, 4.32)
+  Boss(Clone) pos=(-0.18, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=-7.04 q=4 stage=5 Aopen=True Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(-2.36, -7.02, 4.32)
+  Boss(Clone) pos=(-0.18, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.16 q=4 stage=5 Aopen=True Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(-2.36, -7.00, 4.32)
+  Boss(Clone) pos=(-0.18, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.16 q=4 stage=5 Aopen=True Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(-2.36, -7.00, 4.32)
+  Boss(Clone) pos=(-0.18, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.16 q=4 stage=5 Aopen=True Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(-2.36, -7.00, 4.32)
+  Boss(Clone) pos=(-0.18, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.16 q=4 stage=5 Aopen=True Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(-2.36, -7.00, 4.32)
+  Boss(Clone) pos=(-0.18, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=-7.16 q=4 stage=5 Aopen=True Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(-2.36, -7.00, 4.32)
+  Boss(Clone) pos=(-0.18, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=4 stage=6 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(-3.20, 0.10, -4.32)
+  Boss(Clone) pos=(-0.18, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=-0.02 q=4 stage=6 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(-3.20, 0.00, -4.32)
+  Boss(Clone) pos=(-0.18, 0.72, 8.64)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=5 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Shlanga(Clone) pos=(0.00, 0.72, 8.64)
+  Boss(Clone) pos=(3.20, 0.00, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(35.53, 36.98, 8.28) fov=40.08151
+settled minY=0.00 q=5 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Shlanga(Clone) pos=(0.27, 0.72, 8.63)
+  Boss(Clone) pos=(3.20, 0.00, -4.32)
+  camera=(1.63, 2.65, -8.40) rot=(26.62, 25.89, 2.87) fov=54.67593
+transition q=5 stage=2 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Shlanga(Clone) pos=(0.27, 0.72, 8.63)
+  Boss(Clone) pos=(3.20, 0.00, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=5 stage=2 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Shlanga(Clone) pos=(0.27, 0.72, 8.63)
+  Boss(Clone) pos=(3.20, 0.00, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=5 stage=3 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Shlanga(Clone) pos=(0.27, 0.72, 8.63)
+  Boss(Clone) pos=(3.20, 0.00, -4.32)
+  camera=(3.20, 1.26, -8.33) rot=(12.32, 5.29, 0.00) fov=55
+settled minY=0.00 q=5 stage=3 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Shlanga(Clone) pos=(0.27, 0.72, 8.63)
+  Boss(Clone) pos=(-0.62, 0.00, 0.09)
+  camera=(-0.36, 1.26, -4.22) rot=(11.59, 2.54, 0.00) fov=55
+frame-sample stage=3 n=543 meanMs=12.92
+transition q=5 stage=4 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Shlanga(Clone) pos=(0.27, 0.72, 8.63)
+  Boss(Clone) pos=(-3.19, 0.00, 3.06)
+  camera=(-3.19, 1.26, -0.95) rot=(12.32, 5.28, 0.00) fov=55
+settled minY=0.00 q=5 stage=4 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Shlanga(Clone) pos=(0.27, 0.72, 8.63)
+  Boss(Clone) pos=(2.51, 0.00, 2.79)
+  camera=(2.12, 1.26, -1.20) rot=(12.35, 9.57, 0.00) fov=55
+transition q=5 stage=5 Aopen=True Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Shlanga(Clone) pos=(0.27, 0.72, 8.63)
+  Boss(Clone) pos=(5.12, 0.00, 2.67)
+  camera=(5.12, 1.26, -1.33) rot=(12.32, 5.30, 0.00) fov=55
+fall minY=0.00 q=5 stage=5 Aopen=True Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Shlanga(Clone) pos=(0.27, 0.72, 8.63)
+  Boss(Clone) pos=(5.12, 0.00, 2.67)
+  camera=(5.12, 1.26, -1.33) rot=(12.32, 5.30, 0.00) fov=55
+fall minY=0.00 q=5 stage=5 Aopen=True Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Shlanga(Clone) pos=(0.27, 0.72, 8.63)
+  Boss(Clone) pos=(5.12, 0.00, 2.67)
+  camera=(5.12, 1.26, -1.33) rot=(12.32, 5.30, 0.00) fov=55
+fall minY=0.00 q=5 stage=5 Aopen=True Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Shlanga(Clone) pos=(0.27, 0.72, 8.63)
+  Boss(Clone) pos=(5.12, 0.00, 2.67)
+  camera=(5.12, 1.26, -1.33) rot=(12.32, 5.30, 0.00) fov=55
+settled minY=0.00 q=5 stage=5 Aopen=True Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Shlanga(Clone) pos=(0.27, 0.72, 8.63)
+  Boss(Clone) pos=(5.12, 0.00, 2.67)
+  camera=(5.12, 1.26, -1.33) rot=(12.32, 5.30, 0.00) fov=55
+fall minY=0.00 q=5 stage=5 Aopen=True Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Shlanga(Clone) pos=(0.27, 0.72, 8.63)
+  Boss(Clone) pos=(5.12, 0.00, 2.67)
+  camera=(5.12, 1.26, -1.33) rot=(12.32, 5.30, 0.00) fov=55
+fall minY=0.00 q=5 stage=5 Aopen=True Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Shlanga(Clone) pos=(0.27, 0.72, 8.63)
+  Boss(Clone) pos=(5.12, 0.00, 2.67)
+  camera=(5.12, 1.26, -1.33) rot=(12.32, 5.30, 0.00) fov=55
+fall minY=0.00 q=5 stage=5 Aopen=True Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Shlanga(Clone) pos=(0.27, 0.72, 8.63)
+  Boss(Clone) pos=(5.12, 0.00, 2.67)
+  camera=(5.12, 1.26, -1.33) rot=(12.32, 5.30, 0.00) fov=55
+fall minY=0.00 q=5 stage=5 Aopen=True Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Shlanga(Clone) pos=(0.27, 0.72, 8.63)
+  Boss(Clone) pos=(5.12, 0.00, 2.67)
+  camera=(5.12, 1.26, -1.33) rot=(12.32, 5.30, 0.00) fov=55
+fall minY=0.00 q=5 stage=5 Aopen=True Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Shlanga(Clone) pos=(0.27, 0.72, 8.63)
+  Boss(Clone) pos=(5.12, 0.00, 2.67)
+  camera=(5.12, 1.26, -1.33) rot=(12.32, 5.30, 0.00) fov=55
+transition q=5 stage=6 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Shlanga(Clone) pos=(0.27, 0.72, 8.63)
+  Boss(Clone) pos=(5.12, 0.00, 2.67)
+  camera=(5.12, 1.26, -1.33) rot=(12.32, 5.30, 0.00) fov=55
+settled minY=0.00 q=5 stage=6 Aopen=False Bopen=False board=Кто из нас первым женится? | А)  Точно не я | Б)  Сто процентов я
+  Shlanga(Clone) pos=(0.27, 0.72, 8.63)
+  Boss(Clone) pos=(5.12, 0.00, 2.67)
+  camera=(5.12, 1.26, -1.33) rot=(12.32, 5.30, 0.00) fov=55
+transition q=6 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Shlanga(Clone) pos=(-3.20, 0.10, -4.32)
+  Boss(Clone) pos=(-0.26, 0.72, 8.65)
+  camera=(0.02, 2.66, 7.78) rot=(28.92, 357.92, 0.00) fov=54.9999
+settled minY=0.00 q=6 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Shlanga(Clone) pos=(-3.20, 0.00, -4.32)
+  Boss(Clone) pos=(-0.26, 0.72, 8.65)
+  camera=(1.19, 3.06, 3.57) rot=(3.52, 349.14, 359.97) fov=53.68623
+transition q=6 stage=2 Aopen=False Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Shlanga(Clone) pos=(-3.20, 0.00, -4.32)
+  Boss(Clone) pos=(-0.26, 0.72, 8.65)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+settled minY=0.00 q=6 stage=2 Aopen=False Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Shlanga(Clone) pos=(-3.20, 0.00, -4.32)
+  Boss(Clone) pos=(-0.26, 0.72, 8.65)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+transition q=6 stage=3 Aopen=False Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Shlanga(Clone) pos=(-3.20, 0.00, -4.32)
+  Boss(Clone) pos=(-0.26, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=6 stage=3 Aopen=False Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Shlanga(Clone) pos=(-2.62, 0.01, 0.56)
+  Boss(Clone) pos=(-0.26, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+frame-sample stage=3 n=548 meanMs=12.76
+transition q=6 stage=4 Aopen=False Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Shlanga(Clone) pos=(-2.28, 0.00, 3.57)
+  Boss(Clone) pos=(-0.26, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=6 stage=4 Aopen=False Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Shlanga(Clone) pos=(-2.28, 0.00, 3.57)
+  Boss(Clone) pos=(-0.26, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=6 stage=5 Aopen=False Bopen=True board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Shlanga(Clone) pos=(-2.28, 0.00, 3.57)
+  Boss(Clone) pos=(-0.26, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=6 stage=5 Aopen=False Bopen=True board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Shlanga(Clone) pos=(-2.28, 0.00, 3.57)
+  Boss(Clone) pos=(-0.26, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=6 stage=5 Aopen=False Bopen=True board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Shlanga(Clone) pos=(-2.28, 0.00, 3.57)
+  Boss(Clone) pos=(-0.26, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=6 stage=5 Aopen=False Bopen=True board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Shlanga(Clone) pos=(-2.28, 0.00, 3.57)
+  Boss(Clone) pos=(-0.26, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=6 stage=5 Aopen=False Bopen=True board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Shlanga(Clone) pos=(-2.28, 0.00, 3.57)
+  Boss(Clone) pos=(-0.26, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=6 stage=5 Aopen=False Bopen=True board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Shlanga(Clone) pos=(-2.28, 0.00, 3.57)
+  Boss(Clone) pos=(-0.26, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=6 stage=5 Aopen=False Bopen=True board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Shlanga(Clone) pos=(-2.28, 0.00, 3.57)
+  Boss(Clone) pos=(-0.26, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=6 stage=5 Aopen=False Bopen=True board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Shlanga(Clone) pos=(-2.28, 0.00, 3.57)
+  Boss(Clone) pos=(-0.26, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=6 stage=5 Aopen=False Bopen=True board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Shlanga(Clone) pos=(-2.28, 0.00, 3.57)
+  Boss(Clone) pos=(-0.26, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=6 stage=5 Aopen=False Bopen=True board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Shlanga(Clone) pos=(-2.28, 0.00, 3.57)
+  Boss(Clone) pos=(-0.26, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=6 stage=6 Aopen=False Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Shlanga(Clone) pos=(-2.28, 0.00, 3.57)
+  Boss(Clone) pos=(-0.26, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=6 stage=6 Aopen=False Bopen=False board=Что страшнее — выступать перед залом или идти к стоматологу? | А)  Зал | Б)  Стоматолог
+  Shlanga(Clone) pos=(-2.28, 0.00, 3.57)
+  Boss(Clone) pos=(-0.26, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=7 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Shlanga(Clone) pos=(-2.28, 0.00, 3.57)
+  Boss(Clone) pos=(-1.60, 0.00, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(25.41, 339.42, 355.51) fov=40.06266
+settled minY=0.00 q=7 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Shlanga(Clone) pos=(0.23, 0.72, 8.64)
+  Boss(Clone) pos=(-1.60, 0.00, -4.32)
+  camera=(-0.85, 2.58, -8.40) rot=(27.41, 355.21, 359.48) fov=54.70556
+transition q=7 stage=2 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(0.23, 0.72, 8.64)
+  Boss(Clone) pos=(-1.60, 0.00, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=7 stage=2 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(0.23, 0.72, 8.64)
+  Boss(Clone) pos=(-1.60, 0.00, -4.32)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=7 stage=3 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(0.23, 0.72, 8.64)
+  Boss(Clone) pos=(-1.60, 0.00, -4.32)
+  camera=(-1.60, 1.26, -8.33) rot=(12.32, 5.29, 0.00) fov=55
+settled minY=0.00 q=7 stage=3 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(0.23, 0.72, 8.64)
+  Boss(Clone) pos=(-2.99, 0.00, 0.42)
+  camera=(-2.96, 1.26, -3.71) rot=(11.92, 4.76, 0.00) fov=55
+frame-sample stage=3 n=577 meanMs=12.19
+transition q=7 stage=4 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(0.23, 0.72, 8.64)
+  Boss(Clone) pos=(-3.00, 0.00, 0.44)
+  camera=(-3.00, 1.26, -3.57) rot=(12.32, 5.28, 0.00) fov=55
+settled minY=0.00 q=7 stage=4 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(0.23, 0.72, 8.64)
+  Boss(Clone) pos=(-3.00, 0.00, 0.44)
+  camera=(-3.00, 1.26, -3.57) rot=(12.32, 5.28, 0.00) fov=55
+transition q=7 stage=5 Aopen=True Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(0.23, 0.72, 8.64)
+  Boss(Clone) pos=(-3.00, 0.00, 0.44)
+  camera=(-3.00, 1.26, -3.57) rot=(12.32, 5.28, 0.00) fov=55
+fall minY=0.00 q=7 stage=5 Aopen=True Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(0.23, 0.72, 8.64)
+  Boss(Clone) pos=(-3.00, 0.00, 0.44)
+  camera=(-3.00, 1.26, -3.57) rot=(12.32, 5.28, 0.00) fov=55
+fall minY=0.00 q=7 stage=5 Aopen=True Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(0.23, 0.72, 8.64)
+  Boss(Clone) pos=(-3.00, 0.00, 0.44)
+  camera=(-3.00, 1.26, -3.57) rot=(12.32, 5.28, 0.00) fov=55
+fall minY=0.00 q=7 stage=5 Aopen=True Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(0.23, 0.72, 8.64)
+  Boss(Clone) pos=(-3.00, 0.00, 0.44)
+  camera=(-3.00, 1.26, -3.57) rot=(12.32, 5.28, 0.00) fov=55
+settled minY=0.00 q=7 stage=5 Aopen=True Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(0.23, 0.72, 8.64)
+  Boss(Clone) pos=(-3.00, 0.00, 0.44)
+  camera=(-3.00, 1.26, -3.57) rot=(12.32, 5.28, 0.00) fov=55
+fall minY=0.00 q=7 stage=5 Aopen=True Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(0.23, 0.72, 8.64)
+  Boss(Clone) pos=(-3.00, 0.00, 0.44)
+  camera=(-3.00, 1.26, -3.57) rot=(12.32, 5.28, 0.00) fov=55
+fall minY=0.00 q=7 stage=5 Aopen=True Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(0.23, 0.72, 8.64)
+  Boss(Clone) pos=(-3.00, 0.00, 0.44)
+  camera=(-3.00, 1.26, -3.57) rot=(12.32, 5.28, 0.00) fov=55
+fall minY=0.00 q=7 stage=5 Aopen=True Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(0.23, 0.72, 8.64)
+  Boss(Clone) pos=(-3.00, 0.00, 0.44)
+  camera=(-3.00, 1.26, -3.57) rot=(12.32, 5.28, 0.00) fov=55
+fall minY=0.00 q=7 stage=5 Aopen=True Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(0.23, 0.72, 8.64)
+  Boss(Clone) pos=(-3.00, 0.00, 0.44)
+  camera=(-3.00, 1.26, -3.57) rot=(12.32, 5.28, 0.00) fov=55
+fall minY=0.00 q=7 stage=5 Aopen=True Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(0.23, 0.72, 8.64)
+  Boss(Clone) pos=(-3.00, 0.00, 0.44)
+  camera=(-3.00, 1.26, -3.57) rot=(12.32, 5.28, 0.00) fov=55
+transition q=7 stage=6 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(0.23, 0.72, 8.64)
+  Boss(Clone) pos=(-3.00, 0.00, 0.44)
+  camera=(-3.00, 1.26, -3.57) rot=(12.32, 5.28, 0.00) fov=55
+settled minY=0.00 q=7 stage=6 Aopen=False Bopen=False board=Ананас на пицце — это преступление? | А)  Преступление | Б)  Вкусно
+  Shlanga(Clone) pos=(0.23, 0.72, 8.64)
+  Boss(Clone) pos=(-3.00, 0.00, 0.44)
+  camera=(-3.00, 1.26, -3.57) rot=(12.32, 5.28, 0.00) fov=55
+transition q=8 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Shlanga(Clone) pos=(0.00, 0.10, -4.32)
+  Boss(Clone) pos=(-0.30, 0.72, 8.65)
+  camera=(-0.40, 2.64, 7.54) rot=(28.83, 14.56, 0.00) fov=54.99986
+settled minY=0.00 q=8 stage=1 Aopen=False Bopen=False board=Ведущий готовит вопрос… |  | 
+  Shlanga(Clone) pos=(0.00, 0.00, -4.32)
+  Boss(Clone) pos=(-0.30, 0.72, 8.65)
+  camera=(1.22, 3.07, 3.45) rot=(7.80, 348.85, 359.98) fov=53.68542
+transition q=8 stage=2 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Shlanga(Clone) pos=(0.00, 0.00, -4.32)
+  Boss(Clone) pos=(-0.30, 0.72, 8.65)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+settled minY=0.00 q=8 stage=2 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Shlanga(Clone) pos=(0.00, 0.00, -4.32)
+  Boss(Clone) pos=(-0.30, 0.72, 8.65)
+  camera=(2.60, 3.50, -0.36) rot=(357.50, 348.00, 0.00) fov=40
+transition q=8 stage=3 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Shlanga(Clone) pos=(0.00, 0.00, -4.32)
+  Boss(Clone) pos=(-0.30, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=8 stage=3 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Shlanga(Clone) pos=(-2.01, 0.00, 0.01)
+  Boss(Clone) pos=(-0.30, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+frame-sample stage=3 n=586 meanMs=11.98
+transition q=8 stage=4 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Shlanga(Clone) pos=(-4.28, 0.00, 4.89)
+  Boss(Clone) pos=(-0.30, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=8 stage=4 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Shlanga(Clone) pos=(-4.28, 0.00, 4.89)
+  Boss(Clone) pos=(-0.30, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=8 stage=5 Aopen=False Bopen=True board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Shlanga(Clone) pos=(-4.28, 0.00, 4.89)
+  Boss(Clone) pos=(-0.30, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=8 stage=5 Aopen=False Bopen=True board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Shlanga(Clone) pos=(-4.28, 0.00, 4.89)
+  Boss(Clone) pos=(-0.30, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=8 stage=5 Aopen=False Bopen=True board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Shlanga(Clone) pos=(-4.28, 0.00, 4.89)
+  Boss(Clone) pos=(-0.30, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=8 stage=5 Aopen=False Bopen=True board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Shlanga(Clone) pos=(-4.28, 0.00, 4.89)
+  Boss(Clone) pos=(-0.30, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=8 stage=5 Aopen=False Bopen=True board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Shlanga(Clone) pos=(-4.28, 0.00, 4.89)
+  Boss(Clone) pos=(-0.30, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=8 stage=5 Aopen=False Bopen=True board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Shlanga(Clone) pos=(-4.28, 0.00, 4.89)
+  Boss(Clone) pos=(-0.30, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=8 stage=5 Aopen=False Bopen=True board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Shlanga(Clone) pos=(-4.28, 0.00, 4.89)
+  Boss(Clone) pos=(-0.30, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=8 stage=5 Aopen=False Bopen=True board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Shlanga(Clone) pos=(-4.28, 0.00, 4.89)
+  Boss(Clone) pos=(-0.30, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=8 stage=5 Aopen=False Bopen=True board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Shlanga(Clone) pos=(-4.28, 0.00, 4.89)
+  Boss(Clone) pos=(-0.30, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+fall minY=0.00 q=8 stage=5 Aopen=False Bopen=True board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Shlanga(Clone) pos=(-4.28, 0.00, 4.89)
+  Boss(Clone) pos=(-0.30, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=8 stage=6 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Shlanga(Clone) pos=(-4.28, 0.00, 4.89)
+  Boss(Clone) pos=(-0.30, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+settled minY=0.00 q=8 stage=6 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Shlanga(Clone) pos=(-4.28, 0.00, 4.89)
+  Boss(Clone) pos=(-0.30, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+transition q=8 stage=0 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Shlanga(Clone) pos=(-4.28, 0.00, 4.89)
+  Boss(Clone) pos=(-0.30, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
+RESULTS q=8 stage=0 Aopen=False Bopen=False board=Читать книгу или смотреть экранизацию? | А)  Книга | Б)  Фильм
+  Shlanga(Clone) pos=(-4.28, 0.00, 4.89)
+  Boss(Clone) pos=(-0.30, 0.72, 8.65)
+  camera=(0.00, 4.08, -8.48) rot=(12.50, 0.00, 0.00) fov=40
