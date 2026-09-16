@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using Unity.Netcode;
 using Igruha.Core.Hub;
 using Igruha.Core.Minigame;
@@ -9,9 +10,8 @@ using Igruha.Core.Minigame;
 namespace Igruha.Core.UI
 {
     /// <summary>
-    /// Пауза по Esc. Из функционала — «Продолжить» и «Выход»: это заглушка на
-    /// время разработки, настоящее меню с настройками живёт в EPIC 6 и придёт
-    /// вместе с главным меню.
+    /// Пауза по Esc. Представление необязательно: существующие сцены сохраняют
+    /// прежнее меню, хаб использует PauseMenuView с подтверждением выхода.
     ///
     /// <b>«Выход» означает разное в зависимости от того, где нажали.</b>
     /// Идёт раунд мини-игры, из которого можно выйти, — выходим из раунда и
@@ -51,7 +51,11 @@ namespace Igruha.Core.UI
         /// <summary>Пауза открыта.</summary>
         public bool IsPaused { get; private set; }
 
-        private bool cursorWasLocked;
+        [SerializeField] private PauseMenuView presentation;
+        private CursorLockMode previousCursorLock;
+        private bool previousCursorVisible;
+        private float previousTimeScale;
+        private GameObject previousSelection;
 
         /// <summary>
         /// Что было включено до паузы. Возвращаем ровно это, а не всю карту:
@@ -71,12 +75,12 @@ namespace Igruha.Core.UI
 
             if (resumeButton != null)
             {
-                resumeButton.onClick.AddListener(Resume);
+                resumeButton.onClick.AddListener(ContinueOrCancel);
             }
 
             if (exitButton != null)
             {
-                exitButton.onClick.AddListener(Exit);
+                exitButton.onClick.AddListener(RequestExit);
             }
         }
 
@@ -84,20 +88,21 @@ namespace Igruha.Core.UI
         {
             if (resumeButton != null)
             {
-                resumeButton.onClick.RemoveListener(Resume);
+                resumeButton.onClick.RemoveListener(ContinueOrCancel);
             }
 
             if (exitButton != null)
             {
-                exitButton.onClick.RemoveListener(Exit);
+                exitButton.onClick.RemoveListener(RequestExit);
             }
 
             // Уходя со сцены, время обязаны вернуть: иначе следующая сцена
             // грузится в остановленном мире и выглядит зависшей.
             if (IsPaused)
             {
-                Time.timeScale = 1f;
+                Time.timeScale = previousTimeScale;
                 SetGameplayInputEnabled(true);
+                RestoreCursor();
             }
 
             if (Current == this)
@@ -116,7 +121,7 @@ namespace Igruha.Core.UI
 
             if (IsPaused)
             {
-                Resume();
+                ContinueOrCancel();
                 return;
             }
 
@@ -133,6 +138,11 @@ namespace Igruha.Core.UI
 
         private void Pause()
         {
+            if (IsPaused) return;
+            previousTimeScale = Time.timeScale;
+            previousCursorLock = Cursor.lockState;
+            previousCursorVisible = Cursor.visible;
+            previousSelection = EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null;
             IsPaused = true;
 
             if (panel != null)
@@ -147,9 +157,12 @@ namespace Igruha.Core.UI
 
             SetGameplayInputEnabled(false);
 
-            cursorWasLocked = Cursor.lockState == CursorLockMode.Locked;
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
+            if (presentation != null)
+                presentation.Show(IsNetworkSession, MinigameControllerBase.Current != null && MinigameControllerBase.Current.CanLeaveRound,
+                    NetworkManager.Singleton != null && NetworkManager.Singleton.IsHost);
+            else if (resumeButton != null) resumeButton.Select();
         }
 
         public void Resume()
@@ -166,14 +179,30 @@ namespace Igruha.Core.UI
                 panel.SetActive(false);
             }
 
-            Time.timeScale = 1f;
+            Time.timeScale = previousTimeScale;
             SetGameplayInputEnabled(true);
 
-            if (cursorWasLocked)
-            {
-                Cursor.lockState = CursorLockMode.Locked;
-                Cursor.visible = false;
-            }
+            RestoreCursor();
+            if (EventSystem.current != null)
+                EventSystem.current.SetSelectedGameObject(previousSelection != null && previousSelection.activeInHierarchy ? previousSelection : null);
+        }
+
+        private void RestoreCursor()
+        {
+            Cursor.lockState = previousCursorLock;
+            Cursor.visible = previousCursorVisible;
+        }
+
+        private void ContinueOrCancel()
+        {
+            if (presentation != null && presentation.IsConfirmingExit) presentation.CancelExit();
+            else Resume();
+        }
+
+        private void RequestExit()
+        {
+            if (presentation != null && !presentation.IsConfirmingExit) presentation.ConfirmExit();
+            else Exit();
         }
 
         /// <summary>
