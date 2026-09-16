@@ -1,0 +1,225 @@
+{
+  "materials": [
+    {
+      "name": "EH_Walnut",
+      "color": [
+        0.25,
+        0.125,
+        0.067,
+        1
+      ],
+      "roughness": 0.62,
+      "metallic": 0,
+      "texture": "Wood",
+      "emission": 0
+    },
+    {
+      "name": "EH_Oak",
+      "color": [
+        0.44,
+        0.272,
+        0.137,
+        1
+      ],
+      "roughness": 0.67,
+      "metallic": 0,
+      "texture": "Wood",
+      "emission": 0
+    },
+    {
+      "name": "EH_OakLight",
+      "color": [
+        0.48,
+        0.303,
+        0.16,
+        1
+      ],
+      "roughness": 0.7,
+      "metallic": 0,
+      "texture": "Wood",
+      "emission": 0
+    },
+    {
+      "name": "EH_Recess",
+      "color": [
+        0.052,
+        0.041,
+        0.031,
+        1
+      ],
+      "roughness": 0.86,
+      "metallic": 0,
+      "texture": "",
+      "emission": 0
+    },
+    {
+      "name": "EH_Brass",
+      "color": [
+        0.67,
+        0.45,
+        0.19,
+        1
+      ],
+      "roughness": 0.36,
+      "metallic": 0.65,
+      "texture": "",
+      "emission": 0
+    },
+    {
+      "name": "EH_Iron",
+      "color": [
+        0.083,
+        0.101,
+        0.108,
+        1
+      ],
+      "roughness": 0.5,
+      "metallic": 0.55,
+      "texture": "",
+      "emission": 0
+    },
+    {
+      "name": "EH_Limestone",
+      "color": [
+        0.73,
+        0.667,
+        0.524,
+        1
+      ],
+      "roughness": 0.88,
+      "metallic": 0,
+      "texture": "Plaster",
+      "emission": 0
+    },
+    {
+      "name": "EH_Plaster",
+      "color": [
+        0.86,
+        0.801,
+        0.658,
+        1
+      ],
+      "roughness": 0.95,
+      "metallic": 0,
+      "texture": "Plaster",
+      "emission": 0
+    },
+    {
+      "name": "EH_Chalkboard",
+      "color": [
+        0.044,
+        0.142,
+        0.111,
+        1
+      ],
+      "roughness": 0.96,
+      "metallic": 0,
+      "texture": "Slate",
+      "emission": 0
+    },
+    {
+      "name": "EH_EnamelA",
+      "color": [
+        0.16,
+        0.37,
+        0.48,
+        1
+      ],
+      "roughness": 0.57,
+      "metallic": 0,
+      "texture": "",
+      "emission": 0
+    },
+    {
+      "name": "EH_EnamelB",
+      "color": [
+        0.69,
+        0.352,
+        0.09,
+        1
+      ],
+      "roughness": 0.57,
+      "metallic": 0,
+      "texture": "",
+      "emission": 0
+    },
+    {
+      "name": "EH_Ivory",
+      "color": [
+        0.94,
+        0.877,
+        0.688,
+        1
+      ],
+      "roughness": 0.8,
+      "metallic": 0,
+      "texture": "",
+      "emission": 0
+    },
+    {
+      "name": "EH_Leather",
+      "color": [
+        0.3,
+        0.07,
+        0.052,
+        1
+      ],
+      "roughness": 0.79,
+      "metallic": 0,
+      "texture": "",
+      "emission": 0
+    },
+    {
+      "name": "EH_Window",
+      "color": [
+        0.66,
+        0.81,
+        0.82,
+        1
+      ],
+      "roughness": 0.42,
+      "metallic": 0,
+      "texture": "",
+      "emission": 0.65
+    },
+    {
+      "name": "EH_Opal",
+      "color": [
+        0.99,
+        0.81,
+        0.46,
+        1
+      ],
+      "roughness": 0.4,
+      "metallic": 0,
+      "texture": "",
+      "emission": 2.2
+    },
+    {
+      "name": "EH_PitStone",
+      "color": [
+        0.19,
+        0.23,
+        0.225,
+        1
+      ],
+      "roughness": 0.94,
+      "metallic": 0,
+      "texture": "Plaster",
+      "emission": 0
+    },
+    {
+      "name": "EH_Paper",
+      "color": [
+        0.79,
+        0.75,
+        0.6,
+        1
+      ],
+      "roughness": 0.97,
+      "metallic": 0,
+      "texture": "",
+      "emission": 0
+    }
+  ]
+}

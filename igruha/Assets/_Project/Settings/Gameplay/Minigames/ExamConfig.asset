@@ -31,11 +31,11 @@ MonoBehaviour:
   unitsPerWidth: 0.72
   hallWidth: 27
   hallDepth: 28
-  ceilingHeight: 6.5
+  ceilingHeight: 9.5
   platformWidth: 8
   platformDepth: 6
   platformGap: 2
-  podiumWidth: 8
+  podiumWidth: 12
   podiumDepth: 4
   podiumHeight: 1
   returnZoneWidth: 18

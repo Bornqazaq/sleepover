@@ -1,0 +1,25 @@
+Exam hall rendering checks, 2026-09-15, macOS Unity 6000.3.11f1.
+
+Controlled Play Mode comparison:
+  Before: 8.04 ms mean, n=871 frames.
+  After:  7.81 ms mean, n=897 frames.
+Four local avatars, choice stage (3), 7 seconds sampled after 1-second warmup.
+Same HallCameraRig position (0,4.08,-8.48), pitch 12.5, FOV40, same Editor Game View.
+CinemachineBrain disabled temporarily in each runtime session to hold the identical
+comparison camera; restored automatically on leaving Play Mode, no asset changed.
+No standalone game processes running during either sample. Different question text,
+host and bot positions; includes probe capture overhead. A short diagnostic sample,
+not a portable FPS promise or evidence of a meaningful speedup.
+Raw observations: performance-before/editor-probe.txt, performance-after/editor-probe.txt.
+
+Separate static Editor render/readback check, 1600x900, 12 warmup + 48 samples:
+  Before 16.07 ms, after 18.76 ms.
+This measures synchronous Camera.Render plus GPU readback, not gameplay FPS;
+standalone network clients were starting/running in the background. Do not compare
+these values with the isolated Play Mode measurements above.
+
+Saved arena audit (no runtime players):
+  Mesh/TMP renderers 592 -> 109; triangles 92,042 -> 174,568; colliders 240 -> 37.
+  22 resolved materials in final rendered audit (TMP submeshes initialize lazily;
+  immediately after rebuild: 104 renderers, 174,504 triangles, 21 materials). Largest own model: PitMasonry, 14,336
+  Blender vertices; dense geometry mainly parquet, stone blocks and books.
