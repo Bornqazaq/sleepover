@@ -1,0 +1,10 @@
+BEGIN original foundry; scene=MemoryRun
+PRESENTATION conveyors=3 signal=MF_TurnSignal
+TURN -1 roster=0
+PHASE Tutorial
+TURN 0 roster=2
+PHASE Round
+MINE 1 at=(3.60, 0.00, -14.94)
+TURN -1 roster=2
+BLAST_VISIBLE particles=32
+PHASE Results

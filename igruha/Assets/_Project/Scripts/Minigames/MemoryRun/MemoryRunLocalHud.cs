@@ -30,6 +30,7 @@ namespace Igruha.Minigames.MemoryRun
 
         [SerializeField] private MemoryRunMinigame game;
         [SerializeField] private RoundHud hud;
+        [SerializeField] private GameObject statusPanel;
 
         private readonly StringBuilder builder = new StringBuilder(128);
         private int shownSeconds = -1;
@@ -44,7 +45,10 @@ namespace Igruha.Minigames.MemoryRun
                 return;
             }
 
-            if (game.Phase != MinigamePhase.Round)
+            bool visible = game.Phase == MinigamePhase.Round && game.CurrentWalkerId != TurnQueue.NoPlayer;
+            if (statusPanel != null && statusPanel.activeSelf != visible)
+                statusPanel.SetActive(visible);
+            if (!visible)
             {
                 return;
             }
@@ -87,7 +91,7 @@ namespace Igruha.Minigames.MemoryRun
 
             if (localPlayerId != TurnQueue.NoPlayer)
             {
-                builder.Append("\nПопыток: ").Append(deaths).Append(" / ").Append(game.DeathLimit);
+                builder.Append("\nСмертей: ").Append(deaths).Append(" / ").Append(game.DeathLimit);
             }
 
             hud.ShowStatus(builder.ToString());

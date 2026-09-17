@@ -1,0 +1,31 @@
+BEGIN original foundry; scene=MemoryRun
+PRESENTATION conveyors=3 signal=MF_TurnSignal
+TURN 0 roster=4
+PHASE Round
+SAMPLE frames=955 meanMs=15.71 mines=0 safeLandings=0 phase=Round
+CONVEYOR_MOVED distance=10.01
+TURN 3 roster=4
+MINE 1 at=(3.60, 0.00, -14.94)
+TURN 1 roster=4
+BLAST_VISIBLE particles=32
+SAMPLE frames=983 meanMs=15.32 mines=1 safeLandings=0 phase=Round
+CONVEYOR_MOVED distance=10.17
+MINE 2 at=(-3.60, 0.00, -10.62)
+TURN 2 roster=4
+BLAST_VISIBLE particles=32
+MINE 3 at=(-3.60, 0.00, -6.30)
+TURN 0 roster=4
+BLAST_VISIBLE particles=32
+SAMPLE frames=898 meanMs=16.72 mines=3 safeLandings=3 phase=Round
+CONVEYOR_MOVED distance=9.84
+SAMPLE frames=1239 meanMs=12.11 mines=3 safeLandings=3 phase=Round
+CONVEYOR_MOVED distance=41.34
+SAMPLE frames=1193 meanMs=12.57 mines=3 safeLandings=3 phase=Round
+CONVEYOR_MOVED distance=10.27
+TURN 3 roster=4
+SAMPLE frames=1258 meanMs=11.94 mines=3 safeLandings=6 phase=Round
+CONVEYOR_MOVED distance=10.42
+MINE 4 at=(0.00, 0.00, -1.98)
+TURN 1 roster=4
+BLAST_VISIBLE particles=32
+END scene unloaded; mines=4; safe=7

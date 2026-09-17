@@ -56,11 +56,11 @@ namespace Igruha.Minigames.MemoryRun
         [SerializeField] private float laneGap = 1f;
         [Tooltip("Пропасть между шагами. Подобран заведомо с запасом: прыжок берёт 4.69 м, здесь 1.44")]
         [SerializeField] private float stepGap = 2f;
-        [Tooltip("28, а не 18: при 18 от крайней плиты до стены 1.44 м, а камере нужно 4.5 (igruha/CLAUDE.md, 2a)")]
-        [SerializeField] private float hallWidth = 28f;
-        [SerializeField] private float ceilingHeight = 10f;
-        [Tooltip("Глубина пропасти. Дно не видно, теряется в темноте и дыму")]
-        [SerializeField] private float pitDepth = 12f;
+        [Tooltip("Широкий заводской зал; рабочая сетка плит остаётся в центре")]
+        [SerializeField] private float hallWidth = 50f;
+        [SerializeField] private float ceilingHeight = 26f;
+        [Tooltip("Декоративная глубина шахты; порог падения от неё не зависит")]
+        [SerializeField] private float pitDepth = 120f;
 
         [Header("Стартовая зона и выход")]
         [Tooltip("Сторона площадки ожидания. Здесь ждут очереди, бегают и дерутся")]
