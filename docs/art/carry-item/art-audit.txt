@@ -1,0 +1,51 @@
+📏 «Переноска предмета» — замеры арта
+
+— Дресс —
+  коробок одето:            14
+  коллайдеров в дрессе:     0 ✔
+  вылезает за коробку:      0 ✔
+  висит над дном коробки:   0 ✔
+  ненайденных моделей:      0 ✔
+
+— Original scenery and route —
+  background colliders: 0 ✔
+  wrong camera layers: 0 ✔
+  solid props without collision: 0 ✔
+  bridge support failures / 372 probes: 0 ✔
+  Synty dependencies incl. runtime prefabs: 0 ✔
+  blocked character capsules / 480 route probes: 0 ✔
+  blocked pickup stations / 64 probes: 0 ✔
+  blocked 4.5 m camera approaches: 0 ✔
+
+— Эффекты —
+  систем частиц:            25
+  коллайдеров:              0 ✔
+  своих источников света:   0 ✔
+  лишних автостартов:       0 ✔
+  верх постоянного:         1.15 м ✔
+  верх мгновенного:         0.48 м ✔
+
+— Коллайдеры —
+  сплошных на Ground/Cover: 153
+  триггеров всего:          8
+
+— Меши —
+  рендереров всего:         1039
+  видимых:                  1020
+  погашено под дресс:       19
+  треугольников видимых:    954980
+
+— Читаемость и сеть (префабы) —
+  transparent shell:  ✔
+  team shoulders/neck/cap:  ✔
+  бутыль: столбик воды       ✔
+          крышка (цвет команды)  ✔
+          струя из горлышка  ✔
+          держалок          4 ✔
+          показ занятости    ✔
+          WaterBottle        ✔
+          NetworkObject      ✔
+          NetworkTransform   ✔
+  кирпич: PickupItem         ✔
+          NetworkObject      ✔
+          NetworkTransform   ✔

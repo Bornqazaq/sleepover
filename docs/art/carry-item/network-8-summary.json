@@ -1,0 +1,104 @@
+{
+  "accepted": false,
+  "problems": [
+    "client-1-probe: team failed to deliver water: (0, 0, 1, 0)",
+    "client-2-probe: team failed to deliver water: (0, 0, 1, 0)",
+    "client-3-probe: team failed to deliver water: (0, 0, 1, 0)",
+    "client-4-probe: team failed to deliver water: (0, 0, 1, 0)",
+    "client-5-probe: team failed to deliver water: (0, 0, 1, 0)",
+    "client-5-probe: missed respawn, minY=-61306.75",
+    "client-6-probe: team failed to deliver water: (0, 0, 1, 0)",
+    "client-7-probe: team failed to deliver water: (0, 0, 1, 0)",
+    "host-probe: team failed to deliver water: (0, 0, 1, 0)"
+  ],
+  "peers": [
+    {
+      "peer": "client-1-probe",
+      "result": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "minY": -7.03,
+      "perf": "PERF frames=5955 meanMs=33.58 waterEvents=231"
+    },
+    {
+      "peer": "client-2-probe",
+      "result": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "minY": 0.0,
+      "perf": "PERF frames=11849 meanMs=16.88 waterEvents=231"
+    },
+    {
+      "peer": "client-3-probe",
+      "result": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "minY": -0.08,
+      "perf": "PERF frames=11828 meanMs=16.91 waterEvents=231"
+    },
+    {
+      "peer": "client-4-probe",
+      "result": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "minY": 0.0,
+      "perf": "PERF frames=11840 meanMs=16.89 waterEvents=231"
+    },
+    {
+      "peer": "client-5-probe",
+      "result": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "minY": -61306.75,
+      "perf": "PERF frames=11838 meanMs=16.89 waterEvents=231"
+    },
+    {
+      "peer": "client-6-probe",
+      "result": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "minY": 0.0,
+      "perf": "PERF frames=11828 meanMs=16.91 waterEvents=231"
+    },
+    {
+      "peer": "client-7-probe",
+      "result": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "minY": 0.0,
+      "perf": "PERF frames=11811 meanMs=16.93 waterEvents=231"
+    },
+    {
+      "peer": "host-probe",
+      "result": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "minY": 0.0,
+      "perf": "PERF frames=6882 meanMs=29.06 waterEvents=231"
+    }
+  ]
+}
