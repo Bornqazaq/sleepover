@@ -1,0 +1,202 @@
+[
+  {
+    "name": "Plate",
+    "vertices": 7536,
+    "faces": 7026
+  },
+  {
+    "name": "WallBay",
+    "vertices": 6636,
+    "faces": 5702
+  },
+  {
+    "name": "RoofBay",
+    "vertices": 2232,
+    "faces": 1432
+  },
+  {
+    "name": "Deck",
+    "vertices": 1464,
+    "faces": 1106
+  },
+  {
+    "name": "Railing",
+    "vertices": 288,
+    "faces": 246
+  },
+  {
+    "name": "HazardEdge",
+    "vertices": 56,
+    "faces": 36
+  },
+  {
+    "name": "Drum",
+    "vertices": 504,
+    "faces": 342
+  },
+  {
+    "name": "DynamiteCrate",
+    "vertices": 1388,
+    "faces": 1170
+  },
+  {
+    "name": "PressureVessel",
+    "vertices": 1248,
+    "faces": 844
+  },
+  {
+    "name": "Switchboard",
+    "vertices": 656,
+    "faces": 582
+  },
+  {
+    "name": "CableReel",
+    "vertices": 7536,
+    "faces": 7274
+  },
+  {
+    "name": "Gantry",
+    "vertices": 776,
+    "faces": 678
+  },
+  {
+    "name": "ExitPortal",
+    "vertices": 736,
+    "faces": 666
+  },
+  {
+    "name": "PosterFrame",
+    "vertices": 192,
+    "faces": 180
+  },
+  {
+    "name": "ConveyorBed",
+    "vertices": 992,
+    "faces": 906
+  },
+  {
+    "name": "BeltLink",
+    "vertices": 192,
+    "faces": 180
+  },
+  {
+    "name": "ConveyorRoller",
+    "vertices": 160,
+    "faces": 106
+  },
+  {
+    "name": "DynamiteBundle",
+    "vertices": 708,
+    "faces": 570
+  },
+  {
+    "name": "LoadingHood",
+    "vertices": 560,
+    "faces": 514
+  },
+  {
+    "name": "TurnSignal",
+    "vertices": 240,
+    "faces": 212
+  },
+  {
+    "name": "RuinWallLeft",
+    "vertices": 41200,
+    "faces": 38568
+  },
+  {
+    "name": "RuinWallRight",
+    "vertices": 38164,
+    "faces": 35954
+  },
+  {
+    "name": "RuinCorner",
+    "vertices": 1012,
+    "faces": 924
+  },
+  {
+    "name": "RuinRoof",
+    "vertices": 25936,
+    "faces": 25144
+  },
+  {
+    "name": "ShaftServices0",
+    "vertices": 6016,
+    "faces": 4586
+  },
+  {
+    "name": "ShaftServices1",
+    "vertices": 6016,
+    "faces": 4586
+  },
+  {
+    "name": "ShaftServices2",
+    "vertices": 6016,
+    "faces": 4586
+  },
+  {
+    "name": "Rubble0",
+    "vertices": 216,
+    "faces": 268
+  },
+  {
+    "name": "Rubble1",
+    "vertices": 216,
+    "faces": 268
+  },
+  {
+    "name": "Rubble2",
+    "vertices": 216,
+    "faces": 268
+  },
+  {
+    "name": "BrokenOutfall",
+    "vertices": 376,
+    "faces": 244
+  },
+  {
+    "name": "ShaftWreck0",
+    "vertices": 388,
+    "faces": 390
+  },
+  {
+    "name": "ShaftWreck1",
+    "vertices": 712,
+    "faces": 674
+  },
+  {
+    "name": "ShaftWreck2",
+    "vertices": 648,
+    "faces": 614
+  },
+  {
+    "name": "ShaftWreck3",
+    "vertices": 440,
+    "faces": 396
+  },
+  {
+    "name": "EmberDebris",
+    "vertices": 376,
+    "faces": 510
+  },
+  {
+    "name": "DynamiteHeavy",
+    "vertices": 780,
+    "faces": 600
+  },
+  {
+    "name": "ExteriorWorkshop",
+    "vertices": 4496,
+    "faces": 4160
+  },
+  {
+    "name": "ExteriorCrane",
+    "vertices": 2464,
+    "faces": 1434
+  },
+  {
+    "name": "ExteriorStack",
+    "vertices": 320,
+    "faces": 194
+  }
+]

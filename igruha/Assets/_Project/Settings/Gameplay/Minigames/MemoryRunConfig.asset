@@ -24,9 +24,9 @@ MonoBehaviour:
   plateThickness: 0.5
   laneGap: 1
   stepGap: 2
-  hallWidth: 28
-  ceilingHeight: 10
-  pitDepth: 12
+  hallWidth: 50
+  ceilingHeight: 26
+  pitDepth: 120
   startZoneSize: 14
   startZoneLift: 1
   cameraClearance: 6.5

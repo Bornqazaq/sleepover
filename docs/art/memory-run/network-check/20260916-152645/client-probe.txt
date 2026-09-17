@@ -1,0 +1,29 @@
+BEGIN original foundry; scene=MemoryRun
+TURN -1 roster=0
+PHASE Tutorial
+PHASE Round
+TURN 1 roster=2
+MINE 1 at=(0.00, 0.00, -14.94)
+TURN 0 roster=2
+BLAST_VISIBLE particles=32
+SAMPLE frames=813 meanMs=18.48 mines=1 safeLandings=0 phase=Round
+MINE 2 at=(0.00, 0.00, -1.98)
+TURN 1 roster=2
+BLAST_VISIBLE particles=32
+MINE 3 at=(0.00, 0.00, 2.34)
+TURN 0 roster=2
+BLAST_VISIBLE particles=32
+SAMPLE frames=1063 meanMs=14.11 mines=3 safeLandings=0 phase=Round
+SAMPLE frames=960 meanMs=15.63 mines=3 safeLandings=0 phase=Round
+MINE 4 at=(0.00, 0.00, 15.30)
+TURN 1 roster=2
+BLAST_VISIBLE particles=32
+SAMPLE frames=1196 meanMs=12.55 mines=4 safeLandings=0 phase=Round
+MINE 5 at=(-3.60, 0.00, 23.94)
+TURN 0 roster=2
+BLAST_VISIBLE particles=32
+SAMPLE frames=1159 meanMs=12.94 mines=5 safeLandings=0 phase=Round
+TURN -1 roster=2
+PHASE Results
+SAMPLE frames=1190 meanMs=12.61 mines=5 safeLandings=0 phase=Results
+END scene unloaded; mines=5; safe=0
