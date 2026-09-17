@@ -2,64 +2,77 @@ using UnityEngine;
 
 namespace Igruha.Minigames.DuckHunt
 {
-    /// <summary>
-    /// Кладёт кисти Охотника на ружьё: правую — на шейку приклада с курком,
-    /// левую — на цевьё.
-    ///
-    /// Почему это вообще нужно. Стойка приходит одним клипом
-    /// (<c>Aza@Firing Rifle</c>) на весь ростер, а ретаргет раскладывает её по
-    /// восьми разным телам — узкой Girl, широкому Fat, длиннорукому Shlanga.
-    /// Кисти при этом расходятся: замеры дали расстояние между ними от 0.296 м
-    /// у Shlanga до 0.577 м у Fat. Никакая привязка ружья к рукам такой разброс
-    /// не покрывает — либо ствол уезжает вслед за руками, либо руки перестают
-    /// его касаться. Поэтому задача решается наоборот: ружьё стоит по лучу
-    /// выстрела, а руки приводит к нему IK.
-    ///
-    /// Компонент обязан висеть на том же объекте, что и <see cref="Animator"/>
-    /// (у наших префабов это не корень, а дочерний узел модели), иначе Unity
-    /// не вызовет <c>OnAnimatorIK</c>. Слою нужен включённый IK Pass —
-    /// его ставит <c>HunterRifleLayerBuilder</c>.
-    /// </summary>
+    /// <summary>Role-only two-bone arm fitting after Animator evaluation.
+    /// Targets are palm contacts on the prop, not humanoid IK effector axes.
+    /// Original clips, rigs and player prefabs are not modified.</summary>
     [DisallowMultipleComponent]
+    [DefaultExecutionOrder(100)]
     public sealed class RifleGripIk : MonoBehaviour
     {
         private Animator animator;
-
-        /// <summary>Куда встаёт правая кисть — шейка приклада у курка.</summary>
+        private Arm right, left;
         public Transform GripPoint { get; set; }
-
-        /// <summary>Куда встаёт левая кисть — цевьё.</summary>
         public Transform ForePoint { get; set; }
-
-        /// <summary>
-        /// Сила притяжения кистей, 0…1. Ноль полностью возвращает позу клипа,
-        /// поэтому снимать роль достаточно обнулением веса — компонент можно
-        /// не удалять.
-        /// </summary>
         public float Weight { get; set; }
+
+        private sealed class Arm
+        {
+            public Transform Upper, Lower, Hand;
+            public Quaternion InversePalmBasis;
+            public Vector3 PalmOffset;
+        }
 
         private void Awake()
         {
-            animator = GetComponent<Animator>();
+            animator=GetComponent<Animator>();
+            right=Measure(HumanBodyBones.RightUpperArm,HumanBodyBones.RightLowerArm,HumanBodyBones.RightHand,
+                HumanBodyBones.RightIndexProximal,HumanBodyBones.RightThumbProximal);
+            left=Measure(HumanBodyBones.LeftUpperArm,HumanBodyBones.LeftLowerArm,HumanBodyBones.LeftHand,
+                HumanBodyBones.LeftIndexProximal,HumanBodyBones.LeftThumbProximal);
         }
 
-        private void OnAnimatorIK(int layerIndex)
+        private Arm Measure(HumanBodyBones upper,HumanBodyBones lower,HumanBodyBones hand,HumanBodyBones index,HumanBodyBones thumb)
         {
-            if (animator == null || GripPoint == null || ForePoint == null)
-            {
-                return;
-            }
+            var arm=new Arm{Upper=animator.GetBoneTransform(upper),Lower=animator.GetBoneTransform(lower),
+                Hand=animator.GetBoneTransform(hand),InversePalmBasis=Quaternion.identity};
+            var finger=animator.GetBoneTransform(index);var thumbBone=animator.GetBoneTransform(thumb);
+            if(arm.Hand==null || finger==null || thumbBone==null)return arm;
+            Vector3 fingers=Quaternion.Inverse(arm.Hand.rotation)*(finger.position-arm.Hand.position);
+            Vector3 towardsThumb=Quaternion.Inverse(arm.Hand.rotation)*(thumbBone.position-arm.Hand.position);
+            arm.InversePalmBasis=Quaternion.Inverse(Quaternion.LookRotation(fingers.normalized,Vector3.ProjectOnPlane(towardsThumb,fingers).normalized));
+            arm.PalmOffset=fingers*.65f+towardsThumb*.15f;
+            return arm;
+        }
 
-            float weight = Mathf.Clamp01(Weight);
+        private void LateUpdate()
+        {
+            if(Weight<=0 || GripPoint==null || ForePoint==null || animator==null || !animator.isActiveAndEnabled)return;
+            Fit(right,GripPoint,new Vector3(-.35f,.86f,.36f),Vector3.forward,new Vector3(.30f,-.24f,-.10f));
+            Fit(left,ForePoint,new Vector3(.86f,.50f,0),Vector3.forward,new Vector3(-.30f,-.24f,-.14f));
+        }
 
-            // Позиция притягивается, поворот — нет. Кисти клипа уже сложены
-            // под ружьё, и перебивать их разворот значило бы подбирать восемь
-            // наборов углов ровно там, откуда эту задачу и убирали.
-            animator.SetIKPositionWeight(AvatarIKGoal.RightHand, weight);
-            animator.SetIKPosition(AvatarIKGoal.RightHand, GripPoint.position);
-
-            animator.SetIKPositionWeight(AvatarIKGoal.LeftHand, weight);
-            animator.SetIKPosition(AvatarIKGoal.LeftHand, ForePoint.position);
+        private void Fit(Arm arm,Transform contact,Vector3 fingers,Vector3 thumb,Vector3 elbowHint)
+        {
+            if(arm.Upper==null || arm.Lower==null || arm.Hand==null)return;
+            float weight=Mathf.Clamp01(Weight);
+            Quaternion handRotation=contact.rotation*Quaternion.LookRotation(fingers,thumb)*arm.InversePalmBasis;
+            Vector3 wrist=contact.position-handRotation*arm.PalmOffset;
+            Vector3 shoulder=arm.Upper.position;
+            float upperLength=Vector3.Distance(shoulder,arm.Lower.position);
+            float lowerLength=Vector3.Distance(arm.Lower.position,arm.Hand.position);
+            Vector3 toWrist=wrist-shoulder;
+            float distance=Mathf.Clamp(toWrist.magnitude,Mathf.Abs(upperLength-lowerLength)+.001f,upperLength+lowerLength-.001f);
+            Vector3 direction=toWrist.normalized;
+            Vector3 bend=Vector3.ProjectOnPlane(contact.position+contact.rotation*elbowHint-shoulder,direction).normalized;
+            if(bend.sqrMagnitude<.001f)bend=Vector3.ProjectOnPlane(transform.right,direction).normalized;
+            float along=(upperLength*upperLength-lowerLength*lowerLength+distance*distance)/(2*distance);
+            float height=Mathf.Sqrt(Mathf.Max(0,upperLength*upperLength-along*along));
+            Vector3 elbow=shoulder+direction*along+bend*height;
+            Quaternion upperRotation=Quaternion.FromToRotation(arm.Lower.position-shoulder,elbow-shoulder)*arm.Upper.rotation;
+            arm.Upper.rotation=Quaternion.Slerp(arm.Upper.rotation,upperRotation,weight);
+            Quaternion lowerRotation=Quaternion.FromToRotation(arm.Hand.position-arm.Lower.position,shoulder+direction*distance-arm.Lower.position)*arm.Lower.rotation;
+            arm.Lower.rotation=Quaternion.Slerp(arm.Lower.rotation,lowerRotation,weight);
+            arm.Hand.rotation=Quaternion.Slerp(arm.Hand.rotation,handRotation,weight);
         }
     }
 }

@@ -62,3 +62,6 @@ tools/dist-windows/README.txt text eol=crlf
 # Оригинальные меши хаба: бинарные данные, воспроизводимые из Blender.
 igruha/Assets/_Project/Art/Hub/Original/Models/*.gz filter=lfs diff=lfs merge=lfs -text
 igruha/Assets/_Project/Art/Hub/Original/Meshes/*.asset filter=lfs diff=lfs merge=lfs -text
+
+# Reproducible Copperwood geometry batches; not hand-mergeable gameplay settings.
+igruha/Assets/_Project/Art/DuckHuntBarn/Meshes/*.asset filter=lfs diff=lfs merge=lfs -text
