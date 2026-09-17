@@ -85,6 +85,15 @@ namespace Igruha.EditorTools
             var bursts = effect.FindProperty("blasts");
             Check(bursts.arraySize == 4 && Enumerable.Range(0, 4).All(i => bursts.GetArrayElementAtIndex(i).objectReferenceValue != null), "Four event-driven blast instances wired");
             var env = arena.transform.Find("_Environment");
+            var structure = arena.transform.Find("PlatformStructure");
+            var supports = structure.GetComponentsInChildren<MeshFilter>().Where(f => f.sharedMesh.name == "MF_PlateSupport").ToArray();
+            Check(supports.Length == c.Steps * MemoryRunConfig.LaneCount, "Every plate has an identical hydraulic support");
+            Check(structure.GetComponentsInChildren<Collider>().All(col => col.bounds.max.y < -.35f), "Supports do not protrude through landing surfaces");
+            Check(structure.GetComponentsInChildren<Collider>().Where(col => col.name == "CrossTrussChord").All(col => col.bounds.max.y < kill.bounds.max.y), "Cross trusses are below the death plane; no playable bypass");
+            Check(env.Find("FracturedShell").GetComponentsInChildren<MeshFilter>().Where(f => f.sharedMesh.name.StartsWith("MF_Ruin")).All(f => f.GetComponent<MeshCollider>() != null && f.gameObject.layer == LayerMask.NameToLayer("Ground")), "Visible structural shell blocks players and camera");
+            Check(env.Find("StartFacade/MF_Switchboard").GetComponent<BoxCollider>() != null, "Start switchboard is solid");
+            var presentation = game.GetComponent<MemoryRunFallPresentation>();
+            Check(presentation != null && new SerializedObject(presentation).FindProperty("fallingClip").objectReferenceValue != null, "Scene-specific falling clip wired");
             var conveyors = env.GetComponentsInChildren<MemoryFoundryConveyor>();
             Check(conveyors.Length == 3 && conveyors.All(line =>
             {
@@ -115,6 +124,16 @@ namespace Igruha.EditorTools
                 && t.GetComponentInChildren<Light>() != null),
                 "Thirteen environmental burn sites have persistent flames, smoke, embers and local light; none on game plates");
             Check(env.GetComponentsInChildren<Collider>().All(col => col.bounds.min.z < c.GateZ || col.bounds.max.z > c.ExitPadZ), "No solid shortcut along the chasm");
+            var bodyContacts = arena.transform.Find(MemoryRunBodyCollisionBuilder.RootName);
+            var detailShapes = bodyContacts != null ? bodyContacts.GetComponentsInChildren<Collider>() : Array.Empty<Collider>();
+            int bodyMask = LayerMask.GetMask("Ignore Raycast");
+            Check(detailShapes.Length > 1000 && detailShapes.All(shape => !shape.isTrigger
+                && shape.gameObject.layer == LayerMask.NameToLayer("Eliminated")
+                && shape.includeLayers.value == bodyMask && shape.excludeLayers.value == ~bodyMask),
+                "Detailed environment contacts only collide with passive bodies; no walking/camera shortcuts");
+            Check(bodyContacts != null && bodyContacts.GetComponentsInChildren<MemoryRunBodyContactFollower>().Length == 56
+                && bodyContacts.GetComponentsInChildren<Rigidbody>().All(body => body.isKinematic),
+                "All 56 moving cargo contacts have kinematic followers");
             var bay = env.Find("Bay_0");
             string Signature(Transform t) => string.Join(";", t.GetComponentsInChildren<Light>().Select(l => l.type + ":" + l.intensity + ":" + l.range + ":" + l.color));
             Check(Enumerable.Range(1, c.Steps - 1).All(i => Signature(env.Find("Bay_" + i)) == Signature(bay)), "Route bay lights repeat identically");

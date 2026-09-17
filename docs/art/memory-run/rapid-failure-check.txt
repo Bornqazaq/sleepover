@@ -1,0 +1,3 @@
+immediate walker=-1 addedDeaths=1,1,1,1
+t=0.60 walker=-1 addedDeaths=1,1,1,1
+t=1.91 walker=0 addedDeaths=1,1,1,1

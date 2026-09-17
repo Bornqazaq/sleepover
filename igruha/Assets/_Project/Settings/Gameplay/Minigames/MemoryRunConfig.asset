@@ -17,7 +17,7 @@ MonoBehaviour:
   turnSeconds: 40
   turnAnnounceSeconds: 2
   deathLimit: 10
-  ragdollSeconds: 1.5
+  ragdollSeconds: 2.8
   mineImpulse: 16
   unitsPerWidth: 0.72
   plateSize: 4

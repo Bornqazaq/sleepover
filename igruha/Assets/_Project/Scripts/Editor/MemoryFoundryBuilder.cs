@@ -254,13 +254,13 @@ namespace Igruha.EditorTools
             sun.transform.SetParent(parent, false); sun.type = LightType.Directional;
             sun.transform.localRotation = Quaternion.Euler(40, -110, 0);
             sun.color = new Color(.72f, .80f, .89f); sun.intensity = .8f;
-            sun.shadows = LightShadows.Soft; sun.shadowStrength = .75f;
+            sun.shadows = LightShadows.Soft; sun.shadowStrength = .95f;
             sun.shadowBias = .045f; sun.shadowNormalBias = .3f;
             RenderSettings.sun = sun;
             var fill = new GameObject("WarmRoofBounce").AddComponent<Light>();
             fill.transform.SetParent(parent, false); fill.type = LightType.Directional;
             fill.transform.localRotation = Quaternion.Euler(35, 25, 0);
-            fill.color = new Color(.62f, .72f, .79f); fill.intensity = .24f;
+            fill.color = new Color(.62f, .72f, .79f); fill.intensity = .13f;
             foreach (int side in new[] { -1, 1 })
             {
                 var spot = LightAt(parent, "LoadingBaySpot", new Vector3(side * 10, 8, -25), Warm, 18, 17, true);

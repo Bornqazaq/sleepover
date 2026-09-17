@@ -42,7 +42,7 @@ namespace Igruha.Minigames.MemoryRun
         [Tooltip("Сколько смертей до выбывания из очереди. Предохранитель против тех, кто не запоминает вообще")]
         [SerializeField] private int deathLimit = 10;
         [Tooltip("Рагдолл-отлёт после взрыва — столько же, сколько в Duck Hunt и «Секундомере»")]
-        [SerializeField] private float ragdollSeconds = 1.5f;
+        [SerializeField] private float ragdollSeconds = 2.8f;
         [Tooltip("Сила подброса при детонации, импульс вверх-назад")]
         [SerializeField] private float mineImpulse = 16f;
 

@@ -297,6 +297,15 @@ namespace Igruha.Minigames.MemoryRun
         [Rpc(SendTo.NotServer)]
         private void DetonationRpc(Vector3 center) => game?.ApplyDetonation(center);
 
+        // The victim is explicit: the next turn can replicate before this event arrives.
+        public void AnnounceFailure(int playerId, Vector3 impulse)
+        {
+            if (IsSpawned && IsServer) FailureClientRpc(playerId, impulse);
+        }
+
+        [Rpc(SendTo.NotServer)]
+        private void FailureClientRpc(int playerId, Vector3 impulse) => game?.ApplyFailure(playerId, impulse);
+
         private static MemoryRunProgressNetState ToNetState(in MemoryRunProgress record) =>
             new MemoryRunProgressNetState
             {

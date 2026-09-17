@@ -60,6 +60,7 @@ namespace Igruha.EditorTools
             MemoryRunEnvironment.Build(arena, config);
             GameObject manager = GameObject.Find("MinigameManager");
             WireManager(manager, gate);
+            MemoryFoundryPolish.Build(arena, config, manager);
             MemoryRunVfx.Build(arena, manager);
             MemoryFoundryProduction.DressMarker(manager);
             MemoryRunSfx.Build(arena, config, manager);

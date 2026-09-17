@@ -1,0 +1,50 @@
+Eight roster bodies: landing, joints, return, disposal
+t=0.66 RagdollTest_Aza root=(0.88, 0.42, -6.30) ragdoll=True bodies=11
+t=0.66 RagdollTest_Boss root=(0.88, 0.42, -1.98) ragdoll=True bodies=11
+t=0.66 RagdollTest_Fat root=(0.87, 0.42, 2.34) ragdoll=True bodies=11
+t=0.66 RagdollTest_Girl root=(0.88, 0.42, 6.66) ragdoll=True bodies=11
+t=0.66 RagdollTest_Milez root=(0.88, 0.42, 10.98) ragdoll=True bodies=11
+t=0.66 RagdollTest_MyBoy root=(0.88, 0.42, 15.30) ragdoll=True bodies=11
+t=0.66 RagdollTest_Player root=(0.88, 0.42, 19.62) ragdoll=True bodies=11
+t=0.66 RagdollTest_Shlanga root=(0.87, 0.42, 23.94) ragdoll=True bodies=11
+t=1.16 RagdollTest_Aza root=(2.18, -0.50, -6.31) ragdoll=True bodies=11
+t=1.16 RagdollTest_Boss root=(2.32, -0.60, -1.95) ragdoll=True bodies=11
+t=1.16 RagdollTest_Fat root=(2.27, -0.44, 2.38) ragdoll=True bodies=11
+t=1.16 RagdollTest_Girl root=(2.28, -0.52, 6.68) ragdoll=True bodies=11
+t=1.16 RagdollTest_Milez root=(2.29, -0.59, 11.00) ragdoll=True bodies=11
+t=1.16 RagdollTest_MyBoy root=(2.32, -0.64, 15.32) ragdoll=True bodies=11
+t=1.16 RagdollTest_Player root=(2.14, -0.47, 19.62) ragdoll=True bodies=11
+t=1.16 RagdollTest_Shlanga root=(2.24, -0.62, 23.97) ragdoll=True bodies=11
+t=1.63 RagdollTest_Aza root=(2.85, -0.54, -6.58) ragdoll=True bodies=11
+t=1.63 RagdollTest_Boss root=(3.38, -0.62, -2.06) ragdoll=True bodies=11
+t=1.63 RagdollTest_Fat root=(3.30, -0.48, 2.27) ragdoll=True bodies=11
+t=1.63 RagdollTest_Girl root=(3.31, -0.54, 6.59) ragdoll=True bodies=11
+t=1.63 RagdollTest_Milez root=(3.36, -0.62, 10.88) ragdoll=True bodies=11
+t=1.63 RagdollTest_MyBoy root=(3.39, -0.66, 15.26) ragdoll=True bodies=11
+t=1.63 RagdollTest_Player root=(2.60, -0.46, 19.21) ragdoll=True bodies=11
+t=1.63 RagdollTest_Shlanga root=(3.04, -0.62, 23.74) ragdoll=True bodies=11
+t=2.12 RagdollTest_Aza root=(4.05, -0.55, -6.88) ragdoll=True bodies=11
+t=2.12 RagdollTest_Boss root=(4.55, -0.63, -2.18) ragdoll=True bodies=11
+t=2.12 RagdollTest_Fat root=(4.44, -0.46, 2.17) ragdoll=True bodies=11
+t=2.12 RagdollTest_Girl root=(4.55, -0.55, 6.36) ragdoll=True bodies=11
+t=2.12 RagdollTest_Milez root=(4.52, -0.62, 10.73) ragdoll=True bodies=11
+t=2.12 RagdollTest_MyBoy root=(4.54, -0.64, 15.10) ragdoll=True bodies=11
+t=2.12 RagdollTest_Player root=(3.52, -0.50, 19.11) ragdoll=True bodies=11
+t=2.12 RagdollTest_Shlanga root=(4.18, -0.62, 23.50) ragdoll=True bodies=11
+t=2.65 RagdollTest_Aza root=(5.43, -0.62, -6.88) ragdoll=True bodies=11
+t=2.65 RagdollTest_Boss root=(5.87, -1.21, -2.28) ragdoll=True bodies=11
+t=2.65 RagdollTest_Fat root=(5.82, -0.96, 2.01) ragdoll=True bodies=11
+t=2.65 RagdollTest_Girl root=(5.89, -1.20, 6.20) ragdoll=True bodies=11
+t=2.65 RagdollTest_Milez root=(5.86, -1.18, 10.54) ragdoll=True bodies=11
+t=2.65 RagdollTest_MyBoy root=(5.96, -1.23, 14.91) ragdoll=True bodies=11
+t=2.65 RagdollTest_Player root=(4.76, -0.51, 19.23) ragdoll=True bodies=11
+t=2.65 RagdollTest_Shlanga root=(5.51, -0.83, 23.30) ragdoll=True bodies=11
+RagdollTest_Aza returned motor=True ragdoll=False collision=True animator=True
+RagdollTest_Boss returned motor=True ragdoll=False collision=True animator=True
+RagdollTest_Fat returned motor=True ragdoll=False collision=True animator=True
+RagdollTest_Girl returned motor=True ragdoll=False collision=True animator=True
+RagdollTest_Milez returned motor=True ragdoll=False collision=True animator=True
+RagdollTest_MyBoy returned motor=True ragdoll=False collision=True animator=True
+RagdollTest_Player returned motor=True ragdoll=False collision=True animator=True
+RagdollTest_Shlanga returned motor=True ragdoll=False collision=True animator=True
+maxJointAnchorSeparation=0.03986242

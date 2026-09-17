@@ -51,6 +51,7 @@ namespace Igruha.Minigames.MemoryRun
         /// и держать очередь всё это время.
         /// </summary>
         private const float FallThreshold = -2f;
+        private const float MineLaunchLiftRatio = .6f;
 
         /// <summary>
         /// На сколько метров от настила игрок ещё считается стоящим на нём.
@@ -154,6 +155,7 @@ namespace Igruha.Minigames.MemoryRun
         /// точка в мире — ровно то, что и так видели все восемь человек.
         /// </summary>
         public event System.Action<Vector3> MineDetonated;
+        public event System.Action<int> AttemptFailed;
 
         /// <summary>Кто сейчас идёт. Общеизвестно — над ним горит метка.</summary>
         public PlayerController CurrentWalker => walker;
@@ -222,6 +224,8 @@ namespace Igruha.Minigames.MemoryRun
         private int walkerId = TurnQueue.NoPlayer;
         private int turnNumber;
         private double announceDeadline;
+        private Coroutine pendingTurn;
+        private MemoryRunFallPresentation fallPresentation;
         private double turnDeadline;
         private bool turnClosing;
         private double nextGateCheck;
@@ -232,6 +236,7 @@ namespace Igruha.Minigames.MemoryRun
         {
             base.Awake();
             network = GetComponent<MemoryRunNetwork>();
+            fallPresentation = GetComponent<MemoryRunFallPresentation>();
         }
 
         protected override void OnEnable()
@@ -263,6 +268,7 @@ namespace Igruha.Minigames.MemoryRun
             for (int i = 0; i < Players.Count; i++)
             {
                 playerIds.Add(Players[i].Id);
+                fallPresentation?.Bind(Players[i].Id, Players[i].Avatar, config.GateZ);
                 displayNames[Players[i].Id] = Players[i].DisplayName;
 
                 // Заводим все ключи заранее: словарь потом только читается
@@ -307,6 +313,14 @@ namespace Igruha.Minigames.MemoryRun
             // уехало бы в хаб вместе с ним — у «Ангелов» так уехала
             // обездвиженность Водящего.
             StopAllCoroutines();
+            pendingTurn = null;
+            // A global round timeout may interrupt an in-flight return coroutine.
+            if (HasAuthority)
+                foreach (int id in returning)
+                {
+                    var avatar = FindAvatar(id);
+                    if (avatar != null) avatar.RequestTeleport(StartZonePoint(avatar), Quaternion.identity);
+                }
             returning.Clear();
             ClearTurn();
 
@@ -439,23 +453,9 @@ namespace Igruha.Minigames.MemoryRun
         /// вся механика: останься след, и следующий пойдёт по следам, а не
         /// по памяти. Копоть — только на лице персонажа, это фаза арта.
         /// </summary>
-        /// <remarks>
-        /// Импульс уходит через <c>ApplyWorldImpulse</c>, а не напрямую:
-        /// позицией персонажа распоряжается машина его владельца, и сила,
-        /// приложенная к серверной копии, была бы тут же перетёрта сетевым
-        /// состоянием. Тот же путь у пружины, снаряда и зоны смерти.
-        /// </remarks>
+        /// <remarks>The failure event applies the authorized impulse on the physics owner.</remarks>
         private void Detonate(Vector3 center)
         {
-            Vector3 away = walker.transform.position - center;
-            away.y = 0f;
-
-            Vector3 direction = away.sqrMagnitude > 0.01f
-                ? (away.normalized + Vector3.up * 1.6f).normalized
-                : Vector3.up;
-
-            walker.ApplyWorldImpulse(direction * config.MineImpulse);
-
             // Взрыв — событие, а не состояние: его отыгрывает каждая машина
             // у себя. Уходит наружу ровно то, что и так видел весь зал.
             network?.AnnounceDetonation(center);
@@ -548,6 +548,18 @@ namespace Igruha.Minigames.MemoryRun
                           $"место {where:F2}, последняя плита ш{lastStep}/п{lastLane}");
             }
 
+            if (reason == TurnEnd.Mine || reason == TurnEnd.Fell)
+            {
+                Vector3 impulse = Vector3.zero;
+                if (reason == TurnEnd.Mine)
+                {
+                    float side = finished.transform.position.x < 0 ? -1f : 1f;
+                    impulse = new Vector3(side, MineLaunchLiftRatio, 0).normalized * config.MineImpulse;
+                }
+                fallPresentation?.Fail(finishedId, impulse);
+                AttemptFailed?.Invoke(finishedId);
+                network?.AnnounceFailure(finishedId, impulse);
+            }
             ClearTurn();
 
             if (reason == TurnEnd.Reached)
@@ -618,7 +630,7 @@ namespace Igruha.Minigames.MemoryRun
         /// </summary>
         private IEnumerator EndAfterProgressPublished()
         {
-            yield return new WaitForSeconds(EndPublishGraceSeconds);
+            yield return new WaitForSeconds(Mathf.Max(EndPublishGraceSeconds, config.RagdollSeconds + EndPublishGraceSeconds));
             EndMinigame();
         }
 
@@ -646,6 +658,17 @@ namespace Igruha.Minigames.MemoryRun
         /// </summary>
         private void BeginTurn()
         {
+            if (pendingTurn != null)
+            {
+                StopCoroutine(pendingTurn);
+                pendingTurn = null;
+            }
+            if (returning.Contains(queue.CurrentPlayerId))
+            {
+                network?.PublishTurn(TurnQueue.NoPlayer, turnNumber, 0d, 0d);
+                pendingTurn = StartCoroutine(BeginTurnWhenReturned());
+                return;
+            }
             for (int skips = 0; skips < MaxTurnSkips; skips++)
             {
                 walkerId = queue.CurrentPlayerId;
@@ -697,8 +720,15 @@ namespace Igruha.Minigames.MemoryRun
             network?.PublishTurn(walkerId, turnNumber, announceDeadline, turnDeadline);
         }
 
+        private IEnumerator BeginTurnWhenReturned()
+        {
+            while (RoundActive && returning.Contains(queue.CurrentPlayerId)) yield return null;
+            pendingTurn = null;
+            if (RoundActive && walker == null) BeginTurn();
+        }
+
         /// <summary>
-        /// Рагдолл отыгрывается, потом персонаж возвращается в стартовую зону.
+        /// Реакция поражения отыгрывается, потом персонаж возвращается в стартовую зону.
         /// Следующая попытка начнётся снова с первого шага — накопленное
         /// в <see cref="MemoryRunState"/> при этом не сбрасывается: смерть
         /// стоит очереди и попытки, а не прогресса.
@@ -715,14 +745,22 @@ namespace Igruha.Minigames.MemoryRun
                 player.RequestTeleport(StartZonePoint(player), Quaternion.identity);
             }
 
-            // Перенос — поручение владельцу, и новая позиция доедет до сервера
-            // не этим кадром. Без отметки барьер увидел бы возвращаемого ещё
-            // за собой и отчитался бы о нарушителе на каждой смерти.
+            // Wait for the owner's position to arrive before allowing another attempt.
+            // Otherwise a quick queue rotation can count the same fall twice.
+            double retryAt = NetworkClock.Now + GatePushBackCooldown;
+            while (RoundActive && player != null
+                && (player.transform.position.z > config.GateZ
+                    || player.transform.position.y < config.StartZoneLift - SurfaceTolerance))
+            {
+                if (NetworkClock.Now >= retryAt)
+                {
+                    player.RequestTeleport(StartZonePoint(player), Quaternion.identity);
+                    retryAt = NetworkClock.Now + GatePushBackCooldown;
+                }
+                yield return null;
+            }
             gatePushedAt[playerId] = NetworkClock.Now;
 
-            // Пометку снимаем в любом случае, в том числе когда персонажа уже
-            // нет: иначе ушедший навсегда останется в списке возвращающихся,
-            // и барьер перестанет его касаться на весь раунд.
             returning.Remove(playerId);
         }
 
@@ -925,6 +963,13 @@ namespace Igruha.Minigames.MemoryRun
         /// Взрыв, объявленный сервером. Отыгрывается на каждой машине: сам
         /// отлёт везёт владелец персонажа, а VFX и звук фазы 4 приедут сюда.
         /// </summary>
+        public void ApplyFailure(int playerId, Vector3 impulse)
+        {
+            if (HasAuthority) return;
+            fallPresentation?.Fail(playerId, impulse);
+            AttemptFailed?.Invoke(playerId);
+        }
+
         public void ApplyDetonation(Vector3 center)
         {
             if (HasAuthority)

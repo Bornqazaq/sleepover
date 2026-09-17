@@ -1,0 +1,98 @@
+Memory Foundry audit
+PASS Identical plate 0/0
+PASS Visual, physics and server grid 0/0
+PASS Identical plate 0/1
+PASS Visual, physics and server grid 0/1
+PASS Identical plate 0/2
+PASS Visual, physics and server grid 0/2
+PASS Identical plate 1/0
+PASS Visual, physics and server grid 1/0
+PASS Identical plate 1/1
+PASS Visual, physics and server grid 1/1
+PASS Identical plate 1/2
+PASS Visual, physics and server grid 1/2
+PASS Identical plate 2/0
+PASS Visual, physics and server grid 2/0
+PASS Identical plate 2/1
+PASS Visual, physics and server grid 2/1
+PASS Identical plate 2/2
+PASS Visual, physics and server grid 2/2
+PASS Identical plate 3/0
+PASS Visual, physics and server grid 3/0
+PASS Identical plate 3/1
+PASS Visual, physics and server grid 3/1
+PASS Identical plate 3/2
+PASS Visual, physics and server grid 3/2
+PASS Identical plate 4/0
+PASS Visual, physics and server grid 4/0
+PASS Identical plate 4/1
+PASS Visual, physics and server grid 4/1
+PASS Identical plate 4/2
+PASS Visual, physics and server grid 4/2
+PASS Identical plate 5/0
+PASS Visual, physics and server grid 5/0
+PASS Identical plate 5/1
+PASS Visual, physics and server grid 5/1
+PASS Identical plate 5/2
+PASS Visual, physics and server grid 5/2
+PASS Identical plate 6/0
+PASS Visual, physics and server grid 6/0
+PASS Identical plate 6/1
+PASS Visual, physics and server grid 6/1
+PASS Identical plate 6/2
+PASS Visual, physics and server grid 6/2
+PASS Identical plate 7/0
+PASS Visual, physics and server grid 7/0
+PASS Identical plate 7/1
+PASS Visual, physics and server grid 7/1
+PASS Identical plate 7/2
+PASS Visual, physics and server grid 7/2
+PASS Identical plate 8/0
+PASS Visual, physics and server grid 8/0
+PASS Identical plate 8/1
+PASS Visual, physics and server grid 8/1
+PASS Identical plate 8/2
+PASS Visual, physics and server grid 8/2
+PASS Identical plate 9/0
+PASS Visual, physics and server grid 9/0
+PASS Identical plate 9/1
+PASS Visual, physics and server grid 9/1
+PASS Identical plate 9/2
+PASS Visual, physics and server grid 9/2
+PASS All plates present
+PASS StartZone has one visible walking surface; no coplanar base
+PASS ExitPad has one visible walking surface; no coplanar base
+PASS Queue gate wired; camera passes through
+PASS Gate spans the enlarged hall
+PASS Laminated glass is visible, transparent and adds no blocking colliders
+PASS Original turn signal replaces the fallback cylinder
+PASS Local marker has camera-clearance visibility guard
+PASS Emission survives URP material validation
+PASS Death plane unchanged at -6.14m; full-width coverage
+PASS Finish trigger present
+PASS Four event-driven blast instances wired
+PASS Every plate has an identical hydraulic support
+PASS Supports do not protrude through landing surfaces
+PASS Cross trusses are below the death plane; no playable bypass
+PASS Visible structural shell blocks players and camera
+PASS Start switchboard is solid
+PASS Scene-specific falling clip wired
+PASS Three elevated production loops, tread links, rollers and cargo wired
+PASS ProductionLine_Left continuous path, inclined motion and varied cargo
+PASS ProductionLine_Right continuous path, inclined motion and varied cargo
+PASS ProductionLine_UpperFeeder continuous path, inclined motion and varied cargo
+PASS Bottomless shaft: no floor mesh or floor collider
+PASS Original breached walls, damaged roof and outside district wired
+PASS Four kinds of varied shaft wrecks stay outside the central jump corridor, without shortcut colliders
+PASS Thirteen environmental burn sites have persistent flames, smoke, embers and local light; none on game plates
+PASS No solid shortcut along the chasm
+PASS Detailed environment contacts only collide with passive bodies; no walking/camera shortcuts
+PASS All 56 moving cargo contacts have kinematic followers
+PASS Route bay lights repeat identically
+PASS Saved scene dependency graph has no Synty/Polygon assets
+PASS All renderer materials and shaders resolve
+PASS No missing scripts
+Environment visible renderers=2130; triangles=1744572
+Hall=36 x 65.16 x 18.72; shaft=86.4
+Required diagonal gap=1.610m; unchanged.
+Failures=0

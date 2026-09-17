@@ -1,0 +1,26 @@
+{
+  "host": {
+    "mines": 6,
+    "failures": 14,
+    "samples": 98,
+    "early_missing_ragdoll": 0,
+    "return_samples": 14,
+    "bad_returns": 0,
+    "getting_up": 0,
+    "exceptions": 0,
+    "end": "END scene unloaded; mines=6; safe=40",
+    "results": true
+  },
+  "client": {
+    "mines": 6,
+    "failures": 14,
+    "samples": 98,
+    "early_missing_ragdoll": 0,
+    "return_samples": 14,
+    "bad_returns": 0,
+    "getting_up": 0,
+    "exceptions": 0,
+    "end": "END scene unloaded; mines=6; safe=0",
+    "results": true
+  }
+}

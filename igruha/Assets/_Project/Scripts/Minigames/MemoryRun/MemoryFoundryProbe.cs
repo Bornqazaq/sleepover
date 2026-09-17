@@ -1,5 +1,6 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
 using System.IO;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Unity.Netcode;
@@ -38,7 +39,7 @@ namespace Igruha.Minigames.MemoryRun
                 ? (NetworkManager.Singleton.IsHost ? "host" : "client") : "editor";
             game = FindFirstObjectByType<MemoryRunMinigame>();
             blasts = GameObject.Find("_Effects").GetComponentsInChildren<ParticleSystem>();
-            game.MineDetonated += Detonated; game.SafePlateProved += Safe;
+            game.MineDetonated += Detonated; game.SafePlateProved += Safe; game.AttemptFailed += Failed;
             Write("BEGIN original foundry; scene=" + game.gameObject.scene.name);
             var lines = FindObjectsByType<MemoryFoundryConveyor>(FindObjectsSortMode.None);
             if (lines.Length > 0)
@@ -50,6 +51,28 @@ namespace Igruha.Minigames.MemoryRun
             var signal = marker == null ? null : marker.GetComponentInChildren<MeshFilter>(true);
             Write("PRESENTATION conveyors=" + lines.Length + " signal=" + (signal == null ? "missing" : signal.sharedMesh.name));
             reportAt = Time.unscaledTime + 15;
+        }
+        private void Failed(int id) => StartCoroutine(ObserveFailure(id));
+        private IEnumerator ObserveFailure(int id)
+        {
+            var avatar = game.AvatarOf(id);
+            if (avatar == null) yield break;
+            var pose = avatar.GetComponent<MemoryRunFallPose>();
+            var animator = avatar.GetComponentInChildren<Animator>();
+            Vector3 origin = avatar.transform.position;
+            Write("FAILURE id=" + id + " poseBound=" + (pose != null));
+            for (int sample = 0; sample < 7; sample++)
+            {
+                yield return new WaitForSeconds(sample == 0 ? .25f : .5f);
+                if (avatar == null || pose == null) yield break;
+                Write("FAILURE_SAMPLE id=" + id + " t=" + (.25f + sample * .5f).ToString("F2")
+                    + " pos=" + avatar.transform.position.ToString("F2") + " presenting=" + pose.IsPresenting
+                    + " ragdoll=" + pose.IsRagdoll + " bodies=" + pose.RagdollBodies
+                    + " failed=" + pose.IsFailure + " locked=" + avatar.MovementLocked
+                    + " travel=" + Vector3.Distance(origin, avatar.transform.position).ToString("F2")
+                    + " gettingUp=" + (animator != null && (animator.GetCurrentAnimatorStateInfo(0).IsName("StandUpFromBack")
+                        || animator.GetCurrentAnimatorStateInfo(0).IsName("StandUpFromForward"))));
+            }
         }
         private void Safe(int row, int lane) { safeLandings++; }
         private void Detonated(Vector3 center)
@@ -107,7 +130,7 @@ namespace Igruha.Minigames.MemoryRun
         }
         private void OnDestroy()
         {
-            if (game != null) { game.MineDetonated -= Detonated; game.SafePlateProved -= Safe; }
+            if (game != null) { game.MineDetonated -= Detonated; game.SafePlateProved -= Safe; game.AttemptFailed -= Failed; }
             if (folder != null) Write("END scene unloaded; mines=" + detonations + "; safe=" + safeLandings);
         }
     }

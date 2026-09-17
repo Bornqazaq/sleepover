@@ -13,43 +13,22 @@ namespace Igruha.EditorTools
             var pool = new ParticleSystem[PoolSize];
             for (int i = 0; i < PoolSize; i++)
             {
-                var cloud = Burst(root, "MineBlast_" + i, "Smoke", 22, 1.15f, 2.8f, 1.15f, new Color(1, .70f, .32f));
-                Burst(cloud.transform, "PressureRing", "Ring", 1, .7f, 0, 1, new Color(1, .81f, .39f), 7);
-                Burst(cloud.transform, "SmokeTail", "Smoke", 9, 1.6f, 1.1f, .95f, new Color(.40f, .36f, .30f));
+                var cloud = Burst(root, "MineBlast_" + i, "Smoke", 16, .8f, 3.6f, .7f, new Color(.48f, .40f, .30f));
+                Burst(cloud.transform, "PressureFlash", "Puff", 1, .13f, 0, 2.2f, new Color(3.5f, 2.3f, .9f), 1.3f);
+                var ring = Burst(cloud.transform, "PressureRing", "Ring", 1, .35f, 0, 1, new Color(1.4f, 1.0f, .5f), 6);
+                var rr = ring.GetComponent<ParticleSystemRenderer>();
+                rr.renderMode = ParticleSystemRenderMode.HorizontalBillboard;
+                var sparks = Burst(cloud.transform, "HotFragments", "Puff", 18, .45f, 7, .085f, new Color(2.8f, 1.25f, .24f), .3f);
+                var sm = sparks.main; sm.gravityModifier = 1.4f;
+                var sr = sparks.GetComponent<ParticleSystemRenderer>();
+                sr.renderMode = ParticleSystemRenderMode.Stretch; sr.lengthScale = 2; sr.velocityScale = .06f;
+                Burst(cloud.transform, "SmokeTail", "Smoke", 7, 1.1f, 1.4f, .7f, new Color(.40f, .36f, .30f));
                 pool[i] = cloud;
             }
-            var soot = new GameObject("SootTemplate"); soot.transform.SetParent(root, false);
-            var smudge = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            smudge.name = "Smudge"; Object.DestroyImmediate(smudge.GetComponent<Collider>());
-            smudge.transform.SetParent(soot.transform, false);
-            smudge.transform.localPosition = new Vector3(0, .05f, 0);
-            smudge.transform.localScale = new Vector3(.30f, .26f, .30f);
-            string sootPath = MemoryFoundryAssets.Materials + "/MF_Soot.mat";
-            var sootMaterial = AssetDatabase.LoadAssetAtPath<Material>(sootPath);
-            if (sootMaterial == null)
-            {
-                sootMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-                AssetDatabase.CreateAsset(sootMaterial, sootPath);
-            }
-            Igruha.Minigames.HoleInWall.HoleInWallMaterials.ConfigureTransparent(sootMaterial, new Color(.10f, .085f, .075f, .62f), .1f);
-            EditorUtility.SetDirty(sootMaterial);
-            smudge.GetComponent<Renderer>().sharedMaterial = sootMaterial;
-            smudge.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            var wisp = MemoryFoundryAtmosphere.Create(soot.transform, "Wisp", "Puff");
-            wisp.transform.localPosition = new Vector3(0, .22f, 0);
-            wisp.transform.localRotation = Quaternion.Euler(-90, 0, 0);
-            var wm = wisp.main; wm.loop = true; wm.playOnAwake = true;
-            wm.startLifetime = 1.2f; wm.startSpeed = .55f; wm.startSize = .22f;
-            wm.startColor = new Color(.15f, .13f, .11f); wm.maxParticles = 12;
-            var we = wisp.emission; we.rateOverTime = 6;
-            var ws = wisp.shape; ws.shapeType = ParticleSystemShapeType.Cone; ws.radius = .045f; ws.angle = 10;
-            MemoryFoundryAtmosphere.Fade(wisp, new Color(.16f, .14f, .12f), .8f);
-            soot.SetActive(false);
             var effects = manager.GetComponent<MemoryRunEffects>();
             if (effects == null) effects = manager.AddComponent<MemoryRunEffects>();
             var so = new SerializedObject(effects);
             so.FindProperty("game").objectReferenceValue = manager.GetComponent<MemoryRunMinigame>();
-            so.FindProperty("sootTemplate").objectReferenceValue = soot;
             var blasts = so.FindProperty("blasts"); blasts.arraySize = PoolSize;
             for (int i = 0; i < PoolSize; i++) blasts.GetArrayElementAtIndex(i).objectReferenceValue = pool[i];
             so.ApplyModifiedPropertiesWithoutUndo();
@@ -71,6 +50,6 @@ namespace Igruha.EditorTools
             MemoryFoundryAtmosphere.Fade(ps, color, .95f);
             return ps;
         }
-        internal static string Report() => "Four original pooled smoke blasts with pressure rings; no fire, debris or marks on plates.";
+        internal static string Report() => "Four pooled pressure flashes, shock rings, hot particles and short smoke; no persistent marks on plates.";
     }
 }
