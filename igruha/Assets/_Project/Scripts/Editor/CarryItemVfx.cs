@@ -6,27 +6,9 @@ using Igruha.Minigames.CarryItem;
 
 namespace Igruha.EditorTools
 {
-    /// <summary>
-    /// Эффекты «Переноски предмета» — подфаза 4.4. Пак — <b>POLYGON Particle FX</b>.
-    ///
-    /// Здесь только сборка: какие эффекты завести, где их положить и чем
-    /// перекрасить. Когда они играют — дело <see cref="CarryItemEffects"/>,
-    /// и он висит на событиях, которые игра уже поднимает. <c>Core/</c> на этой
-    /// подфазе не тронут ни строкой, новых сообщений по сети нет.
-    ///
-    /// <b>Партиклы пака переводятся в ручной запуск.</b> У них у всех
-    /// <c>playOnAwake</c> и почти у всех зацикливание: оставь как есть — и
-    /// арена с первого кадра стоит в брызгах. Исключение ровно два, и оба
-    /// постоянные по замыслу: струя прорванной трубы и пыль стройки.
-    ///
-    /// <b>Пул лежит на арене, а не на бутыли.</b> Бутыль исчезает в тот же
-    /// кадр, в который сливается: вложенный в неё всплеск погас бы ровно в тот
-    /// момент, ради которого его ставили.
-    /// </summary>
+    /// <summary>Own particle recipes; playback remains driven by existing CarryItemEffects events.</summary>
     internal static class CarryItemVfx
     {
-        private const string Fx = "Assets/Synty/PolygonParticleFX/Prefabs/";
-
         /// <summary>Сколько копий держит каждый пул. Больше — на восьмерых эффекты обрывают сами себя.</summary>
         private const int PoolSize = 4;
 
@@ -38,16 +20,13 @@ namespace Igruha.EditorTools
         {
             Transform group = ResetGroup(arena, "Effects");
 
-            // Масштабы подобраны замером высоты разлёта, а не на глаз: эффекты
-            // пака рассчитаны на открытое поле, и в родном размере всплеск
-            // уходил на пять метров, а облако тачки — на восемь с половиной.
-            // Над маршрутом это стена брызг вместо обратной связи.
-            ParticleSystem[] splashes = Pool(group, "Splash", Fx + "FX_Impact_Water_01.prefab", 0.55f);
-            ParticleSystem[] sprays = Pool(group, "Spray", Fx + "FX_Impact_Water_Ripple_01.prefab", 0.34f);
-            ParticleSystem[] dusts = Pool(group, "Dust", Fx + "FX_Impact_Stone_01.prefab", 0.45f);
-            ParticleSystem[] swooshes = Pool(group, "Swoosh", Fx + "FX_Slash_01.prefab", 1.1f);
+            // Собственные компактные рецепты: не перекрывают доски и столбик воды.
+            ParticleSystem[] splashes = Pool(group, "Splash");
+            ParticleSystem[] sprays = Pool(group, "Spray");
+            ParticleSystem[] dusts = Pool(group, "Dust");
+            ParticleSystem[] swooshes = Pool(group, "Swoosh");
 
-            ParticleSystem cartBurst = Spawn(group, "CartBurst", Fx + "FX_Impact_Dirt_01.prefab", 0.55f);
+            ParticleSystem cartBurst = Spawn(group, "CartBurst");
             if (cartBurst != null && cart != null)
             {
                 cartBurst.transform.position = cart.transform.position;
@@ -76,16 +55,16 @@ namespace Igruha.EditorTools
                 return;
             }
 
-            ParticleSystem jet = Spawn(group, "PipeJet", Fx + "FX_WaterDrip_01.prefab", 1.3f,
+            ParticleSystem jet = Spawn(group, "PipeJet",
                 keepLoop: true, keepAwake: true);
             if (jet == null)
             {
                 return;
             }
 
-            float edgeZ = config.NeckWidth * 0.5f - 1.1f;
+            float edgeZ = config.NeckWidth * 0.5f + .2f;
             jet.transform.position = new Vector3(
-                pipe.position.x, config.ToMeters(1f), config.ToMeters(edgeZ));
+                pipe.position.x, .98f, config.ToMeters(edgeZ));
 
             // Смотрит поперёк прохода, в сторону осевой: вода идёт от излома
             // к середине горлышка, а не вдоль маршрута.
@@ -104,7 +83,7 @@ namespace Igruha.EditorTools
                 return;
             }
 
-            ParticleSystem trail = Spawn(group, "BeamTrail", Fx + "FX_Trail_Dust_01.prefab", 0.7f,
+            ParticleSystem trail = Spawn(group, "BeamTrail",
                 keepLoop: true, keepAwake: true);
             if (trail == null)
             {
@@ -134,7 +113,7 @@ namespace Igruha.EditorTools
 
             for (int i = 0; i < spots.Length; i++)
             {
-                ParticleSystem haze = Spawn(group, $"Haze_{i + 1}", Fx + "FX_Dust_Small_01.prefab", 0.85f,
+                ParticleSystem haze = Spawn(group, $"Haze_{i + 1}",
                     keepLoop: true, keepAwake: true);
                 if (haze == null)
                 {
@@ -181,7 +160,7 @@ namespace Igruha.EditorTools
 
             for (int i = 0; i < spots.Length; i++)
             {
-                ParticleSystem haze = Spawn(group, $"ChasmHaze_{i + 1}", Fx + "FX_Dust_Small_01.prefab", 1.6f,
+                ParticleSystem haze = Spawn(group, $"ChasmHaze_{i + 1}",
                     keepLoop: true, keepAwake: true);
                 if (haze == null)
                 {
@@ -207,14 +186,14 @@ namespace Igruha.EditorTools
         }
 
         /// <summary>Пул одинаковых эффектов: играются по кругу, стоят под полом, пока не нужны.</summary>
-        private static ParticleSystem[] Pool(Transform group, string kind, string prefabPath, float scale)
+        private static ParticleSystem[] Pool(Transform group, string kind)
         {
             var pool = new ParticleSystem[PoolSize];
             Transform holder = ResetGroup(group, kind);
 
             for (int i = 0; i < PoolSize; i++)
             {
-                pool[i] = Spawn(holder, $"{kind}_{i + 1}", prefabPath, scale);
+                pool[i] = Spawn(holder, $"{kind}_{i + 1}");
                 if (pool[i] != null)
                 {
                     pool[i].transform.position = Parking;
@@ -224,86 +203,54 @@ namespace Igruha.EditorTools
             return pool;
         }
 
-        /// <summary>
-        /// Поставить эффект пака и перевести его в ручной запуск.
-        ///
-        /// Автостарт с зацикливанием — состояние по умолчанию у всех партиклов
-        /// пака: без этой правки арена стоит в брызгах с первого кадра, а
-        /// эффект события никогда не «начинается».
-        /// </summary>
-        private static ParticleSystem Spawn(Transform parent, string effectName, string prefabPath, float scale,
+        /// <summary>Создать локальные частицы; события вручную, струя и дымка зациклены.</summary>
+        private static ParticleSystem Spawn(Transform parent, string effectName,
             bool keepLoop = false, bool keepAwake = false)
         {
-            if (!DressKit.TryLoad(prefabPath, out GameObject prefab))
+            var go = new GameObject(effectName); go.transform.SetParent(parent, false);
+            var ps = go.AddComponent<ParticleSystem>(); ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            bool water = effectName.Contains("Splash") || effectName.Contains("Spray") || effectName == "PipeJet";
+            bool haze = effectName.Contains("Haze");
+            var main=ps.main; main.loop=keepLoop; main.playOnAwake=keepAwake;
+            main.duration=1; main.startLifetime=water?.65f:.9f;
+            main.startSpeed=water?new ParticleSystem.MinMaxCurve(1,2.7f):new ParticleSystem.MinMaxCurve(.15f,.6f);
+            main.startSize=water?new ParticleSystem.MinMaxCurve(.035f,.09f):new ParticleSystem.MinMaxCurve(.08f,.25f);
+            main.startColor=water?new Color(.60f,.82f,.94f,.8f):new Color(.76f,.73f,.65f,.22f);
+            main.gravityModifier=water?.5f:0;main.maxParticles=haze?100:160;
+            main.simulationSpace=ParticleSystemSimulationSpace.World;
+            var shape=ps.shape;shape.shapeType=ParticleSystemShapeType.Cone;shape.angle=30;shape.radius=.1f;
+            var emission=ps.emission;emission.rateOverTime=keepLoop?(haze?9:28):0;
+            if(!keepLoop) emission.SetBursts(new[]{new ParticleSystem.Burst(0, (short)(water?28:18))});
+            if(haze){shape.shapeType=ParticleSystemShapeType.Box;shape.scale=new Vector3(7,.5f,8);main.startSize=new ParticleSystem.MinMaxCurve(.015f,.055f);}
+            if(effectName=="PipeJet")
             {
-                return null;
+                main.startSpeed=4.5f;main.startLifetime=1.35f;main.gravityModifier=.12f;
+                shape.angle=5;shape.radius=.07f;emission.rateOverTime=70;
+                main.startSize=new ParticleSystem.MinMaxCurve(.05f,.13f);
             }
-
-            var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
-            go.name = effectName;
-            go.transform.localScale = Vector3.one * scale;
-
-            var systems = go.GetComponentsInChildren<ParticleSystem>(true);
-            for (int i = 0; i < systems.Length; i++)
-            {
-                ParticleSystem.MainModule main = systems[i].main;
-                main.playOnAwake = keepAwake;
-                main.loop = keepLoop;
-
-                // Без этого масштаб корня не доходит до вложенных систем.
-                // У эффектов пака scalingMode стоит Local: дочерняя система
-                // берёт только свой трансформ и родителя не слушает вовсе —
-                // уменьшенный вдвое эффект продолжал разлетаться на прежние
-                // метры, и замер высоты не двигался ни на сантиметр, сколько
-                // масштаб ни правь.
-                main.scalingMode = ParticleSystemScalingMode.Hierarchy;
-            }
-
-            MarkAsEffect(go);
-            return go.GetComponent<ParticleSystem>();
+            var life=ps.colorOverLifetime;life.enabled=true;
+            var gradient=new Gradient();gradient.SetKeys(new[]{new GradientColorKey(Color.white,0),new GradientColorKey(Color.white,1)},
+                new[]{new GradientAlphaKey(0,0),new GradientAlphaKey(1,.12f),new GradientAlphaKey(0,1)});life.color=gradient;
+            var renderer=ps.GetComponent<ParticleSystemRenderer>();renderer.sharedMaterial=ParticleMaterial();
+            renderer.shadowCastingMode=ShadowCastingMode.Off;renderer.receiveShadows=false;
+            if(water) { renderer.renderMode=ParticleSystemRenderMode.Stretch;renderer.lengthScale=1.6f;renderer.velocityScale=.04f; }
+            return ps;
         }
 
-        /// <summary>
-        /// Пометить эффект: без коллайдеров, без света, без теней, на
-        /// <c>Default</c> и без статической пакетной отрисовки.
-        ///
-        /// Последнее не мелочь: у окружения статичность включена, а помеченный
-        /// статичным партикл Unity вмораживает в общий меш вместе с его текущим
-        /// положением — переставить его перед запуском уже нельзя, а весь пул
-        /// на том и держится.
-        /// </summary>
-        private static void MarkAsEffect(GameObject go)
+        private static Material ParticleMaterial()
         {
-            var colliders = go.GetComponentsInChildren<Collider>(true);
-            for (int i = 0; i < colliders.Length; i++)
+            string path=CarrySkyscraperAssets.Materials+"/CS_Particle.mat";
+            var mat=AssetDatabase.LoadAssetAtPath<Material>(path);
+            if(mat==null)
             {
-                Object.DestroyImmediate(colliders[i], true);
+                mat=new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
+                mat.SetFloat("_Surface",1);mat.SetFloat("_Blend",0);mat.SetFloat("_SrcBlend",5);mat.SetFloat("_DstBlend",10);mat.SetFloat("_ZWrite",0);
+                mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");mat.renderQueue=3000;
+                mat.SetColor("_BaseColor",Color.white);
+                mat.SetTexture("_BaseMap",AssetDatabase.LoadAssetAtPath<Texture2D>(CarrySkyscraperAssets.Art+"/Textures/CS_Particle.png"));
+                AssetDatabase.CreateAsset(mat,path);
             }
-
-            var lights = go.GetComponentsInChildren<Light>(true);
-            for (int i = 0; i < lights.Length; i++)
-            {
-                Object.DestroyImmediate(lights[i], true);
-            }
-
-            var renderers = go.GetComponentsInChildren<Renderer>(true);
-            for (int i = 0; i < renderers.Length; i++)
-            {
-                renderers[i].shadowCastingMode = ShadowCastingMode.Off;
-                renderers[i].receiveShadows = false;
-            }
-
-            SetLayer(go, LayerMask.NameToLayer("Default"));
-            GameObjectUtility.SetStaticEditorFlags(go, 0);
-        }
-
-        private static void SetLayer(GameObject go, int layer)
-        {
-            go.layer = layer;
-            foreach (Transform child in go.transform)
-            {
-                SetLayer(child.gameObject, layer);
-            }
+            return mat;
         }
 
         private static void Wire(GameObject manager, BottleStack[] stacks, TrapBase cart,

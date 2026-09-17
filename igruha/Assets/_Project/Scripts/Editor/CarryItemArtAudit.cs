@@ -150,64 +150,82 @@ namespace Igruha.EditorTools
         }
 
         /// <summary>
-        /// Декор, поставленный мимо коробок блокаута: тачки-ловушки и стояк
-        /// трубы. Коллайдеров у него быть не должно — иначе он ловит броски
-        /// бутыли, кирпичи и струю, — и стоять он обязан на полу, а не в нём
-        /// и не над ним.
+        /// Коллизии по назначению: твёрдый реквизит, свободные маршруты и фон без физики.
         /// </summary>
         private static void MeasureScenery(List<GameObject> roots, StringBuilder report)
         {
-            var props = new List<GameObject>();
-            for (int r = 0; r < roots.Count; r++)
+            var arena=GameObject.Find("_Arena");
+            var env=arena.transform.Find("Environment");
+            var horizon=env.Find("Horizon");
+            int backgroundColliders=horizon.GetComponentsInChildren<Collider>(true).Length;
+            int wrongLayers=0,missingSolids=0;
+            foreach(var c in env.GetComponentsInChildren<Collider>(true))
+                if(!c.isTrigger && c.gameObject.layer!=LayerMask.NameToLayer("Ground") && c.gameObject.layer!=LayerMask.NameToLayer("Cover"))wrongLayers++;
+            foreach(string group in new[]{"Structure","WorkAreas"})
+            foreach(Transform t in env.Find(group))
+                if(t.name!="CS_Puddle" && t.name!="CS_CableCoil" && t.GetComponentsInChildren<Collider>().Length==0)missingSolids++;
+            int floorMisses=0;int mask=LayerMask.GetMask("Ground","Cover");
+            foreach(Transform p in arena.transform.Find("Planks"))
             {
-                Transform[] all = roots[r].GetComponentsInChildren<Transform>(true);
-                for (int i = 0; i < all.Length; i++)
+                var b=p.GetComponent<Collider>().bounds;
+                for(int i=0;i<=30;i++)foreach(float side in new[]{-.45f,0,.45f})
                 {
-                    if (IsProp(all[i].name))
+                    var origin=new Vector3(Mathf.Lerp(b.min.x+.02f,b.max.x-.02f,i/30f),.35f,b.center.z+b.size.z*side);
+                    if(!Physics.Raycast(origin,Vector3.down,out var hit,.5f,mask,QueryTriggerInteraction.Ignore) || Mathf.Abs(hit.point.y)>.02f)floorMisses++;
+                }
+            }
+            report.Append("\n\n— Original scenery and route —")
+                .Append("\n  background colliders: ").Append(backgroundColliders).Append(Mark(backgroundColliders==0))
+                .Append("\n  wrong camera layers: ").Append(wrongLayers).Append(Mark(wrongLayers==0))
+                .Append("\n  solid props without collision: ").Append(missingSolids).Append(Mark(missingSolids==0))
+                .Append("\n  bridge support failures / 372 probes: ").Append(floorMisses).Append(Mark(floorMisses==0));
+            var dependencies=new HashSet<string>(AssetDatabase.GetDependencies("Assets/_Project/Scenes/Minigames/CarryItem.unity",true));
+            foreach(var path in new[]{BottlePrefabPath,BrickPrefabPath,"Assets/_Project/Prefabs/Minigames/CarryItem/Tank.prefab","Assets/_Project/Prefabs/Minigames/CarryItem/BottleStack.prefab"})
+                foreach(var d in AssetDatabase.GetDependencies(path,true))dependencies.Add(d);
+            int oldArt=0;
+            foreach(var d in dependencies)if(d.StartsWith("Assets/Synty/") || d.Contains("Art/CarryItem/Polygon"))oldArt++;
+            report.Append("\n  Synty dependencies incl. runtime prefabs: ").Append(oldArt).Append(Mark(oldArt==0));
+            int routeProbes=0,blocked=0;
+            var blockers=new HashSet<string>();
+            Physics.SyncTransforms();
+            foreach(var route in Object.FindObjectsByType<CarryItemBotRoute>(FindObjectsSortMode.None))
+            {
+                var points=new List<Transform>();
+                foreach(Transform child in route.transform)points.Add(child);
+                for(int i=1;i<points.Count;i++)
+                {
+                    int steps=Mathf.CeilToInt(Vector3.Distance(points[i-1].position,points[i].position)/.15f);
+                    for(int j=0;j<=steps;j++)
                     {
-                        props.Add(all[i].gameObject);
+                        Vector3 p=Vector3.Lerp(points[i-1].position,points[i].position,(float)j/steps);
+                        routeProbes++;
+                        foreach(var c in Physics.OverlapCapsule(p+Vector3.up*.40f,p+Vector3.up*1.45f,.36f,mask,QueryTriggerInteraction.Ignore))
+                        {
+                            // Moving beam is an intentional timed obstacle; scenery must never block the lane.
+                            if(c.name=="SwingingBeam")continue;
+                            blocked++;blockers.Add(c.name);
+                        }
                     }
                 }
             }
-
-            int colliders = 0;
-            int offFloor = 0;
-            float worst = 0f;
-
-            for (int i = 0; i < props.Count; i++)
+            report.Append("\n  blocked character capsules / ").Append(routeProbes).Append(" route probes: ")
+                .Append(blocked).Append(Mark(blocked==0));
+            foreach(var name in blockers)report.Append("\n    blocker: ").Append(name);
+            var config=AssetDatabase.LoadAssetAtPath<CarryItemConfig>("Assets/_Project/Settings/Gameplay/Minigames/CarryItemConfig.asset");
+            int pickupBlocked=0,cameraBlocked=0;
+            foreach(var stack in Object.FindObjectsByType<BottleStack>(FindObjectsSortMode.None))
             {
-                colliders += props[i].GetComponentsInChildren<Collider>(true).Length;
-                if (!StandsOnFloor(props[i].name) || !TryWorldBounds(props[i], out Bounds bounds))
+                Vector3 p=stack.transform.Find("BottleSpawn").position;
+                for(int i=0;i<32;i++)
                 {
-                    continue;
+                    float angle=i*Mathf.PI/16;
+                    Vector3 station=p+new Vector3(Mathf.Cos(angle),0,Mathf.Sin(angle))*(config.HandleRadius+config.CarrierStandoff);
+                    pickupBlocked+=Physics.OverlapCapsule(station+Vector3.up*.4f,station+Vector3.up*1.45f,.36f,mask,QueryTriggerInteraction.Ignore).Length;
                 }
-
-                float gap = Mathf.Abs(bounds.min.y);
-                if (gap > Tolerance)
-                {
-                    offFloor++;
-                    worst = Mathf.Max(worst, gap);
-                }
+                if(Physics.SphereCast(p+Vector3.up*1.5f,.35f,Vector3.left,out var hit,4.5f,mask,QueryTriggerInteraction.Ignore))cameraBlocked++;
             }
-
-            report.Append("\n\n— Декор мимо коробок —");
-            // Отдельной строкой — вся группа окружения целиком. Список имён
-            // знает только реквизит, который ставится поимённо; забор,
-            // ограждения кромок и скайлайн в него не входят — их десятки и они
-            // безымянные. Правило «у окружения коллайдеров нет» касается их
-            // ровно так же, и проверять его надо по группе, а не по списку.
-            GameObject arenaRoot = GameObject.Find("_Arena");
-            Transform environment = arenaRoot != null ? arenaRoot.transform.Find("Environment") : null;
-            int environmentColliders = environment != null
-                ? environment.GetComponentsInChildren<Collider>(true).Length
-                : -1;
-
-            report.Append("\n  предметов:                ").Append(props.Count);
-            report.Append("\n  коллайдеров в них:        ").Append(colliders).Append(colliders == 0 ? " ✔" : " ✘");
-            report.Append("\n  коллайдеров в окружении:  ").Append(environmentColliders)
-                .Append(environmentColliders == 0 ? " ✔" : " ✘");
-            report.Append("\n  не стоит на полу:         ").Append(offFloor)
-                .Append(offFloor == 0 ? " ✔" : $" ✘ (до {worst:F2} м)");
+            report.Append("\n  blocked pickup stations / 64 probes: ").Append(pickupBlocked).Append(Mark(pickupBlocked==0));
+            report.Append("\n  blocked 4.5 m camera approaches: ").Append(cameraBlocked).Append(Mark(cameraBlocked==0));
         }
 
         /// <summary>Постоянные эффекты: те, которым автостарт положен по замыслу.</summary>
@@ -426,6 +444,10 @@ namespace Igruha.EditorTools
                 Transform jet = bottle.transform.Find("PourJet");
                 Transform handles = bottle.transform.Find("Handles");
 
+                var shell=bottle.transform.Find("Body").GetComponentInChildren<Renderer>().sharedMaterial;
+                var waterSo=new SerializedObject(water);
+                report.Append("\n  transparent shell: ").Append(Mark(shell.GetFloat("_Surface")==1 && shell.GetColor("_BaseColor").a<.3f));
+                report.Append("\n  team shoulders/neck/cap: ").Append(Mark(waterSo.FindProperty("teamTint").arraySize==4));
                 report.Append("\n  бутыль: столбик воды      ").Append(Mark(pivot != null));
                 report.Append("\n          крышка (цвет команды) ").Append(Mark(cap != null));
                 report.Append("\n          струя из горлышка ").Append(Mark(jet != null));

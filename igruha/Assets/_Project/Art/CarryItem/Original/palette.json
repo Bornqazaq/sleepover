@@ -1,0 +1,412 @@
+{
+  "materials": [
+    {
+      "name": "CS_Concrete",
+      "color": [
+        0.66,
+        0.675,
+        0.66,
+        1
+      ],
+      "roughness": 0.92,
+      "metallic": 0,
+      "texture": "Concrete"
+    },
+    {
+      "name": "CS_ConcreteEdge",
+      "color": [
+        0.47,
+        0.49,
+        0.48,
+        1
+      ],
+      "roughness": 0.94,
+      "metallic": 0,
+      "texture": "Concrete"
+    },
+    {
+      "name": "CS_Timber",
+      "color": [
+        0.69,
+        0.48,
+        0.26,
+        1
+      ],
+      "roughness": 0.86,
+      "metallic": 0,
+      "texture": "Wood"
+    },
+    {
+      "name": "CS_Plywood",
+      "color": [
+        0.49,
+        0.34,
+        0.19,
+        1
+      ],
+      "roughness": 0.86,
+      "metallic": 0,
+      "texture": "Wood"
+    },
+    {
+      "name": "CS_Galvanized",
+      "color": [
+        0.43,
+        0.5,
+        0.53,
+        1
+      ],
+      "roughness": 0.38,
+      "metallic": 0.65,
+      "texture": ""
+    },
+    {
+      "name": "CS_Iron",
+      "color": [
+        0.14,
+        0.19,
+        0.21,
+        1
+      ],
+      "roughness": 0.52,
+      "metallic": 0.58,
+      "texture": ""
+    },
+    {
+      "name": "CS_Rebar",
+      "color": [
+        0.26,
+        0.18,
+        0.14,
+        1
+      ],
+      "roughness": 0.86,
+      "metallic": 0.4,
+      "texture": ""
+    },
+    {
+      "name": "CS_SafetyMesh",
+      "color": [
+        0.24,
+        0.43,
+        0.24,
+        1
+      ],
+      "roughness": 0.94,
+      "metallic": 0,
+      "texture": "Mesh"
+    },
+    {
+      "name": "CS_HazardRed",
+      "color": [
+        0.76,
+        0.12,
+        0.105,
+        1
+      ],
+      "roughness": 0.6,
+      "metallic": 0,
+      "texture": ""
+    },
+    {
+      "name": "CS_Ivory",
+      "color": [
+        0.87,
+        0.865,
+        0.8,
+        1
+      ],
+      "roughness": 0.7,
+      "metallic": 0,
+      "texture": ""
+    },
+    {
+      "name": "CS_CraneYellow",
+      "color": [
+        0.92,
+        0.64,
+        0.16,
+        1
+      ],
+      "roughness": 0.48,
+      "metallic": 0.25,
+      "texture": ""
+    },
+    {
+      "name": "CS_Terracotta",
+      "color": [
+        0.55,
+        0.255,
+        0.19,
+        1
+      ],
+      "roughness": 0.91,
+      "metallic": 0,
+      "texture": "Concrete"
+    },
+    {
+      "name": "CS_CementBag",
+      "color": [
+        0.7,
+        0.66,
+        0.53,
+        1
+      ],
+      "roughness": 0.97,
+      "metallic": 0,
+      "texture": "Concrete"
+    },
+    {
+      "name": "CS_CabinBlue",
+      "color": [
+        0.2,
+        0.41,
+        0.55,
+        1
+      ],
+      "roughness": 0.58,
+      "metallic": 0.15,
+      "texture": ""
+    },
+    {
+      "name": "CS_Window",
+      "color": [
+        0.26,
+        0.48,
+        0.62,
+        1
+      ],
+      "roughness": 0.22,
+      "metallic": 0.35,
+      "texture": ""
+    },
+    {
+      "name": "CS_Rubber",
+      "color": [
+        0.075,
+        0.085,
+        0.087,
+        1
+      ],
+      "roughness": 0.95,
+      "metallic": 0,
+      "texture": ""
+    },
+    {
+      "name": "CS_Puddle",
+      "color": [
+        0.37,
+        0.47,
+        0.5,
+        1
+      ],
+      "roughness": 0.12,
+      "metallic": 0.35,
+      "texture": ""
+    },
+    {
+      "name": "CS_City",
+      "color": [
+        0.42,
+        0.55,
+        0.64,
+        1
+      ],
+      "roughness": 0.85,
+      "metallic": 0,
+      "texture": ""
+    }
+  ],
+  "models": [
+    {
+      "name": "Slab",
+      "vertices": 480,
+      "faces": 450
+    },
+    {
+      "name": "Bridge",
+      "vertices": 544,
+      "faces": 458
+    },
+    {
+      "name": "Wall",
+      "vertices": 812,
+      "faces": 556
+    },
+    {
+      "name": "Column",
+      "vertices": 480,
+      "faces": 342
+    },
+    {
+      "name": "CoreBlock",
+      "vertices": 1344,
+      "faces": 1242
+    },
+    {
+      "name": "Pallet",
+      "vertices": 664,
+      "faces": 590
+    },
+    {
+      "name": "BrickStack",
+      "vertices": 2200,
+      "faces": 2030
+    },
+    {
+      "name": "Brick",
+      "vertices": 92,
+      "faces": 66
+    },
+    {
+      "name": "Lumber",
+      "vertices": 576,
+      "faces": 540
+    },
+    {
+      "name": "CementBags",
+      "vertices": 1432,
+      "faces": 1310
+    },
+    {
+      "name": "CableReel",
+      "vertices": 4826,
+      "faces": 4596
+    },
+    {
+      "name": "CableCoil",
+      "vertices": 2904,
+      "faces": 2892
+    },
+    {
+      "name": "Scaffold",
+      "vertices": 1216,
+      "faces": 950
+    },
+    {
+      "name": "Guardrail",
+      "vertices": 304,
+      "faces": 198
+    },
+    {
+      "name": "Barricade",
+      "vertices": 192,
+      "faces": 116
+    },
+    {
+      "name": "Cone",
+      "vertices": 200,
+      "faces": 154
+    },
+    {
+      "name": "Wheelbarrow",
+      "vertices": 216,
+      "faces": 137
+    },
+    {
+      "name": "Standpipe",
+      "vertices": 144,
+      "faces": 100
+    },
+    {
+      "name": "Spout",
+      "vertices": 24,
+      "faces": 18
+    },
+    {
+      "name": "Ladder",
+      "vertices": 160,
+      "faces": 100
+    },
+    {
+      "name": "Bucket",
+      "vertices": 234,
+      "faces": 208
+    },
+    {
+      "name": "Workbench",
+      "vertices": 288,
+      "faces": 254
+    },
+    {
+      "name": "Generator",
+      "vertices": 240,
+      "faces": 182
+    },
+    {
+      "name": "Mixer",
+      "vertices": 486,
+      "faces": 396
+    },
+    {
+      "name": "SiteCabin",
+      "vertices": 256,
+      "faces": 240
+    },
+    {
+      "name": "Beam",
+      "vertices": 96,
+      "faces": 90
+    },
+    {
+      "name": "Crane",
+      "vertices": 5090,
+      "faces": 3330
+    },
+    {
+      "name": "CityTower",
+      "vertices": 2240,
+      "faces": 2100
+    },
+    {
+      "name": "CityFrame",
+      "vertices": 672,
+      "faces": 630
+    },
+    {
+      "name": "Puddle",
+      "vertices": 49,
+      "faces": 48
+    },
+    {
+      "name": "BottleBody",
+      "vertices": 624,
+      "faces": 578
+    },
+    {
+      "name": "BottleShoulder1",
+      "vertices": 192,
+      "faces": 146
+    },
+    {
+      "name": "BottleShoulder2",
+      "vertices": 192,
+      "faces": 146
+    },
+    {
+      "name": "BottleNeck",
+      "vertices": 288,
+      "faces": 242
+    },
+    {
+      "name": "BottleCap",
+      "vertices": 192,
+      "faces": 146
+    },
+    {
+      "name": "BottleHandle",
+      "vertices": 80,
+      "faces": 62
+    },
+    {
+      "name": "TankCage",
+      "vertices": 816,
+      "faces": 646
+    },
+    {
+      "name": "TankBand",
+      "vertices": 104,
+      "faces": 68
+    }
+  ]
+}
