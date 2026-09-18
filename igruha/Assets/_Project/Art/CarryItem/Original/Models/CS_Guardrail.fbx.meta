@@ -7,6 +7,16 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: CS_Asphalt
+    second: {fileID: 2100000, guid: 99b2e3e33a47645e391e7911ec4c3b48, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CS_Beacon
+    second: {fileID: 2100000, guid: fe2e695ae1e064cad9da02cd13b45a35, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: CS_CabinBlue
     second: {fileID: 2100000, guid: c8abfe3f3935a4987b1e4be783a6a617, type: 2}
   - first:
@@ -19,6 +29,11 @@ ModelImporter:
       assembly: UnityEngine.CoreModule
       name: CS_City
     second: {fileID: 2100000, guid: 6025efd6f656b4dd8835d658c117a72f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CS_Cloud
+    second: {fileID: 2100000, guid: b3dc9af844faf4cdebd75202342c5eb7, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
@@ -37,6 +52,31 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: CS_Dirt
+    second: {fileID: 2100000, guid: 57e29b93ccee346dea2a91d783986267, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CS_FacadeBand
+    second: {fileID: 2100000, guid: 02225a026045c4ff6bc5271b2724eedf, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CS_FacadeBrick
+    second: {fileID: 2100000, guid: 75ea3e510f1f0444c80c4b1dd92a6e73, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CS_FacadeDark
+    second: {fileID: 2100000, guid: 76cf8299ea40b48f5951c4c2cf7696fe, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CS_FacadeGlass
+    second: {fileID: 2100000, guid: 09a2838e6ab6c4054b69691b0e780d96, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: CS_Galvanized
     second: {fileID: 2100000, guid: 695b0c01c828b4132a31344ede2e48ec, type: 2}
   - first:
@@ -47,6 +87,11 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: CS_Haze
+    second: {fileID: 2100000, guid: be82942d50f3e456193ec4c232649f83, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: CS_Iron
     second: {fileID: 2100000, guid: 09086b6f8ee4e44e1be6a921fcf730fc, type: 2}
   - first:
@@ -54,6 +99,11 @@ ModelImporter:
       assembly: UnityEngine.CoreModule
       name: CS_Ivory
     second: {fileID: 2100000, guid: b06cfdb0866314e64af3df6a7c40e314, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CS_LampWarm
+    second: {fileID: 2100000, guid: f9959e59be2e94ec497d2a469282a5d9, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
@@ -72,6 +122,16 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: CS_RoadPaint
+    second: {fileID: 2100000, guid: a8f9a7479a7b84c9687f8d8caff8853f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CS_Roof
+    second: {fileID: 2100000, guid: cb6a03561ddef4a199cb71a910889c38, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: CS_Rubber
     second: {fileID: 2100000, guid: a92866f702c7d478dadb30ce8d873aaa, type: 2}
   - first:
@@ -82,6 +142,31 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: CS_TarpBlue
+    second: {fileID: 2100000, guid: 11fc499626b6240199c782c3da924dc0, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CS_TeamA
+    second: {fileID: 2100000, guid: 951aa7d06bfea44e9ad4c7ae315a5532, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CS_TeamAPaint
+    second: {fileID: 2100000, guid: 723c7a9a4cc3d491cae96988e6fc423d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CS_TeamB
+    second: {fileID: 2100000, guid: d7829672f3dd349babcee8d577c061e0, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CS_TeamBPaint
+    second: {fileID: 2100000, guid: c37ac380538b24ed1a746e63af9640e2, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: CS_Terracotta
     second: {fileID: 2100000, guid: 569bf5b3fabe8469fbc6fa6a5cbb2026, type: 2}
   - first:
@@ -89,6 +174,21 @@ ModelImporter:
       assembly: UnityEngine.CoreModule
       name: CS_Timber
     second: {fileID: 2100000, guid: c1c57e08b78ec48e4aa2fdf553a406a5, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CS_TreeLeaf
+    second: {fileID: 2100000, guid: 7638d421236bc4fd698feb80cf91b3c7, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CS_TreeTrunk
+    second: {fileID: 2100000, guid: b4f4dec0aefde456b84cb551a24d237b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CS_VehicleWhite
+    second: {fileID: 2100000, guid: c0006a49cb93d44a9b842da9702cf8dc, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule

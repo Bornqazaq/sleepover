@@ -10,7 +10,14 @@
       ],
       "roughness": 0.92,
       "metallic": 0,
-      "texture": "Concrete"
+      "texture": "Concrete",
+      "emission": 0,
+      "tiling": 1,
+      "emissionTexture": "",
+      "unlit": false,
+      "cutout": false,
+      "transparent": false,
+      "doubleSided": false
     },
     {
       "name": "CS_ConcreteEdge",
@@ -22,7 +29,14 @@
       ],
       "roughness": 0.94,
       "metallic": 0,
-      "texture": "Concrete"
+      "texture": "Concrete",
+      "emission": 0,
+      "tiling": 1,
+      "emissionTexture": "",
+      "unlit": false,
+      "cutout": false,
+      "transparent": false,
+      "doubleSided": false
     },
     {
       "name": "CS_Timber",
@@ -34,7 +48,14 @@
       ],
       "roughness": 0.86,
       "metallic": 0,
-      "texture": "Wood"
+      "texture": "Wood",
+      "emission": 0,
+      "tiling": 1,
+      "emissionTexture": "",
+      "unlit": false,
+      "cutout": false,
+      "transparent": false,
+      "doubleSided": false
     },
     {
       "name": "CS_Plywood",
@@ -46,7 +67,14 @@
       ],
       "roughness": 0.86,
       "metallic": 0,
-      "texture": "Wood"
+      "texture": "Wood",
+      "emission": 0,
+      "tiling": 1,
+      "emissionTexture": "",
+      "unlit": false,
+      "cutout": false,
+      "transparent": false,
+      "doubleSided": false
     },
     {
       "name": "CS_Galvanized",
@@ -58,7 +86,14 @@
       ],
       "roughness": 0.38,
       "metallic": 0.65,
-      "texture": ""
+      "texture": "",
+      "emission": 0,
+      "tiling": 1,
+      "emissionTexture": "",
+      "unlit": false,
+      "cutout": false,
+      "transparent": false,
+      "doubleSided": false
     },
     {
       "name": "CS_Iron",
@@ -70,7 +105,14 @@
       ],
       "roughness": 0.52,
       "metallic": 0.58,
-      "texture": ""
+      "texture": "",
+      "emission": 0,
+      "tiling": 1,
+      "emissionTexture": "",
+      "unlit": false,
+      "cutout": false,
+      "transparent": false,
+      "doubleSided": false
     },
     {
       "name": "CS_Rebar",
@@ -82,7 +124,14 @@
       ],
       "roughness": 0.86,
       "metallic": 0.4,
-      "texture": ""
+      "texture": "",
+      "emission": 0,
+      "tiling": 1,
+      "emissionTexture": "",
+      "unlit": false,
+      "cutout": false,
+      "transparent": false,
+      "doubleSided": false
     },
     {
       "name": "CS_SafetyMesh",
@@ -94,7 +143,14 @@
       ],
       "roughness": 0.94,
       "metallic": 0,
-      "texture": "Mesh"
+      "texture": "Mesh",
+      "emission": 0,
+      "tiling": 1,
+      "emissionTexture": "",
+      "unlit": false,
+      "cutout": true,
+      "transparent": false,
+      "doubleSided": true
     },
     {
       "name": "CS_HazardRed",
@@ -106,7 +162,14 @@
       ],
       "roughness": 0.6,
       "metallic": 0,
-      "texture": ""
+      "texture": "",
+      "emission": 0,
+      "tiling": 1,
+      "emissionTexture": "",
+      "unlit": false,
+      "cutout": false,
+      "transparent": false,
+      "doubleSided": false
     },
     {
       "name": "CS_Ivory",
@@ -118,7 +181,14 @@
       ],
       "roughness": 0.7,
       "metallic": 0,
-      "texture": ""
+      "texture": "",
+      "emission": 0,
+      "tiling": 1,
+      "emissionTexture": "",
+      "unlit": false,
+      "cutout": false,
+      "transparent": false,
+      "doubleSided": false
     },
     {
       "name": "CS_CraneYellow",
@@ -130,7 +200,14 @@
       ],
       "roughness": 0.48,
       "metallic": 0.25,
-      "texture": ""
+      "texture": "",
+      "emission": 0,
+      "tiling": 1,
+      "emissionTexture": "",
+      "unlit": false,
+      "cutout": false,
+      "transparent": false,
+      "doubleSided": false
     },
     {
       "name": "CS_Terracotta",
@@ -142,7 +219,14 @@
       ],
       "roughness": 0.91,
       "metallic": 0,
-      "texture": "Concrete"
+      "texture": "Concrete",
+      "emission": 0,
+      "tiling": 1,
+      "emissionTexture": "",
+      "unlit": false,
+      "cutout": false,
+      "transparent": false,
+      "doubleSided": false
     },
     {
       "name": "CS_CementBag",
@@ -154,7 +238,14 @@
       ],
       "roughness": 0.97,
       "metallic": 0,
-      "texture": "Concrete"
+      "texture": "Concrete",
+      "emission": 0,
+      "tiling": 1,
+      "emissionTexture": "",
+      "unlit": false,
+      "cutout": false,
+      "transparent": false,
+      "doubleSided": false
     },
     {
       "name": "CS_CabinBlue",
@@ -166,7 +257,14 @@
       ],
       "roughness": 0.58,
       "metallic": 0.15,
-      "texture": ""
+      "texture": "",
+      "emission": 0,
+      "tiling": 1,
+      "emissionTexture": "",
+      "unlit": false,
+      "cutout": false,
+      "transparent": false,
+      "doubleSided": false
     },
     {
       "name": "CS_Window",
@@ -178,7 +276,14 @@
       ],
       "roughness": 0.22,
       "metallic": 0.35,
-      "texture": ""
+      "texture": "",
+      "emission": 0,
+      "tiling": 1,
+      "emissionTexture": "",
+      "unlit": false,
+      "cutout": false,
+      "transparent": false,
+      "doubleSided": false
     },
     {
       "name": "CS_Rubber",
@@ -190,7 +295,14 @@
       ],
       "roughness": 0.95,
       "metallic": 0,
-      "texture": ""
+      "texture": "",
+      "emission": 0,
+      "tiling": 1,
+      "emissionTexture": "",
+      "unlit": false,
+      "cutout": false,
+      "transparent": false,
+      "doubleSided": false
     },
     {
       "name": "CS_Puddle",
@@ -215,6 +327,386 @@
       "roughness": 0.85,
       "metallic": 0,
       "texture": ""
+    },
+    {
+      "name": "CS_Asphalt",
+      "color": [
+        0.13,
+        0.13,
+        0.14,
+        1
+      ],
+      "roughness": 0.95,
+      "metallic": 0,
+      "texture": "Asphalt",
+      "emission": 0,
+      "tiling": 0.12,
+      "emissionTexture": "",
+      "unlit": false,
+      "cutout": false,
+      "transparent": false,
+      "doubleSided": false
+    },
+    {
+      "name": "CS_Dirt",
+      "color": [
+        0.4,
+        0.33,
+        0.26,
+        1
+      ],
+      "roughness": 1,
+      "metallic": 0,
+      "texture": "Ground",
+      "emission": 0,
+      "tiling": 0.06,
+      "emissionTexture": "",
+      "unlit": false,
+      "cutout": false,
+      "transparent": false,
+      "doubleSided": false
+    },
+    {
+      "name": "CS_RoadPaint",
+      "color": [
+        0.85,
+        0.84,
+        0.78,
+        1
+      ],
+      "roughness": 0.8,
+      "metallic": 0,
+      "texture": "",
+      "emission": 0,
+      "tiling": 1,
+      "emissionTexture": "",
+      "unlit": false,
+      "cutout": false,
+      "transparent": false,
+      "doubleSided": false
+    },
+    {
+      "name": "CS_TreeLeaf",
+      "color": [
+        0.38,
+        0.47,
+        0.22,
+        1
+      ],
+      "roughness": 0.9,
+      "metallic": 0,
+      "texture": "",
+      "emission": 0,
+      "tiling": 1,
+      "emissionTexture": "",
+      "unlit": false,
+      "cutout": false,
+      "transparent": false,
+      "doubleSided": false
+    },
+    {
+      "name": "CS_TreeTrunk",
+      "color": [
+        0.3,
+        0.22,
+        0.15,
+        1
+      ],
+      "roughness": 0.95,
+      "metallic": 0,
+      "texture": "",
+      "emission": 0,
+      "tiling": 1,
+      "emissionTexture": "",
+      "unlit": false,
+      "cutout": false,
+      "transparent": false,
+      "doubleSided": false
+    },
+    {
+      "name": "CS_FacadeGlass",
+      "color": [
+        0.5,
+        0.6,
+        0.74,
+        1
+      ],
+      "roughness": 0.32,
+      "metallic": 0.25,
+      "texture": "FacadeGlass",
+      "emission": 2.6,
+      "tiling": 1,
+      "emissionTexture": "FacadeGlass_E",
+      "unlit": false,
+      "cutout": false,
+      "transparent": false,
+      "doubleSided": false
+    },
+    {
+      "name": "CS_FacadeBrick",
+      "color": [
+        0.66,
+        0.52,
+        0.42,
+        1
+      ],
+      "roughness": 0.92,
+      "metallic": 0,
+      "texture": "FacadeBrick",
+      "emission": 2.2,
+      "tiling": 1,
+      "emissionTexture": "FacadeBrick_E",
+      "unlit": false,
+      "cutout": false,
+      "transparent": false,
+      "doubleSided": false
+    },
+    {
+      "name": "CS_FacadeBand",
+      "color": [
+        0.64,
+        0.64,
+        0.62,
+        1
+      ],
+      "roughness": 0.85,
+      "metallic": 0,
+      "texture": "FacadeBand",
+      "emission": 2.2,
+      "tiling": 1,
+      "emissionTexture": "FacadeBand_E",
+      "unlit": false,
+      "cutout": false,
+      "transparent": false,
+      "doubleSided": false
+    },
+    {
+      "name": "CS_FacadeDark",
+      "color": [
+        0.22,
+        0.26,
+        0.32,
+        1
+      ],
+      "roughness": 0.4,
+      "metallic": 0.35,
+      "texture": "FacadeGlass",
+      "emission": 3.0,
+      "tiling": 1,
+      "emissionTexture": "FacadeGlass_E",
+      "unlit": false,
+      "cutout": false,
+      "transparent": false,
+      "doubleSided": false
+    },
+    {
+      "name": "CS_Roof",
+      "color": [
+        0.3,
+        0.31,
+        0.33,
+        1
+      ],
+      "roughness": 0.92,
+      "metallic": 0,
+      "texture": "",
+      "emission": 0,
+      "tiling": 1,
+      "emissionTexture": "",
+      "unlit": false,
+      "cutout": false,
+      "transparent": false,
+      "doubleSided": false
+    },
+    {
+      "name": "CS_TeamA",
+      "color": [
+        0.25,
+        0.55,
+        1,
+        1
+      ],
+      "roughness": 0.62,
+      "metallic": 0,
+      "texture": "",
+      "emission": 0,
+      "tiling": 1,
+      "emissionTexture": "",
+      "unlit": false,
+      "cutout": false,
+      "transparent": false,
+      "doubleSided": false
+    },
+    {
+      "name": "CS_TeamB",
+      "color": [
+        1,
+        0.45,
+        0.2,
+        1
+      ],
+      "roughness": 0.62,
+      "metallic": 0,
+      "texture": "",
+      "emission": 0,
+      "tiling": 1,
+      "emissionTexture": "",
+      "unlit": false,
+      "cutout": false,
+      "transparent": false,
+      "doubleSided": false
+    },
+    {
+      "name": "CS_TarpBlue",
+      "color": [
+        0.16,
+        0.34,
+        0.62,
+        1
+      ],
+      "roughness": 0.55,
+      "metallic": 0,
+      "texture": "",
+      "emission": 0,
+      "tiling": 1,
+      "emissionTexture": "",
+      "unlit": false,
+      "cutout": false,
+      "transparent": false,
+      "doubleSided": false
+    },
+    {
+      "name": "CS_LampWarm",
+      "color": [
+        1,
+        0.92,
+        0.72,
+        1
+      ],
+      "roughness": 0.3,
+      "metallic": 0,
+      "texture": "",
+      "emission": 3.5,
+      "tiling": 1,
+      "emissionTexture": "",
+      "unlit": false,
+      "cutout": false,
+      "transparent": false,
+      "doubleSided": false
+    },
+    {
+      "name": "CS_Beacon",
+      "color": [
+        1,
+        0.12,
+        0.08,
+        1
+      ],
+      "roughness": 0.3,
+      "metallic": 0,
+      "texture": "",
+      "emission": 4,
+      "tiling": 1,
+      "emissionTexture": "",
+      "unlit": false,
+      "cutout": false,
+      "transparent": false,
+      "doubleSided": false
+    },
+    {
+      "name": "CS_Cloud",
+      "color": [
+        1,
+        0.96,
+        0.9,
+        1
+      ],
+      "roughness": 1,
+      "metallic": 0,
+      "texture": "Cloud",
+      "emission": 0,
+      "tiling": 1,
+      "emissionTexture": "",
+      "unlit": true,
+      "cutout": false,
+      "transparent": true,
+      "doubleSided": true
+    },
+    {
+      "name": "CS_Haze",
+      "color": [
+        0.8,
+        0.82,
+        0.88,
+        0.26
+      ],
+      "roughness": 1,
+      "metallic": 0,
+      "texture": "",
+      "emission": 0,
+      "tiling": 1,
+      "emissionTexture": "",
+      "unlit": true,
+      "cutout": false,
+      "transparent": true,
+      "doubleSided": true
+    },
+    {
+      "name": "CS_TeamAPaint",
+      "color": [
+        0.25,
+        0.55,
+        1,
+        1
+      ],
+      "roughness": 0.9,
+      "metallic": 0,
+      "texture": "Arrow",
+      "emission": 0,
+      "tiling": 1,
+      "emissionTexture": "",
+      "unlit": false,
+      "cutout": true,
+      "transparent": false,
+      "doubleSided": false
+    },
+    {
+      "name": "CS_TeamBPaint",
+      "color": [
+        1,
+        0.45,
+        0.2,
+        1
+      ],
+      "roughness": 0.9,
+      "metallic": 0,
+      "texture": "Arrow",
+      "emission": 0,
+      "tiling": 1,
+      "emissionTexture": "",
+      "unlit": false,
+      "cutout": true,
+      "transparent": false,
+      "doubleSided": false
+    },
+    {
+      "name": "CS_VehicleWhite",
+      "color": [
+        0.86,
+        0.86,
+        0.84,
+        1
+      ],
+      "roughness": 0.45,
+      "metallic": 0.1,
+      "texture": "",
+      "emission": 0,
+      "tiling": 1,
+      "emissionTexture": "",
+      "unlit": false,
+      "cutout": false,
+      "transparent": false,
+      "doubleSided": false
     }
   ],
   "models": [
@@ -407,6 +899,316 @@
       "name": "TankBand",
       "vertices": 104,
       "faces": 68
+    },
+    {
+      "name": "CityGlassA",
+      "vertices": 376,
+      "faces": 316
+    },
+    {
+      "name": "CityGlassB",
+      "vertices": 544,
+      "faces": 472
+    },
+    {
+      "name": "CityGlassC",
+      "vertices": 898,
+      "faces": 778
+    },
+    {
+      "name": "CityBrickA",
+      "vertices": 452,
+      "faces": 368
+    },
+    {
+      "name": "CityBrickB",
+      "vertices": 620,
+      "faces": 524
+    },
+    {
+      "name": "CityBandA",
+      "vertices": 340,
+      "faces": 294
+    },
+    {
+      "name": "CityBandB",
+      "vertices": 544,
+      "faces": 472
+    },
+    {
+      "name": "CityDark",
+      "vertices": 884,
+      "faces": 766
+    },
+    {
+      "name": "CityLandmark",
+      "vertices": 1238,
+      "faces": 1072
+    },
+    {
+      "name": "CityFrameB",
+      "vertices": 992,
+      "faces": 900
+    },
+    {
+      "name": "CitySlab",
+      "vertices": 872,
+      "faces": 816
+    },
+    {
+      "name": "StreetGround",
+      "vertices": 4,
+      "faces": 1
+    },
+    {
+      "name": "RoadStrip",
+      "vertices": 152,
+      "faces": 126
+    },
+    {
+      "name": "RoadCross",
+      "vertices": 8,
+      "faces": 6
+    },
+    {
+      "name": "FencePanel",
+      "vertices": 288,
+      "faces": 260
+    },
+    {
+      "name": "DumpTruck",
+      "vertices": 464,
+      "faces": 312
+    },
+    {
+      "name": "Excavator",
+      "vertices": 184,
+      "faces": 168
+    },
+    {
+      "name": "PumpTruck",
+      "vertices": 592,
+      "faces": 376
+    },
+    {
+      "name": "Car",
+      "vertices": 288,
+      "faces": 188
+    },
+    {
+      "name": "Container",
+      "vertices": 736,
+      "faces": 690
+    },
+    {
+      "name": "DirtPile",
+      "vertices": 180,
+      "faces": 160
+    },
+    {
+      "name": "Tree",
+      "vertices": 314,
+      "faces": 268
+    },
+    {
+      "name": "StreetLamp",
+      "vertices": 56,
+      "faces": 48
+    },
+    {
+      "name": "TankFrame",
+      "vertices": 1846,
+      "faces": 1644
+    },
+    {
+      "name": "TankRing",
+      "vertices": 358,
+      "faces": 328
+    },
+    {
+      "name": "TankGlass",
+      "vertices": 80,
+      "faces": 40
+    },
+    {
+      "name": "TankWater",
+      "vertices": 80,
+      "faces": 42
+    },
+    {
+      "name": "FlagMast",
+      "vertices": 60,
+      "faces": 36
+    },
+    {
+      "name": "Flag",
+      "vertices": 48,
+      "faces": 36
+    },
+    {
+      "name": "BuntingA",
+      "vertices": 197,
+      "faces": 146
+    },
+    {
+      "name": "BuntingB",
+      "vertices": 197,
+      "faces": 146
+    },
+    {
+      "name": "FloodTower",
+      "vertices": 208,
+      "faces": 170
+    },
+    {
+      "name": "HoistMast",
+      "vertices": 640,
+      "faces": 400
+    },
+    {
+      "name": "HoistCage",
+      "vertices": 272,
+      "faces": 220
+    },
+    {
+      "name": "ChuteRun",
+      "vertices": 140,
+      "faces": 80
+    },
+    {
+      "name": "NetPanel",
+      "vertices": 72,
+      "faces": 46
+    },
+    {
+      "name": "CableDrop",
+      "vertices": 30,
+      "faces": 26
+    },
+    {
+      "name": "Formwork",
+      "vertices": 224,
+      "faces": 200
+    },
+    {
+      "name": "RebarCage",
+      "vertices": 448,
+      "faces": 312
+    },
+    {
+      "name": "RebarBundle",
+      "vertices": 144,
+      "faces": 96
+    },
+    {
+      "name": "Tarp",
+      "vertices": 324,
+      "faces": 270
+    },
+    {
+      "name": "GasCylinders",
+      "vertices": 408,
+      "faces": 318
+    },
+    {
+      "name": "Toolbox",
+      "vertices": 130,
+      "faces": 122
+    },
+    {
+      "name": "WaterBarrel",
+      "vertices": 332,
+      "faces": 306
+    },
+    {
+      "name": "Sandbags",
+      "vertices": 420,
+      "faces": 350
+    },
+    {
+      "name": "PortaPotty",
+      "vertices": 144,
+      "faces": 130
+    },
+    {
+      "name": "SkipBin",
+      "vertices": 136,
+      "faces": 105
+    },
+    {
+      "name": "SignBoard",
+      "vertices": 160,
+      "faces": 132
+    },
+    {
+      "name": "Bench",
+      "vertices": 352,
+      "faces": 330
+    },
+    {
+      "name": "Hose",
+      "vertices": 40,
+      "faces": 34
+    },
+    {
+      "name": "Compressor",
+      "vertices": 192,
+      "faces": 122
+    },
+    {
+      "name": "WeldCart",
+      "vertices": 276,
+      "faces": 199
+    },
+    {
+      "name": "CylinderRack",
+      "vertices": 324,
+      "faces": 238
+    },
+    {
+      "name": "CraneMast",
+      "vertices": 2656,
+      "faces": 1670
+    },
+    {
+      "name": "CraneTop",
+      "vertices": 3124,
+      "faces": 2028
+    },
+    {
+      "name": "CraneHook",
+      "vertices": 244,
+      "faces": 200
+    },
+    {
+      "name": "BirdBody",
+      "vertices": 100,
+      "faces": 82
+    },
+    {
+      "name": "BirdWing",
+      "vertices": 10,
+      "faces": 2
+    },
+    {
+      "name": "SkyDome",
+      "vertices": 528,
+      "faces": 480
+    },
+    {
+      "name": "ArrowA",
+      "vertices": 4,
+      "faces": 1
+    },
+    {
+      "name": "ArrowB",
+      "vertices": 4,
+      "faces": 1
+    },
+    {
+      "name": "HazeSheet",
+      "vertices": 4,
+      "faces": 1
     }
   ]
 }
