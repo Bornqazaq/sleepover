@@ -303,6 +303,7 @@ namespace Igruha.EditorTools
             GameObject button = Node("RestartButton", card.transform);
             Line(button, 76f);
             Sprite(button, UiSpriteBaker.Chip, UiSkin.Accent);
+            button.GetComponent<Image>().raycastTarget = true;
             restart = button.AddComponent<Button>();
             TMP_Text buttonLabel = Label(Node("Label", button.transform), font, 30f, UiSkin.AccentInk,
                 TextAlignmentOptions.Center, FontStyles.Bold);
