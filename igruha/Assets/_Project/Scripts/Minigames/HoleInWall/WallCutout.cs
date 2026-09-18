@@ -5,7 +5,7 @@ namespace Igruha.Minigames.HoleInWall
     /// <summary>
     /// Вырез в стене: поза, место по ширине дорожки и подсветка контура.
     ///
-    /// Саму дырку режет в полотне <see cref="SweepingWall"/>. Здесь живёт контур: светящаяся лента
+    /// Саму дырку режет в полотне <see cref="SweepingWall"/>. Здесь живёт контур: цветная лента с тёмной кромкой
     /// на передней грани стены, обводящая дырку по её настоящей форме.
     /// Требование LDD, а не украшение: не читается силуэт — не играется игра.
     /// </summary>
@@ -18,9 +18,8 @@ namespace Igruha.Minigames.HoleInWall
     /// и запечена, пересобирать её ради них значит потерять арт
     /// подфаз 4.1–4.6.
     ///
-    /// <b>Вырез принадлежит игроку, и это видно цветом.</b> Контур красится
-    /// в цвет половины пола, на которой игрок стоит: розовый — нулевое место,
-    /// голубой — первое. Зеркальный переворот 7-й стены меняет вырезы местами,
+    /// <b>Вырез принадлежит игроку, и это видно цветом.</b> Цвет контура связан с аркой и табло
+    /// дорожки: светлый оттенок — нулевое место, тёмный — первое. Зеркальный переворот 7-й стены меняет вырезы местами,
     /// но не цветами, — значит паре придётся перебежать крест-накрест
     /// на тросе, и видно это заранее, ещё на подъезде.
     /// </remarks>
@@ -30,48 +29,29 @@ namespace Igruha.Minigames.HoleInWall
         public const float FrameThickness = 0.12f;
 
         /// <summary>На сколько рамка вынесена перед гранью стены, м. Иначе она тонет в панели.</summary>
-        private const float FrameLift = 0.03f;
+        private const float FrameLift = 0.012f;
+        private const float HoleClearance = 0.006f;
+        private static readonly float[] RibbonWidths = { HoleClearance, .022f, .095f, FrameThickness };
+        private static readonly float[] RibbonInk = { 0f, 1f, 1f, 0f };
+        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
         /// <summary>Сколько раз в секунду моргает контур после подвоха.</summary>
         private const float BlinkRate = 6f;
-
-        /// <summary>
-        /// Цвета контура по номеру выреза — они же цвета половин пола
-        /// платформы (<c>HoleInWallPalette.FloorOwn</c> и <c>FloorPartner</c>).
-        ///
-        /// ⚠️ Это не украшение, а вся подача принадлежности: вырез закреплён
-        /// за игроком, и узнаёт он свой по тому, что контур того же цвета,
-        /// что пол под ногами. Нулевое место на платформе розовое, первое —
-        /// голубое (<c>HoleInWallArenaBuilder.BuildFloorHalves</c>). Разойдутся
-        /// эти два места — игрок побежит не в свою дырку.
-        ///
-        /// Неон здесь чистый, а не подмешанный как у пола: контур обязан
-        /// читаться с 30 ШП, разметка под ногами — нет.
-        /// </summary>
-        private static readonly Color[] OutlineColors =
-        {
-            HoleInWallPalette.NeonPink,
-            HoleInWallPalette.NeonCyan
-        };
-
-        /// <summary>
-        /// Цвет моргания после подвоха — белый.
-        ///
-        /// Оба неона заняты принадлежностью, и мигать одним из них значит
-        /// сказать «вырез сменил хозяина», чего не происходит. Белый ничей
-        /// и читается вспышкой на обоих.
-        /// </summary>
         private static readonly Color BlinkColor = Color.white;
 
-        [Tooltip("Левая стойка прямоугольного контура. Осталась от каркаса — см. шапку класса")]
+        // Hue belongs to the lane; a darker shade distinguishes the second player.
+        [SerializeField] private int laneIndex;
+
         [SerializeField] private Transform leftPost;
         [Tooltip("Правая стойка прямоугольного контура")]
         [SerializeField] private Transform rightPost;
         [Tooltip("Верхняя перекладина прямоугольного контура")]
         [SerializeField] private Transform lintel;
+        [SerializeField] private Material outlineMaterial;
 
         private Renderer outlineRenderer;
         private Mesh outlineMesh;
+        private MaterialPropertyBlock colorBlock;
         private float blinkUntil;
 
         /// <summary>Номер выреза. Им же выбирается цвет: вырез принадлежит месту на платформе.</summary>
@@ -82,6 +62,8 @@ namespace Igruha.Minigames.HoleInWall
 
         private static readonly System.Collections.Generic.List<int> Triangles =
             new System.Collections.Generic.List<int>(1536);
+        private static readonly System.Collections.Generic.List<Color> Colors =
+            new System.Collections.Generic.List<Color>(1024);
 
         /// <summary>Поза, которую требует этот вырез.</summary>
         public HoleInWallPose Pose { get; private set; } = HoleInWallPose.None;
@@ -136,11 +118,12 @@ namespace Igruha.Minigames.HoleInWall
             outlineRenderer = go.AddComponent<MeshRenderer>();
             outlineRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             outlineRenderer.receiveShadows = false;
-            outlineRenderer.sharedMaterial = HoleInWallMaterials.Emissive(OwnColor);
+            outlineRenderer.sharedMaterial = outlineMaterial;
+            colorBlock = new MaterialPropertyBlock();
         }
 
         /// <summary>Цвет этого выреза: по его номеру, он же место на платформе.</summary>
-        private Color OwnColor => OutlineColors[Mathf.Clamp(slot, 0, OutlineColors.Length - 1)];
+        private Color OwnColor => HoleInWallPalette.LaneOutline(laneIndex, slot);
 
         private void HideLegacyFrames()
         {
@@ -197,9 +180,9 @@ namespace Igruha.Minigames.HoleInWall
         /// <summary>
         /// Собрать из ломаной контура ленту толщиной <see cref="FrameThickness"/>.
         ///
-        /// Каждый отрезок ломаной осевой: лента — прямоугольник вокруг него,
-        /// вытянутый на полтолщины за оба конца. Вылет и заполняет углы: без
-        /// него на каждом повороте оставалась бы дырка в самом контуре.
+        /// Общие вершины соединяют углы без перекрывающихся квадратов.
+        /// Вся ширина лежит снаружи выреза, на сплошной части стены,
+        /// поэтому лента не проецируется на тело внутри отверстия.
         ///
         /// <b>Нижней перекладины нет</b>, и её неоткуда взять: ломаная выреза
         /// открытая — она идёт от левой ступни вверх и вниз к правой, потому
@@ -210,48 +193,70 @@ namespace Igruha.Minigames.HoleInWall
         {
             Vertices.Clear();
             Triangles.Clear();
-            const float Half = FrameThickness * 0.5f;
-
-            for (int i = 1; i < path.Length; i++)
+            Colors.Clear();
+            // One joined strip, entirely on the solid side of the opening. The old
+            // overlapping segment quads projected halfway inside the hole and over skin.
+            float area = 0;
+            for (int i = 0; i < path.Length; i++)
             {
-                Vector2 from = path[i - 1];
-                Vector2 to = path[i];
-                Vector2 along = to - from;
-                float length = along.magnitude;
-
-                if (length < 0.0001f)
+                Vector2 next = path[(i + 1) % path.Length];
+                area += path[i].x * next.y - next.x * path[i].y;
+            }
+            float outward = area < 0 ? 1 : -1;
+            for (int i = 0; i < path.Length; i++)
+            {
+                Vector2 before = (i == 0 ? path[1] - path[0] : path[i] - path[i - 1]).normalized;
+                Vector2 after = (i == path.Length - 1 ? before : path[i + 1] - path[i]).normalized;
+                Vector2 n0 = new Vector2(-before.y, before.x) * outward;
+                Vector2 n1 = new Vector2(-after.y, after.x) * outward;
+                Vector2 join = (n0 + n1).normalized;
+                join /= Mathf.Max(.5f, Vector2.Dot(join, n1));
+                float widthScale = CornerWidthScale(path, i, join);
+                for (int band = 0; band < RibbonWidths.Length; band++)
                 {
-                    continue;
+                    Add(path[i] + join * (RibbonWidths[band] * widthScale));
+                    Colors.Add(new Color(RibbonInk[band], 0, 0, 1));
                 }
-
-                along /= length;
-                var across = new Vector2(-along.y, along.x);
-                Vector2 back = from - along * Half;
-                Vector2 ahead = to + along * Half;
-
-                // ⚠️ Обход ПО часовой стрелке в XY: такая грань смотрит в −Z,
-                // то есть навстречу игроку. Против часовой лента развернулась
-                // бы изнанкой и пропала — URP Lit односторонний.
-                int start = Vertices.Count;
-                Add(back - across * Half);
-                Add(back + across * Half);
-                Add(ahead + across * Half);
-                Add(ahead - across * Half);
-
-                Triangles.Add(start);
-                Triangles.Add(start + 1);
-                Triangles.Add(start + 2);
-                Triangles.Add(start);
-                Triangles.Add(start + 2);
-                Triangles.Add(start + 3);
+                if (i == 0) continue;
+                for (int band = 0; band < RibbonWidths.Length - 1; band++)
+                {
+                    int a = (i - 1) * RibbonWidths.Length + band, b = a + RibbonWidths.Length;
+                    // Clockwise in XY faces the player (-Z).
+                    if (outward > 0) { Triangles.Add(a); Triangles.Add(a + 1); Triangles.Add(b + 1); Triangles.Add(a); Triangles.Add(b + 1); Triangles.Add(b); }
+                    else { Triangles.Add(a); Triangles.Add(b + 1); Triangles.Add(a + 1); Triangles.Add(a); Triangles.Add(b); Triangles.Add(b + 1); }
+                }
             }
 
             outlineMesh.Clear();
             outlineMesh.SetVertices(Vertices);
+            outlineMesh.SetColors(Colors);
             outlineMesh.SetTriangles(Triangles, 0);
             outlineMesh.RecalculateNormals();
             outlineMesh.RecalculateBounds();
         }
+
+        // At a tight V (hand next to head), an outward miter can cross the
+        // opposite edge of the same opening. Narrow the ribbon before that edge.
+        private static float CornerWidthScale(Vector2[] path, int vertex, Vector2 outward)
+        {
+            const float GapShare = .45f;
+            float scale = 1f;
+            for (int edge = 0; edge < path.Length - 1; edge++)
+            {
+                if (edge == vertex || edge + 1 == vertex) continue;
+                Vector2 direction = path[edge + 1] - path[edge];
+                float denominator = Cross(outward, direction);
+                if (Mathf.Abs(denominator) < .000001f) continue;
+                Vector2 delta = path[edge] - path[vertex];
+                float reach = Cross(delta, direction) / denominator;
+                float along = Cross(delta, outward) / denominator;
+                if (reach > HoleClearance && along >= 0 && along <= 1)
+                    scale = Mathf.Min(scale, reach * GapShare / FrameThickness);
+            }
+            return scale;
+        }
+
+        private static float Cross(Vector2 a, Vector2 b) => a.x * b.y - a.y * b.x;
 
         private static void Add(Vector2 point) => Vertices.Add(new Vector3(point.x, point.y, 0f));
 
@@ -303,7 +308,8 @@ namespace Igruha.Minigames.HoleInWall
         {
             // Светящийся, а не просто крашеный: контур обязан читаться
             // с 30 ШП — с максимальной дистанции подъезда стены (бриф).
-            outlineRenderer.sharedMaterial = HoleInWallMaterials.Emissive(color);
+            colorBlock.SetColor(BaseColorId, color);
+            outlineRenderer.SetPropertyBlock(colorBlock);
         }
     }
 }

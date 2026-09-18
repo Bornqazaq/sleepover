@@ -92,6 +92,7 @@ namespace Igruha.Minigames.HoleInWall
         /// больше нет вовсе.
         /// </summary>
         private Animator animator;
+        private HoleInWallPoseContact contact;
 
         /// <summary>Индекс слоя поз. Ищется один раз: поиск идёт по строке.</summary>
         private int poseLayer = NoLayer;
@@ -122,6 +123,7 @@ namespace Igruha.Minigames.HoleInWall
             // Аниматор живёт на модели — она ребёнок аватара, а не он сам.
             animator = GetComponentInChildren<Animator>(true);
             poseLayer = animator != null ? animator.GetLayerIndex(PoseLayerName) : NoLayer;
+            contact = new HoleInWallPoseContact(animator, transform);
         }
 
         private void OnEnable()
@@ -134,6 +136,7 @@ namespace Igruha.Minigames.HoleInWall
 
         private void OnDisable()
         {
+            contact?.RestoreOffset();
             // ⚠️ Снимаем всё, что навесили: персонаж переезжает в хаб живым
             // NetworkObject, и незакрытая роль уедет вместе с ним. У «Ангелов»
             // так уехала блокировка движения Водящего.
@@ -247,6 +250,8 @@ namespace Igruha.Minigames.HoleInWall
 
         private void Update()
         {
+            // Restore before Animator evaluates this frame; never accumulate a visual offset.
+            contact?.RestoreOffset();
             // Нокдаун начинается и кончается не по нашему событию, поэтому вес
             // слоя сверяется каждый кадр. SetLayerWeight с тем же значением
             // ничего не стоит и не аллоцирует.
@@ -265,6 +270,11 @@ namespace Igruha.Minigames.HoleInWall
             }
 
             ReadPoseInput();
+        }
+
+        private void LateUpdate()
+        {
+            if (PoseLayerVisible) contact?.Apply();
         }
 
         /// <summary>

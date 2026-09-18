@@ -104,9 +104,9 @@ def sphere(pos, size, mat):
     for p in obj.data.polygons: p.use_smooth=True
     return finish(obj,mat)
 
-def tube(a,b,r,mat):
+def tube(a,b,r,mat,segments=12):
     delta=Vector(b)-Vector(a)
-    bpy.ops.mesh.primitive_cylinder_add(vertices=12, radius=r, depth=delta.length,
+    bpy.ops.mesh.primitive_cylinder_add(vertices=segments, radius=r, depth=delta.length,
                                       location=(Vector(a)+Vector(b))*.5)
     obj=bpy.context.object
     obj.rotation_mode='QUATERNION'
@@ -117,6 +117,9 @@ def tube(a,b,r,mat):
 def path(points,r,mat):
     for a,b in zip(points,points[1:]): tube(a,b,r,mat)
 
+# Optional targeted export avoids rewriting unrelated FBX files during a detail pass.
+# The .blend source always contains the complete, reproducible library.
+export_models = globals().get('EXPORT_MODELS')
 exports=[]
 def export(name):
     bpy.ops.object.select_all(action='DESELECT')
@@ -126,8 +129,9 @@ def export(name):
     obj=bpy.context.object; obj.name='HS_'+name
     scene.cursor.location=(0,0,0)
     bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
-    bpy.ops.export_scene.fbx(filepath=str(ART/'Models'/('HS_'+name+'.fbx')),
-        use_selection=True,object_types={'MESH'},axis_forward='-Z',axis_up='Y',bake_anim=False)
+    if export_models is None or name in export_models:
+        bpy.ops.export_scene.fbx(filepath=str(ART/'Models'/('HS_'+name+'.fbx')),
+            use_selection=True,object_types={'MESH'},axis_forward='-Z',axis_up='Y',bake_anim=False)
     exports.append(dict(name=obj.name,vertices=len(obj.data.vertices),polygons=len(obj.data.polygons)))
     parts.clear()
     return obj
@@ -142,9 +146,27 @@ box((0,0,.18),(.12,.14,.36),'Steel',.02)
 for x in (-.33,.33):box((x,0,.56),(.075,.46,.07),'Gold',.02)
 export('Seat')
 
+# Smooth hooked rails, flat non-slip treads and coping anchor sockets.
 for x in (-.38,.38):
-    path([(x,.3,0),(x,.3,3.3),(x,.26,3.52),(x,.05,3.68),(x,-.2,3.68),(x,-.35,3.50),(x,-.35,3.1)],.055,'Steel')
-for i in range(9):tube((-.38,.3,.2+i*.34),(.38,.3,.2+i*.34),.047,'Steel')
+    points=[(x,.3,0),(x,.3,3.35)]
+    points += [(x,-.025+.325*math.cos(i*math.pi/24),3.35+.325*math.sin(i*math.pi/24)) for i in range(1,25)]
+    points += [(x,-.35,3.15)]
+    # A continuous curve avoids visible collars between the bend segments.
+    curve=bpy.data.curves.new('Bent pool rail','CURVE'); curve.dimensions='3D'
+    curve.bevel_depth=.055; curve.bevel_resolution=4; curve.resolution_u=12
+    spline=curve.splines.new('POLY'); spline.points.add(len(points)-1)
+    for point,co in zip(spline.points,points): point.co=(*co,1)
+    obj=bpy.data.objects.new('Bent pool rail',curve); scene.collection.objects.link(obj)
+    bpy.context.view_layer.objects.active=obj; obj.select_set(True)
+    bpy.ops.object.convert(target='MESH'); finish(bpy.context.object,'Steel')
+    tube((x,-.35,3.14),(x,-.35,3.18),.12,'Gold',32)
+    for h in (.25,2.8):
+        tube((x,.3,h),(x,-.06,h),.035,'Steel',24)
+        tube((x,-.065,h),(x,-.04,h),.085,'Steel',24)
+for i in range(9):
+    h=.2+i*.34
+    box((0,.3,h),(.72,.20,.055),'Steel',.012)
+    for y in (.24,.30,.36):box((0,y,h+.034),(.64,.018,.012),'Ink',.002)
 export('Ladder')
 
 # Own stylised spectators. Shared material order between idle/cheer pairs.
@@ -233,8 +255,9 @@ export('BathRoofEnd')
 # Front is -Y; narrow material variations make individual panes readable in game.
 for col in range(4):
     for row in range(3):
-        x=-2.25+(col+.5)*1.125;z=.28+(row+.5)*1.52
-        box((x,.02,z),(1.09,.075,1.48),'GlassLight' if (row+col)%3==0 else 'Glass',.012)
+        x=-2.25+(col+.5)*1.125
+        limits=(.23,1.80,3.32,4.95);z=(limits[row]+limits[row+1])*.5
+        box((x,.02,z),(1.125,.075,limits[row+1]-limits[row]),'GlassLight' if (row+col)%3==0 else 'Glass',.012)
 for i in range(8):
     a=i*math.pi/8;b=(i+1)*math.pi/8
     verts=[(0,.02,4.95)]+[(2.23*math.cos(t),.02,4.95+2.23*math.sin(t)) for t in (a,(a+b)/2,b)]
@@ -295,9 +318,9 @@ for x in (-1.8,1.8):box((x,.05,1.68),(.10,.18,.74),'Gold',.02)
 export('Scoreboard')
 
 # A large wall-mounted sun medallion, no text billboard. Warm metal and sculpted waves.
-tube((0,.18,0),(0,0,0),3.7,'Mint')
-tube((0,-.02,0),(0,-.10,0),3.45,'Ivory')
-tube((0,-.12,.45),(0,-.20,.45),1.30,'Sun')
+tube((0,.18,0),(0,0,0),3.7,'Mint',64)
+tube((0,-.02,0),(0,-.10,0),3.45,'Ivory',64)
+tube((0,-.12,.45),(0,-.20,.45),1.30,'Sun',48)
 for i in range(12):
     t=i*math.tau/12
     tube((1.63*math.sin(t),-.18,.45+1.63*math.cos(t)),(2.3*math.sin(t),-.18,.45+2.3*math.cos(t)),.11,'Sun')
@@ -306,9 +329,13 @@ for row in range(3):
 export('SunMedallion')
 
 # Gallery balcony module. Ends are supported by the building's masonry pilasters.
-for z in (0,1.10):box((0,0,z),(5.9,.12,.12),'Mint',.02)
+for z in (0,1.10):box((0,0,z),(6,.12,.12),'Mint',.02)
 for i in range(12):box((-2.75+i*.5,0,.55),(.075,.08,1.1),'Mint',.015)
-box((0,0,1.2),(6,.22,.14),'Ivory',.045)
+box((0,0,1.2),(6,.22,.14),'Ivory',.018)
+# Half-posts meet their neighbour at the module seam; no floating rail ends.
+for x in (-2.94,2.94):
+    box((x,0,.60),(.12,.14,1.20),'Mint',.015)
+    box((x,0,.07),(.12,.25,.14),'Ivory',.012)
 export('BathRailing')
 
 # Potted palms have solid leaf ribbons, two-tone fronds and individual central veins.
@@ -358,10 +385,14 @@ for variant in ('Coral','Teal'):
         for row in range(5):
             box((-2.5+col,-2+row,0),(.965,.965,.024),rubber,.015)
     # Shallow lozenges catch highlights without changing the collision surface.
-    for col in range(22):
-        for row in range(17):
-            ob=box((-2.77+col*.263,-2.18+row*.263,.016),(.105,.048,.007),rubber,0)
-            ob.rotation_euler.z=math.pi/4
+    # Lay the tread inside each tile, with a margin around the grout. The old
+    # continuous lattice crossed tile edges and bridged the open seams.
+    for col in range(6):
+        for row in range(5):
+            for dx in (-.33,-.11,.11,.33):
+                for dy in (-.33,-.11,.11,.33):
+                    ob=box((-2.5+col+dx,-2+row+dy,.016),(.105,.048,.007),rubber,0)
+                    ob.rotation_euler.z=math.pi/4
     export('Deck'+variant)
 
 # Ceramic perimeter module, scaled along X only: enamel face, recessed grille, rubber fenders.
@@ -374,6 +405,47 @@ for side in (-1,1):
     box((side*5.65,-.14,-.23),(.34,.15,.39),'Ink',.06)
     for z in (-.1,-.36):tube((side*5.3,-.15,z),(side*5.3,-.19,z),.055,'Gold')
 export('DeckFascia')
+
+# Closed changing-room entrance: thick jamb, recessed leaves and brass hardware.
+for side in (-1,1):
+    box((side*1.64,0,1.90),(.22,.34,3.80),'Ivory',.025)
+    box((side*.78,-.02,1.83),(1.49,.18,3.54),'Mint',.04)
+    box((side*.78,-.13,1.03),(1.22,.055,1.48),'Blue',.02)
+    tube((side*.78,-.13,2.74),(side*.78,-.21,2.74),.48,'Ivory',40)
+    tube((side*.78,-.22,2.74),(side*.78,-.235,2.74),.38,'GlassLight',40)
+    box((side*.16,-.19,1.63),(.055,.10,.45),'Gold',.02)
+    box((side*.78,-.145,.22),(1.18,.03,.14),'Gold',.015)
+box((0,0,3.82),(3.5,.4,.24),'Ivory',.035)
+box((0,-.03,.04),(3.5,.65,.08),'Tile',.012)
+box((0,-.15,4.12),(2.15,.2,.40),'Blue',.06)
+for i in range(3):box((-.18+i*.18,-.265,4.12),(.075,.035,.16),'Ivory',.01)
+export('BathDoor')
+
+# Pool bench: enamel legs, individual warm slats, folded bath towels.
+for x in (-1.32,1.32):
+    box((x,0,.34),(.14,.64,.68),'Mint',.035)
+    box((x,0,.06),(.34,.75,.12),'Ivory',.02)
+for y in (-.27,-.09,.09,.27):box((0,y,.70),(3.25,.155,.13),'Ivory',.025)
+for x in (-1.32,1.32):tube((x,.28,.55),(x,.36,1.26),.048,'Gold')
+for z in (1.0,1.22):box((0,.35,z),(3.25,.10,.17),'Ivory',.025)
+for i,mat in enumerate(('Teal','Coral','White')):
+    box((.85,-.02,.81+i*.065),(.65,.47,.06),mat,.025)
+export('BathBench')
+
+# Enamel wall clock, face points towards -Y like the windows and doors.
+tube((0,.035,0),(0,-.085,0),1.08,'Mint',64)
+tube((0,-.09,0),(0,-.12,0),.99,'Gold',64)
+tube((0,-.125,0),(0,-.14,0),.93,'Ivory',64)
+for i in range(12):
+    a=i*math.pi/6
+    tick=box((.81*math.sin(a),-.158,.81*math.cos(a)),(.037,.025,.12 if i%3==0 else .07),'Ink',.005)
+    tick.rotation_euler[1]=a
+for a,length,width in ((-math.pi/3,.48,.055),(math.pi/3,.7,.035)):
+    hand=box((.5*length*math.sin(a),-.19,.5*length*math.cos(a)),(width,.035,length),'Ink',.009)
+    hand.rotation_euler[1]=a
+tube((0,-.19,0),(0,-.23,0),.075,'Gold',32)
+export('BathClock')
+
 
 (ART/'palette.json').write_text(json.dumps(dict(materials=palette),indent=2)+'\n')
 (ART/'models.json').write_text(json.dumps(exports,indent=2)+'\n')

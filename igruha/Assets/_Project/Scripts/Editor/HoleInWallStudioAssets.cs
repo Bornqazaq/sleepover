@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Globalization;
+using System.Linq;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
@@ -20,8 +22,52 @@ namespace Igruha.EditorTools
             public float roughness, metallic, emission;
         }
         private static readonly Dictionary<string, Material[]> ModelMaterials = new Dictionary<string, Material[]>();
+        private static readonly Dictionary<string, Mesh> FittedPanels = new Dictionary<string, Mesh>();
+        private const float SourcePanelBevel = .065f;
+        private const float ArchitecturalBevel = .025f;
+        private const string PanelLibrary = Art + "/Meshes/HS_FittedPanels.asset";
 
-        internal static void Import()
+        internal static void BeginPanels() => FittedPanels.Clear();
+
+        // Preserve a metre-sized bevel instead of stretching a unit cube's corners
+        // several metres along a wall. The original Blender topology/normals survive.
+        internal static Mesh FittedPanel(Vector3 size)
+        {
+            string key = string.Format(CultureInfo.InvariantCulture, "Panel_{0:F4}_{1:F4}_{2:F4}", size.x, size.y, size.z);
+            if (FittedPanels.TryGetValue(key, out var cached)) return cached;
+            var source = Mesh("Panel");
+            var fitted = AssetDatabase.LoadAllAssetsAtPath(PanelLibrary).OfType<Mesh>().FirstOrDefault(m => m.name == key);
+            if (fitted == null)
+            {
+                fitted = new Mesh { name = key };
+                if (AssetDatabase.LoadMainAssetAtPath(PanelLibrary) == null) AssetDatabase.CreateAsset(fitted, PanelLibrary);
+                else AssetDatabase.AddObjectToAsset(fitted, PanelLibrary);
+            }
+            var vertices = source.vertices;
+            float bevel = Mathf.Min(ArchitecturalBevel, Mathf.Min(size.x, Mathf.Min(size.y, size.z)) * .2f);
+            for (int i = 0; i < vertices.Length; i++)
+                for (int axis = 0; axis < 3; axis++)
+                {
+                    float v = vertices[i][axis];
+                    float a = Mathf.Abs(v);
+                    float core = .5f - SourcePanelBevel;
+                    vertices[i][axis] = Mathf.Sign(v) * (a <= core
+                        ? a / core * (size[axis] * .5f - bevel)
+                        : size[axis] * .5f - (.5f - a) / SourcePanelBevel * bevel);
+                }
+            fitted.Clear();
+            fitted.vertices = vertices;
+            fitted.normals = source.normals;
+            fitted.uv = source.uv;
+            fitted.triangles = source.triangles;
+            fitted.RecalculateBounds();
+            fitted.RecalculateTangents();
+            EditorUtility.SetDirty(fitted);
+            FittedPanels[key] = fitted;
+            return fitted;
+        }
+
+        internal static void Import(string[] onlyModels = null)
         {
             Directory.CreateDirectory(Materials);
             Directory.CreateDirectory(Art + "/Meshes");
@@ -34,6 +80,7 @@ namespace Igruha.EditorTools
 
             foreach (string file in Directory.GetFiles(Art + "/Models", "*.fbx"))
             {
+                if (onlyModels != null && !onlyModels.Contains(Path.GetFileNameWithoutExtension(file).Substring(3))) continue;
                 string path = file.Replace('\\', '/');
                 var importer = (ModelImporter)AssetImporter.GetAtPath(path);
                 importer.materialImportMode = ModelImporterMaterialImportMode.ImportStandard;
@@ -191,7 +238,7 @@ namespace Igruha.EditorTools
             Material material, bool solid = false)
         {
             Transform panel = Place(parent, "Panel", position, 0, name);
-            panel.localScale = size;
+            panel.GetComponent<MeshFilter>().sharedMesh = FittedPanel(size);
             panel.GetComponent<Renderer>().sharedMaterial = material;
             if (solid)
             {

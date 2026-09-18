@@ -438,22 +438,37 @@ namespace Igruha.Minigames.HoleInWall
         /// нужно затем, чтобы не пытаться считать исход самому, и затем, чтобы
         /// в фазе 4 было к чему цеплять звук удара и брызги.
         /// </summary>
-        public void AnnounceWallResolved(int trackIndex, int wallIndex, bool passed)
+        public void AnnounceWallResolved(int trackIndex, int wallIndex, bool passed, int score)
         {
             if (IsSpawned && IsServer)
             {
-                WallResolvedRpc((byte)trackIndex, (byte)wallIndex, passed);
+                WallResolvedRpc((byte)trackIndex, (byte)wallIndex, passed, (byte)score);
             }
         }
 
         /// <summary>Сервер уже применил исход у себя, поэтому себе не шлём.</summary>
         [Rpc(SendTo.NotServer)]
-        private void WallResolvedRpc(byte trackIndex, byte wallIndex, bool passed)
+        private void WallResolvedRpc(byte trackIndex, byte wallIndex, bool passed, byte score)
         {
-            game?.ApplyNetworkWallResolved(trackIndex, wallIndex, passed);
+            // Reliable RPCs on this NetworkObject arrive in order: the verdict
+            // carries its authoritative score before the bridge's results RPC.
+            // NetworkList remains the persistent state for roster/late join.
+            game?.ApplyNetworkWallResolved(trackIndex, wallIndex, passed, score);
         }
 
         // ========== ПРИЁМ НА КЛИЕНТЕ ==========
+        // One server command per rescue; the owner's existing transform stream
+        // carries the ride. No client decides the return deadline or the score.
+        public void AnnounceRecovery(int playerId, Vector3 from, Vector3 landing, double start, double end)
+        {
+            if (IsSpawned && IsServer) RecoveryRpc(playerId, from, landing, start, end);
+        }
+
+        [Rpc(SendTo.NotServer)]
+        private void RecoveryRpc(int playerId, Vector3 from, Vector3 landing, double start, double end)
+        {
+            game?.ApplyNetworkRecovery(playerId, from, landing, start, end);
+        }
 
         private void LateUpdate()
         {

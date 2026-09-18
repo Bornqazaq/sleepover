@@ -127,6 +127,8 @@ namespace Igruha.EditorTools
             // Эффекты — после павильона: они не декорация, а реакция на события
             // игры, и вешаются на уже собранные дорожки и их стены.
             HoleInWallVfx.Build(arena, config, tracks);
+            HoleInWallUnderwaterBuilder.Build(arena, config, tracks);
+            HoleInWallForegroundBuilder.Build(arena, config, tracks);
 
             // Звук — за эффектами и по той же причине: он реакция на те же
             // события игры, и ему нужны уже собранные дорожки и их стены.
@@ -143,6 +145,9 @@ namespace Igruha.EditorTools
             // Оформление интерфейса — тем же прогоном: иначе пересборка арены
             // вернула бы серые прямоугольники шаблона.
             UiSkinPass.Apply();
+            HoleInWallCameraBuilder.Build();
+            HoleInWallResultsBuilder.Build();
+            HoleInWallBriefingBuilder.Build();
 
             Debug.Log(
                 $"🧱 Арена «Дырки в стене» построена: {config.TrackCount} дорожек, " +
@@ -152,6 +157,7 @@ namespace Igruha.EditorTools
                 arena);
 
             Selection.activeGameObject = arena.gameObject;
+            EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
         }
 
         // ========== БАССЕЙН ==========
@@ -204,23 +210,25 @@ namespace Igruha.EditorTools
 
         /// <summary>
         /// Лесенки по краям бассейна — <b>декор</b>. Подниматься по ним не нужно
-        /// и не предполагается: возврат на платформу автоматический через 4.5 с
-        /// (решение геймдизайнера 31.08).
+        /// и не предполагается: игрока автоматически возвращает короткий
+        /// водяной подброс. У игровых платформ постоянных лестниц нет.
         /// </summary>
         private static void BuildLadders(Transform parent, HoleInWallConfig config)
         {
             var ladders = new GameObject("Ladders").transform;
             ladders.SetParent(parent, false);
 
-            float height = config.PlatformHeightOverWater + config.PoolDepth;
-            float centerY = config.PoolBottomY + height * 0.5f;
-            float z = config.PlatformBackZ - config.PlatformDepth;
+            // Hook the ladder over the coping; the old art floated two metres into the pool.
+            const float handrailRise = .715f; // .165 m coping plus .55 m exposed handrail.
+            float height = HoleInWallProps.RimTopY(config) + handrailRise - config.PoolBottomY;
+            float centerY = config.PoolBottomY + height * .5f;
+            float z = config.ArenaNearZ + .12f;
 
             for (int i = 0; i < config.TrackCount; i++)
             {
                 float x = config.TrackCenterX(i) + config.PlatformWidth * 0.5f + config.TrackGap * 0.5f;
                 CreateDressedBox(ladders, $"Ladder_{i}",
-                    new Vector3(config.TrackGap * 0.5f, height, SlabThickness),
+                    new Vector3(config.TrackGap * 0.5f, height, .9f),
                     new Vector3(x, centerY, z), "Ground", HoleInWallDress.Kind.Ladder);
             }
         }
@@ -245,11 +253,14 @@ namespace Igruha.EditorTools
             BuildFloorHalves(root.transform, config);
             BuildLaneTrim(root.transform, config, index);
 
-            float supportHeight = config.PlatformHeightOverWater - config.PlatformThickness;
-            CreateDressedBox(root.transform, "Support",
-                new Vector3(config.PlatformWidth * 0.6f, supportHeight, config.PlatformDepth * 0.6f),
-                new Vector3(0f, -config.PlatformThickness - supportHeight * 0.5f, 0f),
-                "Ground", HoleInWallDress.Kind.Support);
+            float supportHeight = config.PlatformSurfaceY - config.PoolBottomY - config.PlatformThickness;
+            for (int side = -1; side <= 1; side += 2)
+                for (int end = -1; end <= 1; end += 2)
+                    CreateDressedBox(root.transform, "Support",
+                        new Vector3(.42f, supportHeight, .42f),
+                        new Vector3(side * (config.PlatformWidth * .5f - .65f),
+                            -config.PlatformThickness - supportHeight * .5f, end * .85f),
+                        "Ground", HoleInWallDress.Kind.Support);
 
             var slots = new Transform[2];
             for (int i = 0; i < slots.Length; i++)
@@ -260,7 +271,7 @@ namespace Igruha.EditorTools
             }
 
             GameObject banner = BuildSoloBanner(root.transform, config);
-            SweepingWall wall = BuildWall(root.transform, config);
+            SweepingWall wall = BuildWall(root.transform, config, index);
 
             var track = root.AddComponent<HoleInWallTrack>();
             var so = new SerializedObject(track);
@@ -407,7 +418,7 @@ namespace Igruha.EditorTools
         ///
         /// ⚠️ Коллайдеров у стены нет намеренно — см. <see cref="SweepingWall"/>.
         /// </summary>
-        private static SweepingWall BuildWall(Transform parent, HoleInWallConfig config)
+        private static SweepingWall BuildWall(Transform parent, HoleInWallConfig config, int lane)
         {
             var root = new GameObject("Wall");
             root.transform.SetParent(parent, false);
@@ -427,8 +438,8 @@ namespace Igruha.EditorTools
             lintelA.gameObject.SetActive(false);
             lintelB.gameObject.SetActive(false);
 
-            WallCutout first = CreateCutout(root.transform, "Cutout_A");
-            WallCutout second = CreateCutout(root.transform, "Cutout_B");
+            WallCutout first = CreateCutout(root.transform, "Cutout_A", lane);
+            WallCutout second = CreateCutout(root.transform, "Cutout_B", lane);
 
             var wall = root.AddComponent<SweepingWall>();
             var so = new SerializedObject(wall);
@@ -463,11 +474,23 @@ namespace Igruha.EditorTools
         /// здесь больше нет — прямоугольный контур ушёл вместе с прямоугольной
         /// дыркой.
         /// </summary>
-        private static WallCutout CreateCutout(Transform parent, string cutoutName)
+        private static WallCutout CreateCutout(Transform parent, string cutoutName, int lane)
         {
             var root = new GameObject(cutoutName);
             root.transform.SetParent(parent, false);
-            return root.AddComponent<WallCutout>();
+            var cutout = root.AddComponent<WallCutout>();
+            const string path = "Assets/_Project/Materials/HoleInWall/HIW_CutoutOutline.mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material == null)
+            {
+                material = new Material(Shader.Find("Igruha/HoleInWall/Cutout Outline")) { name = "HIW_CutoutOutline" };
+                AssetDatabase.CreateAsset(material, path);
+            }
+            var data = new SerializedObject(cutout);
+            data.FindProperty("outlineMaterial").objectReferenceValue = material;
+            data.FindProperty("laneIndex").intValue = lane;
+            data.ApplyModifiedPropertiesWithoutUndo();
+            return cutout;
         }
 
         // ========== ГРАНИЦЫ И СПАВНЫ ==========
@@ -651,12 +674,23 @@ namespace Igruha.EditorTools
             }
 
             var so = new SerializedObject(game);
+            var schedule = new SerializedObject(game.Config);
+            schedule.FindProperty("definition").objectReferenceValue = game.Definition;
+            schedule.ApplyModifiedPropertiesWithoutUndo();
             SerializedProperty array = so.FindProperty("tracks");
             array.arraySize = tracks.Length;
             for (int i = 0; i < tracks.Length; i++)
             {
                 array.GetArrayElementAtIndex(i).objectReferenceValue = tracks[i];
             }
+
+            var supports = new System.Collections.Generic.List<Collider>();
+            foreach (var track in tracks)
+                foreach (var collider in track.GetComponentsInChildren<Collider>(true))
+                    if (collider.name == "Support") supports.Add(collider);
+            array = so.FindProperty("poolSupports");
+            array.arraySize = supports.Count;
+            for (int i = 0; i < supports.Count; i++) array.GetArrayElementAtIndex(i).objectReferenceValue = supports[i];
 
             so.ApplyModifiedPropertiesWithoutUndo();
         }

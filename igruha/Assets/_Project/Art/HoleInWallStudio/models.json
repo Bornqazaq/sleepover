@@ -11,8 +11,8 @@
   },
   {
     "name": "HS_Ladder",
-    "vertices": 504,
-    "polygons": 294
+    "vertices": 4616,
+    "polygons": 4428
   },
   {
     "name": "HS_Fan0_Idle",
@@ -76,13 +76,13 @@
   },
   {
     "name": "HS_SunMedallion",
-    "vertices": 2664,
-    "polygons": 1554
+    "vertices": 2944,
+    "polygons": 1694
   },
   {
     "name": "HS_BathRailing",
-    "vertices": 1440,
-    "polygons": 1470
+    "vertices": 1824,
+    "polygons": 1862
   },
   {
     "name": "HS_PlanterPalm",
@@ -101,17 +101,32 @@
   },
   {
     "name": "HS_DeckCoral",
-    "vertices": 5872,
-    "polygons": 5184
+    "vertices": 6720,
+    "polygons": 5820
   },
   {
     "name": "HS_DeckTeal",
-    "vertices": 5872,
-    "polygons": 5184
+    "vertices": 6720,
+    "polygons": 5820
   },
   {
     "name": "HS_DeckFascia",
     "vertices": 888,
     "polygons": 780
+  },
+  {
+    "name": "HS_BathDoor",
+    "vertices": 1856,
+    "polygons": 1736
+  },
+  {
+    "name": "HS_BathBench",
+    "vertices": 1296,
+    "polygons": 1302
+  },
+  {
+    "name": "HS_BathClock",
+    "vertices": 1792,
+    "polygons": 1604
   }
 ]

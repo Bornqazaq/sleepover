@@ -18,7 +18,7 @@ namespace Igruha.EditorTools
             root.transform.SetParent(arena, false);
             EnsureParticleMaterial();
             int n = tracks.Length;
-            var splashes = new ParticleSystem[n * SlotsPerTrack];
+            var splashes = new HoleInWallSplash[n * SlotsPerTrack];
             var impacts = new ParticleSystem[splashes.Length];
             var flashes = new ParticleSystem[splashes.Length];
             var tethers = new ParticleSystem[n];
@@ -29,7 +29,7 @@ namespace Igruha.EditorTools
                 for (int slot = 0; slot < SlotsPerTrack; slot++)
                 {
                     int key = i * SlotsPerTrack + slot;
-                    splashes[key] = Make(root.transform, "Splash_" + key, new Color(.55f,.92f,1), 55, 5, .11f, 1.1f, false);
+                    splashes[key] = MakeSplash(root.transform, key);
                     impacts[key] = Make(root.transform, "Impact_" + key, new Color(1,.78f,.32f), 20, 3, .065f, .35f, false);
                     flashes[key] = Make(root.transform, "Flash_" + key, new Color(.15f,1,.85f), 32, 2.4f, .09f, .8f, false);
                 }
@@ -60,14 +60,14 @@ namespace Igruha.EditorTools
             main.startColor = color;
             main.simulationSpace = ParticleSystemSimulationSpace.World;
             main.maxParticles = count * 3;
-            main.gravityModifier = name.StartsWith("Splash") ? .65f : .12f;
+            main.gravityModifier = .12f;
             var emission = ps.emission;
             emission.rateOverTime = loop ? count : 0;
             if (!loop) emission.SetBursts(new[] { new ParticleSystem.Burst(0, (short)count) });
             var shape = ps.shape;
             shape.shapeType = ParticleSystemShapeType.Cone;
             shape.angle = 55;
-            shape.radius = name.StartsWith("Splash") ? .45f : .2f;
+            shape.radius = .2f;
             var scale = ps.sizeOverLifetime;
             scale.enabled = true;
             scale.size = new ParticleSystem.MinMaxCurve(1, AnimationCurve.Linear(0, 1, 1, 0));
@@ -84,6 +84,87 @@ namespace Igruha.EditorTools
         }
 
         private const string ParticleMaterialPath = HoleInWallStudioAssets.Materials + "/HS_Particles.mat";
+
+        private static HoleInWallSplash MakeSplash(Transform parent, int index)
+        {
+            var go = new GameObject("Splash_" + index);
+            go.transform.SetParent(parent, false);
+            var surface = new GameObject("Crown and ripples");
+            surface.transform.SetParent(go.transform, false);
+            var filter = surface.AddComponent<MeshFilter>();
+            var sheet = surface.AddComponent<MeshRenderer>();
+            sheet.sharedMaterial = WaterMaterial(false);
+            sheet.shadowCastingMode = ShadowCastingMode.Off;
+            sheet.receiveShadows = false;
+            sheet.enabled = false;
+
+            var spray = new GameObject("Water droplets");
+            spray.transform.SetParent(go.transform, false);
+            spray.transform.localRotation = Quaternion.Euler(-90, 0, 0);
+            var ps = spray.AddComponent<ParticleSystem>();
+            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            ps.useAutoRandomSeed = false;
+            ps.randomSeed = (uint)(1977 + index * 17);
+            var main = ps.main;
+            main.duration = 1.1f;
+            main.loop = false;
+            main.playOnAwake = false;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(.50f, .95f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(3.3f, 6.1f);
+            main.startSize = new ParticleSystem.MinMaxCurve(.045f, .105f);
+            main.startColor = new ParticleSystem.MinMaxGradient(new Color(.3f, .78f, .84f, .8f), new Color(.8f, .97f, 1, .95f));
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.gravityModifier = 1.2f;
+            main.maxParticles = 48;
+            main.cullingMode = ParticleSystemCullingMode.AlwaysSimulate;
+            var emission = ps.emission;
+            emission.rateOverTime = 0;
+            emission.SetBursts(new[] { new ParticleSystem.Burst(0, (short)32), new ParticleSystem.Burst(.045f, (short)12) });
+            var shape = ps.shape;
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = 48;
+            shape.radius = .38f;
+            var size = ps.sizeOverLifetime;
+            size.enabled = true;
+            size.size = new ParticleSystem.MinMaxCurve(1, new AnimationCurve(new Keyframe(0,.6f), new Keyframe(.15f,1), new Keyframe(1,.35f)));
+            var fade = ps.colorOverLifetime;
+            fade.enabled = true;
+            var gradient = new Gradient();
+            gradient.SetKeys(new[] { new GradientColorKey(Color.white,0), new GradientColorKey(Color.white,1) },
+                new[] { new GradientAlphaKey(1,0), new GradientAlphaKey(.9f,.6f), new GradientAlphaKey(0,1) });
+            fade.color = gradient;
+            var renderer = spray.GetComponent<ParticleSystemRenderer>();
+            renderer.renderMode = ParticleSystemRenderMode.Stretch;
+            renderer.sharedMaterial = WaterMaterial(true);
+            renderer.cameraVelocityScale = 0;
+            renderer.velocityScale = .025f;
+            renderer.lengthScale = 1.7f;
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+
+            var splash = go.AddComponent<HoleInWallSplash>();
+            var so = new SerializedObject(splash);
+            so.FindProperty("droplets").objectReferenceValue = ps;
+            so.FindProperty("surface").objectReferenceValue = filter;
+            so.FindProperty("surfaceRenderer").objectReferenceValue = sheet;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return splash;
+        }
+
+        private static Material WaterMaterial(bool spray)
+        {
+            string path = HoleInWallStudioAssets.Materials + (spray ? "/HS_WaterDroplets.mat" : "/HS_WaterSplash.mat");
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material == null)
+            {
+                material = new Material(Shader.Find("Igruha/HoleInWall/Splash"));
+                AssetDatabase.CreateAsset(material, path);
+            }
+            material.SetFloat("_Droplet", spray ? 1 : 0);
+            material.SetFloat("_WaterLevel", -1000);
+            EditorUtility.SetDirty(material);
+            return material;
+        }
         private static void EnsureParticleMaterial()
         {
             var material = AssetDatabase.LoadAssetAtPath<Material>(ParticleMaterialPath);
@@ -98,7 +179,7 @@ namespace Igruha.EditorTools
         }
 
         private static void Wire(GameObject root, HoleInWallConfig config, HoleInWallTrack[] tracks,
-            ParticleSystem[] splashes, ParticleSystem[] impacts, ParticleSystem[] flashes,
+            HoleInWallSplash[] splashes, ParticleSystem[] impacts, ParticleSystem[] flashes,
             ParticleSystem[] tethers, ParticleSystem[] mirrors, ParticleSystem[] morphs)
         {
             var effects = root.AddComponent<HoleInWallEffects>();

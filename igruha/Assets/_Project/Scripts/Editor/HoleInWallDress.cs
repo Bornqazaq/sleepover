@@ -9,6 +9,7 @@ namespace Igruha.EditorTools
         internal static void Begin()
         {
             if (HoleInWallStudioAssets.Mesh("Panel") == null) HoleInWallStudioAssets.Import();
+            HoleInWallStudioAssets.BeginPanels();
             HoleInWallPaletteAssets.Begin(1, "original studio materials");
         }
         internal static Material PaintOf(Kind kind) => HoleInWallStudioAssets.Mat(
@@ -22,7 +23,14 @@ namespace Igruha.EditorTools
             Vector3 scale = new Vector3(1 / bounds.size.x, 1 / bounds.size.y, 1 / bounds.size.z);
             art.localScale = scale;
             art.localPosition = -Vector3.Scale(bounds.center, scale);
-            if (kind != Kind.Ladder) art.GetComponent<Renderer>().sharedMaterial = PaintOf(kind);
+            if (kind != Kind.Ladder)
+            {
+                Vector3 size = box.transform.localScale;
+                art.GetComponent<MeshFilter>().sharedMesh = HoleInWallStudioAssets.FittedPanel(size);
+                art.localScale = new Vector3(1 / size.x, 1 / size.y, 1 / size.z);
+                art.localPosition = Vector3.zero;
+                art.GetComponent<Renderer>().sharedMaterial = PaintOf(kind);
+            }
             box.GetComponent<Renderer>().enabled = false;
             return art.gameObject;
         }

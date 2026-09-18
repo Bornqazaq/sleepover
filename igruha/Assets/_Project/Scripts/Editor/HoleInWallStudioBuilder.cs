@@ -18,6 +18,7 @@ namespace Igruha.EditorTools
     {
         private const string ScenePath = "Assets/_Project/Scenes/Minigames/HoleInWall.unity";
         private const string ConfigPath = "Assets/_Project/Settings/Gameplay/Minigames/HoleInWallConfig.asset";
+        internal const float RubberDeckTop = .034f;
         private const float AudienceRowRise = .75f;
         private const int AudienceRows = 3;
         private const float VaultSpringY = 14.4f;
@@ -79,21 +80,27 @@ namespace Igruha.EditorTools
             float centerZ = (far + near) * .5f;
             float floorY = HoleInWallProps.RimTopY(c) - .2f;
             float vaultScaleX = (half + 9) / VaultModelHalfWidth;
+            float wainscotHeight = HoleInWallStudioSurfaces.WainscotTop - (floorY + .2f);
+            float wainscotCenter = floorY + .2f + wainscotHeight * .5f;
+            int windowBays = Mathf.FloorToInt((far - near) / 6);
+            float windowPitch = (far - near) / windowBays;
             Panel(shell,"Far promenade",new Vector3(0,floorY,c.ArenaFarZ+4.5f),new Vector3(c.ArenaWidth,.4f,9),Mat("Ivory"),true);
             Panel(shell,"Near promenade",new Vector3(0,floorY,c.ArenaNearZ-4.5f),new Vector3(c.ArenaWidth,.4f,9),Mat("Ivory"),true);
             for(int side=-1;side<=1;side+=2)
             {
                 Panel(shell,"Side promenade",new Vector3(side*(half+4.5f),floorY,centerZ),new Vector3(9,.4f,far-near),Mat("Ivory"),true);
                 Panel(shell,"Sunwashed masonry",new Vector3(side*(half+9),6,centerZ),new Vector3(.7f,17,far-near),Mat("Plaster"),true);
-                Panel(shell,"Ceramic wainscot",new Vector3(side*(half+8.58f),.2f,centerZ),new Vector3(.14f,4.5f,far-near),Mat("Mint"));
+                Panel(shell,"Ceramic wainscot",new Vector3(side*(half+8.58f),wainscotCenter,centerZ),new Vector3(.14f,wainscotHeight,far-near),Mat("Mint"));
                 Panel(shell,"Gallery deck",new Vector3(side*(half+7.25f),4.9f,centerZ),new Vector3(3.2f,.48f,far-near),Mat("Ivory"));
                 Panel(shell,"Gallery fascia",new Vector3(side*(half+5.55f),4.85f,centerZ),new Vector3(.18f,.60f,far-near),Mat("Coral"));
-                for(float z=near+3;z<far-1;z+=6)
+                for(int bay=0;bay<windowBays;bay++)
                 {
+                    float z=near+(bay+.5f)*windowPitch;
                     Place(shell,"BathWindow",new Vector3(side*(half+8.55f),5.4f,z),side*90);
                     float pierBottom=floorY+.2f;
                     Panel(shell,"Gallery pier",new Vector3(side*(half+5.8f),(pierBottom+4.7f)*.5f,z-2.9f),new Vector3(.48f,4.7f-pierBottom,.48f),Mat("Ivory"));
-                    Place(shell,"BathRailing",new Vector3(side*(half+5.5f),5.18f,z),side*90);
+                    var railing=Place(shell,"BathRailing",new Vector3(side*(half+5.5f),5.18f,z),side*90);
+                    railing.localScale=new Vector3(windowPitch/6,1,1);
                 }
                 // Planting lives in the open end promenades, clear of seats and balconies.
                 foreach(float z in new[]{near+4.5f,far-4.5f})
@@ -103,24 +110,22 @@ namespace Igruha.EditorTools
                 }
                 foreach(float z in new[]{near+4,9f,far-4})
                     Place(shell,"Lifebuoy",new Vector3(side*(half+1.1f),floorY+.2f,z+2),side*90);
-                for(float z=near+2;z<far-1;z+=4)
-                    Place(shell,"TilePatch",new Vector3(side*(half+2),floorY+.235f,z));
             }
             foreach(float z in new[]{far,near})
             {
                 bool back=z==far;
                 Panel(shell,"End masonry",new Vector3(0,6,z),new Vector3(c.ArenaWidth+18,17,.7f),Mat("Plaster"),true);
-                Panel(shell,"End ceramic plinth",new Vector3(0,.0f,z+(back?-.43f:.43f)),new Vector3(c.ArenaWidth+18,4.2f,.12f),Mat("Mint"));
+                Panel(shell,"End ceramic plinth",new Vector3(0,wainscotCenter,z+(back?-.43f:.43f)),new Vector3(c.ArenaWidth+18,wainscotHeight,.12f),Mat("Mint"));
                 for(int side=-1;side<=1;side+=2)
                     for(int bay=0;bay<3;bay++)
                         Place(shell,"BathWindow",new Vector3(side*(11.4f+bay*7.6f),5.7f,z+(back?-.48f:.48f)),back?0:180);
-                Place(shell,"SunMedallion",new Vector3(0,10.2f,z+(back?-.5f:.5f)),back?0:180);
+                if (back) Place(shell,"SunMedallion",new Vector3(0,10.2f,z+(back?-.5f:.5f)),back?0:180);
                 Panel(shell,"Crown moulding",new Vector3(0,VaultSpringY,z+(back?-.48f:.48f)),new Vector3(c.ArenaWidth+18,.45f,.55f),Mat("Ivory"));
             }
             // Contiguous curved bays replace the flat sky card. Glazing transmits daylight;
             // the separate structural ribs still cast the characteristic roof shadows.
             const float roofBayDepth = 6;
-            int roofBays = Mathf.CeilToInt((far-near)/roofBayDepth);
+            int roofBays = windowBays;
             float bayDepth = (far-near)/roofBays;
             for(int bay=0;bay<roofBays;bay++)
             {
@@ -148,6 +153,22 @@ namespace Igruha.EditorTools
                     float cornerZ=z+(z==far?-.48f:.48f);
                     Panel(shell,"Cornice corner block",new Vector3(corniceX,VaultSpringY,cornerZ),new Vector3(.70f,.55f,.70f),Mat("Ivory"));
                 }
+            }
+            HoleInWallStudioSurfaces.Build(shell, c);
+            Place(shell,"BathClock",new Vector3(0,6.65f,near+.57f),180);
+            Panel(shell,"Club sign frame",new Vector3(0,4.35f,near+.57f),new Vector3(9.4f,1.36f,.16f),Mat("Ivory"));
+            Panel(shell,"Club sign enamel",new Vector3(0,4.35f,near+.67f),new Vector3(9.13f,1.1f,.07f),Mat("Blue"));
+            var club=Label(shell,"Club name","АКВА-КЛУБ",new Vector3(0,4.38f,near+.73f),new Vector2(8.7f,.86f),6.5f,new Color(.97f,.94f,.77f));
+            club.transform.localRotation=Quaternion.Euler(0,180,0);
+            // Quiet, functional details in the rear promenade, outside every play lane.
+            foreach(float x in new[]{-10f,10f})
+                Place(shell,"BathDoor",new Vector3(x,floorY+.2f,near+.50f),180);
+            foreach(float x in new[]{-18f,-3.6f,3.6f,18f})
+            {
+                var bench=Place(shell,"BathBench",new Vector3(x,floorY+.2f,near+1.05f),180);
+                bench.gameObject.layer=LayerMask.NameToLayer("Cover");
+                var collision=bench.gameObject.AddComponent<BoxCollider>();
+                collision.center=new Vector3(0,.68f,0);collision.size=new Vector3(3.3f,1.36f,.82f);
             }
         }
 
@@ -201,7 +222,7 @@ namespace Igruha.EditorTools
             }
         }
 
-        private static void Audience(Transform studio,HoleInWallConfig c)
+        internal static void Audience(Transform studio,HoleInWallConfig c)
         {
             Transform tiers=Group(studio,"Audience tiers");
             Transform crowd=Group(studio,"Original audience");
@@ -222,8 +243,10 @@ namespace Igruha.EditorTools
                     {
                         float yaw=side*90;
                         Place(tiers,"Seat",new Vector3(x,y,seatZ),yaw);
-                        var fan=Place(crowd,"Fan"+(count%3)+"_Idle",new Vector3(x,y,seatZ)+Quaternion.Euler(0,yaw,0)*new Vector3(0,0,-.45f),yaw,"Fan_"+count);
-                        fan.localScale=Vector3.one*(.90f+(count%5)*.045f);
+                        var fan=Place(crowd,"Fan"+((count*5+row)%7)+"_Idle",new Vector3(x,y,seatZ)+Quaternion.Euler(0,yaw,0)*new Vector3(0,0,-.45f),yaw,"Fan_"+count);
+                        fan.localScale=Vector3.one*(.88f+(count%5)*.035f);
+                        fan.localPosition+=new Vector3(((count*17)%7-3)*.025f,0,((count*13)%5-2)*.055f);
+                        fan.localRotation*=Quaternion.Euler(0,((count*11)%9-4)*2.5f,0);
                         count++;
                     }
                 }
@@ -236,13 +259,14 @@ namespace Igruha.EditorTools
                     float z=c.ArenaFarZ+4.6f+row*1.5f;
                     if(col==0)Panel(tiers,"Rear tier",new Vector3(0,y-.5f,z),new Vector3(41,1,1.5f),Mat("Blue"),true);
                     Place(tiers,"Seat",new Vector3(x,y,z));
-                    Place(crowd,"Fan"+(count%3)+"_Idle",new Vector3(x,y,z-.45f),0,"Fan_"+count++);
+                    Place(crowd,"Fan"+((count*5+row)%7)+"_Idle",new Vector3(x,y,z-.45f),0,"Fan_"+count++);
                 }
+            foreach(var r in crowd.GetComponentsInChildren<Renderer>()) r.shadowCastingMode=ShadowCastingMode.Off;
             var component=crowd.gameObject.AddComponent<HoleInWallCrowd>();
             var so=new SerializedObject(component);
             so.FindProperty("game").objectReferenceValue=Object.FindFirstObjectByType<HoleInWallMinigame>();
-            var wardrobe=so.FindProperty("wardrobe");wardrobe.arraySize=3;
-            for(int i=0;i<3;i++)
+            var wardrobe=so.FindProperty("wardrobe");wardrobe.arraySize=7;
+            for(int i=0;i<7;i++)
             {
                 wardrobe.GetArrayElementAtIndex(i).FindPropertyRelative("Idle").objectReferenceValue=Mesh("Fan"+i+"_Idle");
                 wardrobe.GetArrayElementAtIndex(i).FindPropertyRelative("Cheer").objectReferenceValue=Mesh("Fan"+i+"_Cheer");
@@ -255,24 +279,31 @@ namespace Igruha.EditorTools
             Transform finish=Group(studio,"Pool detailing");
             float z=(c.ArenaFarZ+c.ArenaNearZ)*.5f;
             float half=c.ArenaWidth*.5f;
+            float rim=HoleInWallProps.RimTopY(c);
             for(int side=-1;side<=1;side+=2)
             {
-                Panel(finish,"Ceramic coping",new Vector3(side*half,-2.08f,z),new Vector3(.75f,.17f,c.ArenaDepth),Mat("Ivory"));
+                Panel(finish,"Ceramic coping",new Vector3(side*half,rim+.08f,z),new Vector3(.75f,.17f,c.ArenaDepth),Mat("Ivory"));
                 Panel(finish,"Pool light channel",new Vector3(side*(half-.24f),-2.37f,z),new Vector3(.08f,.10f,c.ArenaDepth-.7f),Mat("Glow"));
                 for(float zz=c.ArenaNearZ+1;zz<c.ArenaFarZ;zz+=1.6f)
-                    Panel(finish,"Coping joint",new Vector3(side*half,-1.989f,zz),new Vector3(.73f,.012f,.025f),Mat("Blue"));
+                    Panel(finish,"Coping joint",new Vector3(side*half,rim+.171f,zz),new Vector3(.73f,.012f,.025f),Mat("Blue"));
             }
             foreach(float zz in new[]{c.ArenaNearZ,c.ArenaFarZ})
             {
-                Panel(finish,"End coping",new Vector3(0,-2.08f,zz),new Vector3(c.ArenaWidth,.17f,.75f),Mat("Ivory"));
+                Panel(finish,"End coping",new Vector3(0,rim+.08f,zz),new Vector3(c.ArenaWidth,.17f,.75f),Mat("Ivory"));
                 Panel(finish,"End light channel",new Vector3(0,-2.37f,zz+(zz==c.ArenaNearZ?.24f:-.24f)),
                     new Vector3(c.ArenaWidth-.7f,.10f,.08f),Mat("Glow"));
             }
-            // Underwater seams remain subtle and establish depth through refraction.
-            for(float x=-half+1;x<half;x+=1.8f)
-                Panel(finish,"Pool tile seam",new Vector3(x,c.PoolBottomY+.012f,z),new Vector3(.018f,.015f,c.ArenaDepth-.6f),Mat("Teal"));
-            for(float zz=c.ArenaNearZ+1;zz<c.ArenaFarZ;zz+=1.8f)
-                Panel(finish,"Pool tile seam",new Vector3(0,c.PoolBottomY+.014f,zz),new Vector3(c.ArenaWidth-.6f,.015f,.018f),Mat("Teal"));
+            for(int side=-1;side<=1;side+=2)
+                foreach(float zz in new[]{c.ArenaNearZ,c.ArenaFarZ})
+                    Panel(finish,"Coping corner stone",new Vector3(side*half,rim+.082f,zz),
+                        new Vector3(.77f,.178f,.77f),Mat("Ivory"));
+            for(int lane=0;lane<c.TrackCount;lane++)
+            {
+                float ladderX=c.TrackCenterX(lane)+c.PlatformWidth*.5f+c.TrackGap*.5f;
+                var depth=Label(finish,"Pool depth",c.PoolDepth.ToString("0.0",System.Globalization.CultureInfo.GetCultureInfo("ru-RU"))+" м",
+                    new Vector3(ladderX-.95f,rim+.182f,c.ArenaNearZ),new Vector2(.9f,.36f),2.1f,new Color(.07f,.25f,.25f));
+                depth.transform.localRotation=Quaternion.Euler(90,0,0);
+            }
             var water=arena.Find("Pool/Water").GetComponent<Renderer>().sharedMaterial;
             water.SetColor("_ShallowColor",new Color(.13f,.73f,.69f));
             water.SetColor("_DeepColor",new Color(.025f,.42f,.47f));
@@ -283,6 +314,8 @@ namespace Igruha.EditorTools
             water.SetFloat("_SpecPower",150);
             water.SetFloat("_FresnelStrength",.24f);
             water.SetFloat("_RefractionStrength",.012f);
+            water.SetFloat("_UnderwaterClarity",1);
+            water.SetFloat("_Opacity",.36f);
             EditorUtility.SetDirty(water);
         }
 
@@ -291,6 +324,11 @@ namespace Igruha.EditorTools
             for(int i=0;i<c.TrackCount;i++)
             {
                 Transform track=arena.Find("Track_"+i);
+                const float rubberTop = RubberDeckTop;
+                var platform = track.Find("Platform").GetComponent<BoxCollider>();
+                // Collider lives under a unit cube scaled to the platform dimensions.
+                platform.center = new Vector3(0, rubberTop / (2 * c.PlatformThickness), 0);
+                platform.size = new Vector3(1, 1 + rubberTop / c.PlatformThickness, 1);
                 Transform finish=Group(track,"Studio platform details");
                 Transform wallFinish=Group(track.Find("Wall"),"Studio wall frame");
                 float front=-c.WallThickness*.5f-.025f;
@@ -311,17 +349,18 @@ namespace Igruha.EditorTools
                 {
                     var original=track.Find("FloorHalf_"+side).GetComponent<Renderer>();
                     original.sharedMaterial=Mat(side==0?"Coral":"Teal");
+                    original.enabled=false;
                     float x=(side==0?-1:1)*c.PlatformWidth*.25f;
-                    var deck=Place(finish,side==0?"DeckCoral":"DeckTeal",new Vector3(x,.012f,0));
+                    var deck=Place(finish,side==0?"DeckCoral":"DeckTeal",new Vector3(x,.022f,0));
                     deck.localScale=new Vector3(c.PlatformWidth*.5f/6*.985f,1,c.PlatformDepth/5*.98f);
                     deck.GetComponent<Renderer>().shadowCastingMode=ShadowCastingMode.Off;
                     for(int k=0;k<3;k++)
                     {
-                        Transform stripe=Panel(finish,"Inset grip stripe",new Vector3(x,.040f,-c.PlatformDepth*.5f+.24f+k*.12f),
+                        Transform stripe=Panel(finish,"Inset grip stripe",new Vector3(x,.048f,-c.PlatformDepth*.5f+.24f+k*.12f),
                             new Vector3(c.PlatformWidth*.43f,.009f,.035f),Mat("Ink"));
                         stripe.GetComponent<Renderer>().shadowCastingMode=ShadowCastingMode.Off;
                     }
-                    Label(finish,"Deck lane",(i+1).ToString("00"),new Vector3(x,.042f,-.95f),new Vector2(1.6f,.6f),3.5f,Color.white)
+                    Label(finish,"Deck lane",(i+1).ToString("00"),new Vector3(x,.052f,-.95f),new Vector2(1.6f,.6f),3.5f,Color.white)
                         .transform.localRotation=Quaternion.Euler(90,0,0);
                 }
                 for(int edge=-1;edge<=1;edge+=2)
@@ -416,6 +455,27 @@ namespace Igruha.EditorTools
             if(scene.path!=ScenePath)throw new InvalidOperationException("Audit requires HoleInWall.");
             var arena=GameObject.Find("_Arena");
             var c=AssetDatabase.LoadAssetAtPath<HoleInWallConfig>(ConfigPath);
+            HoleInWallStudioSurfaces.Audit(arena.transform,c);
+            HoleInWallForegroundBuilder.Audit(arena.transform,c);
+            HoleInWallCameraBuilder.Audit();
+            var game = UnityEngine.Object.FindFirstObjectByType<HoleInWallMinigame>();
+            var supportRefs = new SerializedObject(game).FindProperty("poolSupports");
+            var supports = arena.GetComponentsInChildren<Collider>(true).Where(x => x.name == "Support").ToArray();
+            if (supports.Length != c.TrackCount * 4 || supportRefs.arraySize != supports.Length)
+                throw new InvalidOperationException("Pool body contacts need all platform supports.");
+            var linkedSupports = new System.Collections.Generic.HashSet<Collider>();
+            for (int i = 0; i < supportRefs.arraySize; i++)
+            {
+                var support = supportRefs.GetArrayElementAtIndex(i).objectReferenceValue as Collider;
+                if (support == null || !support.enabled || support.isTrigger || !supports.Contains(support) || !linkedSupports.Add(support))
+                    throw new InvalidOperationException("Invalid or duplicate pool support contact reference.");
+            }
+            foreach (var cutout in arena.GetComponentsInChildren<WallCutout>(true))
+            {
+                var material = new SerializedObject(cutout).FindProperty("outlineMaterial").objectReferenceValue as Material;
+                if (material == null || material.shader.name != "Igruha/HoleInWall/Cutout Outline")
+                    throw new InvalidOperationException("Cutout needs the contrast outline shader in the build.");
+            }
             var boards=arena.GetComponentsInChildren<HoleInWallScoreboard>(true);
             if(boards.Length!=c.TrackCount)throw new InvalidOperationException("Scoreboards do not match lanes.");
             foreach(var board in boards)
@@ -476,13 +536,34 @@ namespace Igruha.EditorTools
                 if (fitted == null) continue;
                 Bounds visual = fitted.GetComponent<Renderer>().bounds;
                 Bounds physical = collider.bounds;
+                if (collider.name == "Platform")
+                {
+                    // The collider includes the rubber surface above this structural slab.
+                    physical.center -= Vector3.up * (RubberDeckTop * .5f);
+                    physical.size -= Vector3.up * RubberDeckTop;
+                }
                 if (Vector3.Distance(visual.center, physical.center) > .01f ||
                     Vector3.Distance(visual.size, physical.size) > .02f || fitted.GetComponent<Collider>() != null)
                     throw new InvalidOperationException("Fitted module diverges from its collider: " + collider.name);
             }
             var effects = arena.GetComponentInChildren<HoleInWallEffects>();
+            AuditUnderwater(arena.transform, c);
             if (effects == null) throw new InvalidOperationException("Gameplay effects are missing.");
             var effectData = new SerializedObject(effects);
+            var waterSplashes = arena.GetComponentsInChildren<HoleInWallSplash>(true);
+            if (waterSplashes.Length != c.TrackCount * 2) throw new InvalidOperationException("Water entry needs one pooled splash per player slot.");
+            foreach (var splash in waterSplashes)
+            {
+                var splashData = new SerializedObject(splash);
+                foreach (string field in new[] { "droplets", "surface", "surfaceRenderer" })
+                    if (splashData.FindProperty(field).objectReferenceValue == null)
+                        throw new InvalidOperationException("Unwired water splash: " + field);
+                var spray = ((ParticleSystem)splashData.FindProperty("droplets").objectReferenceValue).GetComponent<ParticleSystemRenderer>();
+                if (spray.renderMode != ParticleSystemRenderMode.Stretch || spray.sharedMaterial.shader.name != "Igruha/HoleInWall/Splash")
+                    throw new InvalidOperationException("Water spray must use rounded, transparent droplets.");
+                if (splash.GetComponentsInChildren<Collider>(true).Length != 0)
+                    throw new InvalidOperationException("Water splash must not block players or cameras.");
+            }
             foreach (string bank in new[] { "tracks", "splashes", "impacts", "flashes", "tethers", "mirrors", "morphs" })
             {
                 var array = effectData.FindProperty(bank);
@@ -506,6 +587,59 @@ namespace Igruha.EditorTools
                 ", shadow casters="+renderers.Count(r=>r.shadowCastingMode!=ShadowCastingMode.Off)+
                 ", missing="+missing+", invalid materials="+badMaterials+", remaining purchased="+purchased.Length+
                 "\n"+string.Join("\n",purchased));
+        }
+
+        private static void AuditUnderwater(Transform arena, HoleInWallConfig config)
+        {
+            var floor = arena.Find("Pool/PoolFloor").GetComponent<Renderer>();
+            if (floor.sharedMaterial.shader.name != "Igruha/HoleInWall/Pool Ceramic")
+                throw new InvalidOperationException("Pool floor lost its ceramic and caustics material.");
+            var objects = arena.GetComponentsInChildren<Transform>(true);
+            if (objects.Any(t => t.name == "Pool tile seam"))
+                throw new InvalidOperationException("The retired luminous floor grid returned.");
+            var supports = objects.Where(t => t.name == "Support").ToArray();
+            if (supports.Length != config.TrackCount * 4 || supports.Any(t => t.GetComponent<BoxCollider>().bounds.size.x > .5f))
+                throw new InvalidOperationException("Platforms need four narrow supports, with open underwater sightlines.");
+            if (objects.Any(t => t.name.StartsWith("Recovery ladder ") || t.name == "Rescue cradle"))
+                throw new InvalidOperationException("Retired recovery geometry obstructs the gameplay camera.");
+            foreach (var platform in objects.Where(t => t.name == "Platform"))
+            {
+                var bounds = platform.GetComponent<BoxCollider>().bounds;
+                if (Mathf.Abs(bounds.size.x - config.PlatformWidth) > .01f ||
+                    Mathf.Abs(bounds.size.z - config.PlatformDepth) > .01f)
+                    throw new InvalidOperationException("Recovery must not narrow the gameplay deck.");
+            }
+            var game = Object.FindFirstObjectByType<HoleInWallMinigame>();
+            var bank = new SerializedObject(game).FindProperty("recoveries");
+            if (bank.arraySize != config.TrackCount * 2)
+                throw new InvalidOperationException("Wrong recovery bank size.");
+            for (int i = 0; i < bank.arraySize; i++)
+            {
+                var recovery = bank.GetArrayElementAtIndex(i).objectReferenceValue as HoleInWallRecovery;
+                if (recovery == null || new SerializedObject(recovery).FindProperty("jet").objectReferenceValue == null)
+                    throw new InvalidOperationException("Recovery path is not wired: " + i);
+                if (recovery.GetComponentsInChildren<Collider>(true).Length != 0)
+                    throw new InvalidOperationException("A water return must not add physical obstacles.");
+                var jet = recovery.GetComponent<HoleInWallReturnJet>();
+                var jetData = new SerializedObject(jet);
+                foreach (string field in new[] { "surface", "surfaceRenderer", "spray" })
+                    if (jetData.FindProperty(field).objectReferenceValue == null)
+                        throw new InvalidOperationException("Unwired return effect: " + field);
+                if (!EditorApplication.isPlaying && recovery.GetComponentInChildren<MeshRenderer>().enabled)
+                    throw new InvalidOperationException("Return water must be invisible before a rescue.");
+            }
+            var atmosphere = arena.GetComponentInChildren<HoleInWallUnderwater>();
+            if (atmosphere == null) throw new InvalidOperationException("Underwater atmosphere is missing.");
+            var data = new SerializedObject(atmosphere);
+            foreach (string field in new[] { "bubbles", "caustics" })
+            {
+                var array = data.FindProperty(field);
+                int expected = config.TrackCount * (field == "bubbles" ? 2 : 1);
+                if (array.arraySize != expected) throw new InvalidOperationException("Wrong underwater bank: " + field);
+                for (int i = 0; i < expected; i++)
+                    if (array.GetArrayElementAtIndex(i).objectReferenceValue == null)
+                        throw new InvalidOperationException("Unwired underwater effect: " + field);
+            }
         }
     }
 }

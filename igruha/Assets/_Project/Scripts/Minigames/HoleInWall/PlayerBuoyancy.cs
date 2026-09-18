@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 using Igruha.Core.Player;
@@ -6,55 +7,20 @@ using Igruha.Core.Session;
 namespace Igruha.Minigames.HoleInWall
 {
     /// <summary>
-    /// Вода бассейна: упавший всплывает и качается на поверхности, а не ходит
-    /// по дну.
-    ///
-    /// Вешается на аватар в начале раунда рядом с <see cref="PlayerPoseAbility"/>
-    /// и <see cref="WallFunnel"/> и снимается в конце — префабы персонажей
-    /// заморожены (igruha/CLAUDE.md, раздел 🔒 0).
+    /// Сопротивление воды при провале: гасит удар и движение, но оставляет
+    /// гравитацию, чтобы ноги опирались на дно, а не на невидимую поверхность.
+    /// Компонент временный; префабы, капсулы и анимации игроков не меняются.
+    /// Каждая машина применяет силы только к своему аватару.
     /// </summary>
-    /// <remarks>
-    /// <b>Что было.</b> Дно бассейна — коллайдер на слое <c>Ground</c> в 2.16 м
-    /// под водой. Сметённый долетал до него, вставал и <b>ходил по дну обычным
-    /// шагом</b>, полностью под водой. На прогоне 04.09 это названо главным,
-    /// что портит вид провала.
-    ///
-    /// <b>Почему нельзя было починить одной анимацией.</b> Клипа плавания
-    /// в проекте нет и заводить его нельзя — аниматоры восьмерых заморожены.
-    /// Зато драйвер анимации (<c>CharacterAnimatorDriver</c>) знает только
-    /// <c>Speed</c> и разовый триггер прыжка: у стоящего на месте в воде
-    /// играет <c>Idle</c>. Значит достаточно поднять человека на поверхность
-    /// и погасить ему скорость — и он читается стоящим в воде по грудь,
-    /// без единого нового клипа.
-    ///
-    /// <b>Выталкивание считается по Архимеду, а не пружиной к заданной высоте.</b>
-    /// Сила вверх пропорциональна доле тела под водой, и равновесие получается
-    /// само там, где вытесненный объём уравновешивает вес —
-    /// <see cref="FloatingShare"/>. Пружина к абсолютной высоте дала бы всем
-    /// восьмерым одинаковую ватерлинию, а Шланга на 35 см выше Карлана.
-    ///
-    /// <b>Гашение здесь же, и оно важнее выталкивания.</b> Сметённый входит
-    /// в воду на 8–10 м/с; без гашения он пробил бы 2.16 м бассейна до дна
-    /// и проехал по нему до края — а за краем бассейна пусто. С гашением
-    /// он тормозит за треть секунды и метр пути, то есть не достаёт ни до дна,
-    /// ни до борта.
-    ///
-    /// <b>Сеть: каждая машина ведёт своего.</b> Вода — непрерывная сила, как
-    /// воронка выреза и трос: применяет её владелец персонажа напрямую, иначе
-    /// это полсотни пакетов в секунду на игрока. Исход по-прежнему считает
-    /// сервер и по своим числам — высоту тела он видит и так.
-    /// </remarks>
     [RequireComponent(typeof(PlayerController))]
     public sealed class PlayerBuoyancy : MonoBehaviour
     {
-        /// <summary>Под водой остаётся 55% тела: голова и плечи хорошо видны из игровой камеры.</summary>
-        private const float FloatingShare = 0.55f;
-        /// <summary>Сильное торможение входа не даёт пробить бассейн до пола на 13.6 м/с.</summary>
-        private const float VerticalDamping = 16f;
+        /// <summary>Торможение смягчает контакт с дном после быстрого входа в воду.</summary>
+        private const float VerticalDamping = 8f;
         private const float HorizontalDamping = 9f;
         /// <summary>За такт 50 Гц импульс меньше порога нокдауна 5 м/с.</summary>
         private const float MaxAcceleration = 160f;
-        /// <summary>Короткое ожидание возврата: лёгкий дрейф вместо ходьбы по дну.</summary>
+        /// <summary>Короткое ожидание возврата: вода ограничивает движение по дну.</summary>
         private const float SwimSpeed = 0.15f;
 
         /// <summary>Разгон в воде — доля обычного. Вода не даёт стартовать рывком.</summary>
@@ -66,11 +32,14 @@ namespace Igruha.Minigames.HoleInWall
         /// <summary>Рост, которым считается погружение, если капсулы почему-то нет, м.</summary>
         private const float FallbackHeight = 1.8f;
 
+        private static readonly List<PlayerBuoyancy> participants = new List<PlayerBuoyancy>(8);
         private PlayerController motor;
         private NetworkObject body;
         private Rigidbody physics;
         private CapsuleCollider capsule;
+        private Transform head, leftFoot, rightFoot, leftHand, rightHand;
         private HoleInWallConfig config;
+        private HoleInWallPoolContacts contacts;
 
         /// <summary>Человек сейчас в воде. По ней же ставится и снимается вязкость.</summary>
         private bool submerged;
@@ -81,14 +50,27 @@ namespace Igruha.Minigames.HoleInWall
             body = GetComponent<NetworkObject>();
             physics = GetComponent<Rigidbody>();
             capsule = GetComponent<CapsuleCollider>();
+            var animator = GetComponentInChildren<Animator>();
+            float radius = capsule != null ? capsule.radius * Mathf.Abs(transform.lossyScale.x) : .3f;
+            contacts = new HoleInWallPoolContacts(animator, radius);
+            if (animator != null && animator.isHuman)
+            {
+                head = animator.GetBoneTransform(HumanBodyBones.Head);
+                leftFoot = animator.GetBoneTransform(HumanBodyBones.LeftFoot);
+                rightFoot = animator.GetBoneTransform(HumanBodyBones.RightFoot);
+                leftHand = animator.GetBoneTransform(HumanBodyBones.LeftHand);
+                rightHand = animator.GetBoneTransform(HumanBodyBones.RightHand);
+            }
         }
 
         private void OnDisable() => Release();
 
         /// <summary>Указать воде её уровень. Зовётся сразу после навешивания компонента.</summary>
-        public void Configure(HoleInWallConfig gameConfig)
+        public void Configure(HoleInWallConfig gameConfig, Collider[] supports)
         {
             config = gameConfig;
+            if (!participants.Contains(this)) participants.Add(this);
+            contacts.Configure(supports);
         }
 
         /// <summary>
@@ -98,14 +80,17 @@ namespace Igruha.Minigames.HoleInWall
         /// </summary>
         public void Release()
         {
+            participants.Remove(this);
             config = null;
+            contacts?.Reset();
             SetSubmerged(false);
         }
 
         private void FixedUpdate()
         {
-            if (config == null || physics == null || motor == null)
+            if (config == null || physics == null || motor == null || !motor.enabled || physics.isKinematic)
             {
+                contacts?.Reset();
                 return;
             }
 
@@ -117,6 +102,16 @@ namespace Igruha.Minigames.HoleInWall
                 return;
             }
 
+            if (physics.detectCollisions)
+                foreach (var peer in participants)
+                    if (peer != this && peer.config == config && peer.physics != null &&
+                        peer.physics.detectCollisions && peer.motor != null && peer.motor.enabled &&
+                        (motor.IsKnockedDown || peer.motor.IsKnockedDown))
+                        contacts.ResolvePeer(physics, peer.contacts, peer.physics,
+                            body != null && body.IsSpawned && peer.body != null && peer.body.IsSpawned
+                                ? body.NetworkObjectId < peer.body.NetworkObjectId
+                                : GetInstanceID() < peer.GetInstanceID());
+
             float height = BodyHeight;
             float feetY = motor.Position.y;
 
@@ -126,20 +121,32 @@ namespace Igruha.Minigames.HoleInWall
 
             if (share <= 0f)
             {
+                contacts.Reset();
                 return;
             }
 
+            contacts.Resolve(physics);
+
             Vector3 velocity = physics.linearVelocity;
 
-            // Гравитация, которую надо перебить, — та же, что накидывает
-            // PlayerController поверх физической: на взлёте одна, на падении
-            // другая. Считать по общей означало бы недодавать выталкивания
-            // ровно там, где человек падает в воду.
-            float gravity = -Physics.gravity.y * (velocity.y > 0f
-                ? motor.Config.RiseGravityMultiplier
-                : motor.Config.FallGravityMultiplier);
-
-            float vertical = gravity * (share / FloatingShare) - velocity.y * VerticalDamping;
+            // Только сопротивление: при нулевой скорости нет силы вверх.
+            // Прежнее выталкивание удерживало стоячую модель над дном.
+            float vertical = -velocity.y * VerticalDamping * share;
+            // The frozen fall clip extends below the upright capsule. Cushion the
+            // actual head before the pool floor; neither capsule nor clip is changed.
+            if (head != null && motor.IsKnockedDown)
+            {
+                float headRadius = capsule != null ? capsule.radius * Mathf.Abs(transform.lossyScale.x) : .3f;
+                float lowest = head.position.y - headRadius;
+                if (leftFoot != null) lowest = Mathf.Min(lowest, leftFoot.position.y - .1f);
+                if (rightFoot != null) lowest = Mathf.Min(lowest, rightFoot.position.y - .1f);
+                if (leftHand != null) lowest = Mathf.Min(lowest, leftHand.position.y - .06f);
+                if (rightHand != null) lowest = Mathf.Min(lowest, rightHand.position.y - .06f);
+                float clearance = config.PoolBottomY + .08f - lowest;
+                if (clearance > 0) vertical = Mathf.Max(vertical, clearance * 180f - velocity.y * 22f);
+                if (lowest < config.PoolBottomY)
+                    physics.position += Vector3.up * (config.PoolBottomY - lowest);
+            }
             vertical = Mathf.Clamp(vertical, -MaxAcceleration, MaxAcceleration);
 
             var horizontal = new Vector3(velocity.x, 0f, velocity.z);
@@ -178,9 +185,7 @@ namespace Igruha.Minigames.HoleInWall
         }
 
         /// <summary>
-        /// Рост тела, м. Берётся у капсулы, а не из конфига: капсулы персонажей
-        /// заморожены и разные — у Карлана 1.61 м, у Шланги 1.96, — и ватерлиния
-        /// обязана считаться каждому своя.
+        /// Рост капсулы нужен для постепенного включения сопротивления воды.
         /// </summary>
         private float BodyHeight
         {

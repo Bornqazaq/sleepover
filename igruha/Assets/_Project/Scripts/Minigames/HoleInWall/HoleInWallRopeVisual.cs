@@ -28,9 +28,18 @@ namespace Igruha.Minigames.HoleInWall
         private Material originalLineMaterial;
         private Matrix4x4 worldToLocal;
         private readonly Vector2[] circle = new Vector2[Sides];
+        private PlayerController first, second;
+        private Transform firstLeft, firstRight, secondLeft, secondRight;
+        private Transform firstHead, secondHead;
+        private HoleInWallConfig config;
 
-        public void Initialize(PlayerTether owner, Material cord, Material tracer, Material collar)
+        public void Initialize(PlayerTether owner, Material cord, Material tracer, Material collar,
+            PlayerController a, PlayerController b, HoleInWallConfig gameConfig)
         {
+            first=a;second=b;config=gameConfig;
+            Hands(a,out firstLeft,out firstRight);Hands(b,out secondLeft,out secondRight);
+            firstHead = a.GetComponentInChildren<Animator>().GetBoneTransform(HumanBodyBones.Head);
+            secondHead = b.GetComponentInChildren<Animator>().GetBoneTransform(HumanBodyBones.Head);
             for (int side = 0; side < Sides; side++)
             {
                 float angle = side * (Mathf.PI * 2 / Sides);
@@ -90,11 +99,12 @@ namespace Igruha.Minigames.HoleInWall
         private void LateUpdate()
         {
             if (cordRenderer == null) return;
-            bool visible = tether != null && tether.Bound && source.enabled;
+            bool visible = tether != null && tether.enabled && tether.Bound && source.enabled;
             cordRenderer.enabled = visible;
             if (!visible) return;
             worldToLocal = transform.worldToLocalMatrix;
             source.GetPositions(points);
+            RouteOutsideBodies();
             for (int i = 1; i < points.Length; i++)
                 distances[i] = distances[i - 1] + Vector3.Distance(points[i - 1], points[i]);
             Vector3 previousNormal = Vector3.up;
@@ -102,6 +112,11 @@ namespace Igruha.Minigames.HoleInWall
             {
                 float t = ring / (float)(Rings - 1);
                 Vector3 center = Sample(t);
+                if (t > .035f && t < .965f)
+                {
+                    center = OutsideHead(center, firstHead);
+                    center = OutsideHead(center, secondHead);
+                }
                 Vector3 tangent = (Sample(Mathf.Min(1, t + .002f)) -
                     Sample(Mathf.Max(0, t - .002f))).normalized;
                 if (tangent.sqrMagnitude < .5f) tangent = Vector3.right;
@@ -131,6 +146,61 @@ namespace Igruha.Minigames.HoleInWall
             mesh.vertices = vertices;
             mesh.normals = normals;
             mesh.RecalculateBounds();
+        }
+
+        private static void Hands(PlayerController player,out Transform left,out Transform right)
+        {
+            var animator=player.GetComponentInChildren<Animator>();
+            left=animator!=null&&animator.isHuman?animator.GetBoneTransform(HumanBodyBones.LeftHand):player.CameraTarget;
+            right=animator!=null&&animator.isHuman?animator.GetBoneTransform(HumanBodyBones.RightHand):player.CameraTarget;
+            if(left==null)left=player.CameraTarget;if(right==null)right=player.CameraTarget;
+        }
+
+        private void RouteOutsideBodies()
+        {
+            if(first==null||second==null)return;
+            Vector3 a=(Vector3.SqrMagnitude(firstLeft.position-second.Position)<Vector3.SqrMagnitude(firstRight.position-second.Position)?firstLeft:firstRight).position;
+            Vector3 b=(Vector3.SqrMagnitude(secondLeft.position-first.Position)<Vector3.SqrMagnitude(secondRight.position-first.Position)?secondLeft:secondRight).position;
+            bool wet=first.Position.y<config.WaterSurfaceY||second.Position.y<config.WaterSurfaceY;
+            float sag = tether.IsTaut ? .04f : .42f;
+            for(int i=0;i<points.Length;i++)
+            {
+                float t=i/(float)(points.Length-1);
+                // A stable sleeve around the physical link: the old right-hand
+                // Verlet chain can otherwise cross a head after changing sides.
+                points[i]=Vector3.Lerp(a,b,t);
+                points[i].y += Mathf.Sin(t*Mathf.PI)*(wet ? .18f : -sag);
+                if(i>0&&i<points.Length-1)
+                {
+                    if(!first.IsKnockedDown)points[i]=OutsideBody(points[i],first.Position,second.Position);
+                    if(!second.IsKnockedDown)points[i]=OutsideBody(points[i],second.Position,first.Position);
+                    points[i]=OutsideHead(points[i],firstHead);
+                    points[i]=OutsideHead(points[i],secondHead);
+                }
+                points[i].y=Mathf.Max(points[i].y,config.PoolBottomY+.14f);
+            }
+        }
+
+        private static Vector3 OutsideHead(Vector3 point, Transform head)
+        {
+            if (head == null) return point;
+            const float radius = .44f;
+            Vector3 radial = point - head.position;
+            if (radial.sqrMagnitude >= radius * radius) return point;
+            if (radial.sqrMagnitude < .0001f) radial = Vector3.up;
+            return head.position + radial.normalized * radius;
+        }
+
+        private static Vector3 OutsideBody(Vector3 point,Vector3 feet,Vector3 partner)
+        {
+            const float clearance=.52f;
+            if(point.y<feet.y-.1f||point.y>feet.y+1.5f)return point;
+            Vector3 radial=Vector3.ProjectOnPlane(point-feet,Vector3.up);
+            if(radial.sqrMagnitude>=clearance*clearance)return point;
+            if(radial.sqrMagnitude<.0001f)radial=Vector3.ProjectOnPlane(partner-feet,Vector3.up);
+            if(radial.sqrMagnitude<.0001f)radial=Vector3.right;
+            radial=radial.normalized*clearance;
+            point.x=feet.x+radial.x;point.z=feet.z+radial.z;return point;
         }
 
         private void Collar(int end, Vector3 center, Vector3 tangent, Vector3 normal)
