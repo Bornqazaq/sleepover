@@ -32,11 +32,23 @@ namespace Igruha.Core.Minigame
         [SerializeField] private float resultsDisplaySeconds = 12f;
         [Tooltip("Имя сцены хаба в Build Settings")]
         [SerializeField] private string hubSceneName = "Hub";
+        [Tooltip("Сколько секунд показывать таблицу катки после итогов последней игры серии")]
+        [SerializeField] private float finalStandingsSeconds = 10f;
 
         private readonly MinigameResults results = new MinigameResults();
         private readonly List<SessionPlayer> playerList = new List<SessionPlayer>(8);
+        private readonly SessionStandings standings = new SessionStandings();
         private IMinigameNetworkBridge bridge;
         private MinigamePhase phase = MinigamePhase.Idle;
+
+        /// <summary>
+        /// Сколько игроков начинало раунд. По этому числу считаются очки:
+        /// ушедшие посреди матча не обесценивают победу оставшихся.
+        /// </summary>
+        private int startingPlayerCount;
+
+        /// <summary>Этот раунд — последний в серии: после итогов будет таблица катки.</summary>
+        private bool seriesFinal;
 
         /// <summary>
         /// Состав раунда получен — <see cref="StartMinigame"/> отработал.
@@ -51,6 +63,15 @@ namespace Igruha.Core.Minigame
 
         public MinigameDefinition Definition => definition;
         public event Action<MinigameResults> ResultsReported;
+
+        /// <summary>
+        /// Показана таблица катки — серия доиграна. Для игр со своей панелью
+        /// итогов (Дырка в стене), чтобы и они показали финал.
+        /// </summary>
+        public event Action<SessionStandings> FinalStandingsReported;
+
+        /// <summary>Сколько секунд висит таблица катки до отъезда в хаб.</summary>
+        public float FinalStandingsSeconds => finalStandingsSeconds;
 
         /// <summary>
         /// Мини-игра текущей сцены. Пусто — сцена без мини-игры, то есть хаб.
@@ -121,6 +142,9 @@ namespace Igruha.Core.Minigame
             {
                 playerList.Add(players[i]);
             }
+
+            startingPlayerCount = playerList.Count;
+            seriesFinal = false;
 
             hud?.Bind(roundTimer);
             SetPlayersControlEnabled(false);
@@ -348,11 +372,27 @@ namespace Igruha.Core.Minigame
                 return;
             }
 
-            results.Clear();
+            results.Reset();
+            results.PlayerCount = startingPlayerCount;
+            results.GameKey = definition != null && !string.IsNullOrEmpty(definition.SceneName)
+                ? definition.SceneName
+                : gameObject.scene.name;
             CollectResults(results);
 
-            SessionScoreboard.Current?.ReportResults(results);
-            bridge?.PublishResults(results);
+            ISessionScoreboard session = SessionScoreboard.Current;
+            session?.ReportResults(results);
+
+            // Последняя игра серии: чемпионов фиксируем здесь, до показа
+            // таблицы катки, и сообщаем клиентам вместе с местами — очереди
+            // серии у них нет, сами они этого не узнают.
+            int rosterCount = session != null ? session.Players.Count : playerList.Count;
+            seriesFinal = PartySeries.Active && !PartySeries.HasNext(rosterCount);
+            if (seriesFinal)
+            {
+                PartySeries.Complete();
+            }
+
+            bridge?.PublishResults(results, seriesFinal);
             ShowResults(results);
 
             StartCoroutine(ReturnToHubAfterResults());
@@ -371,6 +411,12 @@ namespace Igruha.Core.Minigame
             if (!HasAuthority)
             {
                 yield break;
+            }
+
+            if (seriesFinal)
+            {
+                ShowFinalStandings();
+                yield return new WaitForSeconds(finalStandingsSeconds);
             }
 
             if (PartySeries.Active)
@@ -443,25 +489,89 @@ namespace Igruha.Core.Minigame
             roundTimer.SyncFromNetwork(remaining, duration);
         }
 
-        public void ApplyResults(MinigameResults networkResults)
+        public void ApplyResults(MinigameResults networkResults, bool isSeriesFinal)
         {
             if (HasAuthority)
             {
                 return;
             }
 
-            results.Clear();
-            IReadOnlyList<MinigameResults.PlayerResult> entries = networkResults.Entries;
-            for (int i = 0; i < entries.Count; i++)
+            results.CopyFrom(networkResults);
+            seriesFinal = isSeriesFinal;
+            ShowResults(results);
+
+            if (seriesFinal)
             {
-                results.Add(entries[i].PlayerId, entries[i].Place);
+                StartCoroutine(ShowFinalStandingsAfterResults());
+            }
+        }
+
+        /// <summary>
+        /// Клиент показывает таблицу катки по тому же расписанию, что и
+        /// сервер, — после итогов раунда. В хаб всех увезёт сервер.
+        /// </summary>
+        private IEnumerator ShowFinalStandingsAfterResults()
+        {
+            yield return new WaitForSeconds(resultsDisplaySeconds);
+            ShowFinalStandings();
+        }
+
+        /// <summary>
+        /// Таблица катки по суммам табло: места, очки, чемпион. К этому
+        /// моменту ростер с очками за последний раунд у клиента уже есть —
+        /// он ехал те же секунды, что висели итоги раунда.
+        /// </summary>
+        private void ShowFinalStandings()
+        {
+            ISessionScoreboard session = SessionScoreboard.Current;
+            if (session == null)
+            {
+                return;
             }
 
-            ShowResults(results);
+            standings.Rebuild(session);
+            FinalStandingsReported?.Invoke(standings);
+            hud?.ShowFinalStandings(standings, session.Players, session.Champions);
+            LogStandingsForComparison(session);
+        }
+
+        /// <summary>
+        /// Одна строка итогов на машину — чтобы стенд мог сличить хост и
+        /// клиентов дословно: «id:место:+очки/всего». Расхождение тут — и
+        /// есть рассинхрон счёта, который иначе не поймать.
+        /// </summary>
+        private void LogResultsForComparison(MinigameResults finalResults)
+        {
+            var sb = new System.Text.StringBuilder(128);
+            sb.Append("📊 итоги раунда ").Append(finalResults.GameKey).Append(" [").Append(finalResults.PlayerCount).Append(" на старте]:");
+            IReadOnlyList<MinigameResults.PlayerResult> entries = finalResults.Entries;
+            for (int i = 0; i < entries.Count; i++)
+            {
+                sb.Append(' ').Append(entries[i].PlayerId).Append(':').Append(entries[i].Place)
+                  .Append(":+").Append(entries[i].Points).Append('/').Append(entries[i].Total);
+            }
+
+            Debug.Log(sb.ToString());
+        }
+
+        private void LogStandingsForComparison(ISessionScoreboard session)
+        {
+            var sb = new System.Text.StringBuilder(128);
+            sb.Append("🏁 таблица катки [").Append(standings.RoundsPlayed).Append(" игр, лидеров ")
+              .Append(standings.LeaderCount).Append("]:");
+            IReadOnlyList<SessionStandings.Entry> entries = standings.Entries;
+            for (int i = 0; i < entries.Count; i++)
+            {
+                sb.Append(' ').Append(entries[i].PlayerId).Append(':').Append(entries[i].Place)
+                  .Append(':').Append(entries[i].Score).Append(session.IsChampion(entries[i].PlayerId) ? "👑" : string.Empty);
+            }
+
+            Debug.Log(sb.ToString());
         }
 
         private void ShowResults(MinigameResults finalResults)
         {
+            LogResultsForComparison(finalResults);
             ResultsReported?.Invoke(finalResults);
 
             // Переигрывать вправе только тот, кто объявляет фазы: в сетевой

@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 using TMPro;
@@ -83,6 +84,12 @@ namespace Igruha.Core.Hub
                 yield break;
             }
 
+            if (LaunchArguments.SeriesEnabled)
+            {
+                yield return AutostartSeries(queue);
+                yield break;
+            }
+
             string wanted = queue[autostartCursor];
             MinigameDefinition game = FindGame(wanted);
             if (game == null)
@@ -103,6 +110,41 @@ namespace Igruha.Core.Hub
             int joined = SessionScoreboard.Current != null ? SessionScoreboard.Current.Players.Count : 0;
             Debug.Log($"{name}: автопрогон {autostartCursor}/{queue.Length}: запускаю '{wanted}' на {joined} игроков");
             loader?.Load(game);
+        }
+
+        /// <summary>
+        /// Вся очередь — одной серией катки, как по кнопке «Полная игра»:
+        /// счёт с нуля, после последней игры таблица катки и чемпион.
+        /// Курсор сразу уходит в конец: серия сама водит по своей очереди,
+        /// а хаб после неё не должен запускать её второй раз.
+        /// </summary>
+        private IEnumerator AutostartSeries(string[] queue)
+        {
+            var games = new List<MinigameDefinition>(queue.Length);
+            for (int i = 0; i < queue.Length; i++)
+            {
+                MinigameDefinition game = FindGame(queue[i]);
+                if (game == null)
+                {
+                    Debug.LogError($"{name}: автопрогон не нашёл в каталоге игру со сценой '{queue[i]}' — " +
+                                   "проверь MinigameCatalog и имя сцены в MinigameDefinition", this);
+                    continue;
+                }
+
+                games.Add(game);
+            }
+
+            int required = Mathf.Max(1, LaunchArguments.WaitPlayers);
+            yield return WaitForRoster(required, string.Join(",", queue));
+            yield return new WaitForSeconds(autostartSettleSeconds);
+
+            autostartCursor = queue.Length;
+            int joined = SessionScoreboard.Current != null ? SessionScoreboard.Current.Players.Count : 0;
+            Debug.Log($"{name}: автопрогон серией из {games.Count} игр на {joined} игроков");
+            if (!PartySeries.StartWith(games, loader))
+            {
+                Debug.LogError($"{name}: серия автопрогона не стартовала — нет подходящих игр или состав без персонажей", this);
+            }
         }
 
         /// <summary>Дождаться, пока в составе наберётся нужное число участников и у всех появятся персонажи.</summary>

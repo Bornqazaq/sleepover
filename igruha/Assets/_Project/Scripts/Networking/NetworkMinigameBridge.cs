@@ -127,7 +127,13 @@ namespace Igruha.Networking
             target?.ApplyLeaveRound((int)rpcParams.Receive.SenderClientId);
         }
 
-        public void PublishResults(MinigameResults results)
+        /// <summary>
+        /// Очки едут вместе с местами. Сумма катки лежит и в NetworkList
+        /// ростера, но его дельта уходит отдельным сообщением в конце тика и
+        /// может приехать после этого RPC — экран итогов на клиенте показал
+        /// бы прошлую сумму. Один пакет — одна картинка у всех.
+        /// </summary>
+        public void PublishResults(MinigameResults results, bool seriesFinal)
         {
             if (!IsSpawned || !IsServer)
             {
@@ -137,14 +143,18 @@ namespace Igruha.Networking
             var entries = results.Entries;
             var ids = new int[entries.Count];
             var places = new int[entries.Count];
+            var points = new int[entries.Count];
+            var totals = new int[entries.Count];
 
             for (int i = 0; i < entries.Count; i++)
             {
                 ids[i] = entries[i].PlayerId;
                 places[i] = entries[i].Place;
+                points[i] = entries[i].Points;
+                totals[i] = entries[i].Total;
             }
 
-            ApplyResultsRpc(ids, places);
+            ApplyResultsRpc(ids, places, points, totals, results.PlayerCount, seriesFinal);
         }
 
         // ========== КЛИЕНТ ПРИМЕНЯЕТ ==========
@@ -162,15 +172,17 @@ namespace Igruha.Networking
 
         /// <summary>Хост уже показал итоги локально, поэтому шлём только остальным.</summary>
         [Rpc(SendTo.NotServer)]
-        private void ApplyResultsRpc(int[] ids, int[] places)
+        private void ApplyResultsRpc(int[] ids, int[] places, int[] points, int[] totals, int playerCount, bool seriesFinal)
         {
-            incoming.Clear();
-            for (int i = 0; i < ids.Length && i < places.Length; i++)
+            incoming.Reset();
+            incoming.PlayerCount = playerCount;
+            int count = Mathf.Min(Mathf.Min(ids.Length, places.Length), Mathf.Min(points.Length, totals.Length));
+            for (int i = 0; i < count; i++)
             {
-                incoming.Add(ids[i], places[i]);
+                incoming.Add(ids[i], places[i], points[i], totals[i]);
             }
 
-            target?.ApplyResults(incoming);
+            target?.ApplyResults(incoming, seriesFinal);
         }
     }
 }
