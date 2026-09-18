@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7357fd1147d75d2418d6cc9cdcc1dce7, type: 3}
+  m_Name: InfectionConfig
+  m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.Infection.InfectionConfig
+  scatterSeconds: 3
+  graceSeconds: 2
+  infectedSpeedMultiplier: 0.95
+  touchRadius: 1.2
+  infectingSeconds: 0.7
+  freshInfectionCooldown: 1
+  infectionBonusSeconds: 6
+  patientZeroCompensationSeconds: 10
+  heartbeatRadius: 5
+  blinkPeriod: 0.25
+  arenaScale: 1
+  carouselDegreesPerSecond: 30
+  sandSpeedMultiplier: 0.7
+  swingPeriod: 3.2
