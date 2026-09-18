@@ -23,6 +23,28 @@ namespace Igruha.Core.Session
             Math.Max(0, playerCount - Math.Max(1, place));
 
         /// <summary>
+        /// Одиночная игра вне серии: очки считаются по той же формуле и
+        /// показываются на экране итогов, но в сумму катки не идут — сумма
+        /// копится только в «Полной игре». Поэтому Total остаётся нулём,
+        /// а сами итоги помечаются как не идущие в зачёт.
+        /// </summary>
+        public static void AwardStandalone(MinigameResults results, int rosterCount)
+        {
+            if (results == null)
+            {
+                return;
+            }
+
+            int playerCount = PlayerCountFor(results, rosterCount);
+            for (int i = 0; i < results.Entries.Count; i++)
+            {
+                results.SetAward(i, PointsFor(results.Entries[i].Place, playerCount), 0);
+            }
+
+            results.CountsTowardSession = false;
+        }
+
+        /// <summary>
         /// По какому составу считать: старт раунда, если игра его сообщила;
         /// иначе больший из ростера и числа участников в итогах — чтобы
         /// сцена, открытая напрямую, тоже считала разумно.

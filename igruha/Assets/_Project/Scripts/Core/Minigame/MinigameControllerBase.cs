@@ -380,12 +380,24 @@ namespace Igruha.Core.Minigame
             CollectResults(results);
 
             ISessionScoreboard session = SessionScoreboard.Current;
-            session?.ReportResults(results);
+            int rosterCount = session != null ? session.Players.Count : playerList.Count;
+
+            // В общий счёт катки идут только раунды серии («Полная игра»).
+            // Одиночная игра с телевизора считает очки внутри себя и
+            // показывает победителя, а сумму и журнал катки не трогает.
+            results.CountsTowardSession = PartySeries.Active && session != null;
+            if (results.CountsTowardSession)
+            {
+                session.ReportResults(results);
+            }
+            else
+            {
+                SessionScoring.AwardStandalone(results, rosterCount);
+            }
 
             // Последняя игра серии: чемпионов фиксируем здесь, до показа
             // таблицы катки, и сообщаем клиентам вместе с местами — очереди
             // серии у них нет, сами они этого не узнают.
-            int rosterCount = session != null ? session.Players.Count : playerList.Count;
             seriesFinal = PartySeries.Active && !PartySeries.HasNext(rosterCount);
             if (seriesFinal)
             {
@@ -551,7 +563,8 @@ namespace Igruha.Core.Minigame
         private void LogResultsForComparison(MinigameResults finalResults)
         {
             var sb = new System.Text.StringBuilder(128);
-            sb.Append("📊 итоги раунда ").Append(finalResults.GameKey).Append(" [").Append(finalResults.PlayerCount).Append(" на старте]:");
+            sb.Append("📊 итоги раунда ").Append(finalResults.GameKey).Append(" [").Append(finalResults.PlayerCount)
+              .Append(finalResults.CountsTowardSession ? " на старте, серия]:" : " на старте, одиночная]:");
             IReadOnlyList<MinigameResults.PlayerResult> entries = finalResults.Entries;
             for (int i = 0; i < entries.Count; i++)
             {

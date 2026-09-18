@@ -87,7 +87,9 @@ namespace Igruha.Minigames.HoleInWall
                     row.place.text = place.ToString("00");
                     row.playerName.text = playerName + (local ? "  ·  вы" : string.Empty);
                     row.lane.text = characterName + (track != null ? $"  ·  ДОРОЖКА {track.Index + 1:00}" : "  ·  ВЫШЕЛ ИЗ РАУНДА")
-                        + (results.Awarded ? $"  ·  +{entry.Points} ОЧК.  ·  ВСЕГО {entry.Total}" : string.Empty);
+                        + (!results.Awarded ? string.Empty
+                            : results.CountsTowardSession ? $"  ·  +{entry.Points} ОЧК.  ·  ВСЕГО {entry.Total}"
+                            : $"  ·  +{entry.Points} ОЧК.");
                     // Замороженный счёт вышедшего не передаётся клиентам. Не подменяем его нулём.
                     row.score.text = track != null ? $"<b>{track.Score}</b><size=65%> / {game.WallCount}</size>" : "—";
                     row.background.color = place == 1 ? Winner : Paper;

@@ -154,7 +154,7 @@ namespace Igruha.Networking
                 totals[i] = entries[i].Total;
             }
 
-            ApplyResultsRpc(ids, places, points, totals, results.PlayerCount, seriesFinal);
+            ApplyResultsRpc(ids, places, points, totals, results.PlayerCount, results.CountsTowardSession, seriesFinal);
         }
 
         // ========== КЛИЕНТ ПРИМЕНЯЕТ ==========
@@ -172,10 +172,12 @@ namespace Igruha.Networking
 
         /// <summary>Хост уже показал итоги локально, поэтому шлём только остальным.</summary>
         [Rpc(SendTo.NotServer)]
-        private void ApplyResultsRpc(int[] ids, int[] places, int[] points, int[] totals, int playerCount, bool seriesFinal)
+        private void ApplyResultsRpc(int[] ids, int[] places, int[] points, int[] totals, int playerCount,
+                                     bool countsTowardSession, bool seriesFinal)
         {
             incoming.Reset();
             incoming.PlayerCount = playerCount;
+            incoming.CountsTowardSession = countsTowardSession;
             int count = Mathf.Min(Mathf.Min(ids.Length, places.Length), Mathf.Min(points.Length, totals.Length));
             for (int i = 0; i < count; i++)
             {
