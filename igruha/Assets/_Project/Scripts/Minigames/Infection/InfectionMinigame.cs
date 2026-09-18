@@ -47,6 +47,8 @@ namespace Igruha.Minigames.Infection
         [Tooltip("Песочница: множитель скорости из конфига")]
         [SerializeField] private SpeedZone sandbox;
 
+        [SerializeField] private InfectionPresentation presentation;
+
         [Header("UI")]
         [Tooltip("Плашка диктора. Пусто — реплик не будет, на правила это не влияет")]
         [SerializeField] private AnnouncerBanner announcer;
@@ -77,6 +79,8 @@ namespace Igruha.Minigames.Infection
         private readonly List<int> rosterBuffer = new List<int>(8);
 
         /// <summary>Идёт сетевая катка и сетевая половина живая.</summary>
+        internal bool LocalRosterReady => states.Count > 0;
+
         private bool Networked => network != null && network.IsActive;
 
         /// <summary>Коды реплик диктора: по сети едет код, а не строка (текст собирается на каждой машине).</summary>
@@ -106,6 +110,7 @@ namespace Igruha.Minigames.Infection
         {
             ApplyConfigToArena();
             BuildStates();
+            network?.RefreshClientPresentation();
         }
 
         protected override void OnRoundStarted()
@@ -116,6 +121,7 @@ namespace Igruha.Minigames.Infection
                 return;
             }
 
+            presentation?.BeginRound();
             announcer?.Clear();
             firstInfectionAnnounced = false;
             halfAnnounced = false;
@@ -132,6 +138,7 @@ namespace Igruha.Minigames.Infection
             }
 
             SubscribeSwings(true);
+            network?.RefreshClientPresentation();
 
             // Разбегание идёт до раунда по очкам: таймер держим выключенным,
             // а на экране — стартовый отсчёт. Иначе шкала успела бы убежать
@@ -147,6 +154,7 @@ namespace Igruha.Minigames.Infection
 
         protected override void OnRoundEnded()
         {
+            presentation?.EndRound();
             SubscribeSwings(false);
             StopDummies();
 
@@ -375,6 +383,7 @@ namespace Igruha.Minigames.Infection
 
                 paint.Bind(avatar.gameObject, config != null ? config.BlinkPeriod : 0.25f);
                 state.Bind(player.Id, avatar, config, paint);
+                presentation?.Bind(state,paint);
 
                 states.Add(state);
                 bots.Add(EnsureDummyBot(avatar));

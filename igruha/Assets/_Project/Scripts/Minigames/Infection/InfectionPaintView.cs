@@ -41,12 +41,15 @@ namespace Igruha.Minigames.Infection
         private Color[] originalColors = System.Array.Empty<Color>();
 
         private MaterialPropertyBlock block;
+        private InfectionPaintEffects effects;
+        public void AttachEffects(InfectionPaintEffects value) { effects=value; }
         private bool infected;
         private bool blinking;
         private float blinkPeriod = 0.25f;
 
         public void Bind(GameObject avatar, float blinkPeriodSeconds)
         {
+            infected=false; blinking=false;
             renderers = avatar.GetComponentsInChildren<Renderer>(true);
             originalColors = new Color[renderers.Length];
             for (int i = 0; i < renderers.Length; i++)
@@ -69,6 +72,7 @@ namespace Igruha.Minigames.Infection
             }
 
             infected = value;
+            if(effects!=null) effects.SetPainted(value);
             Apply(infected);
         }
 
@@ -80,6 +84,7 @@ namespace Igruha.Minigames.Infection
             }
 
             blinking = value;
+            if(value && effects!=null) effects.SignalZero();
             if (!blinking)
             {
                 Apply(infected);

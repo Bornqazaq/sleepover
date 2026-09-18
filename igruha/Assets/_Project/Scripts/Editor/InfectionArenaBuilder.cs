@@ -142,6 +142,7 @@ namespace Igruha.EditorTools
             WireManager(manager, definition, config, carousel, swings, sand, banner, ui);
 
             RegisterScene(definition);
+            InfectionQuarantineBuilder.Apply();
 
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());

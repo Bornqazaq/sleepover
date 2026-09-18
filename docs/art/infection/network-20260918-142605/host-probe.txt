@@ -1,0 +1,42 @@
+START original quarantine art probe
+PHASE=Idle
+ROSTER=4
+PHASE=Tutorial
+PHASE=Round
+SAMPLE 0:Clean,1:Clean,2:Clean,3:Clean local=(-11.00, 0.00, -15.00) particles=289
+SAMPLE 0:Clean,1:Clean,2:Clean,3:Clean local=(-11.00, 0.00, -15.00) particles=286
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-11.00, 0.00, -15.00) particles=289
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-11.00, 0.00, -15.00) particles=288
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-11.00, 0.00, -15.00) particles=292
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-11.00, 0.00, -15.00) particles=294
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-11.00, 0.00, -15.00) particles=288
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-11.00, 0.00, -15.00) particles=288
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-11.00, 0.00, -15.00) particles=287
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-11.00, 0.00, -15.00) particles=297
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-11.00, 0.00, -15.00) particles=288
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-11.00, 0.00, -15.00) particles=293
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-11.00, 0.00, -15.00) particles=294
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-11.00, 0.00, -15.00) particles=289
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-11.00, 0.00, -15.00) particles=294
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-11.00, 0.00, -15.00) particles=286
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-11.00, 0.00, -15.00) particles=283
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-11.00, 0.00, -15.00) particles=290
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-11.00, 0.00, -15.00) particles=285
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-11.00, 0.00, -15.00) particles=290
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-11.00, 0.00, -15.00) particles=297
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-11.00, 0.00, -15.00) particles=294
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-11.00, 0.00, -15.00) particles=287
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-11.00, 0.00, -15.00) particles=286
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-11.00, 0.00, -15.00) particles=288
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-11.00, 0.00, -15.00) particles=288
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-11.00, 0.00, -15.00) particles=293
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-11.00, 0.00, -15.00) particles=281
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-11.00, 0.00, -15.00) particles=286
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-11.00, 0.00, -15.00) particles=287
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-11.00, 0.00, -15.00) particles=286
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-11.00, 0.00, -15.00) particles=286
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-11.00, 0.00, -15.00) particles=285
+PHASE=Results
+RESULTS=0:1,1:4,2:1,3:1
+PERF meanMs=24.24 frames=2699 splashFrames=29 tubeFrames=0
+END scene unloaded
