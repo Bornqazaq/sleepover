@@ -14,6 +14,7 @@ namespace Igruha.EditorTools
         {
             BuildOutline(root);
             BuildNeighbourhood(root);
+            InfectionCityBackdrop.Build(root);
             BuildDetails(root);
             BuildGroundShading(root);
         }
@@ -23,7 +24,7 @@ namespace Igruha.EditorTools
             var street = Group("Street", root);
             var asphalt = Material("Asphalt", new Color(.13f,.145f,.15f));
             var concrete = Material("StreetConcrete", new Color(.39f,.38f,.34f));
-            Box("RoadBed",street,new Vector3(0,-.3f,0),new Vector3(150,.3f,150),asphalt);
+            Box("RoadBed",street,new Vector3(0,-.3f,0),new Vector3(240,.3f,240),asphalt);
             var points=InfectionCourtyardLayout.Load().boundary;
             for(int edge=0;edge<points.Length;edge++)
             {
@@ -157,6 +158,8 @@ namespace Igruha.EditorTools
             Solid("Sandbags",detail,root,new Vector3(16.4f,0,9.7f),-38,new Vector3(3.1f,.8f,.65f),new Vector3(0,.4f,0));
             Solid("Barrel",detail,root,new Vector3(-4.8f,0,15.5f),0,new Vector3(.9f,1.15f,.9f),new Vector3(0,.575f,0));
             Solid("Barrel",detail,root,new Vector3(-5.8f,0,15.2f),14,new Vector3(.9f,1.15f,.9f),new Vector3(0,.575f,0));
+            Place("Hopscotch",detail,new Vector3(-4.7f,0,5.6f),-22,.95f);
+            Place("CarouselMarking",detail,new Vector3(0,0,.5f));
             Combine(detail);
             Sign(root,new Vector3(0,3.5f,18.87f),"QUARANTINE  /  13",-5,4.5f);
             Sign(root,new Vector3(-13.6f,1.85f,16.48f),"NO ENTRY",24,2.2f);

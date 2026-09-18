@@ -37,9 +37,13 @@ namespace Igruha.EditorTools
             var root = Group(RootName, null);
             Place("Courtyard", root, Vector3.zero);
             Dress(arena.Find("Carousel"), "Carousel");
+            Dress(arena.Find("Carousel"), "CarouselDetail");
             Dress(arena.Find("Slide"), "Slide");
+            Dress(arena.Find("Slide"), "SlideDetail");
             Dress(arena.Find("Climber"), "Climber");
+            Dress(arena.Find("Climber"), "ClimberDetail");
             Dress(arena.Find("Sandbox"), "Sandbox");
+            Dress(arena.Find("Sandbox"), "SandboxDetail");
             var swings = arena.Find("Swings");
             Dress(swings, "SwingFrame");
             foreach (var swing in swings.GetComponentsInChildren<PendulumSwing>())
@@ -86,6 +90,7 @@ namespace Igruha.EditorTools
             var wood=GameObject.Find(RootName).GetComponentsInChildren<Renderer>().First(r=>r.name=="Combined_INF_Wood"&&r.transform.parent.name=="CourtyardDetails");
             if(wood.bounds.max.y<6)throw new InvalidOperationException("Imported tree scale lost during placement");
             InfectionCourtyardAudit.Check();
+            InfectionCityBackdrop.Audit();
             var dependencies=AssetDatabase.GetDependencies(ScenePath,true);
             if(dependencies.Any(x=>x.Contains("Synty/")||x.Contains("Polygon")))Debug.LogWarning("Infection scene contains purchased dependencies (inspect character dependencies separately)");
             Debug.Log("Quarantine audit: one art root, no visible blockout, tube bindings and materials valid. Arena colliders="+arena.GetComponentsInChildren<Collider>().Length+"; scenery colliders="+GameObject.Find(RootName).GetComponentsInChildren<Collider>().Length);

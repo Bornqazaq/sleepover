@@ -399,6 +399,7 @@ else:
  m.rod((-.04,.34,-.18),(-.04,.34,.18),.025,'Steel');m.box((-.04,.34,.22),(.15,.055,.12),'Rubber')
  m.export('Bicycle')
  exec(compile((ROOT/'tools/blender/infection_ruins.py').read_text(),str(ROOT/'tools/blender/infection_ruins.py'),'exec'))
+ exec(compile((ROOT/'tools/blender/infection_finishing.py').read_text(),str(ROOT/'tools/blender/infection_finishing.py'),'exec'))
  # Save a standalone source file containing only this kit, without replacing the user's open file.
  bpy.data.libraries.write(str(SOURCE/'Quarantine.blend'),{scene},fake_user=True)
  (OUT/'palette.json').write_text(json.dumps(COLORS,indent=2))
