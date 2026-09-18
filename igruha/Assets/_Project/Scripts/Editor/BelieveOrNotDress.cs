@@ -44,7 +44,6 @@ namespace Igruha.EditorTools
     {
         private const string ChestPath = "Assets/Synty/PolygonGeneric/Prefabs/Props/SM_Gen_Prop_Chest_01.prefab";
         private const string ChairPath = "Assets/Synty/PolygonCasino/Prefabs/Props/SM_Prop_Chair_04.prefab";
-        private const string ShadePath = "Assets/Synty/PolygonNightclubs/Prefabs/Props/SM_Prop_Light_03.prefab";
 
         private const string HolderName = "Dress";
 
@@ -259,42 +258,6 @@ namespace Igruha.EditorTools
         }
 
         // ========== ЛАМПА ==========
-
-        /// <summary>
-        /// Одеть абажур и подвесить его на шнуре к потолку.
-        ///
-        /// Шнур обязателен: абажур, висящий сам по себе, читается ошибкой
-        /// сборки, а на концепте геймдизайнера лампа именно на шнуре. Сам
-        /// источник света не трогается — он выставлен в фазе 2 и входит
-        /// в механику фокуса (спека, 4.6).
-        /// </summary>
-        internal static void DressLamp(GameObject shadeBox, BelieveOrNotConfig config)
-        {
-            if (shadeBox == null || config == null || !DressKit.TryLoad(ShadePath, out GameObject prefab))
-            {
-                return;
-            }
-
-            Transform holder = Holder(shadeBox.transform);
-            Bounds local = DressKit.GetBounds(prefab, ShadePath);
-            float scale = shadeBox.transform.localScale.x / local.size.x;
-
-            // Модель висит ниже собственной точки подвеса: центр меша уходит
-            // вниз, и чтобы абажур встал по центру коробки блокаута, точку
-            // подвеса надо поднять ровно на это смещение.
-            float lift = -local.center.y * scale;
-            Piece(holder, "Shade", prefab, Vector3.one * scale, 0f, new Vector3(0f, lift, 0f), Vector3.zero);
-
-            float shadeTop = shadeBox.transform.position.y + lift;
-            float cord = config.CeilingHeight - shadeTop;
-            if (cord > 0f)
-            {
-                Disc(holder, "Cord", CordDiameter, cord, config.CeilingHeight, Tone.Shade);
-            }
-
-            notes.Add($"лампа: абажур ⌀{local.size.x * scale:F2} м, низ {shadeTop - local.size.y * scale:F2} м, " +
-                      $"шнур {cord:F2} м до потолка {config.CeilingHeight:F2} м");
-        }
 
         // ========== ОТЧЁТ ==========
 

@@ -146,10 +146,7 @@ namespace Igruha.EditorTools
             Debug.Log(BelieveOrNotDress.Report(arena), arena);
             BelieveOrNotPaletteAssets.Flush();
 
-            // Физика декора — последним шагом сборки. Дресс срезает коллайдеры
-            // моделей, и всё, что поставлено в зал само по себе, без коробки
-            // блокаута, до этого шага проходилось насквозь.
-            PropColliders.Build(arena);
+            // IGR-565: the club shell is decorative; no PropColliders pass here.
 
             // Оформление интерфейса — тем же прогоном: иначе пересборка арены
             // вернула бы серые прямоугольники шаблона.
@@ -401,13 +398,7 @@ namespace Igruha.EditorTools
             light.range = config.LampHeight * 3f;
             light.shadows = LightShadows.Soft;
 
-            GameObject shade = CreateBox(parent, "LampShade",
-                new Vector3(0.9f, 0.35f, 0.9f),
-                new Vector3(0f, config.LampHeight + 0.2f, 0f),
-                new Color(0.05f, 0.04f, 0.04f));
-            SetLayer(shade, "Ground");
-            BelieveOrNotDress.DressLamp(shade, config);
-            BelieveOrNotEffects.BeamDust(parent, config);
+            // Pendant, chain and air are built by BelieveOrNotHall from the original kit.
         }
 
         /// <summary>
@@ -755,26 +746,7 @@ namespace Igruha.EditorTools
         /// </summary>
         private static void ApplyLighting(BelieveOrNotConfig config)
         {
-            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-            RenderSettings.ambientLight = config.AmbientColor;
-            RenderSettings.fog = false;
-
-            Light[] lights = Object.FindObjectsByType<Light>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-            for (int i = 0; i < lights.Length; i++)
-            {
-                if (lights[i].type != LightType.Directional)
-                {
-                    continue;
-                }
-
-                // Не выключаем совсем: без него силуэты зрителей сливаются
-                // в чёрное пятно и по залу непонятно, где кто. На 0.06 так
-                // и было — зритель, отбежавший от лампы, оставался в почти
-                // полной темноте (плейтест 28.08).
-                lights[i].intensity = 0.18f;
-                lights[i].color = new Color(0.55f, 0.6f, 0.8f);
-                lights[i].shadows = LightShadows.None;
-            }
+            BelievePrivateClubBuilder.ConfigureLighting(GameObject.Find(ArenaRoot).transform);
         }
 
         // ========== ИНТЕРФЕЙС И СВЯЗИ ==========
