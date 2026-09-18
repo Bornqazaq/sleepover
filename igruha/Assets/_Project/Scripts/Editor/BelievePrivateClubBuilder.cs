@@ -118,7 +118,7 @@ namespace Igruha.EditorTools
             RenderSettings.ambientMode = AmbientMode.Flat;
             // Не ноль: на 0.045 зал пропадал целиком — панели, шторы и бар
             // переставали читаться даже силуэтом, оставалось пятно в пустоте.
-            RenderSettings.ambientLight = new Color(.075f, .082f, .105f);
+            RenderSettings.ambientLight = new Color(.105f, .112f, .138f);
             RenderSettings.ambientIntensity = 1;
             RenderSettings.reflectionIntensity = .06f;
             RenderSettings.skybox = null;
