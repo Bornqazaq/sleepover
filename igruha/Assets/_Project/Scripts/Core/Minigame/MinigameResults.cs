@@ -56,6 +56,13 @@ namespace Igruha.Core.Minigame
         /// <summary>Ключ игры для журнала катки — имя сцены. Пусто — табло запишет «?».</summary>
         public string GameKey { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Очки этого раунда идут в общий счёт катки. Так только в серии
+        /// («Полная игра»): одиночная игра с телевизора считает очки только
+        /// внутри себя и показывает победителя, а сумму катки не трогает.
+        /// </summary>
+        public bool CountsTowardSession { get; set; }
+
         /// <summary>Очки начислены: <see cref="PlayerResult.Points"/> и <see cref="PlayerResult.Total"/> заполнены.</summary>
         public bool Awarded { get; private set; }
 
@@ -76,6 +83,7 @@ namespace Igruha.Core.Minigame
             Clear();
             PlayerCount = 0;
             GameKey = string.Empty;
+            CountsTowardSession = false;
         }
 
         public void Add(int playerId, int place) => entries.Add(new PlayerResult(playerId, place));
@@ -122,6 +130,7 @@ namespace Igruha.Core.Minigame
 
             PlayerCount = other.PlayerCount;
             GameKey = other.GameKey;
+            CountsTowardSession = other.CountsTowardSession;
             for (int i = 0; i < other.entries.Count; i++)
             {
                 entries.Add(other.entries[i]);

@@ -149,6 +149,11 @@ for log in "$LOGS"/*.log; do
     name="$(basename "$log" .log)"
     grep -h -o '🏁 таблица катки.*' "$log" 2>/dev/null | sed "s/^/  $name: /"
 done
+# В серии каждый раунд помечен «серия»: одиночный зачёт сюда попасть не должен.
+if grep -h -o '📊 итоги раунда.*' "$LOGS/host.log" 2>/dev/null | grep -q -v 'серия\]'; then
+    echo "  ✗ у хоста есть раунд вне зачёта серии"
+    status=1
+fi
 host_table="$(grep -h -o '🏁 таблица катки.*' "$LOGS/host.log" 2>/dev/null || true)"
 if [[ -z "$host_table" ]]; then
     echo "  ✗ у хоста нет таблицы катки"

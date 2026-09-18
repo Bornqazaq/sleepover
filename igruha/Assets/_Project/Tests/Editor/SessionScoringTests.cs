@@ -234,9 +234,29 @@ namespace Igruha.Tests
         }
 
         [Test]
+        public void StandaloneGameAwardsPointsWithoutTouchingSessionTotal()
+        {
+            // Одиночная игра с телевизора: очки видны на экране, но сумма катки
+            // и журнал остаются нетронутыми — копится только «Полная игра».
+            var a = Register(0, "A"); a.Score = 5;
+            var results = Results(4, "Stopwatch", (0, 1), (1, 3));
+
+            SessionScoring.AwardStandalone(results, session.Players.Count);
+
+            Assert.That(results.Awarded, Is.True);
+            Assert.That(results.CountsTowardSession, Is.False);
+            Assert.That(results.Entries[0].Points, Is.EqualTo(3));
+            Assert.That(results.Entries[1].Points, Is.EqualTo(1));
+            Assert.That(results.Entries[0].Total, Is.EqualTo(0));
+            Assert.That(a.Score, Is.EqualTo(5));
+            Assert.That(session.History, Is.Empty);
+            Assert.That(session.RoundsPlayed, Is.EqualTo(0));
+        }
+
+        [Test]
         public void ResultsCopyKeepsAwardsCountAndKey()
         {
-            var source = new MinigameResults { PlayerCount = 6, GameKey = "MemoryRun" };
+            var source = new MinigameResults { PlayerCount = 6, GameKey = "MemoryRun", CountsTowardSession = true };
             source.Add(3, 1, 5, 12);
             source.Add(4, 2, 4, 4);
 
@@ -246,6 +266,7 @@ namespace Igruha.Tests
             Assert.That(copy.Awarded, Is.True);
             Assert.That(copy.PlayerCount, Is.EqualTo(6));
             Assert.That(copy.GameKey, Is.EqualTo("MemoryRun"));
+            Assert.That(copy.CountsTowardSession, Is.True);
             Assert.That(copy.Entries[0].Total, Is.EqualTo(12));
             Assert.That(copy.IndexOf(4), Is.EqualTo(1));
 

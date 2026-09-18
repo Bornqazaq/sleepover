@@ -349,7 +349,7 @@ namespace Igruha.Core.UI
                     }
 
                     resultRows[row]?.Set(place, FindName(players, entries[i].PlayerId),
-                        results.Awarded ? RoundDetail(entries[i]) : null);
+                        results.Awarded ? RoundDetail(entries[i], results.CountsTowardSession) : null);
                     row++;
                 }
             }
@@ -402,10 +402,17 @@ namespace Igruha.Core.UI
             return standings.IsLeader(playerId);
         }
 
-        /// <summary>Хвост строки раунда: «+7» акцентом и «всего 12» приглушённо.</summary>
-        private static string RoundDetail(MinigameResults.PlayerResult entry) =>
-            $"<pos={PointsColumn}%><color=#{AccentHex}>+{entry.Points}</color>" +
-            $"<pos={TotalColumn}%><color=#{MutedHex}>всего {entry.Total}</color>";
+        /// <summary>
+        /// Хвост строки раунда: «+7» акцентом и «всего 12» приглушённо.
+        /// В одиночной игре суммы катки нет — только очки этой игры.
+        /// </summary>
+        private static string RoundDetail(MinigameResults.PlayerResult entry, bool countsTowardSession)
+        {
+            string points = $"<pos={PointsColumn}%><color=#{AccentHex}>+{entry.Points} очк.</color>";
+            return countsTowardSession
+                ? $"{points}<pos={TotalColumn}%><color=#{MutedHex}>всего {entry.Total}</color>"
+                : points;
+        }
 
         /// <summary>Хвост строки катки: отметка чемпиона и сумма очков.</summary>
         private static string StandingDetail(SessionStandings.Entry entry, bool champion)
@@ -431,7 +438,11 @@ namespace Igruha.Core.UI
                     sb.Append($"{place} место — {FindName(players, entries[i].PlayerId)}");
                     if (results.Awarded)
                     {
-                        sb.Append($"   +{entries[i].Points}   (всего {entries[i].Total})");
+                        sb.Append($"   +{entries[i].Points} очк.");
+                        if (results.CountsTowardSession)
+                        {
+                            sb.Append($"   (всего {entries[i].Total})");
+                        }
                     }
 
                     sb.AppendLine();
