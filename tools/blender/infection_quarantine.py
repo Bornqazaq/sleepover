@@ -12,7 +12,7 @@ scene=bpy.data.scenes.get('Infection_Quarantine') or bpy.data.scenes.new('Infect
 bpy.context.window.scene=scene
 for ob in list(scene.objects): bpy.data.objects.remove(ob,do_unlink=True)
 rng=random.Random(210918)
-COLORS={'Rust':(.38,.135,.06),'Orange':(.63,.255,.10),'Yellow':(.82,.53,.12),'Blue':(.26,.39,.42),'Red':(.47,.12,.075),'Iron':(.085,.09,.083),'Steel':(.32,.32,.27),'Wood':(.33,.22,.12),'Sand':(.55,.47,.32),'Concrete':(.41,.38,.31),'Plaster':(.56,.51,.41),'Ivory':(.72,.67,.53),'Glass':(.065,.095,.10),'Paper':(.69,.66,.52),'Soot':(.095,.073,.057),'Tile':(.48,.255,.17),'TileBlue':(.26,.32,.32),'Brick':(.34,.19,.13),'Rubber':(.065,.063,.056)}
+COLORS={'Rust':(.38,.135,.06),'Orange':(.63,.255,.10),'Yellow':(.82,.53,.12),'Blue':(.26,.39,.42),'Red':(.47,.12,.075),'Iron':(.085,.09,.083),'Steel':(.32,.32,.27),'Wood':(.33,.22,.12),'Sand':(.55,.47,.32),'Concrete':(.41,.38,.31),'Plaster':(.56,.51,.41),'Ivory':(.72,.67,.53),'Glass':(.065,.095,.10),'Paper':(.69,.66,.52),'Soot':(.095,.073,.057),'Tile':(.37,.17,.105),'TileBlue':(.12,.205,.245),'Brick':(.34,.19,.13),'Rubber':(.065,.063,.056)}
 mats={}
 for name,c in COLORS.items():
  m=bpy.data.materials.get('INF_'+name) or bpy.data.materials.new('INF_'+name); m.diffuse_color=(*c,1); m.use_nodes=True
@@ -102,6 +102,17 @@ else:
  for x in(-1.2,1.2):
   m.face([(x-.07,3.5,0),(x+.07,3.5,0),(x+.07,.55,-run),(x-.07,.55,-run)],'Orange')
   m.face([(x,3,0),(x,3.5,0),(x,.55,-run),(x,.05,-run)],'Yellow')
+ # Rounded tubular lips, flare at the exit, worn centre and metal support braces.
+ for side in(-1,1):
+  m.rod((side*1.2,3.5,0),(side*1.2,.55,-run),.09,'Yellow',10)
+  for j in range(8):
+   a=j/8;b=(j+1)/8
+   m.rod((side*(1.2+a*.15),.55*(1-a)**2,-run-a*.65),(side*(1.2+b*.15),.55*(1-b)**2,-run-b*.65),.09,'Yellow',8)
+  m.rod((side*1.15,.12,2.8),(side*1.15,2.75,.2),.065,'Rust')
+ for j in range(15):
+  t=.15+j*.045;x=rng.uniform(-.8,.8)
+  m.face([(x,3*(1-t)+.025,-run*t),(x+.10,3*(1-t)+.025,-run*t),(x+.08,3*(1-t-.09)+.025,-run*(t+.09)),(x-.02,3*(1-t-.09)+.025,-run*(t+.09))],'Sand')
+ m.face([(-1.2,.05,-run),(1.2,.05,-run),(1.35,.015,-run-.65),(-1.35,.015,-run-.65)],'Yellow')
  m.export('Slide')
  m=Mesh()
  for x in(-4,4):
@@ -120,6 +131,12 @@ else:
   for a,b in zip(profile,profile[1:]):m.rod((a[0],a[1],z),(b[0],b[1],z),.065,'Rust',6)
  for x in(-1.31,1.31):
   for z in(-2.8,-.9,1.1,2.8):m.rod((x,1,z),(x*1.02,1,z),.047,'Steel',6)
+ # Corrugation seams and chipped coating along the visible roof.
+ for z in(-2,-.02,2):
+  for a,b in zip(profile,profile[1:]):m.rod((a[0]*1.012,a[1]+.018,z),(b[0]*1.012,b[1]+.018,z),.025,'Rust',5)
+ for i in range(65):
+  x=rng.uniform(-.72,.72);z=rng.uniform(-2.8,2.8);r=rng.uniform(.025,.13)
+  m.face([(x,2.408,z),(x+r,2.408,z+.04),(x+r*.7,2.408,z+.18),(x-.04,2.408,z+.09)],'Rust' if i%3 else 'Sand')
  m.export('Tube')
  m=Mesh()
  for x in(-2.5,2.5):
@@ -134,7 +151,22 @@ else:
   for q in(-1,1):
    m.box((q*1.65,1.3,side*2.5),(1.7,2.6,.2),'Blue' if q<0 else 'Red')
    m.box((side*2.5,1.3,q*1.65),(.2,2.6,1.7),'Yellow' if q<0 else 'Orange')
- m.box((0,2.7,0),(5,.2,5),'Wood');m.export('Climber')
+ # Plank roof and faded geometric play panels make this read as a former children's shelter.
+ for i in range(16):m.box((-2.35+i*.31,2.7,0),(.295,.2,5),'Wood' if i%4 else 'Blue')
+ for side in(-1,1):
+  for q in(-1,1):
+   for j in range(3):
+    y=.6+j*.66
+    m.ring((q*1.65,y,side*2.61),.22,.055,'Yellow',axis='z',n=16)
+   for j in range(6):m.box((q*1.65+(-.62+j*.25),.18,side*2.61),(.075,.20,.018),'Rust')
+  for q in(-1,1):
+   m.face([(side*2.61,.7,q*1.65-.48),(side*2.61,1.6,q*1.65),(side*2.61,.7,q*1.65+.48)],'Blue' if q<0 else 'Ivory')
+   m.box((side*2.62,.60,q*1.65),(.03,.12,1.0),'Red')
+ # An uneven canvas corner hangs above the passage, clear of heads.
+ for j in range(12):
+  x=-2.45+j*.2;h=2.28+.12*math.sin(j*.7)
+  m.face([(x,2.83,-2.57),(x+.2,2.83,-2.57),(x+.2,h,-2.70),(x,h+.05,-2.70)],'Sand')
+ m.export('Climber')
  m=Mesh();m.box((0,.052,0),(9,.10,6),'Sand')
  for x in(-4.5,4.5):m.box((x,.2,0),(.2,.4,6),'Orange')
  for z in(-3,3):m.box((0,.2,z),(9.4,.4,.2),'Orange')
@@ -259,17 +291,27 @@ else:
   m.box((x,.035,z),(r*2,.06,r),'Concrete',rng.random()*6)
  for i in range(7):m.box((rng.uniform(-1.4,1.4),.012,rng.uniform(-1,1)),(.26,.01,.38),'Paper',rng.random()*6)
  m.export('Debris')
- # Art-only surface with fine seams, missing corners, cracks, sand and paper. Flat at collision plane.
- m=Mesh()
- for ix in range(26):
-  for iz in range(20):
-   x=-25+ix*2;z=-19+iz*2;mat='TileBlue' if rng.random()<.31 else 'Tile'
-   m.box((x,-.055,z),(1.978,.1,1.978),mat)
-   if rng.random()<.18:
-    a=rng.uniform(-.8,.8);m.face([(x-.8,.001,z+a),(x+.6,.002,z+a+.3),(x+.64,.002,z+a+.32),(x-.8,.001,z+a+.018)],'Soot')
-   if rng.random()<.2:m.face([(x+.98,.002,z+.98),(x+.6,.002,z+.98),(x+.98,.002,z+.63)],'Sand')
- for i in range(125):
-  x=rng.uniform(-25,25);z=rng.uniform(-19,19);m.box((x,.004,z),(rng.uniform(.08,.3),.006,rng.uniform(.1,.4)),'Paper' if i%4==0 else 'Concrete',rng.random()*6)
+ # Fragmented rubber courtyard inside the shared irregular outline.
+ layout=json.loads((OUT/'layout.json').read_text());outline=[(p['x'],p['z']) for p in layout['boundary']]
+ def inside(x,z,margin=0):
+  return all((b[0]-a[0])*(z-a[1])-(b[1]-a[1])*(x-a[0])>margin*math.hypot(b[0]-a[0],b[1]-a[1]) for a,b in zip(outline,outline[1:]+outline[:1]))
+ m=Mesh();m.face([(x,-.024,z) for x,z in reversed(outline)],'Concrete')
+ for ix in range(32):
+  for iz in range(28):
+   xx=-22+ix*1.4;zz=-19+iz*1.4;a=math.radians(7)
+   x=xx*math.cos(a)+zz*math.sin(a);z=-xx*math.sin(a)+zz*math.cos(a)
+   if not inside(x,z,.9):continue
+   edge=not inside(x,z,2.5)
+   if rng.random() < (.48 if edge else .055):continue
+   blue=((x+2)**2+(z-.5)**2<36 and (x+z)>-2) or (x>6 and z>4) or (x<-7 and z<-3)
+   mat='TileBlue' if blue else 'Tile'
+   m.box((x,-.056,z),(1.365,.1,1.365),mat,a+rng.uniform(-.008,.008))
+   if rng.random()<.34:
+    d=rng.uniform(-.4,.4);m.face([(x-.58,.003,z+d),(x+.49,.004,z+d+.21),(x+.51,.004,z+d+.24),(x-.58,.003,z+d+.025)],'Soot')
+   if rng.random()<.14:m.face([(x+.60,.003,z+.62),(x+.28,.003,z+.62),(x+.6,.003,z+.24)],'Concrete')
+ for i in range(100):
+  x=rng.uniform(-19,19);z=rng.uniform(-16,16)
+  if inside(x,z,.6):m.box((x,.012,z),(rng.uniform(.06,.25),.018,rng.uniform(.1,.28)),'Paper' if i%3==0 else 'Brick',rng.random()*6)
  m.export('Courtyard')
  # Quarantine details: torn cloth, traffic barricade, bucket and forgotten bear.
  m=Mesh()
@@ -279,7 +321,7 @@ else:
    def pt(i,j):
     x=-1.8+i*.3;y=.3+j*.24
     return (x,y,.10*math.sin(i*.9+j*.23)+.045*math.sin(j*2))
-   m.face([pt(ix,iy),pt(ix+1,iy),pt(ix+1,iy+1),pt(ix,iy+1)],'Sand')
+   m.face([pt(ix,iy),pt(ix+1,iy),pt(ix+1,iy+1),pt(ix,iy+1)],'Blue')
  m.export('TornTarp')
  m=Mesh()
  m.box((0,.8,0),(3,.64,.22),'Yellow')
@@ -356,6 +398,7 @@ else:
  m.box((-.29,1.02,0),(.29,.055,.17),'Rubber');m.rod((.38,1.16,-.27),(.38,1.16,.27),.025,'Steel')
  m.rod((-.04,.34,-.18),(-.04,.34,.18),.025,'Steel');m.box((-.04,.34,.22),(.15,.055,.12),'Rubber')
  m.export('Bicycle')
+ exec(compile((ROOT/'tools/blender/infection_ruins.py').read_text(),str(ROOT/'tools/blender/infection_ruins.py'),'exec'))
  # Save a standalone source file containing only this kit, without replacing the user's open file.
  bpy.data.libraries.write(str(SOURCE/'Quarantine.blend'),{scene},fake_user=True)
  (OUT/'palette.json').write_text(json.dumps(COLORS,indent=2))

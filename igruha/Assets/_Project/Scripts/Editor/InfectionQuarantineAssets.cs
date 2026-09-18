@@ -45,7 +45,7 @@ namespace Igruha.EditorTools
         }
         private static Texture2D SurfaceTexture()
         {
-            string path = Art + "/Textures/WornSurface.png";
+            string path = Art + "/Textures/DrySurface.png";
             var existing = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
             if (existing != null) return existing;
             const int size = 256;
@@ -55,7 +55,7 @@ namespace Igruha.EditorTools
             {
                 float n = Mathf.PerlinNoise(x / 33f, y / 33f);
                 float grain = (float)random.NextDouble();
-                float value = Mathf.Lerp(.82f, 1f, n) * Mathf.Lerp(.96f, 1f, grain);
+                float value = Mathf.Lerp(.97f, 1f, n) * Mathf.Lerp(.93f, 1f, grain);
                 texture.SetPixel(x, y, new Color(value, value * .99f, value * .96f, 1));
             }
             texture.Apply(); File.WriteAllBytes(path, texture.EncodeToPNG()); Object.DestroyImmediate(texture);
