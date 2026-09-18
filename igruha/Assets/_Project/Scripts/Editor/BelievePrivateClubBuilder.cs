@@ -16,7 +16,6 @@ namespace Igruha.EditorTools
         private const string ConfigPath = "Assets/_Project/Settings/Gameplay/Minigames/BelieveOrNotConfig.asset";
         private const float ModuleWidth = 2f;
         private const float ModuleHeight = 4.12f;
-        private const float ClearRadius = 7.2f;
         internal const float LampHeight = 3.6f;
         // Дальность лампы режет конус по сфере, а не по полу: при 5.1 м свет
         // не доставал до края стола и круг схлопывался в пятно метра на три.
@@ -32,6 +31,8 @@ namespace Igruha.EditorTools
             var before = ProtectedGeometry(arena.transform);
             var config = AssetDatabase.LoadAssetAtPath<BelieveOrNotConfig>(ConfigPath);
             Build(arena.transform, config);
+            if (arena.transform.Find("_Furniture") != null)
+                BelieveClubFurnitureBuilder.PositionShelfLights(arena.transform, config);
             if (before != ProtectedGeometry(arena.transform))
                 throw new InvalidOperationException("Club art changed protected gameplay geometry.");
             Audit();
@@ -234,7 +235,9 @@ namespace Igruha.EditorTools
                 float z = Mathf.Max(0, Mathf.Abs(b.center.z) - b.extents.z);
                 nearest = Mathf.Min(nearest, Mathf.Sqrt(x * x + z * z));
             }
-            if (nearest < ClearRadius) throw new InvalidOperationException("Decor crosses spectator circle: " + nearest);
+            var config = AssetDatabase.LoadAssetAtPath<BelieveOrNotConfig>(ConfigPath);
+            if (config == null) throw new InvalidOperationException("Missing BelieveOrNotConfig.");
+            if (nearest < config.SpectatorZoneRadius) throw new InvalidOperationException("Decor crosses spectator circle: " + nearest);
             int missing = hall.GetComponentsInChildren<Transform>(true).Sum(t => GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(t.gameObject));
             foreach (var r in hall.GetComponentsInChildren<Renderer>(true))
                 if (r.sharedMaterials.Any(m => m == null || m.shader == null)) missing++;

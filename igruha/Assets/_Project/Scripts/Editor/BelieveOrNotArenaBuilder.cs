@@ -135,6 +135,7 @@ namespace Igruha.EditorTools
             BelieveTable table = BuildArena(config);
             PlaceSpawnPoints(config);
             ApplyLighting(config);
+            BelieveClubFurnitureBuilder.Build(GameObject.Find(ArenaRoot).transform, config);
             WireManager(config, table);
 
             // Звук ставится после связей менеджера: ему нужен уже собранный
