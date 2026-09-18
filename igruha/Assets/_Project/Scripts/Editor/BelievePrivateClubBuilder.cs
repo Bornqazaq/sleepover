@@ -18,7 +18,9 @@ namespace Igruha.EditorTools
         private const float ModuleHeight = 4.12f;
         private const float ClearRadius = 7.2f;
         internal const float LampHeight = 3.6f;
-        internal const float LampRange = 5.1f;
+        // Дальность лампы режет конус по сфере, а не по полу: при 5.1 м свет
+        // не доставал до края стола и круг схлопывался в пятно метра на три.
+        internal const float LampRange = 9.5f;
 
         [MenuItem("Igruha/Верю не верю/Собственный клуб — оболочка и свет")]
         public static void Apply()
@@ -114,9 +116,11 @@ namespace Igruha.EditorTools
         internal static void ConfigureLighting(Transform arena)
         {
             RenderSettings.ambientMode = AmbientMode.Flat;
-            RenderSettings.ambientLight = new Color(.045f, .055f, .075f);
+            // Не ноль: на 0.045 зал пропадал целиком — панели, шторы и бар
+            // переставали читаться даже силуэтом, оставалось пятно в пустоте.
+            RenderSettings.ambientLight = new Color(.075f, .082f, .105f);
             RenderSettings.ambientIntensity = 1;
-            RenderSettings.reflectionIntensity = .02f;
+            RenderSettings.reflectionIntensity = .06f;
             RenderSettings.skybox = null;
             RenderSettings.fog = false;
             foreach (var light in Object.FindObjectsByType<Light>(FindObjectsInactive.Include, FindObjectsSortMode.None))
@@ -127,8 +131,8 @@ namespace Igruha.EditorTools
             lamp.localRotation = Quaternion.Euler(90, 0, 0);
             var spot = lamp.GetComponent<Light>();
             spot.enabled = true; spot.type = LightType.Spot;
-            spot.spotAngle = 110; spot.innerSpotAngle = 100;
-            spot.range = LampRange; spot.intensity = 22f;
+            spot.spotAngle = 110; spot.innerSpotAngle = 58;
+            spot.range = LampRange; spot.intensity = 26f;
             spot.color = Mathf.CorrelatedColorTemperatureToRGB(3000).gamma;
             spot.useColorTemperature = false;
             spot.shadows = LightShadows.Soft;
@@ -139,9 +143,29 @@ namespace Igruha.EditorTools
             if (previous != null) Object.DestroyImmediate(previous.gameObject);
             var accents = Group(hall, "DistantWarmPoints");
             float side = arena.Find("Wall_East").position.x - .65f;
-            Point(accents, "EastShelfGlow", new Vector3(side, 2.7f, -3.0f), .65f, 2.3f);
-            Point(accents, "EastShelfGlow", new Vector3(side, 2.7f, 3.0f), .65f, 2.3f);
-            Point(accents, "WestSilhouette", new Vector3(-side, 2.1f, 1.0f), .5f, 2.4f);
+            Point(accents, "EastShelfGlow", new Vector3(side, 2.7f, -3.0f), 1.9f, 6.5f);
+            Point(accents, "EastShelfGlow", new Vector3(side, 2.7f, 3.0f), 1.9f, 6.5f);
+            Point(accents, "WestSilhouette", new Vector3(-side, 2.1f, 1.0f), 1.9f, 6.5f);
+            FaceFill(arena);
+        }
+
+        /// <summary>
+        /// Мягкий тёплый подсвет лиц сидящих. Лампа бьёт строго сверху, и лицо
+        /// целиком уходит в тень от собственного лба — а вся игра построена на
+        /// том, что сорок секунд смотришь сопернику в лицо. Теней не даёт:
+        /// вторая тень на сукне спорила бы с лампой.
+        /// </summary>
+        private static void FaceFill(Transform arena)
+        {
+            var previous = arena.Find("FaceFill");
+            if (previous != null) Object.DestroyImmediate(previous.gameObject);
+            var t = Group(arena, "FaceFill");
+            t.localPosition = new Vector3(0, 1.62f, 0);
+            var l = t.gameObject.AddComponent<Light>();
+            l.type = LightType.Point;
+            l.color = new Color(1f, .77f, .54f);
+            l.intensity = 2.6f; l.range = 3.4f;
+            l.shadows = LightShadows.None;
         }
 
         private static void Point(Transform parent, string name, Vector3 position, float intensity, float range)
@@ -217,7 +241,7 @@ namespace Igruha.EditorTools
             foreach (var filter in hall.GetComponentsInChildren<MeshFilter>(true)) if (filter.sharedMesh == null) missing++;
             if (missing != 0) throw new InvalidOperationException("Missing club references: " + missing);
             Debug.Log($"IGR-565: shell valid; decor colliders 0; all Default; nearest perimeter {nearest:F2} m; " +
-                $"floor light diameter {2 * Mathf.Sqrt(LampRange * LampRange - LampHeight * LampHeight):F2} m; missing refs 0.");
+                $"lamp cone cutoff {2 * LampHeight * Mathf.Tan(55f * Mathf.Deg2Rad):F2} m wide at floor; missing refs 0.");
         }
     }
 }
