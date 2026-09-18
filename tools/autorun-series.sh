@@ -73,6 +73,21 @@ while (( elapsed < TIMEOUT )); do
             grep -q "🏁 таблица катки" "$log" 2>/dev/null || all=0
         done
         if (( all == 1 )); then
+            # Таблица висит finalStandingsSeconds, потом хост везёт всех в
+            # хаб, где чемпиону надевают корону. Ждём и это: возврат — часть
+            # серии, а корона — часть финала.
+            hub_wait=0
+            while (( hub_wait < 60 )); do
+                crowned=1
+                for log in "$LOGS"/*.log; do
+                    grep -q "👑 корона надета" "$log" 2>/dev/null || crowned=0
+                done
+                if (( crowned == 1 )) && grep -q "очередь автопрогона кончилась" "$LOGS/host.log" 2>/dev/null; then
+                    break
+                fi
+                sleep 5
+                hub_wait=$(( hub_wait + 5 ))
+            done
             sleep 3
             break
         fi
@@ -97,15 +112,31 @@ echo "═══ Серия и начисления (у хоста)"
 grep -h -E 'PARTY SERIES|⭐ \[СЕРВЕР\]|📒|👑' "$LOGS/host.log" 2>/dev/null || echo "  нет"
 
 echo
+echo "═══ Возврат в хаб и корона чемпиона"
+for log in "$LOGS"/*.log; do
+    name="$(basename "$log" .log)"
+    grep -h -o -E '🏠 HOST.*|очередь автопрогона кончилась.*|👑 корона надета.*' "$log" 2>/dev/null | sed "s/^/  $name: /"
+done
+for log in "$LOGS"/*.log; do
+    if ! grep -q "👑 корона надета" "$log" 2>/dev/null; then
+        echo "  ✗ $(basename "$log" .log): корона в хабе не надета"
+        status_crown=1
+    fi
+done
+
+echo
 echo "═══ Итоги раундов: совпадают ли машины"
-status=0
+status=${status_crown:-0}
 for log in "$LOGS"/*.log; do
     name="$(basename "$log" .log)"
     grep -h -o '📊 итоги раунда.*' "$log" 2>/dev/null | sed "s/^/  $name: /"
 done
-host_rounds="$(grep -h -o '📊 итоги раунда.*' "$LOGS/host.log" 2>/dev/null || true)"
+# Ключ игры в строке не сравниваем: он берётся у каждой машины из своей
+# сцены, а сличать надо места и очки.
+rounds_of() { grep -h -o '📊 итоги раунда.*' "$1" 2>/dev/null | sed -E 's/итоги раунда [^[]*\[/итоги раунда [/' || true; }
+host_rounds="$(rounds_of "$LOGS/host.log")"
 for log in "$LOGS"/client-*.log; do
-    client_rounds="$(grep -h -o '📊 итоги раунда.*' "$log" 2>/dev/null || true)"
+    client_rounds="$(rounds_of "$log")"
     if [[ "$host_rounds" != "$client_rounds" ]]; then
         echo "  ✗ $(basename "$log" .log): итоги раундов отличаются от хоста"
         status=1
@@ -133,7 +164,7 @@ done
 
 echo
 if (( status == 0 )); then
-    echo "✅ Хост и клиенты сошлись: раунды, очки, таблица катки"
+    echo "✅ Хост и клиенты сошлись: раунды, очки, таблица катки, корона в хабе"
 else
     echo "❌ Есть расхождения — см. выше"
 fi

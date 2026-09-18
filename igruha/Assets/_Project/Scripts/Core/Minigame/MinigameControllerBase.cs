@@ -497,6 +497,14 @@ namespace Igruha.Core.Minigame
             }
 
             results.CopyFrom(networkResults);
+            if (string.IsNullOrEmpty(results.GameKey))
+            {
+                // Ключ игры по сети не едет — клиент и так знает свою сцену.
+                results.GameKey = definition != null && !string.IsNullOrEmpty(definition.SceneName)
+                    ? definition.SceneName
+                    : gameObject.scene.name;
+            }
+
             seriesFinal = isSeriesFinal;
             ShowResults(results);
 
