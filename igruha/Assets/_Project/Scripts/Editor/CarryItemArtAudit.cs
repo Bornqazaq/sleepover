@@ -232,8 +232,13 @@ namespace Igruha.EditorTools
         private static readonly string[] AlwaysOn =
         {
             "PipeJet", "BeamTrail", "Haze_1", "Haze_2", "Haze_3",
-            "ChasmHaze_1", "ChasmHaze_2", "ChasmHaze_3", "ChasmHaze_4"
+            "ChasmHaze_1", "ChasmHaze_2", "ChasmHaze_3", "ChasmHaze_4",
+            "Sparks_1", "Sparks_2", "Sparks_3", "Smoke_1", "Smoke_2"
         };
+
+        /// <summary>Полуразмеры перекрытия по XZ: правило высоты действует только над маршрутом.</summary>
+        private const float ArenaHalfLength = 32f;
+        private const float ArenaHalfWidth = 18f;
 
         /// <summary>
         /// Эффекты: коллайдеров нет, автостарт остался только у постоянных,
@@ -301,6 +306,13 @@ namespace Igruha.EditorTools
             {
                 // Припаркованные под полом копии пула в счёт высоты не идут.
                 if (renderers[i].transform.position.y < -10f)
+                {
+                    continue;
+                }
+
+                // Дым далёких труб стоит за пределами перекрытия и обзор не закрывает.
+                Vector3 at = renderers[i].transform.position;
+                if (Mathf.Abs(at.x) > ArenaHalfLength || Mathf.Abs(at.z) > ArenaHalfWidth)
                 {
                     continue;
                 }

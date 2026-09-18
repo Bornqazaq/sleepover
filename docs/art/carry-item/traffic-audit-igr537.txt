@@ -1,0 +1,78 @@
+=== «Переноска предмета»: перечень реплицируемых полей (снят рефлексией) ===
+
+-- Каналы состояния (NetworkVariable / NetworkList) и параметры Rpc --
+  CarryItemNetwork.state : NetworkVariable<CarryItemState>
+      ✔ счёт обеих команд одной структурой — это и есть исход раунда
+      TeamA : CarryItemTeamState
+      ✔ бак команды A
+      TeamB : CarryItemTeamState
+      ✔ бак команды B
+  CarryItemNetwork.roster : NetworkList<CarryItemMemberNetState>
+      ✔ состав команд: готовым списком, а не правилом деления — у клиента свой порядок ростера
+      PlayerId : Int32
+      ✔ кто именно, номер участника сессии
+      Team : Byte
+      ✔ за какую команду играет
+      Left : Boolean
+      ✔ вышел ли из матча: по этому числу раздаются ручки бутыли
+  CarryItemNetwork.StackHoldRpc(team) : Byte
+      ✔ у чьего штабеля держат E; отправителя берём из RpcParams
+  CarryItemNetwork.StackHoldRpc(held) : Boolean
+      ✔ начали держать или отпустили
+  WaterBottle.netState : NetworkVariable<WaterBottleNetState>
+      ✔ чья бутыль, сколько ручек, сколько воды — одной структурой
+      Team : Byte
+      ✔ чья бутыль: чужой за её ручку не возьмётся
+      Handles : Byte
+      ✔ сколько у неё ручек — размер команды на момент выдачи
+      Water : Int16
+      ✔ остаток воды: это счёт, и клиент его только показывает
+  WaterBottle.AnnounceLossRpc(amount) : Int32
+      ✔ сколько воды ушло — под эффект, сам уровень едет состоянием
+  WaterBottle.AnnounceLossRpc(reason) : Byte
+      ✔ почему ушло: по уровню не видно, брызги это или струя
+  MultiCarryObject.netState : NetworkVariable<MultiCarryNetState>
+      ✔ занятые ручки — состояние, а не событие: защищает от двойного захвата и догоняет опоздавшего
+      Handle0 : UInt64
+      ✔ кто держит ручку 0, NetworkObjectId
+      Handle1 : UInt64
+      ✔ кто держит ручку 1
+      Handle2 : UInt64
+      ✔ кто держит ручку 2
+      Handle3 : UInt64
+      ✔ кто держит ручку 3
+      InFlight : Boolean
+      ✔ объект брошен и ещё не приземлился: на свистке такой не засчитывается, и взяться за него нельзя
+      LastRelease : Byte
+      ✔ причина последнего срыва, байт — под звук и эффекты; отдельного канала под неё не заводим
+  MultiCarryObject.RequestThrowRpc() : без нагрузки
+      ✔ намерение бросить; отправителя берём из RpcParams
+  MultiCarryObject.RequestReleaseRpc(reason) : Byte
+      ✔ сбитый несущий сообщает, что уронил ручку: нокдаун считает его мотор, у сервера чужой выключен
+  MultiCarryObject.CarrierIntentRpc(intent) : Vector2
+      ✔ вектор ввода несущего: сервер отличает им рывок от полёта, движение считает не по нему
+  NetworkMinigameBridge.phase : NetworkVariable<MinigamePhase>
+      ✔ фаза мини-игры, общий механизм проекта
+  NetworkMinigameBridge.roundRemaining : NetworkVariable<Single>
+      ✔ остаток общего таймера, общий механизм
+  NetworkMinigameBridge.roundDuration : NetworkVariable<Single>
+      ✔ длительность раунда, общий механизм
+  NetworkMinigameBridge.LeaveRoundRpc() : без нагрузки
+      ✔ выход из раунда, общий механизм
+  NetworkMinigameBridge.ApplyResultsRpc(ids) : Int32[]
+      ✔ итоговые места, общий механизм
+  NetworkMinigameBridge.ApplyResultsRpc(places) : Int32[]
+      ✔ итоговые места, общий механизм
+
+-- Перечень не протух --
+  ✔ все строки перечня соответствуют живым членам
+
+-- Ловушки остаются вне трафика --
+  ✔ SwingingBeamTrap: обычный MonoBehaviour, фаза от общих часов
+  ✔ PeriodicTrapDriver: обычный MonoBehaviour, фаза от общих часов
+  ✔ PushZone: обычный MonoBehaviour, фаза от общих часов
+
+-- Проверка проверки (подсадная утечка) --
+  ✔ подсадной канал пойман, замечаний 2
+
+ИТОГ: чисто. Реплицируется 31 членов, каждый — с обоснованием.
