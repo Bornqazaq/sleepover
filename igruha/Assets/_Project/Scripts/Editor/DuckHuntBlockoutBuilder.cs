@@ -41,10 +41,10 @@ namespace Igruha.EditorTools
             var elevator = BuildElevator(ResetGroup(arenaRoot.transform, "ElevatorShaft"));
             var finish = BuildBlockoutFinish(tower);
             BuildSpawns(spawnsRoot.transform, elevator);
-            // Reserve the existing third-person boom behind the starting row.
+            // Eight players along the left inner wall, all facing along +X.
             foreach (Transform spawn in spawnsRoot.transform.Find("Ducks"))
             {
-                Vector3 position = spawn.position; position.x = config.ToUnits(6.5f);
+                Vector3 position = spawn.position; position.x = 1.05f;
                 spawn.position = position;
             }
             BuildKillZone();
@@ -149,8 +149,10 @@ namespace Igruha.EditorTools
                 {
                     RouteBox(root, "RunBeforeJump", floor, floorMaterial, 8, jumpFrom, y - 1, y, 0, 14);
                     RouteBox(root, "RunAfterJump", floor, floorMaterial, jumpFrom + 2.2f, end, y - 1, y, 0, 14);
-                    RouteBox(root, "TakeoffStripe", floor, platformMaterial, jumpFrom - .3f, jumpFrom,
+                    var takeoffStripe = RouteBox(root, "TakeoffStripe", floor, platformMaterial, jumpFrom - .3f, jumpFrom,
                         y - .06f, y + .015f, 0, 14);
+                    var stripeCollider = takeoffStripe.GetComponent<BoxCollider>();
+                    if (stripeCollider != null) Object.DestroyImmediate(stripeCollider, true);
                 }
                 if (floor == 3)
                 {
@@ -164,14 +166,18 @@ namespace Igruha.EditorTools
             RouteBox(root, "BackWall", floor, wallMaterial, 0, 48, y, y + height, 14, 14.4f);
             RouteBox(root, "EndWallA", floor, wallMaterial, -.4f, 0, y, y + height, 0, 14);
             RouteBox(root, "EndWallB", floor, wallMaterial, 48, 48.4f, y, y + height, 0, 14);
+            // Floor five has no outgoing stair room, so it needs its own front
+            // arrival wall. Besides closing the shell, this is the real support
+            // for the 05 marker instead of leaving the number floating in space.
+            if (floor == 4)
+                RouteBox(root, "TopArrivalFrontWall", floor, wallMaterial, 0, 8, y, y + 7, 0, .4f);
             var barrier = RouteBox(root, "BulletTransparentBoundary", floor, null, 0, 48, y, y + height, -.4f, 0, barrierLayer);
             Object.DestroyImmediate(barrier.GetComponent<MeshRenderer>());
             Object.DestroyImmediate(barrier.GetComponent<MeshFilter>());
 
             // Functional cover furniture is authored together with the midway art.
 
-            // Short spawn screen only; its end is before the first playable cover.
-            if (floor == 0) RouteBox(root, "SpawnShield", floor, coverHighMaterial, 0, 7, y, y + 3.2f, 0, .5f, coverLayer);
+            if (floor == 0) BuildStartRoom(root);
             if (floor == 2) BuildBlockoutDoor(root, floor, y);
             var checkpoint = ResetGroup(root, "Checkpoint");
             checkpoint.position = ToWorld(GetX(floor, 8.8f), y + .15f, 12.3f);
@@ -180,6 +186,20 @@ namespace Igruha.EditorTools
             checkpoint.gameObject.AddComponent<RespawnCheckpoint>();
         }
 
+
+        private static void BuildStartRoom(Transform floor)
+        {
+            var room=ResetGroup(floor,"StartRoom");
+            // Full-height opaque enclosure, with a 2.74 m wide right exit at the rear.
+            RouteBox(room,"StartFrontWall",0,wallMaterial,0,8.1f,0,8,0,.40f,coverLayer);
+            RouteBox(room,"StartExitWall",0,wallMaterial,7.8f,8.1f,0,8,0,10.2f,coverLayer);
+            // The second-floor route is already the start-room ceiling. A
+            // separate roof occupied the same volume and produced duplicate
+            // floor skins after every rebuild.
+            // Outer wing overlaps the doorway in projection from every lift height.
+            // Players walk around its rear end; it does not extend down the route.
+            RouteBox(room,"StartBaffleWall",0,wallMaterial,10.1f,10.4f,0,8,0,10.8f,coverLayer);
+        }
 
         private static void BuildFinalParkour(Transform root, float y)
         {
@@ -220,7 +240,12 @@ namespace Igruha.EditorTools
             RouteBox(stairsRoot, "ExitHeader", floor, wallMaterial, 39.6f, 40, y + 3.5f, y + 7, 10, 14);
             var steps = new List<Transform>();
             // Collision uses two continuous slopes; bot markers sample their actual surfaces.
-            steps.Add(RouteBox(stairsRoot, "RampEntrance", floor, platformMaterial, 40, 44, y - .1f, y, 11, 14).transform);
+            // TransitionBase already occupies this exact plane. Reuse it as the
+            // first route surface instead of laying a second coplanar slab over it.
+            Transform transitionBase = root.Find("TransitionBase");
+            if (transitionBase == null)
+                throw new System.InvalidOperationException("Duck Hunt transition base is missing.");
+            steps.Add(transitionBase);
             BuildBlockoutRamp(stairsRoot, floor, y, 40.3f, 43.7f, 11, 2, 0, 4, steps);
             steps.Add(RouteBox(stairsRoot, "TurnLanding", floor, platformMaterial, 40.3f, 47.7f, y + 3.7f, y + 4, .5f, 2).transform);
             BuildBlockoutRamp(stairsRoot, floor, y, 44.3f, 47.7f, 2, 11, 4, 8, steps);

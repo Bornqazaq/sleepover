@@ -18,7 +18,7 @@ namespace Igruha.EditorTools
 
         public static void Preflight()
         {
-            CarnivalPreflight();
+            CarnivalPreflight(); FairgroundPreflight();
             foreach (string key in Models)
             {
                 EnsureReadableModel(Root + "/Models/DHB_" + key + ".fbx");
@@ -49,7 +49,7 @@ namespace Igruha.EditorTools
                 if (n == "Section" && renderer.GetComponentInParent<CollapsingFloorTrap>() != null)
                 { DressCollapse(renderer); continue; }
                 if (n == "Foot" || n == "ChestBand" || n == "ChestBandSmall" || n == "OnePersonFootprint") continue;
-                if (n.Contains("Wall") || n == "ProtectedFront" || n == "ExitPartition" || n == "ExitHeader" || n == "SpawnShield" || n == "ArrivalGuard")
+                if (n.Contains("Wall") || n.StartsWith("ProtectedFront") || n == "ExitPartition" || n == "ExitHeader" || n == "SpawnShield" || n == "ArrivalGuard")
                 { CarnivalWall(renderer, art); continue; }
                 if (n.StartsWith("Link_") || n.StartsWith("ReturnLane_") || n == "TakeoffStripe")
                 { renderer.sharedMaterial = Mat(n.StartsWith("Link") ? "Red" : "Brass"); continue; }
@@ -67,10 +67,10 @@ namespace Igruha.EditorTools
                 CarnivalFloor(floor, art, index);
             }
             CarnivalLift(arena.transform.Find("ElevatorShaft"));
-            CarnivalRoof(art); Landscape(art); CarnivalGrounds(art); Lighting(art); CarnivalGrade(art);
+            CarnivalRoof(art); FairgroundSurroundings(art); Landscape(art); Lighting(art); CarnivalGrade(art);
             Combine(art, "Architecture");
             Physics.SyncTransforms();
-            Debug.Log("Duck Hunt carnival installed: original Blender midway kit, five themed floors, ten functional furnishings (six crouch/four standing), animated mechanical controls.");
+            Debug.Log("Duck Hunt carnival installed: original Blender fairground kit, protected start, five themed floors, 4/3/2/1 functional furnishings, exposed mechanical controls.");
         }
 
         static Transform Group(Transform parent, string name)
@@ -82,7 +82,8 @@ namespace Igruha.EditorTools
         {
             var wrapper = Group(parent, key);
             wrapper.position = p; wrapper.rotation = rotation;
-            var src = AssetDatabase.LoadAssetAtPath<GameObject>(CarnivalModels.Contains(key)
+            var src = AssetDatabase.LoadAssetAtPath<GameObject>(FairgroundModels.Contains(key)
+                ? FairgroundRoot + "/Models/DHF_" + key + ".fbx" : CarnivalModels.Contains(key)
                 ? CarnivalRoot + "/Models/DHC_" + key + ".fbx" : Root + "/Models/DHB_" + key + ".fbx");
             var go = (GameObject)PrefabUtility.InstantiatePrefab(src, wrapper);
             PrefabUtility.UnpackPrefabInstance(go, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
@@ -125,9 +126,9 @@ namespace Igruha.EditorTools
                 m.color = entry.Value; m.SetFloat("_Smoothness", entry.Key == "Brass" ? .48f : .23f);
                 m.SetFloat("_Metallic", entry.Key == "Iron" || entry.Key == "Brass" ? .5f : 0);
                 m.SetTexture("_BaseMap",null);
-                if (entry.Key.StartsWith("Oak"))
+                if (entry.Key.StartsWith("Oak") || entry.Key=="Red" || entry.Key=="Blue" || entry.Key=="Teal" || entry.Key=="Cream")
                 { m.SetTexture("_BaseMap", wood); m.SetTextureScale("_BaseMap", new Vector2(.65f, .65f)); }
-                if (entry.Key == "Glow") { m.EnableKeyword("_EMISSION"); m.SetColor("_EmissionColor", new Color(1,.80f,.44f)*3.8f); }
+                if (entry.Key == "Glow") { m.EnableKeyword("_EMISSION"); m.SetColor("_EmissionColor", new Color(1,.77f,.42f)*5.8f); }
                 EditorUtility.SetDirty(m); Materials.Add(entry.Key,m);
             }
         }
@@ -141,34 +142,48 @@ namespace Igruha.EditorTools
 
         static void DressDeck(MeshRenderer old, Transform parent, bool gilded = false)
         {
-            old.sharedMaterial = Mat("OakDark");
             Transform t = old.transform;
-            // Preserve the ramp's actual plane and every hole. Deck top is exactly collider top.
+            // The old blockout mesh remains the authoritative collider, but it
+            // must not render under another surface: that was the source of the
+            // black speckles and camera-dependent Z-fighting on every landing.
+            old.enabled = false;
             Vector3 size = t.lossyScale;
-            int nx = Mathf.Max(1,Mathf.CeilToInt(size.x/3.0f)), nz = Mathf.Max(1,Mathf.CeilToInt(size.z/3.4f));
-            for (int ix=0;ix<nx;ix++) for (int iz=0;iz<nz;iz++)
+            const float boardThickness = .055f;
+            float baseHeight = Mathf.Max(.025f,size.y-boardThickness);
+            var basePlate=Solid(parent,"Deck structure",
+                t.TransformPoint(new Vector3(0,-.5f+baseHeight/(2*size.y),0)),
+                new Vector3(size.x,baseHeight,size.z),"OakDark");
+            basePlate.transform.rotation=t.rotation;
+
+            // Continuous boards have deliberate gaps and no decorative nail
+            // planes. Their top is exactly the collider top, never above it.
+            int boards = Mathf.Max(1,Mathf.CeilToInt(size.z/.72f));
+            float pitch=size.z/boards;
+            for (int iz=0;iz<boards;iz++)
             {
-                Vector3 local = new Vector3(-.5f+(ix+.5f)/nx, .5f+.001f/size.y, -.5f+(iz+.5f)/nz);
-                Model("Deck",parent,t.TransformPoint(local),new Vector3(size.x/nx,1,size.z/nz),t.rotation);
+                float localZ=-.5f+(iz+.5f)/boards;
+                var board=Solid(parent,"Floorboard",
+                    t.TransformPoint(new Vector3(0,.5f-boardThickness/(2*size.y),localZ)),
+                    new Vector3(Mathf.Max(.02f,size.x-.012f),boardThickness,Mathf.Max(.02f,pitch-.012f)),
+                    iz%3==0?"OakLight":"Oak");
+                board.transform.rotation=t.rotation;
             }
             if (gilded)
             {
                 var rim = Beam(parent,t.TransformPoint(new Vector3(-.5f,.28f,-.5f)),t.TransformPoint(new Vector3(.5f,.28f,-.5f)),.085f,"Brass");
                 rim.name = "LandingEdge";
             }
-            if (Mathf.Abs(t.up.y)>.99f && size.y>.4f) DressCeiling(old,parent);
         }
 
         static void DressCeiling(MeshRenderer old, Transform art)
         {
             Bounds b=old.bounds;
-            // Decorative underside is inside the solid plate, leaving the tested headroom unchanged.
-            int nx=Mathf.Max(1,Mathf.CeilToInt(b.size.x/3)), nz=Mathf.Max(1,Mathf.CeilToInt(b.size.z/4));
-            for(int x=0;x<nx;x++)for(int z=0;z<nz;z++)
-                Model("Deck",art,new Vector3(b.min.x+(x+.5f)*b.size.x/nx,b.min.y-.005f,b.min.z+(z+.5f)*b.size.z/nz),
-                    new Vector3(b.size.x/nx,.6f,b.size.z/nz),Quaternion.Euler(180,0,0));
+            // The ceiling itself renders once. Beams sit visibly below it;
+            // there is no second near-coplanar deck skin.
+            old.sharedMaterial=Mat("Oak");
+            int nx=Mathf.Max(1,Mathf.CeilToInt(b.size.x/3));
             for(int x=0;x<nx;x++)
-                Beam(art,new Vector3(b.min.x+(x+.5f)*b.size.x/nx,b.min.y-.10f,b.min.z),new Vector3(b.min.x+(x+.5f)*b.size.x/nx,b.min.y-.10f,b.max.z),.19f,"OakDark");
+                Beam(art,new Vector3(b.min.x+(x+.5f)*b.size.x/nx,b.min.y-.16f,b.min.z),new Vector3(b.min.x+(x+.5f)*b.size.x/nx,b.min.y-.16f,b.max.z),.19f,"OakDark");
         }
 
         static void DressWall(MeshRenderer old, Transform art)
@@ -278,6 +293,20 @@ namespace Igruha.EditorTools
             Transform skin=Group(panel.transform,"CopperwoodHatch"); skin.position=Vector3.zero;skin.rotation=Quaternion.identity;
             skin.localScale=new Vector3(1/panel.transform.lossyScale.x,1/panel.transform.lossyScale.y,1/panel.transform.lossyScale.z);
             DressDeck(panel,skin,true);
+            Bounds hatch=panel.bounds;
+            // Three readable mechanical leaves inside the original floor trigger.
+            for(int section=0;section<3;section++)
+            {
+                float z0=hatch.min.z+section*hatch.size.z/3f,z1=z0+hatch.size.z/3f;
+                foreach(float z in new[]{z0+.035f,z1-.035f})
+                    Solid(skin,"Hatch transverse iron",new Vector3(hatch.center.x,hatch.max.y+.018f,z),new Vector3(hatch.size.x,.035f,.065f),"Iron");
+                foreach(float x in new[]{hatch.min.x+.10f,hatch.max.x-.10f})
+                {
+                    Solid(skin,"Leaf edge",new Vector3(x,hatch.max.y+.015f,(z0+z1)*.5f),new Vector3(.055f,.03f,z1-z0-.07f),"Brass");
+                    foreach(float z in new[]{z0+.38f,z1-.38f})
+                        Solid(skin,"Hatch hinge",new Vector3(x,hatch.max.y+.04f,z),new Vector3(.21f,.07f,.25f),"Iron");
+                }
+            }
             panel.enabled=false;
             Combine(skin,"CollapseHatch");
             var so=new SerializedObject(panel.GetComponentInParent<CollapsingFloorTrap>());
@@ -325,12 +354,17 @@ namespace Igruha.EditorTools
         static void Landscape(Transform art)
         {
             Solid(art,"Forest clearing",new Vector3(17,-3.5f,2),new Vector3(700,1,700),"Earth");
+            // The playable tower stays at its tested world height; a substantial
+            // timber plinth closes the visual gap down to the fairground ground.
+            Solid(art,"Tower foundation",new Vector3(17.28f,-1.86f,7),new Vector3(35.2f,2.28f,14.5f),"OakDark");
+            Solid(art,"Lift foundation",new Vector3(17.28f,-2.5f,-11.52f),new Vector3(3.8f,1f,4.8f),"OakDark");
             var rng=new System.Random(216);
             for(int i=0;i<42;i++)
             {
                 float angle=(float)rng.NextDouble()*Mathf.PI*2;
                 float radius=48+(float)rng.NextDouble()*24;
                 Vector3 p=new Vector3(17+Mathf.Cos(angle)*radius,-3,7+Mathf.Sin(angle)*radius);
+                if (ReservedSceneryArea(p)) continue;
                 // A clear forecourt preserves the silhouette of the elevator and front of the tower.
                 float s=1.4f+(float)rng.NextDouble()*2;
                 Model("Pine",art,p,new Vector3(s,s*(.9f+(float)rng.NextDouble()*.3f),s),Quaternion.Euler(0,i*137.5f,0));
@@ -342,6 +376,25 @@ namespace Igruha.EditorTools
                 Model("Timber",art,new Vector3(x,-3,16),new Vector3(1.1f,2,1.1f));
                 if(i<11)for(int h=0;h<2;h++)Beam(art,new Vector3(x,-2.25f+h*.65f,16),new Vector3(x+4,-2.25f+h*.65f,16),.13f,"OakLight");
             }
+        }
+
+        static bool ReservedSceneryArea(Vector3 p)
+        {
+            // Keep independent trees away from authored rides, tents and side
+            // stalls. These are generous visual footprints, not colliders.
+            Vector2 point=new Vector2(p.x,p.z);
+            var zones=new[]
+            {
+                new Vector3(-20,30,24), // scenic wheel, gondolas and supports
+                new Vector3(-22,-13,11), // carousel
+                new Vector3(-13,0,11), new Vector3(-21,19,10),
+                new Vector3(47,0,11), new Vector3(55,19,10),
+                new Vector3(-25,42,10), new Vector3(-6,42,10),
+                new Vector3(13,42,10), new Vector3(32,42,10), new Vector3(51,42,10)
+            };
+            foreach(Vector3 zone in zones)
+                if(Vector2.Distance(point,new Vector2(zone.x,zone.y))<zone.z)return true;
+            return false;
         }
 
         static GameObject Beam(Transform root, Vector3 a, Vector3 b, float width, string material)
@@ -378,16 +431,32 @@ namespace Igruha.EditorTools
             foreach(var light in Object.FindObjectsByType<Light>(FindObjectsSortMode.None))
             {
                 if(light.type!=LightType.Directional)continue;
-                light.transform.rotation=Quaternion.Euler(24,-32,0);light.color=new Color(1,.83f,.62f);light.intensity=1.55f;light.shadows=LightShadows.Soft;
+                // Low westward sun: in the front establishing view it sits to the
+                // left of the tower and is already half below the horizon.
+                light.transform.rotation=Quaternion.Euler(3,-112,0);light.color=new Color(1,.62f,.38f);light.intensity=1.05f;light.shadows=LightShadows.Soft;
             }
             RenderSettings.ambientMode=AmbientMode.Trilight;
             RenderSettings.ambientSkyColor=new Color(.57f,.68f,.72f);RenderSettings.ambientEquatorColor=new Color(.56f,.55f,.44f);RenderSettings.ambientGroundColor=new Color(.35f,.29f,.21f);
-            RenderSettings.fog=true;RenderSettings.fogMode=FogMode.Linear;RenderSettings.fogColor=new Color(.65f,.72f,.68f);RenderSettings.fogStartDistance=65;RenderSettings.fogEndDistance=150;
+            RenderSettings.fog=true;RenderSettings.fogMode=FogMode.Linear;RenderSettings.fogColor=new Color(.79f,.64f,.47f);RenderSettings.fogStartDistance=78;RenderSettings.fogEndDistance=220;
             string skyPath=Root+"/Materials/DHB_Sky.mat";
             var sky=AssetDatabase.LoadAssetAtPath<Material>(skyPath);
             if(sky==null) { sky=new Material(Shader.Find("Skybox/Procedural"));AssetDatabase.CreateAsset(sky,skyPath); }
-            sky.SetColor("_SkyTint",new Color(.57f,.62f,.59f));sky.SetColor("_GroundColor",new Color(.47f,.52f,.39f));
+            sky.SetColor("_SkyTint",new Color(.59f,.55f,.57f));sky.SetColor("_GroundColor",new Color(.58f,.44f,.31f));
             sky.SetFloat("_AtmosphereThickness",1.1f);sky.SetFloat("_Exposure",1.05f);RenderSettings.skybox=sky;EditorUtility.SetDirty(sky);
+            // Emission alone does not light characters or floorboards.  These
+            // compact real lamps follow the visible lantern/bulb rhythm without
+            // turning every decoration into a shadow-casting cost.
+            Transform illumination=Group(art,"Working illumination");
+            for(int floor=0;floor<5;floor++)
+                for(int bay=0;bay<3;bay++)
+                    PointLight(illumination,new Vector3(5.4f+bay*11.5f,floor*5.76f+3.75f,8.25f),new Color(1,.62f,.30f),2.0f,6.5f);
+            for(int i=0;i<7;i++)
+                PointLight(illumination,new Vector3(i*5.76f,29.45f,-.32f),new Color(1,.66f,.34f),1.65f,5.5f);
+            // Exterior plane lantern posts (the bulbs are part of combined art,
+            // so give their visible positions real local light as well).
+            foreach(int side in new[]{-1,1})
+                for(int i=0;i<4;i++)
+                    PointLight(illumination,new Vector3((side<0?-13:47)+side*3,1.3f,-18+i*10),new Color(1,.58f,.26f),1.8f,7f);
         }
 
         static void Combine(Transform group,string name)

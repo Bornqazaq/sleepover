@@ -25,6 +25,10 @@ namespace Igruha.Minigames.DuckHunt
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Register()
         {
+#if UNITY_EDITOR
+            // Explicit local MPPM opt-in, shared by the host and virtual editor. Off by default.
+            if(!UnityEditor.EditorPrefs.GetBool("Igruha.DuckHunt.NetworkQA",false))
+#endif
             if (Array.IndexOf(Environment.GetCommandLineArgs(), "--duck-hunt-check") < 0) return;
             SceneManager.sceneLoaded += OnSceneLoaded;
             OnSceneLoaded(SceneManager.GetActiveScene(), LoadSceneMode.Single);
@@ -89,8 +93,17 @@ namespace Igruha.Minigames.DuckHunt
             yield return new WaitForSeconds(2);
             CheckStates();
             if (failed) yield break;
-            actor.TeleportTo(arena.GetWorldPoint(0, 9, 9.5f, .05f), Quaternion.identity);
-            yield return new WaitForSeconds(.5f);
+            // Each spawn leaves through the same real L-shaped exit, using the normal motor.
+            foreach(Transform spawn in GameObject.Find("_Spawns/Ducks").transform)
+            {
+                actor.TeleportTo(spawn.position,spawn.rotation);
+                yield return new WaitForSeconds(.3f);
+                yield return WalkTo(new Vector3(4.8f,.05f,8.9f));
+                yield return WalkTo(new Vector3(8.4f,.05f,8.9f));
+                if(failed)yield break;
+                Log("start exit PASS "+spawn.name);
+            }
+            yield return WalkTo(arena.GetWorldPoint(0,13,9.5f,.05f));
             int jumps = 0;
             actor.Jumped += () => jumps++;
             for (int f = 0; f < 4 && !failed; f++)

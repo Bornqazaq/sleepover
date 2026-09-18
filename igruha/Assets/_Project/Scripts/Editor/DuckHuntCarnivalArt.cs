@@ -36,7 +36,7 @@ namespace Igruha.EditorTools
             int n=Mathf.CeilToInt(width/.72f);
             for(int i=0;i<n;i++)
             {
-                var piece=Model("Cladding",art,origin+rotation*new Vector3(-width/2+(i+.5f)*width/n,0,0),new Vector3(width/n,height,1),rotation);
+                var piece=Model("PaintedBoard",art,origin+rotation*new Vector3(-width/2+(i+.5f)*width/n,0,0),new Vector3(width/n,height,1),rotation);
                 string color=i%2==0?FloorColors[Mathf.Clamp(floor,0,4)]:"Cream";
                 Retint(piece,"Teal",color);Retint(piece,"TealLight",color);
             }
@@ -54,6 +54,10 @@ namespace Igruha.EditorTools
             old.sharedMaterial=Mat("OakDark");Bounds b=old.bounds;bool alongX=b.size.x>b.size.z;
             StripedWall(art,alongX?new Vector3(b.center.x,b.min.y,b.min.z-.015f):new Vector3(b.min.x-.015f,b.min.y,b.center.z),
                 alongX?b.size.x:b.size.z,b.size.y,alongX?Quaternion.identity:Quaternion.Euler(0,90,0),Mathf.RoundToInt(b.min.y/5.76f));
+            if(!alongX)
+                StripedWall(art,new Vector3(b.max.x+.015f,b.min.y,b.center.z),b.size.z,b.size.y,Quaternion.Euler(0,-90,0),Mathf.RoundToInt(b.min.y/5.76f));
+            else if(old.name=="StartFrontWall")
+                StripedWall(art,new Vector3(b.center.x,b.min.y,b.max.z+.015f),b.size.x,b.size.y,Quaternion.Euler(0,180,0),0);
         }
 
         static void Garland(Transform art,Vector3 a,Vector3 b,float sagScale=1)
@@ -77,43 +81,21 @@ namespace Igruha.EditorTools
         static void CarnivalFloor(Transform floor,Transform art,int index)
         {
             float y=index*5.76f;
-            for(int side=-1;side<=1;side+=2)
-                StripedWall(art,new Vector3(side<0?-.31f:34.87f,y,5.04f),10.08f,index==4?6.5f:5.76f,Quaternion.Euler(0,side<0?90:-90,0),index);
+            // EndWallA/EndWallB are already dressed by CarnivalWall. A second
+            // striped skin here used to occupy the same plane and shimmer.
             foreach(Transform slot in floor.Cast<Transform>().Where(t=>t.name.StartsWith("SingleCover_")).ToArray())
                 Object.DestroyImmediate(slot.gameObject);
             FurnishPlayableFloor(floor,index);
-            // Unequal, separated attractions, not a repeated wall of prizes.
-            for(int bay=0;bay<2;bay++)
-            {
-                float x=9.6f+bay*13.6f+(index%2==0?0:1.2f);
-                Solid(art,"Prize shelf",new Vector3(x,y+1.28f,9.70f),new Vector3(3.0f,.13f,.46f),"OakDark");
-                Solid(art,"Shelf gilded edge",new Vector3(x,y+1.29f,9.44f),new Vector3(3.04f,.11f,.055f),"Brass");
-                if((bay+index)%3==0)
-                {
-                    Model("Wheel",art,new Vector3(x,y+2.95f,9.72f),Vector3.one*1.18f);
-                    Model("Cans",art,new Vector3(x-1.55f,y+1.36f,9.52f),Vector3.one*.80f);
-                    Model("Duck",art,new Vector3(x+1.6f,y+1.36f,9.52f),Vector3.one*.70f);
-                }
-                else
-                {
-                    Solid(art,"Upper prize shelf",new Vector3(x,y+3.04f,9.70f),new Vector3(3.0f,.13f,.46f),"OakDark");
-                    for(int row=0;row<2;row++)for(int i=0;i<3;i++)
-                    {
-                        string key=(i+row+index)%3==0?"Rabbit":((i+bay)%3==0?"Duck":"Bear");
-                        var toy=Model(key,art,new Vector3(x-.9f+i*.9f,y+1.36f+row*1.76f,9.63f),Vector3.one*(row==0?.75f:.64f),Quaternion.Euler(0,(i-1)*9,0));
-                        Retint(toy,key=="Rabbit"?"Blue":"Rose",new[]{"Rose","Blue","Gold","Purple","TealLight"}[(i+row+index)%5]);
-                    }
-                }
-                Model("Lantern",art,new Vector3(x+2.55f,y+3.65f,9.2f),Vector3.one*.67f);
-                PointLight(art,new Vector3(x,y+3.5f,6.5f),new Color(1,.69f,.32f),2.4f,8);
-            }
+            FairgroundFloorDressing(floor,art,index);
             // Elevation trim, bulbs and cloth read from both roles, without a chest-height front barrier.
             Beam(art,new Vector3(0,y-.25f,-.08f),new Vector3(34.56f,y-.25f,-.08f),.37f,"OakDark");
             Beam(art,new Vector3(0,y-.11f,-.30f),new Vector3(34.56f,y-.11f,-.30f),.10f,"Brass");
             for(int segment=0;segment<6;segment++)
             {
-                Garland(art,new Vector3(segment*5.76f,y+5.33f,.06f),new Vector3((segment+1)*5.76f,y+5.33f,.06f),.78f);
-                if(segment>0&&segment<5)Garland(art,new Vector3(segment*5.76f,y+5.30f,.2f),new Vector3(segment*5.76f,y+5.30f,9.7f));
+                if(index!=4 || (segment!=2 && segment!=3))
+                    Garland(art,new Vector3(segment*5.76f,y+5.33f,.06f),new Vector3((segment+1)*5.76f,y+5.33f,.06f),.78f);
+                // Keep bunting on the facade. Long transverse strings cut
+                // through ceiling beams, signs and rear display modules.
             }
             if(index<4)
             {
@@ -125,7 +107,6 @@ namespace Igruha.EditorTools
             if(index==4)
             {
                 Marquee(art,"GRAND\nPRIZE",new Vector3(17.3f,y+4.05f,9.68f),new Vector2(7.8f,3.4f),1.4f);
-                Model("Bear",art,new Vector3(32.7f,y+2.17f,9.5f),Vector3.one*1.35f);
                 Marquee(art,"FINISH",new Vector3(32.4f,y+4.65f,7.97f),new Vector2(3.4f,1.08f),.36f);
                 Label(art,"BACK TO START",new Vector3(17.28f,y+.035f,1.0f),.24f,"Brass",Quaternion.Euler(90,0,0));
             }
@@ -137,23 +118,33 @@ namespace Igruha.EditorTools
         {
             if(index==0)
             {
-                Furnishing(floor,index,"TicketStand",11,3.05f,-12);
-                Furnishing(floor,index,"PopcornCart",19,5.25f,16);
-                Furnishing(floor,index,"MenuBoard",21.5f,4.60f,-19);
-                Furnishing(floor,index,"PrizeRack",35,5.65f,11);
+                Furnishing(floor,index,"TicketStand",13,3.05f,-12);
+                Furnishing(floor,index,"PopcornCart",21,5.25f,16);
+                Furnishing(floor,index,"WheelStand",28,3.60f,-19);
+                Furnishing(floor,index,"PrizeCart",35,5.65f,11);
+                Furnishing(floor,index,"PrizeRack",8,7.10f,-8);
             }
             if(index==1)
             {
-                Furnishing(floor,index,"PrizeRack",12,4.90f,-16);
+                Furnishing(floor,index,"PrizeCart",12,4.90f,-16);
                 Furnishing(floor,index,"SnackBar",23,3.10f,9);
-                Furnishing(floor,index,"TicketStand",30,5.30f,19);
+                Furnishing(floor,index,"WheelStand",30,5.30f,19);
+                Furnishing(floor,index,"PopcornCart",19,4.20f,-12);
+                Furnishing(floor,index,"TicketStand",36,7.15f,-10);
             }
             if(index==2)
             {
-                Furnishing(floor,index,"PopcornCart",18,3.20f,-11);
-                Furnishing(floor,index,"PrizeRack",31,5.45f,18);
+                Furnishing(floor,index,"PrizeCart",18,3.20f,-11);
+                Furnishing(floor,index,"SnackBar",31,5.45f,18);
+                Furnishing(floor,index,"PrizeRack",25,4.10f,14);
+                Furnishing(floor,index,"WheelStand",9,7.20f,-12);
             }
-            if(index==3)Furnishing(floor,index,"SnackBar",17,4.10f,-17);
+            if(index==3)
+            {
+                Furnishing(floor,index,"PrizeCart",17,4.10f,-17);
+                Furnishing(floor,index,"PopcornCart",27,3.50f,-18);
+                Furnishing(floor,index,"SnackBar",31,7.10f,10);
+            }
         }
 
         static void PropBox(GameObject prop,string name,Vector3 centre,Vector3 size)
@@ -169,7 +160,21 @@ namespace Igruha.EditorTools
             Quaternion facing=Quaternion.Euler(0,yaw,0);
             // Keep interactive solids outside the static architectural mesh combine.
             var prop=Model(key,floor,p,Vector3.one,facing);prop.name="Furnishing_"+key;
-            if(key=="PopcornCart")
+            if(key=="PrizeCart" || key=="WheelStand")
+            {
+                PropBox(prop,"Counter body",new Vector3(0,.51f,0),new Vector3(1.12f,1.02f,.72f));
+                if(key=="PrizeCart")PropBox(prop,"Solid prize back",new Vector3(0,1.36f,.20f),new Vector3(1.10f,1.10f,.10f));
+                else
+                {
+                    var disk=GameObject.CreatePrimitive(PrimitiveType.Cylinder);disk.name="Wheel solid";disk.transform.SetParent(prop.transform,false);
+                    disk.transform.localPosition=new Vector3(0,1.53f,-.02f);disk.transform.localRotation=Quaternion.Euler(90,0,0);disk.transform.localScale=new Vector3(.96f,.018f,.96f);
+                    Object.DestroyImmediate(disk.GetComponent<Renderer>());
+                    Object.DestroyImmediate(disk.GetComponent<Collider>());
+                    var collision=disk.AddComponent<MeshCollider>();collision.sharedMesh=disk.GetComponent<MeshFilter>().sharedMesh;collision.convex=true;
+                    disk.layer=LayerMask.NameToLayer("Cover");
+                }
+            }
+            else if(key=="PopcornCart")
             {
                 PropBox(prop,"Solid cart body",new Vector3(0,.71f,0),new Vector3(1.22f,.64f,.65f));
                 PropBox(prop,"Counter",new Vector3(0,1.06f,0),new Vector3(1.30f,.10f,.73f));
