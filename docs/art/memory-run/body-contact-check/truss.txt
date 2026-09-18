@@ -1,0 +1,8 @@
+Body impact on an actual cross truss
+t=0.61 RagdollTest_Aza root=(1.20, -6.06, 2.34) ragdoll=True bodies=11
+t=1.12 RagdollTest_Aza root=(1.30, -7.36, 2.33) ragdoll=True bodies=11
+t=1.62 RagdollTest_Aza root=(1.71, -7.33, 2.30) ragdoll=True bodies=11
+t=2.11 RagdollTest_Aza root=(2.29, -7.37, 2.65) ragdoll=True bodies=11
+t=2.61 RagdollTest_Aza root=(3.25, -9.13, 3.24) ragdoll=True bodies=11
+RagdollTest_Aza returned motor=True ragdoll=False collision=True animator=True
+maxJointAnchorSeparation=0.0127002

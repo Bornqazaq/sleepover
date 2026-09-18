@@ -17,16 +17,16 @@ MonoBehaviour:
   turnSeconds: 40
   turnAnnounceSeconds: 2
   deathLimit: 10
-  ragdollSeconds: 1.5
+  ragdollSeconds: 2.8
   mineImpulse: 16
   unitsPerWidth: 0.72
   plateSize: 4
   plateThickness: 0.5
   laneGap: 1
   stepGap: 2
-  hallWidth: 28
-  ceilingHeight: 10
-  pitDepth: 12
+  hallWidth: 50
+  ceilingHeight: 26
+  pitDepth: 120
   startZoneSize: 14
   startZoneLift: 1
   cameraClearance: 6.5

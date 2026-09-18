@@ -1,0 +1,165 @@
+BEGIN original foundry; scene=MemoryRun
+PRESENTATION conveyors=3 signal=MF_TurnSignal
+TURN -1 roster=0
+PHASE Tutorial
+TURN 0 roster=2
+PHASE Round
+MINE 1 at=(-3.60, 0.00, -14.94)
+FAILURE id=0 poseBound=True
+TURN 1 roster=2
+BLAST_VISIBLE particles=42
+FAILURE_SAMPLE id=0 t=0.25 pos=(-5.42, 0.81, -11.94) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=2.68 gettingUp=False
+FAILURE_SAMPLE id=0 t=0.75 pos=(-8.65, 0.22, -8.75) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=7.12 gettingUp=False
+FAILURE_SAMPLE id=0 t=1.25 pos=(-11.83, -2.79, -5.63) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=11.92 gettingUp=False
+FAILURE_SAMPLE id=0 t=1.75 pos=(-14.95, -8.16, -2.58) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=17.94 gettingUp=False
+FAILURE_SAMPLE id=0 t=2.25 pos=(-18.14, -12.88, -2.45) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=22.53 gettingUp=False
+FAILURE_SAMPLE id=0 t=2.75 pos=(-20.80, -19.04, -2.32) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=28.15 gettingUp=False
+FAILURE_SAMPLE id=0 t=3.25 pos=(-2.38, 0.72, -20.62) presenting=False ragdoll=False bodies=0 failed=False locked=False travel=7.00 gettingUp=False
+FAILURE id=1 poseBound=True
+TURN 0 roster=2
+FAILURE_SAMPLE id=1 t=0.25 pos=(3.63, 0.98, -13.84) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=3.85 gettingUp=False
+SAMPLE frames=691 meanMs=21.74 mines=1 safeLandings=1 phase=Round
+CONVEYOR_MOVED distance=0.00
+FAILURE_SAMPLE id=1 t=0.75 pos=(3.61, 3.17, -11.53) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=5.76 gettingUp=False
+FAILURE_SAMPLE id=1 t=1.25 pos=(3.60, 2.88, -9.22) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=6.41 gettingUp=False
+FAILURE_SAMPLE id=1 t=1.75 pos=(3.59, 0.10, -6.99) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=6.45 gettingUp=False
+FAILURE_SAMPLE id=1 t=2.25 pos=(3.72, -0.68, -4.98) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=8.09 gettingUp=False
+FAILURE_SAMPLE id=1 t=2.75 pos=(4.15, -1.92, -3.45) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=9.38 gettingUp=False
+FAILURE_SAMPLE id=1 t=3.25 pos=(-0.74, 0.74, -21.52) presenting=False ragdoll=False bodies=0 failed=False locked=False travel=11.24 gettingUp=False
+MINE 2 at=(3.60, 0.00, -10.62)
+FAILURE id=0 poseBound=True
+TURN 1 roster=2
+BLAST_VISIBLE particles=42
+FAILURE_SAMPLE id=0 t=0.25 pos=(5.34, 0.90, -8.18) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=2.52 gettingUp=False
+FAILURE_SAMPLE id=0 t=0.75 pos=(8.79, 0.34, -4.87) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=7.20 gettingUp=False
+FAILURE_SAMPLE id=0 t=1.25 pos=(12.20, -2.85, -1.63) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=12.29 gettingUp=False
+FAILURE_SAMPLE id=0 t=1.75 pos=(15.39, -8.33, 1.42) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=18.41 gettingUp=False
+FAILURE_SAMPLE id=0 t=2.25 pos=(18.27, -14.02, 3.22) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=24.26 gettingUp=False
+FAILURE_SAMPLE id=0 t=2.75 pos=(-2.61, 1.22, -22.86) presenting=False ragdoll=False bodies=0 failed=False locked=False travel=14.44 gettingUp=False
+FAILURE_SAMPLE id=0 t=3.25 pos=(-2.80, 0.72, -20.69) presenting=False ragdoll=False bodies=0 failed=False locked=False travel=12.59 gettingUp=False
+FAILURE id=1 poseBound=True
+TURN 0 roster=2
+FAILURE_SAMPLE id=1 t=0.25 pos=(3.81, -0.05, -15.50) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=3.68 gettingUp=False
+FAILURE_SAMPLE id=1 t=0.75 pos=(2.07, -0.67, -13.60) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=3.20 gettingUp=False
+FAILURE_SAMPLE id=1 t=1.25 pos=(0.76, -1.99, -11.89) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=4.05 gettingUp=False
+FAILURE_SAMPLE id=1 t=1.75 pos=(-0.49, -5.77, -11.19) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=6.57 gettingUp=False
+FAILURE_SAMPLE id=1 t=2.25 pos=(-1.89, -8.53, -11.38) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=9.37 gettingUp=False
+FAILURE_SAMPLE id=1 t=2.75 pos=(-2.74, -12.15, -12.49) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=12.59 gettingUp=False
+FAILURE_SAMPLE id=1 t=3.25 pos=(-1.51, 0.74, -21.99) presenting=False ragdoll=False bodies=0 failed=False locked=False travel=11.67 gettingUp=False
+MINE 3 at=(0.00, 0.00, -6.30)
+FAILURE id=0 poseBound=True
+TURN 1 roster=2
+BLAST_VISIBLE particles=42
+FAILURE_SAMPLE id=0 t=0.25 pos=(2.01, 0.90, -3.89) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=2.70 gettingUp=False
+FAILURE_SAMPLE id=0 t=0.75 pos=(5.82, 0.41, -0.74) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=7.56 gettingUp=False
+SAMPLE frames=836 meanMs=17.95 mines=3 safeLandings=5 phase=Round
+CONVEYOR_MOVED distance=7.08
+FAILURE_SAMPLE id=0 t=1.25 pos=(9.59, -2.51, 2.35) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=12.71 gettingUp=False
+FAILURE_SAMPLE id=0 t=1.75 pos=(13.42, -8.06, 5.48) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=19.24 gettingUp=False
+FAILURE_SAMPLE id=0 t=2.25 pos=(17.03, -15.78, 8.17) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=27.08 gettingUp=False
+FAILURE_SAMPLE id=0 t=2.75 pos=(20.59, -25.71, 10.83) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=36.93 gettingUp=False
+FAILURE_SAMPLE id=0 t=3.25 pos=(-2.47, 0.72, -20.86) presenting=False ragdoll=False bodies=0 failed=False locked=False travel=15.52 gettingUp=False
+FAILURE id=1 poseBound=True
+TURN 0 roster=2
+FAILURE_SAMPLE id=1 t=0.25 pos=(-0.68, -0.05, -10.36) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=8.99 gettingUp=False
+FAILURE_SAMPLE id=1 t=0.75 pos=(-0.35, -0.64, -10.36) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=8.68 gettingUp=False
+FAILURE_SAMPLE id=1 t=1.25 pos=(-0.51, -0.67, -10.37) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=8.76 gettingUp=False
+FAILURE_SAMPLE id=1 t=1.75 pos=(-1.08, -0.67, -10.38) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=9.10 gettingUp=False
+FAILURE_SAMPLE id=1 t=2.25 pos=(-1.86, -1.04, -10.42) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=9.54 gettingUp=False
+FAILURE_SAMPLE id=1 t=2.75 pos=(-2.11, -3.48, -10.39) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=9.78 gettingUp=False
+FAILURE_SAMPLE id=1 t=3.25 pos=(0.12, 0.74, -23.48) presenting=False ragdoll=False bodies=0 failed=False locked=False travel=8.21 gettingUp=False
+FAILURE id=0 poseBound=True
+TURN 1 roster=2
+FAILURE_SAMPLE id=0 t=0.25 pos=(1.65, -5.21, -13.11) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=3.09 gettingUp=False
+FAILURE_SAMPLE id=0 t=0.75 pos=(1.41, -12.88, -12.71) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=10.78 gettingUp=False
+FAILURE_SAMPLE id=0 t=1.25 pos=(1.17, -22.83, -12.32) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=20.74 gettingUp=False
+FAILURE_SAMPLE id=0 t=1.75 pos=(0.93, -35.54, -11.92) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=33.46 gettingUp=False
+FAILURE_SAMPLE id=0 t=2.25 pos=(0.70, -50.00, -11.54) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=47.91 gettingUp=False
+FAILURE_SAMPLE id=0 t=2.75 pos=(0.48, -66.59, -11.17) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=64.51 gettingUp=False
+FAILURE_SAMPLE id=0 t=3.25 pos=(-4.03, 0.72, -21.55) presenting=False ragdoll=False bodies=0 failed=False locked=False travel=10.47 gettingUp=False
+SAMPLE frames=879 meanMs=17.08 mines=3 safeLandings=8 phase=Round
+CONVEYOR_MOVED distance=5.95
+MINE 4 at=(-3.60, 0.00, -6.30)
+FAILURE id=1 poseBound=True
+TURN 0 roster=2
+BLAST_VISIBLE particles=42
+FAILURE_SAMPLE id=1 t=0.25 pos=(-4.66, 0.32, -5.90) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=0.84 gettingUp=False
+FAILURE_SAMPLE id=1 t=0.75 pos=(-5.59, 0.65, -3.99) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=2.78 gettingUp=False
+FAILURE_SAMPLE id=1 t=1.25 pos=(-6.61, -1.50, -2.07) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=5.07 gettingUp=False
+FAILURE_SAMPLE id=1 t=1.75 pos=(-7.57, -5.97, -0.27) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=9.11 gettingUp=False
+FAILURE_SAMPLE id=1 t=2.25 pos=(-8.56, -13.14, 1.59) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=15.91 gettingUp=False
+FAILURE_SAMPLE id=1 t=2.75 pos=(-9.50, -22.44, 3.35) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=24.98 gettingUp=False
+FAILURE_SAMPLE id=1 t=3.25 pos=(-0.95, 0.74, -23.95) presenting=False ragdoll=False bodies=0 failed=False locked=False travel=17.80 gettingUp=False
+MINE 5 at=(0.00, 0.00, -1.98)
+FAILURE id=0 poseBound=True
+TURN 1 roster=2
+BLAST_VISIBLE particles=42
+FAILURE_SAMPLE id=0 t=0.25 pos=(0.91, 0.92, -1.97) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=1.33 gettingUp=False
+FAILURE_SAMPLE id=0 t=0.75 pos=(1.75, 0.44, -0.01) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=3.26 gettingUp=False
+FAILURE_SAMPLE id=0 t=1.25 pos=(2.12, -0.66, 0.80) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=4.23 gettingUp=False
+SAMPLE frames=752 meanMs=19.97 mines=5 safeLandings=13 phase=Round
+CONVEYOR_MOVED distance=7.12
+FAILURE_SAMPLE id=0 t=1.75 pos=(2.17, -1.86, 0.51) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=4.41 gettingUp=False
+FAILURE_SAMPLE id=0 t=2.25 pos=(2.10, -5.36, 0.12) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=6.58 gettingUp=False
+FAILURE_SAMPLE id=0 t=2.75 pos=(-2.62, 1.21, -22.86) presenting=False ragdoll=False bodies=0 failed=False locked=False travel=20.12 gettingUp=False
+FAILURE_SAMPLE id=0 t=3.25 pos=(-4.42, 0.72, -21.34) presenting=False ragdoll=False bodies=0 failed=False locked=False travel=18.98 gettingUp=False
+FAILURE id=1 poseBound=True
+TURN 0 roster=2
+FAILURE_SAMPLE id=1 t=0.25 pos=(-0.01, -0.07, -10.57) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=3.33 gettingUp=False
+FAILURE_SAMPLE id=1 t=0.75 pos=(2.06, -0.91, -8.44) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=5.00 gettingUp=False
+FAILURE_SAMPLE id=1 t=1.25 pos=(3.76, -3.31, -7.48) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=6.53 gettingUp=False
+FAILURE_SAMPLE id=1 t=1.75 pos=(5.32, -7.82, -6.74) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=9.76 gettingUp=False
+FAILURE_SAMPLE id=1 t=2.25 pos=(7.00, -13.20, -7.67) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=13.91 gettingUp=False
+FAILURE_SAMPLE id=1 t=2.75 pos=(8.69, -19.69, -8.87) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=19.82 gettingUp=False
+FAILURE_SAMPLE id=1 t=3.25 pos=(-0.06, 0.74, -22.02) presenting=False ragdoll=False bodies=0 failed=False locked=False travel=9.34 gettingUp=False
+SAMPLE frames=733 meanMs=20.48 mines=5 safeLandings=18 phase=Round
+CONVEYOR_MOVED distance=5.99
+FAILURE id=0 poseBound=True
+TURN 1 roster=2
+FAILURE_SAMPLE id=0 t=0.25 pos=(-0.08, -5.16, 0.16) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=3.06 gettingUp=False
+FAILURE_SAMPLE id=0 t=0.75 pos=(-0.37, -13.14, 0.30) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=11.04 gettingUp=False
+FAILURE_SAMPLE id=0 t=1.25 pos=(-0.64, -23.13, 0.44) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=21.04 gettingUp=False
+FAILURE_SAMPLE id=0 t=1.75 pos=(-0.91, -35.35, 0.58) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=33.26 gettingUp=False
+FAILURE_SAMPLE id=0 t=2.25 pos=(-1.17, -49.76, 0.71) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=47.67 gettingUp=False
+FAILURE_SAMPLE id=0 t=2.75 pos=(-1.42, -66.31, 0.84) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=64.22 gettingUp=False
+FAILURE_SAMPLE id=0 t=3.25 pos=(-4.03, 0.72, -21.46) presenting=False ragdoll=False bodies=0 failed=False locked=False travel=22.11 gettingUp=False
+FAILURE id=1 poseBound=True
+TURN 0 roster=2
+FAILURE_SAMPLE id=1 t=0.25 pos=(4.05, -0.06, -13.86) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=3.89 gettingUp=False
+FAILURE_SAMPLE id=1 t=0.75 pos=(4.65, -0.65, -15.22) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=2.73 gettingUp=False
+FAILURE_SAMPLE id=1 t=1.25 pos=(5.67, -1.16, -16.36) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=2.68 gettingUp=False
+FAILURE_SAMPLE id=1 t=1.75 pos=(6.64, -3.85, -17.46) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=3.87 gettingUp=False
+FAILURE_SAMPLE id=1 t=2.25 pos=(7.66, -8.99, -18.55) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=8.38 gettingUp=False
+FAILURE_SAMPLE id=1 t=2.75 pos=(8.72, -16.90, -19.65) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=16.06 gettingUp=False
+FAILURE_SAMPLE id=1 t=3.25 pos=(-0.26, 0.74, -23.92) presenting=False ragdoll=False bodies=0 failed=False locked=False travel=8.13 gettingUp=False
+SAMPLE frames=883 meanMs=17.00 mines=5 safeLandings=23 phase=Round
+CONVEYOR_MOVED distance=7.15
+MINE 6 at=(0.00, 0.00, 10.98)
+FAILURE id=0 poseBound=True
+TURN 1 roster=2
+BLAST_VISIBLE particles=42
+FAILURE_SAMPLE id=0 t=0.25 pos=(1.04, 0.92, 10.87) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=1.30 gettingUp=False
+FAILURE_SAMPLE id=0 t=0.75 pos=(1.83, 0.44, 12.76) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=3.14 gettingUp=False
+FAILURE_SAMPLE id=0 t=1.25 pos=(2.56, -2.35, 13.79) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=5.06 gettingUp=False
+FAILURE_SAMPLE id=0 t=1.75 pos=(2.97, -7.14, 13.58) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=8.55 gettingUp=False
+FAILURE_SAMPLE id=0 t=2.25 pos=(3.35, -14.70, 13.44) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=15.55 gettingUp=False
+FAILURE_SAMPLE id=0 t=2.75 pos=(-2.62, 1.21, -22.86) presenting=False ragdoll=False bodies=0 failed=False locked=False travel=32.90 gettingUp=False
+FAILURE_SAMPLE id=0 t=3.25 pos=(-4.33, 0.72, -21.47) presenting=False ragdoll=False bodies=0 failed=False locked=False travel=31.73 gettingUp=False
+SAMPLE frames=732 meanMs=20.51 mines=6 safeLandings=30 phase=Round
+CONVEYOR_MOVED distance=6.02
+FAILURE id=1 poseBound=True
+TURN 0 roster=2
+FAILURE_SAMPLE id=1 t=0.25 pos=(1.29, -6.61, 1.66) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=4.57 gettingUp=False
+FAILURE_SAMPLE id=1 t=0.75 pos=(2.82, -8.01, 1.54) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=6.36 gettingUp=False
+FAILURE_SAMPLE id=1 t=1.25 pos=(4.77, -9.29, 0.49) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=8.37 gettingUp=False
+FAILURE_SAMPLE id=1 t=1.75 pos=(6.79, -12.95, -0.14) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=12.57 gettingUp=False
+FAILURE_SAMPLE id=1 t=2.25 pos=(8.65, -18.63, -0.84) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=18.45 gettingUp=False
+FAILURE_SAMPLE id=1 t=2.75 pos=(10.53, -27.22, -1.72) presenting=True ragdoll=True bodies=11 failed=True locked=True travel=27.07 gettingUp=False
+FAILURE_SAMPLE id=1 t=3.25 pos=(0.16, 0.73, -21.82) presenting=False ragdoll=False bodies=0 failed=False locked=False travel=22.61 gettingUp=False
+SAMPLE frames=762 meanMs=19.70 mines=6 safeLandings=36 phase=Round
+CONVEYOR_MOVED distance=7.14
+TURN -1 roster=2
+PHASE Results
+SAMPLE frames=1102 meanMs=13.61 mines=6 safeLandings=40 phase=Results
+CONVEYOR_MOVED distance=5.99
+END scene unloaded; mines=6; safe=40

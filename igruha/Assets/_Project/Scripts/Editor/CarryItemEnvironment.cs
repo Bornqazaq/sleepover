@@ -1,713 +1,523 @@
-using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
+using Igruha.Core.Ambient;
 using Igruha.Minigames.CarryItem;
 
 namespace Igruha.EditorTools
 {
     /// <summary>
-    /// Окружение «Переноски предмета» — подфаза 4.3. Стройка вокруг арены,
-    /// стройка под ней и стройка над стенами.
+    /// Авторская композиция высотки (IGR-535, доработка IGR-537). Все размеры — метры.
     ///
-    /// Зачем это отдельно от дресса. Дресс закрывает коробки блокаута: он
-    /// отвечает на вопрос «из чего сделан этот предмет». Окружение отвечает на
-    /// другой — «где я нахожусь», — и без него арена читается коробкой в пустоте
-    /// при любом качестве дресса. Первый рендер 4.1 это и показал.
+    /// Слои сцены сверху вниз: облака и птицы; верхний недостроенный ярус над
+    /// периметром; игровой этаж с рабочими зонами; шесть нижних ярусов с сетками
+    /// и кабелями; дымка по высоте; улица и стройплощадка на −54 м; кольца
+    /// города от ближних корпусов до дальних доминант в тумане. Свет — низкое
+    /// тёплое солнце, длинные тени поперёк перекрытия.
     ///
-    /// Три яруса, и каждый решает свою задачу:
-    ///
-    /// <b>Нижний ярус в пропастях.</b> Самый ценный: пропасть — единственное,
-    /// что убивает, и заглянув в неё игрок обязан увидеть, что там низ стройки,
-    /// а не серая пустота. Место там ничем не занято, коллайдеры не нужны,
-    /// и туда уходит вся крупная техника.
-    ///
-    /// <b>Пол арены.</b> Здесь спрос строже всего: игрок по нему бежит.
-    /// Ставится только вдоль стен и в мёртвых полосах, мимо маршрутов, мимо
-    /// горлышка, мимо обхода и мимо 4.5 м позади штабеля и бака.
-    ///
-    /// <b>Небо над стенами.</b> Борта арены 4.32 м, и всё, что ниже, за ними
-    /// не видно вовсе — урок 3.51. Поэтому снаружи стоит только высокое: кран,
-    /// водонапорная башня, труба. Кран при этом не декорация — его стрела идёт
-    /// над горлышком и объясняет балку-ловушку.
-    ///
-    /// <b>Коллайдеров нет ни у чего.</b> В этой игре цена лишнего коллайдера
-    /// выше обычного: он ловил бы броски бутыли, кирпичи и струю трубы.
+    /// Группы: <c>Structure</c> и <c>WorkAreas</c> — твёрдые предметы с коллизией
+    /// (аудит требует её у каждого), <c>Decor</c> — то, что стоит на недосягаемых
+    /// ядрах или не имеет тела (разметка, гирлянды, шланги), <c>Horizon</c> —
+    /// всё вне перекрытия, без единого коллайдера.
     /// </summary>
     internal static class CarryItemEnvironment
     {
-        private const string Construction = "Assets/Synty/PolygonConstruction/Prefabs/";
-        private const string Props = Construction + "Props/";
-        private const string Buildings = Construction + "Buildings/";
-        private const string Vehicles = Construction + "Vehicles/";
-        private const string Environments = Construction + "Environments/";
+        private const float HalfWidth = 14.4f;
+        private const float End = 27.36f;
+        private const float FloorHeight = 5.4f;
+        private const float StreetY = -54f;
+        private const float RouteZ = 5.04f;
+        /// <summary>Центр бака: у дальнего края зоны баков (билдер, TankInsetX), не в середине.</summary>
+        private const float TankX = 23.04f;
+        private const int CitySeed = 537;
 
-        /// <summary>Полоса вдоль маршрута команды, куда декор не ставится, ШИ от линии.</summary>
-        private const float RouteClearance = 3.5f;
+        /// <summary>Сторона одной планарной UV-плитки набора: разметка ставится за угол, не за центр.</summary>
+        private const float DecalTile = 1f / 0.55f;
 
-        /// <summary>Полуширина коридора горлышка, куда декор не ставится, ШИ.</summary>
-        private const float NeckClearance = 5.5f;
-
-        /// <summary>Где начинается обход по краю: туда декор тоже нельзя, это путь.</summary>
-        private const float BypassInnerZ = 15f;
-
-        /// <summary>Запретный радиус вокруг штабеля и бака, ШИ. Держит правило камеры 4.5 м.</summary>
-        private const float PropRadius = 6f;
-
-        /// <summary>Что ставим: модель, сколько её и в каком диапазоне доворота.</summary>
-        private readonly struct Scatter
-        {
-            public readonly string Prefab;
-            public readonly int Count;
-            public readonly float Height;
-
-            public Scatter(string prefab, int count, float height = 0f)
-            {
-                Prefab = prefab;
-                Count = count;
-                Height = height;
-            }
-        }
-
-        /// <summary>Прямоугольник в ШИ, в котором можно ставить.</summary>
-        private readonly struct Zone
-        {
-            public readonly float MinX;
-            public readonly float MaxX;
-            public readonly float MinZ;
-            public readonly float MaxZ;
-
-            public Zone(float minX, float maxX, float minZ, float maxZ)
-            {
-                MinX = minX;
-                MaxX = maxX;
-                MinZ = minZ;
-                MaxZ = maxZ;
-            }
-        }
-
-        /// <summary>
-        /// Собрать окружение. Свой генератор случайных чисел приходит снаружи —
-        /// тот же, что у дресса: раскладка обязана повторяться от пересборки к
-        /// пересборке, иначе приёмку не с чем сравнивать.
-        /// </summary>
         internal static void Build(Transform arena, CarryItemConfig config, System.Random rng)
         {
-            Transform group = ResetGroup(arena, "Environment");
-
-            BuildSkyline(group, config);
-            BuildLowerTier(group, config, rng);
-            BuildFloorWear(group, config, rng);
-            BuildFloorLitter(group, config, rng);
-            BuildSiteProps(group, config, rng);
-            BuildPerimeter(group, config, rng);
-            BuildChasmGuards(group, config, rng);
+            var root = Group(arena, "Environment");
+            var structure = Group(root, "Structure");
+            var props = Group(root, "WorkAreas");
+            var decor = Group(root, "Decor");
+            var backdrop = Group(root, "Horizon");
+            BuildStructure(structure);
+            BuildUpperStorey(structure, backdrop);
+            BuildProps(props);
+            BuildDecor(decor);
+            BuildDepth(backdrop);
+            BuildStreet(backdrop);
+            BuildCranes(backdrop);
+            BuildSkyline(backdrop);
+            BuildSky(backdrop);
+            BuildBirds(backdrop);
             BuildLight();
         }
 
+        internal static Transform Group(Transform parent, string name)
+        {
+            var go = new GameObject(name); go.transform.SetParent(parent, false); return go.transform;
+        }
+
+        internal static Transform Place(Transform parent, string model, Vector3 pos, float yaw = 0, bool solid = true)
+        {
+            var t = CarrySkyscraperAssets.Place(parent, model, pos, yaw);
+            if (solid) AddSolid(t, model);
+            return t;
+        }
+
+        private static void AddSolid(Transform t, string model)
+        {
+            var b = CarryItemDress.BoundsOf(t.gameObject);
+            var c = t.gameObject.AddComponent<BoxCollider>();
+            // Smooth envelopes avoid catching fingers, scaffold braces and handles.
+            c.center = t.InverseTransformPoint(b.center);
+            var size = b.size;
+            if (Mathf.Abs(Mathf.DeltaAngle(t.eulerAngles.y, 90)) < 1 || Mathf.Abs(Mathf.DeltaAngle(t.eulerAngles.y, 270)) < 1)
+                size = new Vector3(size.z, size.y, size.x);
+            c.size = size;
+            if (model == "Scaffold") { c.center = new Vector3(0, 3.7f, 0); c.size = new Vector3(3.12f, 7.4f, 1.3f); }
+            if (model == "Column") { c.center = new Vector3(0, 3.25f, 0); c.size = new Vector3(.74f, 6.5f, .74f); }
+            if (model == "Guardrail") { c.center = new Vector3(0, .62f, 0); c.size = new Vector3(3, 1.24f, .24f); }
+            if (model == "FlagMast") { c.center = new Vector3(0, 3, 0); c.size = new Vector3(.3f, 6, .3f); }
+            if (model == "FloodTower") { c.center = new Vector3(0, 2.3f, 0); c.size = new Vector3(1.2f, 4.6f, 1.2f); }
+            foreach (var tr in t.GetComponentsInChildren<Transform>()) tr.gameObject.layer = LayerMask.NameToLayer("Cover");
+        }
+
+        private static Transform Motion(Transform t, AmbientMotion.Mode mode, Vector3 axis, float amplitude, float period,
+            float phase = 0, Vector3 secondAxis = default, float secondAmplitude = 0, float duty = .2f)
+        {
+            t.gameObject.AddComponent<AmbientMotion>().Configure(mode, axis, amplitude, period, phase, secondAxis, secondAmplitude, duty);
+            return t;
+        }
+
+        // ========== Игровой этаж ==========
+
+        private static void BuildStructure(Transform root)
+        {
+            // Columns sit outside the circulation corridors and leave an open view between bays.
+            foreach (float x in new[] { -25.8f, -16.0f, -3.6f, 7.5f, 18.0f, 25.8f })
+            foreach (float z in new[] { -13.5f, 13.5f }) Place(root, "Column", new Vector3(x, 0, z));
+            // Только одна полоса кровли над самым началом и полосы по бокам: низкое
+            // солнце должно доставать до штабелей, иначе старт стоит в сплошной тени.
+            for (int z = 0; z < 7; z++) Slab(root, new Vector3(-25.3f, 7.0f, -12 + z * 4), Vector3.one, true);
+            foreach (float x in new[] { -2.8f, 1.2f, 5.2f, 19.8f, 23.8f })
+            foreach (float z in new[] { -12.2f, 12.2f }) Slab(root, new Vector3(x, 7.0f, z), Vector3.one, true);
+            // Short unfinished walls, rather than a continuous opaque enclosure.
+            foreach (float z in new[] { -12.7f, 12.7f })
+            {
+                Place(root, "Wall", new Vector3(-23, 0, z), z > 0 ? 0 : 180);
+                Place(root, "Wall", new Vector3(22.5f, 0, z), z > 0 ? 0 : 180);
+            }
+            // Continuous rail on the outer edge, with visible physical barrier only where shown.
+            for (float x = -25.5f; x < 27; x += 3)
+            foreach (float z in new[] { -HalfWidth, HalfWidth }) Place(root, "Guardrail", new Vector3(x, 0, z), z > 0 ? 0 : 180);
+            for (float z = -12.9f; z < 14; z += 3)
+            foreach (float x in new[] { -End, End }) Place(root, "Guardrail", new Vector3(x, 0, z), 90);
+        }
+
         /// <summary>
-        /// Над стенами. Борт арены 4.32 м, и всё ниже него из игры не видно —
-        /// поэтому здесь только то, что выше стены в разы.
+        /// Недостроенный ярус над головой: продолжение колонн, арматурные каркасы,
+        /// леса и сетки по периметру кровельных полос. Небо над маршрутом остаётся
+        /// открытым — и для солнца, и для камеры.
         /// </summary>
-        private static void BuildSkyline(Transform group, CarryItemConfig config)
+        private static void BuildUpperStorey(Transform solid, Transform far)
         {
-            // Кран стоит так, чтобы стрела шла над горлышком: балка-ловушка
-            // висит на тросе, и трос обязан откуда-то идти. Мачта при этом
-            // вынесена за борт арены на её половину глубины — иначе она сама
-            // встаёт посреди кадра и закрывает площадку.
-            //
-            // Ставится по пивоту, а не по центру габарита: габарит крана на
-            // 45 м вытянут стрелой, и посадка по центру уводит мачту на два
-            // десятка метров от заданной точки.
-            Place(group, "Crane", Buildings + "SM_Bld_Crane_01.prefab", config,
-                new Vector3(3f, 0f, 38f), 180f, byPivot: true);
+            foreach (float z in new[] { -13.5f, 13.5f })
+            {
+                Place(far, "Column", new Vector3(-25.8f, 7.0f, z), 0, false).localScale = new Vector3(1, .8f, 1);
+                Place(far, "Column", new Vector3(1.2f, 7.0f, z), 0, false).localScale = new Vector3(1, .7f, 1);
+                Place(far, "Column", new Vector3(21.8f, 7.0f, z), 0, false).localScale = new Vector3(1, .75f, 1);
+                foreach (float x in new[] { -16.0f, 7.5f, 18.0f }) Place(far, "RebarCage", new Vector3(x, 6.5f, z), 0, false);
+                Place(far, "Formwork", new Vector3(5.2f, 7.0f, z * .9f), z > 0 ? 0 : 180, false);
+                Place(far, "NetPanel", new Vector3(-2.8f, 7.0f, z * 1.07f), 0, false);
+                Place(far, "NetPanel", new Vector3(23.8f, 7.0f, z * 1.07f), 0, false);
+            }
+            Place(far, "Scaffold", new Vector3(-25.3f, 7.0f, -7), 90, false);
+            Place(far, "Tarp", new Vector3(-25.3f, 7.0f, 6), 20, false);
+            Place(far, "CementBags", new Vector3(-25.3f, 7.0f, 1.5f), 0, false);
+            Place(far, "Tarp", new Vector3(19.8f, 7.0f, 12.2f), -35, false);
+            Place(far, "Lumber", new Vector3(23.8f, 7.0f, -12.2f), 0, false);
+            // Кабели, свисающие с верхнего яруса к перекрытию: мелкая вертикаль в кадре.
+            foreach (float x in new[] { -21.5f, -0.9f, 21.5f })
+                Motion(Place(far, "CableDrop", new Vector3(x, 7.0f, 14.0f), 0, false), AmbientMotion.Mode.Sway, Vector3.right, 2.5f, 4.2f, x * .1f, Vector3.forward, 1.5f);
+        }
 
-            Place(group, "WaterTower", Buildings + "SM_Bld_WaterTower_01.prefab", config,
-                new Vector3(-34f, 0f, -34f), 20f, byPivot: true);
-            Place(group, "SmokeStack", Buildings + "SM_Bld_SmokeStack_01.prefab", config,
-                new Vector3(48f, 0f, 30f), 0f, byPivot: true);
-
-            // Второй кран вдалеке: одна стройка на горизонте читается макетом,
-            // две — районом.
-            Place(group, "CraneFar", Buildings + "SM_Bld_Crane_01.prefab", config,
-                new Vector3(-58f, -8f, -46f), 250f, byPivot: true);
+        private static void Slab(Transform root, Vector3 pos, Vector3 scale, bool solid)
+        {
+            var t = Place(root, "Slab", pos, 0, false); t.localScale = scale;
+            if (solid) { var c = t.gameObject.AddComponent<BoxCollider>(); c.center = new Vector3(0, -.36f, 0); c.size = new Vector3(4, .72f, 4); t.gameObject.layer = LayerMask.NameToLayer("Ground"); }
         }
 
         /// <summary>
-        /// Нижний ярус: то, что видно в пропасть. Ставится на дно, крупными
-        /// предметами — с восьми метров мелочь всё равно не читается.
+        /// Рабочие группы на перекрытии. Всё твёрдое, всё с коллизией. Маршруты
+        /// (полосы z=±5.04, горлышко, обходы у бортов), круг хватания у выдачи и
+        /// 4.5 м позади рабочих точек остаются свободными — проверяет ArtAudit.
         /// </summary>
-        private static void BuildLowerTier(Transform group, CarryItemConfig config, System.Random rng)
+        private static void BuildProps(Transform root)
         {
-            float floor = -config.ChasmDepth;
-
-            Place(group, "Hut_1", Buildings + "SM_Bld_Portable_Office_01.prefab", config,
-                new Vector3(-16f, floor, 14f), 90f);
-            Place(group, "Hut_2", Buildings + "SM_Bld_Portable_Office_02.prefab", config,
-                new Vector3(-16f, floor, -14f), 270f);
-            Place(group, "Excavator", Vehicles + "SM_Veh_Excavator_01.prefab", config,
-                new Vector3(17f, floor, 13f), 200f);
-            Place(group, "DumpTruck", Vehicles + "SM_Veh_Truck_01_DumpTray_01.prefab", config,
-                new Vector3(18f, floor, -13f), 25f);
-            Place(group, "Loader", Vehicles + "SM_Veh_Mini_Loader_01.prefab", config,
-                new Vector3(-11f, floor, 0f), 140f);
-            Place(group, "Generator", Props + "SM_Prop_Generator_Large_01.prefab", config,
-                new Vector3(15f, floor, 0f), 60f);
-
-            var below = new[]
+            foreach (int sign in new[] { -1, 1 })
             {
-                new Zone(-18f, -8f, -18f, 18f),
-                new Zone(14f, 22f, -18f, 18f)
-            };
-
-            ScatterInto(group, "Low", config, rng, below, floor, new[]
-            {
-                new Scatter(Environments + "SM_Env_Dirt_Pile_01.prefab", 4),
-                new Scatter(Environments + "SM_Env_Dirt_Pile_03.prefab", 4),
-                new Scatter(Props + "SM_Prop_Plank_Long_Stack_01.prefab", 3),
-                new Scatter(Props + "SM_Prop_Skip_Large_01.prefab", 2),
-                new Scatter(Props + "SM_Prop_Junk_Stack_03.prefab", 4),
-                new Scatter(Props + "SM_Prop_BarrelStack_01.prefab", 3),
-                new Scatter(Props + "SM_Prop_Scaffold_Preset_01.prefab", 3),
-                new Scatter(Props + "SM_Prop_Rubble_Concrete_02.prefab", 6),
-                new Scatter(Environments + "SM_Generic_Small_Rocks_01.prefab", 6)
-            });
+                float z = sign * 10.7f;
+                Place(root, "Scaffold", new Vector3(-15.4f, 0, z), sign > 0 ? 0 : 180);
+                Place(root, "Scaffold", new Vector3(7.4f, 0, z), sign > 0 ? 0 : 180);
+                Place(root, "Lumber", new Vector3(-23f, 0, z), 90);
+                Place(root, "CementBags", new Vector3(-18.5f, 0, z));
+                Place(root, "CableReel", new Vector3(19.0f, 0, z));
+                Place(root, "Workbench", new Vector3(23.3f, 0, sign * 10.5f), 90);
+                Place(root, "BrickStack", new Vector3(6.8f, 0, sign * 8.1f));
+                Place(root, "Bucket", new Vector3(-22.3f, 0, sign * 8.7f));
+                Place(root, "Cone", new Vector3(-14.5f, 0, sign * 8.2f));
+                Place(root, "Barricade", new Vector3(-14.35f, 0, sign * 11.5f), 90);
+                Place(root, "Barricade", new Vector3(9.0f, 0, sign * 8f), 90);
+                Place(root, "CableCoil", new Vector3(24.4f, 0, sign * 8.7f), 0, false);
+                // Финишная зона: техника и снабжение позади баков, свет на вечер.
+                Place(root, "FloodTower", new Vector3(26.0f, 0, sign * 12.2f));
+                Place(root, "Sandbags", new Vector3(18.0f, 0, sign * 13.1f), sign * 40);
+                Place(root, "SignBoard", new Vector3(17.6f, 0, sign * 10.6f), 90);
+                Place(root, "WaterBarrel", new Vector3(26.3f, 0, sign * 2.2f));
+                // Стартовая зона: обеденный уголок и сварочный пост.
+                Place(root, "Sandbags", new Vector3(-5.6f, 0, sign * 13.0f), sign * 25);
+                Place(root, "WaterBarrel", new Vector3(11.6f, 0, sign * 12.6f));
+                Place(root, "Cone", new Vector3(11.0f, 0, sign * 11.9f));
+                // Флаги команд у штабелей: команда A слева (+Z), B справа (−Z).
+                var mast = Place(root, "FlagMast", new Vector3(-22.6f, 0, sign * 12.6f));
+                TeamFlag(mast, sign > 0);
+            }
+            Place(root, "SiteCabin", new Vector3(-24.4f, 0, 0), 90);
+            Place(root, "Generator", new Vector3(22.3f, 0, -11.1f), 15);
+            Place(root, "Mixer", new Vector3(-18.2f, 0, 12.25f), -30);
+            // Не у штабеля: там станции хватания и забежка болванок, тачка
+            // впритык к ящику гнала их в обход на шесть метров (стенд 18.09).
+            Place(root, "Wheelbarrow", new Vector3(-25.5f, 0, -0.6f), 115);
+            Place(root, "Bench", new Vector3(-25.9f, 0, -4.6f), 0);
+            Place(root, "WeldCart", new Vector3(-25.6f, 0, 4.9f), 160);
+            Place(root, "GasCylinders", new Vector3(-26.3f, 0, -8.3f), 10);
+            Place(root, "Toolbox", new Vector3(-25.1f, 0, -6.6f), 30);
+            Place(root, "RebarBundle", new Vector3(-24.3f, 0, -11.6f), 0);
+            Place(root, "Tarp", new Vector3(-26.0f, 0, 11.4f), 15);
+            Place(root, "CylinderRack", new Vector3(25.6f, 0, -9.4f), 0);
+            Place(root, "Compressor", new Vector3(24.9f, 0, 9.7f), -60);
+            Place(root, "PortaPotty", new Vector3(26.3f, 0, 6.6f), -90);
+            Place(root, "Bench", new Vector3(26.0f, 0, -5.0f), 90);
+            Place(root, "Toolbox", new Vector3(23.6f, 0, -12.6f), -20);
+            Place(root, "SkipBin", new Vector3(-24.6f, 0, -13.2f), 0);
         }
 
-        /// <summary>Секции пола арены, ШИ: старт, общая площадка, зона баков.</summary>
-        private static readonly Zone[] FloorSections =
-        {
-            new Zone(-37.5f, -19.5f, -19.5f, 19.5f),
-            new Zone(-6.5f, 12.5f, -19.5f, 19.5f),
-            new Zone(23.5f, 37.5f, -19.5f, 19.5f)
-        };
-
-        /// <summary>Сколько выбоин, трещин и луж приходится на всю площадку.</summary>
-        private const int PatchCount = 46;
-        private const int CrackCount = 34;
-        private const int PuddleCount = 14;
-
-        /// <summary>Насколько износ приподнят над полом, м. Меньше — мерцание с плитой.</summary>
-        private const float WearLift = 0.012f;
-
         /// <summary>
-        /// Износ перекрытия: выбоины, трещины и лужи.
-        ///
-        /// Зачем это отдельно от реквизита. Реквизит нельзя ставить на маршрут —
-        /// он мешает бежать и смотреть. Износ можно ставить <b>везде</b>, потому
-        /// что он плоский: полтора сантиметра над полом не задевают ни ноги, ни
-        /// камеру, ни обзор. Именно поэтому маршруты и горлышко, где реквизита
-        /// не будет никогда, наполняются только так — а это ровно те места, где
-        /// игрок проводит весь раунд.
-        ///
-        /// Рисуется примитивами, а не моделями пака: ни выбоин, ни трещин у
-        /// пака нет, а плоское пятно нужного цвета — это десяток треугольников
-        /// против сотен у любой модели.
+        /// Бестелесное: разметка маршрутов цветом команд (два потока стрелок
+        /// пересекаются в зоне баков — так и задумано), гирлянды над штабелями и
+        /// у баков, шланги от баков, реквизит на верху непроходимых ядер, лужи.
         /// </summary>
-        private static void BuildFloorWear(Transform group, CarryItemConfig config, System.Random rng)
+        private static void BuildDecor(Transform root)
         {
-            var wear = new GameObject("FloorWear");
-            wear.transform.SetParent(group, false);
-
-            Material patch = CarryItemPalette.Get(CarryItemPalette.Tone.Patch);
-            Material crack = CarryItemPalette.Get(CarryItemPalette.Tone.Crack);
-            Material puddle = CarryItemPalette.Get(CarryItemPalette.Tone.Puddle);
-
-            for (int i = 0; i < PatchCount; i++)
+            foreach (int sign in new[] { -1, 1 })
             {
-                Vector2 spot = RandomFloorSpot(rng);
-                float size = Mathf.Lerp(0.5f, 2.2f, (float)rng.NextDouble());
-
-                // Выбоина — вытертое пятно и тёмная сердцевина в нём: одним
-                // диском она читается кляксой краски, двумя — углублением.
-                // Пятна вытянуты и повёрнуты: ровный круг читается наклейкой,
-                // а не выбоиной. Разброс небольшой — сплющенное вдвое пятно
-                // выглядит уже мазком краски.
-                float squash = Mathf.Lerp(0.62f, 1f, (float)rng.NextDouble());
-                float yaw = (float)rng.NextDouble() * 180f;
-
-                Disc(wear.transform, "Patch_" + (i + 1), config, spot, size, patch, WearLift, squash, yaw);
-                if (rng.Next(3) > 0)
-                {
-                    Disc(wear.transform, "Patch_" + (i + 1) + "_core", config, spot,
-                        size * Mathf.Lerp(0.35f, 0.6f, (float)rng.NextDouble()), crack, WearLift * 1.6f,
-                        squash, yaw + rng.Next(-20, 20));
-                }
+                bool teamA = sign > 0;
+                float s = sign;
+                // От штабеля к первой доске, по своей полосе горлышка, по второй
+                // доске на своей же стороне — и только в зоне баков по диагонали
+                // к своему баку на противоположной стороне: там потоки команд
+                // пересекаются на открытой площадке без ловушек.
+                Arrow(root, teamA, -17.6f, s * 7.6f, -s * 8);
+                Arrow(root, teamA, -15.3f, s * 5.6f, 0);
+                Arrow(root, teamA, -4.3f, s * 4.5f, -s * 30);
+                Arrow(root, teamA, -1.4f, s * 2.4f, 0);
+                Arrow(root, teamA, 3.0f, s * 2.2f, 0);
+                Arrow(root, teamA, 7.0f, s * 3.4f, s * 30);
+                Arrow(root, teamA, 10.0f, s * 5.0f, 0);
+                Arrow(root, teamA, 15.6f, s * 5.0f, 0);
+                Arrow(root, teamA, 18.6f, s * 3.0f, -s * 48);
+                Arrow(root, teamA, 20.1f, s * 0.2f, -s * 48);
+                Arrow(root, teamA, 21.5f, -s * 2.0f, -s * 48);
+                Place(root, teamA ? "BuntingA" : "BuntingB", new Vector3(-20.9f, 3.3f, s * 12.9f), 0, false);
+                Place(root, teamA ? "BuntingA" : "BuntingB", new Vector3(21.5f, 3.4f, -s * 9.8f), 0, false);
+                Place(root, "Hose", new Vector3(25.3f, 0, -s * 2.6f), s * 25, false);
+                // На ядрах: недосягаемо, поэтому без коллизии.
+                Place(root, "Tarp", new Vector3(2.2f, 2.16f, s * 7.0f), s * 30, false);
+                Place(root, "RebarCage", new Vector3(3.3f, 2.16f, s * 10.2f), 0, false);
+                Place(root, "Formwork", new Vector3(1.0f, 2.16f, s * 4.6f), s > 0 ? 180 : 0, false);
+                Place(root, "Puddle", new Vector3(-16.2f, .012f, sign * 7.7f), 30, false).localScale = new Vector3(1.35f, 1, 1.6f);
+                Place(root, "Puddle", new Vector3(20, .012f, sign * 3.0f), -30, false);
             }
+            Place(root, "Puddle", new Vector3(-24, 0, 8.3f), 0, false).localScale = new Vector3(1.4f, 1, 1.3f);
+        }
 
-            for (int i = 0; i < CrackCount; i++)
+        private static void Arrow(Transform root, bool teamA, float x, float z, float yaw)
+        {
+            var t = Place(root, teamA ? "ArrowA" : "ArrowB", new Vector3(x, .004f, z), yaw, false);
+            // Плитка стрелки начинается в углу модели: центрируем её на точке.
+            t.GetChild(0).localPosition = new Vector3(-DecalTile * .5f, 0, -DecalTile * .5f);
+        }
+
+        private static void TeamFlag(Transform mast, bool teamA)
+        {
+            var flag = Place(mast, "Flag", new Vector3(.05f, 5.2f, 0), 0, false);
+            var material = CarrySkyscraperAssets.Material(teamA ? "TeamA" : "TeamB");
+            foreach (var r in flag.GetComponentsInChildren<Renderer>()) r.sharedMaterial = material;
+            Motion(flag, AmbientMotion.Mode.Sway, Vector3.up, 14f, 3.1f, teamA ? 0 : .4f, Vector3.forward, 5f);
+        }
+
+        // ========== Ниже перекрытия ==========
+
+        private static void BuildDepth(Transform root)
+        {
+            // Six visible levels with the same two service voids; no collider below the kill volumes.
+            for (int level = 1; level <= 6; level++)
             {
-                Vector2 spot = RandomFloorSpot(rng);
-                float length = Mathf.Lerp(1.4f, 5.5f, (float)rng.NextDouble());
-                float width = Mathf.Lerp(0.05f, 0.14f, (float)rng.NextDouble());
-
-                var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                go.name = "Crack_" + (i + 1);
-                go.transform.SetParent(wear.transform, false);
-                go.transform.position = new Vector3(config.ToMeters(spot.x), WearLift, config.ToMeters(spot.y));
-                go.transform.rotation = Quaternion.Euler(0f, (float)rng.NextDouble() * 180f, 0f);
-                go.transform.localScale = new Vector3(width, 0.012f, length);
-                Strip(go, crack);
-
-                // Излом: трещина не идёт по линейке. Второе колено под углом от
-                // конца первого — этого хватает, чтобы она перестала читаться
-                // начерченной.
-                if (rng.Next(2) == 0)
+                float y = -level * FloorHeight;
+                foreach (float x in new[] { -25.2f, -21.2f, -17.2f, -3.0f, 1f, 5f, 19.5f, 23.5f })
+                for (int iz = 0; iz < 7; iz++) Slab(root, new Vector3(x, y, -12 + iz * 4), Vector3.one, false);
+                foreach (float x in new[] { -25.8f, -15.4f, -4.6f, 8.8f, 17.2f, 25.8f })
+                foreach (float z in new[] { -13.5f, -7.5f, 0, 7.5f, 13.5f })
                 {
-                    var bend = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    bend.name = "Crack_" + (i + 1) + "_bend";
-                    bend.transform.SetParent(go.transform, false);
-                    bend.transform.localPosition = new Vector3(0f, 0f, 0.5f);
-                    bend.transform.localRotation =
-                        Quaternion.Euler(0f, rng.Next(25, 60) * (rng.Next(2) == 0 ? 1 : -1), 0f);
-                    bend.transform.localScale =
-                        new Vector3(1f, 1f, Mathf.Lerp(0.4f, 0.9f, (float)rng.NextDouble()));
-                    Strip(bend, crack);
+                    var t = Place(root, "Column", new Vector3(x, y, z), 0, false); t.localScale = new Vector3(1, FloorHeight / 6.5f, 1);
                 }
+                foreach (float x in new[] { -14.7f, 8.5f })
+                foreach (float z in new[] { -10.8f, 10.8f }) Place(root, "Scaffold", new Vector3(x, y, z), 90, false).localScale = Vector3.one * .7f;
+                // Сетки по фасаду: чередуются, чтобы ярусы читались, а не сливались.
+                for (int i = 0; i < 12; i++)
+                {
+                    if ((i + level) % 3 == 0) continue;
+                    float x = -24 + i * 4.4f;
+                    Place(root, "NetPanel", new Vector3(x, y, HalfWidth + .2f), 0, false);
+                    if ((i + level) % 2 == 0) Place(root, "NetPanel", new Vector3(x, y, -HalfWidth - .2f), 0, false);
+                }
+                if (level % 2 == 1) { Place(root, "Tarp", new Vector3(-9.5f, y, 9), level * 40, false); Place(root, "CementBags", new Vector3(-8.5f, y, -10), 0, false); }
+                else { Place(root, "Lumber", new Vector3(-9.5f, y, -8), 90, false); Place(root, "Formwork", new Vector3(-8, y, 11), 0, false); }
+                if (level <= 2) { Place(root, "FloodTower", new Vector3(-1.5f, y, -12.5f), 0, false); Place(root, "WeldCart", new Vector3(14.5f, y, 11), 40, false); }
             }
-
-            for (int i = 0; i < PuddleCount; i++)
+            foreach (float x in new[] { -12f, 3.5f, 14f })
+                Motion(Place(root, "CableDrop", new Vector3(x, -.4f, -HalfWidth - .3f), 0, false), AmbientMotion.Mode.Sway, Vector3.right, 3f, 3.6f, x * .07f, Vector3.forward, 2f);
+            // Мусоропровод по фасаду до контейнера на земле и грузовой подъёмник у финиша.
+            for (int i = 0; i < 10; i++) Place(root, "ChuteRun", new Vector3(-24.0f, -.3f - i * 5.25f, -HalfWidth - 1.0f), 0, false);
+            Place(root, "SkipBin", new Vector3(-24.0f, StreetY, -HalfWidth - 1.6f), 0, false);
+            for (int i = 0; i < 11; i++) Place(root, "HoistMast", new Vector3(End + 1.8f, StreetY + i * 5.4f, 0), 0, false);
+            Motion(Place(root, "HoistCage", new Vector3(End + 1.8f, -12.0f, 0), 0, false), AmbientMotion.Mode.Bob, Vector3.up, 3.0f, 26f);
+            // Дымка по высоте: три листа, сквозь которые улица тонет, а верх города остаётся чистым.
+            foreach (float y in new[] { -16f, -28f, -41f })
             {
-                Vector2 spot = RandomFloorSpot(rng);
-                Disc(wear.transform, "Puddle_" + (i + 1), config, spot,
-                    Mathf.Lerp(0.9f, 2.6f, (float)rng.NextDouble()), puddle, WearLift * 0.6f,
-                    Mathf.Lerp(0.55f, 1f, (float)rng.NextDouble()), (float)rng.NextDouble() * 180f);
+                var t = Place(root, "HazeSheet", new Vector3(0, y, 0), 0, false); t.localScale = new Vector3(380, 1, 380);
+                foreach (var r in t.GetComponentsInChildren<Renderer>()) { r.shadowCastingMode = ShadowCastingMode.Off; r.receiveShadows = false; }
             }
         }
 
+        /// <summary>Улица и стройплощадка далеко внизу: то, ради чего в проём страшно смотреть.</summary>
+        private static void BuildStreet(Transform root)
+        {
+            var rng = new System.Random(CitySeed + 1);
+            Place(root, "StreetGround", new Vector3(0, StreetY - .05f, 0), 0, false);
+            foreach (float z in new[] { -44f, 64f })
+            for (int i = -5; i < 5; i++) Place(root, "RoadStrip", new Vector3(i * 60 + 30, StreetY, z), 0, false);
+            foreach (float x in new[] { -66f, 74f })
+            for (int i = -5; i < 5; i++) Place(root, "RoadStrip", new Vector3(x, StreetY, i * 60 + 30), 90, false);
+            foreach (float x in new[] { -66f, 74f }) foreach (float z in new[] { -44f, 64f }) Place(root, "RoadCross", new Vector3(x, StreetY + .01f, z), 0, false);
+            // Забор стройплощадки, техника, отвалы, бытовки.
+            for (float x = -50; x <= 50; x += 3.5f) foreach (float z in new[] { -34f, 40f }) Place(root, "FencePanel", new Vector3(x, StreetY, z), 0, false);
+            for (float z = -32; z <= 40; z += 3.5f) foreach (float x in new[] { -52f, 52f }) Place(root, "FencePanel", new Vector3(x, StreetY, z), 90, false);
+            Place(root, "DumpTruck", new Vector3(38, StreetY, -20), 25, false);
+            Place(root, "DumpTruck", new Vector3(-38, StreetY, 30), 200, false);
+            Place(root, "PumpTruck", new Vector3(-40, StreetY, 12), -80, false);
+            Place(root, "Excavator", new Vector3(36, StreetY, 24), 140, false);
+            for (int i = 0; i < 3; i++) Place(root, "Container", new Vector3(-45, StreetY, -26 + i * 3), 90, false);
+            Place(root, "Container", new Vector3(44, StreetY, 34), 0, false);
+            Place(root, "DirtPile", new Vector3(30, StreetY, 32), 0, false);
+            Place(root, "DirtPile", new Vector3(-30, StreetY, -28), 60, false).localScale = new Vector3(1.4f, 1.2f, 1.1f);
+            Place(root, "DirtPile", new Vector3(46, StreetY, 4), 120, false).localScale = new Vector3(.8f, .9f, .9f);
+            for (int i = 0; i < 3; i++) Place(root, "PortaPotty", new Vector3(-47, StreetY, -6 + i * 1.6f), 90, false);
+            for (int i = 0; i < 2; i++) Place(root, "SiteCabin", new Vector3(-47, StreetY, 8 + i * 2.6f), 90, false).localScale = Vector3.one * 2.2f;
+            Place(root, "SkipBin", new Vector3(42, StreetY, -28), 15, false);
+            Place(root, "CementBags", new Vector3(40, StreetY, 10), 0, false); Place(root, "Lumber", new Vector3(40, StreetY, 14), 0, false);
+            for (int i = 0; i < 6; i++) Place(root, "RebarBundle", new Vector3(-20 + i * .9f, StreetY, 36), 0, false);
+            // Кварталы вокруг: машины у обочин, деревья, фонари.
+            for (int i = -6; i <= 6; i++)
+            {
+                float x = i * 9 + (float)rng.NextDouble() * 3;
+                Place(root, "Car", new Vector3(x, StreetY, -44 + (i % 2 == 0 ? 4.2f : -4.2f)), i % 2 == 0 ? 0 : 180, false);
+                Place(root, "Car", new Vector3(x + 4, StreetY, 64 + (i % 2 == 0 ? -4.2f : 4.2f)), i % 2 == 0 ? 180 : 0, false);
+                Place(root, "Car", new Vector3(-66 + (i % 2 == 0 ? 4.2f : -4.2f), StreetY, i * 9 + 2), 90, false);
+            }
+            for (int i = -8; i <= 8; i++)
+            {
+                float x = i * 12 + 6;
+                Place(root, "Tree", new Vector3(x, StreetY, -51), i * 37, false).localScale = Vector3.one * (.9f + (float)rng.NextDouble() * .4f);
+                Place(root, "Tree", new Vector3(x + 5, StreetY, 71), i * 53, false).localScale = Vector3.one * (.9f + (float)rng.NextDouble() * .4f);
+                Place(root, "Tree", new Vector3(-73, StreetY, x), i * 29, false).localScale = Vector3.one * (.9f + (float)rng.NextDouble() * .4f);
+                if (i % 2 == 0) { Place(root, "StreetLamp", new Vector3(x, StreetY, -49), 180, false); Place(root, "StreetLamp", new Vector3(x, StreetY, 69), 0, false); }
+            }
+        }
+
+        /// <summary>Три башенных крана в трёх подвижных частях: мачта от земли, медленно поворачивающаяся стрела, качающийся гак с бадьёй.</summary>
+        private static void BuildCranes(Transform root)
+        {
+            Crane(root, new Vector3(18, 0, -25), -35, 1.08f, 60f, 0f);
+            Crane(root, new Vector3(-34, 0, 36), 50, 1.22f, 84f, .37f);
+            Crane(root, new Vector3(62, 0, 30), 145, 1.38f, 96f, .71f);
+        }
+
+        private static void Crane(Transform root, Vector3 at, float yaw, float mastScale, float slewPeriod, float phase)
+        {
+            var mast = Place(root, "CraneMast", new Vector3(at.x, StreetY, at.z), yaw, false);
+            mast.localScale = new Vector3(1, mastScale, 1);
+            float topY = StreetY + 60f * mastScale;
+            var top = Place(root, "CraneTop", new Vector3(at.x, topY, at.z), yaw, false);
+            Motion(top, AmbientMotion.Mode.Sway, Vector3.up, 24f, slewPeriod, phase);
+            Motion(top, AmbientMotion.Mode.Blink, Vector3.up, 1f, 1.6f, phase, default, 0, .18f);
+            var hook = Place(top, "CraneHook", new Vector3(19f, 1.1f, 0), 0, false);
+            Motion(hook, AmbientMotion.Mode.Sway, Vector3.forward, 2.6f, 5.3f, phase, Vector3.right, 1.8f);
+        }
+
         /// <summary>
-        /// Мусор стройки на полу: пыль, гравий, обломки бетона, брошенные
-        /// чертежи и обрезки. Всё ниже двадцати сантиметров, поэтому кладётся
-        /// в том числе на маршруты — по нему бегут, но оно не мешает.
+        /// Город кольцами: ближние корпуса ниже перекрытия и с деталями, дальше —
+        /// выше и бледнее в тумане, на горизонте — доминанты. Ни одного коллайдера.
         /// </summary>
-        private static void BuildFloorLitter(Transform group, CarryItemConfig config, System.Random rng)
+        private static void BuildSkyline(Transform root)
         {
-            var litter = new GameObject("FloorLitter");
-            litter.transform.SetParent(group, false);
+            var rng = new System.Random(CitySeed);
+            string[] near = { "CityBrickA", "CityBandA", "CityGlassA", "CitySlab", "CityBrickB", "CityGlassA", "CityBandA", "CityBrickA" };
+            string[] mid = { "CityGlassB", "CityGlassC", "CityBandB", "CityGlassA", "CityBrickB", "CityBandA", "CityDark", "CitySlab", "CityGlassB" };
+            string[] far = { "CityDark", "CityLandmark", "CityGlassC", "CityBandB", "CityGlassB", "CityDark", "CityGlassC" };
+            Ring(root, rng, near, 14, 82, 118, .85f, 1.15f);
+            Ring(root, rng, mid, 22, 150, 235, .9f, 1.25f);
+            Ring(root, rng, far, 16, 275, 390, 1.0f, 1.4f);
+            // Соседняя стройка у дальнего крана и одна на другой стороне.
+            Place(root, "CityFrameB", new Vector3(84, StreetY, 44), 20, false);
+            Place(root, "CityFrameB", new Vector3(-120, StreetY, -70), -30, false).localScale = new Vector3(1.1f, .8f, 1.1f);
+            Place(root, "CityFrame", new Vector3(-58, StreetY, 90), 70, false).localScale = new Vector3(1, 1.3f, 1);
+        }
 
-            var flat = new[]
+        private static void Ring(Transform root, System.Random rng, string[] types, int count, float minR, float maxR, float minH, float maxH)
+        {
+            for (int i = 0; i < count; i++)
             {
-                new Scatter(Environments + "SM_Env_Dirt_Dust_01.prefab", 10, 0.06f),
-                new Scatter(Environments + "SM_Env_Dirt_Round_01.prefab", 2, 0.1f),
-                new Scatter(Environments + "SM_Generic_Small_Rocks_01.prefab", 16),
-                new Scatter(Environments + "SM_Generic_Small_Rocks_02.prefab", 14),
-                new Scatter(Props + "SM_Prop_Rubbish_Papers_01.prefab", 6),
-                new Scatter(Props + "SM_Prop_Rubbish_Papers_02.prefab", 6),
-                new Scatter(Props + "SM_Prop_Rubbish_Papers_03.prefab", 5),
-                new Scatter(Props + "SM_Prop_Plans_01.prefab", 3),
-                new Scatter(Props + "SM_Prop_Plans_02.prefab", 3),
-                new Scatter(Props + "SM_Prop_Rubble_Concrete_01.prefab", 12),
-                new Scatter(Props + "SM_Prop_Brick_03.prefab", 14),
-                new Scatter(Props + "SM_Prop_Cinderblock_01.prefab", 8),
-                new Scatter(Environments + "SM_Env_Dirt_Rock_03.prefab", 10),
-                new Scatter(Environments + "SM_Env_Dirt_Rock_04.prefab", 10)
-            };
-
-            for (int k = 0; k < flat.Length; k++)
-            {
-                for (int n = 0; n < flat[k].Count; n++)
-                {
-                    Vector2 spot = RandomFloorSpot(rng);
-                    Place(litter.transform, "Litter_" + (k + 1) + "_" + (n + 1), flat[k].Prefab, config,
-                        new Vector3(spot.x, 0f, spot.y), (float)rng.NextDouble() * 360f, flat[k].Height);
-                }
+                float a = i * Mathf.PI * 2 / count + ((float)rng.NextDouble() - .5f) * (Mathf.PI / count);
+                float radius = minR + (float)rng.NextDouble() * (maxR - minR);
+                // Соседняя стройка и краны занимают сектор за финишем: башни отступают.
+                if (minR < 100 && Mathf.Abs(Mathf.DeltaAngle(a * Mathf.Rad2Deg, 25)) < 22) radius += 30;
+                var pos = new Vector3(Mathf.Cos(a) * radius, StreetY, Mathf.Sin(a) * radius);
+                string model = types[(i * 7 + rng.Next(3)) % types.Length];
+                var t = Place(root, model, pos, (float)rng.NextDouble() * 360, false);
+                float side = .85f + (float)rng.NextDouble() * .3f;
+                t.localScale = new Vector3(side, minH + (float)rng.NextDouble() * (maxH - minH), side);
             }
         }
 
-        /// <summary>Случайная точка на любой из трёх плит пола, ШИ.</summary>
-        private static Vector2 RandomFloorSpot(System.Random rng)
+        // ========== Небо и свет ==========
+
+        private static void BuildSky(Transform root)
         {
-            Zone zone = FloorSections[rng.Next(FloorSections.Length)];
-            return new Vector2(
-                Mathf.Lerp(zone.MinX, zone.MaxX, (float)rng.NextDouble()),
-                Mathf.Lerp(zone.MinZ, zone.MaxZ, (float)rng.NextDouble()));
+            // Облака — два плоских слоя над площадкой: нижний плотный, верхний тонкий и быстрее.
+            CloudLayer(root, "Clouds_Low", 96f, 420f, 1f, 7f, .0022f, 0);
+            CloudLayer(root, "Clouds_High", 150f, 520f, .55f, 12f, .0038f, .5f);
         }
 
-        /// <summary>Плоское пятно на полу: сплющенный цилиндр без коллайдера.</summary>
-        private static void Disc(Transform parent, string name, CarryItemConfig config, Vector2 spot,
-            float diameter, Material material, float lift, float squash = 1f, float yaw = 0f)
+        private static void CloudLayer(Transform root, string name, float y, float span, float alpha, float tiling, float drift, float phase)
         {
-            var go = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            go.name = name;
-            go.transform.SetParent(parent, false);
-            go.transform.position = new Vector3(config.ToMeters(spot.x), lift, config.ToMeters(spot.y));
-            go.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
-            go.transform.localScale = new Vector3(diameter, 0.006f, diameter * squash);
-            Strip(go, material);
-        }
-
-        /// <summary>Снять коллайдер, увести на Default, погасить тень, назначить материал.</summary>
-        private static void Strip(GameObject go, Material material)
-        {
-            Object.DestroyImmediate(go.GetComponent<Collider>());
-            go.layer = LayerMask.NameToLayer("Default");
-
-            var renderer = go.GetComponent<MeshRenderer>();
-            if (renderer != null)
+            var t = Place(root, "HazeSheet", new Vector3(0, y, 0), 0, false); t.name = name;
+            t.localScale = new Vector3(span, 1, span);
+            var material = CloudMaterial(name, alpha, tiling);
+            foreach (var r in t.GetComponentsInChildren<Renderer>())
             {
-                renderer.sharedMaterial = material;
-                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                r.sharedMaterial = material; r.shadowCastingMode = ShadowCastingMode.Off; r.receiveShadows = false;
             }
+            Motion(t, AmbientMotion.Mode.ScrollUv, new Vector3(1, .35f, 0), drift, 1f, phase);
+        }
+
+        /// <summary>Свой ассет на слой: блок свойств в редакторе не сохраняется, а плотность слоёв разная.</summary>
+        private static Material CloudMaterial(string layer, float alpha, float tiling)
+        {
+            string path = CarrySkyscraperAssets.Materials + "/CS_" + layer + ".mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            var source = CarrySkyscraperAssets.Material("Cloud");
+            if (material == null) { material = new Material(source); AssetDatabase.CreateAsset(material, path); }
+            else material.CopyPropertiesFromMaterial(source);
+            material.SetColor("_BaseColor", new Color(1, .95f, .88f, alpha));
+            // Лист покрывает сотни метров при UV в одну плитку: без тайлинга облако — одно пятно на всё небо.
+            material.SetTextureScale("_BaseMap", new Vector2(tiling, tiling));
+            EditorUtility.SetDirty(material);
+            return material;
+        }
+
+        private static void BuildBirds(Transform root)
+        {
+            var flock = Group(root, "Birds"); flock.localPosition = new Vector3(4, 15, 2);
+            for (int i = 0; i < 7; i++)
+            {
+                var bird = Group(flock, $"Bird_{i + 1}");
+                Place(bird, "BirdBody", Vector3.zero, 0, false);
+                Place(bird, "BirdWing", Vector3.zero, 0, false).name = "WingL";
+                var right = Place(bird, "BirdWing", Vector3.zero, 0, false); right.name = "WingR"; right.localScale = new Vector3(-1, 1, 1);
+                bird.localScale = Vector3.one * 1.6f;
+            }
+            flock.gameObject.AddComponent<AmbientFlock>().Configure(44f, 52f, 5f, 6f);
         }
 
         /// <summary>
-        /// Реквизит на самом полу арены. Запретов больше, чем разрешений: по
-        /// этому полу бегут с бутылью, и предмет не на своём месте тут не
-        /// украшение, а помеха обзору.
-        /// </summary>
-        private static void BuildSiteProps(Transform group, CarryItemConfig config, System.Random rng)
-        {
-            var zones = new[]
-            {
-                // Стартовые зоны: середина между маршрутами команд и края.
-                new Zone(-36f, -21f, -3f, 3f),
-                new Zone(-36f, -21f, 12f, 18.5f),
-                new Zone(-36f, -21f, -18.5f, -12f),
-
-                // Зоны баков — то же самое зеркально.
-                new Zone(24f, 36f, -3f, 3f),
-                new Zone(24f, 36f, 12f, 18.5f),
-                new Zone(24f, 36f, -18.5f, -12f),
-
-                // Общая площадка: только карманы у завалов, дальше от прохода.
-                new Zone(-6f, -1f, 11f, 14f),
-                new Zone(-6f, -1f, -14f, -11f),
-                new Zone(8f, 12f, 11f, 14f),
-                new Zone(8f, 12f, -14f, -11f)
-            };
-
-            ScatterInto(group, "Site", config, rng, zones, 0f, new[]
-            {
-                new Scatter(Props + "SM_Prop_Cone_01.prefab", 14),
-                new Scatter(Props + "SM_Prop_Cone_02.prefab", 6),
-                new Scatter(Props + "SM_Prop_Paint_Bucket_Closed_01.prefab", 5),
-                new Scatter(Props + "SM_Prop_Paint_Bucket_Open_01.prefab", 4),
-                new Scatter(Props + "SM_Prop_Tool_Bucket_01.prefab", 3),
-                new Scatter(Props + "SM_Prop_ConcreteBag_Stack_03.prefab", 4),
-                new Scatter(Props + "SM_Prop_Plank_Stack_01.prefab", 4),
-                new Scatter(Props + "SM_Prop_Pipe_Stack_01.prefab", 3),
-                new Scatter(Props + "SM_Prop_Rebar_Stack_01.prefab", 3),
-                new Scatter(Props + "SM_Prop_Barrel_01.prefab", 6),
-                new Scatter(Props + "SM_Prop_Concrete_Mixer_01.prefab", 2),
-                new Scatter(Props + "SM_Prop_Wood_Frame_01.prefab", 3),
-                new Scatter(Props + "SM_Prop_Toilet_Bucket_01.prefab", 2),
-                new Scatter(Environments + "SM_Env_Dirt_Dust_01.prefab", 8),
-                new Scatter(Props + "SM_Prop_Ladder_02.prefab", 3),
-                new Scatter(Props + "SM_Prop_Light_Portable_01.prefab", 4)
-            });
-        }
-
-        /// <summary>
-        /// Вдоль стен: леса, ограждения и прожекторы. Стоят вплотную к борту,
-        /// то есть там, где игрок не ходит, но что видно в каждом кадре.
-        /// </summary>
-        private static void BuildPerimeter(Transform group, CarryItemConfig config, System.Random rng)
-        {
-            float edge = 18.6f;
-            var wall = new List<Vector3>();
-
-            // Вдоль обоих бортов, кроме куска над пропастями — там пола нет.
-            for (float x = -35f; x <= 36f; x += 5.5f)
-            {
-                if (InsideChasm(x, config))
-                {
-                    continue;
-                }
-
-                wall.Add(new Vector3(x, 0f, edge));
-                wall.Add(new Vector3(x, 0f, -edge));
-            }
-
-            // Забор идёт и по торцам, а не только по бортам: до правки 04.09
-            // за штабелем и за баком не стояло ничего вовсе, и обе торцевые
-            // стены читались пустой плоскостью на всю ширину арены.
-            for (float z = -17f; z <= 17.5f; z += 5.5f)
-            {
-                if (!IsFree(-35.5f, z, config) && !IsFree(35.5f, z, config))
-                {
-                    continue;
-                }
-
-                if (IsFree(-35.5f, z, config))
-                {
-                    wall.Add(new Vector3(-35.5f, 0f, z));
-                }
-
-                if (IsFree(35.5f, z, config))
-                {
-                    wall.Add(new Vector3(35.5f, 0f, z));
-                }
-            }
-
-            // Набор перевешен в сторону забора: строительный периметр — это
-            // прежде всего профлист и сетка, а леса и плиты между ними
-            // разбавляют строй, а не составляют его.
-            string[] kit =
-            {
-                Props + "SM_Prop_Fence_MetalSheet_01.prefab",
-                Props + "SM_Prop_Fence_MetalSheet_02.prefab",
-                Props + "SM_Prop_Fence_MetalSheet_03.prefab",
-                Props + "SM_Prop_Fence_Wire_01.prefab",
-                Props + "SM_Prop_Fence_Wire_01.prefab",
-                Props + "SM_Prop_Fence_Concrete_01.prefab",
-                Props + "SM_Prop_Fence_Concrete_Pillar_01.prefab",
-                Props + "SM_Prop_Scaffold_01.prefab",
-                Props + "SM_Prop_Scaffold_02.prefab",
-                Props + "SM_Prop_Scaffold_Stackable_01.prefab",
-                Buildings + "SM_Bld_ConcreteRebar_Pillar_Short_01.prefab",
-                Buildings + "SM_Bld_ConcreteRebar_Wall_02.prefab"
-            };
-
-            for (int i = 0; i < wall.Count; i++)
-            {
-                Vector3 spot = wall[i];
-                float yaw = Mathf.Abs(spot.x) > 30f
-                    ? (spot.x > 0f ? 270f : 90f)
-                    : (spot.z > 0f ? 0f : 180f);
-                Place(group, $"Wall_{i + 1}", kit[rng.Next(kit.Length)], config, spot, yaw);
-            }
-
-            // Прожекторы по углам: они и объясняют, почему на площадке светло
-            // в тени бортов.
-            Place(group, "Flood_1", Props + "SM_Prop_Floodlights_01.prefab", config,
-                new Vector3(-33f, 0f, 17.5f), 150f);
-            Place(group, "Flood_2", Props + "SM_Prop_Floodlights_01.prefab", config,
-                new Vector3(33f, 0f, -17.5f), -30f);
-
-            // Знак и светофор стройки — на подходе к горлышку, но вне обоих
-            // маршрутов и вне самого прохода: между линией команды и обходом
-            // свободных полос нет вовсе, поэтому они стоят дальше по краю.
-            Place(group, "NeckSign", Props + "SM_Prop_Sign_Road_01.prefab", config,
-                new Vector3(-4f, 0f, 12.5f), 200f);
-            Place(group, "NeckLight", Props + "SM_Prop_TrafficLight_Directional_01.prefab", config,
-                new Vector3(-4f, 0f, -12.5f), 20f);
-        }
-
-        /// <summary>
-        /// Временные ограждения по кромкам пропастей.
-        ///
-        /// Зачем. Кромка размечена жёлтой полосой, но полоса лежит в полу и с
-        /// игровой камеры уходит в перспективу. Ограждение стоит вертикально и
-        /// попадает в силуэт: обрыв виден раньше, чем игрок к нему подошёл.
-        ///
-        /// <b>Мимо маршрутов и мимо подходов к доскам.</b> Ограждение поперёк
-        /// дороги читается преградой ровно там, где надо бежать, — поэтому
-        /// точки просеиваются тем же <see cref="IsFree"/>, что и весь остальной
-        /// реквизит пола. Коллайдеров у них нет: <see cref="Place"/> срезает.
-        /// </summary>
-        private static void BuildChasmGuards(Transform group, CarryItemConfig config, System.Random rng)
-        {
-            // Кромки пропастей и сторона, с которой к ним подходит пол:
-            // чётные смотрят на запад, нечётные на восток.
-            var edges = new[] { -19f, -7f, 13f, 23f };
-            var zs = new[] { -17f, -13f, -11f, 0f, 11f, 13f, 17f };
-
-            string[] kit =
-            {
-                Props + "SM_Prop_Barrier_Long_01.prefab",
-                Props + "SM_Prop_Barrier_Long_02_Tarp.prefab",
-                Props + "SM_Prop_Barrier_Plastic_01.prefab",
-                Props + "SM_Prop_Barrier_Plastic_02.prefab"
-            };
-
-            int placed = 0;
-            for (int i = 0; i < edges.Length; i++)
-            {
-                float x = edges[i] + (i % 2 == 0 ? -1.2f : 1.2f);
-                foreach (float z in zs)
-                {
-                    if (!IsFree(x, z, config))
-                    {
-                        continue;
-                    }
-
-                    placed++;
-                    Place(group, $"Guard_{placed}", kit[rng.Next(kit.Length)], config,
-                        new Vector3(x, 0f, z), 0f);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Свет — кодом, а не инспектором: YAML сцены не переживает слияние
-        /// веток, и чужая правка выигрывает молча.
-        ///
-        /// Яркий дневной с чистыми тенями, как просит LDD. Рассеянный поднят
-        /// выше стандартного: борта арены 11.5 м высотой, и в пропастях без
-        /// этого чёрная дыра вместо нижнего яруса.
+        /// Золотой час. Солнце низко (15°) слева-сзади от бегущего к баку:
+        /// длинные тени колонн ложатся поперёк перекрытия, лица освещены,
+        /// на обратном пути — контровой блик. Небо процедурное, чтобы диск и
+        /// закатная полоса сами следовали за направлением света.
         /// </summary>
         private static void BuildLight()
         {
-            var lights = Object.FindObjectsByType<Light>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             Light sun = null;
-            for (int i = 0; i < lights.Length; i++)
+            foreach (var l in Object.FindObjectsByType<Light>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                if (l.type == LightType.Directional && l.name != "CarryItemSkyFill") { sun = l; break; }
+            if (sun == null) { sun = new GameObject("Sun").AddComponent<Light>(); sun.type = LightType.Directional; }
+            sun.color = new Color(1f, .82f, .62f); sun.intensity = 1.55f; sun.shadows = LightShadows.Soft;
+            sun.shadowStrength = .92f; sun.shadowBias = .035f; sun.shadowNormalBias = .18f;
+            sun.transform.rotation = Quaternion.Euler(15, 118, 0);
+            RenderSettings.sun = sun; RenderSettings.ambientMode = AmbientMode.Trilight;
+            RenderSettings.ambientSkyColor = new Color(.46f, .54f, .70f);
+            RenderSettings.ambientEquatorColor = new Color(.66f, .52f, .44f);
+            RenderSettings.ambientGroundColor = new Color(.27f, .25f, .27f);
+            RenderSettings.fog = true; RenderSettings.fogMode = FogMode.Linear;
+            RenderSettings.fogColor = new Color(.70f, .68f, .70f); RenderSettings.fogStartDistance = 110; RenderSettings.fogEndDistance = 720;
+            string skyPath = CarrySkyscraperAssets.Materials + "/CS_Sky.mat";
+            var sky = AssetDatabase.LoadAssetAtPath<Material>(skyPath);
+            if (sky == null) { sky = new Material(Shader.Find("Skybox/Procedural")); AssetDatabase.CreateAsset(sky, skyPath); }
+            // Толщина атмосферы умеренная: при 1.45 весь горизонт заливало жёлтым, и небо теряло синеву.
+            sky.SetColor("_SkyTint", new Color(.40f, .50f, .74f)); sky.SetColor("_GroundColor", new Color(.52f, .46f, .46f));
+            sky.SetFloat("_Exposure", 1.1f); sky.SetFloat("_AtmosphereThickness", 1.12f); sky.SetFloat("_SunSize", .045f); sky.SetFloat("_SunSizeConvergence", 4f);
+            RenderSettings.skybox = sky; EditorUtility.SetDirty(sky);
+            var lighting = GameObject.Find("_Lighting");
+            var fillObject = GameObject.Find("CarryItemSkyFill");
+            if (fillObject == null) fillObject = new GameObject("CarryItemSkyFill");
+            fillObject.transform.SetParent(lighting.transform, false);
+            var fill = fillObject.GetComponent<Light>();
+            if (fill == null) fill = fillObject.AddComponent<Light>();
+            fill.type = LightType.Directional; fill.color = new Color(.62f, .74f, 1f);
+            fill.intensity = .30f; fill.shadows = LightShadows.None;
+            fill.transform.rotation = Quaternion.Euler(40, -62, 0);
+            foreach (var v in Object.FindObjectsByType<Volume>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                if (v.gameObject.scene == UnityEngine.SceneManagement.SceneManager.GetActiveScene()) Object.DestroyImmediate(v.gameObject);
+            var vol = new GameObject("CarryItemGoldenHour").AddComponent<Volume>(); vol.transform.SetParent(lighting.transform, false); vol.isGlobal = true;
+            string path = CarrySkyscraperAssets.Materials + "/CS_Daylight.asset";
+            var profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(path);
+            if (profile == null) { profile = ScriptableObject.CreateInstance<VolumeProfile>(); AssetDatabase.CreateAsset(profile, path); }
+            if (!profile.TryGet<Tonemapping>(out var tone)) tone = profile.Add<Tonemapping>(true);
+            tone.mode.Override(TonemappingMode.ACES);
+            if (!profile.TryGet<ColorAdjustments>(out var color)) color = profile.Add<ColorAdjustments>(true);
+            color.postExposure.Override(-.05f); color.contrast.Override(18); color.saturation.Override(8);
+            if (!profile.TryGet<Bloom>(out var bloom)) bloom = profile.Add<Bloom>(true);
+            bloom.threshold.Override(1.15f); bloom.intensity.Override(.35f); bloom.scatter.Override(.66f);
+            if (!profile.TryGet<WhiteBalance>(out var balance)) balance = profile.Add<WhiteBalance>(true);
+            balance.temperature.Override(10f); balance.tint.Override(3f);
+            if (!profile.TryGet<Vignette>(out var vignette)) vignette = profile.Add<Vignette>(true);
+            vignette.intensity.Override(.2f); vignette.smoothness.Override(.4f);
+            if (!profile.TryGet<SplitToning>(out var toning)) toning = profile.Add<SplitToning>(true);
+            toning.shadows.Override(new Color(.38f, .45f, .64f)); toning.highlights.Override(new Color(1f, .82f, .58f)); toning.balance.Override(-12f);
+            foreach (var component in profile.components)
+                if (!AssetDatabase.Contains(component)) AssetDatabase.AddObjectToAsset(component, profile);
+            vol.sharedProfile = profile; EditorUtility.SetDirty(profile);
+            foreach (var camera in Object.FindObjectsByType<Camera>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             {
-                if (lights[i].type == LightType.Directional)
-                {
-                    sun = lights[i];
-                    break;
-                }
+                if (camera.gameObject.scene != UnityEngine.SceneManagement.SceneManager.GetActiveScene()) continue;
+                var data = camera.GetComponent<UniversalAdditionalCameraData>();
+                if (data == null) data = camera.gameObject.AddComponent<UniversalAdditionalCameraData>();
+                data.renderPostProcessing = true; data.antialiasing = AntialiasingMode.SubpixelMorphologicalAntiAliasing;
             }
-
-            if (sun == null)
-            {
-                var go = new GameObject("Sun");
-                sun = go.AddComponent<Light>();
-                sun.type = LightType.Directional;
-            }
-
-            sun.color = new Color(1f, 0.96f, 0.87f);
-            sun.intensity = 1.25f;
-            sun.shadows = LightShadows.Soft;
-            sun.shadowStrength = 0.72f;
-            sun.transform.rotation = Quaternion.Euler(52f, -34f, 0f);
-
-            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(0.62f, 0.71f, 0.85f);
-            RenderSettings.ambientEquatorColor = new Color(0.55f, 0.56f, 0.56f);
-            RenderSettings.ambientGroundColor = new Color(0.32f, 0.31f, 0.29f);
-            RenderSettings.fog = false;
-        }
-
-        // ========== РАССТАНОВКА ==========
-
-        /// <summary>
-        /// Разбросать набор моделей по разрешённым прямоугольникам. Точка
-        /// отвергается, если попала в маршрут, в горлышко, в обход или в круг
-        /// вокруг штабеля и бака.
-        /// </summary>
-        private static void ScatterInto(Transform group, string prefix, CarryItemConfig config,
-            System.Random rng, Zone[] zones, float floorY, Scatter[] kit)
-        {
-            var taken = new List<Vector3>(64);
-
-            for (int k = 0; k < kit.Length; k++)
-            {
-                Scatter item = kit[k];
-                for (int n = 0; n < item.Count; n++)
-                {
-                    if (!TryFindSpot(zones, rng, taken, floorY, config, out Vector3 spot))
-                    {
-                        continue;
-                    }
-
-                    taken.Add(spot);
-                    Place(group, $"{prefix}_{k + 1}_{n + 1}", item.Prefab, config, spot,
-                        rng.Next(4) * 90f + rng.Next(-25, 25), item.Height);
-                }
-            }
-        }
-
-        private static bool TryFindSpot(Zone[] zones, System.Random rng, List<Vector3> taken,
-            float floorY, CarryItemConfig config, out Vector3 spot)
-        {
-            for (int attempt = 0; attempt < 40; attempt++)
-            {
-                Zone zone = zones[rng.Next(zones.Length)];
-                float x = Mathf.Lerp(zone.MinX, zone.MaxX, (float)rng.NextDouble());
-                float z = Mathf.Lerp(zone.MinZ, zone.MaxZ, (float)rng.NextDouble());
-
-                if (floorY >= 0f && !IsFree(x, z, config))
-                {
-                    continue;
-                }
-
-                spot = new Vector3(x, floorY, z);
-                if (TooClose(taken, spot))
-                {
-                    continue;
-                }
-
-                return true;
-            }
-
-            spot = Vector3.zero;
-            return false;
-        }
-
-        private static bool TooClose(List<Vector3> taken, Vector3 spot)
-        {
-            const float minGap = 2.6f;
-            for (int i = 0; i < taken.Count; i++)
-            {
-                Vector2 a = new Vector2(taken[i].x, taken[i].z);
-                Vector2 b = new Vector2(spot.x, spot.z);
-                if ((a - b).sqrMagnitude < minGap * minGap)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// Свободна ли точка пола арены. Запреты ровно те же, что перечислены в
-        /// брифе: маршруты команд, горлышко, обход по краю и круги вокруг
-        /// штабеля и бака — там держится правило камеры 4.5 м.
-        /// </summary>
-        private static bool IsFree(float x, float z, CarryItemConfig config)
-        {
-            if (Mathf.Abs(Mathf.Abs(z) - 7f) < RouteClearance)
-            {
-                return false;
-            }
-
-            if (Mathf.Abs(z) < NeckClearance && x > -10f && x < 16f)
-            {
-                return false;
-            }
-
-            if (Mathf.Abs(z) > BypassInnerZ && x > -8f && x < 14f)
-            {
-                return false;
-            }
-
-            if (InsideChasm(x, config))
-            {
-                return false;
-            }
-
-            for (int i = 0; i < 2; i++)
-            {
-                float sign = i == 0 ? 1f : -1f;
-                if (new Vector2(x + 26f, z - 7f * sign).sqrMagnitude < PropRadius * PropRadius ||
-                    new Vector2(x - 28f, z - 7f * sign).sqrMagnitude < PropRadius * PropRadius)
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        /// <summary>Пропасти: пола там нет, и ставить на него нечего.</summary>
-        private static bool InsideChasm(float x, CarryItemConfig config)
-        {
-            return (x > -19.5f && x < -6.5f) || (x > 12.5f && x < 23.5f);
-        }
-
-        /// <summary>
-        /// Поставить модель пака в точку арены. Коллайдеры срезаются всегда:
-        /// окружение не имеет права ловить броски, кирпичи и струю.
-        /// </summary>
-        private static GameObject Place(Transform group, string name, string path, CarryItemConfig config,
-            Vector3 spotUnits, float yaw, float targetHeight = 0f, bool byPivot = false)
-        {
-            return CarryItemDress.Prop(group, name, path,
-                new Vector3(config.ToMeters(spotUnits.x), config.ToMeters(spotUnits.y), config.ToMeters(spotUnits.z)),
-                yaw, targetHeight, false, byPivot);
-        }
-
-        private static Transform ResetGroup(Transform parent, string name)
-        {
-            Transform existing = parent.Find(name);
-            if (existing != null)
-            {
-                Object.DestroyImmediate(existing.gameObject);
-            }
-
-            var go = new GameObject(name);
-            go.transform.SetParent(parent, false);
-            return go.transform;
         }
     }
 }

@@ -1,0 +1,2 @@
+ProductionLine_Left cargo m/s=0.700 roller deg/s=125.33 loop closure error=0.00000
+ProductionLine_Right cargo m/s=0.700 roller deg/s=125.33 loop closure error=0.00000

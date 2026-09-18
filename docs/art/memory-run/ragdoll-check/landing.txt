@@ -1,0 +1,5 @@
+t=0.3333359 root=(0.00, 1.00, 6.66) ragdoll=False bodies=0
+t=0.9564209 root=(1.75, -0.03, 6.67) ragdoll=True bodies=11
+t=1.606422 root=(2.37, -0.46, 6.27) ragdoll=True bodies=11
+t=2.257759 root=(2.79, -0.50, 6.28) ragdoll=True bodies=11
+returned motor=True ragdoll=False collision=True

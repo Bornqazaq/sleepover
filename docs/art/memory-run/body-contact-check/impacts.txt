@@ -1,0 +1,12 @@
+PASS MF_PlateSupport 30m/s capsule minSurfaceDistance=0.180
+PASS TrussDiagonal 30m/s capsule minSurfaceDistance=0.180
+PASS MF_ShaftServices 30m/s capsule minSurfaceDistance=0.180
+PASS MF_ShaftWreck 30m/s capsule minSurfaceDistance=0.180
+PASS MF_Rubble 30m/s capsule minSurfaceDistance=0.180
+PASS MF_Railing 30m/s capsule minSurfaceDistance=0.180
+PASS MF_ConveyorBed 30m/s capsule minSurfaceDistance=0.180
+PASS MF_Dynamite 30m/s capsule minSurfaceDistance=0.180
+PASS ConveyorCantilever 30m/s capsule minSurfaceDistance=0.180
+PASS MasonryPier 30m/s capsule minSurfaceDistance=0.180
+PASS Contact_BeltSurface 30m/s capsule minSurfaceDistance=0.180
+PASS ObservationPane 30m/s capsule minSurfaceDistance=0.180

@@ -1,0 +1,73 @@
+BEGIN original foundry; scene=MemoryRun
+PRESENTATION conveyors=3 signal=MF_TurnSignal
+TURN -1 roster=0
+PHASE Tutorial
+PHASE Round
+TURN 1 roster=2
+MINE 1 at=(3.60, 0.00, -14.94)
+TURN 0 roster=2
+BLAST_VISIBLE particles=32
+SAMPLE frames=713 meanMs=21.08 mines=1 safeLandings=0 phase=Round
+CONVEYOR_MOVED distance=0.96
+TURN 1 roster=2
+MINE 2 at=(-3.60, 0.00, -6.30)
+TURN 0 roster=2
+BLAST_VISIBLE particles=32
+MINE 3 at=(0.00, 0.00, -1.98)
+TURN 1 roster=2
+BLAST_VISIBLE particles=32
+SAMPLE frames=936 meanMs=16.04 mines=3 safeLandings=0 phase=Round
+CONVEYOR_MOVED distance=7.21
+MINE 4 at=(3.60, 0.00, -1.98)
+TURN 0 roster=2
+BLAST_VISIBLE particles=32
+SAMPLE frames=951 meanMs=16.48 mines=4 safeLandings=0 phase=Round
+CONVEYOR_MOVED distance=5.68
+TURN 1 roster=2
+SAMPLE frames=933 meanMs=16.08 mines=4 safeLandings=0 phase=Round
+CONVEYOR_MOVED distance=7.13
+MINE 5 at=(0.00, 0.00, 10.98)
+TURN 0 roster=2
+BLAST_VISIBLE particles=32
+TURN 1 roster=2
+SAMPLE frames=924 meanMs=16.25 mines=5 safeLandings=0 phase=Round
+CONVEYOR_MOVED distance=6.01
+MINE 6 at=(-3.60, 0.00, 10.98)
+TURN 0 roster=2
+BLAST_VISIBLE particles=32
+SAMPLE frames=1068 meanMs=14.05 mines=6 safeLandings=0 phase=Round
+CONVEYOR_MOVED distance=7.13
+TURN 1 roster=2
+SAMPLE frames=908 meanMs=16.53 mines=6 safeLandings=0 phase=Round
+CONVEYOR_MOVED distance=5.99
+TURN 0 roster=2
+SAMPLE frames=1099 meanMs=13.66 mines=6 safeLandings=0 phase=Round
+CONVEYOR_MOVED distance=7.12
+TURN 1 roster=2
+SAMPLE frames=610 meanMs=24.59 mines=6 safeLandings=0 phase=Round
+CONVEYOR_MOVED distance=6.00
+TURN 0 roster=2
+SAMPLE frames=816 meanMs=18.40 mines=6 safeLandings=0 phase=Round
+CONVEYOR_MOVED distance=7.14
+MINE 7 at=(0.00, 0.00, 19.62)
+TURN 1 roster=2
+BLAST_VISIBLE particles=32
+TURN 0 roster=2
+SAMPLE frames=837 meanMs=17.94 mines=7 safeLandings=0 phase=Round
+CONVEYOR_MOVED distance=6.02
+MINE 8 at=(3.60, 0.00, 19.62)
+TURN 1 roster=2
+BLAST_VISIBLE particles=32
+SAMPLE frames=755 meanMs=19.88 mines=8 safeLandings=0 phase=Round
+CONVEYOR_MOVED distance=5.95
+TURN 0 roster=2
+SAMPLE frames=995 meanMs=15.08 mines=8 safeLandings=0 phase=Round
+CONVEYOR_MOVED distance=7.10
+TURN 1 roster=2
+SAMPLE frames=776 meanMs=19.33 mines=8 safeLandings=0 phase=Round
+CONVEYOR_MOVED distance=5.99
+TURN -1 roster=2
+PHASE Results
+SAMPLE frames=1035 meanMs=14.49 mines=8 safeLandings=0 phase=Results
+CONVEYOR_MOVED distance=7.14
+END scene unloaded; mines=8; safe=0

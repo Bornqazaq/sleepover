@@ -1,0 +1,4 @@
+2026-09-17 final CarryItem rebuild
+Equivalent: True
+Snapshot lines: 4481
+Scope: hierarchy, world transforms, layers, renderer/material/mesh references, collider bounds/triggers, lights, ambient/fog/skybox. Serialized random fileIDs excluded.

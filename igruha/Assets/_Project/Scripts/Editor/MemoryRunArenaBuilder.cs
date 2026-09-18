@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Text;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
@@ -11,9 +9,8 @@ using Igruha.Minigames.MemoryRun;
 namespace Igruha.EditorTools
 {
     /// <summary>
-    /// Строит арену «Рейса на память» из примитивов: цех, пропасть, тридцать
-    /// висящих плит, приподнятую стартовую зону, барьер очереди и выходную
-    /// площадку с дверью. Геометрия серая — арт приезжает в фазе 4.
+    /// Строит физику и собственный Blender-цех «Рейса на память»: пропасть,
+    /// тридцать одинаковых плит, площадки, барьер очереди, свет и эффекты.
     ///
     /// Всё строится кодом по той же причине, что арены «Экзамена» и цирка:
     /// размеры живут в <see cref="MemoryRunConfig"/>, и пересобрать арену после
@@ -28,7 +25,7 @@ namespace Igruha.EditorTools
         private const float WallThickness = 0.4f;
 
         /// <summary>Ниже нижней грани плит, чтобы упавший гарантированно вошёл в зону.</summary>
-        private const float KillZoneDrop = 2f;
+        private const float KillZoneCenterY = -6.64f;
 
         [MenuItem("Igruha/Рейс на память/Построить арену")]
         public static void Build()
@@ -46,6 +43,7 @@ namespace Igruha.EditorTools
                 return;
             }
 
+            MemoryFoundryAssets.Import();
             MemoryRunDress.Begin();
             MemoryRunPalette.Begin();
 
@@ -62,27 +60,24 @@ namespace Igruha.EditorTools
             MemoryRunEnvironment.Build(arena, config);
             GameObject manager = GameObject.Find("MinigameManager");
             WireManager(manager, gate);
+            MemoryFoundryPolish.Build(arena, config, manager);
             MemoryRunVfx.Build(arena, manager);
+            MemoryFoundryProduction.DressMarker(manager);
             MemoryRunSfx.Build(arena, config, manager);
             EnsureHudStatusLine();
 
             MemoryRunPalette.Flush();
 
-            // Физика декора — последним шагом сборки. Дресс срезает коллайдеры
-            // моделей, и всё, что поставлено в зал само по себе, без коробки
-            // блокаута, до этого шага проходилось насквозь.
-            PropColliders.Build(arena.gameObject);
-
             // Оформление интерфейса — тем же прогоном: иначе пересборка арены
             // вернула бы серые прямоугольники шаблона.
             UiSkinPass.Apply();
+            MemoryFoundryBuilder.ConfigureHud(manager);
 
             Debug.Log(MemoryRunDress.Report(), arena);
             Debug.Log(MemoryRunPalette.Report(), arena);
             Debug.Log(MemoryRunEnvironment.Report(), arena);
             Debug.Log(MemoryRunVfx.Report(), arena);
             Debug.Log(MemoryRunSfx.Report(), arena);
-            ReportMissingModels();
 
             Debug.Log(
                 $"🧨 Арена «Рейса на память» построена: цех {config.HallWidth:F1}×{config.HallDepth:F1} м, " +
@@ -147,7 +142,7 @@ namespace Igruha.EditorTools
 
         private static void BuildHall(Transform parent, MemoryRunConfig config)
         {
-            float h = config.CeilingHeight;
+            float h = 4f;
             float halfW = config.HallWidth * 0.5f;
             float halfD = config.HallDepth * 0.5f;
 
@@ -162,12 +157,13 @@ namespace Igruha.EditorTools
                 new Vector3(-halfW, h * 0.5f, 0f), wall), "Ground");
             SetLayer(CreateBox(parent, "Wall_Right", new Vector3(WallThickness, h, config.HallDepth),
                 new Vector3(halfW, h * 0.5f, 0f), wall), "Ground");
+            foreach (string name in new[] { "Wall_Far", "Wall_Near", "Wall_Left", "Wall_Right" })
+                parent.Find(name).GetComponent<Renderer>().enabled = false;
         }
 
         /// <summary>
-        /// Дно пропасти. Идёт <b>во всю ширину цеха</b>, а не только под цепочкой:
-        /// оставь по бокам пол, и маршрут обходится пешком по краю, минуя все
-        /// тридцать плит разом.
+        /// Бездонная шахта во всю ширину цеха. Пол и боковые обходы отсутствуют;
+        /// декоративная глубина не влияет на прежний порог смерти.
         /// </summary>
         private static void BuildPit(Transform parent, MemoryRunConfig config)
         {
@@ -175,11 +171,10 @@ namespace Igruha.EditorTools
             float to = config.ExitPadZ;
             float depth = to - from;
 
-            var pit = CreateBox(parent, "PitFloor",
-                new Vector3(config.HallWidth, WallThickness, depth),
-                new Vector3(0f, -config.PitDepth, from + depth * 0.5f),
-                MemoryRunPalette.Get(MemoryRunPalette.Tone.Pit));
-            SetLayer(pit, "Ground");
+            // The shaft has no visible or physical floor. KillZone handles falls.
+            var voidRoot = new GameObject("BottomlessShaft").transform;
+            voidRoot.SetParent(parent, false);
+            voidRoot.localPosition = new Vector3(0, -config.PitDepth, from + depth * .5f);
         }
 
         /// <summary>
@@ -249,6 +244,7 @@ namespace Igruha.EditorTools
                 MemoryRunPalette.Get(MemoryRunPalette.Tone.Gate));
 
             SetLayer(gate, "Ignore Raycast");
+            MemoryFoundryProduction.DressGate(gate, config);
 
             // 🔴 Компонент вешается здесь, а не живёт в сцене руками.
             //
@@ -293,7 +289,6 @@ namespace Igruha.EditorTools
                 }
             }
 
-            MemoryRunDress.BuildRowStructure(root.transform, config);
         }
 
         /// <summary>Сплошная безопасная площадка и дверь: понятная цель, видимая от первого ряда.</summary>
@@ -309,8 +304,8 @@ namespace Igruha.EditorTools
             MemoryRunDress.Apply(pad, MemoryRunDress.Kind.Deck);
             BuildPitRim(parent, config, config.ExitPadZ + RimWidth * 0.5f, 0f);
 
-            float doorHeight = 3f * config.UnitsPerWidth;
-            float doorWidth = 2.4f * config.UnitsPerWidth;
+            float doorHeight = 4.2f;
+            float doorWidth = 5.4f;
             var door = CreateBox(parent, "ExitDoor",
                 new Vector3(doorWidth, doorHeight, WallThickness),
                 new Vector3(0f, doorHeight * 0.5f, config.HallDepth * 0.5f - WallThickness),
@@ -343,7 +338,7 @@ namespace Igruha.EditorTools
         {
             var zone = new GameObject("KillZone_Bottom");
             zone.transform.SetParent(parent, false);
-            zone.transform.position = new Vector3(0f, -config.PitDepth + KillZoneDrop, 0f);
+            zone.transform.position = new Vector3(0f, KillZoneCenterY, 0f);
 
             var box = zone.AddComponent<BoxCollider>();
             box.isTrigger = true;
@@ -397,29 +392,6 @@ namespace Igruha.EditorTools
 
             property.objectReferenceValue = gate;
             so.ApplyModifiedPropertiesWithoutUndo();
-        }
-
-        /// <summary>
-        /// Назвать модели, которых не оказалось в проекте. Паки Synty каждый
-        /// ставит себе сам и в репозиторий не кладутся, поэтому промах пути
-        /// обязан быть громким: молча пропущенная модель выглядит в сцене как
-        /// пустое место, а не как ошибка.
-        /// </summary>
-        private static void ReportMissingModels()
-        {
-            IReadOnlyList<string> missing = MemoryRunDress.Missing;
-            if (missing.Count == 0)
-            {
-                return;
-            }
-
-            var text = new StringBuilder("Модели не найдены — пересборка прошла с замечаниями:");
-            for (int i = 0; i < missing.Count; i++)
-            {
-                text.Append("\n— ").Append(missing[i]);
-            }
-
-            Debug.LogWarning(text.ToString());
         }
 
         private static void ReplaceRoot(string name, out Transform root)

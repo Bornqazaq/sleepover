@@ -1,0 +1,162 @@
+BEGIN original foundry; scene=MemoryRun
+PRESENTATION conveyors=3 signal=MF_TurnSignal
+TURN -1 roster=0
+PHASE Tutorial
+TURN 1 roster=2
+PHASE Round
+FAILURE id=1 poseBound=True
+TURN 0 roster=2
+FAILURE_SAMPLE id=1 t=0.25 pos=(-3.60, 0.00, -15.10) presenting=True failed=True locked=True travel=3.01
+FAILURE_SAMPLE id=1 t=0.75 pos=(-3.60, 0.00, -15.01) presenting=True failed=True locked=True travel=2.95
+FAILURE_SAMPLE id=1 t=1.25 pos=(-3.60, 0.00, -15.01) presenting=True failed=True locked=True travel=2.95
+FAILURE_SAMPLE id=1 t=1.75 pos=(-0.69, 1.04, -22.77) presenting=False failed=False locked=False travel=10.64
+SAMPLE frames=628 meanMs=23.95 mines=0 safeLandings=1 phase=Round
+CONVEYOR_MOVED distance=12.87
+MINE 1 at=(3.60, 0.00, -6.30)
+FAILURE id=0 poseBound=True
+TURN 1 roster=2
+BLAST_VISIBLE particles=42
+FAILURE_SAMPLE id=0 t=0.25 pos=(6.59, 0.30, -5.78) presenting=True failed=True locked=True travel=3.09
+FAILURE_SAMPLE id=0 t=0.75 pos=(11.81, -5.04, -3.73) presenting=True failed=True locked=True travel=10.16
+FAILURE_SAMPLE id=0 t=1.25 pos=(16.91, -17.67, -1.74) presenting=True failed=True locked=True travel=22.81
+FAILURE_SAMPLE id=0 t=1.75 pos=(-2.18, 0.72, -22.25) presenting=False failed=False locked=False travel=16.44
+FAILURE id=1 poseBound=True
+TURN 0 roster=2
+FAILURE_SAMPLE id=1 t=0.25 pos=(-3.59, 0.00, -15.49) presenting=True failed=True locked=True travel=2.56
+FAILURE_SAMPLE id=1 t=0.75 pos=(-3.60, 0.00, -15.58) presenting=True failed=True locked=True travel=2.51
+FAILURE_SAMPLE id=1 t=1.25 pos=(-3.60, 0.00, -15.58) presenting=True failed=True locked=True travel=2.51
+FAILURE_SAMPLE id=1 t=1.75 pos=(-0.66, 0.93, -22.71) presenting=False failed=False locked=False travel=7.10
+SAMPLE frames=784 meanMs=19.15 mines=1 safeLandings=5 phase=Round
+CONVEYOR_MOVED distance=6.02
+MINE 2 at=(0.00, 0.00, -1.98)
+FAILURE id=0 poseBound=True
+TURN 1 roster=2
+BLAST_VISIBLE particles=42
+FAILURE_SAMPLE id=0 t=0.25 pos=(-1.71, 0.30, 0.50) presenting=True failed=True locked=True travel=2.35
+FAILURE_SAMPLE id=0 t=0.75 pos=(-3.25, 0.00, 1.95) presenting=True failed=True locked=True travel=4.47
+FAILURE_SAMPLE id=0 t=1.25 pos=(-3.43, 0.00, 2.12) presenting=True failed=True locked=True travel=4.72
+FAILURE_SAMPLE id=0 t=1.75 pos=(-2.50, 0.72, -21.95) presenting=False failed=False locked=False travel=21.00
+FAILURE id=1 poseBound=True
+TURN 0 roster=2
+FAILURE_SAMPLE id=1 t=0.25 pos=(-0.12, 0.00, -5.19) presenting=True failed=True locked=True travel=12.82
+FAILURE_SAMPLE id=1 t=0.75 pos=(-0.13, 0.00, -5.25) presenting=True failed=True locked=True travel=12.76
+FAILURE_SAMPLE id=1 t=1.25 pos=(-0.13, 0.00, -5.25) presenting=True failed=True locked=True travel=12.76
+FAILURE_SAMPLE id=1 t=1.75 pos=(-0.73, 0.98, -22.97) presenting=False failed=False locked=False travel=8.27
+SAMPLE frames=737 meanMs=20.38 mines=2 safeLandings=8 phase=Round
+CONVEYOR_MOVED distance=5.94
+MINE 3 at=(-3.60, 0.00, -1.98)
+FAILURE id=0 poseBound=True
+TURN 1 roster=2
+BLAST_VISIBLE particles=42
+FAILURE_SAMPLE id=0 t=0.25 pos=(-6.73, 0.28, -1.21) presenting=True failed=True locked=True travel=3.09
+FAILURE_SAMPLE id=0 t=0.75 pos=(-11.92, -5.24, 0.98) presenting=True failed=True locked=True travel=10.28
+FAILURE_SAMPLE id=0 t=1.25 pos=(-16.93, -18.12, 1.78) presenting=True failed=True locked=True travel=22.87
+FAILURE_SAMPLE id=0 t=1.75 pos=(-3.11, 0.72, -22.19) presenting=False failed=False locked=False travel=19.79
+FAILURE id=1 poseBound=True
+TURN 0 roster=2
+FAILURE_SAMPLE id=1 t=0.25 pos=(0.03, 0.05, -5.12) presenting=True failed=True locked=True travel=11.50
+FAILURE_SAMPLE id=1 t=0.75 pos=(0.04, 0.00, -5.04) presenting=True failed=True locked=True travel=11.57
+FAILURE_SAMPLE id=1 t=1.25 pos=(0.04, 0.00, -5.04) presenting=True failed=True locked=True travel=11.57
+FAILURE_SAMPLE id=1 t=1.75 pos=(-0.82, 0.98, -22.95) presenting=False failed=False locked=False travel=10.12
+SAMPLE frames=745 meanMs=20.15 mines=3 safeLandings=12 phase=Round
+CONVEYOR_MOVED distance=7.11
+MINE 4 at=(3.60, 0.00, 10.98)
+FAILURE id=0 poseBound=True
+TURN 1 roster=2
+BLAST_VISIBLE particles=42
+FAILURE_SAMPLE id=0 t=0.25 pos=(6.65, 0.31, 11.70) presenting=True failed=True locked=True travel=3.01
+FAILURE_SAMPLE id=0 t=0.75 pos=(11.88, -5.15, 13.89) presenting=True failed=True locked=True travel=10.19
+FAILURE_SAMPLE id=0 t=1.25 pos=(16.90, -17.95, 14.75) presenting=True failed=True locked=True travel=22.73
+FAILURE_SAMPLE id=0 t=1.75 pos=(-2.17, 0.72, -22.19) presenting=False failed=False locked=False travel=33.28
+FAILURE id=1 poseBound=True
+TURN 0 roster=2
+FAILURE_SAMPLE id=1 t=0.25 pos=(-0.42, 0.00, -5.63) presenting=True failed=True locked=True travel=3.21
+SAMPLE frames=765 meanMs=19.63 mines=4 safeLandings=17 phase=Round
+CONVEYOR_MOVED distance=5.98
+FAILURE_SAMPLE id=1 t=0.75 pos=(-0.45, 0.00, -5.71) presenting=True failed=True locked=True travel=3.15
+FAILURE_SAMPLE id=1 t=1.25 pos=(-0.45, 0.00, -5.71) presenting=True failed=True locked=True travel=3.15
+FAILURE_SAMPLE id=1 t=1.75 pos=(-0.80, 1.03, -22.92) presenting=False failed=False locked=False travel=15.12
+SAMPLE frames=712 meanMs=21.08 mines=4 safeLandings=23 phase=Round
+CONVEYOR_MOVED distance=7.15
+MINE 5 at=(0.00, 0.00, 10.98)
+FAILURE id=0 poseBound=True
+TURN 1 roster=2
+FAILURE id=1 poseBound=True
+TURN 0 roster=2
+BLAST_VISIBLE particles=42
+FAILURE_SAMPLE id=0 t=0.25 pos=(1.73, 0.27, 13.36) presenting=True failed=True locked=True travel=2.41
+FAILURE_SAMPLE id=1 t=0.25 pos=(-1.66, 0.72, -25.12) presenting=False failed=False locked=False travel=245.07
+MINE 6 at=(3.60, 0.00, 15.30)
+FAILURE id=0 poseBound=True
+TURN 1 roster=2
+BLAST_VISIBLE particles=65
+FAILURE_SAMPLE id=0 t=0.25 pos=(3.29, 0.00, 14.67) presenting=True failed=True locked=True travel=1.25
+FAILURE_SAMPLE id=0 t=0.75 pos=(3.46, 0.00, 14.81) presenting=True failed=True locked=True travel=4.66
+FAILURE_SAMPLE id=1 t=0.75 pos=(-2.75, 0.72, -27.52) presenting=False failed=False locked=False travel=245.30
+FAILURE_SAMPLE id=0 t=0.75 pos=(3.66, 0.00, 14.98) presenting=True failed=True locked=True travel=1.73
+FAILURE_SAMPLE id=0 t=1.25 pos=(3.68, 0.00, 14.99) presenting=True failed=True locked=True travel=4.95
+FAILURE_SAMPLE id=1 t=1.25 pos=(-3.21, 0.72, -25.20) presenting=False failed=False locked=False travel=245.12
+FAILURE_SAMPLE id=0 t=1.25 pos=(-2.61, 0.89, -22.86) presenting=False failed=False locked=False travel=37.09
+FAILURE_SAMPLE id=0 t=1.75 pos=(-2.61, 0.72, -22.86) presenting=False failed=False locked=False travel=34.65
+FAILURE_SAMPLE id=1 t=1.75 pos=(-0.73, 0.94, -22.70) presenting=False failed=False locked=False travel=245.09
+FAILURE_SAMPLE id=0 t=1.75 pos=(-2.61, 0.72, -22.86) presenting=False failed=False locked=False travel=37.09
+SAMPLE frames=693 meanMs=21.66 mines=6 safeLandings=23 phase=Round
+CONVEYOR_MOVED distance=6.03
+FAILURE id=1 poseBound=True
+TURN 0 roster=2
+FAILURE_SAMPLE id=1 t=0.25 pos=(-0.55, -6.35, 13.12) presenting=True failed=True locked=True travel=4.36
+FAILURE_SAMPLE id=1 t=0.75 pos=(-0.50, -19.28, 13.15) presenting=True failed=True locked=True travel=17.26
+FAILURE_SAMPLE id=1 t=1.25 pos=(-0.50, -40.02, 13.15) presenting=True failed=True locked=True travel=37.99
+FAILURE_SAMPLE id=1 t=1.75 pos=(-0.66, 0.94, -22.76) presenting=False failed=False locked=False travel=35.75
+SAMPLE frames=725 meanMs=20.71 mines=6 safeLandings=29 phase=Round
+CONVEYOR_MOVED distance=7.14
+MINE 7 at=(-3.60, 0.00, 15.30)
+FAILURE id=0 poseBound=True
+TURN 1 roster=2
+BLAST_VISIBLE particles=42
+FAILURE_SAMPLE id=0 t=0.25 pos=(-5.44, 0.31, 17.73) presenting=True failed=True locked=True travel=2.42
+FAILURE_SAMPLE id=0 t=0.75 pos=(-8.83, -4.88, 20.64) presenting=True failed=True locked=True travel=8.55
+FAILURE_SAMPLE id=0 t=1.25 pos=(-12.19, -17.55, 23.53) presenting=True failed=True locked=True travel=21.05
+FAILURE_SAMPLE id=0 t=1.75 pos=(-2.67, 0.72, -22.20) presenting=False failed=False locked=False travel=38.36
+SAMPLE frames=687 meanMs=21.84 mines=7 safeLandings=30 phase=Round
+CONVEYOR_MOVED distance=6.00
+FAILURE id=1 poseBound=True
+TURN 0 roster=2
+FAILURE_SAMPLE id=1 t=0.25 pos=(-3.09, -10.22, 9.64) presenting=True failed=True locked=True travel=8.40
+FAILURE_SAMPLE id=1 t=0.75 pos=(-2.99, -26.10, 9.71) presenting=True failed=True locked=True travel=24.15
+FAILURE_SAMPLE id=1 t=1.25 pos=(-2.99, -49.39, 9.71) presenting=True failed=True locked=True travel=47.40
+FAILURE_SAMPLE id=1 t=1.75 pos=(-0.64, 0.93, -22.76) presenting=False failed=False locked=False travel=31.94
+SAMPLE frames=734 meanMs=20.45 mines=7 safeLandings=35 phase=Round
+CONVEYOR_MOVED distance=7.12
+FAILURE id=0 poseBound=True
+TURN 1 roster=2
+FAILURE_SAMPLE id=0 t=0.25 pos=(-0.88, -6.20, 13.07) presenting=True failed=True locked=True travel=4.05
+FAILURE_SAMPLE id=0 t=0.75 pos=(-0.88, -19.16, 13.07) presenting=True failed=True locked=True travel=17.00
+FAILURE_SAMPLE id=0 t=1.25 pos=(-0.88, -39.34, 13.07) presenting=True failed=True locked=True travel=37.19
+FAILURE_SAMPLE id=0 t=1.75 pos=(-2.26, 0.72, -22.32) presenting=False failed=False locked=False travel=35.50
+SAMPLE frames=779 meanMs=19.26 mines=7 safeLandings=41 phase=Round
+CONVEYOR_MOVED distance=5.99
+FAILURE id=1 poseBound=True
+TURN 0 roster=2
+FAILURE_SAMPLE id=1 t=0.25 pos=(3.77, 0.00, -2.85) presenting=True failed=True locked=True travel=3.36
+FAILURE_SAMPLE id=1 t=0.75 pos=(3.70, 0.00, -2.94) presenting=True failed=True locked=True travel=3.27
+FAILURE_SAMPLE id=1 t=1.25 pos=(3.70, 0.00, -2.94) presenting=True failed=True locked=True travel=3.27
+FAILURE_SAMPLE id=1 t=1.75 pos=(-0.78, 1.02, -22.77) presenting=False failed=False locked=False travel=18.58
+SAMPLE frames=771 meanMs=19.47 mines=7 safeLandings=46 phase=Round
+CONVEYOR_MOVED distance=7.13
+FAILURE id=0 poseBound=True
+TURN 1 roster=2
+FAILURE_SAMPLE id=0 t=0.25 pos=(-4.67, -5.96, 8.51) presenting=True failed=True locked=True travel=3.90
+FAILURE_SAMPLE id=0 t=0.75 pos=(-4.67, -19.33, 8.51) presenting=True failed=True locked=True travel=17.27
+FAILURE_SAMPLE id=0 t=1.25 pos=(-4.67, -39.82, 8.51) presenting=True failed=True locked=True travel=37.76
+FAILURE_SAMPLE id=0 t=1.75 pos=(-2.18, 0.72, -22.35) presenting=False failed=False locked=False travel=31.06
+FAILURE id=1 poseBound=True
+TURN -1 roster=2
+FAILURE_SAMPLE id=1 t=0.25 pos=(-0.09, 0.00, -4.95) presenting=True failed=True locked=True travel=4.17
+FAILURE_SAMPLE id=1 t=0.75 pos=(-0.10, 0.00, -4.99) presenting=True failed=True locked=True travel=4.14
+FAILURE_SAMPLE id=1 t=1.25 pos=(-0.10, 0.00, -4.99) presenting=True failed=True locked=True travel=4.14
+PHASE Results
+FAILURE_SAMPLE id=1 t=1.75 pos=(-0.73, 0.89, -22.82) presenting=False failed=False locked=False travel=14.58
+SAMPLE frames=721 meanMs=20.81 mines=7 safeLandings=50 phase=Results
+CONVEYOR_MOVED distance=6.01
+END scene unloaded; mines=7; safe=50

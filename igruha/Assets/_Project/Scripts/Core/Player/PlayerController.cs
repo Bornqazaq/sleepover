@@ -198,9 +198,19 @@ namespace Igruha.Core.Player
         private Component surfaceSource;
         private float plantTimer;
         private float plantBrakeMultiplier = 1f;
-        private Component speedCapSource;
+        /// <summary>
+        /// Источники потолка скорости. Их бывает несколько одновременно — роль
+        /// мини-игры и зона под ногами, — и раньше они перетирали друг друга:
+        /// выход из песка снимал заодно и потолок роли, а заражённый выбегал
+        /// из песочницы со скоростью чистого. Теперь каждый источник держит
+        /// свой потолок, а действует самый низкий из них.
+        /// </summary>
+        private const int MaxSpeedCapSources = 4;
 
-        /// <summary>Потолок скорости от внешней роли, м/с. Ноль — потолка нет.</summary>
+        private readonly Component[] speedCapSources = new Component[MaxSpeedCapSources];
+        private readonly float[] speedCapValues = new float[MaxSpeedCapSources];
+
+        /// <summary>Действующий потолок скорости, м/с. Ноль — потолка нет.</summary>
         private float speedCap;
         private float fallSpeed;
         private bool wasGrounded = true;
@@ -539,20 +549,70 @@ namespace Igruha.Core.Player
         /// </summary>
         public void ApplySpeedCap(Component source, float maxSpeed)
         {
-            speedCapSource = source;
-            speedCap = Mathf.Max(0f, maxSpeed);
+            if (source == null)
+            {
+                return;
+            }
+
+            int slot = FindCapSlot(source);
+            if (slot < 0)
+            {
+                slot = FindCapSlot(null);
+            }
+
+            if (slot < 0)
+            {
+                Debug.LogWarning($"{name}: потолков скорости больше {MaxSpeedCapSources} — источник {source.GetType().Name} не учтён", this);
+                return;
+            }
+
+            speedCapSources[slot] = source;
+            speedCapValues[slot] = Mathf.Max(0f, maxSpeed);
+            RecomputeSpeedCap();
         }
 
         /// <summary>Снять потолок скорости. Срабатывает, только если его ставил этот же источник.</summary>
         public void ClearSpeedCap(Component source)
         {
-            if (speedCapSource != source)
+            int slot = FindCapSlot(source);
+            if (slot < 0)
             {
                 return;
             }
 
-            speedCapSource = null;
-            speedCap = 0f;
+            speedCapSources[slot] = null;
+            speedCapValues[slot] = 0f;
+            RecomputeSpeedCap();
+        }
+
+        private int FindCapSlot(Component source)
+        {
+            for (int i = 0; i < MaxSpeedCapSources; i++)
+            {
+                if (speedCapSources[i] == source)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        /// <summary>Действует самый низкий из выставленных потолков.</summary>
+        private void RecomputeSpeedCap()
+        {
+            float lowest = 0f;
+            for (int i = 0; i < MaxSpeedCapSources; i++)
+            {
+                if (speedCapSources[i] == null || speedCapValues[i] <= 0f)
+                {
+                    continue;
+                }
+
+                lowest = lowest <= 0f ? speedCapValues[i] : Mathf.Min(lowest, speedCapValues[i]);
+            }
+
+            speedCap = lowest;
         }
 
         private void UpdateCrouch()

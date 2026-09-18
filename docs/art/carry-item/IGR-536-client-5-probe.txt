@@ -1,0 +1,285 @@
+CarryItem original skyscraper observation
+PHASE Idle A=0 B=0 deliveries=0/0 particles=1
+ROSTER=8 duration=200 local=Boss(Clone)
+PHASE Tutorial A=0 B=0 deliveries=0/0 local=(-15.84, 0.00, -4.28) particles=179
+PHASE Round A=0 B=0 deliveries=0/0 local=(-15.84, 0.00, -4.28) particles=355
+SCORE A=0 B=0 deliveries=0/0 local=(-15.84, 0.00, -4.28) particles=355
+SAMPLE A=0 B=0 deliveries=0/0 local=(-15.84, 0.00, -4.28) particles=355
+SAMPLE A=0 B=0 deliveries=0/0 local=(-22.03, 0.00, -7.35) particles=343
+BOTTLE team=A handles=4 water=100
+BOTTLE team=B handles=4 water=100
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+SAMPLE A=0 B=0 deliveries=0/0 local=(-21.31, 0.00, -2.93) particles=344 bottle=B:97@(-20.59, 0.24, -2.66) bottle=A:100@(-17.42, 0.15, 6.95)
+WATER amount=20 reason=RamVictim
+WATER amount=10 reason=RamAttacker
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+SAMPLE A=0 B=0 deliveries=0/0 local=(-20.87, 0.00, -1.11) particles=343 bottle=B:85@(-19.99, 0.15, -0.98) bottle=A:80@(-15.31, 0.15, 5.85)
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+SAMPLE A=0 B=0 deliveries=0/0 local=(-20.60, 0.00, -0.51) particles=371 bottle=B:77@(-19.79, 0.26, -0.38) bottle=A:80@(-13.52, 0.15, 5.07)
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+SAMPLE A=0 B=0 deliveries=0/0 local=(-20.41, 0.00, -0.76) particles=372 bottle=B:52@(-19.61, 0.16, -0.61) bottle=A:80@(-11.85, 0.15, 4.52)
+SAMPLE A=0 B=0 deliveries=0/0 local=(-19.40, 0.00, -1.59) particles=344 bottle=B:52@(-18.60, 0.15, -1.44) bottle=A:80@(-9.85, 0.23, 4.35)
+SAMPLE A=0 B=0 deliveries=0/0 local=(-18.81, 0.00, -1.95) particles=344 bottle=B:52@(-18.00, 0.15, -1.80) bottle=A:80@(-9.04, 0.15, 4.07)
+SAMPLE A=0 B=0 deliveries=0/0 local=(-18.37, 0.00, -2.22) particles=358 bottle=B:52@(-17.73, 0.15, -1.87) bottle=A:80@(-7.93, 0.10, 4.10)
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+SAMPLE A=0 B=0 deliveries=0/0 local=(-17.74, 0.00, -2.78) particles=340 bottle=B:52@(-17.07, 0.15, -2.46) bottle=A:77@(-7.14, 0.00, 5.13)
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+SAMPLE A=0 B=0 deliveries=0/0 local=(-17.74, 0.00, -2.65) particles=368 bottle=B:52@(-16.96, 0.15, -2.45) bottle=A:66@(-6.89, 0.25, 4.43)
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+SAMPLE A=0 B=0 deliveries=0/0 local=(-17.32, 0.00, -3.08) particles=336 bottle=B:52@(-16.65, 0.15, -2.75) bottle=A:43@(-6.20, 0.15, 4.74)
+SAMPLE A=0 B=0 deliveries=0/0 local=(-16.51, 0.00, -4.05) particles=336 bottle=B:52@(-15.87, 0.15, -3.68) bottle=A:43@(-4.98, 0.15, 5.29)
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+SAMPLE A=0 B=0 deliveries=0/0 local=(-15.05, 0.00, -5.11) particles=336 bottle=B:52@(-14.48, 0.15, -5.14) bottle=A:40@(-3.32, 0.15, 4.17)
+SAMPLE A=0 B=0 deliveries=0/0 local=(-13.78, 0.00, -5.95) particles=336 bottle=B:52@(-13.33, 0.17, -6.00) bottle=A:40@(-0.38, 0.15, 1.32)
+WATER amount=20 reason=Hit
+WATER amount=1 reason=Tilt
+SAMPLE A=0 B=0 deliveries=0/0 local=(-12.53, 0.00, -6.43) particles=343 bottle=B:51@(-11.85, 0.14, -6.55) bottle=A:20@(6.91, 0.23, -0.48)
+WATER amount=51 reason=Void
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+BOTTLE team=B handles=4 water=100
+SAMPLE A=0 B=0 deliveries=0/0 local=(-37.61, -263.15, 7.69) particles=361 bottle=B:100@(-19.93, 0.26, -6.82) bottle=A:15@(7.98, 0.15, 0.63)
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+SAMPLE A=0 B=0 deliveries=0/0 local=(-20.04, -1115.39, -7.50) particles=372 bottle=B:78@(-19.98, 0.25, -6.61) bottle=A:4@(7.42, 0.26, 1.93)
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+SAMPLE A=0 B=0 deliveries=0/0 local=(-20.04, -2432.24, -7.50) particles=343 bottle=B:57@(-19.51, 0.15, -6.38) bottle=A:0@(7.76, 0.15, 3.19)
+SAMPLE A=0 B=0 deliveries=0/0 local=(-19.18, -4107.44, -7.37) particles=344 bottle=B:57@(-18.51, 0.15, -6.37) bottle=A:0@(9.57, 0.15, 5.40)
+SAMPLE A=0 B=0 deliveries=0/0 local=(-19.04, -6062.02, -7.31) particles=344 bottle=B:57@(-18.55, 0.15, -6.12) bottle=A:0@(9.02, 0.26, 5.12)
+SAMPLE A=0 B=0 deliveries=0/0 local=(-18.73, -8234.96, -7.03) particles=344 bottle=B:57@(-18.67, 0.15, -5.86) bottle=A:0@(8.95, 0.26, 5.08)
+SAMPLE A=0 B=0 deliveries=0/0 local=(-18.52, -10581.08, -6.73) particles=343 bottle=B:57@(-18.16, 0.15, -5.44) bottle=A:0@(8.70, 0.20, 5.52)
+SAMPLE A=0 B=0 deliveries=0/0 local=(-18.18, -13059.58, -6.44) particles=341 bottle=B:57@(-17.79, 0.15, -5.21) bottle=A:0@(9.07, 0.15, 5.83)
+SAMPLE A=0 B=0 deliveries=0/0 local=(-18.03, -15638.78, -6.29) particles=359 bottle=B:57@(-17.76, 0.15, -5.01) bottle=A:0@(8.54, 0.18, 5.73)
+SAMPLE A=0 B=0 deliveries=0/0 local=(-17.92, -18301.11, -6.13) particles=339 bottle=B:57@(-17.65, 0.15, -4.85) bottle=A:0@(8.23, 0.22, 5.30)
+SAMPLE A=0 B=0 deliveries=0/0 local=(-17.84, -21024.82, -6.01) particles=340 bottle=B:57@(-17.67, 0.15, -4.73) bottle=A:0@(6.86, 0.20, 4.57)
+SAMPLE A=0 B=0 deliveries=0/0 local=(-17.80, -23803.36, -5.94) particles=337 bottle=B:57@(-17.58, 0.15, -4.65) bottle=A:0@(6.15, 0.18, 4.24)
+SAMPLE A=0 B=0 deliveries=0/0 local=(-17.78, -26610.83, -5.88) particles=337 bottle=B:57@(-17.64, 0.15, -4.56) bottle=A:0@(7.35, 0.15, 3.97)
+SAMPLE A=0 B=0 deliveries=0/0 local=(-17.06, -29456.49, -5.39) particles=336 bottle=B:57@(-16.34, 0.15, -4.31) bottle=A:0@(8.01, 0.15, 3.91)
+SAMPLE A=0 B=0 deliveries=0/0 local=(-16.54, -32319.29, -5.40) particles=344 bottle=B:57@(-15.60, 0.15, -4.63) bottle=A:0@(8.15, 0.16, 3.68)
+SAMPLE A=0 B=0 deliveries=0/0 local=(-15.30, -35204.08, -5.32) particles=345 bottle=B:57@(-14.17, 0.15, -5.12) bottle=A:0@(11.45, 0.15, 4.64)
+SAMPLE A=0 B=0 deliveries=0/0 local=(-14.25, -38104.72, -5.27) particles=362 bottle=B:57@(-13.03, 0.15, -5.11) bottle=A:0@(14.41, 0.15, 5.54)
+SAMPLE A=0 B=0 deliveries=0/0 local=(-12.55, -41014.09, -5.90) particles=343 bottle=B:57@(-11.68, 0.15, -5.10) bottle=A:0@(16.47, 0.26, 5.33)
+BOTTLE team=A handles=4 water=100
+WATER amount=20 reason=Drop
+SAMPLE A=0 B=0 deliveries=1/0 local=(-10.93, -43924.77, -6.02) particles=389 bottle=B:57@(-10.05, 0.15, -5.09) bottle=A:80@(-19.15, 0.07, 6.90)
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+SAMPLE A=0 B=0 deliveries=1/0 local=(-9.42, -46844.16, -6.03) particles=344 bottle=B:57@(-8.57, 0.15, -5.08) bottle=A:65@(-18.22, 0.26, 7.54)
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+SAMPLE A=0 B=0 deliveries=1/0 local=(-8.32, -49767.05, -6.03) particles=344 bottle=B:57@(-7.48, 0.15, -5.07) bottle=A:40@(-18.41, 0.26, 7.18)
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+SAMPLE A=0 B=0 deliveries=1/0 local=(-7.01, -52694.85, -6.02) particles=344 bottle=B:57@(-6.21, 0.15, -5.06) bottle=A:15@(-18.53, 0.26, 6.97)
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+SAMPLE A=0 B=0 deliveries=1/0 local=(-5.73, -55626.98, -6.01) particles=340 bottle=B:57@(-4.91, 0.15, -5.05) bottle=A:0@(-18.56, 0.26, 6.88)
+WATER amount=1 reason=Tilt
+SAMPLE A=0 B=0 deliveries=1/0 local=(-4.25, -58563.93, -5.60) particles=368 bottle=B:56@(-4.22, 0.23, -4.16) bottle=A:0@(-18.58, 0.26, 6.79)
+WATER amount=1 reason=Tilt
+WATER amount=1 reason=Tilt
+WATER amount=20 reason=Drop
+PHASE Results A=0 B=0 deliveries=1/0 local=(-3.94, -61306.75, -5.00) particles=357
+RESULTS A=0 B=0 deliveries=1/0 local=(-3.94, -61306.75, -5.00) particles=357
+PERF frames=11838 meanMs=16.89 waterEvents=231
+END scene unloaded

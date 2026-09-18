@@ -1,0 +1,1 @@
+Static environment, no players, 1600x900; position=(0,3,-25), target=(0,1,10), FOV55; 12 warmup, 36 synchronized render+readback samples; meanMs=15.67

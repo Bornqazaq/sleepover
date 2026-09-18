@@ -6,32 +6,7 @@ using UnityEngine;
 
 namespace Igruha.EditorTools
 {
-    /// <summary>
-    /// Палитра «Переноски предмета» как ассеты — подфаза 4.2.
-    ///
-    /// <b>Почему замер, а не пипетка.</b> Паки Synty текстурированы одним
-    /// атласом: у модели нет «цвета», есть кусок общей картинки. Пипеткой
-    /// снимается случайный пиксель, и на полосатом куске ответ будет либо
-    /// чёрный, либо белый — оба неверны. Цвет считается усреднением по UV
-    /// (<see cref="SyntyPalette"/>), и тогда бетон блокаута садится ровно в тон
-    /// бетона пака, а стык коробки с моделью перестаёт читаться.
-    ///
-    /// <b>Почему ассеты, а не материалы в памяти.</b> Материал, созданный на
-    /// лету, уезжает внутрь `.unity` копией на каждый объект: его нельзя ни
-    /// переиспользовать, ни запечь на 4.6, ни увидеть в Project, а слияние
-    /// веток разводит копии молча. Ассет с GUID переживает и то, и другое.
-    ///
-    /// <b>Имена сохранены прежними.</b> Материалы `CI_*` завёл разбор
-    /// читаемости 01.09, и на них уже ссылаются префабы и сцена. Палитра их не
-    /// переименовывает, а переписывает: цвет приходит из замера, а ссылки
-    /// остаются целыми.
-    ///
-    /// ⚠️ Настройка URP-материала взята из <see cref="HoleInWallMaterials"/> —
-    /// он `public static` и чистый, а дублировать возню с режимами поверхности
-    /// и ключевыми словами значит завести второй набор тех же ошибок. Имя у
-    /// него от чужой игры, и его стоит переименовать в общий кит, когда
-    /// «Дырка в стене» освободится: отдельной задачей, не походя.
-    /// </summary>
+    /// <summary>Local CarryItem materials, authored colours; gameplay transparency retained.</summary>
     internal static class CarryItemPalette
     {
         /// <summary>Поверхность палитры. Одна на роль, а не на объект.</summary>
@@ -46,7 +21,7 @@ namespace Igruha.EditorTools
             /// <summary>Бетон стен и торцов.</summary>
             Wall,
 
-            /// <summary>Кромка проёма: жёлто-чёрная разметка по краю пропасти.</summary>
+            /// <summary>Кромка проёма: красно-белая разметка по краю пропасти.</summary>
             EdgeStripe,
 
             /// <summary>Ржавая сталь: балка крана.</summary>
@@ -127,41 +102,13 @@ namespace Igruha.EditorTools
         /// брифом прямо, и мерить нечего: вода, стекло и белая основа под цвет
         /// команды к паку отношения не имеют.
         /// </summary>
-        private static readonly Dictionary<Tone, string> Sources = new Dictionary<Tone, string>
-        {
-            { Tone.Concrete, "Assets/Synty/PolygonConstruction/Prefabs/Buildings/SM_Bld_Concrete_Floor_01.prefab" },
-            { Tone.Wall, "Assets/Synty/PolygonConstruction/Prefabs/Buildings/SM_Bld_Concrete_Wall_02.prefab" },
-            { Tone.Steel, "Assets/Synty/PolygonConstruction/Prefabs/Props/SM_Prop_I_Beam_01.prefab" },
-            { Tone.Wood, "Assets/Synty/PolygonConstruction/Prefabs/Props/SM_Prop_Plank_Long_Stack_02.prefab" },
-            // Металл снимается с лесов, а не с бака-кубоконтейнера: у того
-            // корпус в решётке и грязных подтёках, и усреднение даёт бурый —
-            // бак получался нефтяной бочкой. Труба лесов оцинкована, и это
-            // ровно тот металл, который просит бриф.
-            { Tone.Metal, "Assets/Synty/PolygonConstruction/Prefabs/Props/SM_Prop_Scaffold_01.prefab" }
-        };
-
-        /// <summary>
-        /// <b>Сырые</b> средние пака, снятые замером 04.09. Не «примерно такие»:
-        /// это результат того же усреднения по UV, записанный на диск.
-        ///
-        /// Нужны в двух случаях, и второй важнее первого. Первый — паков на
-        /// машине нет. Второй — меши пака закрыты на чтение: у импортёра Synty
-        /// Read/Write выключен, Unity держит вершины только до первой выгрузки,
-        /// и второй прогон замера в той же сессии уже ничего не мерит. Без
-        /// сохранённых чисел цвет в `.mat` менялся бы от того, в какой момент
-        /// нажали пересборку.
-        ///
-        /// Хранится именно сырое среднее, а не готовый тон: приглушение стены и
-        /// обесцвечивание бетона считаются в одном месте — иначе замеренный и
-        /// сохранённый пути разъезжаются, что и случилось 04.09.
-        /// </summary>
         private static readonly Dictionary<Tone, Color> Fallback = new Dictionary<Tone, Color>
         {
-            { Tone.Concrete, new Color(0.525f, 0.486f, 0.439f) },
-            { Tone.Wall, new Color(0.525f, 0.486f, 0.439f) },
+            { Tone.Concrete, new Color(0.66f, 0.675f, 0.66f) },
+            { Tone.Wall, new Color(0.66f, 0.675f, 0.66f) },
             { Tone.Steel, new Color(0.388f, 0.220f, 0.192f) },
-            { Tone.Wood, new Color(0.800f, 0.620f, 0.475f) },
-            { Tone.Metal, new Color(0.416f, 0.408f, 0.416f) }
+            { Tone.Wood, new Color(0.69f, 0.48f, 0.26f) },
+            { Tone.Metal, new Color(0.43f, 0.50f, 0.53f) }
         };
 
         /// <summary>Во сколько раз дно пропасти темнее пола. Ниже — дно сливается в чёрную дыру.</summary>
@@ -197,20 +144,6 @@ namespace Igruha.EditorTools
             cache.Clear();
             measured.Clear();
             unmeasured.Clear();
-            SyntyPalette.ClearCache();
-
-            foreach (KeyValuePair<Tone, string> pair in Sources)
-            {
-                if (SyntyPalette.TryAverage(pair.Value, out Color average))
-                {
-                    measured[pair.Key] = average;
-                }
-                else
-                {
-                    unmeasured.Add(pair.Key.ToString());
-                }
-            }
-
             foreach (Tone tone in System.Enum.GetValues(typeof(Tone)))
             {
                 Get(tone);
@@ -256,11 +189,9 @@ namespace Igruha.EditorTools
                 case Tone.ConcreteDeep:
                     return Dim(ColorOf(Tone.Concrete), DeepFactor);
 
-                // Кромка проёма. Жёлтая, а не красная и не оранжевая: красное
-                // отдано ловушкам, оранжевое — команде B, а жёлтое в этой игре
-                // не значит ничего другого.
+                // Красный сегмент зебры; оранжевый остаётся цветом команды B.
                 case Tone.EdgeStripe:
-                    return new Color(0.91f, 0.65f, 0.16f);
+                    return new Color(0.84f, 0.12f, 0.10f);
 
                 case Tone.Hazard:
                     return new Color(0.85f, 0.23f, 0.20f);
@@ -333,43 +264,8 @@ namespace Igruha.EditorTools
             return material;
         }
 
-        /// <summary>
-        /// Таблица замеров: с какого предмета пака снят каждый цвет и во что он
-        /// превратился. Печатается пересборкой — цвет обязан быть проверяемым
-        /// числом, а не словом «подобрал».
-        /// </summary>
-        internal static string Report()
-        {
-            var report = new StringBuilder();
-            report.Append("🎨 «Переноска предмета», палитра 4.2 — замер по UV моделей пака");
-
-            foreach (Tone tone in System.Enum.GetValues(typeof(Tone)))
-            {
-                Color color = ColorOf(tone);
-                report.Append("\n— ").Append(tone.ToString().PadRight(13))
-                    .Append(SyntyPalette.Hex(color))
-                    .Append(" → ").Append(Files[tone]);
-
-                if (measured.ContainsKey(tone))
-                {
-                    string source = Sources[tone];
-                    report.Append("  (замер: ")
-                        .Append(source.Substring(source.LastIndexOf('/') + 1).Replace(".prefab", string.Empty))
-                        .Append(')');
-                }
-                else if (Sources.ContainsKey(tone))
-                {
-                    report.Append("  (замер недоступен, сохранённое значение)");
-                }
-            }
-
-            if (unmeasured.Count > 0)
-            {
-                report.Append("\n⚠️ не замерено: ").Append(string.Join(", ", unmeasured));
-            }
-
-            return report.ToString();
-        }
+        /// <summary>Палитра собственных материалов этой игры.</summary>
+        internal static string Report() => "CarryItem: original concrete, timber and red/white hazard palette";
 
         private static void Apply(Material material, Tone tone)
         {

@@ -1,0 +1,54 @@
+{
+  "accepted": true,
+  "problems": [],
+  "run": "network-4-20260917-175854",
+  "roster": 4,
+  "duration": 200,
+  "allReturnedToHub": true,
+  "peers": [
+    {
+      "peer": "client-1-probe",
+      "result": [
+        198,
+        100,
+        2,
+        1
+      ],
+      "minY": 0.0,
+      "perf": "PERF frames=6379 meanMs=31.30 waterEvents=157"
+    },
+    {
+      "peer": "client-2-probe",
+      "result": [
+        198,
+        100,
+        2,
+        1
+      ],
+      "minY": -0.03,
+      "perf": "PERF frames=4498 meanMs=44.40 waterEvents=157"
+    },
+    {
+      "peer": "client-3-probe",
+      "result": [
+        198,
+        100,
+        2,
+        1
+      ],
+      "minY": 0.0,
+      "perf": "PERF frames=5483 meanMs=36.42 waterEvents=157"
+    },
+    {
+      "peer": "host-probe",
+      "result": [
+        198,
+        100,
+        2,
+        1
+      ],
+      "minY": -0.03,
+      "perf": "PERF frames=6816 meanMs=29.34 waterEvents=157"
+    }
+  ]
+}

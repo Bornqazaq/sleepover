@@ -1,0 +1,37 @@
+{
+  "host": {
+    "mines": 5,
+    "failures": 14,
+    "samples": 98,
+    "missing_early_physics": 0,
+    "return_checks": 14,
+    "bad_returns": 0,
+    "exceptions": 0,
+    "getting_up": 0,
+    "gate_corrections": 4,
+    "mean_frame_ms_range": [
+      14.88,
+      22.48
+    ],
+    "results": true,
+    "end": "END scene unloaded; mines=5; safe=56"
+  },
+  "client": {
+    "mines": 5,
+    "failures": 14,
+    "samples": 98,
+    "missing_early_physics": 0,
+    "return_checks": 14,
+    "bad_returns": 0,
+    "exceptions": 0,
+    "getting_up": 0,
+    "gate_corrections": 0,
+    "mean_frame_ms_range": [
+      18.43,
+      24.25
+    ],
+    "results": true,
+    "end": "END scene unloaded; mines=5; safe=0"
+  },
+  "identical_mines": true
+}
