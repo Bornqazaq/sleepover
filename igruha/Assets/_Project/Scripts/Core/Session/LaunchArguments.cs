@@ -37,10 +37,19 @@ namespace Igruha.Core.Session
         /// <summary>Сколько участников дождаться перед автозапуском: <c>--wait-players 8</c>.</summary>
         public const string WaitPlayersOption = "--wait-players";
 
+        /// <summary>
+        /// Очередь <c>--autostart</c> играется как одна серия катки (счёт с
+        /// нуля, таблица катки после последней, чемпион), а не по одной игре
+        /// с возвратом в хаб. Так стенд проверяет тот же путь, что и кнопка
+        /// «Полная игра» на телевизоре.
+        /// </summary>
+        public const string SeriesFlag = "--series";
+
         private static string[] autostart;
         private static bool autostartParsed;
         private static int waitPlayers = -1;
         private static int botEnabled = -1;
+        private static int seriesEnabled = -1;
 
         /// <summary>Этой машиной играет болванка: ходит сама, вопрос берёт из заготовок.</summary>
         public static bool BotEnabled
@@ -53,6 +62,20 @@ namespace Igruha.Core.Session
                 }
 
                 return botEnabled == 1;
+            }
+        }
+
+        /// <summary>Очередь автопрогона играется серией катки, а не по одной игре.</summary>
+        public static bool SeriesEnabled
+        {
+            get
+            {
+                if (seriesEnabled < 0)
+                {
+                    seriesEnabled = HasFlag(SeriesFlag) ? 1 : 0;
+                }
+
+                return seriesEnabled == 1;
             }
         }
 

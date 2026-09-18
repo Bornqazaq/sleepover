@@ -97,7 +97,9 @@ namespace Igruha.Core.Minigame
 
             results.Clear();
 
-            int lastPlace = entries.Count;
+            // По составу на старте раунда, если он задан: после уходов
+            // «последнее» по оставшимся оказалось бы выше и дало бы очки.
+            int lastPlace = System.Math.Max(entries.Count, results.PlayerCount);
             for (int i = 0; i < entries.Count; i++)
             {
                 results.Add(entries[i].PlayerId, lastPlace);

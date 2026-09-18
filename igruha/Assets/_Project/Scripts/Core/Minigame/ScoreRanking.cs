@@ -92,9 +92,13 @@ namespace Igruha.Core.Minigame
 
             if (best <= 0)
             {
+                // Последнее место считаем по составу на старте раунда, если он
+                // задан: иначе после ухода части игроков «последнее» место
+                // оставшихся оказалось бы выше последнего и дало бы очки.
+                int lastPlace = Mathf.Max(count, results.PlayerCount);
                 for (int i = 0; i < count; i++)
                 {
-                    results.Add(playerIds[i], count);
+                    results.Add(playerIds[i], lastPlace);
                 }
 
                 return;

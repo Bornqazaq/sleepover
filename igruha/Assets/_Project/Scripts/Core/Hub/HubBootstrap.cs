@@ -52,6 +52,13 @@ namespace Igruha.Core.Hub
 
         private void Start()
         {
+            // Корона чемпиона — компонентом на лету, а не объектом в сцене:
+            // сцена хаба общая, и лишняя правка YAML в ней не нужна.
+            if (GetComponent<ChampionCrown>() == null)
+            {
+                gameObject.AddComponent<ChampionCrown>();
+            }
+
             StartCoroutine(Boot());
         }
 
