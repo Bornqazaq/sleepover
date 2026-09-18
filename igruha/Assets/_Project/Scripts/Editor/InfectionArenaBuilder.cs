@@ -676,6 +676,13 @@ namespace Igruha.EditorTools
                 game = manager.AddComponent<InfectionMinigame>();
             }
 
+            // Сетевая половина: NetworkBehaviour на том же NetworkObject, что и
+            // NetworkMinigameBridge. Реплицирует фазы заражения и реплики диктора.
+            if (manager.GetComponent<InfectionNetwork>() == null)
+            {
+                manager.AddComponent<InfectionNetwork>();
+            }
+
             Transform canvas = ui.transform.Find("Canvas");
             SerializedObject serialized = new SerializedObject(game);
             serialized.FindProperty("definition").objectReferenceValue = definition;

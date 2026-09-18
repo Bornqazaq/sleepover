@@ -238,6 +238,41 @@ namespace Igruha.Minigames.Infection
         }
 
         /// <summary>
+        /// Применить состояние, присланное сервером. Зовётся только на клиенте:
+        /// сервер ведёт фазу сам через <see cref="Tick"/>. Здесь — только то,
+        /// что видно и чувствуется на машине игрока: краска, мигание, блокировка
+        /// на время всплеска и потолок скорости заражённого.
+        ///
+        /// Чистое время и счётчик заражений сюда не едут — их считает сервер и
+        /// раскладывает в места сам; клиенту они не нужны.
+        /// </summary>
+        public void ApplyNetworkState(InfectionPhase networkPhase, bool patientZero, bool inGrace)
+        {
+            IsPatientZero = patientZero;
+            Phase = networkPhase;
+
+            if (Avatar != null)
+            {
+                Avatar.MovementLocked = networkPhase == InfectionPhase.Infecting;
+
+                if (networkPhase == InfectionPhase.Infected && Avatar.Config != null && config != null)
+                {
+                    Avatar.ApplySpeedCap(this, Avatar.Config.MaxSpeed * config.InfectedSpeedMultiplier);
+                }
+                else
+                {
+                    Avatar.ClearSpeedCap(this);
+                }
+            }
+
+            paint?.SetInfected(networkPhase != InfectionPhase.Clean);
+            paint?.SetBlinking(inGrace);
+        }
+
+        /// <summary>Мигает и пока не заражает — для сборки сетевого флага на сервере.</summary>
+        public bool NetworkInGrace => InGrace;
+
+        /// <summary>
         /// Игрок вышел из матча. По спеке он считается заражённым на момент
         /// выхода: очки замирают, место ему всё равно нужно, а бонус за него
         /// не получает никто — заразил его не игрок, а интернет.

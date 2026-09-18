@@ -73,6 +73,32 @@ namespace Igruha.Minigames.Infection
         private float dummyTimer;
         private bool swingsSubscribed;
 
+        private InfectionNetwork network;
+        private readonly List<int> rosterBuffer = new List<int>(8);
+
+        /// <summary>Идёт сетевая катка и сетевая половина живая.</summary>
+        private bool Networked => network != null && network.IsActive;
+
+        /// <summary>Коды реплик диктора: по сети едет код, а не строка (текст собирается на каждой машине).</summary>
+        private enum AnnounceCode : byte
+        {
+            Scatter = 0,
+            PatientZero = 1,
+            FirstInfection = 2,
+            Half = 3,
+            LastOne = 4,
+            Swing = 5,
+            AllInfected = 6,
+            Handoff = 7,
+            Reveal = 8
+        }
+
+        protected override void Awake()
+        {
+            base.Awake();
+            network = GetComponent<InfectionNetwork>();
+        }
+
         /// <summary>Центр арены в мире. Болванки и реплики берут его отсюда, а не ищут заново.</summary>
         private Vector3 Center => arenaCenter != null ? arenaCenter.position : Vector3.zero;
 
@@ -113,9 +139,10 @@ namespace Igruha.Minigames.Infection
             if (HasAuthority)
             {
                 Timer?.StopTimer();
+                SyncRoster();
             }
 
-            announcer?.Announce("Разбегайтесь. Через пару секунд кому-то станет нехорошо.", 2.6f);
+            AnnounceNet(AnnounceCode.Scatter, SpecialRoleHistory.NoPlayer);
         }
 
         protected override void OnRoundEnded()
@@ -133,9 +160,9 @@ namespace Igruha.Minigames.Infection
 
             // «С кого всё началось» — дешёвая драма из спеки. Говорится в конце,
             // когда это уже ничего не решает, и потому безопасно.
-            if (patientZeroId != SpecialRoleHistory.NoPlayer)
+            if (HasAuthority && patientZeroId != SpecialRoleHistory.NoPlayer)
             {
-                announcer?.Announce($"С {NameOf(patientZeroId)} всё началось.", 4f, 1);
+                AnnounceNet(AnnounceCode.Reveal, patientZeroId);
             }
         }
 
@@ -158,6 +185,7 @@ namespace Igruha.Minigames.Infection
                 }
 
                 DriveDummies();
+                SyncNet();
             }
 
             UpdateCleanCounter();
@@ -234,7 +262,7 @@ namespace Igruha.Minigames.Infection
                 Timer?.StartTimer(Definition.RoundDuration);
             }
 
-            announcer?.Announce($"Кажется, у {NameOf(patientZeroId)} что-то зелёное на руках. Я бы отошёл.", 3.5f, 2);
+            AnnounceNet(AnnounceCode.PatientZero, patientZeroId);
         }
 
         private InfectionState PickPatientZero()
@@ -280,30 +308,25 @@ namespace Igruha.Minigames.Infection
 
         private void AnnounceProgress()
         {
-            if (announcer == null)
-            {
-                return;
-            }
-
             int clean = CountClean();
             int total = states.Count;
 
             if (!firstInfectionAnnounced)
             {
                 firstInfectionAnnounced = true;
-                announcer.Announce("Один готов. Дальше — математика.", 3f);
+                AnnounceNet(AnnounceCode.FirstInfection, SpecialRoleHistory.NoPlayer);
             }
 
             if (!halfAnnounced && total >= 4 && clean * 2 <= total)
             {
                 halfAnnounced = true;
-                announcer.Announce("Напоминаю: это была дружеская игра.", 3f, 1);
+                AnnounceNet(AnnounceCode.Half, SpecialRoleHistory.NoPlayer);
             }
 
             if (!lastCleanAnnounced && clean == 1 && total >= 3)
             {
                 lastCleanAnnounced = true;
-                announcer.Announce($"{total - 1} против одного. Честно как никогда.", 3.5f, 2);
+                AnnounceNet(AnnounceCode.LastOne, SpecialRoleHistory.NoPlayer);
             }
         }
 
@@ -320,7 +343,7 @@ namespace Igruha.Minigames.Infection
                 return;
             }
 
-            announcer?.Announce("Все зелёные. Расходимся, домой зовут.", 3.5f, 3);
+            AnnounceNet(AnnounceCode.AllInfected, SpecialRoleHistory.NoPlayer);
             EndMinigame();
         }
 
@@ -500,21 +523,48 @@ namespace Igruha.Minigames.Infection
 
         // ========== ВЫХОД ИГРОКА ==========
 
-        protected override void OnPlayerLeftRound(int playerId)
+        protected override void OnPlayerLeftRound(int playerId) => ProcessPlayerGone(playerId);
+
+        /// <summary>Жёсткий дисконнект: сетевой слой зовёт это на сервере.</summary>
+        public void HandlePlayerDisconnected(int playerId)
         {
-            InfectionState state = FindState(playerId);
-            if (state == null)
+            if (HasAuthority)
+            {
+                ProcessPlayerGone(playerId);
+            }
+        }
+
+        /// <summary>
+        /// Игрок покинул раунд — сам или по обрыву. Считается заражённым на
+        /// момент выхода, убирается из состава; сбежавшего Нулевого без единого
+        /// заражения заменяем, чтобы раунд не остался без заражающего.
+        /// </summary>
+        private void ProcessPlayerGone(int playerId)
+        {
+            int index = -1;
+            for (int i = 0; i < states.Count; i++)
+            {
+                if (states[i].PlayerId == playerId)
+                {
+                    index = i;
+                    break;
+                }
+            }
+
+            if (index < 0)
             {
                 return;
             }
 
-            bool wasClean = state.Phase == InfectionPhase.Clean;
-            state.MarkLeftRound();
+            bool wasClean = states[index].Phase == InfectionPhase.Clean;
+            bool wasPatientZero = playerId == patientZeroId;
+
+            states[index].MarkLeftRound();
+            states.RemoveAt(index);
+            bots.RemoveAt(index);
             RemovePlayer(playerId);
 
-            // Нулевой сбежал, никого не успев тронуть — раунд без заражающего
-            // не игра. Назначаем нового, таймер при этом не трогаем.
-            if (playerId == patientZeroId && CountInfected() <= 1 && CountClean() > 0)
+            if (wasPatientZero && CountInfected() == 0 && CountClean() > 0)
             {
                 patientZeroId = SpecialRoleHistory.NoPlayer;
                 InfectionState replacement = PickPatientZero();
@@ -522,9 +572,11 @@ namespace Igruha.Minigames.Infection
                 {
                     patientZeroId = replacement.PlayerId;
                     replacement.MakePatientZero();
-                    announcer?.Announce($"Зараза сменила хозяина: теперь она у {NameOf(patientZeroId)}.", 3.5f, 2);
+                    AnnounceNet(AnnounceCode.Handoff, patientZeroId);
                 }
             }
+
+            SyncRoster();
 
             if (wasClean)
             {
@@ -559,6 +611,144 @@ namespace Igruha.Minigames.Infection
             }
 
             ranking.Build(results);
+        }
+
+        // ========== СЕТЬ ==========
+
+        /// <summary>Сервер выкладывает состав в сетевой список.</summary>
+        private void SyncRoster()
+        {
+            if (!Networked)
+            {
+                return;
+            }
+
+            rosterBuffer.Clear();
+            for (int i = 0; i < states.Count; i++)
+            {
+                rosterBuffer.Add(states[i].PlayerId);
+            }
+
+            network.ServerSyncRoster(rosterBuffer);
+        }
+
+        /// <summary>
+        /// Сервер выкладывает фазу каждого игрока. Пишется только при изменении
+        /// (сравнение внутри сетевого слоя), поэтому звать каждый такт дёшево.
+        /// </summary>
+        private void SyncNet()
+        {
+            if (!Networked)
+            {
+                return;
+            }
+
+            for (int i = 0; i < states.Count; i++)
+            {
+                InfectionState s = states[i];
+                network.ServerSyncState(s.PlayerId, s.Phase, s.IsPatientZero, s.NetworkInGrace);
+            }
+        }
+
+        /// <summary>
+        /// Сказать реплику: у авторитета — локально (хост) и всем клиентам,
+        /// вне сети — просто локально.
+        /// </summary>
+        private void AnnounceNet(AnnounceCode code, int playerId)
+        {
+            ApplyAnnounce((byte)code, playerId);
+            if (Networked && HasAuthority)
+            {
+                network.ServerAnnounce((byte)code, playerId);
+            }
+        }
+
+        /// <summary>Собрать текст реплики на этой машине и показать. Зовётся и с сервера, и по RPC.</summary>
+        public void ApplyAnnounce(byte code, int playerId)
+        {
+            if (announcer == null)
+            {
+                return;
+            }
+
+            switch ((AnnounceCode)code)
+            {
+                case AnnounceCode.Scatter:
+                    announcer.Announce("Разбегайтесь. Через пару секунд кому-то станет нехорошо.", 2.6f);
+                    break;
+                case AnnounceCode.PatientZero:
+                    announcer.Announce($"Кажется, у {NameOf(playerId)} что-то зелёное на руках. Я бы отошёл.", 3.5f, 2);
+                    break;
+                case AnnounceCode.FirstInfection:
+                    announcer.Announce("Один готов. Дальше — математика.", 3f);
+                    break;
+                case AnnounceCode.Half:
+                    announcer.Announce("Напоминаю: это была дружеская игра.", 3f, 1);
+                    break;
+                case AnnounceCode.LastOne:
+                    announcer.Announce($"{Mathf.Max(1, states.Count - 1)} против одного. Честно как никогда.", 3.5f, 2);
+                    break;
+                case AnnounceCode.Swing:
+                    announcer.Announce("Качели сегодня без команды, но с результатом.", 2.5f);
+                    break;
+                case AnnounceCode.AllInfected:
+                    announcer.Announce("Все зелёные. Расходимся, домой зовут.", 3.5f, 3);
+                    break;
+                case AnnounceCode.Handoff:
+                    announcer.Announce($"Зараза сменила хозяина: теперь она у {NameOf(playerId)}.", 3.5f, 2);
+                    break;
+                case AnnounceCode.Reveal:
+                    announcer.Announce($"С {NameOf(playerId)} всё началось.", 4f, 1);
+                    break;
+            }
+        }
+
+        /// <summary>Клиент: убрать из состава тех, кого нет в сетевом списке.</summary>
+        public void ApplyNetworkRoster(IReadOnlyList<int> playerIds)
+        {
+            if (HasAuthority)
+            {
+                return;
+            }
+
+            for (int i = states.Count - 1; i >= 0; i--)
+            {
+                bool present = false;
+                for (int j = 0; j < playerIds.Count; j++)
+                {
+                    if (playerIds[j] == states[i].PlayerId)
+                    {
+                        present = true;
+                        break;
+                    }
+                }
+
+                if (!present)
+                {
+                    states.RemoveAt(i);
+                    if (i < bots.Count)
+                    {
+                        bots.RemoveAt(i);
+                    }
+                }
+            }
+        }
+
+        /// <summary>Клиент: применить фазу игрока, присланную сервером.</summary>
+        public void ApplyNetworkState(int playerId, InfectionPhase phase, bool patientZero, bool inGrace)
+        {
+            if (HasAuthority)
+            {
+                return;
+            }
+
+            if (patientZero)
+            {
+                patientZeroId = playerId;
+            }
+
+            InfectionState state = FindState(playerId);
+            state?.ApplyNetworkState(phase, patientZero, inGrace);
         }
 
         // ========== СЛУЖЕБНОЕ ==========
@@ -624,7 +814,7 @@ namespace Igruha.Minigames.Infection
 
         private void HandleSwingHit(PlayerController player)
         {
-            announcer?.Announce("Качели сегодня без команды, но с результатом.", 2.5f);
+            AnnounceNet(AnnounceCode.Swing, SpecialRoleHistory.NoPlayer);
         }
 
         private void UpdateCleanCounter()
