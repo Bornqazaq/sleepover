@@ -179,6 +179,13 @@ namespace Igruha.Minigames.HoleInWall
             return LaneAccents[((track % count) + count) % count];
         }
 
+        /// <summary>The lane hue stays consistent with its gate, scoreboard and deck edge.</summary>
+        public static Color LaneOutline(int track, int slot)
+        {
+            Color.RGBToHSV(LaneAccent(track), out float h, out float s, out float v);
+            return Color.HSVToRGB(h, Mathf.Max(.72f, s), slot == 0 ? .88f : .56f);
+        }
+
         private static Color FromHex(int r, int g, int b)
         {
             return new Color(r / 255f, g / 255f, b / 255f);

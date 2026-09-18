@@ -43,6 +43,7 @@ namespace Igruha.Minigames.HoleInWall
 
             /// <summary>Летит в воду или барахтается: возврат уже назначен на <see cref="ReturnAt"/>.</summary>
             public bool Returning { get; set; }
+            public bool RecoveryStarted { get; set; }
 
             /// <summary>Момент возврата на платформу в общих часах.</summary>
             public double ReturnAt { get; set; }

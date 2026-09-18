@@ -1,0 +1,5 @@
+macOS Unity Editor, edit-mode Game View; 6 s repaint sampling, same saved camera and resolution.
+This is an editor comparison, not a standalone / Windows / eight-player FPS benchmark.
+Before: Edit Game View 3840x2160, same camera; frameTime median=0.01273717 sec, samples=457 batches=1964 tris=930249 vertices=1039025
+After: Edit Game View 3840x2160, same camera; frameTime median=0.0124715 sec, samples=466 batches=2094 tris=1055471 vertices=1221954
+Scene mesh totals: before 844164 triangles, after 837260. One shadow-casting directional key; four spot fills replaced with one unshadowed directional fill.

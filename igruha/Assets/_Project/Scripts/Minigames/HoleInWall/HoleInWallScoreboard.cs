@@ -28,7 +28,7 @@ namespace Igruha.Minigames.HoleInWall
     public sealed class HoleInWallScoreboard : MonoBehaviour
     {
         /// <summary>Что стоит на табло, пока раунд не идёт.</summary>
-        private const string Dash = "—";
+        private const string Dash = "ОЖИДАНИЕ";
 
         [Tooltip("Контроллер игры: у него номер текущей стены и их общее число")]
         [SerializeField] private HoleInWallMinigame game;
@@ -36,11 +36,16 @@ namespace Igruha.Minigames.HoleInWall
         [Tooltip("Дорожка, чей счёт показывает это табло")]
         [SerializeField] private HoleInWallTrack track;
 
-        [Tooltip("Верхняя строка: номер стены из скольких")]
+        [Tooltip("Нижняя строка: номер стены из скольких")]
         [SerializeField] private TextMeshPro wallLine;
 
-        [Tooltip("Нижняя строка: счёт дорожки")]
+        [Tooltip("Крупное число: счёт дорожки")]
         [SerializeField] private TextMeshPro scoreLine;
+
+        [SerializeField] private Renderer[] progressLights = System.Array.Empty<Renderer>();
+        [SerializeField] private Color accentColor = Color.cyan;
+        private MaterialPropertyBlock lightProperties;
+        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
         private readonly StringBuilder builder = new StringBuilder(24);
 
@@ -71,6 +76,20 @@ namespace Igruha.Minigames.HoleInWall
 
             ShowWall(live, wall, wallCount);
             ShowScore(live, score);
+            ShowProgress(live, wall);
+        }
+
+        private void ShowProgress(bool live, int wall)
+        {
+            if (lightProperties == null) lightProperties = new MaterialPropertyBlock();
+            for (int i = 0; i < progressLights.Length; i++)
+            {
+                if (progressLights[i] == null) continue;
+                Color color = !live || i >= wall ? new Color(.13f,.19f,.25f) :
+                    i == wall - 1 ? accentColor : new Color(.75f,.84f,.87f);
+                lightProperties.SetColor(BaseColorId, color);
+                progressLights[i].SetPropertyBlock(lightProperties);
+            }
         }
 
         private void ShowWall(bool live, int wall, int wallCount)
@@ -81,11 +100,9 @@ namespace Igruha.Minigames.HoleInWall
             }
 
             builder.Clear();
-            builder.Append("СТЕНА ");
-
             if (live)
             {
-                builder.Append(wall).Append('/').Append(wallCount);
+                builder.Append("СТЕНА ").Append(wall).Append(" / ").Append(wallCount);
             }
             else
             {
@@ -102,10 +119,8 @@ namespace Igruha.Minigames.HoleInWall
                 return;
             }
 
-            // Счёт — одной цифрой во всю высоту табло: его читают боковым
-            // зрением, стоя лицом к своей стене, и слово «очки» рядом с ним
-            // отняло бы у цифры ровно ту высоту, ради которой табло и висит.
-            scoreLine.text = live ? score.ToString() : Dash;
+            // Два разряда удерживают ширину счёта при смене значения.
+            scoreLine.text = live ? score.ToString("00") : "00";
         }
     }
 }

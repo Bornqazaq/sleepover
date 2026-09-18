@@ -1,4 +1,5 @@
 using UnityEngine;
+using Igruha.Core.Minigame;
 
 namespace Igruha.Minigames.HoleInWall
 {
@@ -128,14 +129,12 @@ namespace Igruha.Minigames.HoleInWall
         [Header("Расписание стен, с")]
         [Tooltip("Подъезд каждой стены. КРИТИЧЕСКИЙ ДЛЯ ПЛЕЙТЕСТА. Длина массива = число стен в раунде")]
         [SerializeField] private float[] wallApproachSeconds = { 6f, 6f, 5f, 5f, 4f, 4f, 3.5f, 3f };
-        [Tooltip("Пауза между ударом одной стены и стартом следующей")]
-        [SerializeField] private float pauseAfterHit = 2f;
+        [Tooltip("Единый источник длительности для расписания и HUD. Свободное время распределяется между стенами")]
+        [SerializeField] private MinigameDefinition definition;
         [Tooltip("КРИТИЧЕСКИЙ ДЛЯ ПЛЕЙТЕСТА. Сколько секунд игрок обязан простоять на платформе перед ударом. По этому числу возвращают из воды: раньше — можно, позже — нельзя")]
         [SerializeField] private float poseWindowSeconds = 2.5f;
         [Tooltip("Насколько быстрее едет стена на дорожке одиночки. Момент удара при этом общий: стена просто стартует позже")]
         [SerializeField] private float soloSpeedBonus = 0.25f;
-        [Tooltip("Сколько секунд после последнего удара держать раунд, чтобы провалившиеся успели вылезти из воды")]
-        [SerializeField] private float roundEndDelay = 5f;
 
         [Header("Подвохи")]
         [Tooltip("Номер стены с зеркальным переворотом, с 1. Ноль — переворота нет вовсе")]
@@ -156,13 +155,19 @@ namespace Igruha.Minigames.HoleInWall
         [Range(0f, 1f)]
         [SerializeField] private float sweepUpward = 0.35f;
         [Tooltip("Полёт и падение в воду")]
-        [SerializeField] private float fallSeconds = 1.5f;
+        [SerializeField] private float fallSeconds = .8f;
+        [Tooltip("Развязка последней стены внутри минуты: пролёт сквозь вырез или падение в воду до показа итогов. Не короче полёта в воду, иначе итоги накроют смытого в воздухе")]
+        [SerializeField] private float finalPayoffSeconds = 1.5f;
         [Tooltip("Насколько быстрее стены обязан лететь сметённый, м/с. Меньше — стена догоняет его и волочёт перед собой, и он оказывается внутри плиты")]
         [SerializeField] private float sweepClearanceSpeed = 2.5f;
         [Tooltip("Барахтанье в воде до автовозврата на платформу")]
-        [SerializeField] private float splashSeconds = 3f;
+        [SerializeField] private float splashSeconds = 1.8f;
         [Tooltip("Минимум барахтанья, когда расписание требует вернуть раньше срока. Ниже него провал перестаёт читаться: игрок вылетает из воды тем же кадром, каким в неё вошёл")]
-        [SerializeField] private float minSplashSeconds = 1f;
+        [SerializeField] private float minSplashSeconds = 1.2f;
+
+        /// <summary>The last part of the existing return deadline is the visible lift ride.</summary>
+        public float RecoveryTransitSeconds => 1.25f;
+        public float RecoveryClearZ => CheckLineZ - PlatformDepth * .5f - .9f;
 
         // ========== МАСШТАБ ==========
 
@@ -309,13 +314,23 @@ namespace Igruha.Minigames.HoleInWall
         /// <summary>Сколько стен в раунде. Задаётся длиной таблицы подъездов.</summary>
         public int WallCount => wallApproachSeconds != null ? wallApproachSeconds.Length : 0;
 
-        public float PauseAfterHit => pauseAfterHit;
+        public float PauseAfterHit => WallCount > 1
+            ? Mathf.Max(0f, ScheduleLength - RawApproachTotal) / (WallCount - 1) : 0f;
+
+        private float RawApproachTotal
+        {
+            get
+            {
+                float sum = 0f;
+                for (int i = 0; i < WallCount; i++) sum += Mathf.Max(.01f, wallApproachSeconds[i]);
+                return sum;
+            }
+        }
 
         /// <summary>Гарантированное окно на выбор позы перед ударом, с.</summary>
         public float PoseWindowSeconds => Mathf.Max(0f, poseWindowSeconds);
 
         public float SoloSpeedBonus => Mathf.Max(0f, soloSpeedBonus);
-        public float RoundEndDelay => roundEndDelay;
         public float MirrorLead => mirrorLead;
         public float MorphLead => morphLead;
         public float WarningLead => warningLead;
@@ -327,10 +342,14 @@ namespace Igruha.Minigames.HoleInWall
         public int MorphWallIndex => morphWall - 1;
 
         /// <summary>Подъезд стены на дорожке пары, с.</summary>
-        public float ApproachSeconds(int wall) =>
-            wallApproachSeconds != null && wall >= 0 && wall < wallApproachSeconds.Length
-                ? Mathf.Max(0.01f, wallApproachSeconds[wall])
-                : 0.01f;
+        public float ApproachSeconds(int wall)
+        {
+            if (wall < 0 || wall >= WallCount) return .01f;
+            // Preserve configured speeds when they fit. An over-budget edit compresses
+            // every approach equally, preserving acceleration instead of overrunning HUD.
+            if (WallCount == 1) return ScheduleLength;
+            return Mathf.Max(.01f, wallApproachSeconds[wall]) * Mathf.Min(1f, ScheduleLength / RawApproachTotal);
+        }
 
         /// <summary>
         /// Подъезд стены на дорожке одиночки: короче на ту же долю, на какую
@@ -349,12 +368,13 @@ namespace Igruha.Minigames.HoleInWall
         /// </summary>
         public float HitTime(int wall)
         {
+            if (WallCount > 0 && wall >= WallCount - 1) return ScheduleLength;
             float time = 0f;
             for (int i = 0; i <= wall && i < WallCount; i++)
             {
                 if (i > 0)
                 {
-                    time += pauseAfterHit;
+                    time += PauseAfterHit;
                 }
 
                 time += ApproachSeconds(i);
@@ -409,11 +429,16 @@ namespace Igruha.Minigames.HoleInWall
 
             return wall < WallCount - 1
                 ? StartTime(wall + 1, false) - StartTime(wall, false)
-                : HitTime(wall) + roundEndDelay - StartTime(wall, false);
+                : RoundLength - StartTime(wall, false);
         }
 
-        /// <summary>Вся игровая часть раунда, с: от старта первой стены до конца после последнего удара.</summary>
-        public float RoundLength => WallCount > 0 ? HitTime(WallCount - 1) + roundEndDelay : 0f;
+        /// <summary>Единственный источник длительности: на этой отметке таймер доходит до нуля и показываются итоги.</summary>
+        public float RoundLength => WallCount > 0 && definition != null ? Mathf.Max(.01f, definition.RoundDuration) : 0f;
+
+        public float FinalPayoffSeconds => Mathf.Max(fallSeconds, finalPayoffSeconds);
+
+        /// <summary>Последняя стена бьёт раньше конца минуты на развязку, чтобы исход успел отыграть до итогов.</summary>
+        public float ScheduleLength => RoundLength > 0f ? Mathf.Max(.01f, RoundLength - FinalPayoffSeconds) : 0f;
 
         // ========== ПРОВАЛ ==========
 
@@ -501,7 +526,7 @@ namespace Igruha.Minigames.HoleInWall
             float hit = NextHitTime(elapsed, floor);
             if (hit < 0f)
             {
-                // Удары кончились: держит только RoundEndDelay, спешить некуда.
+                // Подходящих ударов больше нет; конец раунда отменит возврат.
                 return ceiling;
             }
 
