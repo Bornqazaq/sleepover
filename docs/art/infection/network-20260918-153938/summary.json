@@ -1,0 +1,26 @@
+{
+  "passed": true,
+  "errors": [],
+  "peers": [
+    {
+      "peer": "client-1-probe",
+      "results": "0:1,1:1,2:4,3:3",
+      "performance": "PERF meanMs=32.84 frames=1198 splashFrames=36 tubeFrames=395"
+    },
+    {
+      "peer": "client-2-probe",
+      "results": "0:1,1:1,2:4,3:3",
+      "performance": "PERF meanMs=16.80 frames=2342 splashFrames=81 tubeFrames=571"
+    },
+    {
+      "peer": "client-3-probe",
+      "results": "0:1,1:1,2:4,3:3",
+      "performance": "PERF meanMs=16.80 frames=2342 splashFrames=82 tubeFrames=571"
+    },
+    {
+      "peer": "host-probe",
+      "results": "0:1,1:1,2:4,3:3",
+      "performance": "PERF meanMs=24.47 frames=1608 splashFrames=54 tubeFrames=377"
+    }
+  ]
+}

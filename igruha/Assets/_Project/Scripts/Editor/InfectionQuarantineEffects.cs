@@ -19,24 +19,36 @@ namespace Igruha.EditorTools
         }
         internal static void Build(Transform root)
         {
+            string pipelinePath=Art+"/InfectionLighting.asset";
+            var pipeline=AssetDatabase.LoadAssetAtPath<UniversalRenderPipelineAsset>(pipelinePath);
+            if(pipeline==null)
+            {
+                pipeline=Object.Instantiate(GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset);
+                pipeline.name="InfectionLighting";AssetDatabase.CreateAsset(pipeline,pipelinePath);
+            }
+            pipeline.shadowDistance=85;pipeline.mainLightShadowmapResolution=4096;
+            EditorUtility.SetDirty(pipeline);
+            var lighting=Group("SceneLighting",root).gameObject.AddComponent<Igruha.Minigames.Infection.InfectionSceneLighting>();
+            var serializedLighting=new SerializedObject(lighting);serializedLighting.FindProperty("pipeline").objectReferenceValue=pipeline;
+            serializedLighting.ApplyModifiedPropertiesWithoutUndo();
             foreach(var light in Object.FindObjectsByType<Light>(FindObjectsSortMode.None))light.enabled=false;
             var sun=new GameObject("DustSun").AddComponent<Light>();sun.transform.SetParent(root,false);
-            sun.type=LightType.Directional;sun.transform.rotation=Quaternion.Euler(46,-38,0);
-            sun.color=new Color(1,.87f,.66f);sun.intensity=1.8f;sun.shadows=LightShadows.Soft;
-            sun.shadowBias=.035f;sun.shadowNormalBias=.22f;RenderSettings.sun=sun;
-            RenderSettings.ambientMode=AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor=new Color(.66f,.61f,.51f);
-            RenderSettings.ambientEquatorColor=new Color(.48f,.44f,.37f);
-            RenderSettings.ambientGroundColor=new Color(.21f,.19f,.16f);
+            sun.type=LightType.Directional;sun.transform.rotation=Quaternion.Euler(30,-36,0);
+            sun.color=new Color(1,.87f,.66f);sun.intensity=2.5f;sun.shadows=LightShadows.Soft;
+            sun.shadowBias=.018f;sun.shadowNormalBias=.12f;RenderSettings.sun=sun;
+            RenderSettings.ambientMode=AmbientMode.Custom;
+            RenderSettings.ambientSkyColor=new Color(.45f,.50f,.57f);
+            RenderSettings.ambientEquatorColor=new Color(.28f,.32f,.39f);
+            RenderSettings.ambientGroundColor=new Color(.10f,.105f,.12f);
             RenderSettings.fog=true;RenderSettings.fogMode=FogMode.ExponentialSquared;
-            RenderSettings.fogColor=new Color(.61f,.55f,.45f);RenderSettings.fogDensity=.011f;
+            RenderSettings.fogColor=new Color(.57f,.53f,.46f);RenderSettings.fogDensity=.012f;
             string skyPath=Art+"/Materials/DustSky.mat";
             var sky=AssetDatabase.LoadAssetAtPath<Material>(skyPath);
             if(sky==null){sky=new Material(Shader.Find("Skybox/Procedural"));AssetDatabase.CreateAsset(sky,skyPath);}
             sky.SetColor("_SkyTint",new Color(.63f,.51f,.35f));sky.SetColor("_GroundColor",RenderSettings.fogColor);
             sky.SetFloat("_AtmosphereThickness",1.8f);sky.SetFloat("_Exposure",.8f);sky.SetFloat("_SunSize",.035f);
-            RenderSettings.skybox=sky;EditorUtility.SetDirty(sky);DynamicGI.UpdateEnvironment();
-            var probe=new SphericalHarmonicsL2();probe.AddAmbientLight(new Color(.45f,.40f,.32f));RenderSettings.ambientProbe=probe;
+            RenderSettings.skybox=sky;EditorUtility.SetDirty(sky);
+            var probe=new SphericalHarmonicsL2();probe.AddAmbientLight(new Color(.27f,.32f,.39f));RenderSettings.ambientProbe=probe;
             foreach(var volume in Object.FindObjectsByType<Volume>(FindObjectsSortMode.None))volume.enabled=false;
             string profilePath=Art+"/DustVolume.asset";
             var profile=AssetDatabase.LoadAssetAtPath<VolumeProfile>(profilePath);
@@ -44,7 +56,7 @@ namespace Igruha.EditorTools
             if(!profile.TryGet<Bloom>(out var bloom)){bloom=profile.Add<Bloom>();AssetDatabase.AddObjectToAsset(bloom,profile);}
             bloom.threshold.Override(1.1f);bloom.intensity.Override(.24f);bloom.scatter.Override(.62f);
             if(!profile.TryGet<ColorAdjustments>(out var grade)){grade=profile.Add<ColorAdjustments>();AssetDatabase.AddObjectToAsset(grade,profile);}
-            grade.contrast.Override(8);grade.saturation.Override(-6);grade.postExposure.Override(.18f);
+            grade.contrast.Override(13);grade.saturation.Override(-6);grade.postExposure.Override(.05f);
             if(!profile.TryGet<Tonemapping>(out var tone)){tone=profile.Add<Tonemapping>();AssetDatabase.AddObjectToAsset(tone,profile);}
             tone.mode.Override(TonemappingMode.ACES);
             var v=Group("QuarantineVolume",root).gameObject.AddComponent<Volume>();v.isGlobal=true;v.priority=30;v.sharedProfile=profile;
@@ -56,14 +68,14 @@ namespace Igruha.EditorTools
                 data.renderPostProcessing=true;
             }
             var effects=Group("SmokeFireDust",root);
-            Fire(effects,new Vector3(28,1.1f,28),2.1f,21);
-            Fire(effects,new Vector3(-31,.8f,14),1.4f,48);
-            Fire(effects,new Vector3(12,.8f,-28),1.2f,62);
-            Fire(effects,new Vector3(-21,0,22),.8f,91);
+            Fire(effects,new Vector3(21,1.2f,20),2.5f,21);
+            Fire(effects,new Vector3(-23,.8f,-1),1.6f,48);
+            Fire(effects,new Vector3(13,.8f,-23),1.4f,62);
+            Fire(effects,new Vector3(-5,0,20),.8f,91);
             // Low drifting haze stays around the outer street; no opaque layer at player eye height.
             for(int i=0;i<4;i++)
             {
-                var p=Particles(effects,"StreetDust",new Vector3(-26+i*17,.2f,23),10,.13f,1.1f,18,100+i);
+                var p=Particles(effects,"StreetDust",new Vector3(-18+i*12,.2f,19),10,.13f,1.1f,18,100+i);
                 var main=p.main;main.startSize=new ParticleSystem.MinMaxCurve(3,6);
                 var shape=p.shape;shape.shapeType=ParticleSystemShapeType.Box;shape.scale=new Vector3(14,.2f,2);
                 var vel=p.velocityOverLifetime;vel.enabled=true;vel.x=.5f;vel.y=.06f;
@@ -105,7 +117,7 @@ namespace Igruha.EditorTools
             var p=go.gameObject.AddComponent<ParticleSystem>();p.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);
             var main=p.main;main.loop=true;main.prewarm=true;main.duration=12;main.startLifetime=new ParticleSystem.MinMaxCurve(life*.8f,life);
             main.startSpeed=new ParticleSystem.MinMaxCurve(speed*.6f,speed);main.maxParticles=max;main.playOnAwake=true;
-            main.simulationSpace=ParticleSystemSimulationSpace.World;
+            main.simulationSpace=ParticleSystemSimulationSpace.World;main.scalingMode=ParticleSystemScalingMode.Hierarchy;
             var emission=p.emission;emission.rateOverTime=rate;
             var shape=p.shape;shape.shapeType=ParticleSystemShapeType.Cone;shape.angle=12;shape.radius=.55f;
             p.useAutoRandomSeed=false;p.randomSeed=(uint)seed;

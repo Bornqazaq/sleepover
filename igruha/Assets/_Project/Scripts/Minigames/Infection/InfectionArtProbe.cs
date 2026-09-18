@@ -27,6 +27,8 @@ namespace Igruha.Minigames.Infection
         private int previousPhase=-1,frames,splashFrames,tubeFrames;
         private double frameTime;
         private bool capturedInfection;
+        private float maxHeight;
+        private int routeStage = -1;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void Register()
         {
@@ -73,18 +75,26 @@ namespace Igruha.Minigames.Infection
                     if(bot!=null)bot.Stop();
                     var results=(MinigameResults)typeof(MinigameControllerBase).GetField("results",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(game);
                     Write("RESULTS="+string.Join(",",results.Entries.OrderBy(x=>x.PlayerId).Select(x=>x.PlayerId+":"+x.Place)));
+                    Write("LIGHTING pipeline="+UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline.name+" post="+(Camera.main!=null&&Camera.main.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>().renderPostProcessing)+" maxHeight="+maxHeight.ToString("F2"));
                     Write("PERF meanMs="+(frameTime/Math.Max(1,frames)*1000).ToString("F2")+" frames="+frames+" splashFrames="+splashFrames+" tubeFrames="+tubeFrames);
                 }
             }
             if(game.Phase!=MinigamePhase.Round)return;
             frames++;frameTime+=Time.unscaledDeltaTime;
+            if(local!=null)maxHeight=Mathf.Max(maxHeight,local.Position.y);
             foreach(var p in particles)if(p!=null&&p.name=="Splash"&&p.particleCount>0){splashFrames++;break;}
             foreach(var shell in shells)if(shell.Occupied){tubeFrames++;break;}
             if(local!=null)
             {
                 float elapsed=Time.time-roundStarted;
-                Vector3 target=elapsed<12?new Vector3(-20,0,-4):elapsed<23?new Vector3(0,.4f,0):elapsed<36?new Vector3(13,0,10):new Vector3(6,0,0);
+                int lane=(int)(NetworkManager.Singleton.LocalClientId%4);
+                string propName=lane==0?"Tubes/Tube_West":lane==1?"Climber":lane==2?"Swings":"Slide";
+                var prop=GameObject.Find("_Arena").transform.Find(propName);
+                int stage=elapsed<12?0:elapsed<24?1:elapsed<32?2:3;
+                Vector3 point=lane==3 ? (stage==0?new Vector3(0,0,7.2f):stage==1?new Vector3(0,3,1.5f):new Vector3(0,0,-4)) : new Vector3(0,0,stage==0?-4:stage==1?4:0);
+                Vector3 target=stage==3?new Vector3(0,.4f,.5f):prop.TransformPoint(point);
                 bot.SetTarget(target);
+                if(stage!=routeStage){routeStage=stage;Write("ROUTE="+propName+" stage="+stage+" maxHeight="+maxHeight.ToString("F2"));Capture("route-"+stage);}
             }
             if(Time.unscaledTime<nextSample)return;
             nextSample=Time.unscaledTime+2;
