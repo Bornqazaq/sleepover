@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using Igruha.Core.Minigame;
+using Igruha.Core.CameraSystems;
 using Igruha.Core.Session;
 
 namespace Igruha.Core.UI
@@ -27,6 +28,7 @@ namespace Igruha.Core.UI
         [SerializeField] private TMP_Text statusText;
         [Tooltip("Кнопка «ещё раз» на экране результатов. Не назначена — кнопки просто нет, остальные сцены править не надо")]
         [SerializeField] private Button restartButton;
+        [SerializeField] private ThirdPersonCameraRig resultsCamera;
 
         [Header("Итоги строками")]
         [Tooltip("Готовые строки мест. Пусто — итоги показываются одним текстом, как раньше")]
@@ -46,6 +48,7 @@ namespace Igruha.Core.UI
         /// </summary>
         public event Action RestartRequested;
 
+        private readonly PanelCursor resultsCursor = new PanelCursor();
         private RoundTimer timer;
         private int lastShownSeconds = -1;
         private int lastShownCountdown = -1;
@@ -57,6 +60,10 @@ namespace Igruha.Core.UI
         {
             if (restartButton != null)
             {
+                // Некоторые сохранённые HUD собраны как декоративные Image.
+                // Кнопке обязательно нужна принимающая указатель поверхность.
+                if (restartButton.targetGraphic != null)
+                    restartButton.targetGraphic.raycastTarget = true;
                 restartButton.onClick.AddListener(RaiseRestart);
                 restartButton.gameObject.SetActive(false);
             }
@@ -70,7 +77,16 @@ namespace Igruha.Core.UI
             }
         }
 
-        private void RaiseRestart() => RestartRequested?.Invoke();
+        private void OnDisable()
+        {
+            resultsCursor.Restore();
+            resultsCamera?.SetLookSuspended(false);
+        }
+
+        private void RaiseRestart()
+        {
+            if (restartAllowed) RestartRequested?.Invoke();
+        }
 
         /// <summary>
         /// Разрешить или запретить кнопку до показа результатов. Мёртвая кнопка
@@ -83,6 +99,8 @@ namespace Igruha.Core.UI
 
         public void Bind(RoundTimer roundTimer)
         {
+            resultsCursor.Restore();
+            resultsCamera?.SetLookSuspended(false);
             timer = roundTimer;
             if (resultsPanel != null)
             {
@@ -218,6 +236,8 @@ namespace Igruha.Core.UI
             }
 
             resultsPanel.SetActive(true);
+            resultsCursor.Release();
+            resultsCamera?.SetLookSuspended(true);
 
             if (restartButton != null)
             {

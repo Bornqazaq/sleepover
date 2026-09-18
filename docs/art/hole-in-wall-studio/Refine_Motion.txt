@@ -1,0 +1,13 @@
+Editor host + seven clients; first round sampled every >= 0.05 s.
+Water surface -2.88 m; pool bottom -5.04 m; rubber deck top +0.034 m.
+Player 0: 1088 samples, 318 near bottom, 195 on deck; final Results feetY=0.0340.
+Player 1: 1088 samples, 343 near bottom, 169 on deck; final Results feetY=0.0340.
+Player 2: 1088 samples, 329 near bottom, 181 on deck; final Results feetY=0.0340.
+Player 3: 1088 samples, 330 near bottom, 182 on deck; final Results feetY=0.0340.
+Player 4: 1088 samples, 295 near bottom, 220 on deck; final Results feetY=0.0340.
+Player 5: 1088 samples, 310 near bottom, 194 on deck; final Results feetY=0.0340.
+Player 6: 1088 samples, 358 near bottom, 124 on deck; final Results feetY=0.0340.
+Player 7: 1088 samples, 359 near bottom, 147 on deck; final Results feetY=0.0340.
+Editor transport reported receive queue overflow during instrumentation; standalone verification recorded separately.
+EventSystem raycast: RestartButton first hit; pointerClickHandler accepted; NGO same-scene replay started for eight players.
+All four recorded result sequences equal across host and seven clients.

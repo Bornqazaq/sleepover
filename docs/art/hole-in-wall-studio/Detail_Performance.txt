@@ -1,0 +1,4 @@
+Editor Game View 3840x2160, same saved camera, 1 s warm-up + 6 s repaint samples.
+Before: samples=466 medianSeconds=0.01279454 batches=2094 tris=1055471 verts=1221954
+After: samples=421 medianSeconds=0.01410312 batches=2413 tris=1575237 verts=1945014
+This is an Editor comparison, not standalone/Windows/8-player FPS.

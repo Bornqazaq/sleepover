@@ -43,6 +43,7 @@ namespace Igruha.Core.Minigame
         /// До этого применять сетевую фазу нельзя, см. <see cref="ApplyPhase"/>.
         /// </summary>
         private bool playersReady;
+        private bool restartPending;
 
         /// <summary>Фаза, приехавшая из сети раньше состава. Ждёт <see cref="StartMinigame"/>.</summary>
         private MinigamePhase pendingPhase;
@@ -67,6 +68,8 @@ namespace Igruha.Core.Minigame
         protected IReadOnlyList<SessionPlayer> Players => playerList;
         protected bool RoundActive => phase == MinigamePhase.Round;
         protected RoundTimer Timer => roundTimer;
+        /// <summary>Длительность таймера: игра с расписанием может вычислять её из своего конфига.</summary>
+        protected virtual float RoundDuration => definition != null ? definition.RoundDuration : 0f;
         /// <summary>HUD раунда — играм со стартовым отсчётом и своими строками статуса.</summary>
         protected RoundHud Hud => hud;
 
@@ -327,7 +330,7 @@ namespace Igruha.Core.Minigame
 
             if (HasAuthority && roundTimer != null && definition != null)
             {
-                roundTimer.StartTimer(definition.RoundDuration);
+                roundTimer.StartTimer(RoundDuration);
             }
 
             OnRoundStarted();
@@ -478,18 +481,18 @@ namespace Igruha.Core.Minigame
         /// </summary>
         private void HandleRestartRequested()
         {
-            if (!HasAuthority || PartySeries.Active)
+            if (!HasAuthority || PartySeries.Active || phase != MinigamePhase.Results || restartPending)
             {
                 return;
             }
-
-            StopAllCoroutines();
 
             string sceneName = gameObject.scene.name;
             NetworkManager network = NetworkManager.Singleton;
 
             if (network == null || !network.IsListening)
             {
+                restartPending = true;
+                StopAllCoroutines();
                 SceneManager.LoadScene(sceneName);
                 return;
             }
@@ -509,7 +512,12 @@ namespace Igruha.Core.Minigame
             if (status != SceneEventProgressStatus.Started)
             {
                 Debug.LogError($"{name}: NGO не смог перезапустить '{sceneName}': {status}", this);
+                return;
             }
+
+            restartPending = true;
+            StopAllCoroutines();
+            Debug.Log($"{name}: повторный раунд '{sceneName}' запущен для всей сессии");
         }
 
         private void SetPlayersControlEnabled(bool enabled)
