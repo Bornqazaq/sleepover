@@ -475,6 +475,7 @@ namespace Igruha.EditorTools
             AssignArray(so, "seatBubbles", bubbles);
             AssignArray(so, "boxes", boxes);
             so.FindProperty("boxOffset").floatValue = config.BoxOffset;
+            so.FindProperty("boxSideOffset").floatValue = config.BoxSideOffset;
             so.FindProperty("boxHeight").floatValue = config.TableHeight + config.BoxSize * 0.5f;
             so.ApplyModifiedPropertiesWithoutUndo();
 
@@ -492,7 +493,9 @@ namespace Igruha.EditorTools
             var root = new GameObject($"Box_{seat}");
             root.transform.SetParent(parent, false);
             root.transform.localPosition =
-                SeatDirection(seat) * config.BoxOffset + Vector3.up * (config.TableHeight + size * 0.5f);
+                SeatDirection(seat) * config.BoxOffset +
+                Vector3.Cross(Vector3.up, SeatDirection(seat)) * config.BoxSideOffset +
+                Vector3.up * (config.TableHeight + size * 0.5f);
             root.transform.localRotation = Quaternion.LookRotation(-SeatDirection(seat), Vector3.up);
 
             var boxColor = new Color(0.34f, 0.22f, 0.12f);

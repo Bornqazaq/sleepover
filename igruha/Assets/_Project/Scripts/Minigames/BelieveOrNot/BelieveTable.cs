@@ -67,20 +67,26 @@ namespace Igruha.Minigames.BelieveOrNot
                 return transform.position;
             }
 
-            return transform.position + toSeat.normalized * boxOffset + Vector3.up * boxHeight;
+            Vector3 forward = toSeat.normalized;
+            Vector3 side = Vector3.Cross(Vector3.up, forward);
+            return transform.position + forward * boxOffset + side * boxSideOffset + Vector3.up * boxHeight;
         }
 
         [Header("Раскладка коробок")]
         [Tooltip("Смещение коробки от центра стола к своему владельцу, метры. Ставит билдер из конфига")]
         [SerializeField] private float boxOffset = 0.72f;
 
+        [Tooltip("Зеркальный боковой сдвиг, метры. Ставит билдер из конфига")]
+        [SerializeField] private float boxSideOffset;
+
         [Tooltip("Высота центра коробки над центром стола, метры. Ставит билдер из конфига")]
         [SerializeField] private float boxHeight = 1.01f;
 
         /// <summary>Задать раскладку из конфига — зовёт билдер сцены.</summary>
-        public void ConfigureLayout(float offsetMeters, float heightMeters)
+        public void ConfigureLayout(float offsetMeters, float heightMeters, float sideOffsetMeters)
         {
             boxOffset = offsetMeters;
+            boxSideOffset = sideOffsetMeters;
             boxHeight = heightMeters;
         }
 

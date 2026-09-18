@@ -38,6 +38,7 @@ MonoBehaviour:
   spawnRingRadius: 6
   boxSize: 0.8
   boxOffset: 0.55
+  boxSideOffset: 0.25
   lampHeight: 3.5
   seatCameraBack: 0.19
   seatCameraSide: 0.83

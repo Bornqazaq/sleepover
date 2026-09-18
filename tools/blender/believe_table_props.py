@@ -50,10 +50,11 @@ n=1024;y,x=np.mgrid[0:n,0:n]/n
 fine=np.sin(x*math.tau*377+y*math.tau*137)*np.sin(y*math.tau*293-x*19)
 grain=.014*np.sin(y*math.tau*29+1.7*np.sin(x*math.tau*2))+.006*np.sin(y*math.tau*93+np.sin(x*math.tau*3))+.004*fine
 wood=rgba(np.stack([.28+grain,.16+grain*.55,.10+grain*.33],axis=-1))
+wood[:,int(n*.375):int(n*.75),:3]=np.stack([.70+grain[:,int(n*.375):int(n*.75)],.405+grain[:,int(n*.375):int(n*.75)]*.65,.235+grain[:,int(n*.375):int(n*.75)]*.4],axis=-1)
 wood[:,int(n*.75):int(n*.80),:3]=(.16,.065,.038)
 wood[:,int(n*.80):,:3]=(.66,.43,.18)
 texture('BTP_Casket',wood)
-mask=np.zeros((n,n,4));mask[:,:,3]=.34+.025*fine
+mask=np.zeros((n,n,4));mask[:,:,3]=.15
 mask[:,int(n*.75):int(n*.80),3]=.15
 mask[:,int(n*.80):,0]=.72;mask[:,int(n*.80):,3]=.72
 texture('BTP_CasketMetalSmooth',mask)
@@ -94,7 +95,8 @@ def finish(o,mat,region=None):
             elif mat=='Casket':
                 if region=='brass':u,v=.9,.5
                 elif region=='lining':u,v=.775,.5
-                else:u,v=.06+(u+.36)*.9,.12+(v+.36)*.85
+                elif region=='wall':u,v=.40+(u+.36)*.43,.12+(v+.36)*.85
+                else:u,v=.025+(u+.36)*.43,.12+(v+.36)*.85
             uv.data[li].uv=(u,v)
     parts.append(o);return o
 
@@ -148,6 +150,13 @@ def module(name,pivot=(0,0,0)):
     bpy.context.view_layer.objects.active=parts[0];bpy.ops.object.join();o=bpy.context.object;o.name='BTP_'+name
     bpy.ops.object.transform_apply(location=False,rotation=True,scale=True)
     scene.cursor.location=pivot;bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
+    if name in ('TableTop','TablePedestal'):
+        uv=o.data.uv_layers.active
+        for poly in o.data.polygons:
+            if o.data.materials[poly.material_index]!=materials['Walnut']:continue
+            for li in poly.loop_indices:
+                u,v=uv.data[li].uv
+                uv.data[li].uv=(.03+(u+1.45)/2.90*.94,.03+(v+1.45)/2.90*.94)
     # Weld duplicate material slots to one submesh per material, including all casket hardware.
     slots=list(o.data.materials);unique=[]
     for m in slots:
@@ -167,6 +176,7 @@ def module(name,pivot=(0,0,0)):
 lathe([(1.29,.596),(1.385,.596),(1.423,.613),(1.439,.639),(1.440,.695),(1.430,.720),(1.410,.738),(1.368,.746),(1.332,.738),(1.307,.727),(1.298,.719),(1.29,.709),(1.29,.596)],'Walnut')
 lathe([(1.297,.716),(1.293,.720),(1.280,.721),(0,.721)],'Felt')
 lathe(list(reversed([(1.28,.603),(1.305,.59),(1.302,.57),(1.282,.558),(1.245,.551),(1.23,.540),(1.228,.531),(1.21,.523),(1.195,.532),(1.195,.604)])),'Walnut')
+tabletop=module('TableTop')
 # Carved baluster and shaped cross feet; broad enough to support a 2.88 m top.
 lathe([(0,.08),(.24,.08),(.255,.095),(.253,.125),(.218,.15),(.182,.172),(.165,.21),(.146,.26),(.127,.305),(.126,.34),(.145,.36),(.181,.382),(.192,.411),(.187,.449),(.16,.471),(.133,.48),(.123,.496),(.129,.512),(.175,.526),(.218,.546),(.254,.59),(0,.60)],'Walnut',128,True)
 for k in range(4):
@@ -181,18 +191,25 @@ for k in range(4):
     o=mesh('Carved cross foot',verts,faces,'Walnut',False)
     bpy.context.view_layer.objects.active=o;m=o.modifiers.new('Soft carved corners','BEVEL');m.width=.025;m.segments=4;bpy.ops.object.modifier_apply(modifier=m.name)
     m=o.modifiers.new('Foot normals','WEIGHTED_NORMAL');bpy.ops.object.modifier_apply(modifier=m.name)
-module('RoundTable')
+pedestal=module('TablePedestal')
+assert len(pedestal.data.materials)==1 and pedestal.data.materials[0]==materials['Walnut']
+modules.remove(tabletop);modules.remove(pedestal)
+table=bpy.data.objects.new('BTP_RoundTable',None);scene.collection.objects.link(table)
+tabletop.parent=table;pedestal.parent=table;modules.append(table)
 
 # Mahogany casket: hollow body, single material atlas; hinge line runs along Blender Y / Unity Z.
 W=.432;D=.500;H=.135;T=.020
 box((0,0,.011),(W,D,.022),'Casket',.007)
 for s in (-1,1):
-    box((s*(W-T)/2,0,H/2),(T,D,H),'Casket',.004)
-    box((0,s*(D-T)/2,H/2),(W-2*T,T,H),'Casket',.004)
+    box((s*(W-T)/2,0,H/2),(T,D,H),'Casket',.009,'wall')
+    box((0,s*(D-T)/2,H/2),(W-2*T,T,H),'Casket',.009,'wall')
 box((0,0,.027),(W-2*T-.002,D-2*T-.002,.006),'Casket',.002,'lining')
 # Subtle lower bead; no individual marks or unique scuffs.
 for sy in (-1,1):box((0,sy*(D/2+.001),.025),(W-.016,.004,.009),'Casket',.001)
 for sx in (-1,1):box((sx*(W/2+.001),0,.025),(.004,D-.008,.009),'Casket',.001)
+# A narrow rounded brass foot rail catches grazing light on all four sides.
+for sy in (-1,1):box((0,sy*(D/2+.003),.024),(W+.012,.014,.014),'Casket',.006,'brass')
+for sx in (-1,1):box((sx*(W/2+.003),0,.024),(.014,D+.012,.014),'Casket',.006,'brass')
 # Brass clasp opposite the hinge, two hinge leaves and barrel knuckles.
 box((-W/2-.004,0,.109),(.011,.057,.050),'Casket',.006,'brass')
 box((-W/2-.011,0,.109),(.01,.022,.029),'Casket',.004,'brass')
@@ -237,13 +254,15 @@ module('BarrelChair')
 # Store only this kit scene; never save unrelated Blender scenes into the asset.
 def export(o):
     bpy.ops.object.select_all(action='DESELECT');o.select_set(True);bpy.context.view_layer.objects.active=o
+    for child in o.children_recursive:child.select_set(True)
     # Location is pivot metadata; zero object position on export while retaining local hinged geometry.
     loc=o.location.copy();o.location=(0,0,0)
-    bpy.ops.export_scene.fbx(filepath=str(ART/'Models'/(o.name+'.fbx')),use_selection=True,object_types={'MESH'},axis_forward='-Z',axis_up='Y',global_scale=1,apply_unit_scale=True,bake_anim=False,add_leaf_bones=False,use_mesh_modifiers=True)
+    bpy.ops.export_scene.fbx(filepath=str(ART/'Models'/(o.name+'.fbx')),use_selection=True,object_types={'MESH','EMPTY'},axis_forward='-Z',axis_up='Y',global_scale=1,apply_unit_scale=True,bake_anim=False,add_leaf_bones=False,use_mesh_modifiers=True)
     o.location=loc
 export(modules[0])
 if globals().get('BTP_EXPORT_ALL',False):
-    for o in modules[1:]:export(o)
+    for o in modules[1:]:
+        if o.name in globals().get('BTP_EXPORT_MODELS',[m.name for m in modules]):export(o)
 bpy.data.libraries.write(str(SOURCE/'BelieveTableProps.blend'),{scene},fake_user=True,compress=True,path_remap='RELATIVE')
-print('Hero props:',[(o.name,len(o.data.polygons),len(o.data.materials)) for o in modules])
+print('Hero props:',[(o.name,sum(len(c.data.polygons) for c in [o]+list(o.children_recursive) if c.type=='MESH')) for o in modules])
 bpy.context.window.scene=previous

@@ -27,6 +27,7 @@ namespace Igruha.EditorTools
             if (table == null || configs.Length != 1) throw new InvalidOperationException("Missing table or unique config.");
             var config = AssetDatabase.LoadAssetAtPath<BelieveOrNotConfig>(AssetDatabase.GUIDToAssetPath(configs[0]));
             BelieveTablePropsAssets.Prepare();
+            table.ConfigureLayout(config.BoxOffset, config.TableHeight + config.BoxSize * .5f, config.BoxSideOffset);
             DressTable(table.transform.Find("TableTop").gameObject, config);
             for (int i = 0; i < BelieveTable.SeatCount; i++)
             {
@@ -35,6 +36,7 @@ namespace Igruha.EditorTools
                 direction.y = 0;
                 DressChair(table.transform.Find("Chair_" + i).gameObject, direction.normalized, direction.magnitude);
                 var box = table.GetBox(i);
+                box.transform.position = table.GetBoxPosition(i);
                 DressBox(box, box.transform.Find("Body").gameObject, box.transform.Find("LidHinge"),
                     box.transform.Find("LidHinge/Lid").gameObject, config.BoxSize);
             }

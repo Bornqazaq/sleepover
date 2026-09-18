@@ -88,6 +88,8 @@ namespace Igruha.Minigames.BelieveOrNot
         [Tooltip("Смещение коробки от центра стола к своему владельцу. Держать близко к центру: " +
                  "разнесённые по краям коробки не влезают в один кадр вместе с лицом оппонента")]
         [SerializeField] private float boxOffset = 0.55f;
+        [Tooltip("Зеркальный боковой сдвиг коробок, ШП: 0.25 = 0.18 м. Пара остаётся симметричной вокруг центра стола")]
+        [SerializeField] private float boxSideOffset = 0.25f;
         [SerializeField] private float lampHeight = 3.5f;
 
         [Header("Камера сидящего")]
@@ -160,6 +162,7 @@ namespace Igruha.Minigames.BelieveOrNot
         public float SpawnRingRadius => spawnRingRadius * unitsPerWidth;
         public float BoxSize => boxSize * unitsPerWidth;
         public float BoxOffset => boxOffset * unitsPerWidth;
+        public float BoxSideOffset => boxSideOffset * unitsPerWidth;
         public float LampHeight => lampHeight * unitsPerWidth;
 
         public float SeatCameraBack => seatCameraBack * unitsPerWidth;
