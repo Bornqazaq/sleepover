@@ -28,7 +28,8 @@ namespace Igruha.EditorTools
         private const float FloorHeight = 5.4f;
         private const float StreetY = -54f;
         private const float RouteZ = 5.04f;
-        private const float TankX = 20.16f;
+        /// <summary>Центр бака: у дальнего края зоны баков (билдер, TankInsetX), не в середине.</summary>
+        private const float TankX = 23.04f;
         private const int CitySeed = 537;
 
         /// <summary>Сторона одной планарной UV-плитки набора: разметка ставится за угол, не за центр.</summary>
@@ -187,7 +188,9 @@ namespace Igruha.EditorTools
             Place(root, "SiteCabin", new Vector3(-24.4f, 0, 0), 90);
             Place(root, "Generator", new Vector3(22.3f, 0, -11.1f), 15);
             Place(root, "Mixer", new Vector3(-18.2f, 0, 12.25f), -30);
-            Place(root, "Wheelbarrow", new Vector3(-20, 0, -8.7f), 115);
+            // Не у штабеля: там станции хватания и забежка болванок, тачка
+            // впритык к ящику гнала их в обход на шесть метров (стенд 18.09).
+            Place(root, "Wheelbarrow", new Vector3(-25.5f, 0, -0.6f), 115);
             Place(root, "Bench", new Vector3(-25.9f, 0, -4.6f), 0);
             Place(root, "WeldCart", new Vector3(-25.6f, 0, 4.9f), 160);
             Place(root, "GasCylinders", new Vector3(-26.3f, 0, -8.3f), 10);
@@ -204,7 +207,7 @@ namespace Igruha.EditorTools
 
         /// <summary>
         /// Бестелесное: разметка маршрутов цветом команд (два потока стрелок
-        /// пересекаются в горлышке — так и задумано), гирлянды над штабелями и
+        /// пересекаются в зоне баков — так и задумано), гирлянды над штабелями и
         /// у баков, шланги от баков, реквизит на верху непроходимых ядер, лужи.
         /// </summary>
         private static void BuildDecor(Transform root)
@@ -213,17 +216,24 @@ namespace Igruha.EditorTools
             {
                 bool teamA = sign > 0;
                 float s = sign;
-                // От штабеля к первой доске, через горлышко наискосок, ко второй доске и к баку.
+                // От штабеля к первой доске, по своей полосе горлышка, по второй
+                // доске на своей же стороне — и только в зоне баков по диагонали
+                // к своему баку на противоположной стороне: там потоки команд
+                // пересекаются на открытой площадке без ловушек.
                 Arrow(root, teamA, -17.6f, s * 7.6f, -s * 8);
                 Arrow(root, teamA, -15.3f, s * 5.6f, 0);
-                Arrow(root, teamA, -4.4f, s * 4.6f, -s * 28);
-                Arrow(root, teamA, 0.6f, s * 1.9f, -s * 38);
-                Arrow(root, teamA, 5.6f, -s * 1.7f, -s * 40);
-                Arrow(root, teamA, 8.2f, -s * 4.6f, -s * 12);
-                Arrow(root, teamA, 17.4f, -s * 5.1f, 0);
+                Arrow(root, teamA, -4.3f, s * 4.5f, -s * 30);
+                Arrow(root, teamA, -1.4f, s * 2.4f, 0);
+                Arrow(root, teamA, 3.0f, s * 2.2f, 0);
+                Arrow(root, teamA, 7.0f, s * 3.4f, s * 30);
+                Arrow(root, teamA, 10.0f, s * 5.0f, 0);
+                Arrow(root, teamA, 15.6f, s * 5.0f, 0);
+                Arrow(root, teamA, 18.6f, s * 3.0f, -s * 48);
+                Arrow(root, teamA, 20.1f, s * 0.2f, -s * 48);
+                Arrow(root, teamA, 21.5f, -s * 2.0f, -s * 48);
                 Place(root, teamA ? "BuntingA" : "BuntingB", new Vector3(-20.9f, 3.3f, s * 12.9f), 0, false);
                 Place(root, teamA ? "BuntingA" : "BuntingB", new Vector3(21.5f, 3.4f, -s * 9.8f), 0, false);
-                Place(root, "Hose", new Vector3(23.4f, 0, -s * 3.0f), s * 25, false);
+                Place(root, "Hose", new Vector3(25.3f, 0, -s * 2.6f), s * 25, false);
                 // На ядрах: недосягаемо, поэтому без коллизии.
                 Place(root, "Tarp", new Vector3(2.2f, 2.16f, s * 7.0f), s * 30, false);
                 Place(root, "RebarCage", new Vector3(3.3f, 2.16f, s * 10.2f), 0, false);

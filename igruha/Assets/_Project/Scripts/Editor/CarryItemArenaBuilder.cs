@@ -99,6 +99,16 @@ namespace Igruha.EditorTools
         /// </summary>
         private const float NeckLaneZ = 3f;
 
+        /// <summary>
+        /// Отступ бака от дальнего края его зоны, ШИ. Бак стоит у дальнего
+        /// края, а не в середине зоны: крест-накрест команда сходит со второй
+        /// доски и идёт к баку на противоположной стороне по диагонали, и чем
+        /// длиннее диагональ по X, тем она положе (≈62° вместо 76° из середины).
+        /// Пологая диагональ нужна и паре живых несущих на связи, и болванкам,
+        /// которые забегают на 3 м вперёд по прямой к цели.
+        /// </summary>
+        private const float TankInsetX = 1f;
+
         private const float FloorThickness = 1f;
         private const float PlankThickness = 0.4f;
         private const float WallThickness = 1f;
@@ -368,13 +378,15 @@ namespace Igruha.EditorTools
             // По доске на команду на каждой пропасти, по линии её маршрута.
             // К бортам не примыкают: вдоль доски камера отходит назад, и
             // упереться ей не во что (спека 3.3).
-            // Крест-накрест: у первой пропасти доска команды на стороне её штабеля,
-            // у второй — на стороне её бака. Полосы цвета команды по краям настила
-            // подсказывают «свою» доску, но никого не запирают: доски общие.
+            // Обе доски команды — на стороне её штабеля: до зоны баков команды
+            // идут параллельными полосами, а пересекаются уже в зоне баков
+            // (крест-накрест, см. BuildStacksAndTanks). Полосы цвета команды по
+            // краям настила подсказывают «свою» доску, но никого не запирают:
+            // доски общие.
             TeamStripes(Plank(group, config, ground, plank, "Plank_1_A", StartMaxX, CommonMinX, RouteZ - half, RouteZ + half), true);
             TeamStripes(Plank(group, config, ground, plank, "Plank_1_B", StartMaxX, CommonMinX, -RouteZ - half, -RouteZ + half), false);
-            TeamStripes(Plank(group, config, ground, plank, "Plank_2_A", CommonMaxX, TankMinX, -RouteZ - half, -RouteZ + half), true);
-            TeamStripes(Plank(group, config, ground, plank, "Plank_2_B", CommonMaxX, TankMinX, RouteZ - half, RouteZ + half), false);
+            TeamStripes(Plank(group, config, ground, plank, "Plank_2_A", CommonMaxX, TankMinX, RouteZ - half, RouteZ + half), true);
+            TeamStripes(Plank(group, config, ground, plank, "Plank_2_B", CommonMaxX, TankMinX, -RouteZ - half, -RouteZ + half), false);
         }
 
         /// <summary>
@@ -467,9 +479,15 @@ namespace Igruha.EditorTools
             // половины горлышка — то есть в проходе, но вне размаха.
             float neckZ = Mathf.Sign(routeZ) * NeckLaneZ;
 
-            // Маршруты крест-накрест: в горлышко команда входит по своей стороне,
-            // а выходит по противоположной — к доске и баку на той стороне.
-            // Обе команды пересекаются ровно в горлышке, где ходит балка.
+            // Крест-накрест: до зоны баков команда идёт по своей стороне — своя
+            // доска, своя полоса горлышка, своя вторая доска. Переход на чужую
+            // сторону — только в зоне баков: после последних ворот цель одна,
+            // сам бак на противоположной стороне, и болванка идёт к нему по
+            // прямой диагонали через открытую площадку. Переход раньше болванкам
+            // не по силам: ворота выбираются по X, и забежка на 3 м вперёд
+            // упирается в завал (переход перед горлышком) или в размах балки
+            // и тачку (переход в горлышке) — оба варианта на сетевом стенде
+            // давали 0:0.
             //
             // Ворота идут строго от штабеля к баку: обратный путь читается тем
             // же списком с конца.
@@ -478,9 +496,9 @@ namespace Igruha.EditorTools
                 MakeMarker(root.transform, config, "Plank1_Near", StartMaxX - 1.5f, routeZ),
                 MakeMarker(root.transform, config, "Plank1_Far", CommonMinX + 1.5f, routeZ),
                 MakeMarker(root.transform, config, "Neck_In", RubbleMinX - 2f, neckZ),
-                MakeMarker(root.transform, config, "Neck_Out", neckExitX, -neckZ),
-                MakeMarker(root.transform, config, "Plank2_Near", CommonMaxX - 1.5f, -routeZ),
-                MakeMarker(root.transform, config, "Plank2_Far", TankMinX + 1.5f, -routeZ)
+                MakeMarker(root.transform, config, "Neck_Out", neckExitX, neckZ),
+                MakeMarker(root.transform, config, "Plank2_Near", CommonMaxX - 1.5f, routeZ),
+                MakeMarker(root.transform, config, "Plank2_Far", TankMinX + 1.5f, routeZ)
             };
 
             root.AddComponent<CarryItemBotRoute>().SetWaypoints(points);
@@ -499,7 +517,7 @@ namespace Igruha.EditorTools
             Transform group = ResetGroup(root, "TeamProps");
 
             float stackX = (StartMinX + StartMaxX) * 0.5f - 3f;
-            float tankX = (TankMinX + TankMaxX) * 0.5f;
+            float tankX = TankMaxX - TankInsetX;
 
             // Stack sits beside the route. All four carrier stations and the camera approach stay clear.
             PlacePrefab(group, StackPrefabPath, "Stack_A", config, stackX, RouteZ + 5f, 0f);
@@ -507,8 +525,12 @@ namespace Igruha.EditorTools
             group.Find("Stack_A/BottleSpawn").localPosition = new Vector3(2f,0,-2f);
             group.Find("Stack_B/BottleSpawn").localPosition = new Vector3(2f,0,2f);
             // Крест-накрест (IGR-537): бак команды стоит на стороне, противоположной
-            // её штабелю. Тогда обе команды обязаны пересечься на общей площадке,
-            // а не идти параллельными дорожками, ни разу не встретившись.
+            // её штабелю, у дальнего края зоны баков. Обе доски команды — на её
+            // стороне, поэтому потоки пересекаются в зоне баков: сойдя со второй
+            // доски, команда идёт к баку по диагонали через чужой поток. Это
+            // единственное открытое место без ловушек: два первых варианта —
+            // переход в горлышке под балкой и переход перед горлышком у стены
+            // завала — на сетевом стенде давали 0:0 (спека, раздел 17).
             PlacePrefab(group, TankPrefabPath, "Tank_A", config, tankX, -RouteZ, 0f);
             PlacePrefab(group, TankPrefabPath, "Tank_B", config, tankX, RouteZ, 0f);
         }

@@ -190,19 +190,28 @@ namespace Igruha.EditorTools
             Physics.SyncTransforms();
             foreach(var route in Object.FindObjectsByType<CarryItemBotRoute>(FindObjectsSortMode.None))
             {
-                var points=new List<Transform>();
-                foreach(Transform child in route.transform)points.Add(child);
+                // The whole shuttle, not only the gates: pickup point → gates → tank.
+                // The cross-over leg from the last plank to the opposite tank has no gate of its own.
+                string side=route.name.EndsWith("_A")?"A":"B";
+                var tank=GameObject.Find("Tank_"+side)?.transform;
+                var spawn=GameObject.Find("Stack_"+side)?.transform.Find("BottleSpawn");
+                var points=new List<Vector3>();
+                if(spawn!=null)points.Add(spawn.position);
+                foreach(Transform child in route.transform)points.Add(child.position);
+                if(tank!=null)points.Add(tank.position);
                 for(int i=1;i<points.Count;i++)
                 {
-                    int steps=Mathf.CeilToInt(Vector3.Distance(points[i-1].position,points[i].position)/.15f);
+                    int steps=Mathf.CeilToInt(Vector3.Distance(points[i-1],points[i])/.15f);
                     for(int j=0;j<=steps;j++)
                     {
-                        Vector3 p=Vector3.Lerp(points[i-1].position,points[i].position,(float)j/steps);
+                        Vector3 p=Vector3.Lerp(points[i-1],points[i],(float)j/steps);
                         routeProbes++;
                         foreach(var c in Physics.OverlapCapsule(p+Vector3.up*.40f,p+Vector3.up*1.45f,.36f,mask,QueryTriggerInteraction.Ignore))
                         {
                             // Moving beam is an intentional timed obstacle; scenery must never block the lane.
                             if(c.name=="SwingingBeam")continue;
+                            // The destination tank ends the leg: only its own body may be touched.
+                            if(tank!=null&&c.transform.IsChildOf(tank))continue;
                             blocked++;blockers.Add(c.name);
                         }
                     }
