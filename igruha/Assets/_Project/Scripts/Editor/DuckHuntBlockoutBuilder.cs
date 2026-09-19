@@ -12,6 +12,12 @@ namespace Igruha.EditorTools
     {
         private static bool blockoutOnly = true;
 
+        /// <summary>
+        /// Конец фронтальной стены старта в ширинах персонажа. Закрывает проекцию
+        /// всех восьми спаунов с любой точки площадки лифта и с любой её высоты.
+        /// </summary>
+        private const float StartFrontWallEnd = 15f;
+
         [MenuItem("Igruha/Minigames/Rebuild Duck Hunt Arena")]
         public static void Rebuild()
         {
@@ -162,15 +168,29 @@ namespace Igruha.EditorTools
                 RouteBox(root, "TransitionBase", floor, floorMaterial, 40, 48, y - 1, y, 0, 14);
                 BuildBlockoutTransition(root, floor, y);
             }
-            float height = floor == 4 ? 9 : 7;
-            RouteBox(root, "BackWall", floor, wallMaterial, 0, 48, y, y + height, 14, 14.4f);
-            RouteBox(root, "EndWallA", floor, wallMaterial, -.4f, 0, y, y + height, 0, 14);
-            RouteBox(root, "EndWallB", floor, wallMaterial, 48, 48.4f, y, y + height, 0, 14);
+            // Оболочка этажа идёт на ВЕСЬ шаг этажа, а не на высоту потолка.
+            //
+            // Плита следующего этажа занимает только внутренний объём (p 0..48,
+            // z 0..14) и наружу не выходит, а стены стоят снаружи него (z 14..14.4,
+            // p -0.4..0 и 48..48.4). При высоте стены 7 ШП на каждом стыке
+            // оставалась сквозная щель 0.72 м во всю длину башни: снаружи она
+            // читалась тёмной полосой между этажами, местами сквозь неё было видно
+            // небо. Тот же разрыв повторяла полосатая обшивка, потому что
+            // StripedWall берёт высоту у самой стены.
+            //
+            // Стены и плита по-прежнему не пересекаются — они стоят рядом по z и x,
+            // поэтому полный шаг ничего не загоняет внутрь плиты.
+            float height = floor == 4 ? 9 : config.FloorStepWidths;
+            // Под первым этажом закрывается такая же полоса до низа плиты.
+            float wallBottom = floor == 0 ? y - 1 : y;
+            RouteBox(root, "BackWall", floor, wallMaterial, 0, 48, wallBottom, y + height, 14, 14.4f);
+            RouteBox(root, "EndWallA", floor, wallMaterial, -.4f, 0, wallBottom, y + height, 0, 14);
+            RouteBox(root, "EndWallB", floor, wallMaterial, 48, 48.4f, wallBottom, y + height, 0, 14);
             // Floor five has no outgoing stair room, so it needs its own front
             // arrival wall. Besides closing the shell, this is the real support
             // for the 05 marker instead of leaving the number floating in space.
             if (floor == 4)
-                RouteBox(root, "TopArrivalFrontWall", floor, wallMaterial, 0, 8, y, y + 7, 0, .4f);
+                RouteBox(root, "TopArrivalFrontWall", floor, wallMaterial, 0, 8, y, y + height, 0, .4f);
             var barrier = RouteBox(root, "BulletTransparentBoundary", floor, null, 0, 48, y, y + height, -.4f, 0, barrierLayer);
             Object.DestroyImmediate(barrier.GetComponent<MeshRenderer>());
             Object.DestroyImmediate(barrier.GetComponent<MeshFilter>());
@@ -190,15 +210,20 @@ namespace Igruha.EditorTools
         private static void BuildStartRoom(Transform floor)
         {
             var room=ResetGroup(floor,"StartRoom");
-            // Full-height opaque enclosure, with a 2.74 m wide right exit at the rear.
-            RouteBox(room,"StartFrontWall",0,wallMaterial,0,8.1f,0,8,0,.40f,coverLayer);
-            RouteBox(room,"StartExitWall",0,wallMaterial,7.8f,8.1f,0,8,0,10.2f,coverLayer);
-            // The second-floor route is already the start-room ceiling. A
-            // separate roof occupied the same volume and produced duplicate
-            // floor skins after every rebuild.
-            // Outer wing overlaps the doorway in projection from every lift height.
-            // Players walk around its rear end; it does not extend down the route.
-            RouteBox(room,"StartBaffleWall",0,wallMaterial,10.1f,10.4f,0,8,0,10.8f,coverLayer);
+            // Одна сплошная фронтальная стена вместо трёх.
+            //
+            // Раньше старт закрывали фронтальная стена p0..8.1 и две перегородки
+            // поперёк выхода, p7.8..8.1 и p10.1..10.4. Перегородки стояли прямо
+            // напротив шеренги спаунов, упирались игроку в лицо на первом же кадре
+            // и держали косой луч с лифта только потому, что физически перегораживали
+            // комнату.
+            //
+            // Ту же работу делает удлинённая фронтальная стена, и делает её на той
+            // грани, откуда вообще стреляют. Худший луч идёт от дальнего угла
+            // площадки лифта (18.72, -10.08) к дальнему спауну (1.05, 9.0): плоскость
+            // фасада он пересекает на x = 9.4 м. Стена доведена до x = 10.8 м
+            // (p 15), то есть с запасом 1.4 м; проверяется лучами в ValidateBlockout.
+            RouteBox(room,"StartFrontWall",0,wallMaterial,0,StartFrontWallEnd,0,8,0,.40f,coverLayer);
         }
 
         private static void BuildFinalParkour(Transform root, float y)
@@ -236,8 +261,11 @@ namespace Igruha.EditorTools
         {
             var stairsRoot = ResetGroup(root, "StairRoom");
             RouteBox(stairsRoot, "ProtectedFront", floor, wallMaterial, 40, 48, y, y + 8, 0, .4f);
-            RouteBox(stairsRoot, "ExitPartition", floor, wallMaterial, 39.6f, 40, y, y + 7, 0, 10);
-            RouteBox(stairsRoot, "ExitHeader", floor, wallMaterial, 39.6f, 40, y + 3.5f, y + 7, 10, 14);
+            // Перегородка и перемычка лестничной комнаты тоже идут на полный шаг:
+            // ProtectedFront рядом всегда строился на y..y+8, и на их стыке
+            // получалась ступенька в 0.72 м.
+            RouteBox(stairsRoot, "ExitPartition", floor, wallMaterial, 39.6f, 40, y, y + 8, 0, 10);
+            RouteBox(stairsRoot, "ExitHeader", floor, wallMaterial, 39.6f, 40, y + 3.5f, y + 8, 10, 14);
             var steps = new List<Transform>();
             // Collision uses two continuous slopes; bot markers sample their actual surfaces.
             // TransitionBase already occupies this exact plane. Reuse it as the
@@ -356,6 +384,56 @@ namespace Igruha.EditorTools
                     Vector3 target = buttonFeet + Vector3.up * 1.5f;
                     if (Physics.Linecast(hunter, target, mask, QueryTriggerInteraction.Ignore))
                         throw new System.InvalidOperationException($"Floor {floor + 1} control must remain exposed.");
+                }
+            }
+
+            ValidateStartProtection(mask);
+        }
+
+        /// <summary>
+        /// Ни один спаун Уток не простреливается с площадки лифта.
+        ///
+        /// Проверка вернулась из удалённой легаси-ветки намеренно. Защиту старта
+        /// держит одна фронтальная стена, и её длина — расчётная величина, а не
+        /// на глаз: стоит кому-нибудь подвинуть шеренгу спаунов, лифт или саму
+        /// стену, и Охотник начнёт снимать всех восьмерых с первого кадра, причём
+        /// молча — ни один другой валидатор этого не ловит.
+        /// </summary>
+        private static void ValidateStartProtection(int mask)
+        {
+            Transform ducks = GameObject.Find("_Spawns")?.transform.Find("Ducks");
+            if (ducks == null || ducks.childCount == 0)
+                throw new System.InvalidOperationException("Duck Hunt spawns are missing.");
+            Transform platform = GameObject.Find("_Arena")?.transform.Find("ElevatorShaft/Platform");
+            var platformRenderer = platform != null ? platform.GetComponentInChildren<MeshRenderer>() : null;
+            if (platformRenderer == null)
+                throw new System.InvalidOperationException("Duck Hunt lift platform is missing.");
+            Bounds pad = platformRenderer.bounds;
+            // Углы площадки, а не её центр: косой луч из угла проходит дальше всех.
+            float[] padX = { pad.min.x, pad.center.x, pad.max.x };
+            float[] padZ = { pad.min.z, pad.center.z, pad.max.z };
+            float top = config.FloorCount * config.FloorStepUnits + 2f;
+            // Рост: ступни, грудь, голова. Ширина тела — половина капсулы.
+            float[] eyes = { .35f, 1.0f, 1.6f };
+            float[] spread = { -.3f, 0f, .3f };
+            foreach (Transform spawn in ducks)
+            {
+                foreach (float eye in eyes)
+                foreach (float dx in spread)
+                foreach (float dz in spread)
+                {
+                    Vector3 target = spawn.position + new Vector3(dx, eye, dz);
+                    for (float y = -1.5f; y <= top; y += 1.5f)
+                    {
+                        foreach (float x in padX)
+                        foreach (float z in padZ)
+                        {
+                            Vector3 hunter = new Vector3(x, y + 1.6f, z);
+                            if (!Physics.Linecast(hunter, target, mask, QueryTriggerInteraction.Ignore))
+                                throw new System.InvalidOperationException(
+                                    $"Start spawn {spawn.name} is exposed from the lift at {hunter}.");
+                        }
+                    }
                 }
             }
         }

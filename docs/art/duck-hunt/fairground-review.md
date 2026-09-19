@@ -1,5 +1,23 @@
 # Duck Hunt — проверка референсного прохода, 19.09.2026
 
+## Проход 19.09.2026 (вечер): открытый старт, целая оболочка, ярмарка с планировкой и движением
+
+Кадры этого прохода лежат рядом, в этой же папке, — они не зависят от локальной `igruha/Captures/`.
+
+- [Общий вид](fairground-2026-09-19-overview.png)
+- [Фасад с площади](fairground-2026-09-19-front.png)
+- [Аллея и аттракционы](fairground-2026-09-19-midway.png)
+- [Стартовая комната без перегородок](fairground-2026-09-19-startroom.png)
+- [Стык этажей снаружи](fairground-2026-09-19-sideseam.png)
+- [Ярмарка и окраина города](fairground-2026-09-19-far.png)
+
+Что изменилось и почему — в `docs/minigames/duck-hunt.md`, раздел про территорию ярмарки, и в срезе `STATE.md`.
+Числовые итоги пересборки: 205 уличных предметов, 0 пересечений габаритов (`AuditFairgroundSpacing`);
+29 компонентов `AmbientMotion`; маршрут `DH_CHECK` — `finish reached=True failures=False`,
+все восемь выходов со старта пройдены.
+
+---
+
 Сцена: `Assets/_Project/Scenes/Minigames/DuckHunt.unity`. Пересборка: `Igruha → Minigames → Rebuild Duck Hunt Arena` в Edit Mode этой сцены. Скрипты Blender: `duck_hunt_barn.py`, `duck_hunt_carnival.py`, `duck_hunt_fairground.py`, `duck_hunt_rifle.py`; исходники вне Assets.
 
 ## Просмотр

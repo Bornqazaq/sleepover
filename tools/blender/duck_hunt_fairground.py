@@ -178,23 +178,53 @@ beam('Flagpole',(0,0,4.9),(0,0,5.9),.045,'Brass')
 box('Top flag',(.38,0,5.68),(.75,.02,.35),'Red')
 export('DHF_Tent')
 
-# Open carousel canopy and small toy horses: unmistakable side attraction.
+# Carousel split into a turning frame and one separate horse.
+# Unity spins the frame and bobs six copies of the horse on their poles;
+# a single joined mesh could only ever turn as a lump.
+CAROUSEL_RING=1.95
 cyl('Carousel deck',(0,0,.20),2.9,.4,'Oak',verts=48)
+cyl('Carousel rim',(0,0,.42),2.92,.09,'Brass',verts=48)
 for i in range(16):
     a=i*math.tau/16;b=(i+1)*math.tau/16
     mesh=bpy.data.meshes.new('Canopy');mesh.from_pydata([(0,0,4.5),(3.1*math.cos(a),3.1*math.sin(a),3.3),(3.1*math.cos(b),3.1*math.sin(b),3.3)],[],[(0,1,2)]);mesh.update()
     ob=bpy.data.objects.new('Canopy stripe',mesh);scene.collection.objects.link(ob);finish(ob,'Canopy stripe','Red' if i%2 else 'Cream')
     orb('Canopy light',(3.1*math.cos(a),3.1*math.sin(a),3.26),(.09,.09,.09),'Glow')
+beam('Carousel mast',(0,0,.4),(0,0,4.55),.115,'Brass')
+orb('Mast finial',(0,0,4.72),(.17,.17,.22),'Gold')
 for i in range(6):
-    a=i*math.tau/6;p=Vector((1.95*math.cos(a),1.95*math.sin(a),0))
-    beam('Carousel pole',p+Vector((0,0,.4)),p+Vector((0,0,3.4)),.055,'Brass')
-    orb('Horse body',p+Vector((0,0,1.2)),(.46,.19,.24),'Cream')
-    beam('Horse neck',p+Vector((.26,0,1.3)),p+Vector((.38,0,1.7)),.18,'Cream')
-    orb('Horse head',p+Vector((.46,0,1.70)),(.22,.12,.13),'Cream')
-    box('Saddle',p+Vector((-.04,0,1.41)),(.35,.36,.075),'Red')
-    for x in (-.28,.28):
-        for y in (-.13,.13):beam('Horse leg',p+Vector((x,y,1.12)),p+Vector((x-.08,y,.67)),.063,'Cream')
-export('DHF_Carousel')
+    a=i*math.tau/6;p=Vector((CAROUSEL_RING*math.cos(a),CAROUSEL_RING*math.sin(a),0))
+    beam('Carousel pole',p+Vector((0,0,.4)),p+Vector((0,0,3.35)),.055,'Brass')
+export('DHF_CarouselFrame')
+
+# One horse, nose along +Y so the Unity wrapper can point it along the ring.
+orb('Horse body',(0,0,1.2),(.19,.46,.24),'Cream')
+beam('Horse neck',(0,.26,1.3),(0,.38,1.7),.18,'Cream')
+orb('Horse head',(0,.46,1.70),(.12,.22,.13),'Cream')
+orb('Muzzle',(0,.60,1.63),(.085,.10,.085),'Rose')
+box('Saddle',(0,-.04,1.41),(.36,.35,.075),'Red')
+box('Saddle cloth',(0,-.05,1.33),(.40,.46,.05),'Blue')
+for i in (-1,1):orb('Horse ear',(i*.06,.42,1.85),(.035,.03,.07),'Cream')
+for y in (-.28,.28):
+    for x in (-.13,.13):beam('Horse leg',(x,y,1.12),(x,y-.08,.67),.063,'Cream')
+for i in range(5):
+    t=i/4;beam('Tail',(0,-.42-t*.10,1.34-t*.34),(0,-.44-t*.10,1.22-t*.34),.05-t*.015,'Gold')
+export('DHF_CarouselHorse')
+
+# Parked car. Body is Teal so the Unity pass can repaint each copy.
+box('Car body',(0,0,.60),(1.72,4.02,.56),'Teal')
+box('Car skirt',(0,0,.34),(1.60,3.86,.22),'Teal')
+box('Car cabin',(0,-.12,1.14),(1.50,1.94,.52),'Teal')
+box('Windscreen',(0,.86,1.16),(1.36,.06,.42),'Ink')
+box('Rear glass',(0,-1.10,1.16),(1.32,.06,.40),'Ink')
+for i in (-1,1):box('Side glass',(i*.76,-.12,1.16),(.05,1.80,.38),'Ink')
+box('Roof',(0,-.12,1.41),(1.46,1.90,.06),'Cream')
+for i in (-1,1):
+    box('Bumper',(0,i*2.02,.52),(1.66,.12,.26),'Iron')
+    for y in (1.34,-1.34):cyl('Wheel',(i*.83,y,.36),.36,.24,'Ink',(1,0,0),14)
+for i in (-1,1):
+    box('Headlight',(i*.60,2.03,.72),(.34,.06,.16),'Glow')
+    box('Tail light',(i*.60,-2.03,.72),(.30,.06,.14),'Red')
+export('DHF_Car')
 
 for i in range(9):
     a=i*2.4;r=.12+(.31 if i%2 else .1);p=(r*math.cos(a),r*math.sin(a),0)
