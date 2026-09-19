@@ -57,7 +57,37 @@ namespace Igruha.EditorTools
             Place(root, "West_Armchair_North", "ClubArmchair", new Vector3(-side + 2.03f, 0, 3.4f), 180);
             Place(root, "West_CoffeeTable", "CoffeeTable", new Vector3(-side + 2.23f, 0, 1.1f), 90);
             Place(root, "West_Stag", "StagTrophy", new Vector3(-side + .44f, 2.15f, 1.1f), 90);
+            PlaceCorners(root, side);
             PositionShelfLights(arena, config);
+        }
+
+        /// <summary>
+        /// Углы зала. Зал 16.6 × 14.4 м, а мебель стояла одной линией вдоль
+        /// восточной и западной стен: между баром и креслами оставались
+        /// пустые метры, и клуб читался расставленной по периметру мебелью,
+        /// а не местом, где живут. Референсы 02 и 03 набиты мебелью плотно.
+        ///
+        /// Что можно ставить, решает не вкус, а две границы. Предмет обязан
+        /// лежать в клине East / West (|x| > |z|) и вне круга зрителей —
+        /// это проверяет <see cref="Audit"/>. Сверх того восток закрыт при
+        /// z больше +3.5, а запад при z меньше −3.5: там проходит край
+        /// геройского кадра, и любой предмет встанет за лицом соперника.
+        /// Поэтому группы разведены по диагонали: читальня на юго-востоке,
+        /// пальма и пуф на северо-востоке, шкаф с вешалкой на северо-западе,
+        /// столик с пуфом на юго-западе.
+        /// </summary>
+        private static void PlaceCorners(Transform root, float side)
+        {
+            Place(root, "East_Bookcase", "Bookcase", new Vector3(side - .42f, 0, -5.6f), 270);
+            Place(root, "East_ReadingChair", "ClubArmchair", new Vector3(side - 2.3f, 0, -4.6f), 300);
+            Place(root, "East_SideTable", "SideTable", new Vector3(side - 2.4f, 0, -5.85f), 0);
+            Place(root, "East_Palm", "PottedPalm", new Vector3(side - 1.0f, 0, 3.2f), 250);
+            Place(root, "East_Ottoman", "Ottoman", new Vector3(side - 2.4f, 0, 2.6f), 30);
+            Place(root, "West_Bookcase", "Bookcase", new Vector3(-side + .42f, 0, 5.4f), 90);
+            Place(root, "West_CoatStand", "CoatStand", new Vector3(-side + .78f, 0, 4.0f), 90);
+            Place(root, "West_Palm", "PottedPalm", new Vector3(-side + 1.15f, 0, 6.2f), 70);
+            Place(root, "West_SideTable", "SideTable", new Vector3(-side + 2.4f, 0, 2.4f), 0);
+            Place(root, "West_Ottoman", "Ottoman", new Vector3(-side + 2.4f, 0, -2.6f), 200);
         }
 
         private static void Place(Transform root, string name, string model, Vector3 position, float yaw)
@@ -114,7 +144,7 @@ namespace Igruha.EditorTools
             var arena = GameObject.Find("_Arena");
             var root = arena == null ? null : arena.transform.Find(FurnitureRoot);
             if (root == null || config == null) throw new InvalidOperationException("Furniture or config missing.");
-            if (root.parent != arena.transform || root.childCount != 12)
+            if (root.parent != arena.transform || root.childCount != 22)
                 throw new InvalidOperationException("Furniture must be a single complete group outside _Hall.");
             if (root.GetComponentsInChildren<Transform>(true).Any(t => t.gameObject.layer != 0))
                 throw new InvalidOperationException("All furniture must use Default.");
@@ -149,7 +179,7 @@ namespace Igruha.EditorTools
                     throw new InvalidOperationException("Missing furniture script: " + t.name);
             foreach (var f in root.GetComponentsInChildren<MeshFilter>(true))
                 if (f.sharedMesh == null) throw new InvalidOperationException("Missing furniture mesh: " + f.name);
-            Debug.Log($"IGR-565: furniture valid; 12 items; 6 BoxColliders; all Default; nearest renderer {nearest:F2} m >= spectator radius {config.SpectatorZoneRadius:F2} m; missing refs 0.");
+            Debug.Log($"IGR-565: furniture valid; 22 items; 6 BoxColliders; all Default; nearest renderer {nearest:F2} m >= spectator radius {config.SpectatorZoneRadius:F2} m; missing refs 0.");
         }
     }
 }

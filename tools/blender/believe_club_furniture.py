@@ -345,19 +345,105 @@ def deer():
             tube([(sign*x,y,z) for x,y,z in pts],.025,'Antler',[1,.55,.025])
     join('StagTrophy')
 
+def bookcase():
+    """Книжный шкаф в угол. Зал 16.6 × 14.4 м, и вдоль стен между баром и
+    креслами оставались пустые метры; высокий корпус закрывает их объёмом,
+    а корешки дают в темноте россыпь тёплых пятен."""
+    W,D,H=1.42,.34,2.18
+    for sx in (-1,1):box((sx*(W/2-.03),D/2,H/2),(.06,D,H))
+    box((0,D-.02,H/2),(W-.12,.04,H))
+    box((0,D/2,.07),(W+.04,D+.03,.14))
+    box((0,D/2,H-.05),(W+.08,D+.06,.10))
+    tube([(-W/2-.02,0,H-.12),(W/2+.02,0,H-.12)],.012,'Brass')
+    spines=('Leather','Bottle','Ivory','Black','Seam')
+    for row,z in enumerate((.20,.62,1.04,1.46,1.88)):
+        box((0,D/2,z),(W-.12,D-.05,.032))
+        x=-W/2+.08;k=row*7
+        while x<W/2-.11:
+            t=.026+.020*abs(math.sin(k*1.7))
+            h=.19+.07*abs(math.cos(k*2.3))
+            if x+t>W/2-.08:break
+            box((x+t/2,D/2-.015,z+.016+h/2),(t,D-.13,h),spines[k%5],.004)
+            x+=t+.004;k+=1
+        # Пара книг, положенных плашмя: ровный строй корешков выдаёт заготовку.
+        if row in (1,3):
+            for j in range(3):
+                box((W/2-.30,D/2-.02,z+.022+.028*j),(.34,D-.14,.026),spines[(row+j)%5],.004)
+    join('Bookcase')
+
+def side_table():
+    """Приставной столик под лампу или бокал. Ставится к креслам: на
+    референсах у каждого сиденья есть куда поставить стакан."""
+    lathe((0,0,0),[(0,.21),(.022,.225),(.04,.185),(.07,.055),(.42,.046),(.48,.062),(.52,.05)],'Walnut',40)
+    lathe((0,0,.53),[(0,.255),(.028,.268),(.05,.255)],'Walnut',64)
+    ring((0,0,.568),.266,.266,.007,'Brass')
+    join('SideTable')
+
+def coat_stand():
+    """Вешалка у входа — прямо с референса 02. Высокий тонкий силуэт
+    в углу работает как вертикаль и ничего не загораживает."""
+    lathe((0,0,0),[(0,.055),(.04,.05),(1.44,.036),(1.52,.052),(1.58,.044),(1.63,.056),(1.70,.022)],'Walnut',28)
+    for i in range(3):
+        a=i*math.tau/3
+        tube([(0,0,.10),(.14*math.cos(a),.14*math.sin(a),.05),(.30*math.cos(a),.30*math.sin(a),.012)],.023,'Walnut')
+    for i in range(4):
+        a=i*math.tau/4+math.pi/4
+        tube([(0,0,1.44),(.085*math.cos(a),.085*math.sin(a),1.48),(.135*math.cos(a),.135*math.sin(a),1.40)],.015,'Brass')
+    join('CoatStand')
+
+def potted_palm():
+    """Кадка с пальмой. Единственное живое пятно в зале: на референсах
+    зелень стоит по углам и ломает строй коричневого и бордового."""
+    lathe((0,0,0),[(0,.17),(.02,.185),(.30,.235),(.34,.245),(.36,.235),(.375,.20)],'Walnut',48)
+    ring((0,0,.31),.243,.243,.011,'Brass')
+    lathe((0,0,.36),[(0,.20),(.03,.16)],'Black',32)
+    for i in range(11):
+        a=i*math.tau/11+i*.21
+        tilt=.55+.42*abs(math.sin(i*1.9))
+        length=.46+.20*abs(math.cos(i*1.3))
+        rise=.40+.34*abs(math.sin(i*2.7))
+        tube([(0,0,.38),
+              (.10*math.cos(a),.10*math.sin(a),.38+rise*.55),
+              (length*.62*math.cos(a),length*.62*math.sin(a),.38+rise),
+              (length*math.cos(a),length*math.sin(a),.38+rise-tilt*.34)],
+             .012,'Bottle',[.5,1,.9,.12])
+        leaf=ellipsoid((length*.80*math.cos(a),length*.80*math.sin(a),.38+rise-tilt*.16),
+                       (length*.46,.085,.020),'Bottle',20,10)
+        leaf.rotation_euler=(0,0,a)
+    join('PottedPalm')
+
+def ottoman():
+    """Пуф. Низкое мягкое пятно у кресел: без него угол читается
+    расставленной по стене мебелью, а не местом, где сидят."""
+    for i in range(4):
+        a=math.pi/4+i*math.pi/2
+        lathe((.215*math.cos(a),.215*math.sin(a),0),[(0,.020),(.018,.026),(.055,.021),(.145,.017)],'Walnut',16)
+    lathe((0,0,.145),[(0,.285),(.035,.315),(.15,.325),(.26,.295),(.30,.215),(.325,0)],'Leather',48)
+    ring((0,0,.185),.322,.322,.008,'Seam')
+    for i in range(8):
+        a=i*math.tau/8
+        ellipsoid((.20*math.cos(a),.20*math.sin(a),.455),(.018,.018,.012),'Seam',12,8)
+    join('Ottoman')
+
 backbar()
 export('BackBar')
 if globals().get('BCF_EXPORT_ALL',False):
     counter();stool();upholstery('Chesterfield',2.76,3);upholstery('ClubArmchair',1.22,1)
     coffee_table();clock();deer()
+    bookcase();side_table();coat_stand();potted_palm();ottoman()
+    # BCF_EXPORT_MODELS сужает список: FBX лежат в LFS, и переписывать
+    # восемь старых моделей ради пяти новых незачем.
+    wanted=globals().get('BCF_EXPORT_MODELS',None)
     for name in models:
-        if name!='BackBar':export(name)
+        if name=='BackBar':continue
+        if wanted is None or name in wanted:export(name)
 
 def save_source():
     # An editable modelling layout in the .blend; exported pivots remain at floor origin.
     layout={'BackBar':(0,3,0),'BarCounter':(0,0,0),'BarStool':(4,0,0),
             'Chesterfield':(-4,-3,0),'ClubArmchair':(0,-3,0),'CoffeeTable':(2,-3,0),
-            'GrandfatherClock':(4,3,0),'StagTrophy':(6,3,1)}
+            'GrandfatherClock':(4,3,0),'StagTrophy':(6,3,1),'Bookcase':(-7,3,0),
+            'SideTable':(-7,0,0),'CoatStand':(-7,-3,0),'PottedPalm':(-4,3,0),'Ottoman':(2,0,0)}
     for name,o in models.items():o.location=layout[name];o.hide_set(False)
     bpy.data.libraries.write(str(SOURCE/'BelieveClubFurniture.blend'),{scene},fake_user=True,compress=True,path_remap='RELATIVE')
 

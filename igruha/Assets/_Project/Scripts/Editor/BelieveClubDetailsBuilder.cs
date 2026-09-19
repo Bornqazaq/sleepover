@@ -19,7 +19,8 @@ namespace Igruha.EditorTools
             "East_Roulette", "East_BankerLamp", "West_Bureau", "West_BureauChair",
             "West_BankerLamp", "West_DeskStationery", "West_Globe", "West_FloorLamp",
             "West_Painting_Portrait", "West_Painting_Landscape", "East_Painting_StillLife",
-            "West_Painting_Hunt", "East_BarService", "West_LoungeService"
+            "West_Painting_Hunt", "East_BarService", "West_LoungeService",
+            "East_ReadingLamp"
         };
 
         [MenuItem("Igruha/Верю не верю/Собственный клуб — реквизит и детали")]
@@ -72,6 +73,13 @@ namespace Igruha.EditorTools
             Place(root, "West_Painting_Hunt", "Painting_Hunt", new Vector3(-side + .395f, 2.48f, 4.97f), 90);
             Place(root, "East_BarService", "BarService", new Vector3(side - 1.68f, 1.131f, -.7f), 270);
             Place(root, "West_LoungeService", "LoungeService", new Vector3(-side + 2.23f, .502f, 1.1f), 90);
+            // Лампа на приставном столике читальни. Мебель по углам без своего
+            // света не читается вовсе: зал за кругом лампы тёмный, и шкаф
+            // с креслом сливались в чёрное пятно. Стоит в восточной нише
+            // (z от −6.5 до −5.0) — единственной полосе на этой стороне, куда
+            // не дотягивается геройский кадр. Западная группа уже освещена
+            // лампой бюро и торшером, второй источник там лишний.
+            Lamp(Place(root, "East_ReadingLamp", "BankerLamp", new Vector3(side - 2.4f, .585f, -5.85f), 205));
         }
 
         private static Transform Place(Transform root, string name, string model, Vector3 position, float yaw)
@@ -166,13 +174,15 @@ namespace Igruha.EditorTools
             if (nearest < config.SpectatorZoneRadius)
                 throw new InvalidOperationException("Details cross spectator circle: " + nearest);
             var lights = root.GetComponentsInChildren<Light>(true);
-            if (lights.Length != 3 || lights.Count(l => l.transform.parent.name.EndsWith("BankerLamp")) != 2 ||
+            if (lights.Length != 4 || lights.Count(l => l.transform.parent.name.EndsWith("BankerLamp")
+                    || l.transform.parent.name.EndsWith("ReadingLamp")) != 3 ||
                 lights.Count(l => l.transform.parent.name == "West_FloorLamp") != 1 ||
                 lights.Any(l => l.type != LightType.Point || l.shadows != LightShadows.None || !l.enabled))
-                throw new InvalidOperationException("Two banker lamps and one warm floor lamp are required.");
+                throw new InvalidOperationException("Three banker lamps and one warm floor lamp are required.");
             foreach (var light in lights)
             {
-                bool banker = light.transform.parent.name.EndsWith("BankerLamp");
+                bool banker = light.transform.parent.name.EndsWith("BankerLamp")
+                    || light.transform.parent.name.EndsWith("ReadingLamp");
                 if (light.intensity != (banker ? 1.5f : 2f) || light.range != (banker ? 2.7f : 4.5f))
                     throw new InvalidOperationException("Unexpected practical lamp settings: " + light.name);
             }
@@ -181,7 +191,7 @@ namespace Igruha.EditorTools
                     throw new InvalidOperationException("Missing detail script: " + t.name);
             foreach (var f in root.GetComponentsInChildren<MeshFilter>(true))
                 if (f.sharedMesh == null) throw new InvalidOperationException("Missing detail mesh: " + f.name);
-            Debug.Log($"IGR-565: details valid; 14 items; 2 BoxColliders; 2 banker lights + floor lamp; all Default; nearest renderer {nearest:F2} m >= spectator radius {config.SpectatorZoneRadius:F2} m; missing refs 0.");
+            Debug.Log($"IGR-565: details valid; 15 items; 2 BoxColliders; 3 banker lights + floor lamp; all Default; nearest renderer {nearest:F2} m >= spectator radius {config.SpectatorZoneRadius:F2} m; missing refs 0.");
         }
     }
 }

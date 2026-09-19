@@ -236,11 +236,13 @@ module('CasketLid',(W/2,0,.137))
 # widen .45 above the seat, the broadest back stays in front of y=.40.
 SEAT,LEG_TOP=.38,.23
 INNER_X,INNER_BACK,BACK_CENTRE,ROUNDNESS=.43,.42,.20,3.0
-# BACK_RISE поднят с .56 до .70: верх спинки уходит с .94 на 1.08 м от пола,
-# то есть выше плеч сидящего. На прежней высоте спинка кончалась ровно под
-# лопатками, и в геройском кадре соперник читался сидящим на табурете,
-# а бриф 14.3 просит «дуэль», а не «двое стоят у тумбы».
-SHELL,ARM_FRONT,ARM_RISE,BACK_RISE=.10,.10,.22,.70
+# Пропорции бочонка. BACK_RISE .70 поднимал спинку на 1.08 м, но вместе с
+# низкими подлокотниками .22 давал силуэт надгробия: резкий подъём, острые
+# плечи и плоский верх. Референсы 02 и 03 держат кресло низким и круглым,
+# поэтому спинка опущена до .62 (верх на 1.00 м, всё ещё выше лопаток), а
+# подлокотники подняты до .28 — перепад между ними стал вдвое меньше.
+# SHELL толще: тонкая оболочка читалась фанерой, а не мягкой обивкой.
+SHELL,ARM_FRONT,ARM_RISE,BACK_RISE=.125,.10,.28,.62
 CUSHION_FRONT,DECK_FRONT,CUSHION=.085,.16,.09
 
 def back_curve(phi,inset=0):
@@ -285,7 +287,10 @@ def pillow(poly,z0,z1,r,crown,mat,name):
     for i in range(n):faces.append(((i+1)%n,i,len(verts)-1))
     return mesh(name,verts,faces,mat)
 
-def shell_top(w):return SEAT+ARM_RISE+(BACK_RISE-ARM_RISE)*w**1.6
+def shell_top(w):
+    # Плавная S-кривая вместо степени 1.6: у степени производная на концах
+    # не нулевая, и там, где подлокотник переходит в спинку, торчало плечо.
+    return SEAT+ARM_RISE+(BACK_RISE-ARM_RISE)*(w*w*(3-2*w))
 
 def shell_section(h,inset=0):
     # Clockwise (offset, z) profile across the shell: inner face, rolled top, outer face, underside.
@@ -301,7 +306,7 @@ for i in range(73):
     gx=math.copysign(abs(x/INNER_X)**(ROUNDNESS-1),x)/INNER_X;gy=((y-BACK_CENTRE)/b)**(ROUNDNESS-1)/b
     l=math.hypot(gx,gy);path.append((x,y,gx/l,gy/l,math.sin(phi)))
 path+=[(-INNER_X,BACK_CENTRE-(BACK_CENTRE-ARM_FRONT)*k/6,-1,0,0) for k in range(1,7)]
-ARM_ROUND=.03
+ARM_ROUND=.062
 def shell_ring(p,inset=0,forward=0):
     x,y,nx,ny,w=p
     return [(x+nx*o,y+ny*o-forward,z) for o,z in shell_section(shell_top(w),inset)]
@@ -324,23 +329,32 @@ pillow(cushion,SEAT-CUSHION,SEAT-.008,.03,.008,'Leather','Seat cushion')
 welt=offset(cushion,.03);tube([(x,y,SEAT-.008) for x,y in welt+welt[:1]],.0045,'Seam')
 for o,drop in ((0,SHELL/2),(SHELL,SHELL/2)):
     tube([(x+nx*o,y+ny*o,shell_top(w)-drop) for x,y,nx,ny,w in path],.0045,'Seam')
-for deg in (25,47,68,90,112,133,155):
+for deg in (38,64,90,116,142):
     phi=math.radians(deg);x,y=back_curve(phi,.002);top=shell_top(math.sin(phi))
-    tube([(x,y,z) for z in np.linspace(SEAT+.03,top-.075,12)],.0025,'Seam')
+    tube([(x,y,z) for z in np.linspace(SEAT+.055,top-.11,12)],.0025,'Seam')
 module('BarrelChair')
 
 # Legs are a separate module: Unity scales it vertically so the tub always stands on the floor.
 # Front legs stay behind every heel; all four splay slightly outward.
+# Точёные ножки вместо гранёных коробок: у кресла-бочонка всё остальное
+# круглое, и четыре конусные коробки под ним читались наспех сколоченными.
+# Профиль — пятка, перехват, шейка под царгой, как на референсах 02 и 03.
+LEG_PROFILE=[(.0225,0),(.0265,.012),(.0215,.030),(.0230,.062),(.0205,.105),
+             (.0245,.150),(.0275,.196),(.0250,.222),(.0300,LEG_TOP+.012)]
 for x0,y0,dy in ((.42,.21,-.012),(.36,.44,.012)):
     for sx in (-1,1):
-        verts=[];faces=[(0,1,2,3),(7,6,5,4)]
-        for z,half,dx,ddy in ((0,.019,.018,dy),(LEG_TOP+.01,.029,0,0)):
-            cx,cy=sx*(x0+dx),y0+ddy
-            verts+=[(cx-half,cy-half,z),(cx+half,cy-half,z),(cx+half,cy+half,z),(cx-half,cy+half,z)]
-        for i in range(4):faces.append((i,(i+1)%4,4+(i+1)%4,4+i))
-        o=mesh('Tapered walnut leg',verts,faces,'Walnut',False)
-        bpy.context.view_layer.objects.active=o;m=o.modifiers.new('Soft turned corners','BEVEL');m.width=.008;m.segments=3;bpy.ops.object.modifier_apply(modifier=m.name)
-        m=o.modifiers.new('Leg normals','WEIGHTED_NORMAL');bpy.ops.object.modifier_apply(modifier=m.name)
+        seg=20;verts=[];faces=[]
+        for r,z in LEG_PROFILE:
+            for i in range(seg):
+                a=i*math.tau/seg
+                verts.append((sx*x0+r*math.cos(a),y0+dy*(1-z/LEG_TOP)+r*math.sin(a),z))
+        for j in range(len(LEG_PROFILE)-1):
+            for i in range(seg):
+                a=j*seg+i;b=j*seg+(i+1)%seg
+                faces.append((a,b,b+seg,a+seg))
+        faces.append(tuple(range(seg-1,-1,-1)))
+        faces.append(tuple(len(verts)-seg+i for i in range(seg)))
+        mesh('Turned walnut leg',verts,faces,'Walnut')
 module('BarrelChairLegs')
 
 # Store only this kit scene; never save unrelated Blender scenes into the asset.

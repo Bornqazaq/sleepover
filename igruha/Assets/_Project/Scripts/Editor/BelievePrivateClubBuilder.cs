@@ -199,6 +199,12 @@ namespace Igruha.EditorTools
                 new Vector3(-side + 1.2f, 1.1f, 1f), 5.5f, 5.8f, 120, 90);
             Accent(accents, "BarFrontBounce", new Vector3(5.3f, 2.65f, 0),
                 new Vector3(side - 1.34f, 1.1f, 0), 4f, 5.2f, 125, 90);
+            // Книжные шкафы по углам. Без своего света корешки в темноте
+            // не читаются вовсе, и высокий корпус выглядит чёрной плитой.
+            Accent(accents, "EastCaseGlow", new Vector3(side - 1.55f, 2.75f, -5.6f),
+                new Vector3(side - .55f, 1.5f, -5.6f), 2.6f, 4.4f, 100, 60);
+            Accent(accents, "WestCaseGlow", new Vector3(-side + 1.55f, 2.75f, 5.4f),
+                new Vector3(-side + .55f, 1.5f, 5.4f), 2.6f, 4.4f, 100, 60);
             FaceFill(arena);
             BackdropGlow(arena);
             ConfigureGrade(arena);
