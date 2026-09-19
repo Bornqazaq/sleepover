@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.InputSystem;
 using Unity.Cinemachine;
+using Unity.Cinemachine.TargetTracking;
 
 namespace Igruha.Core.CameraSystems
 {
@@ -44,10 +45,42 @@ namespace Igruha.Core.CameraSystems
         [SerializeField] private float probeRadius = 0.28f;
         [Tooltip("На сколько точка обхода выше макушки персонажа")]
         [SerializeField] private float pivotHeadroom = 0.25f;
-        [Tooltip("Высота точки обхода, если у цели нет капсулы, — метры от её основания")]
-        [SerializeField] private float fallbackPivotHeight = 1.9f;
+        [Tooltip("Высота точки обхода над привязкой, если у цели нет капсулы. Привязка — грудь персонажа, отсюда полметра, а не полный рост")]
+        [SerializeField] private float fallbackPivotHeight = 0.5f;
         [Tooltip("С какой дистанции до точки обхода взгляд начинает подниматься к макушке")]
         [SerializeField] private float aimLiftDistance = 2.2f;
+
+        [Header("Кадр — один на все сцены, прописывается кодом поверх YAML")]
+        [Tooltip("Дистанция орбиты от точки привязки (грудь персонажа)")]
+        [SerializeField] private float orbitRadius = 4.2f;
+        [Tooltip("Угол камеры над точкой привязки в спокойном положении: с него начинается каждая сцена")]
+        [SerializeField] private float restPitch = 20f;
+        [Tooltip("Смягчение слежения за целью по мировым осям. По Y больше: прыжки и ступеньки не должны трясти кадр")]
+        [SerializeField] private Vector3 followDamping = new Vector3(0.12f, 0.25f, 0.12f);
+        [Tooltip("Смягчение доводки взгляда")]
+        [SerializeField] private Vector2 aimDamping = new Vector2(0.1f, 0.1f);
+        [Tooltip("Где цель стоит в кадре: доли экрана от центра. Отрицательный Y опускает персонажа и открывает вид вперёд")]
+        [SerializeField] private Vector2 screenPosition = new Vector2(-0.05f, -0.04f);
+        [Tooltip("Точка взгляда относительно привязки: вверх от груди к шее")]
+        [SerializeField] private Vector3 aimOffset = new Vector3(0f, 0.15f, 0f);
+        [Tooltip("Угол обзора по вертикали")]
+        [SerializeField] private float fieldOfView = 55f;
+
+        [Header("Обход геометрии — доводка деокклюдера")]
+        [Tooltip("Как быстро камера подтягивается вперёд, когда цель закрыли")]
+        [SerializeField] private float occlusionPullDamping = 0.1f;
+        [Tooltip("Как быстро камера возвращается назад, когда помеха ушла")]
+        [SerializeField] private float occlusionReturnDamping = 0.35f;
+        [Tooltip("Сколько держать подтянутое положение, чтобы камера не дребезжала на столбах и перилах")]
+        [SerializeField] private float occlusionSmoothing = 0.15f;
+
+        /// <summary>
+        /// Телепорт цели: респавн, старт мини-игры, смена арены. Смягчение
+        /// слежения рассчитано на бег, а не на переброс через всю карту — без
+        /// сброса камера едет к новому месту через всю геометрию сцены.
+        /// Порог с большим запасом: за кадр персонаж проходит сантиметры.
+        /// </summary>
+        private const float TeleportStep = 2.5f;
 
         /// <summary>
         /// Захват курсора телепортирует его в центр экрана, и следом приходит
@@ -82,6 +115,8 @@ namespace Igruha.Core.CameraSystems
         private bool hasCollisionPivot;
         private Vector3 previousCameraPosition;
         private bool hasPreviousCameraPosition;
+        private Vector3 lastTargetPosition;
+        private bool hasLastTargetPosition;
         private const float CollisionPadding = 0.01f;
         private const string CameraOnlyLayer = "CameraOnly";
 
@@ -128,12 +163,10 @@ namespace Igruha.Core.CameraSystems
             deoccluder = GetComponent<CinemachineDeoccluder>();
             TryGetComponent(out cam);
 
-            if (TryGetComponent(out composer))
-            {
-                restAimOffset = composer.TargetOffset;
-            }
+            TryGetComponent(out composer);
 
             EnforceFormat();
+            restAimOffset = aimOffset;
         }
 
         /// <summary>
@@ -178,7 +211,71 @@ namespace Igruha.Core.CameraSystems
             // кадр перед расчётом Cinemachine — она едет от приседа.
             avoidance.UseFollowTarget.Enabled = true;
             avoidance.UseFollowTarget.YOffset = fallbackPivotHeight;
+            avoidance.SmoothingTime = occlusionSmoothing;
+            avoidance.Damping = occlusionReturnDamping;
+            avoidance.DampingWhenOccluded = occlusionPullDamping;
             deoccluder.AvoidObstacles = avoidance;
+
+            EnforceFraming();
+        }
+
+        /// <summary>
+        /// Приводит кадр к единому формату: дистанция, угол над персонажем,
+        /// смягчение слежения, место цели в кадре, угол обзора.
+        ///
+        /// Раньше эти значения жили только в YAML, и к десятой мини-игре кадр
+        /// разъехался: в «Секундомере» и «Порядке банок» камеру руками подняли
+        /// к груди и придвинули, в «Плачущих ангелах» подняли только взгляд,
+        /// в остальных восьми она осталась на высоте пояса и смотрела в ноги.
+        /// Формат обязан быть одним на все сцены, поэтому живёт здесь и
+        /// переписывает инстансы префаба на старте — как маска препятствий.
+        ///
+        /// Сцене, которой действительно нужна другая дистанция, поле
+        /// <c>orbitRadius</c> правится на самом риге: оно переживёт этот вызов,
+        /// в отличие от правки компонентов Cinemachine.
+        /// </summary>
+        private void EnforceFraming()
+        {
+            if (orbit != null)
+            {
+                // Высота привязки живёт в CameraTarget персонажа, а не в смещении
+                // орбиты: у восьми персонажей разный рост, и сдвиг метрами кадрирует
+                // низких иначе, чем высоких.
+                orbit.TargetOffset = Vector3.zero;
+                orbit.OrbitStyle = CinemachineOrbitalFollow.OrbitStyles.Sphere;
+                orbit.Radius = orbitRadius;
+
+                TrackerSettings tracker = orbit.TrackerSettings;
+                tracker.BindingMode = BindingMode.WorldSpace;
+                tracker.PositionDamping = followDamping;
+                orbit.TrackerSettings = tracker;
+
+                InputAxis vertical = orbit.VerticalAxis;
+                vertical.Range = new Vector2(minPitch, maxPitch);
+                vertical.Center = Mathf.Clamp(restPitch, minPitch, maxPitch);
+                vertical.Value = Mathf.Clamp(vertical.Value, minPitch, maxPitch);
+                orbit.VerticalAxis = vertical;
+
+                InputAxis horizontal = orbit.HorizontalAxis;
+                horizontal.Range = new Vector2(-180f, 180f);
+                horizontal.Wrap = true;
+                orbit.HorizontalAxis = horizontal;
+            }
+
+            if (composer != null)
+            {
+                composer.TargetOffset = aimOffset;
+                composer.Damping = aimDamping;
+
+                ScreenComposerSettings composition = composer.Composition;
+                composition.ScreenPosition = screenPosition;
+                composer.Composition = composition;
+            }
+
+            if (cam != null)
+            {
+                cam.Lens.FieldOfView = fieldOfView;
+            }
         }
 
         /// <summary>
@@ -344,6 +441,8 @@ namespace Igruha.Core.CameraSystems
 
         private void Update()
         {
+            DropDampingAfterTeleport();
+
             if (lookAction == null || orbit == null || lookSuspended)
             {
                 return;
@@ -392,6 +491,37 @@ namespace Igruha.Core.CameraSystems
             InputAxis vertical = orbit.VerticalAxis;
             vertical.Value = Mathf.Clamp(vertical.Value + pitchDelta, minPitch, maxPitch);
             orbit.VerticalAxis = vertical;
+        }
+
+        /// <summary>
+        /// Персонажа перебросило — снять смягчение на один кадр, чтобы камера
+        /// встала на новое место сразу.
+        ///
+        /// Респавн, старт мини-игры и возврат в хаб двигают тело мгновенно, а
+        /// смягчение слежения рассчитано на бег: камера отправлялась догонять
+        /// через всю сцену, по дороге ныряя в стены и пол. Отличить переброс от
+        /// бега можно по одному шагу: на скорости персонаж проходит за кадр
+        /// сантиметры, а переброс — это метры.
+        /// </summary>
+        private void DropDampingAfterTeleport()
+        {
+            Transform target = cam != null ? cam.Follow : null;
+            if (target == null)
+            {
+                hasLastTargetPosition = false;
+                return;
+            }
+
+            Vector3 position = target.position;
+            if (hasLastTargetPosition
+                && (position - lastTargetPosition).sqrMagnitude > TeleportStep * TeleportStep)
+            {
+                cam.PreviousStateIsValid = false;
+                hasPreviousCameraPosition = false;
+            }
+
+            lastTargetPosition = position;
+            hasLastTargetPosition = true;
         }
 
         /// <summary>Смещение мыши приходит событием и копится до ближайшего кадра.</summary>
