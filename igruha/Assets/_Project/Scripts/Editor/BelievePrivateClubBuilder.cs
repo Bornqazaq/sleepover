@@ -115,6 +115,12 @@ namespace Igruha.EditorTools
                 new Vector3(.29f, 1, .43f));
             BelievePrivateClubAssets.Model(floor, "RoundRug", new Vector3(6.7f, .013f, 0), 0,
                 new Vector3(.19f, 1, .56f));
+            // Ковры под группами по углам: без них читальня и северо-западный
+            // угол читаются мебелью, расставленной по стене, а не местом.
+            BelievePrivateClubAssets.Model(floor, "RoundRug", new Vector3(6.55f, .013f, -5.1f), 0,
+                new Vector3(.24f, 1, .26f));
+            BelievePrivateClubAssets.Model(floor, "RoundRug", new Vector3(-6.75f, .013f, 5.1f), 0,
+                new Vector3(.23f, 1, .25f));
             // Structural shell follows the room config; gameplay anchors are independent.
             foreach (string name in new[] { "Floor", "Ceiling", "Wall_North", "Wall_South", "Wall_West", "Wall_East" })
             {
