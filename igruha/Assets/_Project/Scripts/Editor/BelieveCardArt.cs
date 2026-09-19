@@ -58,10 +58,9 @@ namespace Igruha.EditorTools
         private const float HaloScale = 2.3f;
 
         /// <summary>
-        /// Свечение бумаги и ореола. Карточка встаёт в самое яркое пятно лампы:
-        /// при 0.55 и 1.6 галочку выжигало почти до белого, знака было не видно.
+        /// Сила ореола. При 1.6 галочку выжигало почти до белого: карточка
+        /// встаёт в самое яркое пятно лампы, и ореол складывался с ним.
         /// </summary>
-        private const float CardEmission = 0.2f;
         private const float HaloIntensity = 0.85f;
         private const float HaloAlpha = 0.55f;
 
@@ -143,12 +142,11 @@ namespace Igruha.EditorTools
             material.SetFloat("_Cutoff", 0.5f);
             material.EnableKeyword("_ALPHATEST_ON");
 
-            // Свечение той же картинкой: в тёмном зале бумага не должна
-            // проваливаться, когда отвернётся от лампы.
-            material.SetTexture("_EmissionMap", texture);
-            material.SetColor("_EmissionColor", Color.white * CardEmission);
-            material.EnableKeyword("_EMISSION");
-            material.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+            // Свечения у карточки нет намеренно. Пробовали подсветить её самой
+            // картинкой — у здешнего URP/Lit нет переключателя «_EmissionEnabled»,
+            // и проверка материала гасит ключевое слово при каждом сохранении:
+            // в гите это давало бы вечно пляшущий .mat. Карточка поднимается
+            // внутрь конуса лампы и читается его светом.
 
             material.renderQueue = (int)RenderQueue.AlphaTest;
             EditorUtility.SetDirty(material);
