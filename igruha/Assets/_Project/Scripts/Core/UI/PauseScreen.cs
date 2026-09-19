@@ -4,6 +4,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using Unity.Netcode;
+using Igruha.Core.Audio;
 using Igruha.Core.Hub;
 using Igruha.Core.Minigame;
 
@@ -145,6 +146,11 @@ namespace Igruha.Core.UI
             previousSelection = EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null;
             IsPaused = true;
 
+            // Пауза — единственное меню, открываемое не кнопкой, а клавишей,
+            // поэтому свой щелчок она обязана сыграть сама: общий проход
+            // озвучивает кнопки, а Esc кнопкой не является.
+            UiAudio.Play(CoreSfx.UiMenuOpen);
+
             if (panel != null)
             {
                 panel.SetActive(true);
@@ -173,6 +179,7 @@ namespace Igruha.Core.UI
             }
 
             IsPaused = false;
+            UiAudio.Play(CoreSfx.UiBack);
 
             if (panel != null)
             {

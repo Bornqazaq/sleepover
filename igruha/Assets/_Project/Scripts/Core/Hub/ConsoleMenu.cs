@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using TMPro;
+using Igruha.Core.Audio;
 using Igruha.Core.CameraSystems;
 using Igruha.Core.Minigame;
 using Igruha.Core.Player;
@@ -60,6 +61,11 @@ namespace Igruha.Core.Hub
         public void ApplyPage(ConsolePage page)
         {
             if (!System.Enum.IsDefined(typeof(ConsolePage), page)) page = ConsolePage.Home;
+
+            // Возврат домой звучит отменой, уход вглубь — подтверждением.
+            // Страницу объявляет хост, а слышат её все: экран общий.
+            if (Page != page) UiAudio.Play(page == ConsolePage.Home ? CoreSfx.UiBack : CoreSfx.UiClick);
+
             Page = page;
             if (shellView != null) shellView.ShowPage(page);
             Refresh();
@@ -451,6 +457,11 @@ namespace Igruha.Core.Hub
         /// <summary>Подсветить игру под этим номером. Зовёт сетевой слой у всех разом.</summary>
         public void ApplyCursor(int index)
         {
+            // Лента игр — не кнопки, а карточки, и общий проход по кнопкам их не
+            // видит. Перебор ведёт хост, но звучит он у всех: на телевизор
+            // смотрит вся комната, и щелчок ленты — часть того, что она видит.
+            if (cursor != index) UiAudio.Play(CoreSfx.UiCharBrowse);
+
             cursor = index;
             Refresh();
         }

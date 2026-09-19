@@ -2,6 +2,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using Igruha.Core.Audio;
 
 namespace Igruha.Core.UI
 {
@@ -30,6 +31,11 @@ namespace Igruha.Core.UI
 
         public void ConfirmExit()
         {
+            // Вопрос «точно выйти?» звучит своим звуком: кнопка его открывает
+            // обычным щелчком, а вопрос — это уже другой экран, и слышно это
+            // должно быть до того, как игрок прочтёт текст.
+            if (!IsConfirmingExit) UiAudio.Play(CoreSfx.UiDialogOpen);
+
             IsConfirmingExit = true;
             title.text = leavingRound ? "Покинуть\nэтот раунд?" : "Закончить\nна сегодня?";
             message.text = leavingRound ? "Ты останешься в компании и сможешь\nнаблюдать до следующего раунда." :
@@ -43,6 +49,10 @@ namespace Igruha.Core.UI
 
         public void CancelExit()
         {
+            // Отмена звучит только когда есть что отменять: этот же метод зовёт
+            // открытие паузы, и там звук был бы эхом уже сыгранного щелчка.
+            if (IsConfirmingExit) UiAudio.Play(CoreSfx.UiBack);
+
             IsConfirmingExit = false;
             title.text = "Небольшой\nперерыв";
             message.text = "Устраивайся поудобнее.\nПродолжим, когда будешь готов.";
