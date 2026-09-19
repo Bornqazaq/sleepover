@@ -64,11 +64,11 @@ Shader "Igruha/BelieveOrNot/ClubVolume"
                 {
                     float3 p=origin+ray*(enter+(k+.5)*stepSize);
                     float radius=max(.025,(_LampHeight-p.y)/_LampHeight*_ConeRadius);
-                    float edge=1-smoothstep(.80,1,length(p.xz)/radius);
+                    float edge=1-smoothstep(.34,1,length(p.xz)/radius);
                     float3 drift=float3(_Time.y*.023,-_Time.y*.038,_Time.y*.017);
                     float n=Noise(p*3.4+drift)+.4*Noise(p*7.1+drift*1.7);
                     float smoke=.34+1.1*smoothstep(.38,.95,n);
-                    float nearLamp=lerp(.38,1.3,saturate(p.y/_LampHeight));
+                    float nearLamp=lerp(.30,1.75,saturate(p.y/_LampHeight));
                     float distanceToLamp=distance(p,float3(0,_LampHeight,0));
                     float attenuation=pow(saturate(1-pow(distanceToLamp/_LampRange,4)),2);
                     density+=edge*smoke*nearLamp*attenuation*stepSize;

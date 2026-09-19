@@ -5,6 +5,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 using Object = UnityEngine.Object;
 
 namespace Igruha.EditorTools
@@ -23,6 +24,19 @@ namespace Igruha.EditorTools
 
         /// <summary>Сила лунного заполнения. Выше — зал сереет и круг света перестаёт быть главным.</summary>
         private const float MoonlightIntensity = .17f;
+
+        /// <summary>
+        /// Внутренний угол лампы. При прежних 58° центр стола лежал на ровном
+        /// плато: сукно у борта светилось так же, как под шкатулками, и лампа
+        /// читалась заливкой, а не источником. 30° кладёт горячее пятно радиусом
+        /// около 0.77 м на столешницу — ровно круг под обеими шкатулками, — а к
+        /// борту стола свет плавно падает. Лицо сидящего лежит за пределами
+        /// пятна и держится на <see cref="FaceFill"/>.
+        /// </summary>
+        private const float LampInnerAngle = 30f;
+
+        private const string GradeVolumeName = "ClubGrade";
+        private const string GradeProfilePath = "Assets/_Project/Art/BelievePrivateClub/Materials/BPC_ClubGrade.asset";
 
         [MenuItem("Igruha/Верю не верю/Собственный клуб — оболочка и свет")]
         public static void Apply()
@@ -129,9 +143,13 @@ namespace Igruha.EditorTools
             // панелей референса, тёплый низ — отсвет ковра и дерева. Плоский
             // серый красил и то и другое одинаково, и зал читался стерильно.
             RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(.34f, .37f, .48f);
-            RenderSettings.ambientEquatorColor = new Color(.33f, .29f, .28f);
-            RenderSettings.ambientGroundColor = new Color(.27f, .20f, .16f);
+            // Приглушено против прежних .34/.33/.27: зритель у стола светился
+            // ярче лица соперника, а спека 4.6 держит темноту частью механики.
+            // Ниже опускать нельзя: на .19/.18/.15 зал провалился в чёрное
+            // целиком — проверено кадром 19.09.
+            RenderSettings.ambientSkyColor = new Color(.26f, .29f, .40f);
+            RenderSettings.ambientEquatorColor = new Color(.25f, .22f, .21f);
+            RenderSettings.ambientGroundColor = new Color(.20f, .15f, .12f);
             RenderSettings.ambientIntensity = 1;
             RenderSettings.reflectionIntensity = .06f;
             RenderSettings.skybox = null;
@@ -143,8 +161,8 @@ namespace Igruha.EditorTools
             lamp.localRotation = Quaternion.Euler(90, 0, 0);
             var spot = lamp.GetComponent<Light>();
             spot.enabled = true; spot.type = LightType.Spot;
-            spot.spotAngle = 110; spot.innerSpotAngle = 58;
-            spot.range = LampRange; spot.intensity = 28f;
+            spot.spotAngle = 110; spot.innerSpotAngle = LampInnerAngle;
+            spot.range = LampRange; spot.intensity = 33f;
             spot.color = Mathf.CorrelatedColorTemperatureToRGB(3000).gamma;
             spot.useColorTemperature = false;
             spot.shadows = LightShadows.Soft;
@@ -164,6 +182,49 @@ namespace Igruha.EditorTools
             Accent(accents, "BarFrontBounce", new Vector3(5.3f, 2.65f, 0),
                 new Vector3(side - 1.34f, 1.1f, 0), 4f, 5.2f, 125, 90);
             FaceFill(arena);
+            ConfigureGrade(arena);
+        }
+
+        /// <summary>
+        /// Пост-обработка зала. Лампа — единственный источник, и без блума её
+        /// нить и внутренность абажура остаются плоскими пятнами: в кадре виден
+        /// светлый кружок, а не горящая лампа. Порог держим выше единицы, чтобы
+        /// в ореол уходили только сама лампочка и латунь под ней, а сукно, лица
+        /// и интерфейс оставались чистыми.
+        /// </summary>
+        private static void ConfigureGrade(Transform arena)
+        {
+            var scene = arena.gameObject.scene;
+            foreach (var other in Object.FindObjectsByType<Volume>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                if (other.gameObject.scene == scene && other.name != GradeVolumeName) other.enabled = false;
+            var profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(GradeProfilePath);
+            if (profile == null)
+            {
+                profile = ScriptableObject.CreateInstance<VolumeProfile>();
+                AssetDatabase.CreateAsset(profile, GradeProfilePath);
+            }
+            if (!profile.TryGet<Bloom>(out var bloom)) { bloom = profile.Add<Bloom>(); AssetDatabase.AddObjectToAsset(bloom, profile); }
+            bloom.threshold.Override(1.05f);
+            bloom.intensity.Override(.55f);
+            bloom.scatter.Override(.74f);
+            bloom.tint.Override(new Color(1f, .87f, .68f));
+            if (!profile.TryGet<Tonemapping>(out var tone)) { tone = profile.Add<Tonemapping>(); AssetDatabase.AddObjectToAsset(tone, profile); }
+            // Neutral, а не ACES: ACES в этом зале уводил янтарь лампы в красный
+            // и добивал и без того тёмные тени — зал переставал читаться вовсе.
+            tone.mode.Override(TonemappingMode.Neutral);
+            EditorUtility.SetDirty(profile);
+            var holder = arena.Find(GradeVolumeName) ?? Group(arena, GradeVolumeName);
+            var volume = holder.GetComponent<Volume>();
+            if (volume == null) volume = holder.gameObject.AddComponent<Volume>();
+            volume.isGlobal = true; volume.priority = 20; volume.sharedProfile = profile;
+            foreach (var camera in Object.FindObjectsByType<Camera>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (camera.gameObject.scene != scene) continue;
+                var data = camera.GetComponent<UniversalAdditionalCameraData>();
+                if (data == null) data = camera.gameObject.AddComponent<UniversalAdditionalCameraData>();
+                data.renderPostProcessing = true;
+                EditorUtility.SetDirty(camera);
+            }
         }
 
         /// <summary>
@@ -201,14 +262,16 @@ namespace Igruha.EditorTools
         /// </summary>
         private static void FaceFill(Transform arena)
         {
-            var previous = arena.Find("FaceFill");
-            if (previous != null) return;
-            var t = Group(arena, "FaceFill");
+            // Значения переписываются и на уже стоящем источнике: иначе
+            // повторный проход по залу оставлял старую настройку, и результат
+            // пересборки зависел от того, была сцена собрана с нуля или нет.
+            var t = arena.Find("FaceFill") ?? Group(arena, "FaceFill");
             t.localPosition = new Vector3(0, 1.62f, 0);
-            var l = t.gameObject.AddComponent<Light>();
+            var l = t.GetComponent<Light>();
+            if (l == null) l = t.gameObject.AddComponent<Light>();
             l.type = LightType.Point;
             l.color = new Color(1f, .77f, .54f);
-            l.intensity = 2.6f; l.range = 3.4f;
+            l.intensity = 3.4f; l.range = 3.9f;
             l.shadows = LightShadows.None;
         }
 

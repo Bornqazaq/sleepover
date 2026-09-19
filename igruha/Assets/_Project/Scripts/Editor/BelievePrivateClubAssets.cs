@@ -31,14 +31,25 @@ namespace Igruha.EditorTools
             brass.globalIlluminationFlags = MaterialGlobalIlluminationFlags.BakedEmissive;
             var lining = Get("Lining");
             lining.EnableKeyword("_EMISSION");
-            lining.SetColor("_EmissionColor", new Color(.16f, .09f, .035f));
+            // Внутренность абажура светится сама: спот бьёт вниз и собственный
+            // плафон не освещает, отчего лампа в широком кадре читалась тёмной
+            // воронкой с белым кружком внутри. Держим чуть ниже порога блума —
+            // ореол даёт нить, а не весь абажур.
+            lining.SetColor("_EmissionColor", new Color(.95f, .55f, .24f));
             lining.globalIlluminationFlags = MaterialGlobalIlluminationFlags.BakedEmissive;
             var bulb = Lit("Bulb", new Color(1f, .72f, .35f), .15f, 0);
             bulb.EnableKeyword("_EMISSION");
-            bulb.SetColor("_EmissionColor", new Color(2.5f, 1.4f, .55f));
+            // Нить горит заметно выше порога блума: только так у лампы
+            // появляется ореол, и в широком кадре она читается горящей,
+            // а не белой точкой в тёмной воронке абажура.
+            bulb.SetColor("_EmissionColor", new Color(9f, 5.1f, 2f));
             bulb.globalIlluminationFlags = MaterialGlobalIlluminationFlags.BakedEmissive;
             var volume = NewMaterial("Volume", "Igruha/BelieveOrNot/ClubVolume");
-            volume.SetColor("_BaseColor", new Color(.75f, .65f, .50f, .002f));
+            // Плотность столба. При .002 конуса не было вовсе: непрозрачность
+            // считается как 1-exp(-density*alpha), и на таком alpha столб давал
+            // сотые доли процента — пыль в нём висела звёздами на тёмной стене.
+            // Выше .04 зал затягивает дымовой завесой и лицо теряет контраст.
+            volume.SetColor("_BaseColor", new Color(.98f, .74f, .46f, .030f));
             volume.SetFloat("_LampHeight", BelievePrivateClubBuilder.LampHeight);
             volume.SetFloat("_LampRange", 5.1f); // Accepted visible shaft cutoff, independent of light attenuation.
             volume.SetFloat("_ConeRadius", BelievePrivateClubBuilder.LampHeight * Mathf.Tan(55 * Mathf.Deg2Rad));
