@@ -159,7 +159,14 @@ namespace Igruha.EditorTools
                 BelievePrivateClubAssets.Model(wall, "Cornice_2m", p + Vector3.up * (height - .2f), 0, new Vector3(scale.x, 1, 1));
                 // Two pairs per end wall, one per side wall: blue timber remains dominant.
                 bool curtain = name == "North" || name == "South" ? i == 2 || i == count - 3 : i == count - 2;
-                if (curtain) BelievePrivateClubAssets.Model(wall, "Curtain_2m", p + Vector3.forward * .12f, 0, scale);
+                if (!curtain) continue;
+                // За шторой — оконный проём с закрытыми ставнями. Клуб стоит
+                // глубоко внутри здания, окон в нём нет (спека 14.1), и до сих
+                // пор штора висела на глухой панели: по ней читалось, что за
+                // ней ничего нет. Ставни объясняют штору и дают стене глубину,
+                // не открывая ни улицу, ни время суток.
+                BelievePrivateClubAssets.Model(wall, "ShutterBay_2m", p + Vector3.forward * .015f);
+                BelievePrivateClubAssets.Model(wall, "Curtain_2m", p + Vector3.forward * .12f, 0, scale);
             }
         }
 
@@ -253,6 +260,12 @@ namespace Igruha.EditorTools
             bloom.intensity.Override(.55f);
             bloom.scatter.Override(.74f);
             bloom.tint.Override(new Color(1f, .87f, .68f));
+            // Виньетка: зал и так тёмный по краям, но её мягкий спад собирает
+            // взгляд к столу и убирает ощущение, что кадр просто недосвечен.
+            if (!profile.TryGet<Vignette>(out var vignette)) { vignette = profile.Add<Vignette>(); AssetDatabase.AddObjectToAsset(vignette, profile); }
+            vignette.intensity.Override(.34f);
+            vignette.smoothness.Override(.55f);
+            vignette.color.Override(new Color(.04f, .03f, .035f));
             if (!profile.TryGet<Tonemapping>(out var tone)) { tone = profile.Add<Tonemapping>(); AssetDatabase.AddObjectToAsset(tone, profile); }
             // Neutral, а не ACES: ACES в этом зале уводил янтарь лампы в красный
             // и добивал и без того тёмные тени — зал переставал читаться вовсе.

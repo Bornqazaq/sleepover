@@ -93,6 +93,16 @@ namespace Igruha.EditorTools
 
             // Цвет таймера каждый кадр ставит RoundHud (обычный / последние секунды).
             UiTheme.Text(Text(plate, "TimerText"), UiFonts.Numbers, 50f, UiTheme.Cream, 2f);
+
+            // Плашку отдаём RoundHud, чтобы он убирал её на итогах: раунд
+            // кончился, а секунды под затемнением продолжали бежать.
+            var hud = Object.FindFirstObjectByType<RoundHud>(FindObjectsInactive.Include);
+            if (hud != null)
+            {
+                var so = new SerializedObject(hud);
+                so.FindProperty("timerPlate").objectReferenceValue = plate.gameObject;
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
         }
 
         private static void Countdown(Transform canvas)
@@ -157,6 +167,14 @@ namespace Igruha.EditorTools
             Transform card = panel.Find("Card");
             Paint(card, null, UiSpriteBaker.Card, UiTheme.Surface);
             Paint(card, "Edge", UiSpriteBaker.Stroke, UiTheme.BrassEdge);
+
+            // Надзаголовок и подпись — как в брифинге «Дырки в стене»: сухой
+            // список мест не говорит, чей это был кон и что будет дальше.
+            TMP_Text eyebrow = EnsureText(card, "Eyebrow", "ВЕРЮ / НЕ ВЕРЮ · ИТОГИ КОНА");
+            UiTheme.Caption(eyebrow, 18f, UiTheme.Brass);
+            eyebrow.alignment = TextAlignmentOptions.Center;
+            Row(eyebrow.transform, 26f).transform.SetSiblingIndex(0);
+
             UiTheme.Title(Text(card, "Title"), 56f);
             Ornament(card.Find("Divider"));
 
@@ -172,10 +190,39 @@ namespace Igruha.EditorTools
                 UiTheme.Text(Text(row, "Name"), UiFonts.SansBold, 30f, UiTheme.Cream);
             }
 
+            TMP_Text footnote = EnsureText(card, "Footnote", "Победит тот, кто чаще читал соперника");
+            UiTheme.Text(footnote, UiFonts.SansMedium, 20f, UiTheme.Muted);
+            footnote.alignment = TextAlignmentOptions.Center;
+            Row(footnote.transform, 30f);
+
             Transform restart = card.Find("RestartButton");
+            footnote.transform.SetSiblingIndex(restart != null ? restart.GetSiblingIndex() : card.childCount - 1);
+
+            // Карточка выезжает, а не появляется рывком: тот же UiPop, что
+            // держит брифинг в «Дырке в стене».
+            if (card.GetComponent<UiPop>() == null)
+            {
+                card.gameObject.AddComponent<UiPop>();
+            }
+
             Paint(restart, null, UiSpriteBaker.Chip, UiTheme.Brass);
             UiTheme.Text(Text(restart, "Label"), UiFonts.SerifBold, 30f, UiTheme.BrassInk, UiTheme.TitleSpacing);
             UiTheme.ButtonStates(restart != null ? restart.GetComponent<Button>() : null, brassFill: true);
+        }
+
+        /// <summary>Строка вертикальной раскладки фиксированной высоты.</summary>
+        private static LayoutElement Row(Transform target, float height)
+        {
+            var element = target.GetComponent<LayoutElement>();
+            if (element == null)
+            {
+                element = target.gameObject.AddComponent<LayoutElement>();
+            }
+
+            element.minHeight = height;
+            element.preferredHeight = height;
+            element.flexibleHeight = 0f;
+            return element;
         }
 
         private static void ScenePlate(Transform plate)
@@ -353,6 +400,9 @@ namespace Igruha.EditorTools
             so.FindProperty("rowFont").objectReferenceValue = UiFonts.SansMedium;
             so.FindProperty("rowSprite").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>(UiSpriteBaker.KeyCap);
             so.FindProperty("rowTextInset").floatValue = 16f;
+            // Номер строки — латунью: это клавиша, а одним цветом с текстом
+            // он читался частью реплики, а не подсказкой, что нажать.
+            so.FindProperty("numberTint").colorValue = UiTheme.Brass;
             so.FindProperty("fitRootToRows").boolValue = true;
             so.FindProperty("rootBottomPadding").floatValue = 18f;
             so.ApplyModifiedPropertiesWithoutUndo();

@@ -206,6 +206,35 @@ tube(edge,.018,'Fringe')
 for xx,yy,zz in edge:tube([(xx,yy,zz),(xx,yy,zz-.09)],.005,'Fringe')
 module('Curtain_2m')
 
+# Оконный проём за шторой, закрытый ставнями. Клуб сидит глубоко внутри
+# здания (спека 14.1: ни окон, ни улицы, ни времени суток), и до сих пор
+# шторы висели на глухой панели — по ним читалось, что за ними ничего нет.
+# Ставни объясняют штору и дают стене глубину, не открывая улицу.
+# Комната со стороны -Y, поэтому проём уходит вглубь по +Y, а обвязка
+# рамы идёт по периметру: сплошной блок спереди закрыл бы саму нишу.
+SB_W, SB_LOW, SB_HIGH, SB_DEPTH = 1.46, .93, 3.30, .17
+SB_MID = (SB_LOW+SB_HIGH)*.5
+SB_H = SB_HIGH-SB_LOW
+for side in (-1, 1):
+    box((side*(SB_W*.5+.075), SB_DEPTH*.5-.02, SB_MID), (.15, SB_DEPTH, SB_H+.30), 'Wood', .014)
+box((0, SB_DEPTH*.5-.02, SB_HIGH+.075), (SB_W+.30, SB_DEPTH, .15), 'Wood', .014)
+box((0, SB_DEPTH*.5-.02, SB_LOW-.055), (SB_W+.30, SB_DEPTH+.08, .11), 'Wood', .012)
+# Дно ниши: тёмная доска, за ней ничего нет и быть не должно.
+box((0, SB_DEPTH-.012, SB_MID), (SB_W, .024, SB_H), 'Navy', .004)
+for side in (-1, 1):
+    leaf_x = side*SB_W*.25
+    box((leaf_x, .055, SB_MID), (SB_W*.5-.016, .050, SB_H-.03), 'Wood', .010)
+    for k in range(4):
+        z = SB_LOW + SB_H*(k+.5)/4
+        box((leaf_x, .034, z), (SB_W*.5-.115, .022, SB_H/4-.085), 'Navy', .008)
+    tube([(leaf_x, .026, SB_LOW+.10), (leaf_x, .026, SB_HIGH-.10)], .006, 'Brass')
+# Шпингалет по стыку створок и петли на обвязке.
+tube([(0, .022, 1.98), (0, .022, 2.26)], .013, 'Brass')
+for z in (SB_LOW+.28, SB_MID, SB_HIGH-.28):
+    for side in (-1, 1):
+        box((side*(SB_W*.5-.022), .050, z), (.055, .040, .090), 'Brass', .006)
+module('ShutterBay_2m')
+
 # A high-resolution round woven rug with a rolled bound edge, no collision.
 lathe([(0,.012),(3.85,.012),(3.86,.008),(3.85,0)],'Carpet',160)
 for r in (3.65,3.70,3.79):
@@ -232,9 +261,16 @@ def export(o):
         apply_unit_scale=True,bake_anim=False,add_leaf_bones=False,use_mesh_modifiers=True)
 
 # Export a panel first; set BPC_EXPORT_ALL after checking its Unity import.
-export(modules[0])
-if globals().get('BPC_EXPORT_ALL',False):
-    for o in modules[1:]:export(o)
+# BPC_EXPORT_MODELS сужает список: FBX лежат в LFS, и переписывать девять
+# старых модулей ради одного нового незачем.
+wanted=globals().get('BPC_EXPORT_MODELS',None)
+if wanted is None:
+    export(modules[0])
+    if globals().get('BPC_EXPORT_ALL',False):
+        for o in modules[1:]:export(o)
+else:
+    for o in modules:
+        if o.name in wanted or o.name.replace('BPC_','') in wanted:export(o)
 bpy.data.libraries.write(str(SOURCE/'BelievePrivateClub.blend'),{scene},fake_user=True,compress=True)
 print('BPC modules:',[(o.name,len(o.data.polygons)) for o in modules])
 bpy.context.window.scene=previous
