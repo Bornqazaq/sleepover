@@ -33,7 +33,9 @@
     },
     {
       "id": "mine_blast",
+      "file": "SFX_MEM_Plate_Explosion",
       "event": "Детонация плиты",
+      "when": "MemoryRunMinigame.MineDetonated — взрыв видели все",
       "loop": false,
       "spatial": true,
       "volume": 1.0
@@ -93,15 +95,6 @@
       "loop": false,
       "spatial": false,
       "volume": 0.8
-    },
-    {
-      "id": "SFX_MEM_Plate_Explosion",
-      "file": "SFX_MEM_Plate_Explosion",
-      "event": "детонация плиты",
-      "when": "слот mine_blast в memory-run-sfx.json",
-      "loop": false,
-      "spatial": true,
-      "volume": 1.0
     }
   ]
 }

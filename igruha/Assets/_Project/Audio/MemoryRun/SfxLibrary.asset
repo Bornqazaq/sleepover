@@ -38,7 +38,7 @@ MonoBehaviour:
     Loop: 0
     Spatial: 1
   - Id: mine_blast
-    Clip: {fileID: 0}
+    Clip: {fileID: 8300000, guid: 1586594bdcd4ae4438f363f53f56596e, type: 3}
     Variants: []
     Volume: 1
     Loop: 0
@@ -91,9 +91,3 @@ MonoBehaviour:
     Volume: 0.8
     Loop: 0
     Spatial: 0
-  - Id: SFX_MEM_Plate_Explosion
-    Clip: {fileID: 8300000, guid: 1586594bdcd4ae4438f363f53f56596e, type: 3}
-    Variants: []
-    Volume: 1
-    Loop: 0
-    Spatial: 1

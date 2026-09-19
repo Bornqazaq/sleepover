@@ -3507,6 +3507,7 @@ MonoBehaviour:
   countdownText: {fileID: 674721692}
   statusText: {fileID: 1827757690}
   restartButton: {fileID: 1298021794}
+  resultsCamera: {fileID: 0}
   resultRows:
   - {fileID: 1623076398}
   - {fileID: 1394741996}
@@ -3516,6 +3517,7 @@ MonoBehaviour:
   - {fileID: 612363050}
   - {fileID: 1657910294}
   - {fileID: 1240900576}
+  resultsTitle: {fileID: 0}
   countdownPop: {fileID: 674721690}
   criticalSeconds: 10
 --- !u!224 &150850381
@@ -15419,6 +15421,69 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 558385763}
   m_CullTransparentMesh: 1
+--- !u!1 &569111366
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 569111369}
+  - component: {fileID: 569111368}
+  - component: {fileID: 569111367}
+  m_Layer: 0
+  m_Name: UiAudio
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &569111367
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 569111366}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 59b1f4a77d1bfdd41976f31ab2b400fd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.UiAudio
+  audioPlayer: {fileID: 0}
+  playHover: 1
+--- !u!114 &569111368
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 569111366}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ade51d53fffee4c239ed9c55255f1320, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.MinigameAudioPlayer
+  library: {fileID: 11400000, guid: 510c08e3318f65d4fbaf93144c410acd, type: 2}
+  extraLibraries: []
+  voices: 4
+  maxDistance: 40
+--- !u!4 &569111369
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 569111366}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &569197301
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -16158,6 +16223,74 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 9190264014399265128, guid: 1a777ec34d27a4efa85bd9b393fb61ca, type: 3}
   m_PrefabInstance: {fileID: 587774713}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &589287357
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 589287358}
+  - component: {fileID: 589287360}
+  - component: {fileID: 589287359}
+  m_Layer: 0
+  m_Name: Audio
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &589287358
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 589287357}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 756139778}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &589287359
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 589287357}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 28d6411f94ebb4629a487ba4137a8340, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.CryingAngels.CryingAngelsAudio
+  audioPlayer: {fileID: 589287360}
+  game: {fileID: 756139781}
+  config: {fileID: 11400000, guid: 061beed3bdcc4434eacd9c9fbeaa7a90, type: 2}
+  library: {fileID: 11400000, guid: 7ce1e17ad59745a419cc2de9e8a88e2e, type: 2}
+  screamer: {fileID: 756139783}
+  caughtFeedback: {fileID: 363870221}
+--- !u!114 &589287360
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 589287357}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ade51d53fffee4c239ed9c55255f1320, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.MinigameAudioPlayer
+  library: {fileID: 11400000, guid: 7ce1e17ad59745a419cc2de9e8a88e2e, type: 2}
+  extraLibraries:
+  - {fileID: 11400000, guid: 5f1bc6ae7bdd99641a0a609dc678f905, type: 2}
+  voices: 16
+  maxDistance: 40
 --- !u!1 &591973869
 GameObject:
   m_ObjectHideFlags: 0
@@ -20106,7 +20239,8 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 589287358}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &756139779
@@ -20161,6 +20295,7 @@ MonoBehaviour:
   hud: {fileID: 150850380}
   resultsDisplaySeconds: 12
   hubSceneName: Hub
+  finalStandingsSeconds: 10
   spawnPoints: {fileID: 1638957353}
   config: {fileID: 11400000, guid: 061beed3bdcc4434eacd9c9fbeaa7a90, type: 2}
   cameraController: {fileID: 1246980261}
@@ -30366,6 +30501,7 @@ GameObject:
   - component: {fileID: 1298021796}
   - component: {fileID: 1298021795}
   - component: {fileID: 1298021794}
+  - component: {fileID: 1298021798}
   m_Layer: 0
   m_Name: RestartButton
   m_TagString: Untagged
@@ -30495,6 +30631,20 @@ MonoBehaviour:
   m_FlexibleWidth: -1
   m_FlexibleHeight: 0
   m_LayoutPriority: 1
+--- !u!114 &1298021798
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1298021792}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b739ea568373e74479a3ed218e45f498, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.UiButtonSound
+  clickSlot: SFX_UI_Click
+  blockedSlot: SFX_UI_Error
 --- !u!1 &1298280762
 GameObject:
   m_ObjectHideFlags: 0
@@ -48365,3 +48515,4 @@ SceneRoots:
   - {fileID: 2118227425}
   - {fileID: 756139778}
   - {fileID: 1455944738}
+  - {fileID: 569111369}
