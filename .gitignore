@@ -174,3 +174,11 @@ igruha/Assets/_Project/Audio/*/Probe/
 
 # Python bytecode from tools/
 __pycache__/
+
+# Поставки звука: исходные папки от поставщика.
+# Принятые файлы лежат в Assets/_Project/Audio и идут через LFS; копия папки
+# рядом с проектом удваивала бы вес репозитория на каждой поставке.
+igruha/Komnata_*/
+
+# Идентификатор сессии HTTP-моста Unity (tools/unity_bridge.py) — локальный и недолговечный
+tools/.unity-mcp-session

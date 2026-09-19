@@ -15,61 +15,73 @@ MonoBehaviour:
   entries:
   - Id: wall_start_gong
     Clip: {fileID: 8300000, guid: 8c54615fc2f0b47c6984d5ba368490a2, type: 3}
-    Volume: 0.7993506
+    Variants: []
+    Volume: 0.7994
     Loop: 0
     Spatial: 0
   - Id: wall_move_loop
     Clip: {fileID: 8300000, guid: 790090dfb308e4e26ab4392dda47e734, type: 3}
-    Volume: 0.9729437
+    Variants: []
+    Volume: 0.9729
     Loop: 1
     Spatial: 1
   - Id: impact_warning
     Clip: {fileID: 8300000, guid: d17b6ba93283947408630ca247d594ed, type: 3}
+    Variants: []
     Volume: 0.95
     Loop: 0
     Spatial: 0
   - Id: pass_success_ding
     Clip: {fileID: 8300000, guid: 170a57f68ca42438dbfe8ae5a1b459b9, type: 3}
+    Variants: []
     Volume: 1
     Loop: 0
     Spatial: 1
   - Id: crowd_cheer
     Clip: {fileID: 8300000, guid: f8df7737b08654ca5823dfa9500e5041, type: 3}
+    Variants: []
     Volume: 1
     Loop: 0
     Spatial: 0
   - Id: fail_body_hit
     Clip: {fileID: 8300000, guid: 1a6245f701b854246a0f689f870b4e59, type: 3}
+    Variants: []
     Volume: 0.8
     Loop: 0
     Spatial: 1
   - Id: water_splash
     Clip: {fileID: 8300000, guid: f58db2583bd0444bca3833ad2d994adb, type: 3}
-    Volume: 0.5714286
+    Variants: []
+    Volume: 0.5714
     Loop: 0
     Spatial: 1
   - Id: underwater_loop
     Clip: {fileID: 8300000, guid: af913004984964fc194aed511fdfd17a, type: 3}
+    Variants: []
     Volume: 0.6
     Loop: 1
     Spatial: 1
   - Id: mirror_whoosh
     Clip: {fileID: 8300000, guid: 9d1ba87c313a94595a5109754e577414, type: 3}
+    Variants: []
     Volume: 0.9
     Loop: 0
     Spatial: 1
   - Id: morph_whoosh
     Clip: {fileID: 8300000, guid: 965f83eb8a1274ecc8f2d4eba4f93735, type: 3}
+    Variants: []
     Volume: 0.9
     Loop: 0
     Spatial: 1
   - Id: round_end_jingle
     Clip: {fileID: 8300000, guid: ff5b07c3d410c44809e3e246e45a3d31, type: 3}
+    Variants: []
     Volume: 1
     Loop: 0
     Spatial: 0
   - Id: round_theme
     Clip: {fileID: 8300000, guid: 45c72d8ae6c724430a9a1c4e59328986, type: 3}
-    Volume: 0.737013
+    Variants: []
+    Volume: 0.737
     Loop: 1
     Spatial: 0

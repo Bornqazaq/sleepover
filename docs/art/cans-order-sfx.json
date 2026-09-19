@@ -60,6 +60,15 @@
       "prompt": "short triumphant circus fanfare, three ascending brass notes with a cymbal accent, cheerful vintage carnival band, plenty of headroom, moderate volume, no clipping, no voices",
       "picked": "v1",
       "note": "Оба варианта stable-audio пришли на пределе (0.0 и −0.0 dBFS), но у v2 один срезанный сэмпл, а клиппинг нормализацией не чинится. Взят v1: срезанных нет. После среза хвоста 1.4 с длина 2.6 с, пик −1.0 dBFS. Форма фронтальная, а не нарастающая — генератор отдал сразу полный аккорд; для стинга это годится."
+    },
+    {
+      "id": "SFX_BOTL_Can_Place",
+      "file": "SFX_BOTL_Can_Place",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "event": "банка на полку",
+      "when": "взять/поставить/поменять; слот can_swap"
     }
   ]
 }

@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2574025c1373412bb9b8283feb02ca7, type: 3}
+  m_Name: SfxLibrary
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.MinigameSfxLibrary
+  entries:
+  - Id: SFX_TRAP_Door_Slam
+    Clip: {fileID: 8300000, guid: eb85ef1b339642343ade1a478773ff89, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 1
+  - Id: SFX_TRAP_Floor_Collapse
+    Clip: {fileID: 8300000, guid: 42adb1e8ede44f9439553905addad373, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 1
+  - Id: SFX_TRAP_Lever_Pull
+    Clip: {fileID: 8300000, guid: f261df92c7f306d4c80ed64e503dab02, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 1

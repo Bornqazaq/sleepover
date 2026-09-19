@@ -1,0 +1,70 @@
+{
+  "game": "Circus",
+  "source": "поставка звука, sounds.json",
+  "output_folder": "Assets/_Project/Audio/Minigames/Circus",
+  "slots": [
+    {
+      "id": "SFX_CIRCUS_Bear_Impact",
+      "file": "SFX_CIRCUS_Bear_Impact",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "event": "лапа попала по игроку",
+      "when": "слот impact в CircusBearFeedback"
+    },
+    {
+      "id": "SFX_CIRCUS_Bear_Roar",
+      "file": "SFX_CIRCUS_Bear_Roar",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "event": "рёв Бруно",
+      "when": "слот growl в CircusBearFeedback; раз в 6–12 с"
+    },
+    {
+      "id": "SFX_CIRCUS_Bear_Swipe",
+      "file": "SFX_CIRCUS_Bear_Swipe",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "event": "взмах лапой",
+      "when": "слот swipe в CircusBearFeedback"
+    },
+    {
+      "id": "SFX_CIRCUS_Cage_Hatch_Open",
+      "file": "SFX_CIRCUS_Cage_Hatch_Open",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "event": "створки дна клетки",
+      "when": "HingedFloorHatch — выбывший падает в яму"
+    },
+    {
+      "id": "SFX_CIRCUS_Cage_Lower_Chains",
+      "file": "SFX_CIRCUS_Cage_Lower_Chains",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "event": "клетка опускается",
+      "when": "рывок на ступень, ~2 с"
+    },
+    {
+      "id": "SFX_CIRCUS_Relay_Click",
+      "file": "SFX_CIRCUS_Relay_Click",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "event": "кнопка-реле",
+      "when": "_01 старт, _02 стоп; в Банках — подтверждение"
+    },
+    {
+      "id": "SFX_CIRCUS_Results_Hit",
+      "file": "SFX_CIRCUS_Results_Hit",
+      "loop": false,
+      "spatial": false,
+      "volume": 1.0,
+      "event": "показ результатов",
+      "when": "«бум-тсс» вместо дроби"
+    }
+  ]
+}

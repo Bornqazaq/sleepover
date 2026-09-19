@@ -89,6 +89,9 @@ GameObject:
   - component: {fileID: 4264028153862867750}
   - component: {fileID: 6104822510058981082}
   - component: {fileID: 4483104048863953667}
+  - component: {fileID: 7767888851554600410}
+  - component: {fileID: 2222122473636358188}
+  - component: {fileID: 6044267072773803155}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -528,6 +531,52 @@ MonoBehaviour:
   respawner: {fileID: 8649196647282045590}
   stuckSpeedThreshold: 0.2
   stuckDuration: 3
+--- !u!114 &7767888851554600410
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6047239826789173574}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ade51d53fffee4c239ed9c55255f1320, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.MinigameAudioPlayer
+  library: {fileID: 11400000, guid: 5f1bc6ae7bdd99641a0a609dc678f905, type: 2}
+  extraLibraries: []
+  voices: 6
+  maxDistance: 22
+--- !u!114 &2222122473636358188
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6047239826789173574}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 007aa0a0bacfbdf4cbd70c9387b109d0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.CharacterAudio
+  audioPlayer: {fileID: 7767888851554600410}
+  controller: {fileID: 2264355084158667115}
+--- !u!114 &6044267072773803155
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6047239826789173574}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21fc4c2fdd465c64c9a6901914195dea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.CharacterFootsteps
+  audioPlayer: {fileID: 7767888851554600410}
+  controller: {fileID: 2264355084158667115}
+  defaultSurface: 0
+  strideMeters: 1.25
 --- !u!1001 &2327340725824812181
 PrefabInstance:
   m_ObjectHideFlags: 0

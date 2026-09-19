@@ -1,0 +1,63 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2574025c1373412bb9b8283feb02ca7, type: 3}
+  m_Name: SfxLibrary
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.MinigameSfxLibrary
+  entries:
+  - Id: SFX_ANGL_Amb_Hall_Loop
+    Clip: {fileID: 8300000, guid: 92c7a467b29d1ab478c9c6d2c3efe390, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 1
+    Spatial: 0
+  - Id: SFX_ANGL_Pedestal_Grind_Loop
+    Clip: {fileID: 8300000, guid: d2625984ca691d14a8943d0d0acd6858, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 1
+    Spatial: 1
+  - Id: SFX_ANGL_Petrified_Impact
+    Clip: {fileID: 8300000, guid: 33c9982649af3a94b82591f72a5161a1, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 1
+  - Id: SFX_ANGL_Petrify_Crumble
+    Clip: {fileID: 8300000, guid: c278b68c134ca694db1b7282ebe13abb, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 1
+  - Id: SFX_ANGL_Screamer
+    Clip: {fileID: 8300000, guid: 01eef85698207c448926ce4e123ba73c, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 0
+  - Id: SFX_ANGL_Spotted_Sting
+    Clip: {fileID: 8300000, guid: 037b832a463e64e48bc7179353348161, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 0
+  - Id: SFX_ANGL_Step_Stone
+    Clip: {fileID: 8300000, guid: f2510a707583890488c3650097c40bd2, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: f2510a707583890488c3650097c40bd2, type: 3}
+    - {fileID: 8300000, guid: f549374611e4c924bac38cc42c400d03, type: 3}
+    - {fileID: 8300000, guid: f6967bdf822fdea42b6ddd9f5fea529b, type: 3}
+    - {fileID: 8300000, guid: 10c5ed290cde0f948bca300b60e37ad8, type: 3}
+    - {fileID: 8300000, guid: aa1278aa1c50dfb43862feeb0e075f85, type: 3}
+    - {fileID: 8300000, guid: 074dc48be320f584e9ceecee99d33d56, type: 3}
+    Volume: 1
+    Loop: 0
+    Spatial: 1

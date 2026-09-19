@@ -220,6 +220,15 @@
         "industrial klaxon powering down, long low descending horn, one continuous tone dying away, close and dry, no music, no speech",
         "old siren decelerating to a stop, pitch dropping slowly, single sweep, recorded close, dry, no music, no voices"
       ]
+    },
+    {
+      "id": "SFX_MEM_Plate_Explosion",
+      "file": "SFX_MEM_Plate_Explosion",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "event": "детонация плиты",
+      "when": "слот mine_blast в memory-run-sfx.json"
     }
   ]
 }
