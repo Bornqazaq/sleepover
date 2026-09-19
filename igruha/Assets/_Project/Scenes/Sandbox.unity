@@ -355,14 +355,6 @@ PrefabInstance:
       propertyPath: Target.TrackingTarget
       value: 
       objectReference: {fileID: 0}
-    - target: {fileID: 7502180496260988884, guid: 180d13c631f5f3441904596fd20bed4c, type: 3}
-      propertyPath: Composition.ScreenPosition.x
-      value: -0.0010438561
-      objectReference: {fileID: 0}
-    - target: {fileID: 7502180496260988884, guid: 180d13c631f5f3441904596fd20bed4c, type: 3}
-      propertyPath: Composition.ScreenPosition.y
-      value: 0.01999998
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -523,7 +515,7 @@ MonoBehaviour:
   IgnoreTimeScale: 0
   WorldUpOverride: {fileID: 0}
   ChannelMask: -1
-  UpdateMethod: 2
+  UpdateMethod: 1
   BlendUpdateMethod: 1
   LensModeOverride:
     Enabled: 0

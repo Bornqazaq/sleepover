@@ -59,8 +59,12 @@ namespace Igruha.Networking
                 return;
             }
 
-            rig.Follow = transform;
-            rig.LookAt = transform;
+            // Грудь, а не корень: орбита центрируется на цели, и с корнем
+            // персонажа её центр оказывается на полу — камера висит на высоте
+            // пояса и смотрит в ноги (см. MinigameCameraController.ChestLevel).
+            Transform chest = playerController.CameraTarget;
+            rig.Follow = chest;
+            rig.LookAt = chest;
 
             // Мотор считает ввод относительно камеры — без ссылки он берёт
             // Camera.main, но после смены сцены её нужно обновить

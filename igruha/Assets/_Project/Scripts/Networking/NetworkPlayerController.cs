@@ -26,6 +26,7 @@ namespace Igruha.Networking
         private PlayerInteractor interactor;
         private PlayerCarryAbility carryAbility;
         private ProjectileShooter shooter;
+        private Rigidbody body;
 
         /// <summary>
         /// Присед владельца. Состояние, а не событие, поэтому NetworkVariable, а не RPC.
@@ -47,6 +48,7 @@ namespace Igruha.Networking
             interactor = GetComponent<PlayerInteractor>();
             carryAbility = GetComponent<PlayerCarryAbility>();
             shooter = GetComponentInChildren<ProjectileShooter>(true);
+            body = GetComponent<Rigidbody>();
         }
 
         public override void OnNetworkSpawn()
@@ -138,6 +140,15 @@ namespace Igruha.Networking
             if (animatorDriver != null)
             {
                 animatorDriver.enabled = false;
+            }
+
+            // Сглаживанием чужой копии занимается NetworkTransform: он ведёт её
+            // между сетевыми тактами. Физическая интерполяция поверх этого тянет
+            // тело к своей прошлой позиции и даёт дрожь — она нужна только там,
+            // где телом действительно правит физика, то есть у владельца.
+            if (body != null)
+            {
+                body.interpolation = RigidbodyInterpolation.None;
             }
         }
 
