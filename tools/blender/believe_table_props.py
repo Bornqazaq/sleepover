@@ -236,7 +236,11 @@ module('CasketLid',(W/2,0,.137))
 # widen .45 above the seat, the broadest back stays in front of y=.40.
 SEAT,LEG_TOP=.38,.23
 INNER_X,INNER_BACK,BACK_CENTRE,ROUNDNESS=.43,.42,.20,3.0
-SHELL,ARM_FRONT,ARM_RISE,BACK_RISE=.10,.10,.22,.56
+# BACK_RISE поднят с .56 до .70: верх спинки уходит с .94 на 1.08 м от пола,
+# то есть выше плеч сидящего. На прежней высоте спинка кончалась ровно под
+# лопатками, и в геройском кадре соперник читался сидящим на табурете,
+# а бриф 14.3 просит «дуэль», а не «двое стоят у тумбы».
+SHELL,ARM_FRONT,ARM_RISE,BACK_RISE=.10,.10,.22,.70
 CUSHION_FRONT,DECK_FRONT,CUSHION=.085,.16,.09
 
 def back_curve(phi,inset=0):

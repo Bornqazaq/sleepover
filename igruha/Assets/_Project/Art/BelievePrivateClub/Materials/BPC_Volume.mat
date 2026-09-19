@@ -25,8 +25,8 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _ConeRadius: 3.6
-    - _LampHeight: 3.6
+    - _ConeRadius: 3.5752609
+    - _LampHeight: 3
     - _LampRange: 5.1
     m_Colors:
     - _BaseColor: {r: 0.98, g: 0.74, b: 0.46, a: 0.042}

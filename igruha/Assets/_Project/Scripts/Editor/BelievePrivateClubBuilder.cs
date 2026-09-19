@@ -17,7 +17,15 @@ namespace Igruha.EditorTools
         private const string ConfigPath = "Assets/_Project/Settings/Gameplay/Minigames/BelieveOrNotConfig.asset";
         private const float ModuleWidth = 2f;
         private const float ModuleHeight = 4.12f;
-        internal const float LampHeight = 3.6f;
+        /// <summary>
+        /// Высота лампы. На 3.6 м абажур упирался в кессоны потолка (4.12 м):
+        /// между ними оставалось 9 см, цепь вырождалась в одно звено, и в
+        /// широком кадре светильник читался потолочной люстрой, а не пендантом
+        /// над столом. На 3.0 м цепь даёт девять звеньев и лампа висит.
+        /// В кадр сидящего она не попадает: камера смотрит вниз, а лампа
+        /// остаётся на 44° выше оси взгляда при половине обзора в 25°.
+        /// </summary>
+        internal const float LampHeight = 3f;
         // Дальность лампы режет конус по сфере, а не по полу: при 5.1 м свет
         // не доставал до края стола и круг схлопывался в пятно метра на три.
         internal const float LampRange = 9.5f;
@@ -37,12 +45,13 @@ namespace Igruha.EditorTools
 
         /// <summary>
         /// Внешний угол лампы. Спека 4.6 просит круг света 10 ШП (7.2 м) в
-        /// диаметре, и при подвесе 3.6 м это ровно 90°. Прежние 110° давали
-        /// круг 10.3 м: зритель, подошедший к столу, попадал в прямой свет и
-        /// светился ярче лица соперника, хотя темнота вокруг стола — часть
-        /// механики, а не оформление.
+        /// диаметре; при подвесе 3.0 м это 100°. Прежние 110° при подвесе 3.6
+        /// давали круг 10.3 м: зритель, подошедший к столу, попадал в прямой
+        /// свет и светился ярче лица соперника, хотя темнота вокруг стола —
+        /// часть механики, а не оформление. Угол и высота связаны: меняя одно,
+        /// пересчитать другое, иначе круг уедет от спеки.
         /// </summary>
-        internal const float LampOuterAngle = 90f;
+        internal const float LampOuterAngle = 100f;
 
         private const string GradeVolumeName = "ClubGrade";
         private const string GradeProfilePath = "Assets/_Project/Art/BelievePrivateClub/Materials/BPC_ClubGrade.asset";
@@ -171,7 +180,7 @@ namespace Igruha.EditorTools
             var spot = lamp.GetComponent<Light>();
             spot.enabled = true; spot.type = LightType.Spot;
             spot.spotAngle = LampOuterAngle; spot.innerSpotAngle = LampInnerAngle;
-            spot.range = LampRange; spot.intensity = 33f;
+            spot.range = LampRange; spot.intensity = 26f;
             spot.color = Mathf.CorrelatedColorTemperatureToRGB(3000).gamma;
             spot.useColorTemperature = false;
             spot.shadows = LightShadows.Soft;
@@ -191,6 +200,7 @@ namespace Igruha.EditorTools
             Accent(accents, "BarFrontBounce", new Vector3(5.3f, 2.65f, 0),
                 new Vector3(side - 1.34f, 1.1f, 0), 4f, 5.2f, 125, 90);
             FaceFill(arena);
+            BackdropGlow(arena);
             ConfigureGrade(arena);
         }
 
@@ -199,7 +209,9 @@ namespace Igruha.EditorTools
         /// нить и внутренность абажура остаются плоскими пятнами: в кадре виден
         /// светлый кружок, а не горящая лампа. Порог держим выше единицы, чтобы
         /// в ореол уходили только сама лампочка и латунь под ней, а сукно, лица
-        /// и интерфейс оставались чистыми.
+        /// и интерфейс оставались чистыми. Порог поднят с 1.05 до 1.20 после
+        /// опускания лампы: крышка ближней шкатулки стоит прямо под ней и на
+        /// прежнем пороге расплывалась в белое пятно.
         /// </summary>
         private static void ConfigureGrade(Transform arena)
         {
@@ -213,7 +225,7 @@ namespace Igruha.EditorTools
                 AssetDatabase.CreateAsset(profile, GradeProfilePath);
             }
             if (!profile.TryGet<Bloom>(out var bloom)) { bloom = profile.Add<Bloom>(); AssetDatabase.AddObjectToAsset(bloom, profile); }
-            bloom.threshold.Override(1.05f);
+            bloom.threshold.Override(1.20f);
             bloom.intensity.Override(.55f);
             bloom.scatter.Override(.74f);
             bloom.tint.Override(new Color(1f, .87f, .68f));
@@ -282,6 +294,40 @@ namespace Igruha.EditorTools
             l.color = new Color(1f, .77f, .54f);
             l.intensity = 3.4f; l.range = 3.9f;
             l.shadows = LightShadows.None;
+        }
+
+        /// <summary>
+        /// Бархат за спинами сидящих, едва различимо. Сидящие смотрят вдоль Z,
+        /// значит фон геройского кадра — стены North и South, и спека 14.7
+        /// запрещает там всё яркое: подсвеченное пятно позади лица убивает
+        /// единственное, ради чего игра существует. Но и чистая чернота
+        /// вырезает соперника из пустоты. Источники намеренно слабые, узкие
+        /// и без теней: ткань читается фактурой, силуэт головы остаётся
+        /// заметно светлее фона.
+        /// </summary>
+        private static void BackdropGlow(Transform arena)
+        {
+            var hall = arena.Find("_Hall");
+            var previous = hall.Find("BackdropGlow");
+            if (previous != null) Object.DestroyImmediate(previous.gameObject);
+            var group = Group(hall, "BackdropGlow");
+            float z = arena.Find("Wall_North").localPosition.z - .7f;
+            for (int i = 0; i < 2; i++)
+            {
+                float sign = i == 0 ? 1 : -1;
+                var t = Group(group, i == 0 ? "NorthVelvet" : "SouthVelvet");
+                t.localPosition = new Vector3(0, 3.25f, sign * (z - .85f));
+                t.localRotation = Quaternion.LookRotation(new Vector3(0, 1.45f, sign * z) - t.localPosition);
+                var light = t.gameObject.AddComponent<Light>();
+                light.type = LightType.Spot;
+                light.color = new Color(1f, .72f, .52f);
+                light.intensity = 1.15f;
+                light.range = 4.6f;
+                light.spotAngle = 78;
+                light.innerSpotAngle = 20;
+                light.shadows = LightShadows.None;
+                light.renderMode = LightRenderMode.ForcePixel;
+            }
         }
 
         private static void Accent(Transform parent, string name, Vector3 position, Vector3 target,
