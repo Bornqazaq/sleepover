@@ -5,7 +5,7 @@ namespace Igruha.Core.Audio
 {
     /// <summary>
     /// Проигрыватель звука мини-игры: играет слот по имени из <see cref="MinigameSfxLibrary"/>.
-    /// Общий слой подфазы 4.5 для всех пятнадцати игр, к конкретной игре не привязан.
+    /// Общий слой фазы 5 для всех пятнадцати игр, к конкретной игре не привязан.
     ///
     /// <b>Своей сетевой части здесь нет, и это намеренно.</b> Звук вешается на события,
     /// которые игра уже подняла на каждой машине — тот же приём, которым живут эффекты
@@ -28,8 +28,26 @@ namespace Igruha.Core.Audio
         /// <summary>Ближе этого громкость не растёт — иначе звук в упор бьёт по ушам.</summary>
         private const float MinDistance = 3f;
 
+        /// <summary>
+        /// Разброс высоты у слота с вариациями, доля от единицы. Требование поставки:
+        /// без него шесть файлов шага по дереву на бегу слышны как шесть файлов,
+        /// а не как шаги.
+        /// </summary>
+        private const float PitchJitter = 0.05f;
+
+        /// <summary>
+        /// Сколько копий одного слота может звучать на арене одновременно.
+        /// Правило поставки: при восьми игроках девятый одинаковый удар уже не
+        /// слышен как удар, он слышен как каша. Счёт общий на все проигрыватели
+        /// сцены — иначе восемь персонажей насчитают себе по четыре шага каждый.
+        /// </summary>
+        private const int MaxCopiesPerSlot = 4;
+
         [Tooltip("Библиотека слотов этой игры")]
         [SerializeField] private MinigameSfxLibrary library;
+
+        [Tooltip("Общие библиотеки поверх своей: персонаж, интерфейс, ловушки. Слот ищется сперва в своей")]
+        [SerializeField] private MinigameSfxLibrary[] extraLibraries;
 
         [Tooltip("Сколько одноразовых звуков может звучать одновременно")]
         [SerializeField] private int voices = DefaultVoices;
@@ -43,6 +61,16 @@ namespace Igruha.Core.Audio
         /// <summary>Звучащие лупы по идентификатору слота. Источник заводится один раз и переиспользуется.</summary>
         private readonly Dictionary<string, AudioSource> loops = new Dictionary<string, AudioSource>();
 
+        /// <summary>Какой вариант слота звучал прошлый раз — чтобы не повторить его подряд.</summary>
+        private readonly Dictionary<string, int> lastVariant = new Dictionary<string, int>();
+
+        /// <summary>
+        /// Когда освободится каждая из <see cref="MaxCopiesPerSlot"/> копий слота.
+        /// Массив меток времени вместо счётчика: уменьшать счётчик по концу звука
+        /// некому, а конец копии известен заранее — это её длина.
+        /// </summary>
+        private static readonly Dictionary<string, float[]> slotReleaseTimes = new Dictionary<string, float[]>();
+
         /// <summary>О каких слотах уже пожаловались. Без этого промах в Update заспамил бы консоль.</summary>
         private HashSet<string> reportedMisses;
 
@@ -55,19 +83,33 @@ namespace Igruha.Core.Audio
         /// <summary>Играет слот у всех одинаково, без привязки к точке: джингл, тема, сигнал.</summary>
         public void Play(string id)
         {
-            if (!TryGetEntry(id, out MinigameSfxLibrary.Entry entry)) return;
+            if (!TryTakeVoice(id, out MinigameSfxLibrary.Entry entry, out AudioClip clip)) return;
             AudioSource source = TakeFreeSource();
-            Configure(source, entry, spatial: false);
+            Configure(source, entry, clip, spatial: false);
             source.Play();
         }
 
         /// <summary>Играет слот из точки события: всплеск в воде, удар по телу.</summary>
         public void PlayAt(string id, Vector3 point)
         {
-            if (!TryGetEntry(id, out MinigameSfxLibrary.Entry entry)) return;
+            if (!TryTakeVoice(id, out MinigameSfxLibrary.Entry entry, out AudioClip clip)) return;
             AudioSource source = TakeFreeSource();
             source.transform.position = point;
-            Configure(source, entry, entry.Spatial);
+            Configure(source, entry, clip, entry.Spatial);
+            source.Play();
+        }
+
+        /// <summary>
+        /// Играет слот из точки тише или громче обычного. Нужен там, где громкость
+        /// несёт смысл: шаг в приседе, мягкое приземление, удар вполсилы.
+        /// </summary>
+        public void PlayAt(string id, Vector3 point, float volumeScale)
+        {
+            if (!TryTakeVoice(id, out MinigameSfxLibrary.Entry entry, out AudioClip clip)) return;
+            AudioSource source = TakeFreeSource();
+            source.transform.position = point;
+            Configure(source, entry, clip, entry.Spatial);
+            source.volume = entry.Volume * Mathf.Clamp01(volumeScale);
             source.Play();
         }
 
@@ -88,7 +130,8 @@ namespace Igruha.Core.Audio
             if (entry.Spatial) source.transform.position = point;
             if (source.isPlaying) return;
 
-            Configure(source, entry, entry.Spatial);
+            Configure(source, entry, PickClip(id, entry), entry.Spatial);
+            source.pitch = 1f;
             source.loop = true;
             source.Play();
         }
@@ -98,6 +141,10 @@ namespace Igruha.Core.Audio
         {
             if (loops.TryGetValue(id, out AudioSource source) && source != null) source.Stop();
         }
+
+        /// <summary>Звучит ли луп прямо сейчас — для тех, кто ведёт его по состоянию игры.</summary>
+        public bool IsLoopPlaying(string id)
+            => loops.TryGetValue(id, out AudioSource source) && source != null && source.isPlaying;
 
         /// <summary>
         /// Ведёт звучащий луп по ходу события: громче и выше с ростом скорости стены.
@@ -128,15 +175,132 @@ namespace Igruha.Core.Audio
                 if (pair.Value != null) pair.Value.Stop();
         }
 
+        /// <summary>Есть ли такой слот вообще — для тех, кто выбирает слот по обстановке.</summary>
+        public bool HasSlot(string id) => TryFindEntry(id, out _);
+
+        /// <summary>
+        /// Добавляет библиотеку в рантайме. Нужно там, где проигрыватель живёт на
+        /// префабе персонажа — один на все пятнадцать игр, — а звук у игры свой:
+        /// мини-игра подкладывает свою библиотеку спавнящимся персонажам, и её
+        /// слоты становятся видны наравне с общими.
+        /// </summary>
+        public void AddLibrary(MinigameSfxLibrary extra)
+        {
+            if (extra == null) return;
+
+            if (extraLibraries == null)
+            {
+                extraLibraries = new[] { extra };
+                reportedMisses = null;
+                return;
+            }
+
+            foreach (MinigameSfxLibrary known in extraLibraries)
+                if (known == extra) return;
+
+            var grown = new MinigameSfxLibrary[extraLibraries.Length + 1];
+            System.Array.Copy(extraLibraries, grown, extraLibraries.Length);
+            grown[extraLibraries.Length] = extra;
+            extraLibraries = grown;
+
+            // Жалобы на немые слоты сбрасываются: слот, которого не было минуту
+            // назад, теперь может найтись, и старая жалоба про него врёт.
+            reportedMisses = null;
+        }
+
+        /// <summary>
+        /// Слот найден, вариант выбран, копия в бюджете — можно играть.
+        /// Три шага вместе, потому что важен их порядок: занимать копию бюджета
+        /// имеет смысл только тогда, когда известна длина конкретного варианта.
+        /// </summary>
+        private bool TryTakeVoice(string id, out MinigameSfxLibrary.Entry entry, out AudioClip clip)
+        {
+            clip = null;
+            if (!TryGetEntry(id, out entry)) return false;
+
+            clip = PickClip(id, entry);
+            if (clip == null) return false;
+
+            return TryReserveCopy(id, clip.length);
+        }
+
+        /// <summary>
+        /// Занимает одну из копий слота на время звучания. Возвращает false, когда все
+        /// <see cref="MaxCopiesPerSlot"/> заняты — тогда звук просто не играется.
+        /// </summary>
+        private static bool TryReserveCopy(string id, float duration)
+        {
+            if (!slotReleaseTimes.TryGetValue(id, out float[] releases))
+            {
+                releases = new float[MaxCopiesPerSlot];
+                slotReleaseTimes[id] = releases;
+            }
+
+            float now = Time.time;
+            for (int i = 0; i < releases.Length; i++)
+            {
+                if (releases[i] > now) continue;
+                releases[i] = now + duration;
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Вариант слота: случайный, но не тот же, что прошлый раз.
+        /// Слот без вариаций отдаёт свой единственный клип.
+        /// </summary>
+        private AudioClip PickClip(string id, MinigameSfxLibrary.Entry entry)
+        {
+            AudioClip[] variants = entry.Variants;
+            if (variants == null || variants.Length == 0) return entry.Clip;
+            if (variants.Length == 1) return variants[0] != null ? variants[0] : entry.Clip;
+
+            lastVariant.TryGetValue(id, out int previous);
+
+            // Бросок по укороченному диапазону со сдвигом мимо прошлого варианта:
+            // так «любой, кроме прошлого» выпадает с одного броска, без цикла
+            // перебросов, который в худшем случае крутится неизвестно сколько.
+            int index = Random.Range(0, variants.Length - 1);
+            if (index >= previous) index++;
+
+            lastVariant[id] = index;
+            return variants[index] != null ? variants[index] : entry.Clip;
+        }
+
         private bool TryGetEntry(string id, out MinigameSfxLibrary.Entry entry)
         {
-            entry = default;
-            if (library == null) return false;
-            if (library.TryGet(id, out entry) && entry.Clip != null) return true;
+            if (TryFindEntry(id, out entry)) return true;
 
             ReportMiss(id);
             return false;
         }
+
+        /// <summary>
+        /// Ищет слот: сперва в своей библиотеке, затем в общих.
+        /// Порядок такой, чтобы игра могла перебить общий звук своим — например,
+        /// шаг заражённого вместо обычного шага по траве.
+        /// </summary>
+        private bool TryFindEntry(string id, out MinigameSfxLibrary.Entry entry)
+        {
+            if (library != null && library.TryGet(id, out entry) && HasClip(entry)) return true;
+
+            if (extraLibraries != null)
+            {
+                foreach (MinigameSfxLibrary extra in extraLibraries)
+                {
+                    if (extra == null) continue;
+                    if (extra.TryGet(id, out entry) && HasClip(entry)) return true;
+                }
+            }
+
+            entry = default;
+            return false;
+        }
+
+        private static bool HasClip(MinigameSfxLibrary.Entry entry)
+            => entry.Clip != null || (entry.Variants != null && entry.Variants.Length > 0);
 
         private void ReportMiss(string id)
         {
@@ -158,11 +322,13 @@ namespace Igruha.Core.Audio
             return oldest;
         }
 
-        private void Configure(AudioSource source, MinigameSfxLibrary.Entry entry, bool spatial)
+        private void Configure(AudioSource source, MinigameSfxLibrary.Entry entry, AudioClip clip, bool spatial)
         {
-            source.clip = entry.Clip;
+            bool varied = entry.Variants != null && entry.Variants.Length > 1;
+
+            source.clip = clip;
             source.volume = entry.Volume;
-            source.pitch = 1f;
+            source.pitch = varied ? Random.Range(1f - PitchJitter, 1f + PitchJitter) : 1f;
             source.loop = false;
             source.spatialBlend = spatial ? 1f : 0f;
         }
