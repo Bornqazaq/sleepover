@@ -21,8 +21,12 @@ namespace Igruha.Core.Hub
             playerName.rectTransform.anchoredPosition = new Vector2(compact ? 120 : 16, compact ? -42 : -247);
             playerName.rectTransform.sizeDelta = new Vector2(compact ? 150 : 252, 30);
             playerName.text = player?.DisplayName ?? string.Empty;
-            badge.text = player == null ? $"МЕСТО {index + 1:00}" : own ? "ВАШ ПЕРСОНАЖ" : "В КОМНАТЕ";
-            border.color = own ? new Color(.96f,.74f,.48f) : new Color(.25f,.37f,.38f);
+            // Чемпион последней доигранной серии: корону носит до следующей.
+            bool champion = player != null && (SessionScoreboard.Current?.IsChampion(player.Id) ?? false);
+            badge.text = player == null ? $"МЕСТО {index + 1:00}"
+                : champion ? (own ? "ЧЕМПИОН КАТКИ · ВЫ" : "ЧЕМПИОН КАТКИ")
+                : own ? "ВАШ ПЕРСОНАЖ" : "В КОМНАТЕ";
+            border.color = champion ? new Color(1f, .84f, .25f) : own ? new Color(.96f,.74f,.48f) : new Color(.25f,.37f,.38f);
             score.gameObject.SetActive(player != null && player.Score > 0);
             score.text = player != null ? $"{player.Score} ОЧК." : string.Empty;
             score.rectTransform.anchoredPosition = new Vector2(compact ? 120 : 198, compact ? -78 : -33);

@@ -3,6 +3,7 @@ using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.UI;
 using Igruha.Core.Arena;
 using Igruha.Core.Items;
@@ -97,6 +98,16 @@ namespace Igruha.EditorTools
         /// по 0.5 ШИ запаса, и интерполяция перестаёт решать исход.
         /// </summary>
         private const float NeckLaneZ = 3f;
+
+        /// <summary>
+        /// Отступ бака от дальнего края его зоны, ШИ. Бак стоит у дальнего
+        /// края, а не в середине зоны: крест-накрест команда сходит со второй
+        /// доски и идёт к баку на противоположной стороне по диагонали, и чем
+        /// длиннее диагональ по X, тем она положе (≈62° вместо 76° из середины).
+        /// Пологая диагональ нужна и паре живых несущих на связи, и болванкам,
+        /// которые забегают на 3 м вперёд по прямой к цели.
+        /// </summary>
+        private const float TankInsetX = 1f;
 
         private const float FloorThickness = 1f;
         private const float PlankThickness = 0.4f;
@@ -359,6 +370,7 @@ namespace Igruha.EditorTools
         private static void BuildPlanks(Transform root, CarryItemConfig config, int ground)
         {
             Transform group = ResetGroup(root, "Planks");
+            ResetGroup(root, "PlankMarks");
 
             float half = config.PlankWidth * 0.5f;
             Material plank = Mat("CI_Plank");
@@ -366,20 +378,49 @@ namespace Igruha.EditorTools
             // По доске на команду на каждой пропасти, по линии её маршрута.
             // К бортам не примыкают: вдоль доски камера отходит назад, и
             // упереться ей не во что (спека 3.3).
-            Plank(group, config, ground, plank, "Plank_1_A", StartMaxX, CommonMinX, RouteZ - half, RouteZ + half);
-            Plank(group, config, ground, plank, "Plank_1_B", StartMaxX, CommonMinX, -RouteZ - half, -RouteZ + half);
-            Plank(group, config, ground, plank, "Plank_2_A", CommonMaxX, TankMinX, RouteZ - half, RouteZ + half);
-            Plank(group, config, ground, plank, "Plank_2_B", CommonMaxX, TankMinX, -RouteZ - half, -RouteZ + half);
+            // Обе доски команды — на стороне её штабеля: до зоны баков команды
+            // идут параллельными полосами, а пересекаются уже в зоне баков
+            // (крест-накрест, см. BuildStacksAndTanks). Полосы цвета команды по
+            // краям настила подсказывают «свою» доску, но никого не запирают:
+            // доски общие.
+            TeamStripes(Plank(group, config, ground, plank, "Plank_1_A", StartMaxX, CommonMinX, RouteZ - half, RouteZ + half), true);
+            TeamStripes(Plank(group, config, ground, plank, "Plank_1_B", StartMaxX, CommonMinX, -RouteZ - half, -RouteZ + half), false);
+            TeamStripes(Plank(group, config, ground, plank, "Plank_2_A", CommonMaxX, TankMinX, RouteZ - half, RouteZ + half), true);
+            TeamStripes(Plank(group, config, ground, plank, "Plank_2_B", CommonMaxX, TankMinX, -RouteZ - half, -RouteZ + half), false);
+        }
+
+        /// <summary>
+        /// Тонкие полосы цвета команды по обоим краям настила, без коллайдера.
+        /// Живут в своей группе: в группе досок аудит ждёт коллайдер у каждого ребёнка.
+        /// </summary>
+        private static void TeamStripes(GameObject plank, bool teamA)
+        {
+            var bounds = plank.GetComponent<Collider>().bounds;
+            Transform marks = plank.transform.parent.parent.Find("PlankMarks");
+            if (marks == null) marks = ResetGroup(plank.transform.parent.parent, "PlankMarks");
+            Material paint = CarrySkyscraperAssets.Material(teamA ? "TeamA" : "TeamB");
+            foreach (float side in new[] { -1f, 1f })
+            {
+                var stripe = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                stripe.name = "TeamStripe";
+                stripe.transform.SetParent(marks, false);
+                stripe.transform.position = new Vector3(bounds.center.x, bounds.max.y + .006f,
+                    bounds.center.z + side * (bounds.extents.z - EdgeStripeWidth * .5f));
+                stripe.transform.localScale = new Vector3(bounds.size.x - .3f, .008f, EdgeStripeWidth * .6f);
+                Object.DestroyImmediate(stripe.GetComponent<Collider>());
+                Paint(stripe, paint);
+            }
         }
 
         /// <summary>Единая гладкая коллизия под собственным настилом из Blender.</summary>
-        private static void Plank(Transform group, CarryItemConfig config, int ground, Material material,
+        private static GameObject Plank(Transform group, CarryItemConfig config, int ground, Material material,
             string name, float minX, float maxX, float minZ, float maxZ)
         {
             GameObject box = Box(group, config, ground, name, minX, maxX, minZ, maxZ,
                 -PlankThickness, PlankThickness);
             Paint(box, material);
             CarryItemDress.Apply(box, CarryItemDress.Kind.Plank, dressRandom);
+            return box;
         }
 
         /// <summary>
@@ -438,6 +479,16 @@ namespace Igruha.EditorTools
             // половины горлышка — то есть в проходе, но вне размаха.
             float neckZ = Mathf.Sign(routeZ) * NeckLaneZ;
 
+            // Крест-накрест: до зоны баков команда идёт по своей стороне — своя
+            // доска, своя полоса горлышка, своя вторая доска. Переход на чужую
+            // сторону — только в зоне баков: после последних ворот цель одна,
+            // сам бак на противоположной стороне, и болванка идёт к нему по
+            // прямой диагонали через открытую площадку. Переход раньше болванкам
+            // не по силам: ворота выбираются по X, и забежка на 3 м вперёд
+            // упирается в завал (переход перед горлышком) или в размах балки
+            // и тачку (переход в горлышке) — оба варианта на сетевом стенде
+            // давали 0:0.
+            //
             // Ворота идут строго от штабеля к баку: обратный путь читается тем
             // же списком с конца.
             var points = new[]
@@ -466,15 +517,22 @@ namespace Igruha.EditorTools
             Transform group = ResetGroup(root, "TeamProps");
 
             float stackX = (StartMinX + StartMaxX) * 0.5f - 3f;
-            float tankX = (TankMinX + TankMaxX) * 0.5f;
+            float tankX = TankMaxX - TankInsetX;
 
             // Stack sits beside the route. All four carrier stations and the camera approach stay clear.
             PlacePrefab(group, StackPrefabPath, "Stack_A", config, stackX, RouteZ + 5f, 0f);
             PlacePrefab(group, StackPrefabPath, "Stack_B", config, stackX, -RouteZ - 5f, 0f);
             group.Find("Stack_A/BottleSpawn").localPosition = new Vector3(2f,0,-2f);
             group.Find("Stack_B/BottleSpawn").localPosition = new Vector3(2f,0,2f);
-            PlacePrefab(group, TankPrefabPath, "Tank_A", config, tankX, RouteZ, 0f);
-            PlacePrefab(group, TankPrefabPath, "Tank_B", config, tankX, -RouteZ, 0f);
+            // Крест-накрест (IGR-537): бак команды стоит на стороне, противоположной
+            // её штабелю, у дальнего края зоны баков. Обе доски команды — на её
+            // стороне, поэтому потоки пересекаются в зоне баков: сойдя со второй
+            // доски, команда идёт к баку по диагонали через чужой поток. Это
+            // единственное открытое место без ловушек: два первых варианта —
+            // переход в горлышке под балкой и переход перед горлышком у стены
+            // завала — на сетевом стенде давали 0:0 (спека, раздел 17).
+            PlacePrefab(group, TankPrefabPath, "Tank_A", config, tankX, -RouteZ, 0f);
+            PlacePrefab(group, TankPrefabPath, "Tank_B", config, tankX, RouteZ, 0f);
         }
 
         /// <summary>
@@ -1234,30 +1292,45 @@ namespace Igruha.EditorTools
             Object.DestroyImmediate(root);
         }
 
+        /// <summary>
+        /// Бак — герой финишной зоны (IGR-537). Стальной каркас на салазках,
+        /// прозрачная цилиндрическая ёмкость с видимым столбом воды и шкалой
+        /// делений на стойке, воронка сверху, флаг команды на мачте позади.
+        /// Обод, салазки и флаг — белая основа, красится в рантайме
+        /// <see cref="WaterTank"/> цветом команды. Зона слива и логика прежние.
+        /// </summary>
         private static void BuildTankPrefab(CarryItemConfig config)
         {
-            var root=new GameObject("Tank");
-            var cage=CarrySkyscraperAssets.Place(root.transform,"TankCage",Vector3.zero);
-            var band=CarrySkyscraperAssets.Place(root.transform,"TankBand",Vector3.zero);
-            // Opaque cage rails occupy little of the silhouette; water is visible from every side.
-            var shell=GameObject.CreatePrimitive(PrimitiveType.Cube);shell.name="Shell";
-            shell.transform.SetParent(root.transform,false);shell.transform.localPosition=new Vector3(0,.96f,0);
-            shell.transform.localScale=new Vector3(2.57f,1.30f,2.57f);
-            Object.DestroyImmediate(shell.GetComponent<Collider>());Paint(shell,Mat("CI_TankGlass"));
-            var solid=root.AddComponent<BoxCollider>();solid.center=new Vector3(0,.84f,0);solid.size=new Vector3(2.88f,1.68f,2.88f);
-            root.layer=LayerMask.NameToLayer("Ground");
-            var pivot=new GameObject("WaterPivot");pivot.transform.SetParent(root.transform,false);pivot.transform.localPosition=new Vector3(0,.31f,0);
-            var water=GameObject.CreatePrimitive(PrimitiveType.Cube);water.name="WaterMesh";
-            water.transform.SetParent(pivot.transform,false);water.transform.localPosition=new Vector3(0,.63f,0);
-            water.transform.localScale=new Vector3(2.48f,1.26f,2.48f);Object.DestroyImmediate(water.GetComponent<Collider>());Paint(water,Mat("CI_TankWater"));
-            var zone=root.AddComponent<BoxCollider>();zone.isTrigger=true;zone.center=new Vector3(0,config.ToMeters(1.5f),0);
-            zone.size=new Vector3(config.ToMeters(8),config.ToMeters(3),config.ToMeters(8));
-            var tank=root.AddComponent<WaterTank>();var so=new SerializedObject(tank);
-            so.FindProperty("config").objectReferenceValue=config;
-            so.FindProperty("waterMesh").objectReferenceValue=pivot.transform;
-            SetArray(so.FindProperty("teamTint"),new Object[]{band.GetComponentInChildren<Renderer>()});
+            var root = new GameObject("Tank");
+            CarrySkyscraperAssets.Place(root.transform, "TankFrame", Vector3.zero);
+            var ring = CarrySkyscraperAssets.Place(root.transform, "TankRing", Vector3.zero);
+            var glass = CarrySkyscraperAssets.Place(root.transform, "TankGlass", Vector3.zero);
+            foreach (var r in glass.GetComponentsInChildren<Renderer>()) { r.sharedMaterial = Mat("CI_TankGlass"); r.shadowCastingMode = ShadowCastingMode.Off; }
+            // Стойки 2.84 м и вентиль сбоку: коробка чуть шире каркаса, чтобы не цеплять пальцы.
+            var solid = root.AddComponent<BoxCollider>(); solid.center = new Vector3(0, 1.55f, 0); solid.size = new Vector3(3.4f, 3.1f, 3.4f);
+            root.layer = LayerMask.NameToLayer("Ground");
+            // Вода растёт от дна ёмкости: пивот у дна, модель высотой 2.4 м от нуля.
+            var pivot = new GameObject("WaterPivot"); pivot.transform.SetParent(root.transform, false); pivot.transform.localPosition = new Vector3(0, .27f, 0);
+            var water = CarrySkyscraperAssets.Place(pivot.transform, "TankWater", Vector3.zero); water.name = "WaterMesh";
+            foreach (var r in water.GetComponentsInChildren<Renderer>()) r.sharedMaterial = Mat("CI_TankWater");
+            var mast = CarrySkyscraperAssets.Place(root.transform, "FlagMast", new Vector3(2.35f, 0, -1.3f));
+            var mastCollider = mast.gameObject.AddComponent<BoxCollider>(); mastCollider.center = new Vector3(0, 3, 0); mastCollider.size = new Vector3(.3f, 6, .3f);
+            mast.gameObject.layer = LayerMask.NameToLayer("Cover");
+            var flag = CarrySkyscraperAssets.Place(mast, "Flag", new Vector3(.05f, 5.2f, 0));
+            foreach (var r in flag.GetComponentsInChildren<Renderer>()) r.sharedMaterial = Mat("CI_BottleCap");
+            flag.gameObject.AddComponent<Igruha.Core.Ambient.AmbientMotion>()
+                .Configure(Igruha.Core.Ambient.AmbientMotion.Mode.Sway, Vector3.up, 14f, 3.3f, .2f, Vector3.forward, 5f);
+            var zone = root.AddComponent<BoxCollider>(); zone.isTrigger = true; zone.center = new Vector3(0, config.ToMeters(1.5f), 0);
+            zone.size = new Vector3(config.ToMeters(8), config.ToMeters(3), config.ToMeters(8));
+            var tank = root.AddComponent<WaterTank>(); var so = new SerializedObject(tank);
+            so.FindProperty("config").objectReferenceValue = config;
+            so.FindProperty("waterMesh").objectReferenceValue = pivot.transform;
+            var tinted = new List<Object>();
+            tinted.AddRange(ring.GetComponentsInChildren<Renderer>());
+            tinted.AddRange(flag.GetComponentsInChildren<Renderer>());
+            SetArray(so.FindProperty("teamTint"), tinted.ToArray());
             so.ApplyModifiedPropertiesWithoutUndo();
-            PrefabUtility.SaveAsPrefabAsset(root,TankPrefabPath);Object.DestroyImmediate(root);
+            PrefabUtility.SaveAsPrefabAsset(root, TankPrefabPath); Object.DestroyImmediate(root);
         }
 
         /// <summary>

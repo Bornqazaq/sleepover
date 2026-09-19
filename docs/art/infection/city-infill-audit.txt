@@ -1,0 +1,2 @@
+Colliders unchanged=True count=62 renderers=172 triangles=428165
+Backdrop mesh rays=1296 gaps=0; standing routes=4486/4486; 8 connected spawns.

@@ -8,7 +8,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: HIW_Water
-  m_Shader: {fileID: 4800000, guid: c4ce2a43f5c7f45d8b92fc030b6ddd38, type: 3}
+  m_Shader: {fileID: 4800000, guid: 649c7683361e04c3abb3a39375defead, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
@@ -17,7 +17,7 @@ Material:
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: 3000
+  m_CustomRenderQueue: -1
   stringTagMap: {}
   disabledShaderPasses:
   - MOTIONVECTORS
@@ -67,6 +67,14 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _PavilionEnvironment:
+        m_Texture: {fileID: 8900000, guid: 8ad42c794be6f43658107c034647fa28, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _PlanarReflection:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _SpecGlossMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -105,29 +113,32 @@ Material:
     - _FoamDepth: 0.55
     - _FoamSpeed: 1.6
     - _FresnelPower: 4
-    - _FresnelStrength: 0.28
+    - _FresnelStrength: 0
     - _GlossMapScale: 0
     - _Glossiness: 0
     - _GlossyReflections: 0
     - _Metallic: 0
     - _OcclusionStrength: 1
-    - _Opacity: 0.92
+    - _Opacity: 0.3
     - _Parallax: 0.005
+    - _PlanarAvailable: 0
     - _QueueOffset: 0
     - _ReceiveShadows: 1
-    - _RefractionStrength: 0.035
-    - _RippleScale: 2.2
+    - _ReflectionStrength: 0.9
+    - _RefractionStrength: 0.012
+    - _RippleScale: 1.15
     - _RippleSpeed: 1.1
-    - _RippleStrength: 0.35
+    - _RippleStrength: 0.065
     - _Smoothness: 0.92
     - _SmoothnessTextureChannel: 0
-    - _SpecPower: 220
-    - _SpecStrength: 1.4
+    - _SpecPower: 150
+    - _SpecStrength: 1.5
     - _SpecularHighlights: 1
     - _SrcBlend: 5
     - _SrcBlendAlpha: 1
     - _Surface: 1
-    - _WaveHeight: 0.08
+    - _UnderwaterClarity: 1
+    - _WaveHeight: 0.055
     - _WaveSpeed: 0.55
     - _WorkflowMode: 1
     - _XRMotionVectorsPass: 1
@@ -135,10 +146,13 @@ Material:
     m_Colors:
     - _BaseColor: {r: 0.12156863, g: 0.7137255, b: 0.75686276, a: 0.45}
     - _Color: {r: 0.12156863, g: 0.7137255, b: 0.75686276, a: 0.45}
-    - _DeepColor: {r: 0.021882353, g: 0.21411766, b: 0.34815687, a: 1}
+    - _DeepColor: {r: 0.025, g: 0.42, b: 0.47, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _FoamColor: {r: 0.85, g: 0.97, b: 1, a: 1}
-    - _ShallowColor: {r: 0.12156863, g: 0.7137255, b: 0.75686276, a: 1}
+    - _ProbePosition: {r: 0, g: -2.7800002, b: 7.7400002, a: 0}
+    - _RoomMax: {r: 30.1, g: 23.4, b: 31.54, a: 0}
+    - _RoomMin: {r: -30.1, g: -5.04, b: -16.060001, a: 0}
+    - _ShallowColor: {r: 0.13, g: 0.73, b: 0.69, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
     - _SpecColorTint: {r: 0.75, g: 0.95, b: 1, a: 1}
     - _WaveA: {r: 1, g: 0.35, b: 0.18, a: 7}

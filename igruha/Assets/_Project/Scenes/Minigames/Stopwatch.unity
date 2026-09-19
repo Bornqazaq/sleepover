@@ -8616,46 +8616,6 @@ PrefabInstance:
       propertyPath: MinimumDistanceFromTarget
       value: 1.5
       objectReference: {fileID: 0}
-    - target: {fileID: 2217328183586612515, guid: 180d13c631f5f3441904596fd20bed4c, type: 3}
-      propertyPath: Radius
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 2217328183586612515, guid: 180d13c631f5f3441904596fd20bed4c, type: 3}
-      propertyPath: TargetOffset.y
-      value: 1.3
-      objectReference: {fileID: 0}
-    - target: {fileID: 2217328183586612515, guid: 180d13c631f5f3441904596fd20bed4c, type: 3}
-      propertyPath: Orbits.Top.Height
-      value: 3.2
-      objectReference: {fileID: 0}
-    - target: {fileID: 2217328183586612515, guid: 180d13c631f5f3441904596fd20bed4c, type: 3}
-      propertyPath: Orbits.Top.Radius
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 2217328183586612515, guid: 180d13c631f5f3441904596fd20bed4c, type: 3}
-      propertyPath: VerticalAxis.Value
-      value: 26
-      objectReference: {fileID: 0}
-    - target: {fileID: 2217328183586612515, guid: 180d13c631f5f3441904596fd20bed4c, type: 3}
-      propertyPath: VerticalAxis.Center
-      value: 26
-      objectReference: {fileID: 0}
-    - target: {fileID: 2217328183586612515, guid: 180d13c631f5f3441904596fd20bed4c, type: 3}
-      propertyPath: Orbits.Bottom.Height
-      value: 0.4
-      objectReference: {fileID: 0}
-    - target: {fileID: 2217328183586612515, guid: 180d13c631f5f3441904596fd20bed4c, type: 3}
-      propertyPath: Orbits.Bottom.Radius
-      value: 2.6
-      objectReference: {fileID: 0}
-    - target: {fileID: 2217328183586612515, guid: 180d13c631f5f3441904596fd20bed4c, type: 3}
-      propertyPath: Orbits.Center.Height
-      value: 1.9
-      objectReference: {fileID: 0}
-    - target: {fileID: 2217328183586612515, guid: 180d13c631f5f3441904596fd20bed4c, type: 3}
-      propertyPath: Orbits.Center.Radius
-      value: 3
-      objectReference: {fileID: 0}
     - target: {fileID: 3075845234251068397, guid: 180d13c631f5f3441904596fd20bed4c, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -8695,10 +8655,6 @@ PrefabInstance:
     - target: {fileID: 3075845234251068397, guid: 180d13c631f5f3441904596fd20bed4c, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7502180496260988884, guid: 180d13c631f5f3441904596fd20bed4c, type: 3}
-      propertyPath: TargetOffset.y
-      value: 1.15
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -9037,6 +8993,7 @@ MonoBehaviour:
   countdownText: {fileID: 541212661}
   statusText: {fileID: 218101429}
   restartButton: {fileID: 891537340}
+  resultsCamera: {fileID: 0}
   resultRows:
   - {fileID: 994621181}
   - {fileID: 1449145548}
@@ -9046,6 +9003,7 @@ MonoBehaviour:
   - {fileID: 2128653599}
   - {fileID: 1578314805}
   - {fileID: 933893111}
+  resultsTitle: {fileID: 0}
   countdownPop: {fileID: 541212659}
   criticalSeconds: 10
 --- !u!224 &150850381
@@ -33309,6 +33267,69 @@ MonoBehaviour:
   m_FlexibleWidth: -1
   m_FlexibleHeight: 0
   m_LayoutPriority: 1
+--- !u!1 &333538353
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 333538356}
+  - component: {fileID: 333538355}
+  - component: {fileID: 333538354}
+  m_Layer: 0
+  m_Name: UiAudio
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &333538354
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 333538353}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 59b1f4a77d1bfdd41976f31ab2b400fd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.UiAudio
+  audioPlayer: {fileID: 0}
+  playHover: 1
+--- !u!114 &333538355
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 333538353}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ade51d53fffee4c239ed9c55255f1320, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.MinigameAudioPlayer
+  library: {fileID: 11400000, guid: 510c08e3318f65d4fbaf93144c410acd, type: 2}
+  extraLibraries: []
+  voices: 4
+  maxDistance: 40
+--- !u!4 &333538356
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 333538353}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &334418199
 GameObject:
   m_ObjectHideFlags: 0
@@ -76552,6 +76573,7 @@ MonoBehaviour:
   hud: {fileID: 150850380}
   resultsDisplaySeconds: 12
   hubSceneName: Hub
+  finalStandingsSeconds: 10
   config: {fileID: 11400000, guid: a84e46e225c09448cbd19fbbc9f20700, type: 2}
   arenaConfig: {fileID: 11400000, guid: b04820a54f66a42f9803fc382def0bb2, type: 2}
   stageState: {fileID: 756139783}
@@ -76606,9 +76628,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a54738d184af24010a53de06228fd48e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.Stopwatch.DistractionDirector
-  tickClip: {fileID: 8300000, guid: 8767f215504764412ad5e8f943341726, type: 3}
-  roarClip: {fileID: 8300000, guid: a3f51d1321d7b44d3a6796e6fba8dfcc, type: 3}
-  crowdClip: {fileID: 8300000, guid: 22272ae93c0e24505acf2999a710e1a8, type: 3}
+  tickClip: {fileID: 0}
+  roarClip: {fileID: 8300000, guid: 4ffb51322af2dce4988c9c8150fa5313, type: 3}
+  crowdClip: {fileID: 0}
   tickVolume: 0.55
   roarVolume: 0.8
   crowdVolume: 0.25
@@ -89904,6 +89926,7 @@ GameObject:
   - component: {fileID: 891537342}
   - component: {fileID: 891537341}
   - component: {fileID: 891537340}
+  - component: {fileID: 891537344}
   m_Layer: 0
   m_Name: RestartButton
   m_TagString: Untagged
@@ -90033,6 +90056,20 @@ MonoBehaviour:
   m_FlexibleWidth: -1
   m_FlexibleHeight: 0
   m_LayoutPriority: 1
+--- !u!114 &891537344
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 891537338}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b739ea568373e74479a3ed218e45f498, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.UiButtonSound
+  clickSlot: SFX_UI_Click
+  blockedSlot: SFX_UI_Error
 --- !u!1001 &891630572
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -98865,6 +98902,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1023405710}
+  - component: {fileID: 1023405711}
   m_Layer: 0
   m_Name: Cages
   m_TagString: Untagged
@@ -98895,6 +98933,20 @@ Transform:
   - {fileID: 1295870595}
   m_Father: {fileID: 1577645964}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1023405711
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1023405709}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f14d0522b46aaa4b9ee820a273b94fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.SurfaceAudio
+  kind: 1
+  stepSlotOverride: 
 --- !u!1 &1025139065
 GameObject:
   m_ObjectHideFlags: 0
@@ -101415,6 +101467,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.MinigameAudioPlayer
   library: {fileID: 11400000, guid: 047a8af222cdf4056a9cdc05cdabec56, type: 2}
+  extraLibraries: []
   voices: 16
   maxDistance: 40
 --- !u!1 &1069082016
@@ -137475,6 +137528,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1316417246}
+  - component: {fileID: 1316417247}
   m_Layer: 0
   m_Name: TentFloor
   m_TagString: Untagged
@@ -137545,6 +137599,20 @@ Transform:
   - {fileID: 556745759}
   m_Father: {fileID: 1577645964}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1316417247
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1316417245}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f14d0522b46aaa4b9ee820a273b94fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.SurfaceAudio
+  kind: 5
+  stepSlotOverride: 
 --- !u!1 &1317068106
 GameObject:
   m_ObjectHideFlags: 0
@@ -172690,7 +172758,7 @@ MonoBehaviour:
   IgnoreTimeScale: 0
   WorldUpOverride: {fileID: 0}
   ChannelMask: -1
-  UpdateMethod: 2
+  UpdateMethod: 1
   BlendUpdateMethod: 1
   LensModeOverride:
     Enabled: 0
@@ -172958,10 +173026,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.Circus.CircusBearFeedback
   voice: {fileID: 2063458912}
-  growl: {fileID: 8300000, guid: b11fd08c584cd4eeb9d058f58aa36d20, type: 3}
-  swipe: {fileID: 8300000, guid: af0999b9818d74c578f8da343afa95bc, type: 3}
-  impact: {fileID: 8300000, guid: f0316cabc45174f9b83a6c25fdb8dbc2, type: 3}
-  step: {fileID: 8300000, guid: 75e4b022b67e04ce9a62738acee2e18f, type: 3}
+  growl: {fileID: 8300000, guid: 4ffb51322af2dce4988c9c8150fa5313, type: 3}
+  swipe: {fileID: 8300000, guid: d1f0caa496728374d8d28d702f590118, type: 3}
+  impacts:
+  - {fileID: 8300000, guid: 91e3fe136a786d748a9e100b803e18d4, type: 3}
+  - {fileID: 8300000, guid: 88edd978c3b65b24896d8f5fa2e38578, type: 3}
+  - {fileID: 8300000, guid: 9e9f227015ef6fe44b2aea104bf7bae1, type: 3}
+  step: {fileID: 0}
   impactDust: {fileID: 211112262}
   footDust: {fileID: 410227965}
   clawTrail: {fileID: 744990328}
@@ -216561,3 +216632,4 @@ SceneRoots:
   - {fileID: 2118227425}
   - {fileID: 756139778}
   - {fileID: 74580137}
+  - {fileID: 333538356}

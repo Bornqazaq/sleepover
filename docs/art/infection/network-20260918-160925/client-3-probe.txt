@@ -1,0 +1,32 @@
+START original quarantine art probe
+PHASE=Idle
+ROSTER=4
+PHASE=Tutorial
+PHASE=Round
+ROUTE=Slide stage=0 maxHeight=0.00
+SAMPLE 0:Clean,1:Clean,2:Clean,3:Clean local=(-16.00, 0.00, 6.00) particles=288
+SAMPLE 0:Clean,1:Clean,2:Clean,3:Clean local=(-12.78, 0.00, 13.18) particles=285
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-12.75, 0.00, 13.27) particles=292
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-12.75, 0.00, 13.27) particles=290
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-12.75, 0.00, 13.27) particles=292
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-12.75, 0.00, 13.27) particles=292
+ROUTE=Slide stage=1 maxHeight=1.70
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-12.75, 0.17, 13.26) particles=290
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-10.67, 3.00, 8.09) particles=304
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-10.67, 3.00, 8.09) particles=300
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-10.67, 3.00, 8.09) particles=296
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-10.67, 3.00, 8.09) particles=287
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-10.67, 3.00, 8.09) particles=288
+ROUTE=Slide stage=2 maxHeight=3.25
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-10.63, 3.00, 7.98) particles=295
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-8.69, 0.00, 3.42) particles=289
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-8.35, 0.00, 2.60) particles=289
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-8.35, 0.00, 2.60) particles=282
+ROUTE=Slide stage=3 maxHeight=3.25
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-8.04, 0.00, 2.52) particles=285
+SAMPLE 0:Clean,1:Infected,2:Clean,3:Clean local=(-0.24, 0.40, 0.66) particles=314
+PHASE=Results
+RESULTS=0:1,1:4,2:1,3:1
+LIGHTING pipeline=InfectionLighting(Clone) post=True maxHeight=3.25
+PERF meanMs=16.81 frames=2084 splashFrames=41 tubeFrames=599
+END scene unloaded

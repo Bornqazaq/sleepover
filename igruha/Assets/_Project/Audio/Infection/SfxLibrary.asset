@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2574025c1373412bb9b8283feb02ca7, type: 3}
+  m_Name: SfxLibrary
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.MinigameSfxLibrary
+  entries:
+  - Id: SFX_INFC_Infect_Splat
+    Clip: {fileID: 8300000, guid: ccedbd15e5ad6b24591a13a2a7deec7f, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 1
+  - Id: SFX_INFC_Step_Infected
+    Clip: {fileID: 8300000, guid: c844d7d015c010142bdae1261bfbb299, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: c844d7d015c010142bdae1261bfbb299, type: 3}
+    - {fileID: 8300000, guid: f9ff635c057052741ae05fd67eeef7c5, type: 3}
+    - {fileID: 8300000, guid: fafeca362a276b447997337009aa8074, type: 3}
+    - {fileID: 8300000, guid: d3f56bec88e8b7b4cb2f2a3a14178de8, type: 3}
+    - {fileID: 8300000, guid: e7918bacad0011d44bd2b6d8125c53b5, type: 3}
+    - {fileID: 8300000, guid: d72728e3d22309c4998b5717e9808017, type: 3}
+    Volume: 1
+    Loop: 0
+    Spatial: 1

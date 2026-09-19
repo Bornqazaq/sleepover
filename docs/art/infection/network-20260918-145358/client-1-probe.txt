@@ -1,0 +1,17 @@
+START original quarantine art probe
+PHASE=Idle
+ROSTER=4
+PHASE=Tutorial
+PHASE=Round
+SAMPLE 0:Clean,1:Clean,2:Clean,3:Clean local=(21.00, 0.00, -8.00) particles=289
+SAMPLE 0:Clean,1:Clean,2:Clean,3:Clean local=(8.76, 0.00, -6.81) particles=290
+SAMPLE 0:Clean,1:Clean,2:Clean,3:Infected local=(-4.29, 0.00, -5.53) particles=289
+SAMPLE 0:Clean,1:Clean,2:Clean,3:Infected local=(-14.08, 0.00, -3.72) particles=293
+SAMPLE 0:Clean,1:Clean,2:Clean,3:Infected local=(-13.92, 0.00, -2.95) particles=292
+SAMPLE 0:Infected,1:Clean,2:Clean,3:Infected local=(-13.87, 0.00, -5.25) particles=293
+SAMPLE 0:Infected,1:Clean,2:Clean,3:Infected local=(-13.66, 0.00, -2.69) particles=294
+SAMPLE 0:Infected,1:Clean,2:Clean,3:Infected local=(-0.97, 0.40, -0.02) particles=331
+PHASE=Results
+RESULTS=0:1,1:4,2:3,3:2
+PERF meanMs=32.96 frames=481 splashFrames=56 tubeFrames=415
+END scene unloaded

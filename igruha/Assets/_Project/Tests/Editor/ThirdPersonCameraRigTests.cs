@@ -19,6 +19,7 @@ namespace Igruha.Tests
         private CinemachineCamera camera;
         private CinemachineOrbitalFollow orbit;
         private CinemachineDeoccluder deoccluder;
+        private ThirdPersonCameraRig rig;
         private int mask;
 
         [SetUp]
@@ -42,12 +43,17 @@ namespace Igruha.Tests
             camera = instance.GetComponent<CinemachineCamera>();
             orbit = instance.GetComponent<CinemachineOrbitalFollow>();
             deoccluder = instance.GetComponent<CinemachineDeoccluder>();
-            var rig = instance.GetComponent<ThirdPersonCameraRig>();
-            // MonoBehaviour.Awake не вызывается у обычного компонента в Edit Mode.
-            typeof(ThirdPersonCameraRig).GetMethod("Awake",
-                BindingFlags.Instance | BindingFlags.NonPublic).Invoke(rig, null);
+            rig = instance.GetComponent<ThirdPersonCameraRig>();
+            InvokeAwake();
             camera.Follow = chest;
             mask = deoccluder.CollideAgainst;
+        }
+
+        /// <summary>MonoBehaviour.Awake не вызывается у обычного компонента в Edit Mode.</summary>
+        private void InvokeAwake()
+        {
+            typeof(ThirdPersonCameraRig).GetMethod("Awake",
+                BindingFlags.Instance | BindingFlags.NonPublic).Invoke(rig, null);
         }
 
         [TearDown]
@@ -77,9 +83,54 @@ namespace Igruha.Tests
             Tick(65f, 17.5f);
             Assert.That(camera.State.PositionCorrection.sqrMagnitude, Is.LessThan(Tolerance * Tolerance));
             Assert.That(camera.GetComponent<CinemachineRotationComposer>().TargetOffset.y,
-                Is.EqualTo(0.3f).Within(Tolerance));
+                Is.EqualTo(0.15f).Within(Tolerance));
             Assert.That(orbit.Radius, Is.EqualTo(4.2f));
             Assert.That(camera.Lens.FieldOfView, Is.EqualTo(55f));
+        }
+
+        /// <summary>
+        /// Кадр обязан быть одним на все сцены. К десятой мини-игре он разъехался:
+        /// в двух играх камеру руками придвинули и подняли правкой инстанса префаба,
+        /// в остальных она осталась прежней. Формат переписывается кодом на старте —
+        /// ровно так же, как маска препятствий деокклюдера.
+        /// </summary>
+        [Test]
+        public void SceneEditsOfFramingAreOverwritten()
+        {
+            orbit.Radius = 3f;
+            orbit.TargetOffset = Vector3.up * 1.3f;
+            InputAxis vertical = orbit.VerticalAxis;
+            vertical.Center = 26f;
+            vertical.Range = new Vector2(-30f, 80f);
+            orbit.VerticalAxis = vertical;
+            camera.Lens.FieldOfView = 70f;
+            var composer = camera.GetComponent<CinemachineRotationComposer>();
+            composer.TargetOffset = Vector3.up * 1.15f;
+
+            InvokeAwake();
+
+            Assert.That(orbit.Radius, Is.EqualTo(4.2f), "дистанция орбиты");
+            Assert.That(orbit.TargetOffset, Is.EqualTo(Vector3.zero), "высота живёт в CameraTarget персонажа");
+            Assert.That(orbit.VerticalAxis.Center, Is.EqualTo(20f), "спокойный угол над персонажем");
+            Assert.That(orbit.VerticalAxis.Range, Is.EqualTo(new Vector2(-12f, 55f)), "предел наклона");
+            Assert.That(camera.Lens.FieldOfView, Is.EqualTo(55f), "угол обзора");
+            Assert.That(composer.TargetOffset.y, Is.EqualTo(0.15f).Within(Tolerance), "точка взгляда");
+        }
+
+        /// <summary>
+        /// Камера смотрит на грудь и стоит выше макушки: у восьми мини-игр
+        /// привязкой служил корень персонажа, орбита центрировалась на полу,
+        /// и камера висела на уровне пояса, кадрируя ноги.
+        /// </summary>
+        [Test]
+        public void RestingShotLooksDownAtTheCharacter()
+        {
+            camera.Follow = chest;
+            Tick(0f, orbit.VerticalAxis.Center);
+            Vector3 position = camera.State.GetFinalPosition();
+            float head = TestOrigin.y + capsule.height;
+            Assert.That(position.y, Is.GreaterThan(head), "камера выше макушки");
+            Assert.That(position.y - chest.position.y, Is.LessThan(2f), "но не над головой отвесно");
         }
 
         [TestCase(-1f, -1f)]

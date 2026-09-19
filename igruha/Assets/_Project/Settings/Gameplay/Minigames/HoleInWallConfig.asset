@@ -60,10 +60,9 @@ MonoBehaviour:
   - 4
   - 3.5
   - 3
-  pauseAfterHit: 2
+  definition: {fileID: 11400000, guid: 8103d0489459e7c48bc015b77858f725, type: 2}
   poseWindowSeconds: 2.5
   soloSpeedBonus: 0.25
-  roundEndDelay: 5
   mirrorWall: 7
   morphWall: 8
   mirrorLead: 1
@@ -71,7 +70,7 @@ MonoBehaviour:
   warningLead: 1
   sweepImpulse: 16
   sweepUpward: 0.35
-  fallSeconds: 1.5
+  fallSeconds: 0.8
   sweepClearanceSpeed: 2.5
-  splashSeconds: 3
-  minSplashSeconds: 1
+  splashSeconds: 1.8
+  minSplashSeconds: 1.2

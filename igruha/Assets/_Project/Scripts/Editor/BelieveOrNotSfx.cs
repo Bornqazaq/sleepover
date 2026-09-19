@@ -7,7 +7,7 @@ using Igruha.Minigames.BelieveOrNot;
 namespace Igruha.EditorTools
 {
     /// <summary>
-    /// Звук «Верю / не верю» — подфаза 4.5. Ставит на арену проигрыватель
+    /// Звук «Верю / не верю» — фаза 5. Ставит на арену проигрыватель
     /// с библиотекой слотов и <see cref="BelieveOrNotAudio"/>, который пускает
     /// слоты по событиям игры.
     ///

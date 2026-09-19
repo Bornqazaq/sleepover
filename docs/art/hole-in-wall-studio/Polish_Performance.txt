@@ -1,0 +1,4 @@
+Editor Play Mode, 3840x2160 Game View, 4 local participants, 6-second sample.
+frames=395 median_ms=14.91008 mean_ms=17.47405 batches_mean=697.789873417722
+Current run only; not a before/after FPS claim.
+Geometry before: 1161400 triangles / 831 renderers. After: 1149624 triangles / 835 renderers.

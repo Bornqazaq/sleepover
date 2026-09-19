@@ -36,6 +36,8 @@ namespace Igruha.EditorTools
             BuildBeamTrail(group, beam);
             BuildHaze(group, config);
             BuildChasmHaze(group, config);
+            BuildSparks(group);
+            BuildSmoke(group);
 
             Wire(manager, stacks, cart, splashes, sprays, dusts, swooshes, cartBurst);
         }
@@ -124,7 +126,7 @@ namespace Igruha.EditorTools
                     config.ToMeters(spots[i].x), config.ToMeters(spots[i].y), config.ToMeters(spots[i].z));
 
                 ParticleSystem.MainModule main = haze.main;
-                main.startColor = new Color(0.86f, 0.84f, 0.78f, 0.28f);
+                main.startColor = new Color(0.95f, 0.86f, 0.70f, 0.30f);
 
                 // Пыль прижата к полу: в родном виде она поднималась на шесть
                 // метров, то есть висела ровно между игроком и всем, на что он
@@ -182,6 +184,49 @@ namespace Igruha.EditorTools
                 main.startSpeed = 0.05f;
                 main.startLifetime = 4.5f;
                 main.gravityModifier = 0.03f;
+            }
+        }
+
+        /// <summary>
+        /// Искры сварки: у сварочного поста на старте и на нижних ярусах — то, что
+        /// видно, заглянув в проём. Постоянные, короткие, не выше завала.
+        /// </summary>
+        private static void BuildSparks(Transform group)
+        {
+            var spots = new[] { new Vector3(-25.3f, .9f, 4.6f), new Vector3(14.6f, -10.0f, 10.6f), new Vector3(14.6f, -4.6f, 10.6f) };
+            for (int i = 0; i < spots.Length; i++)
+            {
+                ParticleSystem sparks = Spawn(group, $"Sparks_{i + 1}", keepLoop: true, keepAwake: true);
+                if (sparks == null) continue;
+                sparks.transform.position = spots[i];
+                var main = sparks.main; main.startColor = new Color(1f, .78f, .35f, 1f);
+                main.startSpeed = new ParticleSystem.MinMaxCurve(1.5f, 4f); main.startLifetime = new ParticleSystem.MinMaxCurve(.25f, .6f);
+                main.startSize = new ParticleSystem.MinMaxCurve(.02f, .05f); main.gravityModifier = 1.1f;
+                var shape = sparks.shape; shape.shapeType = ParticleSystemShapeType.Cone; shape.angle = 55; shape.radius = .03f;
+                var emission = sparks.emission; emission.rateOverTime = 0;
+                emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 6, 14, 3, .12f) });
+                main.duration = .9f;
+                var renderer = sparks.GetComponent<ParticleSystemRenderer>();
+                renderer.renderMode = ParticleSystemRenderMode.Stretch; renderer.lengthScale = 2.5f; renderer.velocityScale = .06f;
+            }
+        }
+
+        /// <summary>Дым далёких труб на горизонте — единственный постоянный эффект вне перекрытия.</summary>
+        private static void BuildSmoke(Transform group)
+        {
+            var spots = new[] { new Vector3(-190f, 12f, 110f), new Vector3(230f, 30f, -150f) };
+            for (int i = 0; i < spots.Length; i++)
+            {
+                ParticleSystem smoke = Spawn(group, $"Smoke_{i + 1}", keepLoop: true, keepAwake: true);
+                if (smoke == null) continue;
+                smoke.transform.position = spots[i];
+                var main = smoke.main; main.startColor = new Color(.80f, .76f, .74f, .30f);
+                main.startSpeed = new ParticleSystem.MinMaxCurve(1.2f, 2.2f); main.startLifetime = 26f;
+                main.startSize = new ParticleSystem.MinMaxCurve(6f, 14f); main.gravityModifier = -.01f; main.maxParticles = 80;
+                var shape = smoke.shape; shape.shapeType = ParticleSystemShapeType.Cone; shape.angle = 8; shape.radius = 1.5f;
+                var emission = smoke.emission; emission.rateOverTime = 2.2f;
+                var size = smoke.sizeOverLifetime; size.enabled = true; size.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0, .4f, 1, 1f));
+                var velocity = smoke.velocityOverLifetime; velocity.enabled = true; velocity.x = new ParticleSystem.MinMaxCurve(1.6f); velocity.z = new ParticleSystem.MinMaxCurve(-.7f);
             }
         }
 

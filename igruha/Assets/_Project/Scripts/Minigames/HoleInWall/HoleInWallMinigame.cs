@@ -67,11 +67,18 @@ namespace Igruha.Minigames.HoleInWall
         [SerializeField] private HoleInWallConfig config;
         [Tooltip("Все дорожки арены. Заполняется построителем арены")]
         [SerializeField] private HoleInWallTrack[] tracks = Array.Empty<HoleInWallTrack>();
+        [SerializeField] private Collider[] poolSupports = Array.Empty<Collider>();
         [Tooltip("Стадии внутри раунда: стадия = стена")]
         [SerializeField] private MinigameStageState stageState;
 
+        [Header("Оформление верёвки")]
+        [SerializeField] private Material ropeMaterial;
+        [SerializeField] private Material ropeTracerMaterial;
+        [SerializeField] private Material ropeCollarMaterial;
+
         private readonly List<PairAssignment.Pair> pairs = new List<PairAssignment.Pair>(4);
         private readonly List<HoleInWallTrack> playingTracks = new List<HoleInWallTrack>(4);
+        private readonly HashSet<int> earlyFinalFailures = new HashSet<int>();
         private readonly Dictionary<int, HoleInWallTrack> trackByPlayer = new Dictionary<int, HoleInWallTrack>(8);
         private readonly WallPatternGenerator generator = new WallPatternGenerator();
         private readonly ScoreRanking ranking = new ScoreRanking();
@@ -87,6 +94,7 @@ namespace Igruha.Minigames.HoleInWall
         private readonly List<WallPattern> soloPatterns = new List<WallPattern>(8);
 
         private HoleInWallNetwork network;
+        [SerializeField] private HoleInWallRecovery[] recoveries = Array.Empty<HoleInWallRecovery>();
         private double roundStartTime;
 
         /// <summary>
@@ -144,7 +152,7 @@ namespace Igruha.Minigames.HoleInWall
         /// в момент приёма оповещения, — поэтому подписчик получает его у всех
         /// участников, а не только у того, кто считал.
         ///
-        /// Точка привязки арта: эффекты подфазы 4.4 и звук 4.5. Своего
+        /// Точка привязки арта: эффекты подфазы 4.4 и звук фазы 5. Своего
         /// состояния событие не несёт и ничего не решает — исход уже правда,
         /// здесь его только показывают.
         /// </summary>
@@ -162,7 +170,7 @@ namespace Igruha.Minigames.HoleInWall
         /// и четыре источника дали бы четырёхкратную громкость вместо
         /// подсказки.
         ///
-        /// Точка привязки арта: слот <c>impact_warning</c> подфазы 4.5.
+        /// Точка привязки арта: слот <c>impact_warning</c> фазы 5.
         /// На каркасе здесь стоял синтезированный тон 880 Гц — заглушка,
         /// снятая вместе с приходом настоящего звука.
         /// </summary>
@@ -256,7 +264,7 @@ namespace Igruha.Minigames.HoleInWall
             for (int i = 0; i < playingTracks.Count; i++)
             {
                 HoleInWallTrack track = playingTracks[i];
-                if (track.Wall != wall || !track.WallLaunched || track.WallResolved)
+                if (track.Wall != wall || !track.WallLaunched || track.WallResolved || earlyFinalFailures.Contains(track.Index))
                 {
                     continue;
                 }
@@ -269,7 +277,14 @@ namespace Igruha.Minigames.HoleInWall
                         continue;
                     }
 
-                    ResolveWall(track);
+                    if (currentWall == config.WallCount - 1 && NetworkClock.Now < roundStartTime + config.ScheduleLength)
+                    {
+                        // Keep the physical hit immediate; publish the last wall's verdict
+                        // at its scheduled hit, even if someone jumped into it early.
+                        earlyFinalFailures.Add(track.Index);
+                        SweepTrack(track);
+                    }
+                    else ResolveWall(track);
                     return;
                 }
 
@@ -560,15 +575,13 @@ namespace Igruha.Minigames.HoleInWall
                 funnel = avatar.gameObject.AddComponent<WallFunnel>();
             }
 
-            // Вода — третья роль того же порядка: она поднимает упавшего
-            // на поверхность и гасит его, чтобы он не ходил по дну бассейна
-            // и не уезжал по нему за борт.
+            // Вода гасит удар и движение, оставляя погружение до дна.
             if (!avatar.TryGetComponent(out PlayerBuoyancy buoyancy))
             {
                 buoyancy = avatar.gameObject.AddComponent<PlayerBuoyancy>();
             }
 
-            buoyancy.Configure(config);
+            buoyancy.Configure(config, poolSupports);
 
             avatar.TryGetComponent(out StuckDetector stuck);
             avatar.TryGetComponent(out PlayerRespawner respawner);
@@ -606,7 +619,7 @@ namespace Igruha.Minigames.HoleInWall
                 }
 
                 member.Avatar.RequestTeleport(slot.position, slot.rotation);
-                member.Avatar.FacingOverride = -SweepingWall.TravelDirection;
+                member.Avatar.FacingOverride = null;
                 member.Respawner?.SetRespawnPoint(slot);
             }
         }
@@ -629,6 +642,10 @@ namespace Igruha.Minigames.HoleInWall
                 config.TetherPullAcceleration, config.TetherHardLimit);
             tether.Bind(track.Members[0].Avatar, track.Members[1].Avatar);
             track.Tether = tether;
+            if (ropeMaterial != null && ropeTracerMaterial != null && ropeCollarMaterial != null)
+                holder.AddComponent<HoleInWallRopeVisual>().Initialize(tether,
+                    ropeMaterial, ropeTracerMaterial, ropeCollarMaterial,
+                    track.Members[0].Avatar, track.Members[1].Avatar, config);
 
             // ⚠️ Пока трос натянут, детектор застревания обязан молчать: игрок
             // на натянутом тросе выглядит для него точно как зажатый геометрией,
@@ -666,6 +683,9 @@ namespace Igruha.Minigames.HoleInWall
 
         // ========== ТЕЧЕНИЕ РАУНДА ==========
 
+        /// <summary>HUD и восемь стадий используют одну длительность из расписания стен.</summary>
+        protected override float RoundDuration => config != null ? config.RoundLength : base.RoundDuration;
+
         protected override void OnRoundStarted()
         {
             if (config == null || !HasAuthority)
@@ -676,7 +696,11 @@ namespace Igruha.Minigames.HoleInWall
             }
 
             roundStartTime = NetworkClock.Now;
+            earlyFinalFailures.Clear();
             roundStartKnown = true;
+            // The wall clock owns both HUD and completion. RoundTimer.Update must not
+            // finish the round before the final FixedUpdate has scored every lane.
+            if (Timer != null) Timer.DrivenExternally = true;
             network?.PublishRoundStart(roundStartTime);
             stageState?.BeginSubround(1, FirstStage, config.StageDuration(0));
         }
@@ -727,7 +751,7 @@ namespace Igruha.Minigames.HoleInWall
             {
                 // Досрочного конца в игре нет: раунд кончается после
                 // разрешения последней стены, провалившие продолжают играть.
-                EndMinigame();
+                // Final verdicts are resolved in FixedUpdate before entering Results.
                 return;
             }
 
@@ -749,6 +773,8 @@ namespace Igruha.Minigames.HoleInWall
 
             double now = NetworkClock.Now;
             float elapsed = (float)(now - roundStartTime);
+            if (HasAuthority && Timer != null)
+                Timer.SyncFromNetwork(Mathf.Max(0f, config.RoundLength - elapsed), config.RoundLength);
 
             // Сигнал звучит один раз на стену, а не на дорожку: момент удара
             // у всех дорожек общий, и четыре источника дали бы четырёхкратную
@@ -763,10 +789,28 @@ namespace Igruha.Minigames.HoleInWall
             {
                 TickTrack(playingTracks[i], elapsed, now);
             }
+
+            if (HasAuthority && currentWall == config.WallCount - 1 && elapsed >= config.RoundLength)
+            {
+                for (int i = 0; i < playingTracks.Count; i++)
+                    if (playingTracks[i].Active && !playingTracks[i].WallResolved) return;
+                Timer?.SyncFromNetwork(0f, config.RoundLength);
+                EndMinigame();
+            }
         }
 
         private void TickTrack(HoleInWallTrack track, float elapsed, double now)
         {
+            if (track.Tether != null)
+            {
+                bool lifting = false;
+                for (int slot = 0; slot < track.Members.Count; slot++)
+                {
+                    int key = track.Index * 2 + slot;
+                    lifting |= key < recoveries.Length && recoveries[key] != null && recoveries[key].Active;
+                }
+                track.Tether.enabled = !lifting;
+            }
             SweepingWall wall = track.Wall;
 
             // Пуск считает каждая машина сама — это чистая функция от
@@ -847,7 +891,8 @@ namespace Igruha.Minigames.HoleInWall
         {
             track.WallResolved = true;
 
-            bool passed = TrackFits(track);
+            bool sweptEarly = earlyFinalFailures.Contains(track.Index);
+            bool passed = !sweptEarly && TrackFits(track);
             if (passed)
             {
                 track.AwardWall();
@@ -858,7 +903,7 @@ namespace Igruha.Minigames.HoleInWall
                 // проход. Разбор с числами — в SweepingWall.ColliderRecess.
                 track.Wall.DisableCollision();
             }
-            else
+            else if (!sweptEarly)
             {
                 SweepTrack(track);
             }
@@ -866,7 +911,7 @@ namespace Igruha.Minigames.HoleInWall
             // Счёт — состояние, и уезжает реплицированным списком. Сам вердикт —
             // событие, и уезжает оповещением: правдой он уже стал здесь.
             network?.PublishTracks(playingTracks);
-            network?.AnnounceWallResolved(track.Index, currentWall, passed);
+            network?.AnnounceWallResolved(track.Index, currentWall, passed, track.Score);
 
             // И только теперь — тем, кто на исход смотрит. Порядок не случаен:
             // сначала правда уходит по сети, потом её показывают. Иначе
@@ -880,9 +925,9 @@ namespace Igruha.Minigames.HoleInWall
         /// считает: отметка нужна, чтобы он не пытался решить сам, и чтобы
         /// в фазе 4 было к чему цеплять звук удара и брызги.
         /// </summary>
-        public void ApplyNetworkWallResolved(int trackIndex, int wallIndex, bool passed)
+        public void ApplyNetworkWallResolved(int trackIndex, int wallIndex, bool passed, int score)
         {
-            if (HasAuthority || wallIndex != currentWall)
+            if (HasAuthority)
             {
                 return;
             }
@@ -892,6 +937,11 @@ namespace Igruha.Minigames.HoleInWall
             {
                 return;
             }
+
+            // Results can arrive before the NetworkList delta in the same tick.
+            // Apply the server snapshot even if the stage announcement is late.
+            track.ApplyScore(score);
+            if (wallIndex != currentWall) return;
 
             track.WallResolved = true;
 
@@ -1071,9 +1121,20 @@ namespace Igruha.Minigames.HoleInWall
                     ScheduleReturn(member, config.SplashSeconds, config.MinSplashSeconds);
                 }
 
+                if (member.Returning && !member.RecoveryStarted && now >= member.ReturnAt - config.RecoveryTransitSeconds)
+                {
+                    Transform slot = track.SlotOf(track.IndexOfMember(member.PlayerId));
+                    if (slot != null)
+                    {
+                        Vector3 destination = slot.position + Vector3.up * .034f;
+                        ApplyNetworkRecovery(member.PlayerId, position, destination, now, member.ReturnAt);
+                        network?.AnnounceRecovery(member.PlayerId, position, destination, now, member.ReturnAt);
+                    }
+                }
+
                 if (member.Returning && now >= member.ReturnAt)
                 {
-                    ReturnMember(track, member);
+                    ReturnMember(track, member, true);
                 }
             }
         }
@@ -1153,24 +1214,54 @@ namespace Igruha.Minigames.HoleInWall
                    position.z > config.ArenaFarZ + ArenaMargin;
         }
 
-        private void ReturnMember(HoleInWallTrack track, HoleInWallTrack.Member member)
+        private void ReturnMember(HoleInWallTrack track, HoleInWallTrack.Member member, bool finishRecovery = false)
         {
+            bool scheduled = finishRecovery && member.RecoveryStarted;
             member.Returning = false;
+            member.RecoveryStarted = false;
 
             int slot = track.IndexOfMember(member.PlayerId);
+            int recoveryKey = track.Index * 2 + slot;
+            // The server already scheduled the destination and deadline. Let the
+            // owner's continuous path finish there; a second teleport would cut
+            // through the final get-up blend. Emergency/end-of-round resets below
+            // still use the authoritative teleport.
+            if (scheduled && recoveryKey >= 0 && recoveryKey < recoveries.Length && recoveries[recoveryKey] != null)
+            {
+                recoveries[recoveryKey].Complete();
+                return;
+            }
+            if (recoveryKey >= 0 && recoveryKey < recoveries.Length) recoveries[recoveryKey]?.Cancel();
             Transform point = track.SlotOf(slot);
             if (point == null)
             {
                 return;
             }
 
-            member.Avatar.RequestTeleport(point.position, point.rotation);
+            member.Avatar.RequestTeleport(point.position + Vector3.up * .034f, point.rotation);
+        }
+
+        public void ApplyNetworkRecovery(int playerId, Vector3 from, Vector3 landing, double start, double end)
+        {
+            foreach (var track in playingTracks)
+                for (int slot = 0; slot < track.Members.Count; slot++)
+                {
+                    var member = track.Members[slot];
+                    if (member.PlayerId != playerId || member.Avatar == null) continue;
+                    int key = track.Index * 2 + slot;
+                    if (key >= recoveries.Length || recoveries[key] == null) return;
+                    member.RecoveryStarted = true;
+                    recoveries[key].Begin(member.Avatar, from, landing, config.RecoveryClearZ, config.WaterSurfaceY, start, end);
+                    return;
+                }
         }
 
         // ========== КОНЕЦ РАУНДА ==========
 
         protected override void OnRoundEnded()
         {
+            Timer?.SyncFromNetwork(0f, config.RoundLength);
+            foreach (var recovery in recoveries) recovery?.Cancel();
             // ⚠️ Три роли обязаны сниматься здесь, иначе уедут в хаб вместе
             // с персонажем: фиксированный фронт, трос и поза. Плюс возвращается
             // штатный присед на Ctrl, выключенный на время раунда (спека 10.3).
@@ -1182,6 +1273,8 @@ namespace Igruha.Minigames.HoleInWall
                 IReadOnlyList<HoleInWallTrack.Member> members = track.Members;
                 for (int m = 0; m < members.Count; m++)
                 {
+                    if (HasAuthority && members[m].Avatar != null)
+                        ReturnMember(track, members[m]);
                     ReleaseMember(members[m]);
                 }
             }
@@ -1376,6 +1469,7 @@ namespace Igruha.Minigames.HoleInWall
                 return;
             }
 
+            if (!CanHoldPose(playerId)) pose = HoleInWallPose.None;
             if (HasAuthority)
             {
                 ApplyPose(playerId, pose);
@@ -1421,8 +1515,20 @@ namespace Igruha.Minigames.HoleInWall
                 return;
             }
 
+            if (!CanHoldPose(playerId)) pose = HoleInWallPose.None;
             ability.SetPose(pose);
             network?.PublishPose(playerId, pose);
+        }
+
+        private bool CanHoldPose(int playerId)
+        {
+            HoleInWallTrack track = TrackOf(playerId);
+            if (track == null) return false;
+            int index = track.IndexOfMember(playerId);
+            if (index < 0) return false;
+            var member = track.Members[index];
+            return member.Avatar != null && !member.Returning && !member.Avatar.IsKnockedDown &&
+                member.Avatar.Position.y >= config.WaterSurfaceY;
         }
 
         /// <summary>Поза, подтверждённая сервером. Клиент её только применяет.</summary>

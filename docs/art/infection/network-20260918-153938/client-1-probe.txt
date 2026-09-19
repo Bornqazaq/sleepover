@@ -1,0 +1,34 @@
+START original quarantine art probe
+PHASE=Idle
+ROSTER=4
+PHASE=Tutorial
+PHASE=Round
+ROUTE=Climber stage=0 maxHeight=0.00
+SAMPLE 0:Clean,1:Clean,2:Clean,3:Clean local=(15.00, 0.00, -8.00) particles=291
+SAMPLE 0:Clean,1:Clean,2:Clean,3:Clean local=(10.24, 0.00, -8.37) particles=291
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(10.24, 0.00, -8.37) particles=286
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(10.24, 0.00, -8.37) particles=293
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(10.24, 0.00, -8.37) particles=288
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(10.24, 0.00, -8.37) particles=292
+ROUTE=Climber stage=1 maxHeight=0.00
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(10.31, 0.00, -8.06) particles=293
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(11.90, 0.00, -0.87) particles=298
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(11.90, 0.00, -0.87) particles=295
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(11.90, 0.00, -0.87) particles=292
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(11.90, 0.00, -0.87) particles=286
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(11.90, 0.00, -0.87) particles=291
+ROUTE=Climber stage=2 maxHeight=0.00
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(11.80, 0.00, -1.26) particles=295
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(11.06, 0.00, -4.29) particles=287
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(11.06, 0.00, -4.29) particles=288
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(11.06, 0.00, -4.29) particles=281
+ROUTE=Climber stage=3 maxHeight=0.00
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(10.20, 0.00, -3.87) particles=284
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(-0.52, 0.40, 0.94) particles=289
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(0.00, 0.40, 0.24) particles=311
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Infecting local=(-0.23, 0.40, 0.37) particles=295
+PHASE=Results
+RESULTS=0:1,1:1,2:4,3:3
+LIGHTING pipeline=InfectionLighting(Clone) post=True maxHeight=1.70
+PERF meanMs=32.84 frames=1198 splashFrames=36 tubeFrames=395
+END scene unloaded

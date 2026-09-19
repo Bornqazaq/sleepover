@@ -73,7 +73,7 @@ namespace Igruha.Minigames.HoleInWall
         [SerializeField] private HoleInWallTrack[] tracks = System.Array.Empty<HoleInWallTrack>();
 
         [Tooltip("Всплеск с расходящимися кругами: по одному на место дорожки")]
-        [SerializeField] private ParticleSystem[] splashes = System.Array.Empty<ParticleSystem>();
+        [SerializeField] private HoleInWallSplash[] splashes = System.Array.Empty<HoleInWallSplash>();
 
         [Tooltip("Удар стены по телу: по одному на место дорожки")]
         [SerializeField] private ParticleSystem[] impacts = System.Array.Empty<ParticleSystem>();
@@ -92,6 +92,9 @@ namespace Igruha.Minigames.HoleInWall
 
         /// <summary>Кто сейчас под водой. По ключу «дорожка × место»: всплеск поднимается на входе, а не каждый кадр.</summary>
         private bool[] submerged = System.Array.Empty<bool>();
+        private Vector3[] previousWaterPositions = System.Array.Empty<Vector3>();
+        private bool[] waterPositionKnown = System.Array.Empty<bool>();
+        private const float SplashRearmHeight = .15f;
 
         /// <summary>У какой дорожки трос сейчас натянут. Искры включаются на переходе, а не перезапускаются кадрово.</summary>
         private bool[] taut = System.Array.Empty<bool>();
@@ -100,9 +103,9 @@ namespace Igruha.Minigames.HoleInWall
 
         [Header("Под водой")]
         [Tooltip("Цвет толщи воды. Им же красится туман, когда камера уходит под поверхность")]
-        [SerializeField] private Color underwaterColor = new Color(0.05f, 0.32f, 0.42f);
+        [SerializeField] private Color underwaterColor = new Color(0.17f, 0.38f, 0.43f);
         [Tooltip("Плотность тумана под водой. Чем выше, тем мутнее и теснее кажется толща")]
-        [SerializeField] private float underwaterFogDensity = 0.12f;
+        [SerializeField] private float underwaterFogDensity = 0.055f;
         /// <summary>Камера, по которой судим о погружении. Берётся один раз: в Update её искать нельзя.</summary>
         private Camera viewCamera;
 
@@ -118,6 +121,8 @@ namespace Igruha.Minigames.HoleInWall
         private void Awake()
         {
             submerged = new bool[Mathf.Max(0, tracks.Length) * SlotsPerTrack];
+            previousWaterPositions = new Vector3[submerged.Length];
+            waterPositionKnown = new bool[submerged.Length];
             taut = new bool[Mathf.Max(0, tracks.Length)];
         }
 
@@ -191,7 +196,14 @@ namespace Igruha.Minigames.HoleInWall
                 }
             }
 
-            SetSubmerged(viewCamera.transform.position.y < config.WaterSurfaceY);
+            float immersion = Mathf.SmoothStep(0, 1, Mathf.InverseLerp(config.WaterSurfaceY + .2f,
+                config.WaterSurfaceY - .3f, viewCamera.transform.position.y));
+            SetSubmerged(immersion > .001f);
+            if (viewSubmerged)
+            {
+                RenderSettings.fogColor = Color.Lerp(savedFogColor, underwaterColor, immersion);
+                RenderSettings.fogDensity = Mathf.Lerp(savedFog ? savedFogDensity : 0, underwaterFogDensity, immersion);
+            }
         }
 
         /// <summary>
@@ -279,6 +291,8 @@ namespace Igruha.Minigames.HoleInWall
                 PlayerController avatar = members[slot].Avatar;
                 if (avatar == null)
                 {
+                    int absent = Key(track.Index, slot);
+                    if (absent >= 0 && absent < waterPositionKnown.Length) waterPositionKnown[absent] = false;
                     continue;
                 }
 
@@ -291,14 +305,20 @@ namespace Igruha.Minigames.HoleInWall
                 Vector3 position = avatar.Position;
                 bool under = position.y < config.WaterSurfaceY;
 
-                if (under && !submerged[key])
+                if (under && !submerged[key] && waterPositionKnown[key])
                 {
-                    // Всплеск встаёт на поверхность воды, а не на голову
-                    // ушедшего под неё: круги обязаны расходиться по зеркалу.
-                    PlayAt(splashes, key, new Vector3(position.x, config.WaterSurfaceY, position.z));
+                    // Интерполируем точку контакта: на редком сетевом кадре
+                    // тело уже может уйти в сторону и глубоко под поверхность.
+                    Vector3 previous = previousWaterPositions[key];
+                    float fraction = Mathf.InverseLerp(previous.y, position.y, config.WaterSurfaceY);
+                    Vector3 contact = Vector3.Lerp(previous, position, fraction);
+                    contact.y = config.WaterSurfaceY;
+                    if (key < splashes.Length && splashes[key] != null) splashes[key].PlayAt(contact);
                 }
-
-                submerged[key] = under;
+                if (under) submerged[key] = true;
+                else if (position.y > config.WaterSurfaceY + SplashRearmHeight) submerged[key] = false;
+                previousWaterPositions[key] = position;
+                waterPositionKnown[key] = true;
             }
         }
 
@@ -525,6 +545,8 @@ namespace Igruha.Minigames.HoleInWall
             for (int i = 0; i < submerged.Length; i++)
             {
                 submerged[i] = false;
+                waterPositionKnown[i] = false;
+                if (i < splashes.Length && splashes[i] != null && splashes[i].enabled) splashes[i].Clear();
             }
         }
 

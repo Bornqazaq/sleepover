@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2574025c1373412bb9b8283feb02ca7, type: 3}
+  m_Name: SfxLibrary
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.MinigameSfxLibrary
+  entries:
+  - Id: SFX_DUCK_Bullet_Flyby
+    Clip: {fileID: 8300000, guid: 33ea225b15a24df4fa93a9267174e22f, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 1
+  - Id: SFX_DUCK_Bullet_Impact_Concrete
+    Clip: {fileID: 8300000, guid: 745e98fdf9319cf40b29870cedffc388, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 1
+  - Id: SFX_DUCK_Bullet_Impact_Ice
+    Clip: {fileID: 8300000, guid: 3d804dd9d99cf3d479e6c0372cf69086, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 1
+  - Id: SFX_DUCK_Bullet_Impact_Metal
+    Clip: {fileID: 8300000, guid: 163afe93773ba254197e45c4fd8fd6b9, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 1
+  - Id: SFX_DUCK_Duck_Hit
+    Clip: {fileID: 8300000, guid: b44a2b03eae981448b5c17bedee23025, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 1
+  - Id: SFX_DUCK_Gun_Reload
+    Clip: {fileID: 8300000, guid: 06e1ce3d76cdf0d4a81b02f375d28927, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 1
+  - Id: SFX_DUCK_Gun_Shot
+    Clip: {fileID: 8300000, guid: ad5c52cd84abbce4eba24baf087f57ef, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 1

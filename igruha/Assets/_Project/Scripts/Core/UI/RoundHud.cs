@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using Igruha.Core.Minigame;
+using Igruha.Core.CameraSystems;
 using Igruha.Core.Session;
 
 namespace Igruha.Core.UI
@@ -27,10 +28,13 @@ namespace Igruha.Core.UI
         [SerializeField] private TMP_Text statusText;
         [Tooltip("Кнопка «ещё раз» на экране результатов. Не назначена — кнопки просто нет, остальные сцены править не надо")]
         [SerializeField] private Button restartButton;
+        [SerializeField] private ThirdPersonCameraRig resultsCamera;
 
         [Header("Итоги строками")]
         [Tooltip("Готовые строки мест. Пусто — итоги показываются одним текстом, как раньше")]
         [SerializeField] private ResultRow[] resultRows = Array.Empty<ResultRow>();
+        [Tooltip("Заголовок панели: «Итоги раунда» или «Итоги катки». Пусто — берётся текст «Title» внутри панели")]
+        [SerializeField] private TMP_Text resultsTitle;
 
         [Header("Оформление")]
         [Tooltip("Появление цифры отсчёта. Не назначено — цифра просто меняется")]
@@ -46,6 +50,7 @@ namespace Igruha.Core.UI
         /// </summary>
         public event Action RestartRequested;
 
+        private readonly PanelCursor resultsCursor = new PanelCursor();
         private RoundTimer timer;
         private int lastShownSeconds = -1;
         private int lastShownCountdown = -1;
@@ -53,10 +58,31 @@ namespace Igruha.Core.UI
         /// <summary>Кнопка нажимаема: у клиента сетевой катки переигрывать не в его власти.</summary>
         private bool restartAllowed = true;
 
+        /// <summary>Колонки хвоста строки итогов, в процентах ширины поля имени.</summary>
+        private const int PointsColumn = 56;
+        private const int TotalColumn = 74;
+        private const string RoundTitle = "Итоги раунда";
+        private const string SeriesTitle = "Итоги катки";
+
+        private static readonly string AccentHex = ColorUtility.ToHtmlStringRGB(UiSkin.Accent);
+        private static readonly string MutedHex = ColorUtility.ToHtmlStringRGB(UiSkin.TextSecondary);
+        private static readonly string GoldHex = ColorUtility.ToHtmlStringRGB(UiSkin.Gold);
+
         private void Awake()
         {
+            // Панель собрана билдером с заголовком, но ссылки на него у HUD не
+            // было. Ищем один раз по имени, чтобы не пересобирать десять сцен.
+            if (resultsTitle == null && resultsPanel != null)
+            {
+                resultsTitle = FindTitle(resultsPanel.transform);
+            }
+
             if (restartButton != null)
             {
+                // Некоторые сохранённые HUD собраны как декоративные Image.
+                // Кнопке обязательно нужна принимающая указатель поверхность.
+                if (restartButton.targetGraphic != null)
+                    restartButton.targetGraphic.raycastTarget = true;
                 restartButton.onClick.AddListener(RaiseRestart);
                 restartButton.gameObject.SetActive(false);
             }
@@ -70,7 +96,16 @@ namespace Igruha.Core.UI
             }
         }
 
-        private void RaiseRestart() => RestartRequested?.Invoke();
+        private void OnDisable()
+        {
+            resultsCursor.Restore();
+            resultsCamera?.SetLookSuspended(false);
+        }
+
+        private void RaiseRestart()
+        {
+            if (restartAllowed) RestartRequested?.Invoke();
+        }
 
         /// <summary>
         /// Разрешить или запретить кнопку до показа результатов. Мёртвая кнопка
@@ -83,6 +118,8 @@ namespace Igruha.Core.UI
 
         public void Bind(RoundTimer roundTimer)
         {
+            resultsCursor.Restore();
+            resultsCamera?.SetLookSuspended(false);
             timer = roundTimer;
             if (resultsPanel != null)
             {
@@ -201,12 +238,15 @@ namespace Igruha.Core.UI
             timerText.color = seconds <= criticalSeconds ? UiSkin.Danger : UiSkin.TextPrimary;
         }
 
+        /// <summary>Итоги раунда: место, имя, очки за раунд и сумма катки.</summary>
         public void ShowResults(MinigameResults results, IReadOnlyList<SessionPlayer> players)
         {
             if (resultsPanel == null)
             {
                 return;
             }
+
+            SetTitle(RoundTitle);
 
             if (resultRows.Length > 0)
             {
@@ -217,18 +257,82 @@ namespace Igruha.Core.UI
                 resultsText.text = BuildResultsText(results, players);
             }
 
-            resultsPanel.SetActive(true);
-
-            if (restartButton != null)
-            {
-                restartButton.gameObject.SetActive(restartAllowed);
-            }
+            OpenResultsPanel(restartAllowed);
         }
 
         /// <summary>
-        /// Разложить итоги по готовым строкам: кружок места, номер, имя.
-        /// Строк ровно столько, на сколько собрана карточка (восемь — потолок
-        /// лобби), лишние прячутся.
+        /// Таблица катки после последней игры серии: место по сумме, имя,
+        /// сумма очков, отметка чемпиона. Кнопки «ещё раз» здесь нет —
+        /// серия окончена, дальше хаб.
+        /// </summary>
+        public void ShowFinalStandings(SessionStandings standings, IReadOnlyList<SessionPlayer> players,
+                                       IReadOnlyList<int> champions)
+        {
+            if (resultsPanel == null || standings == null)
+            {
+                return;
+            }
+
+            SetTitle(SeriesTitleFor(standings));
+
+            if (resultRows.Length > 0)
+            {
+                FillStandingRows(standings, players, champions);
+            }
+            else if (resultsText != null)
+            {
+                resultsText.text = BuildStandingsText(standings, players, champions);
+            }
+
+            OpenResultsPanel(false);
+        }
+
+        private void OpenResultsPanel(bool restartVisible)
+        {
+            resultsPanel.SetActive(true);
+            resultsCursor.Release();
+            resultsCamera?.SetLookSuspended(true);
+
+            if (restartButton != null)
+            {
+                restartButton.gameObject.SetActive(restartVisible);
+            }
+        }
+
+        private void SetTitle(string text)
+        {
+            if (resultsTitle != null && resultsTitle.text != text)
+            {
+                resultsTitle.text = text;
+            }
+        }
+
+        private static string SeriesTitleFor(SessionStandings standings)
+        {
+            string games = $"{standings.RoundsPlayed} {PartySeries.GamesWord(standings.RoundsPlayed)}";
+            return standings.IsTie
+                ? $"{SeriesTitle} · {games} · ничья за корону"
+                : $"{SeriesTitle} · {games}";
+        }
+
+        private static TMP_Text FindTitle(Transform panel)
+        {
+            TMP_Text[] texts = panel.GetComponentsInChildren<TMP_Text>(true);
+            for (int i = 0; i < texts.Length; i++)
+            {
+                if (texts[i].name == "Title")
+                {
+                    return texts[i];
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Разложить итоги по готовым строкам: кружок места, номер, имя,
+        /// очки. Строк ровно столько, на сколько собрана карточка (восемь —
+        /// потолок лобби), лишние прячутся.
         /// </summary>
         private void FillResultRows(MinigameResults results, IReadOnlyList<SessionPlayer> players)
         {
@@ -244,7 +348,8 @@ namespace Igruha.Core.UI
                         continue;
                     }
 
-                    resultRows[row]?.Set(place, FindName(players, entries[i].PlayerId));
+                    resultRows[row]?.Set(place, FindName(players, entries[i].PlayerId),
+                        results.Awarded ? RoundDetail(entries[i], results.CountsTowardSession) : null);
                     row++;
                 }
             }
@@ -253,6 +358,67 @@ namespace Igruha.Core.UI
             {
                 resultRows[row]?.Clear();
             }
+        }
+
+        private void FillStandingRows(SessionStandings standings, IReadOnlyList<SessionPlayer> players,
+                                      IReadOnlyList<int> champions)
+        {
+            IReadOnlyList<SessionStandings.Entry> entries = standings.Entries;
+            int row = 0;
+
+            for (int i = 0; i < entries.Count && row < resultRows.Length; i++)
+            {
+                bool champion = IsChampion(standings, champions, entries[i].PlayerId);
+                resultRows[row]?.Set(entries[i].Place, FindName(players, entries[i].PlayerId),
+                    StandingDetail(entries[i], champion));
+                row++;
+            }
+
+            for (; row < resultRows.Length; row++)
+            {
+                resultRows[row]?.Clear();
+            }
+        }
+
+        /// <summary>
+        /// Чемпион — тот, кого зафиксировал сервер. Пока список не доехал
+        /// (клиент подключился впритык), опираемся на таблицу.
+        /// </summary>
+        private static bool IsChampion(SessionStandings standings, IReadOnlyList<int> champions, int playerId)
+        {
+            if (champions != null && champions.Count > 0)
+            {
+                for (int i = 0; i < champions.Count; i++)
+                {
+                    if (champions[i] == playerId)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            return standings.IsLeader(playerId);
+        }
+
+        /// <summary>
+        /// Хвост строки раунда: «+7» акцентом и «всего 12» приглушённо.
+        /// В одиночной игре суммы катки нет — только очки этой игры.
+        /// </summary>
+        private static string RoundDetail(MinigameResults.PlayerResult entry, bool countsTowardSession)
+        {
+            string points = $"<pos={PointsColumn}%><color=#{AccentHex}>+{entry.Points} очк.</color>";
+            return countsTowardSession
+                ? $"{points}<pos={TotalColumn}%><color=#{MutedHex}>всего {entry.Total}</color>"
+                : points;
+        }
+
+        /// <summary>Хвост строки катки: отметка чемпиона и сумма очков.</summary>
+        private static string StandingDetail(SessionStandings.Entry entry, bool champion)
+        {
+            string crown = champion ? $"<pos={PointsColumn}%><color=#{GoldHex}>ЧЕМПИОН</color>" : string.Empty;
+            return $"{crown}<pos={TotalColumn}%><color=#{MutedHex}>{entry.Score} очк.</color>";
         }
 
         /// <summary>Запасной вид итогов — одним текстом, для сцен без готовых строк.</summary>
@@ -269,8 +435,37 @@ namespace Igruha.Core.UI
                         continue;
                     }
 
-                    sb.AppendLine($"{place} место — {FindName(players, entries[i].PlayerId)}");
+                    sb.Append($"{place} место — {FindName(players, entries[i].PlayerId)}");
+                    if (results.Awarded)
+                    {
+                        sb.Append($"   +{entries[i].Points} очк.");
+                        if (results.CountsTowardSession)
+                        {
+                            sb.Append($"   (всего {entries[i].Total})");
+                        }
+                    }
+
+                    sb.AppendLine();
                 }
+            }
+
+            return sb.ToString();
+        }
+
+        private static string BuildStandingsText(SessionStandings standings, IReadOnlyList<SessionPlayer> players,
+                                                 IReadOnlyList<int> champions)
+        {
+            var sb = new StringBuilder(SeriesTitleFor(standings)).Append(":\n");
+            IReadOnlyList<SessionStandings.Entry> entries = standings.Entries;
+            for (int i = 0; i < entries.Count; i++)
+            {
+                sb.Append($"{entries[i].Place} место — {FindName(players, entries[i].PlayerId)}   {entries[i].Score} очк.");
+                if (IsChampion(standings, champions, entries[i].PlayerId))
+                {
+                    sb.Append("   ЧЕМПИОН");
+                }
+
+                sb.AppendLine();
             }
 
             return sb.ToString();

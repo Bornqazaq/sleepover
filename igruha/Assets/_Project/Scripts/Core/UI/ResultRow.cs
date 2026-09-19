@@ -5,8 +5,13 @@ using UnityEngine.UI;
 namespace Igruha.Core.UI
 {
     /// <summary>
-    /// Строка итогов раунда: кружок места, номер и имя игрока. Первые три
-    /// места красятся медалью, остальные — общей плашкой.
+    /// Строка итогов: кружок места, номер и имя игрока. Первые три места
+    /// красятся медалью, остальные — общей плашкой.
+    ///
+    /// Очки и сумма идут той же строкой, что и имя, разметкой TMP с
+    /// колонками <c>&lt;pos&gt;</c>: панель собрана в каждой из десяти сцен,
+    /// и отдельное поле под очки пришлось бы пересобирать во всех, а забытая
+    /// ссылка молчит. Одно поле — ноль пересборок.
     /// </summary>
     public sealed class ResultRow : MonoBehaviour
     {
@@ -14,7 +19,8 @@ namespace Igruha.Core.UI
         [SerializeField] private TMP_Text placeText;
         [SerializeField] private TMP_Text nameText;
 
-        public void Set(int place, string playerName)
+        /// <param name="detail">Хвост строки после имени, уже с разметкой колонок. Пусто — только имя.</param>
+        public void Set(int place, string playerName, string detail = null)
         {
             if (badge != null)
             {
@@ -29,7 +35,7 @@ namespace Igruha.Core.UI
 
             if (nameText != null)
             {
-                nameText.text = playerName;
+                nameText.text = string.IsNullOrEmpty(detail) ? playerName : playerName + detail;
                 nameText.color = place == 1 ? UiSkin.Accent : UiSkin.TextPrimary;
             }
 

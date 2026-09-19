@@ -1,6 +1,7 @@
 using UnityEngine;
 using Unity.Cinemachine;
 using Igruha.Core.Minigame;
+using Igruha.Core.Player;
 
 namespace Igruha.Core.CameraSystems
 {
@@ -28,6 +29,7 @@ namespace Igruha.Core.CameraSystems
 
         public void Apply(CameraMode mode, Transform followTarget)
         {
+            followTarget = ChestLevel(mode, followTarget);
             CinemachineCamera rig = SelectRig(mode);
             if (rig == null)
             {
@@ -59,6 +61,32 @@ namespace Igruha.Core.CameraSystems
             SetRigActive(firstPersonRig, rig == firstPersonRig);
             SetRigActive(topDownRig, rig == topDownRig);
             SetRigActive(fixedRig, rig == fixedRig);
+        }
+
+        /// <summary>
+        /// Поднять точку привязки от ступней к груди персонажа.
+        ///
+        /// Орбита третьего лица центрируется на цели: с корнем персонажа её
+        /// центр оказывается на полу, камера висит на высоте пояса и смотрит
+        /// снизу вверх в ноги. Хаб передавал <c>CameraTarget</c> и кадрировал
+        /// правильно, а мини-игры — <c>transform</c>, и кадр в них был другим.
+        /// Приведение живёт здесь, в единственной точке входа, чтобы десять
+        /// игр не повторяли одно и то же и одиннадцатая не забыла.
+        ///
+        /// Вид от первого лица и фикс-риги не трогаем: первый сам ищет голову,
+        /// вторым передают не персонажа, а точку в сцене. Вид сверху поднимаем
+        /// наравне с третьим лицом — он и включается-то подменой того же рига.
+        /// </summary>
+        private static Transform ChestLevel(CameraMode mode, Transform followTarget)
+        {
+            bool followsPlayer = mode == CameraMode.ThirdPerson || mode == CameraMode.TopDown;
+            if (!followsPlayer || followTarget == null)
+            {
+                return followTarget;
+            }
+
+            PlayerController player = followTarget.GetComponentInParent<PlayerController>();
+            return player != null ? player.CameraTarget : followTarget;
         }
 
         /// <summary>

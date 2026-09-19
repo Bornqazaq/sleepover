@@ -58,6 +58,7 @@ Shader "Igruha/Stylized Water"
 
         [Header(Prelomlenie)]
         _RefractionStrength ("Сила преломления, м экрана", Float) = 0.035
+        _UnderwaterClarity ("Near-surface clarity", Range(0,1)) = 0
     }
 
     SubShader
@@ -126,6 +127,7 @@ Shader "Igruha/Stylized Water"
                 float _FresnelStrength;
 
                 float _RefractionStrength;
+                float _UnderwaterClarity;
             CBUFFER_END
 
             struct Attributes
@@ -251,6 +253,9 @@ Shader "Igruha/Stylized Water"
 
                 float3 waterColor = lerp(_ShallowColor.rgb, _DeepColor.rgb, depthFade);
                 float coverage = saturate(depthFade * _Opacity);
+                float nearSurface = smoothstep(.08,.65,distance(_WorldSpaceCameraPos,input.positionWS));
+                float underside = smoothstep(.12,-.12,viewDirWS.y);
+                coverage *= lerp(1,nearSurface*lerp(1,.22,underside),_UnderwaterClarity);
                 float3 color = lerp(sceneColor, waterColor, coverage);
 
                 // Пена у кромки: полоса там, где под водой почти сразу дно
@@ -259,6 +264,7 @@ Shader "Igruha/Stylized Water"
                 float foamWobble = sin(input.positionWS.x * 3.1 + _Time.y * _FoamSpeed)
                                  * cos(input.positionWS.z * 2.7 - _Time.y * _FoamSpeed * 0.8);
                 float foam = smoothstep(_FoamCutoff, 1.0, foamBand + foamWobble * 0.18);
+                foam *= lerp(1,nearSurface*(1-underside),_UnderwaterClarity);
                 color = lerp(color, _FoamColor.rgb, foam);
 
                 // Блик по главному свету — по нормали волны, поэтому едет
@@ -266,11 +272,12 @@ Shader "Igruha/Stylized Water"
                 Light mainLight = GetMainLight();
                 float3 halfDir = normalize(mainLight.direction + viewDirWS);
                 float spec = pow(saturate(dot(normalWS, halfDir)), max(1.0, _SpecPower));
+                spec *= lerp(1,1-underside,_UnderwaterClarity);
                 color += _SpecColorTint.rgb * mainLight.color * (spec * _SpecStrength);
 
                 // Френель: у горизонта вода светлеет, под ногами прозрачнее.
                 float fresnel = pow(1.0 - saturate(dot(normalWS, viewDirWS)), _FresnelPower);
-                color = lerp(color, _ShallowColor.rgb, fresnel * _FresnelStrength);
+                color = lerp(color, _ShallowColor.rgb, fresnel * _FresnelStrength * lerp(1,nearSurface*(1-underside),_UnderwaterClarity));
 
                 return half4(color, 1.0);
             }

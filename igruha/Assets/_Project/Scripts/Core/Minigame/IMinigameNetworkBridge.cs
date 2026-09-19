@@ -23,7 +23,13 @@ namespace Igruha.Core.Minigame
 
         void PublishPhase(MinigamePhase phase);
 
-        void PublishResults(MinigameResults results);
+        /// <summary>
+        /// Разослать итоги раунда: места, очки за раунд и суммы катки, а
+        /// также признак, что это последняя игра серии, — у клиентов очереди
+        /// серии нет, и без признака они не узнали бы, что после итогов
+        /// будет таблица катки.
+        /// </summary>
+        void PublishResults(MinigameResults results, bool seriesFinal);
 
         /// <summary>
         /// Отправить серверу намерение выйти из раунда. Кто именно вышел,
@@ -43,7 +49,8 @@ namespace Igruha.Core.Minigame
 
         void ApplyPhase(MinigamePhase phase);
 
-        void ApplyResults(MinigameResults results);
+        /// <summary>Итоги приехали с сервера — уже с очками и суммами.</summary>
+        void ApplyResults(MinigameResults results, bool seriesFinal);
 
         /// <summary>Состояние таймера раунда для репликации (false — таймера нет).</summary>
         bool TryGetRoundTime(out float remaining, out float duration);

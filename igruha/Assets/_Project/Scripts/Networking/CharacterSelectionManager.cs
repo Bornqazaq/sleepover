@@ -63,6 +63,31 @@ namespace Igruha.Networking
         {
             if (IsSpawned) RenameRpc(value ?? string.Empty);
         }
+
+        /// <summary>
+        /// Отдать серверу имя, введённое на экране входа.
+        ///
+        /// Отдельно от <see cref="ChangeOwnName"/>, потому что правила разные.
+        /// Смена имени разрешена только в открытой комнате участников — иначе
+        /// её можно было бы устроить посреди раунда. А первое имя приносит сам
+        /// клиент при входе, когда никакой комнаты ещё нет: без этого четверо
+        /// друзей заходят «Игроком 2», «Игроком 3» и «Игроком 4», и на табло
+        /// не разобрать, кто где. Сервер примет его ровно один раз и только
+        /// поверх выданного по счёту.
+        /// </summary>
+        private void ClaimSavedName()
+        {
+            string saved = PlayerPrefs.GetString(NetworkConnectScreen.NameKey, string.Empty).Trim();
+            if (saved.Length == 0) return;
+
+            ClaimNameRpc(saved);
+        }
+
+        [Rpc(SendTo.Server)]
+        private void ClaimNameRpc(string value, RpcParams rpcParams = default)
+        {
+            GetComponent<NetworkSessionManager>()?.ClaimNameOnJoin(rpcParams.Receive.SenderClientId, value);
+        }
         public void ChangeOwnCharacter(int index) { if (IsSpawned) ChangeCharacterRpc(index); }
 
         [Rpc(SendTo.Server)]
@@ -129,6 +154,11 @@ namespace Igruha.Networking
 
             claims.OnListChanged += OnClaimsChanged;
             CharacterSelection.Register(this);
+
+            // Имя с экрана входа отдаём сразу: комнаты участников ещё нет, а
+            // к моменту, когда хост её откроет, на табло уже должны быть люди,
+            // а не «Игрок 2» и «Игрок 3».
+            ClaimSavedName();
 
             if (IsServer)
             {
