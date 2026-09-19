@@ -43,13 +43,13 @@ HEADERS = {"Content-Type": "application/json",
            "Accept": "application/json, text/event-stream"}
 
 
-def post(body, session=None, want_headers=False):
+def post(body, session=None, want_headers=False, timeout=600):
     headers = dict(HEADERS)
     if session:
         headers["Mcp-Session-Id"] = session
     req = urllib.request.Request(URL, data=json.dumps(body).encode("utf-8"),
                                  headers=headers, method="POST")
-    with urllib.request.urlopen(req, timeout=600) as resp:
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
         raw = resp.read().decode("utf-8", "replace")
         sid = resp.headers.get("mcp-session-id")
     payload = None
@@ -76,12 +76,23 @@ def handshake():
 
 
 def session():
+    """Живой идентификатор сессии: сохранённый, если мост его ещё помнит, иначе новый.
+
+    Сохранённый проверяется, а не берётся на веру: перезапуск редактора поднимает
+    мост заново, и прежний идентификатор он встречает `404 Not Found` — причём
+    исключением, а не полем `error` в ответе. Без этой проверки скрипт падает
+    трассировкой там, где достаточно переподключиться.
+    """
     if os.path.exists(SESSION_FILE):
         sid = open(SESSION_FILE).read().strip()
         if sid:
-            probe = post({"jsonrpc": "2.0", "id": 2, "method": "tools/list"}, session=sid)
-            if probe and "error" not in probe:
-                return sid
+            try:
+                probe = post({"jsonrpc": "2.0", "id": 2, "method": "tools/list"},
+                             session=sid, timeout=15)
+                if probe and "error" not in probe:
+                    return sid
+            except Exception:
+                pass
     return handshake()
 
 

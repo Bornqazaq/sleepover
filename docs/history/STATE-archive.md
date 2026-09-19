@@ -18056,3 +18056,68 @@ MCP-серверы один раз, на старте сессии. По вре�
 `401`, в сессии видны только `authenticate`. Ссылка на OAuth Linear выдана
 геймдизайнеру. Blender-сервер поднят, но сам Blender не запущен, поэтому аддон
 не отвечает — это не поломка, а закрытая программа. Chrome настроен.
+
+### 3.151. Черновики fal.ai удалены — звук делаем с нуля поставками (19.09.2026)
+
+Решение геймдизайнера: всё, что было сгенерировано через fal.ai, из проекта
+убрать и не засчитывать. Причина простая — черновик, лежащий в папке игры под
+именем слота, выглядит как готовый звук. Восемь игр числились озвученными,
+хотя звучали заглушками.
+
+**Удалено:** 87 клипов из девяти папок (`BelieveOrNot` 12, `CansOrder` 4,
+`CarryItem` 16, `Minigames/Circus` 4, `Exam` 11, `HoleInWall` 12, `MemoryRun` 13,
+`Stopwatch` 15) вместе с `.meta`, плюс две папки `Probe/` со 111 забракованными
+вариантами. Из инструментов сняты `tools/sfx_normalize.py` и `tools/sfx_pick.py` —
+оба обслуживали только конвейер генерации. `tools/wav_probe.py` оставлен и
+перенацелен на проверку поставки: клиппинг, тишину и пустоту перед атакой
+всё так же надо ловить замером, но теперь у присланного, а не у своего.
+
+**Не удалено:** восемь клипов «Заражения» (`Wind`, `Fire`, `Creak`, `Splat`,
+`WetStep`, `Zero`, `Heartbeat`, `Whistle`). Они не из fal.ai — их синтезировал
+питоном `tools/audio/infection_sounds.py`, и в сцене они висят прямыми ссылками
+на `AudioSource`, а не через библиотеку. Это тоже подложка, но чужая и вне
+просьбы; решение по ним за владельцем игры.
+
+**Манифесты `docs/art/*-sfx.json` переписаны в чистую спеку:** убраны
+`provider`, `models`, `prompt_rules`, `probe_folder` и по слотам —
+`model`, `duration`, `prompt`, `variants`. Осталось `id`, `file`, `event`,
+`when`, `loop`, `spatial`, `volume`. Из описания процесса генерации манифест
+стал списком того, что игре нужно, — то есть заказом поставщику.
+
+**Состояние после пересборки библиотек: 137 слотов, 83 немых.** Немой слот
+теперь означает «звук ещё не приехал», и это ожидаемое состояние, а не ошибка.
+Ноль немых — только у общего слоя (`Core/Character` 10, `Core/UI` 16,
+`Core/Traps` 3) и у игр, которым поставка уже что-то привезла: `CryingAngels` 7,
+`DuckHunt` 7, `Minigames/Circus` 7, `Infection` 2, `CansOrder` 1 из 5,
+`MemoryRun` 1 из 14.
+
+Заказ поставщику по играм:
+
+- **«Верю / не верю»** — все 12: `round_gong`, `peek_latch`, `phrase_knower`,
+  `phrase_decider`, `tick_last`, `box_swap`, `lids_open`, `outcome_win`,
+  `outcome_fail`, `gag_puff`, `crowd_react`, `hall_ambience`.
+- **«Переноска предмета»** — все 16: `round_start`, `bottle_take`, `slosh_loop`,
+  `leak_loop`, `handle_break`, `bottle_drop`, `pour_loop`, `pour_done`,
+  `beam_warn`, `beam_hit`, `cart_tip`, `pipe_loop`, `brick_throw`, `brick_hit`,
+  `last_15s`, `round_end`.
+- **«Секундомер»** — все 15: `round_gong`, `tick`, `button_start`,
+  `button_stop`, `drumroll`, `cymbal`, `cage_winch`, `hatch_open`, `bear_roar`,
+  `bear_paw`, `crowd_gasp`, `crowd_laugh`, `crowd_ambience`, `fanfare`,
+  `applause`.
+- **«Рейс на память»** — 13 из 14: `hall_ambience`, `round_start`,
+  `turn_announce`, `plate_land`, `mine_blast`, `ragdoll_launch`, `ragdoll_land`,
+  `crowd_gasp`, `pit_fall`, `turn_tick`, `exit_door`, `exit_fanfare`,
+  `round_end`.
+- **«Дырка в стене»** — все 12: `wall_start_gong`, `wall_move_loop`,
+  `impact_warning`, `pass_success_ding`, `crowd_cheer`, `fail_body_hit`,
+  `water_splash`, `underwater_loop`, `mirror_whoosh`, `morph_whoosh`,
+  `round_end_jingle`, `round_theme`.
+- **«Экзамен»** — все 11: `typing_loop`, `question_posted`, `choice_start`,
+  `tension_drum`, `hatch_open`, `hatch_close`, `fall_scream`, `respawn_pop`,
+  `lonely_bonus`, `question_skipped`, `match_fanfare`.
+- **«Порядок банок»** — 4 из 5: `can_swap`, `confirm_bell`, `board_reveal`,
+  `solved_fanfare`.
+
+**Заодно:** `/mg-art` лишился раздела 4.5 целиком — в арт-проходе звук больше
+не трогаем; по коду метки «подфаза 4.5» заменены на «фаза 5» в 20 файлах.
+Компиляция чистая, ошибок в консоли ноль.

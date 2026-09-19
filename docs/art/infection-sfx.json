@@ -1,25 +1,25 @@
 {
   "game": "Infection",
-  "source": "поставка звука, sounds.json",
+  "source": "поставка звука (sounds.json). Слот без клипа — это заказ поставщику, а не ошибка.",
   "output_folder": "Assets/_Project/Audio/Infection",
   "slots": [
     {
       "id": "SFX_INFC_Infect_Splat",
       "file": "SFX_INFC_Infect_Splat",
+      "event": "заражение краской",
+      "when": "касание заражённого — главный звук игры",
       "loop": false,
       "spatial": true,
-      "volume": 1.0,
-      "event": "заражение краской",
-      "when": "касание заражённого — главный звук игры"
+      "volume": 1.0
     },
     {
       "id": "SFX_INFC_Step_Infected",
       "file": "SFX_INFC_Step_Infected",
+      "event": "шаг заражённого",
+      "when": "вместо обычного шага; предупреждение со спины",
       "loop": false,
       "spatial": true,
-      "volume": 1.0,
-      "event": "шаг заражённого",
-      "when": "вместо обычного шага; предупреждение со спины"
+      "volume": 1.0
     }
   ]
 }

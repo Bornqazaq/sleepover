@@ -8,7 +8,7 @@ using Igruha.Minigames.Stopwatch;
 namespace Igruha.EditorTools
 {
     /// <summary>
-    /// Постановка звука цирковой арены — подфаза 4.5.
+    /// Постановка звука цирковой арены — фаза 5.
     ///
     /// Вешает <see cref="MinigameAudioPlayer"/> с библиотекой на арену,
     /// заводит <see cref="CircusAudio"/> (события арены, общие на обе игры)
