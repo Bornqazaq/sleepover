@@ -45,6 +45,10 @@ namespace Igruha.Core.UI
         [Tooltip("Подложка строки, девятислайс. Пусто — плоский прямоугольник")]
         [SerializeField] private Sprite rowSprite;
 
+        [Tooltip("Цвет номера строки. Прозрачный — номер идёт тем же цветом, что и текст, " +
+                 "как было. Заданный цвет отделяет клавишу от реплики")]
+        [SerializeField] private Color numberTint = Color.clear;
+
         [Tooltip("Отступ текста от края строки")]
         [SerializeField] private float rowTextInset = 10f;
 
@@ -97,6 +101,21 @@ namespace Igruha.Core.UI
         /// комедии. Гасить нужно там, где панель забирает те же клавиши,
         /// что и движение.
         /// </summary>
+        /// <summary>
+        /// Номер и реплика в одной строке. Номер — это клавиша, и одним цветом
+        /// с текстом он читался частью фразы, а не подсказкой, что нажать.
+        /// </summary>
+        private string Compose(int number, string phrase)
+        {
+            if (numberTint.a <= 0f)
+            {
+                return $"{number}.  {phrase}";
+            }
+
+            string hex = ColorUtility.ToHtmlStringRGB(numberTint);
+            return $"<color=#{hex}><b>{number}</b></color>  {phrase}";
+        }
+
         public void Open(QuickPhraseSet set, float phraseCooldown, PlayerController owner = null,
             bool suppressMovement = false, string hint = null)
         {
@@ -117,7 +136,7 @@ namespace Igruha.Core.UI
                 rows[i].gameObject.SetActive(used);
                 if (used)
                 {
-                    rowLabels[i].text = $"{i + 1}.  {set.Get(i)}";
+                    rowLabels[i].text = Compose(i + 1, set.Get(i));
                 }
             }
 
