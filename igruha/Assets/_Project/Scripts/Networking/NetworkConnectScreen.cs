@@ -254,6 +254,13 @@ namespace Igruha.Networking
 
             error = "";
             visible = false;
+
+            // Строка нужна на живой катке: по ней видно, кто под каким именем
+            // вошёл и куда стучался, когда кто-то «не подключается».
+            Debug.Log(role == NetworkStartRole.Host
+                ? $"🎮 Экран входа: создаю комнату на порту {parsedPort}, имя «{playerName}»"
+                : $"🎮 Экран входа: подключаюсь к {target}:{parsedPort}, имя «{playerName}»");
+
             Chosen?.Invoke(role, target, parsedPort);
         }
 
