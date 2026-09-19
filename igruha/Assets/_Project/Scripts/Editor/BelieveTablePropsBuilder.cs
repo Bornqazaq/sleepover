@@ -178,6 +178,8 @@ namespace Igruha.EditorTools
             lidHolder.position = hinge.position;
             lidHolder.rotation = rotation;
             BelieveTablePropsAssets.Model(lidHolder, "CasketLid");
+            // IGR-565: bordeaux velvet lining; visible whenever a lid opens.
+            BelieveCardArt.LineCasket(bodyModel, lidHolder);
             body.layer = lidPlate.layer = hinge.gameObject.layer = 0;
         }
 

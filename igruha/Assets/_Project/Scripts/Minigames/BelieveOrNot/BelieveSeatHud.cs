@@ -31,6 +31,24 @@ namespace Igruha.Minigames.BelieveOrNot
         [SerializeField] private Color deciderColor = new Color(0.6f, 0.85f, 1f);
         [SerializeField] private Color neutralColor = new Color(0.93f, 0.91f, 0.85f);
 
+        [Tooltip("Цвет пояснения после названия роли («· что в коробках, не знаешь…»). " +
+                 "Прозрачный — вся строка цветом роли, как было")]
+        [SerializeField] private Color roleDetailColor = Color.clear;
+
+        [Header("Исход кона")]
+        [SerializeField] private Color goodColor = new Color(0.98f, 0.85f, 0.45f);
+        [SerializeField] private Color badColor = new Color(0.6f, 0.85f, 1f);
+
+        [Header("Подложки")]
+        [Tooltip("Плашка под строкой роли. Прячется вместе с текстом; пусто — строка без плашки")]
+        [SerializeField] private GameObject rolePlate;
+
+        [Tooltip("Плашка под строкой реплики")]
+        [SerializeField] private GameObject talkPlate;
+
+        /// <summary>Разделитель названия роли и пояснения в строке, которую собирает игра.</summary>
+        private const string RoleSeparator = " · ";
+
         private float talkHideAt;
 
         /// <summary>Показать, кто ты в этом коне. Держится до конца кона.</summary>
@@ -42,17 +60,44 @@ namespace Igruha.Minigames.BelieveOrNot
             }
 
             roleText.color = knower ? knowerColor : deciderColor;
-            roleText.text = line;
-            roleText.enabled = true;
+            roleText.text = roleDetailColor.a > 0f ? WithQuietDetail(line) : line;
+            SetVisible(roleText, rolePlate, true);
+        }
+
+        /// <summary>
+        /// Название роли — цветом роли, пояснение после первого разделителя —
+        /// спокойным. Вся строка одним ярким цветом читалась криком.
+        /// Зовётся раз за кон, не в кадре.
+        /// </summary>
+        private string WithQuietDetail(string line)
+        {
+            int split = line.IndexOf(RoleSeparator, System.StringComparison.Ordinal);
+            if (split < 0)
+            {
+                return line;
+            }
+
+            string hex = ColorUtility.ToHtmlStringRGBA(roleDetailColor);
+            return line.Substring(0, split) + "<color=#" + hex + ">" + line.Substring(split) + "</color>";
+        }
+
+        private static void SetVisible(TMP_Text text, GameObject plate, bool visible)
+        {
+            if (text != null)
+            {
+                text.enabled = visible;
+            }
+
+            if (plate != null && plate.activeSelf != visible)
+            {
+                plate.SetActive(visible);
+            }
         }
 
         /// <summary>Убрать строку роли: кон кончился или ты в нём зритель.</summary>
         public void HideRole()
         {
-            if (roleText != null)
-            {
-                roleText.enabled = false;
-            }
+            SetVisible(roleText, rolePlate, false);
         }
 
         /// <summary>Реплика за столом. Видна всем, а не только сидящим: зал тоже слушает.</summary>
@@ -64,19 +109,14 @@ namespace Igruha.Minigames.BelieveOrNot
         /// <summary>Исход кона той же строкой — она уже там, где игрок смотрит.</summary>
         public void ShowResult(string line, bool good, float seconds)
         {
-            Show(line, good ? knowerColor : deciderColor, seconds);
+            Show(line, good ? goodColor : badColor, seconds);
         }
 
         /// <summary>Убрать обе строки: кон кончился, матч закрылся, игрок уехал в хаб.</summary>
         public void HideAll()
         {
             HideRole();
-
-            if (talkText != null)
-            {
-                talkText.enabled = false;
-            }
-
+            SetVisible(talkText, talkPlate, false);
             talkHideAt = 0f;
         }
 
@@ -89,7 +129,7 @@ namespace Igruha.Minigames.BelieveOrNot
 
             talkText.color = color;
             talkText.text = line;
-            talkText.enabled = true;
+            SetVisible(talkText, talkPlate, true);
             talkHideAt = Time.time + Mathf.Max(0.1f, seconds);
         }
 
@@ -101,11 +141,7 @@ namespace Igruha.Minigames.BelieveOrNot
             }
 
             talkHideAt = 0f;
-
-            if (talkText != null)
-            {
-                talkText.enabled = false;
-            }
+            SetVisible(talkText, talkPlate, false);
         }
     }
 }

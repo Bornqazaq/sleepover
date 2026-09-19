@@ -29,6 +29,12 @@ namespace Igruha.Minigames.BelieveOrNot
         [SerializeField] private Color winColor = new Color(0.35f, 0.72f, 0.4f);
         [SerializeField] private Color loseColor = new Color(0.75f, 0.32f, 0.3f);
 
+        [Header("Лицо карточки")]
+        [Tooltip("Та же карточка, что поднимается над коробкой на раскрытии: знающий видит " +
+                 "ровно то, что потом увидит зал. Пусто — квадрат цветом выше")]
+        [SerializeField] private Sprite winSprite;
+        [SerializeField] private Sprite loseSprite;
+
         public bool IsOpen { get; private set; }
 
         private void Awake()
@@ -55,7 +61,17 @@ namespace Igruha.Minigames.BelieveOrNot
 
             if (cardImage != null)
             {
-                cardImage.color = win ? winColor : loseColor;
+                Sprite face = win ? winSprite : loseSprite;
+                if (face != null)
+                {
+                    cardImage.sprite = face;
+                    cardImage.preserveAspect = true;
+                    cardImage.color = Color.white;
+                }
+                else
+                {
+                    cardImage.color = win ? winColor : loseColor;
+                }
             }
 
             if (cardLabel != null)
