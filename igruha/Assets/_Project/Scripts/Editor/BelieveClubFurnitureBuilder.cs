@@ -84,8 +84,14 @@ namespace Igruha.EditorTools
             Place(root, "East_Palm", "PottedPalm", new Vector3(side - 1.0f, 0, 3.2f), 250);
             Place(root, "East_Ottoman", "Ottoman", new Vector3(side - 2.4f, 0, 2.6f), 30);
             Place(root, "West_Bookcase", "Bookcase", new Vector3(-side + .42f, 0, 5.4f), 90);
-            Place(root, "West_CoatStand", "CoatStand", new Vector3(-side + .78f, 0, 4.0f), 90);
-            Place(root, "West_Palm", "PottedPalm", new Vector3(-side + 1.15f, 0, 6.2f), 70);
+            // Вешалка и пальма переехали на юго-запад. В северо-западном углу
+            // на двух метрах стояли бюро, стул, лампа, канцелярия, глобус,
+            // торшер, шкаф, вешалка и пальма: листья лезли на глобус, торшер
+            // стоял над кадкой. Южная половина западной стены при этом пустая,
+            // а ставить там можно: запрет фона геройского кадра начинается
+            // с z меньше −3.5.
+            Place(root, "West_CoatStand", "CoatStand", new Vector3(-side + .73f, 0, -2.2f), 90);
+            Place(root, "West_Palm", "PottedPalm", new Vector3(-side + 1.28f, 0, -3.1f), 70);
             Place(root, "West_SideTable", "SideTable", new Vector3(-side + 2.4f, 0, 2.4f), 0);
             Place(root, "West_Ottoman", "Ottoman", new Vector3(-side + 2.4f, 0, -2.6f), 200);
         }

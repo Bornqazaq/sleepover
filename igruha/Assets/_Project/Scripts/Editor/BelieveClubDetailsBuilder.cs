@@ -57,7 +57,11 @@ namespace Igruha.EditorTools
             Place(root, "West_BureauChair", "BureauChair", new Vector3(-side + 1.89f, 0, 4.97f), 270);
             Lamp(Place(root, "West_BankerLamp", "BankerLamp", new Vector3(-side + .94f, .805f, 5.42f), 90));
             Place(root, "West_DeskStationery", "DeskStationery", new Vector3(-side + 1.11f, .806f, 4.92f), 90);
-            Place(root, "West_Globe", "Globe", new Vector3(-side + 1.14f, 0, 6.10f), 90);
+            // Глобус отодвинут от торшера: пальма из этого угла ушла, и он
+            // занял её место у стены. Дальше на юг его не увести — мелкие
+            // детали живут только в нише z от 4.2 до 6.5, за краем
+            // геройского кадра, и это проверяет Audit.
+            Place(root, "West_Globe", "Globe", new Vector3(-side + .98f, 0, 6.05f), 90);
             var floorLamp = Place(root, "West_FloorLamp", "FloorLamp", new Vector3(-side + 2.04f, 0, 6.10f), 0);
             var floorLight = new GameObject("FloorLampWarmPoint").AddComponent<Light>();
             floorLight.transform.SetParent(floorLamp, false);

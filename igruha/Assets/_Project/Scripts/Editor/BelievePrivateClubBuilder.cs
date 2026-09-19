@@ -121,6 +121,8 @@ namespace Igruha.EditorTools
                 new Vector3(.24f, 1, .26f));
             BelievePrivateClubAssets.Model(floor, "RoundRug", new Vector3(-6.75f, .013f, 5.1f), 0,
                 new Vector3(.23f, 1, .25f));
+            BelievePrivateClubAssets.Model(floor, "RoundRug", new Vector3(-6.85f, .013f, -2.7f), 0,
+                new Vector3(.21f, 1, .23f));
             // Structural shell follows the room config; gameplay anchors are independent.
             foreach (string name in new[] { "Floor", "Ceiling", "Wall_North", "Wall_South", "Wall_West", "Wall_East" })
             {
@@ -211,6 +213,16 @@ namespace Igruha.EditorTools
                 new Vector3(side - .55f, 1.5f, -5.6f), 2.6f, 4.4f, 100, 60);
             Accent(accents, "WestCaseGlow", new Vector3(-side + 1.55f, 2.75f, 5.4f),
                 new Vector3(-side + .55f, 1.5f, 5.4f), 2.6f, 4.4f, 100, 60);
+            // Пальма и вешалка на юго-западе. Источник узкий и смотрит почти
+            // отвесно вниз: он обязан высветить кадку и стойку, но не стену
+            // за ними — вдоль этой стены идёт край геройского кадра.
+            // Интенсивность в канделах, падение как квадрат расстояния: от
+            // источника под потолком до кадки 2.5 м, и на 2.4 пятно давало
+            // треть единицы — кадка оставалась чёрной. Банкирская лампа
+            // светит с 0.3 м и даёт своему столу около шестнадцати; чтобы
+            // получить сравнимое пятно с 2.5 м, нужно примерно полсотни.
+            Accent(accents, "WestPalmGlow", new Vector3(-side + 1.5f, 3.1f, -2.6f),
+                new Vector3(-side + 1.15f, .55f, -2.7f), 52f, 4.8f, 58, 22);
             FaceFill(arena);
             BackdropGlow(arena);
             ConfigureGrade(arena);
