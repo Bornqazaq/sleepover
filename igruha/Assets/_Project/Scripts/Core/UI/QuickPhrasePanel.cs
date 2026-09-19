@@ -38,6 +38,23 @@ namespace Igruha.Core.UI
         [SerializeField] private Color rowReadyColor = new Color(0.16f, 0.16f, 0.20f, 0.92f);
         [SerializeField] private Color textColor = new Color(0.92f, 0.90f, 0.84f);
 
+        [Tooltip("Шрифт строк. Пусто — шрифт TMP по умолчанию. Строки собираются в рантайме, " +
+                 "и без этого поля оформление сцены до них не доезжает")]
+        [SerializeField] private TMP_FontAsset rowFont;
+
+        [Tooltip("Подложка строки, девятислайс. Пусто — плоский прямоугольник")]
+        [SerializeField] private Sprite rowSprite;
+
+        [Tooltip("Отступ текста от края строки")]
+        [SerializeField] private float rowTextInset = 10f;
+
+        [Tooltip("Подогнать высоту корня под число реплик набора: наборы разной длины, " +
+                 "а фиксированная высота оставляет пустоту под последней строкой")]
+        [SerializeField] private bool fitRootToRows;
+
+        [Tooltip("Отступ под последней строкой, когда высота подгоняется")]
+        [SerializeField] private float rootBottomPadding = 14f;
+
         /// <summary>Выбрана реплика с таким индексом в наборе.</summary>
         public event Action<int> PhrasePicked;
 
@@ -107,6 +124,11 @@ namespace Igruha.Core.UI
             if (hintText != null)
             {
                 hintText.text = string.IsNullOrEmpty(hint) ? "Цифры 1–9 или мышью" : hint;
+            }
+
+            if (fitRootToRows)
+            {
+                FitRoot(set.Count);
             }
 
             if (suppressMovement)
@@ -213,6 +235,12 @@ namespace Igruha.Core.UI
 
             var image = go.GetComponent<Image>();
             image.color = rowColor;
+            if (rowSprite != null)
+            {
+                image.sprite = rowSprite;
+                image.type = Image.Type.Sliced;
+            }
+
             rowImages.Add(image);
 
             var textGo = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
@@ -220,10 +248,15 @@ namespace Igruha.Core.UI
             textRect.SetParent(rect, false);
             textRect.anchorMin = Vector2.zero;
             textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = new Vector2(10f, 0f);
-            textRect.offsetMax = new Vector2(-10f, 0f);
+            textRect.offsetMin = new Vector2(rowTextInset, 0f);
+            textRect.offsetMax = new Vector2(-rowTextInset, 0f);
 
             var label = textGo.GetComponent<TextMeshProUGUI>();
+            if (rowFont != null)
+            {
+                label.font = rowFont;
+            }
+
             label.fontSize = fontSize;
             label.color = textColor;
             label.alignment = TextAlignmentOptions.MidlineLeft;
@@ -235,6 +268,23 @@ namespace Igruha.Core.UI
             int captured = index;
             button.onClick.AddListener(() => Pick(captured));
             return button;
+        }
+
+        /// <summary>
+        /// Высота корня — от его верха до низа последней строки плюс отступ.
+        /// Строки стоят абсолютными координатами от верха контейнера, поэтому
+        /// раскладчик Unity здесь не поможет: считается руками.
+        /// </summary>
+        private void FitRoot(int count)
+        {
+            if (root == null || container == null || !(root.transform is RectTransform rootRect))
+            {
+                return;
+            }
+
+            float containerTop = -(container.anchoredPosition.y + container.rect.height * (1f - container.pivot.y));
+            float rowsHeight = count * rowHeight + Mathf.Max(0, count - 1) * rowSpacing;
+            rootRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, containerTop + rowsHeight + rootBottomPadding);
         }
 
         /// <summary>Строки гаснут на время кулдауна: видно, что жать пока нечего.</summary>
