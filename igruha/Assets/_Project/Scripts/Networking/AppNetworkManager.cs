@@ -36,6 +36,7 @@ public class AppNetworkManager : MonoBehaviour
     private bool isConnected;
     private bool isSubscribedToClientEvents;
     private BootStatusScreen statusScreen;
+    private NetworkConnectScreen connectScreen;
 
     /// <summary>Кадров в секунду у headless-инстанса: физике и сети хватает, ядро не жжётся.</summary>
     private const int HeadlessFrameRate = 60;
@@ -79,8 +80,40 @@ public class AppNetworkManager : MonoBehaviour
             return;
         }
 
-        NetworkStartRole role = NetworkRoleResolver.Resolve(out string reason);
+        // Живой билд спрашивает человека, а стенд и редактор — нет: там роль
+        // уже задана аргументом запуска или тегом Play Mode.
+        if (NetworkConnectScreen.ShouldAsk())
+        {
+            connectScreen = gameObject.AddComponent<NetworkConnectScreen>();
+            connectScreen.Chosen += OnConnectionChosen;
+            statusScreen?.Hide();
+            return;
+        }
 
+        Begin(NetworkRoleResolver.Resolve(out string reason), reason);
+    }
+
+    /// <summary>
+    /// Человек выбрал роль и адрес на экране входа. Дальше — тот же путь, что
+    /// и у стенда: адрес кладётся в транспорт, роль поднимается.
+    /// </summary>
+    private void OnConnectionChosen(NetworkStartRole role, string target, ushort chosenPort)
+    {
+        UnityTransport transport = NetworkManager.Singleton.NetworkConfig.NetworkTransport as UnityTransport;
+        if (transport != null)
+        {
+            // Хосту адрес не трогаем: он слушает ServerListenAddress, и подмена
+            // адреса подключения сделала бы его недостижимым снаружи.
+            if (role == NetworkStartRole.Client) transport.ConnectionData.Address = target;
+            transport.ConnectionData.Port = chosenPort;
+        }
+
+        statusScreen?.Show("Комната запускается", "Поднимаю сеть…");
+        Begin(role, "выбор на экране входа");
+    }
+
+    private void Begin(NetworkStartRole role, string reason)
+    {
         if (role == NetworkStartRole.Client)
         {
             ApplyEndpointArguments();
@@ -98,7 +131,7 @@ public class AppNetworkManager : MonoBehaviour
         // до этого SceneManager ещё не готов принимать запросы
         NetworkManager.Singleton.OnServerStarted += HandleServerStarted;
         Debug.Log($"🟢 Роль HOST ({reason}) — слушаю {DescribeListen()} (с Connection Approval)");
-        ShowStatus("Поднимаю хост", $"{DescribeListen()}");
+        ShowStatus("Поднимаю комнату", $"{DescribeListen()}");
 
         // Результат StartHost проверяем: занятый порт валит старт молча для
         // игрока — сеть не поднялась, сцена не грузится, на экране пусто.

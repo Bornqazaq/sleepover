@@ -20,16 +20,21 @@ namespace Igruha.Networking
         public int Score;
         public FixedString32Bytes DisplayName;
 
+        /// <summary>Имя своё, а не выданное по счёту входа. Первое имя клиент приносит с собой.</summary>
+        public bool Named;
+
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
             serializer.SerializeValue(ref ClientId);
             serializer.SerializeValue(ref Score);
             serializer.SerializeValue(ref DisplayName);
+            serializer.SerializeValue(ref Named);
         }
 
         public bool Equals(SessionPlayerState other) =>
             ClientId == other.ClientId &&
             Score == other.Score &&
+            Named == other.Named &&
             DisplayName.Equals(other.DisplayName);
     }
 
@@ -240,6 +245,9 @@ namespace Igruha.Networking
             pendingRemovals.Clear();
         }
 
+        /// <summary>Имена, принесённые клиентами до того, как их завели в ростер.</summary>
+        private readonly Dictionary<ulong, string> claimedNames = new Dictionary<ulong, string>(8);
+
         private void AddToRoster(ulong clientId)
         {
             if (IndexOf((int)clientId) >= 0)
@@ -247,12 +255,46 @@ namespace Igruha.Networking
                 return;
             }
 
+            bool named = claimedNames.TryGetValue(clientId, out string claimed)
+                         && PartyDisplayName.TryNormalize(claimed, out claimed);
+
             roster.Add(new SessionPlayerState
             {
                 ClientId = clientId,
                 Score = 0,
-                DisplayName = new FixedString32Bytes($"Игрок {roster.Count + 1}")
+                DisplayName = new FixedString32Bytes(named ? claimed : $"Игрок {roster.Count + 1}"),
+                Named = named
             });
+
+            claimedNames.Remove(clientId);
+        }
+
+        /// <summary>
+        /// Имя, принесённое клиентом при входе. Ставится только один раз и
+        /// только поверх выданного по счёту — дальше имя меняют в комнате
+        /// участников, и подменить чужое им нельзя.
+        ///
+        /// Хранится до прихода в ростер: заявка может доехать раньше, чем
+        /// сервер успеет завести запись, и тогда без этой копии первое имя
+        /// каждого второго входа терялось бы гонкой.
+        /// </summary>
+        public void ClaimNameOnJoin(ulong clientId, string name)
+        {
+            if (!IsServer || !PartyDisplayName.TryNormalize(name, out string valid)) return;
+
+            int index = IndexOf((int)clientId);
+            if (index < 0)
+            {
+                claimedNames[clientId] = valid;
+                return;
+            }
+
+            SessionPlayerState state = roster[index];
+            if (state.Named) return;
+
+            state.DisplayName = new FixedString32Bytes(valid);
+            state.Named = true;
+            roster[index] = state;
         }
 
         private int IndexOf(int playerId)
@@ -506,7 +548,7 @@ namespace Igruha.Networking
         {
             if (!IsServer || !PartyDisplayName.TryNormalize(name, out var valid)) return false;
             int index = IndexOf((int)clientId); if (index < 0) return false;
-            var state = roster[index]; state.DisplayName = new FixedString32Bytes(valid); roster[index] = state;
+            var state = roster[index]; state.DisplayName = new FixedString32Bytes(valid); state.Named = true; roster[index] = state;
             return true;
         }
         /// <summary>Новая серия: счёт, журнал и чемпионы — с чистого листа.</summary>
