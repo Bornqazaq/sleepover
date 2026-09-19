@@ -33,9 +33,17 @@ namespace Igruha.Tests
                     Assert.That(config.WallSpeed(i, false), Is.GreaterThanOrEqualTo(config.WallSpeed(i - 1, false) - .0001f));
                 }
             }
-            Assert.That(total, Is.EqualTo(60).Within(.0001));
-            Assert.That(config.HitTime(7), Is.EqualTo(60));
-            Assert.That(config.StageDuration(7), Is.EqualTo(config.ApproachSeconds(7)).Within(.0001));
+            // Расписание кончается раньше минуты на развязку (IGR-533): последняя
+            // стена обязана ударить до итогов, иначе исход не успевает отыграть.
+            // Поэтому сравниваем не с длиной раунда, а с длиной расписания.
+            Assert.That(config.StartTime(0, false) + total, Is.EqualTo(60).Within(.0001));
+            Assert.That(config.HitTime(7), Is.EqualTo(config.ScheduleLength).Within(.0001));
+            Assert.That(config.ScheduleLength, Is.EqualTo(60 - config.FinalPayoffSeconds).Within(.0001));
+            // Хвост развязки принадлежит последней стадии: она тянется от подъезда
+            // восьмой стены до конца раунда, то есть длиннее своего подъезда ровно
+            // на развязку.
+            Assert.That(config.StageDuration(7),
+                Is.EqualTo(config.ApproachSeconds(7) + config.FinalPayoffSeconds).Within(.0001));
         }
 
         [Test] public void CurrentApproachTimesAndAccelerationArePreserved()
@@ -58,10 +66,10 @@ namespace Igruha.Tests
                 c.FindProperty("definition").objectReferenceValue = definition;
                 c.ApplyModifiedPropertiesWithoutUndo();
                 Assert.That(config.RoundLength, Is.EqualTo(definition.RoundDuration));
-                Assert.That(config.HitTime(7), Is.EqualTo(75));
+                Assert.That(config.HitTime(7), Is.EqualTo(75 - config.FinalPayoffSeconds).Within(.0001));
                 float sum = 0;
                 for (int i = 0; i < config.WallCount; i++) sum += config.StageDuration(i);
-                Assert.That(sum, Is.EqualTo(75).Within(.0001));
+                Assert.That(config.StartTime(0, false) + sum, Is.EqualTo(75).Within(.0001));
             }
             finally { Object.DestroyImmediate(definition); }
         }

@@ -24,10 +24,10 @@ namespace Igruha.EditorTools
                 library = ScriptableObject.CreateInstance<ConsoleArtworkLibrary>();
                 AssetDatabase.CreateAsset(library, path);
             }
-            string[] ids = { "CryingAngels", "Stopwatch", "CansOrder", "Exam", "BelieveOrNot", "MemoryRun", "CarryItem", "HoleInWall", "DuckHunt" };
-            string[] definitions = { "CryingAngelsDefinition", "StopwatchDefinition", "CansOrder", "Exam", "BelieveOrNot", "MemoryRun", "CarryItem", "HoleInWall", "DuckHuntDefinition" };
-            string[] accents = { "98CED9", "F4BE81", "DFC38F", "DFACE9", "C7D39C", "BBB3F0", "91D6CD", "F4ADB2", "F2D47D" };
-            string[] genres = { "ПРЯТКИ В ТЕМНОТЕ", "ПОЧУВСТВУЙ ВРЕМЯ", "ЛОГИКА И ИНТУИЦИЯ", "УГАДАЙ МЫСЛИ ВЕДУЩЕГО", "БЛЕФ ЗА ОДНИМ СТОЛОМ", "ЗАПОМНИ БЕЗОПАСНЫЙ ПУТЬ", "ВМЕСТЕ ДО ПОСЛЕДНЕЙ КАПЛИ", "ПОПАДИ В СИЛУЭТ", "ГОНКА НА ВЕРШИНУ" };
+            string[] ids = { "CryingAngels", "Stopwatch", "CansOrder", "Exam", "BelieveOrNot", "MemoryRun", "CarryItem", "HoleInWall", "DuckHunt", "Infection" };
+            string[] definitions = { "CryingAngelsDefinition", "StopwatchDefinition", "CansOrder", "Exam", "BelieveOrNot", "MemoryRun", "CarryItem", "HoleInWall", "DuckHuntDefinition", "Infection" };
+            string[] accents = { "98CED9", "F4BE81", "DFC38F", "DFACE9", "C7D39C", "BBB3F0", "91D6CD", "F4ADB2", "F2D47D", "9BE07A" };
+            string[] genres = { "ПРЯТКИ В ТЕМНОТЕ", "ПОЧУВСТВУЙ ВРЕМЯ", "ЛОГИКА И ИНТУИЦИЯ", "УГАДАЙ МЫСЛИ ВЕДУЩЕГО", "БЛЕФ ЗА ОДНИМ СТОЛОМ", "ЗАПОМНИ БЕЗОПАСНЫЙ ПУТЬ", "ВМЕСТЕ ДО ПОСЛЕДНЕЙ КАПЛИ", "ПОПАДИ В СИЛУЭТ", "ГОНКА НА ВЕРШИНУ", "БЕГИ, ПОКА ЧИСТЫЙ" };
             string[] summaries =
             {
                 "Подкрадись к ведущему и замри, когда на тебя попадёт свет. Одно лишнее движение — и ты выдашь себя.",
@@ -38,7 +38,8 @@ namespace Igruha.EditorTools
                 "Перед тобой три дорожки и только один безопасный шаг. Запоминай путь и доберись до финиша.",
                 "Донесите воду до своей ёмкости всей командой. Спешить можно — но каждая пролитая капля отдаляет победу.",
                 "Вы связаны одной верёвкой, а стена уже близко. Займите нужные позы и пройдите сквозь отверстия вместе.",
-                "Утки штурмуют башню, охотник мешает им добраться до вершины. Ловушки и пять этажей до победы!"
+                "Утки штурмуют башню, охотник мешает им добраться до вершины. Ловушки и пять этажей до победы!",
+                "Один заражён, остальные бегут. Зелёная краска липнет от касания, и с каждым новым заражённым бежать становится некуда."
             };
             var data = new SerializedObject(library);
             var entries = data.FindProperty("entries");
