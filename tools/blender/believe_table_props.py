@@ -224,31 +224,52 @@ box((-W/2-.004,0,.152),(.011,.054,.027),'Casket',.004,'brass')
 for yy in (-.133,.133):box((W/2-.010,yy,.156),(.040,.059,.007),'Casket',.002,'brass')
 module('CasketLid',(W/2,0,.137))
 
-# Cognac barrel chair: rounded continuous back and arms, a padded seat and dark tapered feet.
-# Front points toward Blender -Y, or Unity +Z after import.
-for xx in (-.295,.295):
-    for yy in (-.245,.255):
-        o=box((xx,yy,.165),(.085,.085,.31),'Walnut',.015)
-        o.rotation_euler[0]=-.10 if yy<0 else .10;o.rotation_euler[1]=.10 if xx>0 else -.10
-sphere((0,.025,.397),(.414,.394,.085),'Leather')
-sphere((0,-.018,.468),(.358,.337,.074),'Leather')
-# Cross section has a rolled top and rounded upholstered base; smooth in both axes.
+# Cognac barrel chair fitted to the frozen Fat/Boss seated poses in metres.
+# Front points toward Blender -Y, or Unity +Z after import. The origin stays at
+# the gameplay seat anchor. Keep the front open and all feet outside the shoes.
+for xx in (-.565,.565):
+    for yy in (.04,.445):
+        o=box((xx,yy,.190),(.075,.080,.365),'Walnut',.012)
+        o.rotation_euler[0]=-.06 if yy<.1 else .06
+        o.rotation_euler[1]=.06 if xx>0 else -.06
+# A short seat pan stays behind the calves. The soft cushion has a recessed
+# centre for the widest hips, with a raised padded edge rather than a rigid rail.
+sphere((0,.320,.413),(.615,.215,.045),'Leather')
+verts=[];faces=[];rings=24;segments=128
+for j in range(rings+1):
+    r=j/rings
+    z=.463+.023*math.sin(r*math.pi*.85)**2-.008*r**8
+    for i in range(segments):
+        a=i*math.tau/segments
+        verts.append((.555*r*math.cos(a),.320+.190*r*math.sin(a),z))
+for j in range(rings):
+    for i in range(segments):
+        k=j*segments+i;n=j*segments+(i+1)%segments
+        faces.append((k,n,n+segments,k+segments))
+# Closed upholstered cushion underside.
+for i in range(segments):
+    a=i*math.tau/segments;verts.append((.555*math.cos(a),.320+.190*math.sin(a),.420))
+for i in range(segments):
+    k=rings*segments+i;n=rings*segments+(i+1)%segments
+    faces.append((k,n,n+segments,k+segments))
+faces.append(tuple(range(len(verts)-1,len(verts)-segments-1,-1)))
+mesh('Dished broad leather cushion',verts,faces,'Leather')
+# Wider elliptical back: the interior clears hips and the rear of both torsos.
 verts=[];faces=[];steps=80
 section=[(.328,0),(.325,.08),(.322,.24),(.325,.50),(.332,.80),(.347,.97),(.375,1.025),(.414,1.012),(.445,.965),(.452,.81),(.449,.51),(.441,.23),(.422,.03),(.384,-.035),(.351,-.02)]
 for i in range(steps+1):
-    a=math.radians(-14+208*i/steps);height=.255+.235*max(0,math.sin(a))**.8
-    for radius,z in section:verts.append((radius*math.cos(a),.040+radius*math.sin(a),.423+z*height))
+    a=math.radians(4+172*i/steps);height=.29+.27*max(0,math.sin(a))**.8
+    for radius,z in section:verts.append((1.48*radius*math.cos(a),.070+1.12*radius*math.sin(a),.315+z*height))
 cs=len(section)
 for j in range(steps):
     for i in range(cs):faces.append((j*cs+i,j*cs+(i+1)%cs,(j+1)*cs+(i+1)%cs,(j+1)*cs+i))
 faces.append(tuple(range(cs-1,-1,-1)));faces.append(tuple(steps*cs+i for i in range(cs)))
 mesh('Padded curved barrel back',verts,faces,'Leather')
-# Welt on top and seat cushion. Fine vertical stitched panels in the back upholstery.
-tube([(.408*math.cos(math.radians(-14+208*i/100)),.04+.408*math.sin(math.radians(-14+208*i/100)),.423+(.255+.235*max(0,math.sin(math.radians(-14+208*i/100)))**.8)*1.024) for i in range(101)],.0045,'Seam')
-tube([(.348*math.cos(i*math.tau/128),-.018+.323*math.sin(i*math.tau/128),.482) for i in range(129)],.004,'Seam')
+tube([(1.48*.408*math.cos(math.radians(4+172*i/100)),.07+1.12*.408*math.sin(math.radians(4+172*i/100)),.315+(.29+.27*max(0,math.sin(math.radians(4+172*i/100)))**.8)*1.024) for i in range(101)],.0045,'Seam')
+tube([(.555*math.cos(i*math.tau/128),.320+.190*math.sin(i*math.tau/128),.448) for i in range(129)],.004,'Seam')
 for deg in (20,55,90,125,160):
-    a=math.radians(deg);height=.255+.235*math.sin(a)**.8
-    tube([((.450-.010*t)*math.cos(a),.04+(.450-.010*t)*math.sin(a),.46+t*(height-.07)) for t in np.linspace(0,1,18)],.0023,'Seam')
+    a=math.radians(deg);height=.29+.27*math.sin(a)**.8
+    tube([(1.48*(.450-.010*t)*math.cos(a),.07+1.12*(.450-.010*t)*math.sin(a),.35+t*(height-.07)) for t in np.linspace(0,1,18)],.0023,'Seam')
 module('BarrelChair')
 
 # Store only this kit scene; never save unrelated Blender scenes into the asset.

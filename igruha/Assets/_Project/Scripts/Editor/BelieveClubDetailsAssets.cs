@@ -23,6 +23,12 @@ namespace Igruha.EditorTools
             Lit("Glass", new Color(.19f,.26f,.24f), .86f, .20f);
             Lit("GreenGlass", new Color(.035f,.32f,.11f), .75f, .08f);
             Lit("Cream", new Color(.52f,.41f,.27f), .12f);
+            Lit("LitLinen", new Color(.64f,.51f,.34f), .12f);
+            var linen = AssetDatabase.LoadAssetAtPath<Material>(Root + "/Materials/BCD_LitLinen.mat");
+            linen.SetColor("_EmissionColor", new Color(.16f, .105f, .045f));
+            linen.EnableKeyword("_EMISSION");
+            linen.globalIlluminationFlags = MaterialGlobalIlluminationFlags.BakedEmissive;
+            EditorUtility.SetDirty(linen);
             Lit("Paper", new Color(.57f,.47f,.31f), .04f);
             Lit("Book", new Color(.19f,.060f,.045f), .25f);
             Lit("Blue", new Color(.10f,.19f,.22f), .30f);
@@ -126,6 +132,7 @@ namespace Igruha.EditorTools
                 for (int i = 0; i < materials.Length; i++)
                 {
                     string materialName = materials[i].name;
+                    if (name == "FloorLamp" && materialName == "BCD_Cream") materialName = "BCD_LitLinen";
                     materials[i] = AssetDatabase.LoadAssetAtPath<Material>(Root + "/Materials/" + materialName + ".mat");
                     if (materials[i] == null) throw new InvalidOperationException("Missing detail material: " + materialName);
                 }

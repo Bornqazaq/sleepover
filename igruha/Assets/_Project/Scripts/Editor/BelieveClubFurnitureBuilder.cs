@@ -48,14 +48,14 @@ namespace Igruha.EditorTools
             root.SetParent(arena, false);
             float side = config.HallWidth * .5f;
             Place(root, "East_BackBar", "BackBar", new Vector3(side - .64f, 0, 0), 270);
-            Place(root, "East_BarCounter", "BarCounter", new Vector3(side - 1.79f, 0, 0), 270);
+            Place(root, "East_BarCounter", "BarCounter", new Vector3(side - 1.63f, 0, 0), 270);
             for (int i = 0; i < 4; i++)
-                Place(root, "East_Stool_" + i, "BarStool", new Vector3(side - 2.74f, 0, -2.1f + i * 1.4f), 270);
+                Place(root, "East_Stool_" + i, "BarStool", new Vector3(config.SpectatorZoneRadius + .5f, 0, -2.1f + i * 1.4f), 270);
             Place(root, "East_Clock", "GrandfatherClock", new Vector3(side - .69f, 0, -4.2f), 270);
-            Place(root, "West_Chesterfield", "Chesterfield", new Vector3(-side + .89f, 0, 1.1f), 90);
-            Place(root, "West_Armchair_South", "ClubArmchair", new Vector3(-side + 1.74f, 0, -1.2f), 0);
-            Place(root, "West_Armchair_North", "ClubArmchair", new Vector3(-side + 1.74f, 0, 3.4f), 180);
-            Place(root, "West_CoffeeTable", "CoffeeTable", new Vector3(-side + 1.94f, 0, 1.1f), 90);
+            Place(root, "West_Chesterfield", "Chesterfield", new Vector3(-side + 1.23f, 0, 1.1f), 90);
+            Place(root, "West_Armchair_South", "ClubArmchair", new Vector3(-side + 2.03f, 0, -1.2f), 0);
+            Place(root, "West_Armchair_North", "ClubArmchair", new Vector3(-side + 2.03f, 0, 3.4f), 180);
+            Place(root, "West_CoffeeTable", "CoffeeTable", new Vector3(-side + 2.23f, 0, 1.1f), 90);
             Place(root, "West_Stag", "StagTrophy", new Vector3(-side + .44f, 2.15f, 1.1f), 90);
             PositionShelfLights(arena, config);
         }
@@ -90,7 +90,7 @@ namespace Igruha.EditorTools
 
         internal static void PositionShelfLights(Transform arena, BelieveOrNotConfig config)
         {
-            // Only position changes: existing light type, colour, intensity and range stay intact.
+            // Keep shelf accents attached to the cabinetry after either layer is rebuilt.
             var hall = arena.Find("_Hall");
             if (hall == null) return;
             var lights = hall.GetComponentsInChildren<Light>(true)
@@ -102,6 +102,8 @@ namespace Igruha.EditorTools
                 p.x = config.HallWidth * .5f - ShelfLightInset;
                 p.z = i == 0 ? -ShelfLightHalfSpan : ShelfLightHalfSpan;
                 lights[i].transform.position = arena.TransformPoint(p);
+                lights[i].transform.rotation = Quaternion.LookRotation(arena.TransformPoint(
+                    new Vector3(config.HallWidth * .5f - .69f, 1.7f, p.z)) - lights[i].transform.position);
             }
         }
 

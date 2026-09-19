@@ -60,13 +60,13 @@ namespace Igruha.Minigames.BelieveOrNot
         // зал читался не салоном, а спортзалом, в углу которого зачем-то
         // накрыт карточный стол, и стол на этом фоне казался игрушечным.
         //
-        // Стало 24 × 24 ШП (17.28 × 17.28 м), 299 м² — ровно вдвое меньше.
+        // Компактный клуб: 23 × 20 ШП (16.56 × 14.4 м), 238 м².
         // Свободная зона зрителей ужата с 10 до 7.5 ШП вслед за залом: она
         // и определяет, где начинается кольцо мебели, а не наоборот.
         [SerializeField] private float unitsPerWidth = 0.72f;
-        [Tooltip("24 = свободная зона 7.5 ШП вокруг стола + кольцо мебели 4.2 ШП до стены")]
-        [SerializeField] private float hallWidth = 24f;
-        [SerializeField] private float hallDepth = 24f;
+        [Tooltip("23 × 20 ШП: компактный зал; свободный круг зрителей 7.5 ШП сохранён")]
+        [SerializeField] private float hallWidth = 23f;
+        [SerializeField] private float hallDepth = 20f;
         [Tooltip("6 ШП = 4.32 м. На 7 потолок терялся в темноте и зал не имел верха вовсе")]
         [SerializeField] private float ceilingHeight = 6f;
         [SerializeField] private float tableDiameter = 4f;

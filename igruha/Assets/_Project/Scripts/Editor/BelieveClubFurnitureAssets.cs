@@ -26,7 +26,7 @@ namespace Igruha.EditorTools
             Lit("Glazing", new Color(.22f, .29f, .27f, .08f), .94f);
             var glazing = AssetDatabase.LoadAssetAtPath<Material>(Root + "/Materials/BCF_Glazing.mat");
             glazing.SetFloat("_Surface", 1);
-            glazing.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            glazing.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.One);
             glazing.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
             glazing.SetFloat("_ZWrite", 0);
             glazing.SetOverrideTag("RenderType", "Transparent");

@@ -40,7 +40,7 @@ namespace Igruha.EditorTools
             var volume = NewMaterial("Volume", "Igruha/BelieveOrNot/ClubVolume");
             volume.SetColor("_BaseColor", new Color(.75f, .65f, .50f, .002f));
             volume.SetFloat("_LampHeight", BelievePrivateClubBuilder.LampHeight);
-            volume.SetFloat("_LampRange", BelievePrivateClubBuilder.LampRange);
+            volume.SetFloat("_LampRange", 5.1f); // Accepted visible shaft cutoff, independent of light attenuation.
             volume.SetFloat("_ConeRadius", BelievePrivateClubBuilder.LampHeight * Mathf.Tan(55 * Mathf.Deg2Rad));
             var dust = NewMaterial("Dust", "Universal Render Pipeline/Particles/Unlit");
             dust.SetTexture("_BaseMap", Texture("BPC_Smoke"));

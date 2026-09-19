@@ -43,6 +43,7 @@ namespace Igruha.EditorTools
 
         internal static void Build(Transform arena, BelieveOrNotConfig config)
         {
+            FitPhysicalHall(arena, config);
             BelievePrivateClubAssets.Prepare();
             foreach (string name in new[] { "_Hall", "Carpet", "LampShade", "BeamDust" })
             {
@@ -74,7 +75,12 @@ namespace Igruha.EditorTools
                     new Vector3(sx / ModuleWidth, 1, sz / ModuleWidth));
             }
             BelievePrivateClubAssets.Model(hall, "RoundRug", new Vector3(0, .008f, 0));
-            // Structural colliders retain their exact transforms and layers; only renderers are covered.
+            // Flat rugs gather the side seating into rooms within the room, without blocking play.
+            BelievePrivateClubAssets.Model(floor, "RoundRug", new Vector3(-6.45f, .013f, 1.1f), 0,
+                new Vector3(.29f, 1, .43f));
+            BelievePrivateClubAssets.Model(floor, "RoundRug", new Vector3(6.7f, .013f, 0), 0,
+                new Vector3(.19f, 1, .56f));
+            // Structural shell follows the room config; gameplay anchors are independent.
             foreach (string name in new[] { "Floor", "Ceiling", "Wall_North", "Wall_South", "Wall_West", "Wall_East" })
             {
                 var t = arena.Find(name);
@@ -117,9 +123,8 @@ namespace Igruha.EditorTools
         internal static void ConfigureLighting(Transform arena)
         {
             RenderSettings.ambientMode = AmbientMode.Flat;
-            // Не ноль: на 0.045 зал пропадал целиком — панели, шторы и бар
-            // переставали читаться даже силуэтом, оставалось пятно в пустоте.
-            RenderSettings.ambientLight = new Color(.105f, .112f, .138f);
+            // Soft reflected room light: furniture reads beyond the central pool.
+            RenderSettings.ambientLight = new Color(.26f, .275f, .31f);
             RenderSettings.ambientIntensity = 1;
             RenderSettings.reflectionIntensity = .06f;
             RenderSettings.skybox = null;
@@ -143,10 +148,15 @@ namespace Igruha.EditorTools
             var previous = hall.Find("DistantWarmPoints");
             if (previous != null) Object.DestroyImmediate(previous.gameObject);
             var accents = Group(hall, "DistantWarmPoints");
-            float side = arena.Find("Wall_East").position.x - .65f;
-            Point(accents, "EastShelfGlow", new Vector3(side, 2.7f, -3.0f), 1.9f, 6.5f);
-            Point(accents, "EastShelfGlow", new Vector3(side, 2.7f, 3.0f), 1.9f, 6.5f);
-            Point(accents, "WestSilhouette", new Vector3(-side, 2.1f, 1.0f), 1.9f, 6.5f);
+            float side = arena.Find("Wall_East").localPosition.x;
+            Accent(accents, "EastShelfGlow", new Vector3(side - 1.29f, 2.7f, -1.65f),
+                new Vector3(side - .69f, 1.7f, -1.65f), 3.2f, 5f, 105, 75);
+            Accent(accents, "EastShelfGlow", new Vector3(side - 1.29f, 2.7f, 1.65f),
+                new Vector3(side - .69f, 1.7f, 1.65f), 3.2f, 5f, 105, 75);
+            Accent(accents, "WestSilhouette", new Vector3(-5.25f, 2.55f, 1f),
+                new Vector3(-side + 1.2f, 1.1f, 1f), 5.5f, 5.8f, 120, 90);
+            Accent(accents, "BarFrontBounce", new Vector3(5.3f, 2.65f, 0),
+                new Vector3(side - 1.34f, 1.1f, 0), 4f, 5.2f, 125, 90);
             FaceFill(arena);
         }
 
@@ -159,7 +169,7 @@ namespace Igruha.EditorTools
         private static void FaceFill(Transform arena)
         {
             var previous = arena.Find("FaceFill");
-            if (previous != null) Object.DestroyImmediate(previous.gameObject);
+            if (previous != null) return;
             var t = Group(arena, "FaceFill");
             t.localPosition = new Vector3(0, 1.62f, 0);
             var l = t.gameObject.AddComponent<Light>();
@@ -169,11 +179,60 @@ namespace Igruha.EditorTools
             l.shadows = LightShadows.None;
         }
 
-        private static void Point(Transform parent, string name, Vector3 position, float intensity, float range)
+        private static void Accent(Transform parent, string name, Vector3 position, Vector3 target,
+            float intensity, float range, float outer, float inner)
         {
-            var t = Group(parent, name); t.localPosition = position;
-            var l = t.gameObject.AddComponent<Light>(); l.type = LightType.Point;
-            l.color = new Color(1, .65f, .32f); l.intensity = intensity; l.range = range; l.shadows = LightShadows.None;
+            var t = Group(parent, name);
+            t.localPosition = position;
+            t.localRotation = Quaternion.LookRotation(target - position);
+            var light = t.gameObject.AddComponent<Light>();
+            light.type = LightType.Spot;
+            light.color = new Color(1f, .80f, .58f);
+            light.intensity = intensity;
+            light.range = range;
+            light.spotAngle = outer;
+            light.innerSpotAngle = inner;
+            light.shadows = LightShadows.None;
+            light.renderMode = LightRenderMode.ForcePixel;
+        }
+
+        private static void FitPhysicalHall(Transform arena, BelieveOrNotConfig config)
+        {
+            float w = config.HallWidth, d = config.HallDepth, h = config.CeilingHeight;
+            foreach (string name in new[] { "Floor", "Ceiling", "Wall_North", "Wall_South", "Wall_West", "Wall_East" })
+            {
+                var t = arena.Find(name);
+                if (t == null) throw new InvalidOperationException("Missing structural shell: " + name);
+                var p = t.localPosition;
+                var size = t.localScale;
+                if (name == "Floor" || name == "Ceiling") { size.x = w; size.z = d; }
+                else if (name == "Wall_North" || name == "Wall_South")
+                { size.x = w; size.y = h; p.z = (name == "Wall_North" ? 1 : -1) * d * .5f; }
+                else { size.z = d; size.y = h; p.x = (name == "Wall_East" ? 1 : -1) * w * .5f; }
+                t.localPosition = p;
+                t.localScale = size;
+            }
+        }
+
+        [MenuItem("Igruha/Верю не верю/Собственный клуб — компактная композиция")]
+        public static void ApplyComposition()
+        {
+            if (EditorApplication.isPlaying) throw new InvalidOperationException("Stop Play first.");
+            if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().path != ScenePath)
+                throw new InvalidOperationException("Open BelieveOrNot first.");
+            var arena = GameObject.Find("_Arena").transform;
+            var config = AssetDatabase.LoadAssetAtPath<BelieveOrNotConfig>(ConfigPath);
+            var before = ProtectedGeometry(arena);
+            Build(arena, config);
+            BelieveClubFurnitureBuilder.Build(arena, config);
+            BelieveClubDetailsBuilder.Build(arena, config);
+            if (before != ProtectedGeometry(arena)) throw new InvalidOperationException("Gameplay anchors changed.");
+            Audit();
+            BelieveClubFurnitureBuilder.Audit();
+            BelieveClubDetailsBuilder.Audit();
+            EditorSceneManager.MarkSceneDirty(arena.gameObject.scene);
+            EditorSceneManager.SaveScene(arena.gameObject.scene);
+            AssetDatabase.SaveAssets();
         }
 
         private static void BuildAir(Transform parent)

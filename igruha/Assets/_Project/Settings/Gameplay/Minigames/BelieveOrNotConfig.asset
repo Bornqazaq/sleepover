@@ -26,8 +26,8 @@ MonoBehaviour:
   roundsByPlayerCount: 04000000030000000200000003000000030000000400000004000000
   matchTimeoutSeconds: 360
   unitsPerWidth: 0.72
-  hallWidth: 24
-  hallDepth: 24
+  hallWidth: 23
+  hallDepth: 20
   ceilingHeight: 6
   tableDiameter: 4
   tableHeight: 1

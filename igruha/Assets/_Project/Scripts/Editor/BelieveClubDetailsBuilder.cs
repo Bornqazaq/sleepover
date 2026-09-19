@@ -48,21 +48,30 @@ namespace Igruha.EditorTools
             if (old != null) Object.DestroyImmediate(old.gameObject);
             var root = new GameObject(RootName).transform;
             root.SetParent(arena, false);
-            // These recesses are outside both accepted shoulder-camera compositions.
-            Place(root, "East_Roulette", "RouletteTable", new Vector3(7.05f, 0, -5.73f), 0);
-            Lamp(Place(root, "East_BankerLamp", "BankerLamp", new Vector3(6.85f, .92f, -6.10f), 270));
-            Place(root, "West_Bureau", "Bureau", new Vector3(-7.65f, 0, 4.97f), 90);
-            Place(root, "West_BureauChair", "BureauChair", new Vector3(-6.75f, 0, 4.97f), 270);
-            Lamp(Place(root, "West_BankerLamp", "BankerLamp", new Vector3(-7.70f, .805f, 5.42f), 90));
-            Place(root, "West_DeskStationery", "DeskStationery", new Vector3(-7.53f, .806f, 4.92f), 90);
-            Place(root, "West_Globe", "Globe", new Vector3(-7.5f, 0, 6.10f), 90);
-            Place(root, "West_FloorLamp", "FloorLamp", new Vector3(-6.6f, 0, 6.10f), 0);
-            Place(root, "West_Painting_Portrait", "Painting_Portrait", new Vector3(-8.245f, 2.48f, -.65f), 90);
-            Place(root, "West_Painting_Landscape", "Painting_Landscape", new Vector3(-8.245f, 2.48f, 2.8f), 90);
-            Place(root, "East_Painting_StillLife", "Painting_StillLife", new Vector3(8.245f, 2.45f, -5.73f), 270);
-            Place(root, "West_Painting_Hunt", "Painting_Hunt", new Vector3(-8.245f, 2.48f, 4.97f), 90);
-            Place(root, "East_BarService", "BarService", new Vector3(6.8f, 1.131f, -.7f), 270);
-            Place(root, "West_LoungeService", "LoungeService", new Vector3(-6.7f, .502f, 1.1f), 90);
+            float side = config.HallWidth * .5f;
+            // Side recesses remain outside the shoulder-camera compositions.
+            Place(root, "East_Roulette", "RouletteTable", new Vector3(side - 1.59f, 0, -5.73f), 0);
+            Lamp(Place(root, "East_BankerLamp", "BankerLamp", new Vector3(side - 1.79f, .92f, -6.10f), 270));
+            Place(root, "West_Bureau", "Bureau", new Vector3(-side + .99f, 0, 4.97f), 90);
+            Place(root, "West_BureauChair", "BureauChair", new Vector3(-side + 1.89f, 0, 4.97f), 270);
+            Lamp(Place(root, "West_BankerLamp", "BankerLamp", new Vector3(-side + .94f, .805f, 5.42f), 90));
+            Place(root, "West_DeskStationery", "DeskStationery", new Vector3(-side + 1.11f, .806f, 4.92f), 90);
+            Place(root, "West_Globe", "Globe", new Vector3(-side + 1.14f, 0, 6.10f), 90);
+            var floorLamp = Place(root, "West_FloorLamp", "FloorLamp", new Vector3(-side + 2.04f, 0, 6.10f), 0);
+            var floorLight = new GameObject("FloorLampWarmPoint").AddComponent<Light>();
+            floorLight.transform.SetParent(floorLamp, false);
+            floorLight.transform.localPosition = new Vector3(0, 1.53f, 0);
+            floorLight.type = LightType.Point;
+            floorLight.color = new Color(1f, .82f, .60f);
+            floorLight.intensity = 2f;
+            floorLight.range = 4.5f;
+            floorLight.shadows = LightShadows.None;
+            Place(root, "West_Painting_Portrait", "Painting_Portrait", new Vector3(-side + .395f, 2.48f, -.65f), 90);
+            Place(root, "West_Painting_Landscape", "Painting_Landscape", new Vector3(-side + .395f, 2.48f, 2.8f), 90);
+            Place(root, "East_Painting_StillLife", "Painting_StillLife", new Vector3(side - .395f, 2.45f, -5.73f), 270);
+            Place(root, "West_Painting_Hunt", "Painting_Hunt", new Vector3(-side + .395f, 2.48f, 4.97f), 90);
+            Place(root, "East_BarService", "BarService", new Vector3(side - 1.68f, 1.131f, -.7f), 270);
+            Place(root, "West_LoungeService", "LoungeService", new Vector3(-side + 2.23f, .502f, 1.1f), 90);
         }
 
         private static Transform Place(Transform root, string name, string model, Vector3 position, float yaw)
@@ -101,8 +110,8 @@ namespace Igruha.EditorTools
             var light = go.AddComponent<Light>();
             light.type = LightType.Point;
             light.color = new Color(1f, .82f, .55f);
-            light.intensity = 1.2f;
-            light.range = 1.8f;
+            light.intensity = 1.5f;
+            light.range = 2.7f;
             light.shadows = LightShadows.None;
             light.renderMode = LightRenderMode.ForcePixel;
         }
@@ -137,7 +146,7 @@ namespace Igruha.EditorTools
                         ? c.z - b.extents.z < -6.5f || c.z + b.extents.z > -5f
                         : c.z - b.extents.z < 4.2f || c.z + b.extents.z > 6.5f))
                         throw new InvalidOperationException("Details leave the camera-safe recess: " + item.name);
-                    if (westWall && (c.x > -8f || b.min.y < 1.8f))
+                    if (westWall && (c.x > -config.HallWidth * .5f + .6f || b.min.y < 1.8f))
                         throw new InvalidOperationException("Central paintings must stay on the wall above furniture.");
                     if (r.sharedMaterials.Any(m => m == null || m.shader == null))
                         throw new InvalidOperationException("Missing detail material: " + r.name);
@@ -157,16 +166,22 @@ namespace Igruha.EditorTools
             if (nearest < config.SpectatorZoneRadius)
                 throw new InvalidOperationException("Details cross spectator circle: " + nearest);
             var lights = root.GetComponentsInChildren<Light>(true);
-            if (lights.Length != 2 || lights.Any(l => l.type != LightType.Point ||
-                l.shadows != LightShadows.None || !l.enabled || !l.transform.parent.name.EndsWith("BankerLamp") ||
-                l.color != new Color(1f, .82f, .55f) || l.intensity != 1.2f || l.range != 1.8f))
-                throw new InvalidOperationException("Only the two small banker-lamp points are allowed.");
+            if (lights.Length != 3 || lights.Count(l => l.transform.parent.name.EndsWith("BankerLamp")) != 2 ||
+                lights.Count(l => l.transform.parent.name == "West_FloorLamp") != 1 ||
+                lights.Any(l => l.type != LightType.Point || l.shadows != LightShadows.None || !l.enabled))
+                throw new InvalidOperationException("Two banker lamps and one warm floor lamp are required.");
+            foreach (var light in lights)
+            {
+                bool banker = light.transform.parent.name.EndsWith("BankerLamp");
+                if (light.intensity != (banker ? 1.5f : 2f) || light.range != (banker ? 2.7f : 4.5f))
+                    throw new InvalidOperationException("Unexpected practical lamp settings: " + light.name);
+            }
             foreach (var t in root.GetComponentsInChildren<Transform>(true))
                 if (GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(t.gameObject) != 0)
                     throw new InvalidOperationException("Missing detail script: " + t.name);
             foreach (var f in root.GetComponentsInChildren<MeshFilter>(true))
                 if (f.sharedMesh == null) throw new InvalidOperationException("Missing detail mesh: " + f.name);
-            Debug.Log($"IGR-565: details valid; 14 items; 2 BoxColliders; 2 banker lights; all Default; nearest renderer {nearest:F2} m >= spectator radius {config.SpectatorZoneRadius:F2} m; missing refs 0.");
+            Debug.Log($"IGR-565: details valid; 14 items; 2 BoxColliders; 2 banker lights + floor lamp; all Default; nearest renderer {nearest:F2} m >= spectator radius {config.SpectatorZoneRadius:F2} m; missing refs 0.");
         }
     }
 }
