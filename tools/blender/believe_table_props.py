@@ -49,20 +49,23 @@ def rgba(rgb):
 n=1024;y,x=np.mgrid[0:n,0:n]/n
 fine=np.sin(x*math.tau*377+y*math.tau*137)*np.sin(y*math.tau*293-x*19)
 grain=.014*np.sin(y*math.tau*29+1.7*np.sin(x*math.tau*2))+.006*np.sin(y*math.tau*93+np.sin(x*math.tau*3))+.004*fine
-wood=rgba(np.stack([.28+grain,.16+grain*.55,.10+grain*.33],axis=-1))
-wood[:,int(n*.375):int(n*.75),:3]=np.stack([.70+grain[:,int(n*.375):int(n*.75)],.405+grain[:,int(n*.375):int(n*.75)]*.65,.235+grain[:,int(n*.375):int(n*.75)]*.4],axis=-1)
+# Зерно шкатулки — своё и мелкое. Общее grain кладёт 29 полос по высоте,
+# и на крышке они читались гофрокартоном, а не деревом.
+cask=.005*np.sin(y*math.tau*71+1.3*np.sin(x*math.tau*3))+.0035*np.sin(y*math.tau*157+np.sin(x*math.tau*5))+.0035*fine
+wood=rgba(np.stack([.225+cask,.122+cask*.55,.074+cask*.33],axis=-1))
+wood[:,int(n*.375):int(n*.75),:3]=np.stack([.46+cask[:,int(n*.375):int(n*.75)],.255+cask[:,int(n*.375):int(n*.75)]*.65,.145+cask[:,int(n*.375):int(n*.75)]*.4],axis=-1)
 wood[:,int(n*.75):int(n*.80),:3]=(.16,.065,.038)
-wood[:,int(n*.80):,:3]=(.66,.43,.18)
+wood[:,int(n*.80):,:3]=(.74,.51,.22)
 texture('BTP_Casket',wood)
 mask=np.zeros((n,n,4));mask[:,:,3]=.15
 mask[:,int(n*.75):int(n*.80),3]=.15
-mask[:,int(n*.80):,0]=.72;mask[:,int(n*.80):,3]=.72
+mask[:,int(n*.80):,0]=.85;mask[:,int(n*.80):,3]=.80
 texture('BTP_CasketMetalSmooth',mask)
 # Felt: gently darkened edge, no hard printed ring; cross fibres visible at close range.
 r=np.sqrt((x*2-1)**2+(y*2-1)**2)
 edge=1-.45*np.clip((r-.60)/.40,0,1)**1.8
 nap=.018*fine+.006*np.sin(x*math.tau*503)
-felt=rgba(np.stack([( .18+nap)*edge,(.32+nap)*edge,(.13+nap*.7)*edge],axis=-1))
+felt=rgba(np.stack([( .112+nap)*edge,(.285+nap)*edge,(.158+nap*.7)*edge],axis=-1))
 texture('BTP_Felt',felt)
 # Fine original grain normal maps, weak amplitude so the table does not glitter.
 def normal(name,h,amount):

@@ -48,11 +48,16 @@ namespace Igruha.EditorTools
             // Плотность столба. При .002 конуса не было вовсе: непрозрачность
             // считается как 1-exp(-density*alpha), и на таком alpha столб давал
             // сотые доли процента — пыль в нём висела звёздами на тёмной стене.
-            // Выше .04 зал затягивает дымовой завесой и лицо теряет контраст.
-            volume.SetColor("_BaseColor", new Color(.98f, .74f, .46f, .030f));
+            // Поднято с .030 после сужения лампы до 90°: узкий конус занимает
+            // меньше кадра, и на прежней плотности луч становился жидким.
+            // Выше .06 зал затягивает дымовой завесой и лицо теряет контраст.
+            volume.SetColor("_BaseColor", new Color(.98f, .74f, .46f, .042f));
             volume.SetFloat("_LampHeight", BelievePrivateClubBuilder.LampHeight);
             volume.SetFloat("_LampRange", 5.1f); // Accepted visible shaft cutoff, independent of light attenuation.
-            volume.SetFloat("_ConeRadius", BelievePrivateClubBuilder.LampHeight * Mathf.Tan(55 * Mathf.Deg2Rad));
+            // Видимый столб повторяет световой конус: иначе дым расходился бы
+            // шире круга на полу и край луча висел бы в темноте сам по себе.
+            volume.SetFloat("_ConeRadius",
+                BelievePrivateClubBuilder.LampHeight * Mathf.Tan(BelievePrivateClubBuilder.LampOuterAngle * .5f * Mathf.Deg2Rad));
             var dust = NewMaterial("Dust", "Universal Render Pipeline/Particles/Unlit");
             dust.SetTexture("_BaseMap", Texture("BPC_Smoke"));
             dust.SetColor("_BaseColor", new Color(1f, .73f, .38f, .38f));

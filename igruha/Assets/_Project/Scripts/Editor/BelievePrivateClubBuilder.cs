@@ -35,6 +35,15 @@ namespace Igruha.EditorTools
         /// </summary>
         private const float LampInnerAngle = 30f;
 
+        /// <summary>
+        /// Внешний угол лампы. Спека 4.6 просит круг света 10 ШП (7.2 м) в
+        /// диаметре, и при подвесе 3.6 м это ровно 90°. Прежние 110° давали
+        /// круг 10.3 м: зритель, подошедший к столу, попадал в прямой свет и
+        /// светился ярче лица соперника, хотя темнота вокруг стола — часть
+        /// механики, а не оформление.
+        /// </summary>
+        internal const float LampOuterAngle = 90f;
+
         private const string GradeVolumeName = "ClubGrade";
         private const string GradeProfilePath = "Assets/_Project/Art/BelievePrivateClub/Materials/BPC_ClubGrade.asset";
 
@@ -161,7 +170,7 @@ namespace Igruha.EditorTools
             lamp.localRotation = Quaternion.Euler(90, 0, 0);
             var spot = lamp.GetComponent<Light>();
             spot.enabled = true; spot.type = LightType.Spot;
-            spot.spotAngle = 110; spot.innerSpotAngle = LampInnerAngle;
+            spot.spotAngle = LampOuterAngle; spot.innerSpotAngle = LampInnerAngle;
             spot.range = LampRange; spot.intensity = 33f;
             spot.color = Mathf.CorrelatedColorTemperatureToRGB(3000).gamma;
             spot.useColorTemperature = false;
@@ -399,7 +408,7 @@ namespace Igruha.EditorTools
             foreach (var filter in hall.GetComponentsInChildren<MeshFilter>(true)) if (filter.sharedMesh == null) missing++;
             if (missing != 0) throw new InvalidOperationException("Missing club references: " + missing);
             Debug.Log($"IGR-565: shell valid; decor colliders 0; all Default; nearest perimeter {nearest:F2} m; " +
-                $"lamp cone cutoff {2 * LampHeight * Mathf.Tan(55f * Mathf.Deg2Rad):F2} m wide at floor; missing refs 0.");
+                $"lamp cone cutoff {2 * LampHeight * Mathf.Tan(LampOuterAngle * .5f * Mathf.Deg2Rad):F2} m wide at floor; missing refs 0.");
         }
     }
 }

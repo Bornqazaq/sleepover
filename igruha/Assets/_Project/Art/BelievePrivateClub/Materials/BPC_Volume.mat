@@ -25,10 +25,10 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _ConeRadius: 5.141332
+    - _ConeRadius: 3.6
     - _LampHeight: 3.6
     - _LampRange: 5.1
     m_Colors:
-    - _BaseColor: {r: 0.98, g: 0.74, b: 0.46, a: 0.03}
+    - _BaseColor: {r: 0.98, g: 0.74, b: 0.46, a: 0.042}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
