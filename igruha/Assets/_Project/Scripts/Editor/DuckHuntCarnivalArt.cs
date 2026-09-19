@@ -56,8 +56,12 @@ namespace Igruha.EditorTools
                 alongX?b.size.x:b.size.z,b.size.y,alongX?Quaternion.identity:Quaternion.Euler(0,90,0),Mathf.RoundToInt(b.min.y/5.76f));
             if(!alongX)
                 StripedWall(art,new Vector3(b.max.x+.015f,b.min.y,b.center.z),b.size.z,b.size.y,Quaternion.Euler(0,-90,0),Mathf.RoundToInt(b.min.y/5.76f));
-            else if(old.name=="StartFrontWall")
-                StripedWall(art,new Vector3(b.center.x,b.min.y,b.max.z+.015f),b.size.x,b.size.y,Quaternion.Euler(0,180,0),0);
+            // Задняя грань обшивается и снаружи. Раньше её пропускали, и со
+            // стороны хозяйственного двора башня показывала глухую доску во
+            // всю высоту — пока вокруг был пустой лес, это не бросалось в глаза.
+            else if(old.name=="StartFrontWall"||old.name=="BackWall")
+                StripedWall(art,new Vector3(b.center.x,b.min.y,b.max.z+.015f),b.size.x,b.size.y,Quaternion.Euler(0,180,0),
+                    Mathf.RoundToInt(b.min.y/5.76f));
         }
 
         static void Garland(Transform art,Vector3 a,Vector3 b,float sagScale=1)
