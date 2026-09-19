@@ -1,0 +1,25 @@
+{
+  "game": "Infection",
+  "source": "поставка звука, sounds.json",
+  "output_folder": "Assets/_Project/Audio/Infection",
+  "slots": [
+    {
+      "id": "SFX_INFC_Infect_Splat",
+      "file": "SFX_INFC_Infect_Splat",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "event": "заражение краской",
+      "when": "касание заражённого — главный звук игры"
+    },
+    {
+      "id": "SFX_INFC_Step_Infected",
+      "file": "SFX_INFC_Step_Infected",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "event": "шаг заражённого",
+      "when": "вместо обычного шага; предупреждение со спины"
+    }
+  ]
+}

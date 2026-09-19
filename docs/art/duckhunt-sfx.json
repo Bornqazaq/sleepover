@@ -1,0 +1,70 @@
+{
+  "game": "DuckHunt",
+  "source": "поставка звука, sounds.json",
+  "output_folder": "Assets/_Project/Audio/DuckHunt",
+  "slots": [
+    {
+      "id": "SFX_DUCK_Bullet_Flyby",
+      "file": "SFX_DUCK_Bullet_Flyby",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "event": "пуля мимо",
+      "when": "промах рядом с Уткой"
+    },
+    {
+      "id": "SFX_DUCK_Bullet_Impact_Concrete",
+      "file": "SFX_DUCK_Bullet_Impact_Concrete",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "event": "попадание в бетон",
+      "when": "стены, кирпич"
+    },
+    {
+      "id": "SFX_DUCK_Bullet_Impact_Ice",
+      "file": "SFX_DUCK_Bullet_Impact_Ice",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "event": "попадание в лёд",
+      "when": "зимние этажи"
+    },
+    {
+      "id": "SFX_DUCK_Bullet_Impact_Metal",
+      "file": "SFX_DUCK_Bullet_Impact_Metal",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "event": "попадание в металл",
+      "when": "металлические укрытия"
+    },
+    {
+      "id": "SFX_DUCK_Duck_Hit",
+      "file": "SFX_DUCK_Duck_Hit",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "event": "попадание в Утку",
+      "when": "смерть, перед отлётом тела"
+    },
+    {
+      "id": "SFX_DUCK_Gun_Reload",
+      "file": "SFX_DUCK_Gun_Reload",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "event": "перезарядка",
+      "when": "4 с; можно играть в начале и в конце"
+    },
+    {
+      "id": "SFX_DUCK_Gun_Shot",
+      "file": "SFX_DUCK_Gun_Shot",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "event": "выстрел Охотника",
+      "when": "HitscanWeapon, раз в 2 с"
+    }
+  ]
+}

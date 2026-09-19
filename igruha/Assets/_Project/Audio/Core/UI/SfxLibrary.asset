@@ -1,0 +1,111 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2574025c1373412bb9b8283feb02ca7, type: 3}
+  m_Name: SfxLibrary
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.MinigameSfxLibrary
+  entries:
+  - Id: SFX_UI_Back
+    Clip: {fileID: 8300000, guid: 2a676d057a5793144ac28f3288f3f9c6, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 0
+  - Id: SFX_UI_Char_Browse
+    Clip: {fileID: 8300000, guid: bf7b4f16392721347ae2c95f08cd8b20, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 0
+  - Id: SFX_UI_Char_Select
+    Clip: {fileID: 8300000, guid: 2a25a062fe3639f40852edae6d4f6b22, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 0
+  - Id: SFX_UI_Click
+    Clip: {fileID: 8300000, guid: 7a99c831be2183e4faafdeaa6ee0cae9, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 0
+  - Id: SFX_UI_Dialog_Open
+    Clip: {fileID: 8300000, guid: 6643c4d19b8e34445b4d0f8e2af5c665, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 0
+  - Id: SFX_UI_Error
+    Clip: {fileID: 8300000, guid: 0194831523947f64e971659af2d3031e, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 0
+  - Id: SFX_UI_Hover
+    Clip: {fileID: 8300000, guid: 5f9ca9af97db48442aff54e9424624f6, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 0
+  - Id: SFX_UI_Logo_Sting
+    Clip: {fileID: 8300000, guid: 67201e7a3da414749b4f48c14572ef56, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 0
+  - Id: SFX_UI_Menu_Close
+    Clip: {fileID: 8300000, guid: dc8f2855c9c271f4abb975da465ce4b5, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 0
+  - Id: SFX_UI_Menu_Open
+    Clip: {fileID: 8300000, guid: 8df137e2bdb9f0348a745d2f41f7c665, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 0
+  - Id: SFX_UI_Notify_Pop
+    Clip: {fileID: 8300000, guid: 9d3cf38996ad27645801e0b12c585dba, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 0
+  - Id: SFX_UI_Slider_Tick
+    Clip: {fileID: 8300000, guid: f2fd41ac779760a48a17900ba33463e1, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 0
+  - Id: SFX_UI_Tab_Switch
+    Clip: {fileID: 8300000, guid: a9b996f7b69da9a48957357d012e0fe5, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 0
+  - Id: SFX_UI_Toggle_Off
+    Clip: {fileID: 8300000, guid: e0f3461a3258d734eade2252fcc971a7, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 0
+  - Id: SFX_UI_Toggle_On
+    Clip: {fileID: 8300000, guid: beb38e3a05a45da4fbf1d15a8696eed7, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 0
+  - Id: SFX_UI_Type_Key
+    Clip: {fileID: 8300000, guid: bf72a2993bc2afc4f830969c59ffc0e4, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 0

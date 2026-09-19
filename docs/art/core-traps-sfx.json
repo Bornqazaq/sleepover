@@ -1,0 +1,34 @@
+{
+  "game": "Traps",
+  "source": "поставка звука, sounds.json",
+  "output_folder": "Assets/_Project/Audio/Core/Traps",
+  "slots": [
+    {
+      "id": "SFX_TRAP_Door_Slam",
+      "file": "SFX_TRAP_Door_Slam",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "event": "дверь захлопнулась",
+      "when": "DoorTrap.SetClosed"
+    },
+    {
+      "id": "SFX_TRAP_Floor_Collapse",
+      "file": "SFX_TRAP_Floor_Collapse",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "event": "пол ушёл",
+      "when": "CollapsingFloorTrap.SetOpen; возврат — тот же звук"
+    },
+    {
+      "id": "SFX_TRAP_Lever_Pull",
+      "file": "SFX_TRAP_Lever_Pull",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "event": "рычаг перекинут",
+      "when": "TrapLever — дверь, провал, гейзер"
+    }
+  ]
+}
