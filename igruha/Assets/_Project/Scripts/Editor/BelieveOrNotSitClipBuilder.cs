@@ -194,35 +194,31 @@ namespace Igruha.EditorTools
         }
 
         /// <summary>
-        /// Обмер под кресло: на какой высоте над полом персонаж в сидячей позе
-        /// касается подушки. Это самая низкая точка кожи таза и бёдер над
-        /// <paramref name="seatFootprint"/> — площадкой сиденья в осях
-        /// персонажа (X вбок, Z вперёд, начало в точке посадки на полу).
+        /// Кожа персонажа в сидячей позе — для подгонки кресла. Точки в осях
+        /// персонажа (X вбок, Y вверх, Z вперёд, начало в точке посадки на полу);
+        /// <paramref name="seatSkin"/> отмечает таз, корпус и бёдра — то, что
+        /// ложится на подушку, в отличие от голеней и ступней.
         ///
         /// Поза та же, что пишется в клип: те же мышцы и та же посадка ступнями
-        /// на пол. Обмер сверен с Play 19.09 на Boss и Shlanga — таз совпал
-        /// до 3 мм.
+        /// на пол. Сверено с Play 19.09 на Boss и Shlanga — таз совпал до 3 мм.
         /// </summary>
-        internal static bool TryMeasureSeatContact(int character, Rect seatFootprint, out Avatar avatar,
-            out float contactHeight)
+        internal static bool TrySampleSeatedSkin(int character, out Avatar avatar, out Vector3[] points,
+            out bool[] seatSkin)
         {
-            Avatar measuredAvatar = null;
-            float measuredHeight = float.MaxValue;
+            Avatar sampledAvatar = null;
+            Vector3[] sampledPoints = null;
+            bool[] sampledSeat = null;
             bool built = WithSittingCharacter(PrefabNames[character], CharacterNames[character], (animator, measurer) =>
             {
                 measurer.PlaceOnGround(Sitting());
-                measuredAvatar = animator.avatar;
-                measuredHeight = measurer.LowestSeatSkin(seatFootprint);
+                sampledAvatar = animator.avatar;
+                measurer.SampleSkin(out sampledPoints, out sampledSeat);
             });
 
-            avatar = measuredAvatar;
-            contactHeight = measuredHeight;
-            if (built && measuredHeight == float.MaxValue)
-            {
-                Debug.LogError($"BelieveOrNotSitClipBuilder ({CharacterNames[character]}): над сиденьем нет ни таза, ни бёдер.");
-            }
-
-            return built && measuredHeight < float.MaxValue;
+            avatar = sampledAvatar;
+            points = sampledPoints;
+            seatSkin = sampledSeat;
+            return built;
         }
 
         /// <summary>
@@ -529,32 +525,26 @@ namespace Igruha.EditorTools
             }
 
             /// <summary>
-            /// Самая низкая точка кожи таза и бёдер над площадкой сиденья (X, Z).
-            /// Голени и ступни не в счёт: они висят перед креслом и стоят на полу.
-            /// Вершины без прореживания — ищем минимум, и шаг его бы пропустил.
+            /// Кожа в текущей позе и отметка «таз, корпус, бедро» на каждой точке.
+            /// Шаг выборки мельче, чем у обмера клипа: здесь ищут касание
+            /// с креслом, и крупный шаг проскочил бы край подушки или икру.
             /// </summary>
-            public float LowestSeatSkin(Rect footprint)
+            public void SampleSkin(out Vector3[] points, out bool[] seatSkin)
             {
                 bool[] seatBones = FindSeatBones();
                 UpdateBoneMatrices();
 
-                float lowest = float.MaxValue;
-                for (int v = 0; v < vertices.Length; v++)
+                int count = (vertices.Length + SkinSampleStride - 1) / SkinSampleStride;
+                points = new Vector3[count];
+                seatSkin = new bool[count];
+                for (int i = 0, v = 0; i < count; i++, v += SkinSampleStride)
                 {
-                    if (!seatBones[weights[v].boneIndex0])
-                    {
-                        continue;
-                    }
-
-                    Vector3 p = Skin(v);
-                    if (p.y < lowest && footprint.Contains(new Vector2(p.x, p.z)))
-                    {
-                        lowest = p.y;
-                    }
+                    points[i] = Skin(v);
+                    seatSkin[i] = seatBones[weights[v].boneIndex0];
                 }
-
-                return lowest;
             }
+
+            private const int SkinSampleStride = 2;
 
             /// <summary>Кости меша, ближайшая Humanoid-кость которых — таз, корпус или бедро.</summary>
             private bool[] FindSeatBones()

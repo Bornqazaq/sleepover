@@ -49,20 +49,28 @@ MonoBehaviour:
   lampIntensity: 6
   lampColor: {r: 1, g: 0.85, b: 0.65, a: 1}
   ambientColor: {r: 0.1, g: 0.098, b: 0.115, a: 1}
-  chairLifts:
+  chairFits:
   - avatar: {fileID: 9000000, guid: 2b441780a3044d74fae9fdc643bf32fb, type: 3}
-    lift: 0.009479924
+    lift: -0.014322565
+    forward: 0.10500001
   - avatar: {fileID: 9000000, guid: 4a61f4d55012e01449632b5d799dcb0f, type: 3}
-    lift: 0.025124565
+    lift: -0.024870053
+    forward: 0.11000001
   - avatar: {fileID: 9000000, guid: 29170d1c8e5867845a770f496965696c, type: 3}
-    lift: 0.10952918
+    lift: 0.09728573
+    forward: 0.03999999
   - avatar: {fileID: 9000000, guid: 14e37d99f42300a43b34d4f9e9553fc8, type: 3}
-    lift: -0.048506483
+    lift: -0.060845032
+    forward: 0.024999993
   - avatar: {fileID: 9000000, guid: 46320299878b7ce4c92497e1e578a3b7, type: 3}
-    lift: 0.056717023
+    lift: 0.0076090535
+    forward: 0.065000005
   - avatar: {fileID: 9000000, guid: b38673c3da537b44c8612d8d3b797bb8, type: 3}
-    lift: 0.12013857
+    lift: 0.12018745
+    forward: 0.115
   - avatar: {fileID: 9000000, guid: f41ee9d4fe6eae7449eccd30199bee9e, type: 3}
-    lift: 0.13950633
+    lift: 0.13543873
+    forward: 0.065000005
   - avatar: {fileID: 9000000, guid: 737af398c38b7d948af857e7d3ce8a60, type: 3}
-    lift: 0.17754512
+    lift: 0.14710264
+    forward: 0.16499995

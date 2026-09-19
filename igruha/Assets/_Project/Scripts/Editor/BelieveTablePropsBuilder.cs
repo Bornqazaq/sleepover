@@ -58,7 +58,7 @@ namespace Igruha.EditorTools
                     box.transform.Find("LidHinge/Lid").gameObject, config.BoxSize);
             }
             AssignChairs(table, chairs);
-            MeasureChairLifts(config);
+            MeasureChairFits(config);
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             Debug.Log("IGR-565: original round table, identical mahogany caskets and barrel chairs applied. Lighting and blockout preserved.");
@@ -78,41 +78,57 @@ namespace Igruha.EditorTools
         }
 
         /// <summary>
-        /// Обмерить сидячие позы всего ростера и записать в конфиг подъём кресла под
-        /// каждого: подушка встаёт под самую низкую точку таза и бёдер и проминается
-        /// на <see cref="ChairCushionSink"/>. Разброс по ростеру — около двадцати
-        /// сантиметров, поэтому подъём свой у каждого, а не один на всех.
+        /// Обмерить сидячие позы всего ростера и записать в конфиг подгонку кресла
+        /// под каждого: подъём, при котором подушка встаёт под таз, и сдвиг, на
+        /// который кресло придвигается к сидящему, — см. <see cref="BelieveChairFitSolver"/>.
+        /// Разброс по ростеру — двадцать сантиметров по высоте и столько же по
+        /// глубине, поэтому подгонка своя у каждого, а не одна на всех.
         /// </summary>
-        internal static void MeasureChairLifts(BelieveOrNotConfig config)
+        internal static void MeasureChairFits(BelieveOrNotConfig config)
         {
+            var solver = new BelieveChairFitSolver(
+                LoadModel("BarrelChair"), LoadModel("BarrelChairLegs"),
+                ChairSeatHeight, ChairLegHeight, ChairCushionFootprint, ChairCushionSink);
             var so = new SerializedObject(config);
-            var lifts = so.FindProperty("chairLifts");
-            lifts.arraySize = 0;
-            var report = new StringBuilder("IGR-565: подъём кресла под сидящих, м\n");
+            var fits = so.FindProperty("chairFits");
+            fits.arraySize = 0;
+            var report = new StringBuilder("IGR-565: подгонка кресла под сидящих, м\n");
             string[] names = BelieveOrNotSitClipBuilder.CharacterNames;
             for (int c = 0; c < names.Length; c++)
             {
-                if (!BelieveOrNotSitClipBuilder.TryMeasureSeatContact(c, ChairCushionFootprint, out var avatar, out var contact))
+                if (!BelieveOrNotSitClipBuilder.TrySampleSeatedSkin(c, out var avatar, out var skin, out var seatSkin))
                 {
                     continue;
                 }
 
-                for (int i = 0; i < lifts.arraySize; i++)
+                for (int i = 0; i < fits.arraySize; i++)
                 {
-                    if (lifts.GetArrayElementAtIndex(i).FindPropertyRelative("avatar").objectReferenceValue == avatar)
-                        throw new InvalidOperationException($"Аватар {avatar.name} общий у двух персонажей: подъём кресла по нему не различить.");
+                    if (fits.GetArrayElementAtIndex(i).FindPropertyRelative("avatar").objectReferenceValue == avatar)
+                        throw new InvalidOperationException($"Аватар {avatar.name} общий у двух персонажей: кресло под него не подогнать.");
                 }
 
-                float lift = contact + ChairCushionSink - ChairSeatHeight;
-                lifts.arraySize++;
-                var entry = lifts.GetArrayElementAtIndex(lifts.arraySize - 1);
+                bool clear = solver.Solve(skin, seatSkin, out float lift, out float forward);
+                if (!clear)
+                    Debug.LogWarning($"IGR-565: кресло задевает {names[c]} даже без сдвига — поправить модель кресла.");
+
+                fits.arraySize++;
+                var entry = fits.GetArrayElementAtIndex(fits.arraySize - 1);
                 entry.FindPropertyRelative("avatar").objectReferenceValue = avatar;
                 entry.FindPropertyRelative("lift").floatValue = lift;
-                report.AppendLine($"  {names[c],-8} касание {contact:F3}, подъём {lift:+0.000;-0.000}");
+                entry.FindPropertyRelative("forward").floatValue = forward;
+                report.AppendLine($"  {names[c],-8} подъём {lift:+0.000;-0.000}, к сидящему {forward:0.000}");
             }
             so.ApplyModifiedPropertiesWithoutUndo();
             AssetDatabase.SaveAssets();
             Debug.Log(report.ToString());
+        }
+
+        private static GameObject LoadModel(string name)
+        {
+            var path = BelieveTablePropsAssets.Root + "/Models/BTP_" + name + ".fbx";
+            var model = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (model == null) throw new InvalidOperationException("Missing original prop " + path);
+            return model;
         }
 
         internal static void DressTable(GameObject top, BelieveOrNotConfig config)

@@ -929,7 +929,8 @@ namespace Igruha.Minigames.BelieveOrNot
                 Animator animator = avatar != null ? avatar.GetComponentInChildren<Animator>() : null;
                 if (animator != null)
                 {
-                    table.FitChair(seat, config.GetChairLift(animator.avatar));
+                    config.GetChairFit(animator.avatar, out float lift, out float forward);
+                    table.FitChair(seat, lift, forward);
                 }
             }
         }

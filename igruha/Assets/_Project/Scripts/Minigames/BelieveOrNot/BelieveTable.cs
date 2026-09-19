@@ -93,12 +93,12 @@ namespace Igruha.Minigames.BelieveOrNot
             boxHeight = heightMeters;
         }
 
-        /// <summary>Подогнать кресло места под сидящего: подъём в метрах, см. <see cref="BelieveChairFit"/>.</summary>
-        public void FitChair(int seat, float lift)
+        /// <summary>Подогнать кресло места под сидящего: подъём и сдвиг в метрах, см. <see cref="BelieveChairFit"/>.</summary>
+        public void FitChair(int seat, float lift, float forward)
         {
             if (IsValidSeat(seat) && chairs[seat] != null)
             {
-                chairs[seat].Fit(lift);
+                chairs[seat].Fit(lift, forward);
             }
         }
 

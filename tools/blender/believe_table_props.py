@@ -234,7 +234,7 @@ module('CasketLid',(W/2,0,.137))
 SEAT,LEG_TOP=.38,.23
 INNER_X,INNER_BACK,BACK_CENTRE,ROUNDNESS=.43,.42,.20,3.0
 SHELL,ARM_FRONT,ARM_RISE,BACK_RISE=.10,.10,.22,.56
-CUSHION_FRONT,DECK_FRONT,CUSHION=.085,.12,.09
+CUSHION_FRONT,DECK_FRONT,CUSHION=.085,.16,.09
 
 def back_curve(phi,inset=0):
     # Superellipse from the right side (phi=0) around the back (pi/2) to the left side (pi).

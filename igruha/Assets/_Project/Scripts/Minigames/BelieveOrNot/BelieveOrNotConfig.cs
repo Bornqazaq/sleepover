@@ -130,11 +130,11 @@ namespace Igruha.Minigames.BelieveOrNot
         [SerializeField] private Color ambientColor = new Color(0.1f, 0.098f, 0.115f);
 
         [Header("Кресло")]
-        [Tooltip("Подъём кресла под каждого сидящего, метры. Руками не заполнять: пишет обмер " +
-                 "Igruha/Believe Or Not/Apply Original Table Props. Сидячие позы ставят ступни на пол, " +
-                 "поэтому таз у ростера оказывается от 0.27 до 0.48 м над полом, и одно неподвижное " +
-                 "сиденье либо прорезает короткие ноги, либо оставляет длинные висеть в воздухе")]
-        [SerializeField] private ChairLift[] chairLifts = System.Array.Empty<ChairLift>();
+        [Tooltip("Подгонка кресла под каждого сидящего: подъём и сдвиг к нему, метры. Руками не " +
+                 "заполнять: пишет обмер Igruha/Believe Or Not/Apply Original Table Props. Сидячие позы " +
+                 "ставят ступни на пол, поэтому таз у ростера оказывается от 0.27 до 0.48 м над полом, " +
+                 "а худой сидящий без сдвига оказывается на самом краю сиденья")]
+        [SerializeField] private ChairFit[] chairFits = System.Array.Empty<ChairFit>();
 
         public float SeatingSeconds => seatingSeconds;
         public float PeekSeconds => peekSeconds;
@@ -190,22 +190,25 @@ namespace Igruha.Minigames.BelieveOrNot
         public Color AmbientColor => ambientColor;
 
         /// <summary>
-        /// На сколько поднять кресло под персонажа с этим аватаром. Аватар — это
-        /// и есть персонаж: он свой у каждого из восьми и одинаков на всех машинах,
-        /// так что подъём не нужно ни гонять по сети, ни искать по имени.
-        /// Неизвестный аватар сидит в кресле без подъёма.
+        /// Как подогнать кресло под персонажа с этим аватаром. Аватар — это и
+        /// есть персонаж: он свой у каждого из восьми и одинаков на всех машинах,
+        /// так что подгонку не нужно ни гонять по сети, ни искать по имени.
+        /// Неизвестный аватар сидит в кресле как есть.
         /// </summary>
-        public float GetChairLift(Avatar avatar)
+        public void GetChairFit(Avatar avatar, out float lift, out float forward)
         {
-            for (int i = 0; i < chairLifts.Length; i++)
+            for (int i = 0; i < chairFits.Length; i++)
             {
-                if (chairLifts[i].Avatar == avatar)
+                if (chairFits[i].Avatar == avatar)
                 {
-                    return chairLifts[i].Lift;
+                    lift = chairFits[i].Lift;
+                    forward = chairFits[i].Forward;
+                    return;
                 }
             }
 
-            return 0f;
+            lift = 0f;
+            forward = 0f;
         }
 
         /// <summary>
@@ -234,15 +237,19 @@ namespace Igruha.Minigames.BelieveOrNot
             }
         }
 
-        /// <summary>Подъём кресла под одного персонажа.</summary>
+        /// <summary>Подгонка кресла под одного персонажа.</summary>
         [System.Serializable]
-        private struct ChairLift
+        private struct ChairFit
         {
             [SerializeField] private Avatar avatar;
+            [Tooltip("Подъём корпуса, метры. Отрицательный — опустить для коротких ног")]
             [SerializeField] private float lift;
+            [Tooltip("Сдвиг кресла к сидящему, метры")]
+            [SerializeField] private float forward;
 
             public Avatar Avatar => avatar;
             public float Lift => lift;
+            public float Forward => forward;
         }
     }
 }
