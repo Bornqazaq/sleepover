@@ -283,6 +283,18 @@ namespace Igruha.EditorTools
             SetBox((RectTransform)hint.transform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 20f), new Vector2(440f, 24f));
             UiTheme.Text(hint, UiFonts.SansMedium, 16f, UiTheme.Muted);
             hint.alignment = TextAlignmentOptions.Center;
+
+            // Последние секунды отсчёта — латунью. Над кадром висит матчевый
+            // таймер вчетверо крупнее, и решают именно по этому числу.
+            var decision = panel.GetComponentInParent<BelieveDecisionPanel>();
+            if (decision != null)
+            {
+                var so = new SerializedObject(decision);
+                so.FindProperty("countdownColor").colorValue = UiTheme.Cream;
+                so.FindProperty("countdownUrgentColor").colorValue = UiTheme.BrassBright;
+                so.FindProperty("urgentSeconds").intValue = 5;
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
         }
 
         private static void ChoiceButton(Transform button, Vector2 position)

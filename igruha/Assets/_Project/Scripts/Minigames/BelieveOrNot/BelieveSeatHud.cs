@@ -46,10 +46,17 @@ namespace Igruha.Minigames.BelieveOrNot
         [Tooltip("Плашка под строкой реплики")]
         [SerializeField] private GameObject talkPlate;
 
+        [Tooltip("Через сколько секунд из строки роли уходит последний хвост — подсказка " +
+                 "клавиш. Ноль оставляет строку целиком, как было")]
+        [SerializeField] private float keyHintSeconds = 9f;
+
         /// <summary>Разделитель названия роли и пояснения в строке, которую собирает игра.</summary>
         private const string RoleSeparator = " · ";
 
         private float talkHideAt;
+        private float roleTrimAt;
+        private string roleFull;
+        private bool roleKnower;
 
         /// <summary>Показать, кто ты в этом коне. Держится до конца кона.</summary>
         public void ShowRole(string line, bool knower)
@@ -59,7 +66,26 @@ namespace Igruha.Minigames.BelieveOrNot
                 return;
             }
 
-            roleText.color = knower ? knowerColor : deciderColor;
+            roleFull = line;
+            roleKnower = knower;
+            roleTrimAt = keyHintSeconds > 0f && TrimKeyHint(line) != line ? Time.time + keyHintSeconds : 0f;
+            PaintRole(line);
+        }
+
+        /// <summary>
+        /// Подсказка клавиш нужна первые секунды кона, а висит все сорок и
+        /// повторяет то, что уже написано на кнопках решения и в панели реплик.
+        /// Роль и задача при этом обязаны остаться до конца кона.
+        /// </summary>
+        private static string TrimKeyHint(string line)
+        {
+            int last = line.LastIndexOf(RoleSeparator, System.StringComparison.Ordinal);
+            return last <= 0 ? line : line.Substring(0, last);
+        }
+
+        private void PaintRole(string line)
+        {
+            roleText.color = roleKnower ? knowerColor : deciderColor;
             roleText.text = roleDetailColor.a > 0f ? WithQuietDetail(line) : line;
             SetVisible(roleText, rolePlate, true);
         }
@@ -97,7 +123,19 @@ namespace Igruha.Minigames.BelieveOrNot
         /// <summary>Убрать строку роли: кон кончился или ты в нём зритель.</summary>
         public void HideRole()
         {
+            roleTrimAt = 0f;
             SetVisible(roleText, rolePlate, false);
+        }
+
+        /// <summary>
+        /// Обе строки спрятаны до первого слова. Плашки выключаются и сборкой
+        /// интерфейса, но сцена переживает правки руками, а пустая рамка
+        /// посреди кадра выглядит недоделкой.
+        /// </summary>
+        private void Awake()
+        {
+            SetVisible(roleText, rolePlate, false);
+            SetVisible(talkText, talkPlate, false);
         }
 
         /// <summary>Реплика за столом. Видна всем, а не только сидящим: зал тоже слушает.</summary>
@@ -116,6 +154,7 @@ namespace Igruha.Minigames.BelieveOrNot
         public void HideAll()
         {
             HideRole();
+            roleTrimAt = 0f;
             SetVisible(talkText, talkPlate, false);
             talkHideAt = 0f;
         }
@@ -127,6 +166,13 @@ namespace Igruha.Minigames.BelieveOrNot
                 return;
             }
 
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                talkHideAt = 0f;
+                SetVisible(talkText, talkPlate, false);
+                return;
+            }
+
             talkText.color = color;
             talkText.text = line;
             SetVisible(talkText, talkPlate, true);
@@ -135,6 +181,15 @@ namespace Igruha.Minigames.BelieveOrNot
 
         private void Update()
         {
+            if (roleTrimAt > 0f && Time.time >= roleTrimAt)
+            {
+                roleTrimAt = 0f;
+                if (roleText != null && roleText.enabled)
+                {
+                    PaintRole(TrimKeyHint(roleFull));
+                }
+            }
+
             if (talkHideAt <= 0f || Time.time < talkHideAt)
             {
                 return;
