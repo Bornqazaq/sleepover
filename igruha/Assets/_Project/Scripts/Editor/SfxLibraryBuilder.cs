@@ -38,6 +38,9 @@ namespace Igruha.EditorTools
         /// <summary>Сколько вариаций слота имеет смысл искать. Больше шести поставка не присылала ни разу.</summary>
         private const int MaxVariants = 32;
 
+        /// <summary>Корень звука проекта. От него отсчитываются клипы, общие для нескольких игр.</summary>
+        private const string AudioRoot = "Assets/_Project/Audio";
+
         [Serializable]
         private sealed class Manifest
         {
@@ -182,23 +185,43 @@ namespace Igruha.EditorTools
         /// </summary>
         private static AudioClip[] LoadVariants(string folder, string baseName)
         {
+            string prefix = Resolve(folder, baseName);
             var found = new List<AudioClip>(MaxVariants);
 
             for (int i = 1; i <= MaxVariants; i++)
             {
-                var clip = AssetDatabase.LoadAssetAtPath<AudioClip>($"{folder}/{baseName}_{i:00}.wav");
+                var clip = AssetDatabase.LoadAssetAtPath<AudioClip>($"{prefix}_{i:00}.wav");
                 if (clip == null) break;
                 found.Add(clip);
             }
 
             if (found.Count == 0)
             {
-                var single = AssetDatabase.LoadAssetAtPath<AudioClip>($"{folder}/{baseName}.wav");
+                var single = AssetDatabase.LoadAssetAtPath<AudioClip>($"{prefix}.wav");
                 if (single != null) found.Add(single);
             }
 
             return found.ToArray();
         }
+
+        /// <summary>
+        /// Путь к клипу без расширения. Обычное имя ищется в папке своей игры;
+        /// имя со слэшем — от корня <see cref="AudioRoot"/>.
+        ///
+        /// Второе нужно общим клипам: звуки цирковой арены приехали одной пачкой
+        /// на «Секундомер» и «Порядок банок» и лежат в <c>Audio/Minigames/Circus</c>.
+        /// Разложить их копиями по папкам обеих игр значило бы завести две правды
+        /// об одном файле и удвоить вес репозитория, который и так в LFS перевалил
+        /// за пять гигабайт. Копия слота в чужой библиотеке — одна строка манифеста,
+        /// а не копия звука.
+        ///
+        /// Той же строкой выбирается конкретная вариация: <c>..._01</c> у слота
+        /// нумерованной пачки даёт ровно этот файл, потому что <c>..._01_01.wav</c>
+        /// не существует и поиск вариаций падает в одиночный клип. Так
+        /// «щелчок реле» разводится на запуск и на остановку отсчёта.
+        /// </summary>
+        private static string Resolve(string folder, string baseName)
+            => baseName.Contains("/") ? $"{AudioRoot}/{baseName}" : $"{folder}/{baseName}";
 
         /// <summary>Папка манифестов — <c>docs/art</c> рядом с Unity-проектом, а не внутри него.</summary>
         private static string ManifestFolder()
