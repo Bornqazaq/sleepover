@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -15,6 +16,21 @@ namespace Igruha.EditorTools
         private const float CasketHalfWidth = .216f;
         private const float CasketHingeHeight = .137f;
 
+        /// <summary>Верх подушки кресла без подъёма, м. Пара SEAT в tools/blender/believe_table_props.py.</summary>
+        private const float ChairSeatHeight = .38f;
+
+        /// <summary>Низ корпуса кресла и верх ножек без подъёма, м. Пара LEG_TOP в том же скрипте.</summary>
+        private const float ChairLegHeight = .23f;
+
+        /// <summary>Насколько подушка проминается под сидящим, м: без этого между ними светится щель.</summary>
+        private const float ChairCushionSink = .008f;
+
+        /// <summary>
+        /// Площадка подушки в осях сидящего (X вбок, Z вперёд), м. Передний край в 0.09 м
+        /// за точкой посадки: перед ним висят голени, и в обмер сиденья они попадать не должны.
+        /// </summary>
+        private static readonly Rect ChairCushionFootprint = new Rect(-.40f, -.40f, .80f, .31f);
+
         [MenuItem("Igruha/Believe Or Not/Apply Original Table Props")]
         public static void Apply()
         {
@@ -29,20 +45,74 @@ namespace Igruha.EditorTools
             BelieveTablePropsAssets.Prepare();
             table.ConfigureLayout(config.BoxOffset, config.TableHeight + config.BoxSize * .5f, config.BoxSideOffset);
             DressTable(table.transform.Find("TableTop").gameObject, config);
+            var chairs = new BelieveChairFit[BelieveTable.SeatCount];
             for (int i = 0; i < BelieveTable.SeatCount; i++)
             {
                 var seat = table.GetSeatAnchor(i);
                 var direction = seat.position - table.transform.position;
                 direction.y = 0;
-                DressChair(table.transform.Find("Chair_" + i).gameObject, direction.normalized, direction.magnitude);
+                chairs[i] = DressChair(table.transform.Find("Chair_" + i).gameObject, direction.normalized, direction.magnitude);
                 var box = table.GetBox(i);
                 box.transform.position = table.GetBoxPosition(i);
                 DressBox(box, box.transform.Find("Body").gameObject, box.transform.Find("LidHinge"),
                     box.transform.Find("LidHinge/Lid").gameObject, config.BoxSize);
             }
+            AssignChairs(table, chairs);
+            MeasureChairLifts(config);
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             Debug.Log("IGR-565: original round table, identical mahogany caskets and barrel chairs applied. Lighting and blockout preserved.");
+        }
+
+        /// <summary>Подключить кресла к столу: по ним игра подгоняет места под севших.</summary>
+        internal static void AssignChairs(BelieveTable table, BelieveChairFit[] chairs)
+        {
+            var so = new SerializedObject(table);
+            var array = so.FindProperty("chairs");
+            array.arraySize = chairs.Length;
+            for (int i = 0; i < chairs.Length; i++)
+            {
+                array.GetArrayElementAtIndex(i).objectReferenceValue = chairs[i];
+            }
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// Обмерить сидячие позы всего ростера и записать в конфиг подъём кресла под
+        /// каждого: подушка встаёт под самую низкую точку таза и бёдер и проминается
+        /// на <see cref="ChairCushionSink"/>. Разброс по ростеру — около двадцати
+        /// сантиметров, поэтому подъём свой у каждого, а не один на всех.
+        /// </summary>
+        internal static void MeasureChairLifts(BelieveOrNotConfig config)
+        {
+            var so = new SerializedObject(config);
+            var lifts = so.FindProperty("chairLifts");
+            lifts.arraySize = 0;
+            var report = new StringBuilder("IGR-565: подъём кресла под сидящих, м\n");
+            string[] names = BelieveOrNotSitClipBuilder.CharacterNames;
+            for (int c = 0; c < names.Length; c++)
+            {
+                if (!BelieveOrNotSitClipBuilder.TryMeasureSeatContact(c, ChairCushionFootprint, out var avatar, out var contact))
+                {
+                    continue;
+                }
+
+                for (int i = 0; i < lifts.arraySize; i++)
+                {
+                    if (lifts.GetArrayElementAtIndex(i).FindPropertyRelative("avatar").objectReferenceValue == avatar)
+                        throw new InvalidOperationException($"Аватар {avatar.name} общий у двух персонажей: подъём кресла по нему не различить.");
+                }
+
+                float lift = contact + ChairCushionSink - ChairSeatHeight;
+                lifts.arraySize++;
+                var entry = lifts.GetArrayElementAtIndex(lifts.arraySize - 1);
+                entry.FindPropertyRelative("avatar").objectReferenceValue = avatar;
+                entry.FindPropertyRelative("lift").floatValue = lift;
+                report.AppendLine($"  {names[c],-8} касание {contact:F3}, подъём {lift:+0.000;-0.000}");
+            }
+            so.ApplyModifiedPropertiesWithoutUndo();
+            AssetDatabase.SaveAssets();
+            Debug.Log(report.ToString());
         }
 
         internal static void DressTable(GameObject top, BelieveOrNotConfig config)
@@ -54,13 +124,23 @@ namespace Igruha.EditorTools
                 config.TableDiameter / TableDiameter);
         }
 
-        internal static void DressChair(GameObject blockout, Vector3 direction, float distance)
+        internal static BelieveChairFit DressChair(GameObject blockout, Vector3 direction, float distance)
         {
             var holder = Holder(blockout.transform);
-            var model = Child(holder, "BarrelChair", Vector3.zero, Quaternion.identity);
-            model.position = blockout.transform.parent.TransformPoint(direction * distance);
-            model.rotation = blockout.transform.parent.rotation * Quaternion.LookRotation(-direction, Vector3.up);
+            var chair = new GameObject("BarrelChair").transform;
+            chair.SetParent(holder, false);
+            chair.position = blockout.transform.parent.TransformPoint(direction * distance);
+            chair.rotation = blockout.transform.parent.rotation * Quaternion.LookRotation(-direction, Vector3.up);
+            // Корпус и ножки — отдельные модели под своими узлами: подгонка под
+            // сидящего двигает узел корпуса и тянет узел ножек, не трогая импорт FBX.
+            var body = Child(chair, "BarrelChair", Vector3.zero, Quaternion.identity);
+            body.name = "Body";
+            var legs = Child(chair, "BarrelChairLegs", Vector3.zero, Quaternion.identity);
+            legs.name = "Legs";
+            var fit = chair.gameObject.AddComponent<BelieveChairFit>();
+            fit.Configure(body, legs, ChairLegHeight);
             blockout.layer = 0;
+            return fit;
         }
 
         internal static void DressBox(BelieveBox box, GameObject body, Transform hinge, GameObject lidPlate,

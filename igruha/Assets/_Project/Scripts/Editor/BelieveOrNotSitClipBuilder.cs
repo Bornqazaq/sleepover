@@ -181,6 +181,58 @@ namespace Igruha.EditorTools
 
         private static bool BuildOne(string prefabName, string characterName, StringBuilder report)
         {
+            return WithSittingCharacter(prefabName, characterName, (animator, measurer) =>
+            {
+                float[] muscles = Sitting();
+                SitBounds bounds = measurer.PlaceOnGround(muscles);
+                WriteClip(ClipPath(characterName), $"{characterName}_Sit", muscles, bounds.RootHeight);
+
+                report.AppendLine(
+                    $"  {characterName,-8} таз={bounds.HipHeight:F3} колени={bounds.KneeHeight:F3} " +
+                    $"ступни вперёд={bounds.FootForward:F3} высота={bounds.Height:F3} RootT.y={bounds.RootHeight:F4}");
+            });
+        }
+
+        /// <summary>
+        /// Обмер под кресло: на какой высоте над полом персонаж в сидячей позе
+        /// касается подушки. Это самая низкая точка кожи таза и бёдер над
+        /// <paramref name="seatFootprint"/> — площадкой сиденья в осях
+        /// персонажа (X вбок, Z вперёд, начало в точке посадки на полу).
+        ///
+        /// Поза та же, что пишется в клип: те же мышцы и та же посадка ступнями
+        /// на пол. Обмер сверен с Play 19.09 на Boss и Shlanga — таз совпал
+        /// до 3 мм.
+        /// </summary>
+        internal static bool TryMeasureSeatContact(int character, Rect seatFootprint, out Avatar avatar,
+            out float contactHeight)
+        {
+            Avatar measuredAvatar = null;
+            float measuredHeight = float.MaxValue;
+            bool built = WithSittingCharacter(PrefabNames[character], CharacterNames[character], (animator, measurer) =>
+            {
+                measurer.PlaceOnGround(Sitting());
+                measuredAvatar = animator.avatar;
+                measuredHeight = measurer.LowestSeatSkin(seatFootprint);
+            });
+
+            avatar = measuredAvatar;
+            contactHeight = measuredHeight;
+            if (built && measuredHeight == float.MaxValue)
+            {
+                Debug.LogError($"BelieveOrNotSitClipBuilder ({CharacterNames[character]}): над сиденьем нет ни таза, ни бёдер.");
+            }
+
+            return built && measuredHeight < float.MaxValue;
+        }
+
+        /// <summary>
+        /// Поднять персонажа в превью-сцену и отдать его обмерщику. Он нужен
+        /// живым, чтобы считать мышцы через HumanPoseHandler и обмерить кожу,
+        /// а открытую сцену геймдизайнера трогать нельзя.
+        /// </summary>
+        private static bool WithSittingCharacter(string prefabName, string characterName,
+            System.Action<Animator, SitMeasurer> measure)
+        {
             string prefabPath = PlayerPrefabFolder + prefabName + ".prefab";
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
             if (prefab == null)
@@ -189,9 +241,6 @@ namespace Igruha.EditorTools
                 return false;
             }
 
-            // Персонажа поднимаем в превью-сцену: он нужен живым, чтобы считать
-            // мышцы через HumanPoseHandler и обмерить кожу, а открытую сцену
-            // геймдизайнера трогать нельзя.
             UnityEngine.SceneManagement.Scene preview =
                 UnityEditor.SceneManagement.EditorSceneManager.NewPreviewScene();
             var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, preview);
@@ -215,14 +264,7 @@ namespace Igruha.EditorTools
                     return false;
                 }
 
-                var measurer = new SitMeasurer(animator, skin);
-                float[] muscles = Sitting();
-                SitBounds bounds = measurer.PlaceOnGround(muscles);
-                WriteClip(ClipPath(characterName), $"{characterName}_Sit", muscles, bounds.RootHeight);
-
-                report.AppendLine(
-                    $"  {characterName,-8} таз={bounds.HipHeight:F3} колени={bounds.KneeHeight:F3} " +
-                    $"ступни вперёд={bounds.FootForward:F3} высота={bounds.Height:F3} RootT.y={bounds.RootHeight:F4}");
+                measure(animator, new SitMeasurer(animator, skin));
                 return true;
             }
             finally
@@ -486,12 +528,90 @@ namespace Igruha.EditorTools
                 return t == null ? 0f : t.position.z;
             }
 
-            private void Measure(out float minY, out float maxY)
+            /// <summary>
+            /// Самая низкая точка кожи таза и бёдер над площадкой сиденья (X, Z).
+            /// Голени и ступни не в счёт: они висят перед креслом и стоят на полу.
+            /// Вершины без прореживания — ищем минимум, и шаг его бы пропустил.
+            /// </summary>
+            public float LowestSeatSkin(Rect footprint)
+            {
+                bool[] seatBones = FindSeatBones();
+                UpdateBoneMatrices();
+
+                float lowest = float.MaxValue;
+                for (int v = 0; v < vertices.Length; v++)
+                {
+                    if (!seatBones[weights[v].boneIndex0])
+                    {
+                        continue;
+                    }
+
+                    Vector3 p = Skin(v);
+                    if (p.y < lowest && footprint.Contains(new Vector2(p.x, p.z)))
+                    {
+                        lowest = p.y;
+                    }
+                }
+
+                return lowest;
+            }
+
+            /// <summary>Кости меша, ближайшая Humanoid-кость которых — таз, корпус или бедро.</summary>
+            private bool[] FindSeatBones()
+            {
+                var humanBones = new System.Collections.Generic.HashSet<Transform>();
+                for (int b = 0; b < (int)HumanBodyBones.LastBone; b++)
+                {
+                    Transform bone = animator.GetBoneTransform((HumanBodyBones)b);
+                    if (bone != null)
+                    {
+                        humanBones.Add(bone);
+                    }
+                }
+
+                var seatHumanBones = new System.Collections.Generic.HashSet<Transform>();
+                foreach (HumanBodyBones id in SeatBoneIds)
+                {
+                    Transform bone = animator.GetBoneTransform(id);
+                    if (bone != null)
+                    {
+                        seatHumanBones.Add(bone);
+                    }
+                }
+
+                var flags = new bool[bones.Length];
+                for (int b = 0; b < bones.Length; b++)
+                {
+                    for (Transform t = bones[b]; t != null; t = t.parent)
+                    {
+                        if (humanBones.Contains(t))
+                        {
+                            flags[b] = seatHumanBones.Contains(t);
+                            break;
+                        }
+                    }
+                }
+
+                return flags;
+            }
+
+            private static readonly HumanBodyBones[] SeatBoneIds =
+            {
+                HumanBodyBones.Hips, HumanBodyBones.Spine, HumanBodyBones.Chest, HumanBodyBones.UpperChest,
+                HumanBodyBones.LeftUpperLeg, HumanBodyBones.RightUpperLeg
+            };
+
+            private void UpdateBoneMatrices()
             {
                 for (int b = 0; b < bones.Length; b++)
                 {
                     boneMatrices[b] = bones[b].localToWorldMatrix * bindPoses[b];
                 }
+            }
+
+            private void Measure(out float minY, out float maxY)
+            {
+                UpdateBoneMatrices();
 
                 minY = float.MaxValue;
                 maxY = float.MinValue;

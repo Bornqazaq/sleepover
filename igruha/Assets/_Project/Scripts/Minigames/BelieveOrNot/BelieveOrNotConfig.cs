@@ -129,6 +129,13 @@ namespace Igruha.Minigames.BelieveOrNot
                  "читаться, а не тонуть — стол под лампой всё равно вшестеро ярче")]
         [SerializeField] private Color ambientColor = new Color(0.1f, 0.098f, 0.115f);
 
+        [Header("Кресло")]
+        [Tooltip("Подъём кресла под каждого сидящего, метры. Руками не заполнять: пишет обмер " +
+                 "Igruha/Believe Or Not/Apply Original Table Props. Сидячие позы ставят ступни на пол, " +
+                 "поэтому таз у ростера оказывается от 0.27 до 0.48 м над полом, и одно неподвижное " +
+                 "сиденье либо прорезает короткие ноги, либо оставляет длинные висеть в воздухе")]
+        [SerializeField] private ChairLift[] chairLifts = System.Array.Empty<ChairLift>();
+
         public float SeatingSeconds => seatingSeconds;
         public float PeekSeconds => peekSeconds;
         public float PersuasionSeconds => persuasionSeconds;
@@ -183,6 +190,25 @@ namespace Igruha.Minigames.BelieveOrNot
         public Color AmbientColor => ambientColor;
 
         /// <summary>
+        /// На сколько поднять кресло под персонажа с этим аватаром. Аватар — это
+        /// и есть персонаж: он свой у каждого из восьми и одинаков на всех машинах,
+        /// так что подъём не нужно ни гонять по сети, ни искать по имени.
+        /// Неизвестный аватар сидит в кресле без подъёма.
+        /// </summary>
+        public float GetChairLift(Avatar avatar)
+        {
+            for (int i = 0; i < chairLifts.Length; i++)
+            {
+                if (chairLifts[i].Avatar == avatar)
+                {
+                    return chairLifts[i].Lift;
+                }
+            }
+
+            return 0f;
+        }
+
+        /// <summary>
         /// Сколько конов будет в матче. Считается ОДИН раз, на старте: от числа
         /// конов зависит ротация посадки, и если оно поплывёт при выходе игрока,
         /// станет непредсказуемо, кто ещё успеет сесть.
@@ -206,6 +232,17 @@ namespace Igruha.Minigames.BelieveOrNot
                 case BelieveStage.Reaction: return reactionSeconds;
                 default: return 0f;
             }
+        }
+
+        /// <summary>Подъём кресла под одного персонажа.</summary>
+        [System.Serializable]
+        private struct ChairLift
+        {
+            [SerializeField] private Avatar avatar;
+            [SerializeField] private float lift;
+
+            public Avatar Avatar => avatar;
+            public float Lift => lift;
         }
     }
 }

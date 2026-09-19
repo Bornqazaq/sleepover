@@ -416,11 +416,13 @@ namespace Igruha.EditorTools
             var lookTargets = new Transform[BelieveTable.SeatCount];
             var bubbles = new SpeechBubble[BelieveTable.SeatCount];
             var boxes = new BelieveBox[BelieveTable.SeatCount];
+            var chairs = new BelieveChairFit[BelieveTable.SeatCount];
 
             for (int seat = 0; seat < BelieveTable.SeatCount; seat++)
             {
                 Vector3 direction = SeatDirection(seat);
                 Vector3 seatPosition = direction * config.SeatDistance;
+                chairs[seat] = table.transform.Find($"Chair_{seat}").GetComponentInChildren<BelieveChairFit>(true);
 
                 var anchor = new GameObject($"Seat_{seat}");
                 anchor.transform.SetParent(table.transform, false);
@@ -476,6 +478,7 @@ namespace Igruha.EditorTools
             AssignArray(so, "seatLookTargets", lookTargets);
             AssignArray(so, "seatBubbles", bubbles);
             AssignArray(so, "boxes", boxes);
+            AssignArray(so, "chairs", chairs);
             so.FindProperty("boxOffset").floatValue = config.BoxOffset;
             so.FindProperty("boxSideOffset").floatValue = config.BoxSideOffset;
             so.FindProperty("boxHeight").floatValue = config.TableHeight + config.BoxSize * 0.5f;

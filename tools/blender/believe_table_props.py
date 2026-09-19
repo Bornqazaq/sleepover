@@ -224,53 +224,117 @@ box((-W/2-.004,0,.152),(.011,.054,.027),'Casket',.004,'brass')
 for yy in (-.133,.133):box((W/2-.010,yy,.156),(.040,.059,.007),'Casket',.002,'brass')
 module('CasketLid',(W/2,0,.137))
 
-# Cognac barrel chair fitted to the frozen Fat/Boss seated poses in metres.
-# Front points toward Blender -Y, or Unity +Z after import. The origin stays at
-# the gameplay seat anchor. Keep the front open and all feet outside the shoes.
-for xx in (-.565,.565):
-    for yy in (.04,.445):
-        o=box((xx,yy,.190),(.075,.080,.365),'Walnut',.012)
-        o.rotation_euler[0]=-.06 if yy<.1 else .06
-        o.rotation_euler[1]=.06 if xx>0 else -.06
-# A short seat pan stays behind the calves. The soft cushion has a recessed
-# centre for the widest hips, with a raised padded edge rather than a rigid rail.
-sphere((0,.320,.413),(.615,.215,.045),'Leather')
-verts=[];faces=[];rings=24;segments=128
-for j in range(rings+1):
-    r=j/rings
-    z=.463+.023*math.sin(r*math.pi*.85)**2-.008*r**8
-    for i in range(segments):
-        a=i*math.tau/segments
-        verts.append((.555*r*math.cos(a),.320+.190*r*math.sin(a),z))
-for j in range(rings):
-    for i in range(segments):
-        k=j*segments+i;n=j*segments+(i+1)%segments
-        faces.append((k,n,n+segments,k+segments))
-# Closed upholstered cushion underside.
-for i in range(segments):
-    a=i*math.tau/segments;verts.append((.555*math.cos(a),.320+.190*math.sin(a),.420))
-for i in range(segments):
-    k=rings*segments+i;n=rings*segments+(i+1)%segments
-    faces.append((k,n,n+segments,k+segments))
-faces.append(tuple(range(len(verts)-1,len(verts)-segments-1,-1)))
-mesh('Dished broad leather cushion',verts,faces,'Leather')
-# Wider elliptical back: the interior clears hips and the rear of both torsos.
-verts=[];faces=[];steps=80
-section=[(.328,0),(.325,.08),(.322,.24),(.325,.50),(.332,.80),(.347,.97),(.375,1.025),(.414,1.012),(.445,.965),(.452,.81),(.449,.51),(.441,.23),(.422,.03),(.384,-.035),(.351,-.02)]
-for i in range(steps+1):
-    a=math.radians(4+172*i/steps);height=.29+.27*max(0,math.sin(a))**.8
-    for radius,z in section:verts.append((1.48*radius*math.cos(a),.070+1.12*radius*math.sin(a),.315+z*height))
-cs=len(section)
-for j in range(steps):
+# Cognac barrel chair. Origin = gameplay seat anchor on the floor; front faces Blender -Y (Unity +Z).
+# The eight sitting poses put the seat contact 0.27-0.48 m above the floor, so no rigid chair fits
+# everyone: Unity lifts BarrelChair to each sitter and stretches BarrelChairLegs down to the floor
+# (BelieveChairFit). SEAT and LEG_TOP are mirrored in BelieveTablePropsBuilder.
+# Clearances come from the skinned sitting poses of all eight, relative to the seat: calves hang in
+# front of y=.09, heels reach back to y=.10 on the floor, hips stay inside |x|=.42 and elbows only
+# widen .45 above the seat, the broadest back stays in front of y=.40.
+SEAT,LEG_TOP=.38,.23
+INNER_X,INNER_BACK,BACK_CENTRE,ROUNDNESS=.43,.42,.20,3.0
+SHELL,ARM_FRONT,ARM_RISE,BACK_RISE=.10,.10,.22,.56
+CUSHION_FRONT,DECK_FRONT,CUSHION=.085,.12,.09
+
+def back_curve(phi,inset=0):
+    # Superellipse from the right side (phi=0) around the back (pi/2) to the left side (pi).
+    a=INNER_X-inset;b=INNER_BACK-BACK_CENTRE-inset;c,s=math.cos(phi),max(0,math.sin(phi))
+    return a*math.copysign(abs(c)**(2/ROUNDNESS),c),BACK_CENTRE+b*s**(2/ROUNDNESS)
+
+def seat_plan(front,inset,corner):
+    # Convex CCW outline: the shell's back curve, straight sides and rounded front corners.
+    a=INNER_X-inset;side=front+corner
+    pts=[back_curve(math.pi*i/48,inset) for i in range(49)]
+    pts+=[(-a,BACK_CENTRE-(BACK_CENTRE-side)*k/4) for k in range(1,5)]
+    pts+=[(-a+corner+corner*math.cos(t),side+corner*math.sin(t)) for t in np.linspace(math.pi,1.5*math.pi,7)[1:]]
+    pts+=[(a-corner+corner*math.cos(t),side+corner*math.sin(t)) for t in np.linspace(1.5*math.pi,2*math.pi,7)]
+    pts+=[(a,side+(BACK_CENTRE-side)*k/4) for k in range(1,4)]
+    return pts
+
+def offset(poly,d):
+    # Move every vertex of a convex CCW polygon inward by d along the averaged edge normals.
+    out=[]
+    for i in range(len(poly)):
+        (x0,y0),(x1,y1),(x2,y2)=poly[i-1],poly[i],poly[(i+1)%len(poly)]
+        l1=math.hypot(x1-x0,y1-y0) or 1;l2=math.hypot(x2-x1,y2-y1) or 1
+        nx=(y1-y0)/l1+(y2-y1)/l2;ny=-(x1-x0)/l1-(x2-x1)/l2;l=math.hypot(nx,ny) or 1
+        out.append((x1-d*nx/l,y1-d*ny/l))
+    return out
+
+def pillow(poly,z0,z1,r,crown,mat,name):
+    # Upholstered slab: rounded lower and upper edges, softly crowned top.
+    rings=[(r*(1-math.sin(t)),z0+r*(1-math.cos(t))) for t in np.linspace(0,math.pi/2,6)]
+    rings+=[(r*(1-math.cos(t)),z1-r+r*math.sin(t)) for t in np.linspace(0,math.pi/2,6)]
+    verts=[];faces=[];n=len(poly)
+    for d,z in rings:verts+=[(x,y,z) for x,y in offset(poly,d)]
+    top=offset(poly,r);cx=sum(p[0] for p in top)/n;cy=sum(p[1] for p in top)/n
+    for f in (.7,.4):verts+=[(cx+(x-cx)*f,cy+(y-cy)*f,z1+crown*(1-f*f)) for x,y in top]
+    count=len(verts)//n
+    for j in range(count-1):
+        for i in range(n):faces.append((j*n+i,j*n+(i+1)%n,(j+1)*n+(i+1)%n,(j+1)*n+i))
+    verts.append((cx,cy,z1+crown))
+    for i in range(n):faces.append(((count-1)*n+i,(count-1)*n+(i+1)%n,len(verts)-1))
+    verts.append((cx,cy,z0))
+    for i in range(n):faces.append(((i+1)%n,i,len(verts)-1))
+    return mesh(name,verts,faces,mat)
+
+def shell_top(w):return SEAT+ARM_RISE+(BACK_RISE-ARM_RISE)*w**1.6
+
+def shell_section(h,inset=0):
+    # Clockwise (offset, z) profile across the shell: inner face, rolled top, outer face, underside.
+    r=SHELL/2
+    prof=[(0,LEG_TOP+.012),(0,h-r)]+[(r-r*math.cos(t),h-r+.8*r*math.sin(t)) for t in np.linspace(0,math.pi,11)[1:-1]]
+    prof+=[(SHELL,h-r),(SHELL,LEG_TOP+.03),(SHELL-.012,LEG_TOP+.004),(SHELL-.03,LEG_TOP),(.02,LEG_TOP)]
+    return offset(prof[::-1],inset)[::-1] if inset else prof
+
+# Barrel shell: inner face path along the right arm, around the back and along the left arm.
+path=[(INNER_X,ARM_FRONT+(BACK_CENTRE-ARM_FRONT)*k/6,1,0,0) for k in range(6)]
+for i in range(73):
+    phi=math.pi*i/72;x,y=back_curve(phi);b=INNER_BACK-BACK_CENTRE
+    gx=math.copysign(abs(x/INNER_X)**(ROUNDNESS-1),x)/INNER_X;gy=((y-BACK_CENTRE)/b)**(ROUNDNESS-1)/b
+    l=math.hypot(gx,gy);path.append((x,y,gx/l,gy/l,math.sin(phi)))
+path+=[(-INNER_X,BACK_CENTRE-(BACK_CENTRE-ARM_FRONT)*k/6,-1,0,0) for k in range(1,7)]
+ARM_ROUND=.03
+def shell_ring(p,inset=0,forward=0):
+    x,y,nx,ny,w=p
+    return [(x+nx*o,y+ny*o-forward,z) for o,z in shell_section(shell_top(w),inset)]
+ends=np.linspace(math.pi/2,0,7)[:-1]
+rings=[shell_ring(path[0],ARM_ROUND*(1-math.cos(t)),ARM_ROUND*math.sin(t)) for t in ends]
+rings+=[shell_ring(p) for p in path]
+rings+=[shell_ring(path[-1],ARM_ROUND*(1-math.cos(t)),ARM_ROUND*math.sin(t)) for t in ends[::-1]]
+cs=len(rings[0]);verts=[v for ring in rings for v in ring];faces=[]
+for j in range(len(rings)-1):
     for i in range(cs):faces.append((j*cs+i,j*cs+(i+1)%cs,(j+1)*cs+(i+1)%cs,(j+1)*cs+i))
-faces.append(tuple(range(cs-1,-1,-1)));faces.append(tuple(steps*cs+i for i in range(cs)))
-mesh('Padded curved barrel back',verts,faces,'Leather')
-tube([(1.48*.408*math.cos(math.radians(4+172*i/100)),.07+1.12*.408*math.sin(math.radians(4+172*i/100)),.315+(.29+.27*max(0,math.sin(math.radians(4+172*i/100)))**.8)*1.024) for i in range(101)],.0045,'Seam')
-tube([(.555*math.cos(i*math.tau/128),.320+.190*math.sin(i*math.tau/128),.448) for i in range(129)],.004,'Seam')
-for deg in (20,55,90,125,160):
-    a=math.radians(deg);height=.29+.27*math.sin(a)**.8
-    tube([(1.48*(.450-.010*t)*math.cos(a),.07+1.12*(.450-.010*t)*math.sin(a),.35+t*(height-.07)) for t in np.linspace(0,1,18)],.0023,'Seam')
+# Closed arm fronts keep the shell manifold, so normals recalculate outward; flat so the n-gon does not smear.
+faces+=[tuple(range(cs)),tuple(len(verts)-1-i for i in range(cs))]
+o=mesh('Padded barrel shell',verts,faces,'Leather')
+for poly in o.data.polygons[-2:]:poly.use_smooth=False
+# Deck under the cushion; its front stays behind the calves of every sitter.
+pillow(seat_plan(DECK_FRONT,-.02,.05),LEG_TOP,SEAT-CUSHION,.015,0,'Leather','Seat deck')
+cushion=offset(seat_plan(CUSHION_FRONT,.004,.06),0)
+pillow(cushion,SEAT-CUSHION,SEAT-.008,.03,.008,'Leather','Seat cushion')
+# Piping: cushion top welt, both edges of the rolled top, stitched channels inside the back.
+welt=offset(cushion,.03);tube([(x,y,SEAT-.008) for x,y in welt+welt[:1]],.0045,'Seam')
+for o,drop in ((0,SHELL/2),(SHELL,SHELL/2)):
+    tube([(x+nx*o,y+ny*o,shell_top(w)-drop) for x,y,nx,ny,w in path],.0045,'Seam')
+for deg in (25,47,68,90,112,133,155):
+    phi=math.radians(deg);x,y=back_curve(phi,.002);top=shell_top(math.sin(phi))
+    tube([(x,y,z) for z in np.linspace(SEAT+.03,top-.075,12)],.0025,'Seam')
 module('BarrelChair')
+
+# Legs are a separate module: Unity scales it vertically so the tub always stands on the floor.
+# Front legs stay behind every heel; all four splay slightly outward.
+for x0,y0,dy in ((.42,.21,-.012),(.36,.44,.012)):
+    for sx in (-1,1):
+        verts=[];faces=[(0,1,2,3),(7,6,5,4)]
+        for z,half,dx,ddy in ((0,.019,.018,dy),(LEG_TOP+.01,.029,0,0)):
+            cx,cy=sx*(x0+dx),y0+ddy
+            verts+=[(cx-half,cy-half,z),(cx+half,cy-half,z),(cx+half,cy+half,z),(cx-half,cy+half,z)]
+        for i in range(4):faces.append((i,(i+1)%4,4+(i+1)%4,4+i))
+        o=mesh('Tapered walnut leg',verts,faces,'Walnut',False)
+        bpy.context.view_layer.objects.active=o;m=o.modifiers.new('Soft turned corners','BEVEL');m.width=.008;m.segments=3;bpy.ops.object.modifier_apply(modifier=m.name)
+        m=o.modifiers.new('Leg normals','WEIGHTED_NORMAL');bpy.ops.object.modifier_apply(modifier=m.name)
+module('BarrelChairLegs')
 
 # Store only this kit scene; never save unrelated Blender scenes into the asset.
 def export(o):
@@ -280,10 +344,11 @@ def export(o):
     loc=o.location.copy();o.location=(0,0,0)
     bpy.ops.export_scene.fbx(filepath=str(ART/'Models'/(o.name+'.fbx')),use_selection=True,object_types={'MESH','EMPTY'},axis_forward='-Z',axis_up='Y',global_scale=1,apply_unit_scale=True,bake_anim=False,add_leaf_bones=False,use_mesh_modifiers=True)
     o.location=loc
-export(modules[0])
-if globals().get('BTP_EXPORT_ALL',False):
-    for o in modules[1:]:
-        if o.name in globals().get('BTP_EXPORT_MODELS',[m.name for m in modules]):export(o)
+# Default: the table only. BTP_EXPORT_ALL exports every module; BTP_EXPORT_MODELS narrows either
+# choice to the named modules, so re-exporting one prop does not rewrite the others.
+selected=[m.name for m in modules] if globals().get('BTP_EXPORT_ALL',False) else [modules[0].name]
+for o in modules:
+    if o.name in selected and o.name in globals().get('BTP_EXPORT_MODELS',selected):export(o)
 bpy.data.libraries.write(str(SOURCE/'BelieveTableProps.blend'),{scene},fake_user=True,compress=True,path_remap='RELATIVE')
 print('Hero props:',[(o.name,sum(len(c.data.polygons) for c in [o]+list(o.children_recursive) if c.type=='MESH')) for o in modules])
 bpy.context.window.scene=previous

@@ -21,9 +21,9 @@ namespace Igruha.EditorTools
             BelieveTablePropsBuilder.DressTable(tableTop, config);
         }
 
-        internal static void DressChair(GameObject chair, Vector3 direction, float distance)
+        internal static BelieveChairFit DressChair(GameObject chair, Vector3 direction, float distance)
         {
-            BelieveTablePropsBuilder.DressChair(chair, direction, distance);
+            return BelieveTablePropsBuilder.DressChair(chair, direction, distance);
         }
 
         internal static void DressBox(BelieveBox box, GameObject body, Transform hinge, GameObject lid, float size)

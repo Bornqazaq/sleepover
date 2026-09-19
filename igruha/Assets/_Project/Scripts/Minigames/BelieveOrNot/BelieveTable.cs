@@ -32,6 +32,9 @@ namespace Igruha.Minigames.BelieveOrNot
         [Tooltip("Коробки. Ровно две, и они обязаны быть неразличимы")]
         [SerializeField] private BelieveBox[] boxes = new BelieveBox[SeatCount];
 
+        [Tooltip("Кресла мест. Ровно два, подгоняются под того, кто сел")]
+        [SerializeField] private BelieveChairFit[] chairs = new BelieveChairFit[SeatCount];
+
         [Tooltip("Единственная фиксированная камера сцены. Игра переставляет её к нужному месту")]
         [SerializeField] private Transform fixedCameraRig;
 
@@ -90,6 +93,15 @@ namespace Igruha.Minigames.BelieveOrNot
             boxHeight = heightMeters;
         }
 
+        /// <summary>Подогнать кресло места под сидящего: подъём в метрах, см. <see cref="BelieveChairFit"/>.</summary>
+        public void FitChair(int seat, float lift)
+        {
+            if (IsValidSeat(seat) && chairs[seat] != null)
+            {
+                chairs[seat].Fit(lift);
+            }
+        }
+
         /// <summary>Спрятать оба пузыря: кон кончился или матч закрылся.</summary>
         public void HideBubbles()
         {
@@ -108,6 +120,7 @@ namespace Igruha.Minigames.BelieveOrNot
             EnsureLength(ref seatLookTargets, nameof(seatLookTargets));
             EnsureLength(ref seatBubbles, nameof(seatBubbles));
             EnsureLength(ref boxes, nameof(boxes));
+            EnsureLength(ref chairs, nameof(chairs));
         }
 
         private void EnsureLength<T>(ref T[] array, string fieldName)
