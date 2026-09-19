@@ -14,13 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.MinigameSfxLibrary
   entries:
   - Id: can_swap
-    Clip: {fileID: 0}
+    Clip: {fileID: 8300000, guid: 1d2827abcbbe64642bd0ea407ac409aa, type: 3}
     Variants: []
     Volume: 0.7
     Loop: 0
     Spatial: 1
   - Id: confirm_bell
-    Clip: {fileID: 0}
+    Clip: {fileID: 8300000, guid: 46cef62d796de3f43bc875d71c323456, type: 3}
     Variants: []
     Volume: 0.85
     Loop: 0
@@ -35,11 +35,5 @@ MonoBehaviour:
     Clip: {fileID: 0}
     Variants: []
     Volume: 0.9
-    Loop: 0
-    Spatial: 1
-  - Id: SFX_BOTL_Can_Place
-    Clip: {fileID: 8300000, guid: 1d2827abcbbe64642bd0ea407ac409aa, type: 3}
-    Variants: []
-    Volume: 1
     Loop: 0
     Spatial: 1

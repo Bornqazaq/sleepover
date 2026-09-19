@@ -5,14 +5,18 @@
   "slots": [
     {
       "id": "can_swap",
+      "file": "SFX_BOTL_Can_Place",
       "event": "Две банки поменялись местами на полке (CanShelf.ArrangementChanged)",
+      "when": "CanShelf.ArrangementChanged",
       "loop": false,
       "spatial": true,
       "volume": 0.7
     },
     {
       "id": "confirm_bell",
+      "file": "Minigames/Circus/SFX_CIRCUS_Relay_Click_01",
       "event": "Игрок подтвердил расстановку — удар по колоколу (CanConfirmButton.Confirmed)",
+      "when": "CanConfirmButton.Confirmed; общий клип цирковой арены",
       "loop": false,
       "spatial": true,
       "volume": 0.85
@@ -30,15 +34,6 @@
       "loop": false,
       "spatial": true,
       "volume": 0.9
-    },
-    {
-      "id": "SFX_BOTL_Can_Place",
-      "file": "SFX_BOTL_Can_Place",
-      "event": "банка на полку",
-      "when": "взять/поставить/поменять; слот can_swap",
-      "loop": false,
-      "spatial": true,
-      "volume": 1.0
     }
   ]
 }

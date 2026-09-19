@@ -19,21 +19,27 @@
     },
     {
       "id": "button_start",
+      "file": "Minigames/Circus/SFX_CIRCUS_Relay_Click_01",
       "event": "Первое нажатие кнопки — запуск отсчёта",
+      "when": "CageButton.Started; общий клип цирковой арены",
       "loop": false,
       "spatial": true,
       "volume": 0.9
     },
     {
       "id": "button_stop",
+      "file": "Minigames/Circus/SFX_CIRCUS_Relay_Click_02",
       "event": "Второе нажатие кнопки — остановка отсчёта",
+      "when": "CageButton.Stopped; тот же реле, вторая вариация",
       "loop": false,
       "spatial": true,
       "volume": 0.9
     },
     {
       "id": "drumroll",
+      "file": "Minigames/Circus/SFX_CIRCUS_Results_Hit",
       "event": "Показ результатов (стадия 3), нарастание",
+      "when": "стадия результатов; поставка прислала «бум-тсс» вместо дроби",
       "loop": false,
       "spatial": false,
       "volume": 0.75
@@ -47,24 +53,56 @@
     },
     {
       "id": "cage_winch",
+      "file": "Minigames/Circus/SFX_CIRCUS_Cage_Lower_Chains",
       "event": "Опускание клетки на ступень (стадия 4, 2 с)",
+      "when": "CageStation.Descending; общий клип цирковой арены",
       "loop": false,
       "spatial": true,
       "volume": 0.85
     },
     {
       "id": "hatch_open",
+      "file": "Minigames/Circus/SFX_CIRCUS_Cage_Hatch_Open",
       "event": "Открытие створок дна клетки (стадия 5)",
+      "when": "CageStation.DoorsOpened; общий клип цирковой арены",
       "loop": false,
       "spatial": true,
       "volume": 0.95
     },
     {
       "id": "bear_roar",
+      "file": "Minigames/Circus/SFX_CIRCUS_Bear_Roar",
       "event": "Рёв медведя (спека 8.5, интервал 6–12 с)",
+      "when": "DistractionDirector, интервал 6–12 с; общий клип цирковой арены",
       "loop": false,
       "spatial": true,
       "volume": 0.9
+    },
+    {
+      "id": "bear_swipe",
+      "file": "Minigames/Circus/SFX_CIRCUS_Bear_Swipe",
+      "event": "Взмах лапой перед ударом",
+      "when": "CircusBearFeedback, 0.47 с после начала замаха",
+      "loop": false,
+      "spatial": true,
+      "volume": 0.8
+    },
+    {
+      "id": "bear_impact",
+      "file": "Minigames/Circus/SFX_CIRCUS_Bear_Impact",
+      "event": "Лапа попала по игроку",
+      "when": "CircusBearFeedback.Impact; три вариации",
+      "loop": false,
+      "spatial": true,
+      "volume": 0.95
+    },
+    {
+      "id": "bear_step",
+      "event": "Шаг медведя по опилкам",
+      "when": "CircusBearFeedback, касание лапы; не приехало",
+      "loop": false,
+      "spatial": true,
+      "volume": 0.25
     },
     {
       "id": "bear_paw",

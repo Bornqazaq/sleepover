@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using Igruha.Core.Audio;
+using Igruha.Core.UI;
 
 namespace Igruha.EditorTools
 {
@@ -17,9 +18,18 @@ namespace Igruha.EditorTools
     /// поэтому его можно гонять после каждой пересборки интерфейса.
     ///
     /// Что делает: заводит в сцене объект звука интерфейса с библиотекой
-    /// <c>Core/UI</c> и вешает <see cref="UiButtonSound"/> на каждую кнопку.
-    /// Чего не делает: не различает подтверждение и отказ — «Назад» и серые
-    /// кнопки получают обычный щелчок, и слот им меняют осознанно, по экрану.
+    /// <c>Core/UI</c>, вешает <see cref="UiButtonSound"/> на каждую кнопку и
+    /// разводит кнопки по трём слотам — подтверждение, отмена, выбор персонажа.
+    ///
+    /// <b>Разводит по роли, а не по внешнему виду.</b> Карточка персонажа узнаётся
+    /// по своему компоненту, а «Назад» и «Выход» — по имени объекта: собственного
+    /// признака отмены у кнопки нет, а заводить его на весь проект ради звука
+    /// значило бы править каждый экран. Ошибка узнавания здесь стоит одного
+    /// неверного щелчка, и слот правится в инспекторе.
+    ///
+    /// Чего не делает: не озвучивает отказ на серой кнопке — <c>onClick</c> у
+    /// выключенной кнопки не поднимается вовсе, и зовёт этот звук сам экран
+    /// (<see cref="UiButtonSound.PlayBlocked"/>).
     /// </summary>
     internal static class UiSoundPass
     {
@@ -43,20 +53,44 @@ namespace Igruha.EditorTools
             Scene scene = SceneManager.GetActiveScene();
             EnsureHost(scene, library);
 
-            int added = 0;
+            int voiced = 0;
             foreach (GameObject root in scene.GetRootGameObjects())
             {
                 foreach (Button button in root.GetComponentsInChildren<Button>(includeInactive: true))
                 {
-                    if (button.GetComponent<UiButtonSound>() != null) continue;
-                    Undo.AddComponent<UiButtonSound>(button.gameObject);
-                    added++;
+                    UiButtonSound sound = button.GetComponent<UiButtonSound>()
+                                          ?? Undo.AddComponent<UiButtonSound>(button.gameObject);
+
+                    var fields = new SerializedObject(sound);
+                    fields.FindProperty("clickSlot").stringValue = SlotFor(button);
+                    fields.ApplyModifiedPropertiesWithoutUndo();
+                    voiced++;
                 }
             }
 
             EditorSceneManager.MarkSceneDirty(scene);
-            Debug.Log($"[Звук] Интерфейс сцены «{scene.name}» озвучен: кнопок добавлено {added}. "
+            Debug.Log($"[Звук] Интерфейс сцены «{scene.name}» озвучен: кнопок {voiced}. "
                       + "Сцену сохранить вручную.");
+        }
+
+        /// <summary>Слова, по которым кнопка узнаётся как отмена. Только нижний регистр — сравнение идёт по нему.</summary>
+        private static readonly string[] BackWords = { "назад", "back", "выход", "exit", "отмена", "cancel", "закрыть", "close" };
+
+        /// <summary>
+        /// Чем звучит нажатие этой кнопки. Карточка персонажа — своим звуком
+        /// выбора, кнопка отмены — отменой, всё остальное — обычным щелчком.
+        /// </summary>
+        private static string SlotFor(Button button)
+        {
+            if (button.GetComponent<CharacterSlotButton>() != null) return CoreSfx.UiCharSelect;
+
+            string name = button.gameObject.name.ToLowerInvariant();
+            foreach (string word in BackWords)
+            {
+                if (name.Contains(word)) return CoreSfx.UiBack;
+            }
+
+            return CoreSfx.UiClick;
         }
 
         /// <summary>Объект звука интерфейса: один на сцену, с проигрывателем и библиотекой Core/UI.</summary>

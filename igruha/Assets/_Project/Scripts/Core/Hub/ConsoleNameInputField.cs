@@ -1,6 +1,7 @@
 using TMPro;
 using UnityEngine.EventSystems;
 using UnityEngine;
+using Igruha.Core.Audio;
 
 namespace Igruha.Core.Hub
 {
@@ -13,6 +14,11 @@ namespace Igruha.Core.Hub
         {
             base.Awake();
             textRestPosition = textComponent.rectTransform.anchoredPosition;
+
+            // Щелчок клавиши озвучивается по изменению текста, а не по нажатию:
+            // поле принимает ввод и с клавиатуры, и с экранной раскладки, и
+            // вставкой, а слышно должно быть в любом случае.
+            onValueChanged.AddListener(_ => UiAudio.Play(CoreSfx.UiTypeKey));
             onEndEdit.AddListener(_ =>
             {
                 editingEndedFrame = Time.frameCount;

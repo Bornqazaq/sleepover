@@ -689,6 +689,7 @@ GameObject:
   - component: {fileID: 17929332}
   - component: {fileID: 17929331}
   - component: {fileID: 17929330}
+  - component: {fileID: 17929333}
   m_Layer: 0
   m_Name: GameCard_00
   m_TagString: Untagged
@@ -809,6 +810,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 17929328}
   m_CullTransparentMesh: 1
+--- !u!114 &17929333
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 17929328}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b739ea568373e74479a3ed218e45f498, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.UiButtonSound
+  clickSlot: SFX_UI_Click
+  blockedSlot: SFX_UI_Error
 --- !u!1 &20066488
 GameObject:
   m_ObjectHideFlags: 0
@@ -1578,6 +1593,7 @@ GameObject:
   - component: {fileID: 66346718}
   - component: {fileID: 66346717}
   - component: {fileID: 66346720}
+  - component: {fileID: 66346721}
   m_Layer: 0
   m_Name: Character_06
   m_TagString: Untagged
@@ -1710,6 +1726,20 @@ MonoBehaviour:
   border: {fileID: 66346718}
   selectionMark: {fileID: 911586561}
   takenColor: {r: 0.55, g: 0.55, b: 0.55, a: 1}
+--- !u!114 &66346721
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 66346715}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b739ea568373e74479a3ed218e45f498, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.UiButtonSound
+  clickSlot: SFX_UI_Char_Select
+  blockedSlot: SFX_UI_Error
 --- !u!1 &74641821
 GameObject:
   m_ObjectHideFlags: 0
@@ -5089,6 +5119,7 @@ GameObject:
   - component: {fileID: 188124038}
   - component: {fileID: 188124037}
   - component: {fileID: 188124036}
+  - component: {fileID: 188124040}
   m_Layer: 0
   m_Name: Look_Karlan
   m_TagString: Untagged
@@ -5222,6 +5253,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 188124034}
   m_CullTransparentMesh: 1
+--- !u!114 &188124040
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 188124034}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b739ea568373e74479a3ed218e45f498, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.UiButtonSound
+  clickSlot: SFX_UI_Click
+  blockedSlot: SFX_UI_Error
 --- !u!1 &188405959
 GameObject:
   m_ObjectHideFlags: 0
@@ -6561,6 +6606,7 @@ GameObject:
   - component: {fileID: 245906080}
   - component: {fileID: 245906079}
   - component: {fileID: 245906082}
+  - component: {fileID: 245906083}
   m_Layer: 0
   m_Name: Character_04
   m_TagString: Untagged
@@ -6693,6 +6739,20 @@ MonoBehaviour:
   border: {fileID: 245906080}
   selectionMark: {fileID: 1296830749}
   takenColor: {r: 0.55, g: 0.55, b: 0.55, a: 1}
+--- !u!114 &245906083
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 245906077}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b739ea568373e74479a3ed218e45f498, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.UiButtonSound
+  clickSlot: SFX_UI_Char_Select
+  blockedSlot: SFX_UI_Error
 --- !u!1 &248976713
 GameObject:
   m_ObjectHideFlags: 0
@@ -7814,6 +7874,7 @@ GameObject:
   - component: {fileID: 302093953}
   - component: {fileID: 302093952}
   - component: {fileID: 302093954}
+  - component: {fileID: 302093957}
   m_Layer: 0
   m_Name: FullGame
   m_TagString: Untagged
@@ -7948,6 +8009,20 @@ RectTransform:
   m_AnchoredPosition: {x: 64, y: -322}
   m_SizeDelta: {x: 455, y: 106}
   m_Pivot: {x: 0, y: 1}
+--- !u!114 &302093957
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 302093951}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b739ea568373e74479a3ed218e45f498, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.UiButtonSound
+  clickSlot: SFX_UI_Click
+  blockedSlot: SFX_UI_Error
 --- !u!1 &305359345
 GameObject:
   m_ObjectHideFlags: 0
@@ -8687,6 +8762,7 @@ GameObject:
   - component: {fileID: 327647664}
   - component: {fileID: 327647663}
   - component: {fileID: 327647662}
+  - component: {fileID: 327647666}
   m_Layer: 0
   m_Name: Look_Boss
   m_TagString: Untagged
@@ -8820,6 +8896,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 327647660}
   m_CullTransparentMesh: 1
+--- !u!114 &327647666
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 327647660}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b739ea568373e74479a3ed218e45f498, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.UiButtonSound
+  clickSlot: SFX_UI_Click
+  blockedSlot: SFX_UI_Error
 --- !u!1 &327821783
 GameObject:
   m_ObjectHideFlags: 0
@@ -12337,6 +12427,7 @@ GameObject:
   - component: {fileID: 480762380}
   - component: {fileID: 480762379}
   - component: {fileID: 480762378}
+  - component: {fileID: 480762381}
   m_Layer: 6
   m_Name: PitFloor
   m_TagString: Untagged
@@ -12437,6 +12528,20 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 480762376}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &480762381
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 480762376}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f14d0522b46aaa4b9ee820a273b94fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.SurfaceAudio
+  kind: 1
+  stepSlotOverride: 
 --- !u!1 &484271916
 GameObject:
   m_ObjectHideFlags: 0
@@ -15684,6 +15789,7 @@ GameObject:
   - component: {fileID: 617111140}
   - component: {fileID: 617111139}
   - component: {fileID: 617111138}
+  - component: {fileID: 617111142}
   m_Layer: 0
   m_Name: Look_Girl
   m_TagString: Untagged
@@ -15817,6 +15923,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 617111136}
   m_CullTransparentMesh: 1
+--- !u!114 &617111142
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 617111136}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b739ea568373e74479a3ed218e45f498, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.UiButtonSound
+  clickSlot: SFX_UI_Click
+  blockedSlot: SFX_UI_Error
 --- !u!1 &623591462
 GameObject:
   m_ObjectHideFlags: 0
@@ -16165,6 +16285,7 @@ GameObject:
   - component: {fileID: 641903004}
   - component: {fileID: 641903003}
   - component: {fileID: 641903006}
+  - component: {fileID: 641903007}
   m_Layer: 0
   m_Name: Character_05
   m_TagString: Untagged
@@ -16297,6 +16418,20 @@ MonoBehaviour:
   border: {fileID: 641903004}
   selectionMark: {fileID: 135215713}
   takenColor: {r: 0.55, g: 0.55, b: 0.55, a: 1}
+--- !u!114 &641903007
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 641903001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b739ea568373e74479a3ed218e45f498, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.UiButtonSound
+  clickSlot: SFX_UI_Char_Select
+  blockedSlot: SFX_UI_Error
 --- !u!1 &647950754
 GameObject:
   m_ObjectHideFlags: 0
@@ -17249,6 +17384,7 @@ GameObject:
   - component: {fileID: 668904689}
   - component: {fileID: 668904688}
   - component: {fileID: 668904691}
+  - component: {fileID: 668904692}
   m_Layer: 0
   m_Name: Character_00
   m_TagString: Untagged
@@ -17381,6 +17517,20 @@ MonoBehaviour:
   border: {fileID: 668904689}
   selectionMark: {fileID: 778080617}
   takenColor: {r: 0.55, g: 0.55, b: 0.55, a: 1}
+--- !u!114 &668904692
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 668904686}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b739ea568373e74479a3ed218e45f498, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.UiButtonSound
+  clickSlot: SFX_UI_Char_Select
+  blockedSlot: SFX_UI_Error
 --- !u!1001 &673368227
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -17475,6 +17625,7 @@ GameObject:
   - component: {fileID: 676317098}
   - component: {fileID: 676317097}
   - component: {fileID: 676317099}
+  - component: {fileID: 676317102}
   m_Layer: 0
   m_Name: Resume
   m_TagString: Untagged
@@ -17602,6 +17753,20 @@ RectTransform:
   m_AnchoredPosition: {x: 60, y: -530}
   m_SizeDelta: {x: 560, y: 90}
   m_Pivot: {x: 0, y: 1}
+--- !u!114 &676317102
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 676317096}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b739ea568373e74479a3ed218e45f498, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.UiButtonSound
+  clickSlot: SFX_UI_Click
+  blockedSlot: SFX_UI_Error
 --- !u!1 &676415440
 GameObject:
   m_ObjectHideFlags: 0
@@ -19316,6 +19481,7 @@ GameObject:
   - component: {fileID: 748005540}
   - component: {fileID: 748005539}
   - component: {fileID: 748005538}
+  - component: {fileID: 748005542}
   m_Layer: 0
   m_Name: StartSeries
   m_TagString: Untagged
@@ -19448,6 +19614,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 748005536}
   m_CullTransparentMesh: 1
+--- !u!114 &748005542
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 748005536}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b739ea568373e74479a3ed218e45f498, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.UiButtonSound
+  clickSlot: SFX_UI_Click
+  blockedSlot: SFX_UI_Error
 --- !u!1 &749522785
 GameObject:
   m_ObjectHideFlags: 0
@@ -20243,6 +20423,7 @@ GameObject:
   - component: {fileID: 757941020}
   - component: {fileID: 757941019}
   - component: {fileID: 757941022}
+  - component: {fileID: 757941023}
   m_Layer: 0
   m_Name: Character_01
   m_TagString: Untagged
@@ -20375,6 +20556,20 @@ MonoBehaviour:
   border: {fileID: 757941020}
   selectionMark: {fileID: 383342774}
   takenColor: {r: 0.55, g: 0.55, b: 0.55, a: 1}
+--- !u!114 &757941023
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 757941017}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b739ea568373e74479a3ed218e45f498, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.UiButtonSound
+  clickSlot: SFX_UI_Char_Select
+  blockedSlot: SFX_UI_Error
 --- !u!1 &760043566
 GameObject:
   m_ObjectHideFlags: 0
@@ -21184,6 +21379,69 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &776714920
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 776714923}
+  - component: {fileID: 776714922}
+  - component: {fileID: 776714921}
+  m_Layer: 0
+  m_Name: UiAudio
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &776714921
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 776714920}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 59b1f4a77d1bfdd41976f31ab2b400fd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.UiAudio
+  audioPlayer: {fileID: 0}
+  playHover: 1
+--- !u!114 &776714922
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 776714920}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ade51d53fffee4c239ed9c55255f1320, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.MinigameAudioPlayer
+  library: {fileID: 11400000, guid: 510c08e3318f65d4fbaf93144c410acd, type: 2}
+  extraLibraries: []
+  voices: 4
+  maxDistance: 40
+--- !u!4 &776714923
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 776714920}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &777024439
 GameObject:
   m_ObjectHideFlags: 0
@@ -22423,6 +22681,7 @@ GameObject:
   - component: {fileID: 811836906}
   - component: {fileID: 811836905}
   - component: {fileID: 811836904}
+  - component: {fileID: 811836908}
   m_Layer: 0
   m_Name: Look_Fat
   m_TagString: Untagged
@@ -22556,6 +22815,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 811836902}
   m_CullTransparentMesh: 1
+--- !u!114 &811836908
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 811836902}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b739ea568373e74479a3ed218e45f498, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.UiButtonSound
+  clickSlot: SFX_UI_Click
+  blockedSlot: SFX_UI_Error
 --- !u!1 &812183514
 GameObject:
   m_ObjectHideFlags: 0
@@ -23285,6 +23558,7 @@ GameObject:
   - component: {fileID: 835610100}
   - component: {fileID: 835610099}
   - component: {fileID: 835610098}
+  - component: {fileID: 835610102}
   m_Layer: 0
   m_Name: Look_Aza
   m_TagString: Untagged
@@ -23418,6 +23692,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 835610096}
   m_CullTransparentMesh: 1
+--- !u!114 &835610102
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 835610096}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b739ea568373e74479a3ed218e45f498, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.UiButtonSound
+  clickSlot: SFX_UI_Click
+  blockedSlot: SFX_UI_Error
 --- !u!1 &837471986
 GameObject:
   m_ObjectHideFlags: 0
@@ -24221,6 +24509,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 855342703}
+  - component: {fileID: 855342704}
   m_Layer: 0
   m_Name: EntryStairs
   m_TagString: Untagged
@@ -24260,6 +24549,20 @@ Transform:
   - {fileID: 812183515}
   m_Father: {fileID: 749522786}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &855342704
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 855342702}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f14d0522b46aaa4b9ee820a273b94fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.SurfaceAudio
+  kind: 1
+  stepSlotOverride: 
 --- !u!1001 &866352831
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -25435,6 +25738,7 @@ GameObject:
   - component: {fileID: 897483118}
   - component: {fileID: 897483117}
   - component: {fileID: 897483116}
+  - component: {fileID: 897483120}
   m_Layer: 0
   m_Name: Look_Milez
   m_TagString: Untagged
@@ -25568,6 +25872,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 897483114}
   m_CullTransparentMesh: 1
+--- !u!114 &897483120
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 897483114}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b739ea568373e74479a3ed218e45f498, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.UiButtonSound
+  clickSlot: SFX_UI_Click
+  blockedSlot: SFX_UI_Error
 --- !u!1 &903888768
 GameObject:
   m_ObjectHideFlags: 0
@@ -26476,6 +26794,7 @@ GameObject:
   - component: {fileID: 953738991}
   - component: {fileID: 953738990}
   - component: {fileID: 953738989}
+  - component: {fileID: 953738992}
   m_Layer: 6
   m_Name: Floor_W
   m_TagString: Untagged
@@ -26576,6 +26895,20 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 953738987}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &953738992
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 953738987}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f14d0522b46aaa4b9ee820a273b94fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.SurfaceAudio
+  kind: 1
+  stepSlotOverride: 
 --- !u!1 &965775582
 GameObject:
   m_ObjectHideFlags: 0
@@ -35669,6 +36002,7 @@ GameObject:
   - component: {fileID: 1343058517}
   - component: {fileID: 1343058516}
   - component: {fileID: 1343058519}
+  - component: {fileID: 1343058520}
   m_Layer: 0
   m_Name: Character_03
   m_TagString: Untagged
@@ -35801,6 +36135,20 @@ MonoBehaviour:
   border: {fileID: 1343058517}
   selectionMark: {fileID: 562768816}
   takenColor: {r: 0.55, g: 0.55, b: 0.55, a: 1}
+--- !u!114 &1343058520
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1343058514}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b739ea568373e74479a3ed218e45f498, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.UiButtonSound
+  clickSlot: SFX_UI_Char_Select
+  blockedSlot: SFX_UI_Error
 --- !u!1 &1345910286
 GameObject:
   m_ObjectHideFlags: 0
@@ -36607,6 +36955,7 @@ GameObject:
   - component: {fileID: 1368376224}
   - component: {fileID: 1368376223}
   - component: {fileID: 1368376225}
+  - component: {fileID: 1368376226}
   m_Layer: 0
   m_Name: PlayButton
   m_TagString: Untagged
@@ -36716,6 +37065,20 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &1368376226
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1368376221}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b739ea568373e74479a3ed218e45f498, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.UiButtonSound
+  clickSlot: SFX_UI_Click
+  blockedSlot: SFX_UI_Error
 --- !u!1 &1369662311
 GameObject:
   m_ObjectHideFlags: 0
@@ -37825,6 +38188,7 @@ GameObject:
   - component: {fileID: 1431523549}
   - component: {fileID: 1431523548}
   - component: {fileID: 1431523547}
+  - component: {fileID: 1431523550}
   m_Layer: 6
   m_Name: Floor_N
   m_TagString: Untagged
@@ -37925,6 +38289,20 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1431523545}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1431523550
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1431523545}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f14d0522b46aaa4b9ee820a273b94fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.SurfaceAudio
+  kind: 1
+  stepSlotOverride: 
 --- !u!1 &1431732786
 GameObject:
   m_ObjectHideFlags: 0
@@ -39506,7 +39884,7 @@ MonoBehaviour:
   m_lineSpacingMax: 0
   m_paragraphSpacing: 0
   m_charWidthMaxAdj: 0
-  m_TextWrappingMode: 0
+  m_TextWrappingMode: 3
   m_wordWrappingRatios: 0.4
   m_overflowMode: 0
   m_linkedTextComponent: {fileID: 0}
@@ -40618,6 +40996,7 @@ GameObject:
   - component: {fileID: 1518003127}
   - component: {fileID: 1518003126}
   - component: {fileID: 1518003125}
+  - component: {fileID: 1518003129}
   m_Layer: 0
   m_Name: SingleGame
   m_TagString: Untagged
@@ -40752,6 +41131,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1518003123}
   m_CullTransparentMesh: 1
+--- !u!114 &1518003129
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1518003123}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b739ea568373e74479a3ed218e45f498, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.UiButtonSound
+  clickSlot: SFX_UI_Click
+  blockedSlot: SFX_UI_Error
 --- !u!1 &1526169513
 GameObject:
   m_ObjectHideFlags: 0
@@ -41104,6 +41497,7 @@ GameObject:
   - component: {fileID: 1540524412}
   - component: {fileID: 1540524411}
   - component: {fileID: 1540524410}
+  - component: {fileID: 1540524413}
   m_Layer: 6
   m_Name: Floor_E
   m_TagString: Untagged
@@ -41204,6 +41598,20 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1540524408}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1540524413
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1540524408}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f14d0522b46aaa4b9ee820a273b94fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.SurfaceAudio
+  kind: 1
+  stepSlotOverride: 
 --- !u!1 &1546562041
 GameObject:
   m_ObjectHideFlags: 0
@@ -42070,6 +42478,7 @@ GameObject:
   - component: {fileID: 1581397799}
   - component: {fileID: 1581397798}
   - component: {fileID: 1581397797}
+  - component: {fileID: 1581397801}
   m_Layer: 0
   m_Name: Look_Shlanga
   m_TagString: Untagged
@@ -42203,6 +42612,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1581397795}
   m_CullTransparentMesh: 1
+--- !u!114 &1581397801
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1581397795}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b739ea568373e74479a3ed218e45f498, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.UiButtonSound
+  clickSlot: SFX_UI_Click
+  blockedSlot: SFX_UI_Error
 --- !u!1 &1583927914
 GameObject:
   m_ObjectHideFlags: 0
@@ -42216,6 +42639,7 @@ GameObject:
   - component: {fileID: 1583927918}
   - component: {fileID: 1583927917}
   - component: {fileID: 1583927916}
+  - component: {fileID: 1583927920}
   m_Layer: 0
   m_Name: Back
   m_TagString: Untagged
@@ -42348,6 +42772,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1583927914}
   m_CullTransparentMesh: 1
+--- !u!114 &1583927920
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1583927914}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b739ea568373e74479a3ed218e45f498, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.UiButtonSound
+  clickSlot: SFX_UI_Back
+  blockedSlot: SFX_UI_Error
 --- !u!1 &1585371103
 GameObject:
   m_ObjectHideFlags: 0
@@ -46393,6 +46831,7 @@ GameObject:
   - component: {fileID: 1695879594}
   - component: {fileID: 1695879593}
   - component: {fileID: 1695879592}
+  - component: {fileID: 1695879596}
   m_Layer: 0
   m_Name: Look_MyBoy
   m_TagString: Untagged
@@ -46526,6 +46965,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1695879590}
   m_CullTransparentMesh: 1
+--- !u!114 &1695879596
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1695879590}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b739ea568373e74479a3ed218e45f498, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.UiButtonSound
+  clickSlot: SFX_UI_Click
+  blockedSlot: SFX_UI_Error
 --- !u!1 &1696765422
 GameObject:
   m_ObjectHideFlags: 0
@@ -46539,6 +46992,7 @@ GameObject:
   - component: {fileID: 1696765426}
   - component: {fileID: 1696765425}
   - component: {fileID: 1696765424}
+  - component: {fileID: 1696765428}
   m_Layer: 0
   m_Name: SaveName
   m_TagString: Untagged
@@ -46671,6 +47125,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1696765422}
   m_CullTransparentMesh: 1
+--- !u!114 &1696765428
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1696765422}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b739ea568373e74479a3ed218e45f498, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.UiButtonSound
+  clickSlot: SFX_UI_Click
+  blockedSlot: SFX_UI_Error
 --- !u!1 &1701944528
 GameObject:
   m_ObjectHideFlags: 0
@@ -47963,6 +48431,7 @@ GameObject:
   - component: {fileID: 1740299054}
   - component: {fileID: 1740299053}
   - component: {fileID: 1740299056}
+  - component: {fileID: 1740299057}
   m_Layer: 0
   m_Name: Character_07
   m_TagString: Untagged
@@ -48095,6 +48564,20 @@ MonoBehaviour:
   border: {fileID: 1740299054}
   selectionMark: {fileID: 2126265735}
   takenColor: {r: 0.55, g: 0.55, b: 0.55, a: 1}
+--- !u!114 &1740299057
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1740299051}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b739ea568373e74479a3ed218e45f498, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.UiButtonSound
+  clickSlot: SFX_UI_Char_Select
+  blockedSlot: SFX_UI_Error
 --- !u!1 &1750270137
 GameObject:
   m_ObjectHideFlags: 0
@@ -48600,6 +49083,7 @@ GameObject:
   - component: {fileID: 1762072327}
   - component: {fileID: 1762072326}
   - component: {fileID: 1762072329}
+  - component: {fileID: 1762072330}
   m_Layer: 0
   m_Name: Character_02
   m_TagString: Untagged
@@ -48732,6 +49216,20 @@ MonoBehaviour:
   border: {fileID: 1762072327}
   selectionMark: {fileID: 1537370440}
   takenColor: {r: 0.55, g: 0.55, b: 0.55, a: 1}
+--- !u!114 &1762072330
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1762072324}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b739ea568373e74479a3ed218e45f498, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.UiButtonSound
+  clickSlot: SFX_UI_Char_Select
+  blockedSlot: SFX_UI_Error
 --- !u!1 &1773256109
 GameObject:
   m_ObjectHideFlags: 0
@@ -51473,6 +51971,7 @@ GameObject:
   - component: {fileID: 1905505791}
   - component: {fileID: 1905505790}
   - component: {fileID: 1905505789}
+  - component: {fileID: 1905505793}
   m_Layer: 0
   m_Name: Exit
   m_TagString: Untagged
@@ -51600,6 +52099,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1905505787}
   m_CullTransparentMesh: 1
+--- !u!114 &1905505793
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1905505787}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b739ea568373e74479a3ed218e45f498, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.UiButtonSound
+  clickSlot: SFX_UI_Back
+  blockedSlot: SFX_UI_Error
 --- !u!1001 &1908961448
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -52928,6 +53441,7 @@ GameObject:
   - component: {fileID: 1943903174}
   - component: {fileID: 1943903173}
   - component: {fileID: 1943903172}
+  - component: {fileID: 1943903175}
   m_Layer: 6
   m_Name: Floor_S
   m_TagString: Untagged
@@ -53028,6 +53542,20 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1943903170}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1943903175
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1943903170}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f14d0522b46aaa4b9ee820a273b94fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.SurfaceAudio
+  kind: 1
+  stepSlotOverride: 
 --- !u!1 &1951521765
 GameObject:
   m_ObjectHideFlags: 0
@@ -57198,6 +57726,7 @@ GameObject:
   - component: {fileID: 2080366435}
   - component: {fileID: 2080366434}
   - component: {fileID: 2080366433}
+  - component: {fileID: 2080366437}
   m_Layer: 0
   m_Name: NextPage
   m_TagString: Untagged
@@ -57391,6 +57920,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2080366431}
   m_CullTransparentMesh: 1
+--- !u!114 &2080366437
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2080366431}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b739ea568373e74479a3ed218e45f498, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.UiButtonSound
+  clickSlot: SFX_UI_Click
+  blockedSlot: SFX_UI_Error
 --- !u!1 &2080820117
 GameObject:
   m_ObjectHideFlags: 0
@@ -58490,6 +59033,7 @@ GameObject:
   - component: {fileID: 2120067344}
   - component: {fileID: 2120067343}
   - component: {fileID: 2120067342}
+  - component: {fileID: 2120067346}
   m_Layer: 0
   m_Name: PreviousPage
   m_TagString: Untagged
@@ -58683,6 +59227,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2120067340}
   m_CullTransparentMesh: 1
+--- !u!114 &2120067346
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2120067340}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b739ea568373e74479a3ed218e45f498, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.UiButtonSound
+  clickSlot: SFX_UI_Click
+  blockedSlot: SFX_UI_Error
 --- !u!1 &2122419092
 GameObject:
   m_ObjectHideFlags: 0
@@ -59966,6 +60524,7 @@ GameObject:
   - component: {fileID: 2142208723}
   - component: {fileID: 2142208722}
   - component: {fileID: 2142208721}
+  - component: {fileID: 2142208725}
   m_Layer: 0
   m_Name: Launch
   m_TagString: Untagged
@@ -60110,6 +60669,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2142208719}
   m_CullTransparentMesh: 1
+--- !u!114 &2142208725
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2142208719}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b739ea568373e74479a3ed218e45f498, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.UiButtonSound
+  clickSlot: SFX_UI_Click
+  blockedSlot: SFX_UI_Error
 --- !u!1 &2142221857
 GameObject:
   m_ObjectHideFlags: 0
@@ -60340,3 +60913,4 @@ SceneRoots:
   - {fileID: 600341022}
   - {fileID: 307212124}
   - {fileID: 749522786}
+  - {fileID: 776714923}

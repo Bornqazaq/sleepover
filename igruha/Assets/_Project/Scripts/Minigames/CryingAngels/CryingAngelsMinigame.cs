@@ -120,6 +120,16 @@ namespace Igruha.Minigames.CryingAngels
         /// <summary>Фонарь включился или погас — чтобы луч не опрашивал флаг каждый кадр.</summary>
         public event Action<bool> BeamEnabledChanged;
 
+        /// <summary>
+        /// Бегущий окаменел — точка, где он стоял. Точка для звука и эффектов.
+        ///
+        /// Поднимается на каждой машине, потому что поднимается там же, где
+        /// ставится статуя: сервер приходит сюда из своего такта, клиент — из
+        /// применённого сетевого состояния. Отдельного сообщения ради звука
+        /// не нужно.
+        /// </summary>
+        public event Action<Vector3> RunnerPetrified;
+
         /// <summary>Аватар Водящего этого раунда. Null до раздачи ролей.</summary>
         public PlayerController Keeper => keeperAvatar;
 
@@ -389,7 +399,7 @@ namespace Igruha.Minigames.CryingAngels
 
                 if (!wasPetrified && runner.State.Current == RunnerState.Phase.Petrified)
                 {
-                    TrySpawnStatue(runner);
+                    AnnouncePetrified(runner);
                 }
 
                 hottest = Mathf.Max(hottest, runner.State.PetrifyProgress);
@@ -737,7 +747,7 @@ namespace Igruha.Minigames.CryingAngels
             // это укрытие, а не эффект, и на клиентах оно обязано быть.
             if (before != RunnerState.Phase.Petrified && phase == RunnerState.Phase.Petrified)
             {
-                TrySpawnStatue(runner);
+                AnnouncePetrified(runner);
             }
 
             if (finished && !runner.Touched)
@@ -1229,6 +1239,20 @@ namespace Igruha.Minigames.CryingAngels
             {
                 statues.Add(statue);
             }
+        }
+
+        /// <summary>
+        /// Бегущий окаменел: ставим статую и объявляем это остальным.
+        ///
+        /// Объявление живёт здесь, а не внутри <see cref="TrySpawnStatue"/>:
+        /// статуя — настраиваемое укрытие и при выключенном
+        /// <c>StatuesRemainAsCover</c> не ставится вовсе, а окаменение при этом
+        /// всё равно случилось, и звучать оно обязано.
+        /// </summary>
+        private void AnnouncePetrified(RunnerRecord runner)
+        {
+            TrySpawnStatue(runner);
+            RunnerPetrified?.Invoke(runner.Avatar != null ? runner.Avatar.Position : transform.position);
         }
 
         private void ClearStatues()
