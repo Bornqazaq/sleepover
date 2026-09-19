@@ -21,6 +21,9 @@ namespace Igruha.EditorTools
         // не доставал до края стола и круг схлопывался в пятно метра на три.
         internal const float LampRange = 9.5f;
 
+        /// <summary>Сила лунного заполнения. Выше — зал сереет и круг света перестаёт быть главным.</summary>
+        private const float MoonlightIntensity = .17f;
+
         [MenuItem("Igruha/Верю не верю/Собственный клуб — оболочка и свет")]
         public static void Apply()
         {
@@ -122,15 +125,18 @@ namespace Igruha.EditorTools
 
         internal static void ConfigureLighting(Transform arena)
         {
-            RenderSettings.ambientMode = AmbientMode.Flat;
-            // Soft reflected room light: furniture reads beyond the central pool.
-            RenderSettings.ambientLight = new Color(.26f, .275f, .31f);
+            // Окружение тремя цветами, а не одним: холодный верх даёт синеву
+            // панелей референса, тёплый низ — отсвет ковра и дерева. Плоский
+            // серый красил и то и другое одинаково, и зал читался стерильно.
+            RenderSettings.ambientMode = AmbientMode.Trilight;
+            RenderSettings.ambientSkyColor = new Color(.34f, .37f, .48f);
+            RenderSettings.ambientEquatorColor = new Color(.33f, .29f, .28f);
+            RenderSettings.ambientGroundColor = new Color(.27f, .20f, .16f);
             RenderSettings.ambientIntensity = 1;
             RenderSettings.reflectionIntensity = .06f;
             RenderSettings.skybox = null;
             RenderSettings.fog = false;
-            foreach (var light in Object.FindObjectsByType<Light>(FindObjectsInactive.Include, FindObjectsSortMode.None))
-                if (light.type == LightType.Directional) light.enabled = false;
+            ConfigureMoonlight(arena);
             var lamp = arena.Find("TableLamp");
             if (lamp == null) { lamp = Group(arena, "TableLamp"); lamp.gameObject.AddComponent<Light>(); }
             lamp.localPosition = new Vector3(0, LampHeight, 0);
@@ -138,7 +144,7 @@ namespace Igruha.EditorTools
             var spot = lamp.GetComponent<Light>();
             spot.enabled = true; spot.type = LightType.Spot;
             spot.spotAngle = 110; spot.innerSpotAngle = 58;
-            spot.range = LampRange; spot.intensity = 26f;
+            spot.range = LampRange; spot.intensity = 28f;
             spot.color = Mathf.CorrelatedColorTemperatureToRGB(3000).gamma;
             spot.useColorTemperature = false;
             spot.shadows = LightShadows.Soft;
@@ -158,6 +164,33 @@ namespace Igruha.EditorTools
             Accent(accents, "BarFrontBounce", new Vector3(5.3f, 2.65f, 0),
                 new Vector3(side - 1.34f, 1.1f, 0), 4f, 5.2f, 125, 90);
             FaceFill(arena);
+        }
+
+        /// <summary>
+        /// Холодный заполняющий свет над залом — «луна из окна» референса.
+        ///
+        /// Раньше все направленные источники просто гасились, и за кругом лампы
+        /// зал проваливался в чёрное: пол под ногами бегущего не читался вовсе,
+        /// а половина кадра зрителя была чёрной дырой. Источник намеренно очень
+        /// слабый и без теней: он выравнивает зал, не спорит с лампой над столом
+        /// и не даёт второго набора теней.
+        /// </summary>
+        private static void ConfigureMoonlight(Transform arena)
+        {
+            Light fill = null;
+            foreach (var light in Object.FindObjectsByType<Light>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (light.type != LightType.Directional) continue;
+                if (fill == null && light.gameObject.scene == arena.gameObject.scene) { fill = light; continue; }
+                light.enabled = false;
+            }
+
+            if (fill == null) return;
+            fill.enabled = true;
+            fill.intensity = MoonlightIntensity;
+            fill.color = new Color(.62f, .70f, .95f);
+            fill.shadows = LightShadows.None;
+            fill.transform.rotation = Quaternion.Euler(58, 35, 0);
         }
 
         /// <summary>
