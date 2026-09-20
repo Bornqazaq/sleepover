@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Igruha.Core.Audio;
 using Igruha.Core.Minigame;
 using Igruha.Core.Voice;
 
@@ -86,6 +87,7 @@ namespace Igruha.Core.UI
             if (wasPaused && !paused && volumeTouched)
             {
                 VoiceSettings.Flush();
+                MusicSettings.Flush();
                 volumeTouched = false;
             }
 
@@ -128,6 +130,7 @@ namespace Igruha.Core.UI
             // подобранной на глаз под самый длинный случай.
             float lines = 2.2f + 1.25f + 1f;
             if (voice != null) lines += 2.8f;
+            if (MusicPlayer.Instance != null) lines += 1.7f;
             if (inRound) lines += 1.15f;
 
             float height = pad * 2f + row * lines;
@@ -156,6 +159,7 @@ namespace Igruha.Core.UI
             // которому голос мешает, жмёт Esc, а не клавишу, о которой узнал
             // из строчки в углу экрана.
             y = DrawVoiceVolume(x, y, inner, row, voice);
+            y = DrawMusicVolume(x, y, inner, row);
 
             if (inRound)
             {
@@ -195,6 +199,30 @@ namespace Igruha.Core.UI
 
             Label(new Rect(x, y, inner, row * 0.8f), VoiceKeys.Hint, Muted, rowStyle);
             return y + row * 1.1f;
+        }
+
+        /// <summary>
+        /// Ползунок музыки. Стоит рядом с голосом: первое, что делает человек,
+        /// которому подложка мешает разговаривать, — ищет, где её убавить.
+        /// </summary>
+        private float DrawMusicVolume(float x, float y, float inner, float row)
+        {
+            MusicPlayer music = MusicPlayer.Instance;
+            if (music == null) return y;
+
+            Label(new Rect(x, y, inner, row * 0.8f),
+                $"Громкость музыки: {MusicSettings.Volume * 100f:0}%", Ink, rowStyle);
+            y += row * 0.8f;
+
+            float volume = GUI.HorizontalSlider(new Rect(x, y + row * 0.2f, inner, row * 0.5f),
+                MusicSettings.Volume, 0f, 1f);
+            if (!Mathf.Approximately(volume, MusicSettings.Volume))
+            {
+                music.SetVolume(volume);
+                volumeTouched = true;
+            }
+
+            return y + row * 0.9f;
         }
 
         private void EnsureStyles()

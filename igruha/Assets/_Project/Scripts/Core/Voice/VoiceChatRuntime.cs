@@ -36,6 +36,9 @@ namespace Igruha.Core.Voice
         private ushort sequence;
         private float deviceCheckAt;
         private bool networkActive;
+        private bool hasFocus = true;
+        private float siblingCheckAt = -1f;
+        private bool siblingCached;
 
         public static VoiceChatRuntime Instance { get; private set; }
 
@@ -51,7 +54,7 @@ namespace Igruha.Core.Voice
                 if (networkActive == value) return;
                 networkActive = value;
 
-                if (networkActive) StartCapture();
+                if (networkActive) ApplyCaptureState();
                 else
                 {
                     capture.Stop();
@@ -123,6 +126,20 @@ namespace Igruha.Core.Voice
             capture.FrameReady += OnFrameReady;
         }
 
+        /// <summary>
+        /// Два окна игры на одной машине делят одно устройство записи, и
+        /// Windows отдаёт второму звук с огромной задержкой — говорящего
+        /// слышно только после того, как он замолчал. Проверять сеть на одном
+        /// компьютере надо каждый день, поэтому микрофон держит окно в фокусе,
+        /// а остальные только слушают. На разных машинах проверка не
+        /// срабатывает вовсе: процесс игры там один.
+        /// </summary>
+        private void OnApplicationFocus(bool focused)
+        {
+            hasFocus = focused;
+            if (networkActive) ApplyCaptureState();
+        }
+
         private void OnApplicationQuit() => VoiceSettings.Flush();
 
         private void OnDestroy()
@@ -143,6 +160,47 @@ namespace Igruha.Core.Voice
             capture.Tick(Time.unscaledDeltaTime, !MicrophoneEnabled, VoiceKeys.PushToTalkHeld, VoiceSettings.Mode);
             KeepDeviceAlive();
             DropSilentSpeakers();
+        }
+
+        /// <summary>Держать запись или отпустить устройство соседнему окну.</summary>
+        private void ApplyCaptureState()
+        {
+            if (!networkActive || !CaptureAllowed)
+            {
+                capture.Stop();
+                return;
+            }
+
+            if (MicrophoneOwned)
+            {
+                if (!capture.IsRecording) StartCapture();
+            }
+            else if (capture.IsRecording)
+            {
+                capture.Stop();
+            }
+        }
+
+        /// <summary>Можно ли этому окну занимать микрофон прямо сейчас.</summary>
+        private bool MicrophoneOwned => hasFocus || !LocalSiblingInstances();
+
+        /// <summary>На этой машине запущено больше одного процесса игры.</summary>
+        private bool LocalSiblingInstances()
+        {
+            if (Time.unscaledTime < siblingCheckAt) return siblingCached;
+            siblingCheckAt = Time.unscaledTime + 2f;
+
+            try
+            {
+                string own = System.Diagnostics.Process.GetCurrentProcess().ProcessName;
+                siblingCached = System.Diagnostics.Process.GetProcessesByName(own).Length > 1;
+            }
+            catch
+            {
+                siblingCached = false;
+            }
+
+            return siblingCached;
         }
 
         /// <summary>
@@ -218,6 +276,7 @@ namespace Igruha.Core.Voice
         private void StartCapture()
         {
             if (!CaptureAllowed) return;
+            if (!MicrophoneOwned) return;
 
             capture.Threshold = VoiceSettings.Threshold;
             capture.Gain = VoiceSettings.Gain;
@@ -241,6 +300,7 @@ namespace Igruha.Core.Voice
         private void KeepDeviceAlive()
         {
             if (!CaptureAllowed) return;
+            if (!MicrophoneOwned) return;
             if (Time.unscaledTime < deviceCheckAt) return;
             deviceCheckAt = Time.unscaledTime + DeviceCheckSeconds;
 
