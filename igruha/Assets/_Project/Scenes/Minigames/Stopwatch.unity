@@ -8986,6 +8986,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.UI.RoundHud
   timerText: {fileID: 817944674}
+  timerPlate: {fileID: 0}
   resultsPanel: {fileID: 1395271337}
   resultsText: {fileID: 0}
   spectatorPanel: {fileID: 1943466986}
@@ -76629,8 +76630,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.Stopwatch.DistractionDirector
   tickClip: {fileID: 0}
-  roarClip: {fileID: 8300000, guid: 4ffb51322af2dce4988c9c8150fa5313, type: 3}
-  crowdClip: {fileID: 0}
+  roarClip: {fileID: 8300000, guid: 99d71d2996c02644ea68432953e5a357, type: 3}
+  crowdClip: {fileID: 8300000, guid: 608ba54abe49d8c468b4e00daa127388, type: 3}
   tickVolume: 0.55
   roarVolume: 0.8
   crowdVolume: 0.25
@@ -140802,6 +140803,7 @@ MonoBehaviour:
   onPlayerEntered:
     m_PersistentCalls:
       m_Calls: []
+  guardByHeight: 1
 --- !u!65 &1361623335
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -173026,7 +173028,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.Circus.CircusBearFeedback
   voice: {fileID: 2063458912}
-  growl: {fileID: 8300000, guid: 4ffb51322af2dce4988c9c8150fa5313, type: 3}
+  growl: {fileID: 8300000, guid: 99d71d2996c02644ea68432953e5a357, type: 3}
   swipe: {fileID: 8300000, guid: d1f0caa496728374d8d28d702f590118, type: 3}
   impacts:
   - {fileID: 8300000, guid: 91e3fe136a786d748a9e100b803e18d4, type: 3}

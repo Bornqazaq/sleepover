@@ -24,12 +24,16 @@ namespace Igruha.Minigames.CryingAngels
         [SerializeField] private float startCountdown = 3f;
 
         [Header("Водящий — поворот")]
-        [Tooltip("Потолок скорости поворота при минимуме Бегущих (2), °/сек")]
+        [Tooltip("Луч идёт ровно за мышью, без потолка угловой скорости. Выключить — вернётся кривая потолка ниже")]
+        [SerializeField] private bool beamFollowsMouse = true;
+        [Tooltip("Потолок скорости поворота при минимуме Бегущих (2), °/сек. Работает, только если луч не идёт за мышью")]
         [SerializeField] private float turnSpeedAtFewestRunners = 60f;
-        [Tooltip("Потолок скорости поворота при максимуме Бегущих (7), °/сек")]
+        [Tooltip("Потолок скорости поворота при максимуме Бегущих (7), °/сек. Работает, только если луч не идёт за мышью")]
         [SerializeField] private float turnSpeedAtMostRunners = 90f;
         [Tooltip("Вертикальный обзор, ±°. Чисто визуальный: на засветку не влияет")]
         [SerializeField] private float verticalLookLimit = 20f;
+        [Tooltip("Наклон фонаря вслед за мышью, ±°. Больше половины угла конуса ставить нельзя: засветка считается по горизонтали, и картинка разойдётся с ловлей")]
+        [SerializeField] private float beamPitchLimit = 12f;
 
         [Header("Водящий — касание")]
         [Tooltip("Радиус засчитываемого касания Водящего по горизонтали, юниты")]
@@ -81,6 +85,13 @@ namespace Igruha.Minigames.CryingAngels
         public float ArenaRadius => arenaRadius;
         public float StartCountdown => startCountdown;
         public float VerticalLookLimit => verticalLookLimit;
+
+        /// <summary>Луч идёт за мышью кадр в кадр, потолок угловой скорости не применяется.</summary>
+        public bool BeamFollowsMouse => beamFollowsMouse;
+
+        /// <summary>Предел наклона фонаря, ±°. Ноль — фонарь остаётся строго горизонтальным.</summary>
+        public float BeamPitchLimit => Mathf.Max(0f, beamPitchLimit);
+
         public float TouchRadius => touchRadius;
         public float StepHearingRadius => stepHearingRadius;
         public float PetrifyThreshold => petrifyThreshold;

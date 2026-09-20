@@ -46,8 +46,16 @@ namespace Igruha.Core.UI
         [Tooltip("Карта игровых действий, которую гасит пауза. Карта интерфейса остаётся включённой — ей щёлкают по кнопке")]
         [SerializeField] private string gameplayMapName = "Player";
 
+        /// <summary>
+        /// Включённые паузы. Их бывает две: своя у сцены и общая рантайм-пауза
+        /// (<see cref="PauseOverlay"/>), которая на время такой сцены
+        /// выключается. Список, а не поле, чтобы выключение одной возвращало
+        /// главной вторую, а не обнуляло обеих.
+        /// </summary>
+        private static readonly List<PauseScreen> Enabled = new List<PauseScreen>(2);
+
         /// <summary>Пауза этой сцены. Нужна тем, кто тоже слушает Esc.</summary>
-        public static PauseScreen Current { get; private set; }
+        public static PauseScreen Current => Enabled.Count > 0 ? Enabled[Enabled.Count - 1] : null;
 
         /// <summary>Пауза открыта.</summary>
         public bool IsPaused { get; private set; }
@@ -65,10 +73,16 @@ namespace Igruha.Core.UI
         /// </summary>
         private readonly List<InputAction> suppressedActions = new List<InputAction>(8);
 
+        /// <summary>
+        /// Ассет управления: свой, если назначен в сцене, иначе общий для
+        /// проекта. Пауза, поднятая в рантайме (<see cref="PauseOverlay"/>),
+        /// назначить его в инспекторе не может, а гасить ввод обязана так же:
+        /// иначе под открытым меню персонаж продолжает бегать по WASD.
+        /// </summary>
+        private InputActionAsset Controls => controls != null ? controls : InputSystem.actions;
+
         private void Awake()
         {
-            Current = this;
-
             if (panel != null)
             {
                 panel.SetActive(false);
@@ -85,6 +99,31 @@ namespace Igruha.Core.UI
             }
         }
 
+        /// <summary>
+        /// Пауза сцены объявляется включением, а не рождением. Это нужно
+        /// рантайм-паузе: в хабе своё меню, и общая пауза на время хаба
+        /// выключается — иначе Esc обработали бы обе сразу.
+        /// </summary>
+        private void OnEnable()
+        {
+            if (!Enabled.Contains(this))
+            {
+                Enabled.Add(this);
+            }
+        }
+
+        private void OnDisable()
+        {
+            // Выключают нас обычно на переходе сцены. Уходить, оставив мир
+            // на паузе с заглушенным вводом, нельзя.
+            if (IsPaused)
+            {
+                Resume();
+            }
+
+            Enabled.Remove(this);
+        }
+
         private void OnDestroy()
         {
             if (resumeButton != null)
@@ -98,7 +137,8 @@ namespace Igruha.Core.UI
             }
 
             // Уходя со сцены, время обязаны вернуть: иначе следующая сцена
-            // грузится в остановленном мире и выглядит зависшей.
+            // грузится в остановленном мире и выглядит зависшей. Штатно это
+            // уже сделал OnDisable, но объект могут снести и активным.
             if (IsPaused)
             {
                 Time.timeScale = previousTimeScale;
@@ -106,10 +146,7 @@ namespace Igruha.Core.UI
                 RestoreCursor();
             }
 
-            if (Current == this)
-            {
-                Current = null;
-            }
+            Enabled.Remove(this);
         }
 
         private void Update()
@@ -225,18 +262,39 @@ namespace Igruha.Core.UI
         /// </summary>
         public void Exit()
         {
-            Resume();
-
             // Идёт раунд, из которого предусмотрен выход, — уходим из него,
             // а не из катки: остальные продолжают играть, мы досматриваем
             // наблюдателем.
-            MinigameControllerBase minigame = MinigameControllerBase.Current;
-            if (minigame != null && minigame.CanLeaveRound)
+            if (LeaveRound())
             {
-                Debug.Log("Пауза: выход из раунда — остаюсь в катке наблюдателем");
-                minigame.LeaveRound();
                 return;
             }
+
+            QuitGame();
+        }
+
+        /// <summary>
+        /// Выйти из раунда, оставшись в катке наблюдателем. Возвращает ложь,
+        /// если выходить неоткуда — раунда нет или он уже кончился.
+        /// </summary>
+        public bool LeaveRound()
+        {
+            MinigameControllerBase minigame = MinigameControllerBase.Current;
+            if (minigame == null || !minigame.CanLeaveRound)
+            {
+                return false;
+            }
+
+            Resume();
+            Debug.Log("Пауза: выход из раунда — остаюсь в катке наблюдателем");
+            minigame.LeaveRound();
+            return true;
+        }
+
+        /// <summary>Закрыть игру целиком, разорвав сессию.</summary>
+        public void QuitGame()
+        {
+            Resume();
 
             NetworkManager network = NetworkManager.Singleton;
             if (network != null && (network.IsClient || network.IsServer))
@@ -273,12 +331,13 @@ namespace Igruha.Core.UI
 
             suppressedActions.Clear();
 
-            if (controls == null)
+            InputActionAsset asset = Controls;
+            if (asset == null)
             {
                 return;
             }
 
-            InputActionMap map = controls.FindActionMap(gameplayMapName, false);
+            InputActionMap map = asset.FindActionMap(gameplayMapName, false);
             if (map == null)
             {
                 Debug.LogWarning($"{name}: в ассете управления нет карты «{gameplayMapName}» — " +

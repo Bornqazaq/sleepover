@@ -3829,6 +3829,7 @@ MonoBehaviour:
   onPlayerEntered:
     m_PersistentCalls:
       m_Calls: []
+  guardByHeight: 1
 --- !u!65 &40403467
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -13164,6 +13165,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.UI.RoundHud
   timerText: {fileID: 2056078182}
+  timerPlate: {fileID: 0}
   resultsPanel: {fileID: 1565497407}
   resultsText: {fileID: 0}
   spectatorPanel: {fileID: 1027456839}
@@ -156365,6 +156367,7 @@ MonoBehaviour:
   onPlayerEntered:
     m_PersistentCalls:
       m_Calls: []
+  guardByHeight: 1
 --- !u!65 &1077656336
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -157879,6 +157882,7 @@ MonoBehaviour:
   onPlayerEntered:
     m_PersistentCalls:
       m_Calls: []
+  guardByHeight: 1
 --- !u!65 &1097711490
 BoxCollider:
   m_ObjectHideFlags: 0

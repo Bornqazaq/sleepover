@@ -1,0 +1,74 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2574025c1373412bb9b8283feb02ca7, type: 3}
+  m_Name: SfxLibrary
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.MinigameSfxLibrary
+  entries:
+  - Id: SFX_CROWD_Amb_Stomp_Loop
+    Clip: {fileID: 8300000, guid: 608ba54abe49d8c468b4e00daa127388, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 1
+    Spatial: 0
+  - Id: SFX_CROWD_Applause
+    Clip: {fileID: 8300000, guid: dae0f40bd3c59004abe7ee5dd9372175, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: dae0f40bd3c59004abe7ee5dd9372175, type: 3}
+    - {fileID: 8300000, guid: 2cda74061ab963a42867f00b414a69f1, type: 3}
+    - {fileID: 8300000, guid: 455e354314db09447af8f27a8b208bf8, type: 3}
+    - {fileID: 8300000, guid: 2f7f69651be75454c90e44bfe39af8e2, type: 3}
+    - {fileID: 8300000, guid: 1bb88fc0bb3b71948bc2799609050701, type: 3}
+    - {fileID: 8300000, guid: c25513a6001eb804096a0d2ce9b37321, type: 3}
+    Volume: 1
+    Loop: 0
+    Spatial: 0
+  - Id: SFX_CROWD_Applause_Slow
+    Clip: {fileID: 8300000, guid: e5e333db22e0e844a9f3535ab8da32d6, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 0
+  - Id: SFX_CROWD_Boo
+    Clip: {fileID: 8300000, guid: 11776abfe99f1b94f9623eb0b436438f, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: 11776abfe99f1b94f9623eb0b436438f, type: 3}
+    - {fileID: 8300000, guid: 96206e8ca9827da44be261eb5f28f064, type: 3}
+    - {fileID: 8300000, guid: cddffcffd4d5c704e9ad445021cc1cbc, type: 3}
+    - {fileID: 8300000, guid: 22849322409d7f043b54f1053d587f70, type: 3}
+    - {fileID: 8300000, guid: da0d76b719c46db4aa52a08ce7329439, type: 3}
+    Volume: 1
+    Loop: 0
+    Spatial: 0
+  - Id: SFX_CROWD_Boo_Claps
+    Clip: {fileID: 8300000, guid: 32a48acd78a462e44979d08f3c42df82, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 0
+  - Id: SFX_CROWD_Laugh
+    Clip: {fileID: 8300000, guid: 0a16127f2797c1c4d90b2941819293a2, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: 0a16127f2797c1c4d90b2941819293a2, type: 3}
+    - {fileID: 8300000, guid: 14db2e0f828103c48bf84c09c775f37e, type: 3}
+    - {fileID: 8300000, guid: 2f5308201d4bbd44c8a1eacec8c9265f, type: 3}
+    - {fileID: 8300000, guid: 48898ef58d1285449946428836d1338a, type: 3}
+    - {fileID: 8300000, guid: 731078fb565078841953b255341552ed, type: 3}
+    - {fileID: 8300000, guid: 5093d90ba7b7dc84dac5a085f1cd04a0, type: 3}
+    Volume: 1
+    Loop: 0
+    Spatial: 0
+  - Id: SFX_CROWD_Laugh_Claps
+    Clip: {fileID: 8300000, guid: 3683face1666d614a98bd762104a9fb2, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 0

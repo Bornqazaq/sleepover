@@ -115,6 +115,17 @@ namespace Igruha.Minigames.CryingAngels
         /// <summary>Во сколько раз быстрее потолка остальные машины догоняют серверный луч.</summary>
         private const float RemoteCatchUpFactor = 1.35f;
 
+        /// <summary>
+        /// Чем догоняют серверный луч остальные машины, когда потолка нет, °/с.
+        ///
+        /// Взять здесь бесконечность нельзя: сетевое значение приезжает тиками,
+        /// и голое присваивание дало бы ступеньки ровно на том, за чем в этой
+        /// игре следят весь раунд. Взять маленькое — вернуть ту самую задержку,
+        /// от которой избавлялись. Градус за полтора миллисекунды сглаживает
+        /// один сетевой тик и не успевает отстать на глаз.
+        /// </summary>
+        private const float RemoteCatchUpUncapped = 720f;
+
         /// <summary>С какого расхождения луч на чужой машине ставится сразу, а не доводится, °.</summary>
         private const float RemoteSnapThreshold = 90f;
 
@@ -133,6 +144,13 @@ namespace Igruha.Minigames.CryingAngels
 
         private readonly NetworkVariable<float> keeperYaw = new NetworkVariable<float>();
 
+        /// <summary>
+        /// Наклон фонаря. Едет отдельным значением, а не упакован в поворот:
+        /// по азимуту сервер вправе доводить луч со своим потолком, а наклон
+        /// он принимает как есть — тот на засветку не влияет вовсе.
+        /// </summary>
+        private readonly NetworkVariable<float> keeperPitch = new NetworkVariable<float>();
+
         private readonly NetworkVariable<bool> beamOn = new NetworkVariable<bool>();
 
         private readonly NetworkList<RunnerNetState> runnerStates = new NetworkList<RunnerNetState>();
@@ -145,8 +163,14 @@ namespace Igruha.Minigames.CryingAngels
         /// <summary>Желаемое направление, присланное владельцем. Живёт только на сервере.</summary>
         private float serverDesiredYaw;
 
+        /// <summary>Желаемый наклон, присланный владельцем. Живёт только на сервере.</summary>
+        private float serverDesiredPitch;
+
         /// <summary>Направление луча на этой машине: у сервера точное, у остальных — доведённое.</summary>
         private float displayYaw;
+
+        /// <summary>Наклон луча на этой машине.</summary>
+        private float displayPitch;
 
         private float nextYawSendTime;
 
@@ -172,6 +196,9 @@ namespace Igruha.Minigames.CryingAngels
         /// <summary>Куда сервер держит луч сейчас.</summary>
         public float KeeperYaw => keeperYaw.Value;
 
+        /// <summary>Под каким наклоном сервер держит луч сейчас.</summary>
+        public float KeeperPitch => keeperPitch.Value;
+
         private void Awake()
         {
             game = GetComponent<CryingAngelsMinigame>();
@@ -190,6 +217,7 @@ namespace Igruha.Minigames.CryingAngels
             runnerStates.OnListChanged += OnRunnerStatesChanged;
 
             displayYaw = keeperYaw.Value;
+            displayPitch = keeperPitch.Value;
             lastSeenServerYaw = displayYaw;
             serverStillSince = Time.time;
 
@@ -233,8 +261,11 @@ namespace Igruha.Minigames.CryingAngels
             }
 
             serverDesiredYaw = startYaw;
+            serverDesiredPitch = 0f;
             displayYaw = startYaw;
+            displayPitch = 0f;
             keeperYaw.Value = startYaw;
+            keeperPitch.Value = 0f;
             keeperPlayerId.Value = playerId;
         }
 
@@ -258,7 +289,9 @@ namespace Igruha.Minigames.CryingAngels
 
             if (role != null)
             {
-                role.SetBeamYaw(IsServer ? keeperYaw.Value : displayYaw);
+                role.SetBeamAim(
+                    IsServer ? keeperYaw.Value : displayYaw,
+                    IsServer ? keeperPitch.Value : displayPitch);
             }
 
             // Раздача ролей на клиенте — единственный момент, когда у него
@@ -311,10 +344,19 @@ namespace Igruha.Minigames.CryingAngels
         /// в физическом такте прямо перед расчётом засветки: считать по конусу,
         /// переставленному кадром раньше, значит терять на разворотах до двух
         /// градусов — на границе конуса это уже разница между «поймал» и «нет».
+        ///
+        /// <b>Потолок ноль означает «доводить нечего»</b> — луч встаёт туда, куда
+        /// просит Водящий, тем же тактом. Авторитет при этом никуда не девается:
+        /// направление по-прежнему решает сервер, и присылать его вправе только
+        /// тот, кто действительно Водящий (<see cref="SubmitDesiredAimRpc"/>).
+        ///
+        /// Наклон потолку не подчиняется ни при каком раскладе: на засветку он
+        /// не влияет (<see cref="Igruha.Core.Vision.VisionCone"/> считает по
+        /// горизонтали), а доводка наклона читалась бы как залипание мыши.
         /// </summary>
-        public void ServerTickBeamYaw(float deltaTime, float maxTurnSpeed)
+        public void ServerTickBeamAim(float deltaTime, float maxTurnSpeed, float pitchLimit)
         {
-            if (!IsSpawned || !IsServer || maxTurnSpeed <= 0f)
+            if (!IsSpawned || !IsServer)
             {
                 return;
             }
@@ -324,16 +366,27 @@ namespace Igruha.Minigames.CryingAngels
             if (localIsKeeper && ownerRig != null)
             {
                 serverDesiredYaw = ownerRig.DesiredYaw;
+                serverDesiredPitch = ownerRig.Pitch;
             }
 
-            float next = Mathf.MoveTowardsAngle(keeperYaw.Value, serverDesiredYaw, maxTurnSpeed * deltaTime);
-            if (!Mathf.Approximately(next, keeperYaw.Value))
+            float nextYaw = maxTurnSpeed > 0f
+                ? Mathf.MoveTowardsAngle(keeperYaw.Value, serverDesiredYaw, maxTurnSpeed * deltaTime)
+                : serverDesiredYaw;
+
+            if (!Mathf.Approximately(nextYaw, keeperYaw.Value))
             {
-                keeperYaw.Value = next;
+                keeperYaw.Value = nextYaw;
             }
 
-            displayYaw = next;
-            keeperRole?.SetBeamYaw(next);
+            float nextPitch = Mathf.Clamp(serverDesiredPitch, -pitchLimit, pitchLimit);
+            if (!Mathf.Approximately(nextPitch, keeperPitch.Value))
+            {
+                keeperPitch.Value = nextPitch;
+            }
+
+            displayYaw = nextYaw;
+            displayPitch = nextPitch;
+            keeperRole?.SetBeamAim(nextYaw, nextPitch);
         }
 
         // ========== УХОД ИГРОКА ==========
@@ -404,30 +457,33 @@ namespace Igruha.Minigames.CryingAngels
             }
 
             nextYawSendTime = Time.time + 1f / DesiredYawSendRate;
-            SubmitDesiredYawRpc(ownerRig.DesiredYaw);
+            SubmitDesiredAimRpc(ownerRig.DesiredYaw, ownerRig.Pitch);
         }
 
         /// <summary>
         /// Сервер принимает намерение только от того, кто действительно Водящий:
         /// иначе любой клиент крутил бы чужой луч. Само значение не ограничивается —
-        /// потолок применяется при доводке, поэтому подделанный угол даёт ровно
-        /// тот же максимум градусов в секунду.
+        /// потолок и предел наклона применяются при доводке, поэтому подделанный
+        /// угол даёт ровно тот же максимум градусов в секунду и тот же наклон.
         /// </summary>
         [Rpc(SendTo.Server, RequireOwnership = false)]
-        private void SubmitDesiredYawRpc(float yaw, RpcParams rpcParams = default)
+        private void SubmitDesiredAimRpc(float yaw, float pitch, RpcParams rpcParams = default)
         {
             if ((int)rpcParams.Receive.SenderClientId != keeperPlayerId.Value)
             {
                 return;
             }
 
-            if (float.IsNaN(yaw) || float.IsInfinity(yaw))
+            if (!IsFinite(yaw) || !IsFinite(pitch))
             {
                 return;
             }
 
             serverDesiredYaw = yaw;
+            serverDesiredPitch = pitch;
         }
+
+        private static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
 
         /// <summary>
         /// Остальные машины догоняют серверное значение чуть быстрее потолка:
@@ -452,11 +508,16 @@ namespace Igruha.Minigames.CryingAngels
             }
             else
             {
-                float catchUp = game.KeeperTurnSpeed * RemoteCatchUpFactor;
+                float cap = game.KeeperTurnSpeed;
+                float catchUp = cap > 0f ? cap * RemoteCatchUpFactor : RemoteCatchUpUncapped;
                 displayYaw = Mathf.MoveTowardsAngle(displayYaw, target, catchUp * Time.deltaTime);
             }
 
-            keeperRole.SetBeamYaw(displayYaw);
+            // Наклон догоняется той же скоростью: он мелкий по амплитуде,
+            // и отдельная кривая под него была бы настройкой ради настройки.
+            displayPitch = Mathf.MoveTowards(displayPitch, keeperPitch.Value, RemoteCatchUpUncapped * Time.deltaTime);
+
+            keeperRole.SetBeamAim(displayYaw, displayPitch);
         }
 
         /// <summary>
@@ -472,6 +533,14 @@ namespace Igruha.Minigames.CryingAngels
         private void CorrectOwnerRig()
         {
             if (IsServer || !localIsKeeper || ownerRig == null || game == null)
+            {
+                return;
+            }
+
+            // Потолка нет — сервер повторяет намерение владельца один в один,
+            // и расхождение бывает только на время доставки. Подтягивать здесь
+            // нечего, а попытка подтянуть со скоростью «ноль» встала бы колом.
+            if (game.KeeperTurnSpeed <= 0f)
             {
                 return;
             }

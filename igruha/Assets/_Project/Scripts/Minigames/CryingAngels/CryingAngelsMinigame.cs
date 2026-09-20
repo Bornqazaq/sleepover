@@ -35,6 +35,9 @@ namespace Igruha.Minigames.CryingAngels
         /// <summary>Слой пола, стен и постамента — так их кладёт билдер арены.</summary>
         private const string GroundLayerName = "Ground";
 
+        /// <summary>Чем водит лучом болванка, когда сцена без конфига, °/с.</summary>
+        private const float DefaultSweepSpeed = 60f;
+
         [Header("Арена")]
         [SerializeField] private SpawnPointSet spawnPoints;
         [SerializeField] private CryingAngelsConfig config;
@@ -130,6 +133,17 @@ namespace Igruha.Minigames.CryingAngels
         /// </summary>
         public event Action<Vector3> RunnerPetrified;
 
+        /// <summary>
+        /// Луч поймал Бегущего — точка, где его держит.
+        ///
+        /// Поднимается на каждой машине по тому же переходу состояния, что и
+        /// заморозка: у авторитета — из решения конуса, у остальных — из
+        /// приехавшего состояния. Кому из этого делать звук, решает слушатель:
+        /// событие арены здесь слышат не все, потому что «кого-то держат» —
+        /// знание скрытое.
+        /// </summary>
+        public event Action<Vector3> RunnerCaught;
+
         /// <summary>Аватар Водящего этого раунда. Null до раздачи ролей.</summary>
         public PlayerController Keeper => keeperAvatar;
 
@@ -142,12 +156,17 @@ namespace Igruha.Minigames.CryingAngels
         /// Потолок скорости поворота Водящего под фактическое число Бегущих.
         /// Границы кривой берутся из определения мини-игры, поэтому число
         /// игроков нигде не зашито.
+        ///
+        /// <b>Ноль означает «потолка нет»</b>: луч идёт за мышью кадр в кадр.
+        /// Так же читается и случай ненастроенной сцены — доводить луч
+        /// со скоростью «неизвестно сколько» хуже, чем не доводить вовсе:
+        /// в первом варианте фонарь стоит колом и роль не играется.
         /// </summary>
         public float KeeperTurnSpeed
         {
             get
             {
-                if (config == null || Definition == null)
+                if (config == null || Definition == null || config.BeamFollowsMouse)
                 {
                     return 0f;
                 }
@@ -155,6 +174,20 @@ namespace Igruha.Minigames.CryingAngels
                 return config.GetTurnSpeed(runners.Count, Definition.MinPlayers - 1, Definition.MaxPlayers - 1);
             }
         }
+
+        /// <summary>Предел наклона фонаря, ±°. Наклон — картинка, засветка считается по горизонтали.</summary>
+        private float BeamPitchLimit => config != null ? config.BeamPitchLimit : 0f;
+
+        /// <summary>
+        /// С какой скоростью водит лучом болванка соло-теста.
+        ///
+        /// Берётся из кривой потолка всегда, даже когда живому Водящему потолок
+        /// снят: у болванки нет мыши, и «потолка нет» означало бы для неё
+        /// неподвижный фонарь — то есть соло-тест без половины игры.
+        /// </summary>
+        public float KeeperSweepSpeed => config != null && Definition != null
+            ? config.GetTurnSpeed(runners.Count, Definition.MinPlayers - 1, Definition.MaxPlayers - 1)
+            : DefaultSweepSpeed;
 
         protected override void Awake()
         {
@@ -268,7 +301,29 @@ namespace Igruha.Minigames.CryingAngels
                 Hud?.ShowCountdown(countdownRemaining);
             }
 
+            DriveLocalKeeperBeam();
             HandleDebugRoleSwitch();
+        }
+
+        /// <summary>
+        /// Соло-тест: сети нет, и вести луч некому — в катке этим занимается
+        /// <see cref="CryingAngelsNetwork"/>. Без этого фонарь в одиночку висит
+        /// на теле и наклон мыши не отрабатывает вовсе, то есть проверить
+        /// правку по лучу можно только вдвоём.
+        ///
+        /// Ставится в Update, а не в LateUpdate: порядок двух LateUpdate ничем
+        /// не задан, а <see cref="AngelKeeper"/> и так переставляет риг после
+        /// всех движений кадра.
+        /// </summary>
+        private void DriveLocalKeeperBeam()
+        {
+            if (Networked || keeper == null || firstPersonRig == null || !IsLocal(keeperPlayerId))
+            {
+                return;
+            }
+
+            float limit = BeamPitchLimit;
+            keeper.SetBeamAim(firstPersonRig.Yaw, Mathf.Clamp(firstPersonRig.Pitch, -limit, limit));
         }
 
         private void FixedUpdate()
@@ -289,7 +344,7 @@ namespace Igruha.Minigames.CryingAngels
             // решение по нему обязаны быть одного такта, иначе на разворотах
             // теряется до двух градусов — на границе конуса это уже разница
             // между «поймал» и «не поймал».
-            network?.ServerTickBeamYaw(deltaTime, KeeperTurnSpeed);
+            network?.ServerTickBeamAim(deltaTime, KeeperTurnSpeed, BeamPitchLimit);
 
             // Прогресс и исход считает только авторитет.
             if (!HasAuthority)
@@ -750,6 +805,11 @@ namespace Igruha.Minigames.CryingAngels
                 AnnouncePetrified(runner);
             }
 
+            if (before != RunnerState.Phase.Frozen && phase == RunnerState.Phase.Frozen)
+            {
+                AnnounceCaught(runner);
+            }
+
             if (finished && !runner.Touched)
             {
                 runner.Touched = true;
@@ -799,6 +859,17 @@ namespace Igruha.Minigames.CryingAngels
         }
 
         // ========== УХОД ИГРОКА ==========
+
+        /// <summary>
+        /// Игрок вышел из раунда сам — из паузы по Esc. Разбирается ровно так
+        /// же, как обрыв связи: уход Водящего заканчивает раунд, уход Бегущего
+        /// убирает его с арены, а остальные доигрывают.
+        ///
+        /// Разница с дисконнектом одна и она не наша: тело вышедшего никуда
+        /// не делось, и он остаётся в катке наблюдателем — это делает сам
+        /// <see cref="MinigameControllerBase"/>.
+        /// </summary>
+        protected override void OnPlayerLeftRound(int playerId) => HandlePlayerLeft(playerId);
 
         /// <summary>
         /// Игрок вышел из матча. Зовёт сетевой слой на ближайшем тике после
@@ -1096,9 +1167,17 @@ namespace Igruha.Minigames.CryingAngels
                 return;
             }
 
-            if (runnerByBody.TryGetValue(body, out RunnerRecord runner) && runner.State != null)
+            if (!runnerByBody.TryGetValue(body, out RunnerRecord runner) || runner.State == null)
             {
-                runner.State.SetFrozen(frozen);
+                return;
+            }
+
+            RunnerState.Phase before = runner.State.Current;
+            runner.State.SetFrozen(frozen);
+
+            if (before != RunnerState.Phase.Frozen && runner.State.Current == RunnerState.Phase.Frozen)
+            {
+                AnnounceCaught(runner);
             }
         }
 
@@ -1253,6 +1332,12 @@ namespace Igruha.Minigames.CryingAngels
         {
             TrySpawnStatue(runner);
             RunnerPetrified?.Invoke(runner.Avatar != null ? runner.Avatar.Position : transform.position);
+        }
+
+        /// <summary>Луч взял Бегущего. Объявляется на каждой машине — см. <see cref="RunnerCaught"/>.</summary>
+        private void AnnounceCaught(RunnerRecord runner)
+        {
+            RunnerCaught?.Invoke(runner.Avatar != null ? runner.Avatar.Position : transform.position);
         }
 
         private void ClearStatues()

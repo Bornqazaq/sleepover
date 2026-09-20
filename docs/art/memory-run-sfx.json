@@ -22,7 +22,8 @@
       "event": "Объявление хода: щелчок реле и гудок",
       "loop": false,
       "spatial": false,
-      "volume": 0.75
+      "volume": 0.75,
+      "file": "Minigames/Circus/SFX_CIRCUS_Relay_Click_01"
     },
     {
       "id": "plate_land",
@@ -52,7 +53,8 @@
       "event": "Падение тела после отлёта",
       "loop": false,
       "spatial": true,
-      "volume": 0.7
+      "volume": 0.7,
+      "file": "Core/Character/SFX_CHR_Bodyfall"
     },
     {
       "id": "crowd_gasp",
@@ -87,7 +89,8 @@
       "event": "Фанфара прохода",
       "loop": false,
       "spatial": false,
-      "volume": 0.85
+      "volume": 0.85,
+      "file": "Core/Flow/SFX_FLOW_Fanfare_Bright"
     },
     {
       "id": "round_end",
@@ -95,6 +98,15 @@
       "loop": false,
       "spatial": false,
       "volume": 0.8
+    },
+    {
+      "id": "SFX_MEM_Plate_Explosion",
+      "file": "SFX_MEM_Plate_Explosion",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "event": "детонация плиты",
+      "when": "слот mine_blast в memory-run-sfx.json"
     }
   ]
 }

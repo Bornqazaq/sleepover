@@ -71,7 +71,7 @@
     },
     {
       "id": "bear_roar",
-      "file": "Minigames/Circus/SFX_CIRCUS_Bear_Roar",
+      "file": "Minigames/Circus/SFX_CIRCUS_Bear_Growl",
       "event": "Рёв медведя (спека 8.5, интервал 6–12 с)",
       "when": "DistractionDirector, интервал 6–12 с; общий клип цирковой арены",
       "loop": false,
@@ -123,28 +123,32 @@
       "event": "Гибель в яме — смех публики следом за вздохом",
       "loop": false,
       "spatial": false,
-      "volume": 0.7
+      "volume": 0.7,
+      "file": "Core/Crowd/SFX_CROWD_Laugh"
     },
     {
       "id": "crowd_ambience",
       "event": "Шум толпы фоном с третьего подраунда (спека 8.5)",
       "loop": true,
       "spatial": false,
-      "volume": 0.35
+      "volume": 0.35,
+      "file": "Core/Crowd/SFX_CROWD_Amb_Stomp_Loop"
     },
     {
       "id": "fanfare",
       "event": "Победа — фанфары",
       "loop": false,
       "spatial": false,
-      "volume": 0.85
+      "volume": 0.85,
+      "file": "Core/Flow/SFX_FLOW_Fanfare_Win"
     },
     {
       "id": "applause",
       "event": "Победа — аплодисменты вслед за фанфарами",
       "loop": false,
       "spatial": false,
-      "volume": 0.7
+      "volume": 0.7,
+      "file": "Core/Crowd/SFX_CROWD_Applause"
     }
   ]
 }

@@ -32,26 +32,41 @@ MonoBehaviour:
     Loop: 0
     Spatial: 0
   - Id: pass_success_ding
-    Clip: {fileID: 0}
-    Variants: []
+    Clip: {fileID: 8300000, guid: be1f90c46c22a954c9f70a1227a506ab, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: be1f90c46c22a954c9f70a1227a506ab, type: 3}
+    - {fileID: 8300000, guid: 816b2e4a416ceb742bd36abb871caab9, type: 3}
+    - {fileID: 8300000, guid: 4e512947175f58841906b65d852a28ed, type: 3}
+    - {fileID: 8300000, guid: 6a18103cc688a0347ac5bee628491f93, type: 3}
     Volume: 1
     Loop: 0
     Spatial: 1
   - Id: crowd_cheer
-    Clip: {fileID: 0}
-    Variants: []
+    Clip: {fileID: 8300000, guid: dae0f40bd3c59004abe7ee5dd9372175, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: dae0f40bd3c59004abe7ee5dd9372175, type: 3}
+    - {fileID: 8300000, guid: 2cda74061ab963a42867f00b414a69f1, type: 3}
+    - {fileID: 8300000, guid: 455e354314db09447af8f27a8b208bf8, type: 3}
+    - {fileID: 8300000, guid: 2f7f69651be75454c90e44bfe39af8e2, type: 3}
+    - {fileID: 8300000, guid: 1bb88fc0bb3b71948bc2799609050701, type: 3}
+    - {fileID: 8300000, guid: c25513a6001eb804096a0d2ce9b37321, type: 3}
     Volume: 1
     Loop: 0
     Spatial: 0
   - Id: fail_body_hit
-    Clip: {fileID: 0}
-    Variants: []
+    Clip: {fileID: 8300000, guid: ee4eca069b9e61d49b15ee636e9edffd, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: ee4eca069b9e61d49b15ee636e9edffd, type: 3}
+    - {fileID: 8300000, guid: 206572d7700cf214c838509a868a25c3, type: 3}
     Volume: 0.8
     Loop: 0
     Spatial: 1
   - Id: water_splash
-    Clip: {fileID: 0}
-    Variants: []
+    Clip: {fileID: 8300000, guid: 0627c3cd568a5ea49aef74a200581329, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: 0627c3cd568a5ea49aef74a200581329, type: 3}
+    - {fileID: 8300000, guid: 0e4a7d98b747b274896905f698f734d1, type: 3}
+    - {fileID: 8300000, guid: f6c8c6aebffcd2d46a153101665193d2, type: 3}
     Volume: 0.5714
     Loop: 0
     Spatial: 1
@@ -74,8 +89,14 @@ MonoBehaviour:
     Loop: 0
     Spatial: 1
   - Id: round_end_jingle
-    Clip: {fileID: 0}
-    Variants: []
+    Clip: {fileID: 8300000, guid: 6c61e00ad8a57b64e994d40fa1ea7fc1, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: 6c61e00ad8a57b64e994d40fa1ea7fc1, type: 3}
+    - {fileID: 8300000, guid: 4ea881c8cc1555f408cea8a9f66c0c15, type: 3}
+    - {fileID: 8300000, guid: 0b60765f4160c3041b4777358aff5d35, type: 3}
+    - {fileID: 8300000, guid: 96045659ffd3db64ba19705375718d3b, type: 3}
+    - {fileID: 8300000, guid: 98ce3c9c744ca8c4db23f4131655b481, type: 3}
+    - {fileID: 8300000, guid: da51c36fe65a215479fb0d69203437bf, type: 3}
     Volume: 1
     Loop: 0
     Spatial: 0
@@ -85,3 +106,12 @@ MonoBehaviour:
     Volume: 0.737
     Loop: 1
     Spatial: 0
+  - Id: SFX_HOLE_Water_Splash
+    Clip: {fileID: 8300000, guid: 0627c3cd568a5ea49aef74a200581329, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: 0627c3cd568a5ea49aef74a200581329, type: 3}
+    - {fileID: 8300000, guid: 0e4a7d98b747b274896905f698f734d1, type: 3}
+    - {fileID: 8300000, guid: f6c8c6aebffcd2d46a153101665193d2, type: 3}
+    Volume: 1
+    Loop: 0
+    Spatial: 1

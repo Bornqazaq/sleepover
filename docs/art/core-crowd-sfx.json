@@ -1,0 +1,70 @@
+{
+  "game": "Crowd",
+  "source": "поставка звука, sounds.json",
+  "output_folder": "Assets/_Project/Audio/Core/Crowd",
+  "slots": [
+    {
+      "id": "SFX_CROWD_Amb_Stomp_Loop",
+      "file": "SFX_CROWD_Amb_Stomp_Loop",
+      "loop": true,
+      "spatial": false,
+      "volume": 1.0,
+      "event": "фон зала: хлопки с топотом",
+      "when": "луп; в цирке с третьего подраунда"
+    },
+    {
+      "id": "SFX_CROWD_Applause",
+      "file": "SFX_CROWD_Applause",
+      "loop": false,
+      "spatial": false,
+      "volume": 1.0,
+      "event": "аплодисменты",
+      "when": "победа, проход стены, засчитанная ходка"
+    },
+    {
+      "id": "SFX_CROWD_Applause_Slow",
+      "file": "SFX_CROWD_Applause_Slow",
+      "loop": false,
+      "spatial": false,
+      "volume": 1.0,
+      "event": "редкие хлопки",
+      "when": "ироничная реакция на слабый результат"
+    },
+    {
+      "id": "SFX_CROWD_Boo",
+      "file": "SFX_CROWD_Boo",
+      "loop": false,
+      "spatial": false,
+      "volume": 1.0,
+      "event": "«бу», недовольство",
+      "when": "провал, неверный ответ, обман Решающего"
+    },
+    {
+      "id": "SFX_CROWD_Boo_Claps",
+      "file": "SFX_CROWD_Boo_Claps",
+      "loop": false,
+      "spatial": false,
+      "volume": 1.0,
+      "event": "смешанная реакция",
+      "when": "часть зала хлопает, часть освистывает"
+    },
+    {
+      "id": "SFX_CROWD_Laugh",
+      "file": "SFX_CROWD_Laugh",
+      "loop": false,
+      "spatial": false,
+      "volume": 1.0,
+      "event": "смех зала",
+      "when": "комичная гибель, провал в люк, облачко в лицо"
+    },
+    {
+      "id": "SFX_CROWD_Laugh_Claps",
+      "file": "SFX_CROWD_Laugh_Claps",
+      "loop": false,
+      "spatial": false,
+      "volume": 1.0,
+      "event": "смех с аплодисментами",
+      "when": "удачная сцена"
+    }
+  ]
+}

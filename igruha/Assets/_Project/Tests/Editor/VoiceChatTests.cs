@@ -136,6 +136,46 @@ namespace Igruha.Tests
         }
 
         [Test]
+        public void Буфер_считает_обрывы_посреди_речи()
+        {
+            // По этому счётчику голос решает, что запаса мало для этой сети.
+            // Обрыв — это когда звук кончился на полуслове, а не когда человек
+            // замолчал и буфер пуст с самого начала.
+            var buffer = new VoiceJitterBuffer(16000, VoiceFormat.FrameSamples * 2, VoiceFormat.FrameSamples * 8);
+            var frame = Speech(VoiceFormat.FrameSamples);
+            var output = new float[VoiceFormat.FrameSamples];
+
+            buffer.Read(output, 0, output.Length);
+            Assert.AreEqual(0, buffer.Underruns, "Молчание — не обрыв");
+
+            buffer.Write(frame, 0, frame.Length);
+            buffer.Write(frame, 0, frame.Length);
+            buffer.Read(output, 0, output.Length);
+            buffer.Read(output, 0, output.Length);
+
+            Assert.AreEqual(1, buffer.Underruns, "Кончившийся на полуслове звук обязан считаться");
+        }
+
+        [Test]
+        public void Запас_растёт_но_не_ниже_заводского_и_не_до_потолка()
+        {
+            var buffer = new VoiceJitterBuffer(16000, VoiceFormat.FrameSamples * 3, VoiceFormat.FrameSamples * 12);
+
+            buffer.SetPrime(VoiceFormat.FrameSamples * 5);
+            Assert.AreEqual(VoiceFormat.FrameSamples * 5, buffer.PrimeSamples);
+
+            // Ниже заводского запас не опускается: кадр запаса — это щелчок
+            // на любой неровности сети.
+            buffer.SetPrime(VoiceFormat.FrameSamples);
+            Assert.AreEqual(VoiceFormat.FrameSamples * 3, buffer.PrimeSamples);
+
+            // И не растёт до потолка сброса: иначе буфер копил бы ровно
+            // столько, сколько тут же выбрасывает.
+            buffer.SetPrime(VoiceFormat.FrameSamples * 20);
+            Assert.AreEqual(VoiceFormat.FrameSamples * 6, buffer.PrimeSamples);
+        }
+
+        [Test]
         public void Пересчёт_частоты_не_уплывает_на_длинной_записи()
         {
             // Уплывшая на доли процента частота за минуту разговора

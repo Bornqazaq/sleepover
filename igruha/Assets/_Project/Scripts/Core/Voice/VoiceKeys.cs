@@ -27,6 +27,6 @@ namespace Igruha.Core.Voice
         public static bool SettingsToggled => Keyboard.current != null && Keyboard.current.f4Key.wasPressedThisFrame;
 
         /// <summary>Подсказка для экрана — одной строкой.</summary>
-        public const string Hint = "M — микрофон, V — говорить, F4 — настройки";
+        public const string Hint = "M — микрофон, V — говорить, F4 — громкость и настройки";
     }
 }

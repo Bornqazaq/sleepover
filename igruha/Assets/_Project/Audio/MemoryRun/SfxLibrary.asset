@@ -26,7 +26,7 @@ MonoBehaviour:
     Loop: 0
     Spatial: 0
   - Id: turn_announce
-    Clip: {fileID: 0}
+    Clip: {fileID: 8300000, guid: 46cef62d796de3f43bc875d71c323456, type: 3}
     Variants: []
     Volume: 0.75
     Loop: 0
@@ -39,7 +39,9 @@ MonoBehaviour:
     Spatial: 1
   - Id: mine_blast
     Clip: {fileID: 8300000, guid: 1586594bdcd4ae4438f363f53f56596e, type: 3}
-    Variants: []
+    Variants:
+    - {fileID: 8300000, guid: 1586594bdcd4ae4438f363f53f56596e, type: 3}
+    - {fileID: 8300000, guid: ea225aa7ec7f5254a9565c1d9a94ff66, type: 3}
     Volume: 1
     Loop: 0
     Spatial: 1
@@ -50,8 +52,12 @@ MonoBehaviour:
     Loop: 0
     Spatial: 1
   - Id: ragdoll_land
-    Clip: {fileID: 0}
-    Variants: []
+    Clip: {fileID: 8300000, guid: e75680c430c44514aa2cd6d3b534c936, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: e75680c430c44514aa2cd6d3b534c936, type: 3}
+    - {fileID: 8300000, guid: 5b38473f37d69a6489122bb7284e0b6a, type: 3}
+    - {fileID: 8300000, guid: bbcbde318cc148b409ed46a57f88894c, type: 3}
+    - {fileID: 8300000, guid: 4198479e4e8b0e34d82bcdcde6fa3b7d, type: 3}
     Volume: 0.7
     Loop: 0
     Spatial: 1
@@ -80,8 +86,10 @@ MonoBehaviour:
     Loop: 0
     Spatial: 1
   - Id: exit_fanfare
-    Clip: {fileID: 0}
-    Variants: []
+    Clip: {fileID: 8300000, guid: 0ef5188709c4ff74bb99460159ac34b4, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: 0ef5188709c4ff74bb99460159ac34b4, type: 3}
+    - {fileID: 8300000, guid: 35d53e30c2350d0438d224a4c01dd90a, type: 3}
     Volume: 0.85
     Loop: 0
     Spatial: 0
@@ -91,3 +99,11 @@ MonoBehaviour:
     Volume: 0.8
     Loop: 0
     Spatial: 0
+  - Id: SFX_MEM_Plate_Explosion
+    Clip: {fileID: 8300000, guid: 1586594bdcd4ae4438f363f53f56596e, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: 1586594bdcd4ae4438f363f53f56596e, type: 3}
+    - {fileID: 8300000, guid: ea225aa7ec7f5254a9565c1d9a94ff66, type: 3}
+    Volume: 1
+    Loop: 0
+    Spatial: 1

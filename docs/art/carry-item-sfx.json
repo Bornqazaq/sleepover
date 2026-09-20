@@ -57,7 +57,8 @@
       "event": "Ходка засчитана — короткая фанфара",
       "loop": false,
       "spatial": false,
-      "volume": 0.9
+      "volume": 0.9,
+      "file": "Core/Flow/SFX_FLOW_Fanfare_Bright"
     },
     {
       "id": "beam_warn",
@@ -71,7 +72,8 @@
       "event": "Удар балки",
       "loop": false,
       "spatial": true,
-      "volume": 1.0
+      "volume": 1.0,
+      "file": "Core/Traps/SFX_TRAP_Beam_Hit"
     },
     {
       "id": "cart_tip",

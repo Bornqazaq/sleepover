@@ -99,6 +99,7 @@ namespace Igruha.Minigames.CryingAngels
         private void OnEnable()
         {
             if (game != null) game.RunnerPetrified += OnRunnerPetrified;
+            if (game != null) game.RunnerCaught += OnRunnerCaught;
             if (screamer != null) screamer.Started += OnScreamerStarted;
             if (caughtFeedback != null) caughtFeedback.Caught += OnCaughtByBeam;
         }
@@ -106,6 +107,7 @@ namespace Igruha.Minigames.CryingAngels
         private void OnDisable()
         {
             if (game != null) game.RunnerPetrified -= OnRunnerPetrified;
+            if (game != null) game.RunnerCaught -= OnRunnerCaught;
             if (screamer != null) screamer.Started -= OnScreamerStarted;
             if (caughtFeedback != null) caughtFeedback.Caught -= OnCaughtByBeam;
 
@@ -223,6 +225,36 @@ namespace Igruha.Minigames.CryingAngels
         private void OnScreamerStarted(int playerId) => audioPlayer?.Play(SlotScreamer);
 
         private void OnCaughtByBeam() => audioPlayer?.Play(SlotSpottedSting);
+
+        /// <summary>
+        /// Луч кого-то взял. Играем только у Водящего — и только у него.
+        ///
+        /// До 20.09 поимку слышал один пойманный, а у ловца она проходила молча:
+        /// он видел, что счётчик пошёл, но узнавал об этом глазами, по цвету
+        /// луча. Теперь у поимки есть звук с обеих сторон — тот же сти́нг, что
+        /// и у жертвы, потому что это одно событие, а не два.
+        ///
+        /// Зрителям и остальным Бегущим не играем намеренно. Событие поднимается
+        /// у всех, но «кого-то держат» — знание скрытое: по звуку через комнату
+        /// было бы слышно, что луч занят, и половина игры (следить за лучом
+        /// глазами) обесценилась бы.
+        /// </summary>
+        private void OnRunnerCaught(Vector3 point)
+        {
+            if (audioPlayer == null || !LocalPlayerIsKeeper()) return;
+
+            audioPlayer.Play(SlotSpottedSting);
+        }
+
+        /// <summary>Локальный игрок — Водящий этого раунда.</summary>
+        private bool LocalPlayerIsKeeper()
+        {
+            PlayerController keeper = game != null ? game.Keeper : null;
+            if (keeper == null) return false;
+
+            SessionPlayer local = SessionScoreboard.Current?.LocalPlayer;
+            return local != null && local.Avatar == keeper;
+        }
 
         /// <summary>
         /// Подменить шаг всем участникам раунда на каменный.

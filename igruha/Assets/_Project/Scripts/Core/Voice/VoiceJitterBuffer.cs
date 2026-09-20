@@ -16,17 +16,26 @@ namespace Igruha.Core.Voice
     /// успели съесть, разговор начинает отставать и отставание уже не уходит.
     /// Поэтому переполнение сбрасывает старое, а не растёт: лучше один щелчок,
     /// чем секунда опоздания до конца катки.
+    ///
+    /// <b>Запас не постоянный.</b> Одна и та же цифра не подходит и локальной
+    /// сети, и разговору через Tailscale: маленький запас на неровном канале
+    /// обрывает звук каждые несколько слов, большой — добавляет задержку там,
+    /// где она не нужна. Поэтому буфер считает обрывы (<see cref="Underruns"/>),
+    /// а решение, насколько поднять запас, принимает <see cref="VoiceSpeaker"/> —
+    /// он один знает, что такое кадр и сколько их в секунде.
     /// </summary>
     public sealed class VoiceJitterBuffer
     {
         private readonly object gate = new object();
         private readonly float[] buffer;
-        private readonly int primeSamples;
+        private readonly int minPrimeSamples;
         private readonly int maxSamples;
 
+        private int primeSamples;
         private int readAt;
         private int available;
         private bool priming = true;
+        private int underruns;
 
         public VoiceJitterBuffer(int capacitySamples, int primeSamples, int maxSamples)
         {
@@ -34,8 +43,9 @@ namespace Igruha.Core.Voice
             if (maxSamples > capacitySamples) throw new ArgumentOutOfRangeException(nameof(maxSamples));
 
             buffer = new float[capacitySamples];
-            this.primeSamples = Math.Max(0, primeSamples);
-            this.maxSamples = Math.Max(this.primeSamples, maxSamples);
+            minPrimeSamples = Math.Max(0, primeSamples);
+            this.primeSamples = minPrimeSamples;
+            this.maxSamples = Math.Max(minPrimeSamples, maxSamples);
         }
 
         /// <summary>Сколько отсчётов ждёт воспроизведения.</summary>
@@ -51,7 +61,37 @@ namespace Igruha.Core.Voice
         }
 
         /// <summary>Порог, после которого буфер начинает отдавать звук.</summary>
-        public int PrimeSamples => primeSamples;
+        public int PrimeSamples
+        {
+            get { lock (gate) return primeSamples; }
+        }
+
+        /// <summary>
+        /// Сколько раз звук кончился посреди воспроизведения. По этому счётчику
+        /// снаружи решают, что запас мал для этой сети, и поднимают его: сам
+        /// буфер про кадры и секунды ничего не знает.
+        /// </summary>
+        public int Underruns
+        {
+            get { lock (gate) return underruns; }
+        }
+
+        /// <summary>
+        /// Задать запас. Ниже заводского не опускается: запас в один кадр
+        /// означает, что любая неровность сети слышна щелчком.
+        ///
+        /// Уменьшение не выбрасывает уже накопленное — лишнее само разойдётся
+        /// на чтениях, а вот подрезать буфер на ходу значит потерять звук,
+        /// который уже приехал.
+        /// </summary>
+        public void SetPrime(int samples)
+        {
+            lock (gate)
+            {
+                int limit = Math.Max(minPrimeSamples, maxSamples / 2);
+                primeSamples = Math.Min(Math.Max(samples, minPrimeSamples), limit);
+            }
+        }
 
         /// <summary>Положить раскодированный кадр. Вызывается из главного потока.</summary>
         public void Write(float[] source, int offset, int count)
@@ -118,7 +158,15 @@ namespace Igruha.Core.Voice
 
                 available -= taken;
                 if (taken < count) Array.Clear(destination, offset + taken, count - taken);
-                if (available == 0) priming = true;
+
+                // Звук кончился на полуслове. Считаем это отдельно от обычной
+                // паузы в разговоре: повторяющийся обрыв — единственный
+                // объективный признак того, что запаса мало для этой сети.
+                if (available == 0)
+                {
+                    priming = true;
+                    if (taken > 0) underruns++;
+                }
 
                 return taken;
             }
@@ -131,6 +179,7 @@ namespace Igruha.Core.Voice
                 readAt = 0;
                 available = 0;
                 priming = true;
+                underruns = 0;
             }
         }
     }

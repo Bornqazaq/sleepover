@@ -6149,6 +6149,7 @@ MonoBehaviour:
   onPlayerEntered:
     m_PersistentCalls:
       m_Calls: []
+  guardByHeight: 1
 --- !u!65 &227940534
 BoxCollider:
   m_ObjectHideFlags: 0
