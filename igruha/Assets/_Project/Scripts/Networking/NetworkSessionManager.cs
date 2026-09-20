@@ -20,22 +20,57 @@ namespace Igruha.Networking
         public int Score;
         public FixedString32Bytes DisplayName;
 
+        /// <summary>Имя своё, а не выданное по счёту входа. Первое имя клиент приносит с собой.</summary>
+        public bool Named;
+
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
             serializer.SerializeValue(ref ClientId);
             serializer.SerializeValue(ref Score);
             serializer.SerializeValue(ref DisplayName);
+            serializer.SerializeValue(ref Named);
         }
 
         public bool Equals(SessionPlayerState other) =>
             ClientId == other.ClientId &&
             Score == other.Score &&
+            Named == other.Named &&
             DisplayName.Equals(other.DisplayName);
     }
 
     /// <summary>
-    /// Сетевое табло катки: ростер и счёт живут в NetworkList, менять их вправе
-    /// только сервер. Клиенты читают то же самое через ISessionScoreboard и не
+    /// Одна строка журнала катки в сетевом виде: что участник получил за
+    /// раунд. Ключ игры — имя сцены: оно короткое и латиницей, поэтому
+    /// помещается в FixedString32Bytes без риска обрезки.
+    /// </summary>
+    public struct SessionRoundState : INetworkSerializable, IEquatable<SessionRoundState>
+    {
+        public int Round;
+        public FixedString32Bytes Game;
+        public ulong ClientId;
+        public int Place;
+        public int Points;
+
+        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+        {
+            serializer.SerializeValue(ref Round);
+            serializer.SerializeValue(ref Game);
+            serializer.SerializeValue(ref ClientId);
+            serializer.SerializeValue(ref Place);
+            serializer.SerializeValue(ref Points);
+        }
+
+        public bool Equals(SessionRoundState other) =>
+            Round == other.Round &&
+            Game.Equals(other.Game) &&
+            ClientId == other.ClientId &&
+            Place == other.Place &&
+            Points == other.Points;
+    }
+
+    /// <summary>
+    /// Сетевое табло катки: ростер, счёт, журнал раундов и чемпионы живут в
+    /// NetworkList, менять их вправе только сервер. Клиенты читают то же самое через ISessionScoreboard и не
     /// знают, что данные пришли по сети.
     ///
     /// Спавнится сервером один раз (AppNetworkManager) и переживает смену сцен,
@@ -44,6 +79,17 @@ namespace Igruha.Networking
     public sealed class NetworkSessionManager : NetworkBehaviour, ISessionScoreboard, ISessionScoreReset
     {
         private readonly NetworkList<SessionPlayerState> roster = new NetworkList<SessionPlayerState>();
+
+        /// <summary>Журнал катки: по записи на участника за каждый засчитанный раунд.</summary>
+        private readonly NetworkList<SessionRoundState> history = new NetworkList<SessionRoundState>();
+
+        /// <summary>Чемпионы последней доигранной серии. Несколько — при равенстве сумм.</summary>
+        private readonly NetworkList<ulong> champions = new NetworkList<ulong>();
+
+        private readonly List<SessionRoundRecord> historyMirror = new List<SessionRoundRecord>(64);
+        private readonly List<int> championMirror = new List<int>(8);
+        private readonly SessionStandings standings = new SessionStandings();
+        private int roundsPlayed;
 
         /// <summary>Зеркало ростера в виде Core-объектов: переиспользуем экземпляры,
         /// иначе мини-игра осталась бы со ссылками на устаревших участников.</summary>
@@ -60,6 +106,14 @@ namespace Igruha.Networking
 
         public IReadOnlyList<SessionPlayer> Players => mirror;
 
+        public IReadOnlyList<SessionRoundRecord> History => historyMirror;
+
+        public int RoundsPlayed => roundsPlayed;
+
+        public IReadOnlyList<int> Champions => championMirror;
+
+        public bool IsChampion(int playerId) => championMirror.Contains(playerId);
+
         public SessionPlayer LocalPlayer => IsSpawned ? FindPlayer((int)NetworkManager.LocalClientId) : null;
 
         /// <summary>До спавна сети нет — решает локальная машина.</summary>
@@ -71,6 +125,8 @@ namespace Igruha.Networking
             DontDestroyOnLoad(gameObject);
 
             roster.OnListChanged += OnRosterChanged;
+            history.OnListChanged += OnHistoryChanged;
+            champions.OnListChanged += OnChampionsChanged;
             SessionScoreboard.RegisterNetworked(this);
 
             if (IsServer)
@@ -80,13 +136,18 @@ namespace Igruha.Networking
                 NetworkManager.OnClientDisconnectCallback += OnClientDisconnected;
             }
 
+            RebuildHistoryMirror();
+            RebuildChampionMirror();
             RebuildMirror();
-            Debug.Log($"🏆 NetworkSessionManager готов ({(IsServer ? "СЕРВЕР" : "КЛИЕНТ")}), участников: {roster.Count}");
+            Debug.Log($"🏆 NetworkSessionManager готов ({(IsServer ? "СЕРВЕР" : "КЛИЕНТ")}), участников: {roster.Count}, " +
+                      $"раундов в журнале: {roundsPlayed}");
         }
 
         public override void OnNetworkDespawn()
         {
             roster.OnListChanged -= OnRosterChanged;
+            history.OnListChanged -= OnHistoryChanged;
+            champions.OnListChanged -= OnChampionsChanged;
             SessionScoreboard.Unregister(this);
             if (IsServer) PartySeries.Reset();
 
@@ -184,6 +245,9 @@ namespace Igruha.Networking
             pendingRemovals.Clear();
         }
 
+        /// <summary>Имена, принесённые клиентами до того, как их завели в ростер.</summary>
+        private readonly Dictionary<ulong, string> claimedNames = new Dictionary<ulong, string>(8);
+
         private void AddToRoster(ulong clientId)
         {
             if (IndexOf((int)clientId) >= 0)
@@ -191,12 +255,46 @@ namespace Igruha.Networking
                 return;
             }
 
+            bool named = claimedNames.TryGetValue(clientId, out string claimed)
+                         && PartyDisplayName.TryNormalize(claimed, out claimed);
+
             roster.Add(new SessionPlayerState
             {
                 ClientId = clientId,
                 Score = 0,
-                DisplayName = new FixedString32Bytes($"Игрок {roster.Count + 1}")
+                DisplayName = new FixedString32Bytes(named ? claimed : $"Игрок {roster.Count + 1}"),
+                Named = named
             });
+
+            claimedNames.Remove(clientId);
+        }
+
+        /// <summary>
+        /// Имя, принесённое клиентом при входе. Ставится только один раз и
+        /// только поверх выданного по счёту — дальше имя меняют в комнате
+        /// участников, и подменить чужое им нельзя.
+        ///
+        /// Хранится до прихода в ростер: заявка может доехать раньше, чем
+        /// сервер успеет завести запись, и тогда без этой копии первое имя
+        /// каждого второго входа терялось бы гонкой.
+        /// </summary>
+        public void ClaimNameOnJoin(ulong clientId, string name)
+        {
+            if (!IsServer || !PartyDisplayName.TryNormalize(name, out string valid)) return;
+
+            int index = IndexOf((int)clientId);
+            if (index < 0)
+            {
+                claimedNames[clientId] = valid;
+                return;
+            }
+
+            SessionPlayerState state = roster[index];
+            if (state.Named) return;
+
+            state.DisplayName = new FixedString32Bytes(valid);
+            state.Named = true;
+            roster[index] = state;
         }
 
         private int IndexOf(int playerId)
@@ -215,6 +313,43 @@ namespace Igruha.Networking
         // ========== ЗЕРКАЛО ДЛЯ CORE ==========
 
         private void OnRosterChanged(NetworkListEvent<SessionPlayerState> changeEvent) => RebuildMirror();
+
+        private void OnHistoryChanged(NetworkListEvent<SessionRoundState> changeEvent)
+        {
+            RebuildHistoryMirror();
+            ScoresChanged?.Invoke();
+        }
+
+        private void OnChampionsChanged(NetworkListEvent<ulong> changeEvent)
+        {
+            RebuildChampionMirror();
+            ScoresChanged?.Invoke();
+        }
+
+        private void RebuildHistoryMirror()
+        {
+            historyMirror.Clear();
+            roundsPlayed = 0;
+            for (int i = 0; i < history.Count; i++)
+            {
+                SessionRoundState state = history[i];
+                historyMirror.Add(new SessionRoundRecord(state.Round, state.Game.ToString(),
+                    (int)state.ClientId, state.Place, state.Points));
+                if (state.Round > roundsPlayed)
+                {
+                    roundsPlayed = state.Round;
+                }
+            }
+        }
+
+        private void RebuildChampionMirror()
+        {
+            championMirror.Clear();
+            for (int i = 0; i < champions.Count; i++)
+            {
+                championMirror.Add((int)champions[i]);
+            }
+        }
 
         private void RebuildMirror()
         {
@@ -291,8 +426,11 @@ namespace Igruha.Networking
         }
 
         /// <summary>
-        /// Начисление по формуле «очки = число_игроков − место» (GDD 3.1).
-        /// Только сервер: клиенты получат новый счёт репликацией NetworkList.
+        /// Начисление по общей формуле <see cref="SessionScoring"/>: число
+        /// игроков берётся по составу на старте раунда, а не по ростеру —
+        /// ушедшие не обесценивают победу (IGR-372). Только сервер: клиенты
+        /// получают очки вместе с местами по RPC, а ростер и журнал —
+        /// репликацией NetworkList.
         /// </summary>
         public void ReportResults(MinigameResults results)
         {
@@ -302,22 +440,107 @@ namespace Igruha.Networking
                 return;
             }
 
-            int playerCount = roster.Count;
+            if (results == null)
+            {
+                return;
+            }
+
+            int playerCount = SessionScoring.PlayerCountFor(results, roster.Count);
+            int round = roundsPlayed + 1;
+            bool anyAwarded = false;
+            var game = new FixedString32Bytes(FitKey(results.GameKey));
             IReadOnlyList<MinigameResults.PlayerResult> entries = results.Entries;
 
             for (int i = 0; i < entries.Count; i++)
             {
+                int place = entries[i].Place;
                 int index = IndexOf(entries[i].PlayerId);
                 if (index < 0)
                 {
+                    // Вышел из катки до подсчёта: место посчитано, очки некому.
+                    Debug.Log($"⭐ [СЕРВЕР] игрок {entries[i].PlayerId}: место {place}, но его уже нет в катке — без очков");
                     continue;
                 }
 
+                int points = SessionScoring.PointsFor(place, playerCount);
                 SessionPlayerState state = roster[index];
-                state.Score += Mathf.Max(0, playerCount - entries[i].Place);
+                state.Score += points;
                 roster[index] = state;
+                results.SetAward(i, points, state.Score);
 
-                Debug.Log($"⭐ [СЕРВЕР] {state.DisplayName}: место {entries[i].Place}, всего очков {state.Score}");
+                history.Add(new SessionRoundState
+                {
+                    Round = round,
+                    Game = game,
+                    ClientId = (ulong)entries[i].PlayerId,
+                    Place = place,
+                    Points = points
+                });
+                anyAwarded = true;
+
+                Debug.Log($"⭐ [СЕРВЕР] {state.DisplayName}: место {place} из {playerCount}, +{points}, всего {state.Score}");
+            }
+
+            if (anyAwarded)
+            {
+                roundsPlayed = round;
+                Debug.Log($"📒 [СЕРВЕР] раунд {round} ({results.GameKey}) записан в журнал катки");
+            }
+        }
+
+        /// <summary>Ключ игры под вместимость FixedString32Bytes: 29 байт UTF-8.</summary>
+        private static string FitKey(string key)
+        {
+            if (string.IsNullOrEmpty(key))
+            {
+                return "?";
+            }
+
+            int maxBytes = FixedString32Bytes.UTF8MaxLengthInBytes;
+            if (System.Text.Encoding.UTF8.GetByteCount(key) <= maxBytes)
+            {
+                return key;
+            }
+
+            // Редкий путь: ключ длиннее вместимости. Режем по символам, пока
+            // не влезет, — на латинице это ровно 29 знаков.
+            char[] chars = key.ToCharArray();
+            for (int length = chars.Length - 1; length > 0; length--)
+            {
+                if (System.Text.Encoding.UTF8.GetByteCount(chars, 0, length) <= maxBytes)
+                {
+                    return new string(chars, 0, length);
+                }
+            }
+
+            return "?";
+        }
+
+        /// <summary>Серия доиграна: чемпионы — все, кто делит первое место по сумме.</summary>
+        public void CompleteSeries()
+        {
+            if (!IsServer)
+            {
+                Debug.LogWarning($"{name}: CompleteSeries вызван не на сервере — проигнорирован", this);
+                return;
+            }
+
+            standings.Rebuild(mirror, historyMirror);
+            champions.Clear();
+            IReadOnlyList<SessionStandings.Entry> table = standings.Entries;
+            for (int i = 0; i < table.Count; i++)
+            {
+                if (standings.IsLeader(table[i].PlayerId))
+                {
+                    champions.Add((ulong)table[i].PlayerId);
+                    Debug.Log($"👑 [СЕРВЕР] чемпион катки: {FindPlayer(table[i].PlayerId)?.DisplayName} " +
+                              $"({table[i].Score} очк., побед {table[i].Wins}) за {standings.RoundsPlayed} игр");
+                }
+            }
+
+            if (champions.Count == 0)
+            {
+                Debug.Log("👑 [СЕРВЕР] серия окончена без чемпиона: очков ни у кого нет");
             }
         }
 
@@ -325,13 +548,17 @@ namespace Igruha.Networking
         {
             if (!IsServer || !PartyDisplayName.TryNormalize(name, out var valid)) return false;
             int index = IndexOf((int)clientId); if (index < 0) return false;
-            var state = roster[index]; state.DisplayName = new FixedString32Bytes(valid); roster[index] = state;
+            var state = roster[index]; state.DisplayName = new FixedString32Bytes(valid); state.Named = true; roster[index] = state;
             return true;
         }
+        /// <summary>Новая серия: счёт, журнал и чемпионы — с чистого листа.</summary>
         public void ResetScores()
         {
             if (!IsServer) return;
             for (int i = 0; i < roster.Count; i++) { var state = roster[i]; state.Score = 0; roster[i] = state; }
+            history.Clear();
+            champions.Clear();
+            roundsPlayed = 0;
         }
 
         // ========== ОСОБЫЕ РОЛИ ==========

@@ -1,0 +1,151 @@
+{
+  "game": "UI",
+  "source": "поставка звука (sounds.json). Слот без клипа — это заказ поставщику, а не ошибка.",
+  "output_folder": "Assets/_Project/Audio/Core/UI",
+  "slots": [
+    {
+      "id": "SFX_UI_Back",
+      "file": "SFX_UI_Back",
+      "event": "назад / отмена",
+      "when": "Esc, B, кнопка «Назад»",
+      "loop": false,
+      "spatial": false,
+      "volume": 1.0
+    },
+    {
+      "id": "SFX_UI_Char_Browse",
+      "file": "SFX_UI_Char_Browse",
+      "event": "листание карточек",
+      "when": "выбор персонажа, лента игр на ТВ",
+      "loop": false,
+      "spatial": false,
+      "volume": 1.0
+    },
+    {
+      "id": "SFX_UI_Char_Select",
+      "file": "SFX_UI_Char_Select",
+      "event": "выбор подтверждён",
+      "when": "персонаж выбран",
+      "loop": false,
+      "spatial": false,
+      "volume": 1.0
+    },
+    {
+      "id": "SFX_UI_Click",
+      "file": "SFX_UI_Click",
+      "event": "нажатие кнопки",
+      "when": "подтверждение в любом меню",
+      "loop": false,
+      "spatial": false,
+      "volume": 1.0
+    },
+    {
+      "id": "SFX_UI_Dialog_Open",
+      "file": "SFX_UI_Dialog_Open",
+      "event": "диалог подтверждения",
+      "when": "«Выйти из игры?» и подобные",
+      "loop": false,
+      "spatial": false,
+      "volume": 1.0
+    },
+    {
+      "id": "SFX_UI_Error",
+      "file": "SFX_UI_Error",
+      "event": "недоступно",
+      "when": "нажали заблокированную кнопку",
+      "loop": false,
+      "spatial": false,
+      "volume": 1.0
+    },
+    {
+      "id": "SFX_UI_Hover",
+      "file": "SFX_UI_Hover",
+      "event": "наведение на кнопку",
+      "when": "курсор/стик встал на кнопку",
+      "loop": false,
+      "spatial": false,
+      "volume": 1.0
+    },
+    {
+      "id": "SFX_UI_Logo_Sting",
+      "file": "SFX_UI_Logo_Sting",
+      "event": "звуковой логотип",
+      "when": "заставка при запуске; ЧЕРНОВИК",
+      "loop": false,
+      "spatial": false,
+      "volume": 1.0
+    },
+    {
+      "id": "SFX_UI_Menu_Close",
+      "file": "SFX_UI_Menu_Close",
+      "event": "закрытие окна",
+      "when": "копия Back — можно играть сам Back",
+      "loop": false,
+      "spatial": false,
+      "volume": 1.0
+    },
+    {
+      "id": "SFX_UI_Menu_Open",
+      "file": "SFX_UI_Menu_Open",
+      "event": "открытие окна",
+      "when": "копия Click — можно играть сам Click",
+      "loop": false,
+      "spatial": false,
+      "volume": 1.0
+    },
+    {
+      "id": "SFX_UI_Notify_Pop",
+      "file": "SFX_UI_Notify_Pop",
+      "event": "всплывающее уведомление",
+      "when": "тост, приглашение",
+      "loop": false,
+      "spatial": false,
+      "volume": 1.0
+    },
+    {
+      "id": "SFX_UI_Slider_Tick",
+      "file": "SFX_UI_Slider_Tick",
+      "event": "шаг слайдера",
+      "when": "каждый шаг громкости; сыплется очередью",
+      "loop": false,
+      "spatial": false,
+      "volume": 1.0
+    },
+    {
+      "id": "SFX_UI_Tab_Switch",
+      "file": "SFX_UI_Tab_Switch",
+      "event": "смена вкладки",
+      "when": "вкладки настроек, LB/RB",
+      "loop": false,
+      "spatial": false,
+      "volume": 1.0
+    },
+    {
+      "id": "SFX_UI_Toggle_Off",
+      "file": "SFX_UI_Toggle_Off",
+      "event": "тумблер выключен",
+      "when": "галочка/переключатель",
+      "loop": false,
+      "spatial": false,
+      "volume": 1.0
+    },
+    {
+      "id": "SFX_UI_Toggle_On",
+      "file": "SFX_UI_Toggle_On",
+      "event": "тумблер включён",
+      "when": "галочка/переключатель",
+      "loop": false,
+      "spatial": false,
+      "volume": 1.0
+    },
+    {
+      "id": "SFX_UI_Type_Key",
+      "file": "SFX_UI_Type_Key",
+      "event": "ввод символа",
+      "when": "ник в ConsoleNameInputField",
+      "loop": false,
+      "spatial": false,
+      "volume": 1.0
+    }
+  ]
+}

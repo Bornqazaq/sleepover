@@ -3,13 +3,36 @@ using UnityEngine;
 
 namespace Igruha.Core.Session
 {
-    /// <summary>Local identities and scores survive scene changes just like the network roster.</summary>
+    /// <summary>
+    /// Локальная катка без сети: имена, облики, счёт, журнал раундов и
+    /// чемпионы переживают смену сцен так же, как сетевой ростер. Сетевая
+    /// катка сюда не пишет — у неё всё это в NetworkList.
+    /// </summary>
     public static class LocalPartyProfile
     {
         private struct Entry { public string Name; public int Character, Score; }
         private static readonly Dictionary<int, Entry> entries = new Dictionary<int, Entry>();
+        private static readonly List<SessionRoundRecord> history = new List<SessionRoundRecord>(64);
+        private static readonly List<int> champions = new List<int>(8);
+
+        /// <summary>Журнал катки локального режима. Пишет только SessionManager.</summary>
+        public static List<SessionRoundRecord> History => history;
+
+        /// <summary>Чемпионы последней доигранной серии локального режима.</summary>
+        public static List<int> Champions => champions;
+
+        /// <summary>Сколько игр засчитано в локальной катке.</summary>
+        public static int RoundsPlayed { get; set; }
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void Reset() => entries.Clear();
+        private static void Reset()
+        {
+            entries.Clear();
+            history.Clear();
+            champions.Clear();
+            RoundsPlayed = 0;
+        }
+
         public static int PlayerCount
         {
             get { int count = 0; while (count < 8 && entries.ContainsKey(count)) count++; return count; }

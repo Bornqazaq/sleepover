@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2574025c1373412bb9b8283feb02ca7, type: 3}
+  m_Name: SfxLibrary
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.MinigameSfxLibrary
+  entries:
+  - Id: SFX_CIRCUS_Bear_Impact
+    Clip: {fileID: 8300000, guid: 91e3fe136a786d748a9e100b803e18d4, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: 91e3fe136a786d748a9e100b803e18d4, type: 3}
+    - {fileID: 8300000, guid: 88edd978c3b65b24896d8f5fa2e38578, type: 3}
+    - {fileID: 8300000, guid: 9e9f227015ef6fe44b2aea104bf7bae1, type: 3}
+    Volume: 1
+    Loop: 0
+    Spatial: 1
+  - Id: SFX_CIRCUS_Bear_Roar
+    Clip: {fileID: 8300000, guid: 4ffb51322af2dce4988c9c8150fa5313, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 1
+  - Id: SFX_CIRCUS_Bear_Swipe
+    Clip: {fileID: 8300000, guid: d1f0caa496728374d8d28d702f590118, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 1
+  - Id: SFX_CIRCUS_Cage_Hatch_Open
+    Clip: {fileID: 8300000, guid: 685a9f64df8134848ad50f110fd0f79e, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 1
+  - Id: SFX_CIRCUS_Cage_Lower_Chains
+    Clip: {fileID: 8300000, guid: 9b80cba9aa69f274ca9aacb68cd25ab0, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 1
+  - Id: SFX_CIRCUS_Relay_Click
+    Clip: {fileID: 8300000, guid: 46cef62d796de3f43bc875d71c323456, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: 46cef62d796de3f43bc875d71c323456, type: 3}
+    - {fileID: 8300000, guid: 327c0fbe957f6b34db0d4f61815c2846, type: 3}
+    Volume: 1
+    Loop: 0
+    Spatial: 1
+  - Id: SFX_CIRCUS_Results_Hit
+    Clip: {fileID: 8300000, guid: f3c97dc30811a6a4495eba1aa983d596, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 0

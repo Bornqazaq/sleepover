@@ -1,0 +1,70 @@
+{
+  "game": "CryingAngels",
+  "source": "поставка звука (sounds.json). Слот без клипа — это заказ поставщику, а не ошибка.",
+  "output_folder": "Assets/_Project/Audio/CryingAngels",
+  "slots": [
+    {
+      "id": "SFX_ANGL_Amb_Hall_Loop",
+      "file": "SFX_ANGL_Amb_Hall_Loop",
+      "event": "фон зала статуй",
+      "when": "луп весь раунд",
+      "loop": true,
+      "spatial": false,
+      "volume": 1.0
+    },
+    {
+      "id": "SFX_ANGL_Pedestal_Grind_Loop",
+      "file": "SFX_ANGL_Pedestal_Grind_Loop",
+      "event": "вращение постамента",
+      "when": "луп; громкость по скорости поворота",
+      "loop": true,
+      "spatial": true,
+      "volume": 1.0
+    },
+    {
+      "id": "SFX_ANGL_Petrified_Impact",
+      "file": "SFX_ANGL_Petrified_Impact",
+      "event": "окаменел",
+      "when": "перед телепортом на точку спавна",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0
+    },
+    {
+      "id": "SFX_ANGL_Petrify_Crumble",
+      "file": "SFX_ANGL_Petrify_Crumble",
+      "event": "окаменение",
+      "when": "счётчик под лучом, порог 2 с; гасить, если луч ушёл",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0
+    },
+    {
+      "id": "SFX_ANGL_Screamer",
+      "file": "SFX_ANGL_Screamer",
+      "event": "мини-скример",
+      "when": "KeeperScreamer.Started — добежал со спины, 0.85 с",
+      "loop": false,
+      "spatial": false,
+      "volume": 1.0
+    },
+    {
+      "id": "SFX_ANGL_Spotted_Sting",
+      "file": "SFX_ANGL_Spotted_Sting",
+      "event": "луч нашёл игрока",
+      "when": "KeeperBeam поймал Бегущего",
+      "loop": false,
+      "spatial": false,
+      "volume": 1.0
+    },
+    {
+      "id": "SFX_ANGL_Step_Stone",
+      "file": "SFX_ANGL_Step_Stone",
+      "event": "шаг по камню",
+      "when": "крадущиеся шаги в зале, тише обычных",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0
+    }
+  ]
+}

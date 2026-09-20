@@ -56,6 +56,7 @@ namespace Igruha.Minigames.Infection
         private readonly NetworkList<InfectionNetState> states = new NetworkList<InfectionNetState>();
 
         private InfectionMinigame game;
+        private bool statesDirty;
 
         /// <summary>Ушедшие, которых сервер ещё не разобрал: копим до Update, как у «Ангелов».</summary>
         private readonly List<ulong> pendingLeavers = new List<ulong>(4);
@@ -87,7 +88,7 @@ namespace Igruha.Minigames.Infection
             else
             {
                 // Подключились в середине раунда — догоняем то, что уже решено.
-                ApplyAllStates();
+                statesDirty = true;
             }
         }
 
@@ -102,8 +103,23 @@ namespace Igruha.Minigames.Infection
             base.OnNetworkDespawn();
         }
 
+        /// <summary>Reapply the received snapshot after local avatar binding or round reset.</summary>
+        public void RefreshClientPresentation() => statesDirty = true;
+
         private void Update()
         {
+            // NetworkList raises one callback per Add. Applying a partial roster
+            // immediately removes avatars which are present in later deltas.
+            // Consume the complete packet once, after local avatar binding.
+            if (!IsServer)
+            {
+                if (statesDirty && states.Count > 0 && game != null && game.LocalRosterReady)
+                {
+                    statesDirty = false;
+                    ApplyAllStates();
+                }
+                return;
+            }
             if (!IsServer || pendingLeavers.Count == 0)
             {
                 return;
@@ -191,7 +207,7 @@ namespace Igruha.Minigames.Infection
                 return;
             }
 
-            ApplyAllStates();
+            statesDirty = true;
         }
 
         private void ApplyAllStates()

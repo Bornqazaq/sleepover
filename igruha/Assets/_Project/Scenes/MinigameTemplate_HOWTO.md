@@ -39,13 +39,14 @@
 | Спавн 2–8 с ролями | `SpawnPoint`, `SpawnPointSet`, `PlayerSpawner` | Core/Spawning |
 | Таймер раунда + автозавершение | `RoundTimer` | Core/Minigame |
 | Обучающая заставка | `TutorialScreen` (данные из Definition) | Core/UI |
-| HUD таймера и результатов | `RoundHud` | Core/UI |
+| HUD таймера и результатов: место, имя, `+очки`, сумма катки; после последней игры серии — таблица катки с чемпионом | `RoundHud` | Core/UI |
 | Подбор и бросок предметов | `PickupItem`, `PlayerCarryAbility` | Core/Items |
 | Стрельба с отдачей и «жидким» прицелом | `ProjectileShooter`, `Projectile` | Core/Combat |
 | Кнопки и ловушки | `TrapActivationButton`, `SpringTrap`, `FallingCrateTrap` | Core/Traps |
 | Взаимодействие (E) | `IInteractable`, `PlayerInteractor` | Core/Interaction |
 | Камера под тип игры | `MinigameCameraController` + `PartyCameraRig.prefab` | Core/CameraSystems |
-| Очки по местам | `SessionManager` (`очки = число_игроков − место`) | Core/Session |
+| Очки по местам | `SessionScoring` (`очки = игроков_на_старте_раунда − место`). В серии («Полная игра») начисляет табло (`SessionManager` / `NetworkSessionManager`) и пишет раунд в журнал катки (`History`); одиночная игра с ТВ считает очки только внутри себя и сумму катки не трогает | Core/Session |
+| Серия игр, финал, чемпион с короной в хабе | `PartySeries` (очередь и `Complete`), `SessionStandings`, `ChampionCrown` | Core/Minigame, Core/Session, Core/Hub |
 | Колесо эмоций и танцев (Tab) | `EmoteWheel` + `PlayerEmoteAbility`, привязывает `MinigameBootstrap` | Core/UI, Core/Player |
 | Приседание с реальным сжатием капсулы, видно всем | `PlayerController.IsCrouched`, реплицируется `NetworkPlayerController` | Core/Player |
 | Свой персонаж каждому игроку | сервер выдаёт из `CharacterRoster` при одобрении подключения | Networking |

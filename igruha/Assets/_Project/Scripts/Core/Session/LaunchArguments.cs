@@ -37,10 +37,19 @@ namespace Igruha.Core.Session
         /// <summary>Сколько участников дождаться перед автозапуском: <c>--wait-players 8</c>.</summary>
         public const string WaitPlayersOption = "--wait-players";
 
+        /// <summary>
+        /// Очередь <c>--autostart</c> играется как одна серия катки (счёт с
+        /// нуля, таблица катки после последней, чемпион), а не по одной игре
+        /// с возвратом в хаб. Так стенд проверяет тот же путь, что и кнопка
+        /// «Полная игра» на телевизоре.
+        /// </summary>
+        public const string SeriesFlag = "--series";
+
         private static string[] autostart;
         private static bool autostartParsed;
         private static int waitPlayers = -1;
         private static int botEnabled = -1;
+        private static int seriesEnabled = -1;
 
         /// <summary>Этой машиной играет болванка: ходит сама, вопрос берёт из заготовок.</summary>
         public static bool BotEnabled
@@ -53,6 +62,20 @@ namespace Igruha.Core.Session
                 }
 
                 return botEnabled == 1;
+            }
+        }
+
+        /// <summary>Очередь автопрогона играется серией катки, а не по одной игре.</summary>
+        public static bool SeriesEnabled
+        {
+            get
+            {
+                if (seriesEnabled < 0)
+                {
+                    seriesEnabled = HasFlag(SeriesFlag) ? 1 : 0;
+                }
+
+                return seriesEnabled == 1;
             }
         }
 
@@ -99,6 +122,29 @@ namespace Igruha.Core.Session
 
             minigames = autostart;
             return minigames != null && minigames.Length > 0;
+        }
+
+        /// <summary>
+        /// Запущено ли с нашими аргументами вообще — то есть автоматическим
+        /// прогоном, а не человеком.
+        ///
+        /// Признак — двойной дефис. Свои аргументы проект пишет через
+        /// <c>--</c> (<c>--client</c>, <c>--autostart</c>, <c>--wait-players</c>),
+        /// а плеер Unity — через один (<c>-batchmode</c>, <c>-screen-width</c>,
+        /// <c>-logFile</c>). Правило по признаку, а не по списку имён, потому
+        /// что список устаревает молча: хост стенда поднимается без
+        /// <c>--host</c> и без <c>--client</c>, и перечисление сетевых
+        /// аргументов его уже однажды не узнало.
+        /// </summary>
+        public static bool HasOwnArguments()
+        {
+            string[] arguments = Environment.GetCommandLineArgs();
+            for (int i = 0; i < arguments.Length; i++)
+            {
+                if (arguments[i] != null && arguments[i].StartsWith("--", StringComparison.Ordinal)) return true;
+            }
+
+            return false;
         }
 
         /// <summary>Флаг без значения присутствует в командной строке.</summary>

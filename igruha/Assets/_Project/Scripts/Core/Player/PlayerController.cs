@@ -37,11 +37,25 @@ namespace Igruha.Core.Player
         /// <summary>Персонажа перенесли: респаун, старт мини-игры, смена арены.</summary>
         public event Action Teleported;
 
+        /// <summary>
+        /// Персонаж коснулся опоры. Аргумент — скорость падения в момент касания, м/с:
+        /// по ней отличается шаг со ступеньки от прыжка с крыши, а без этого различия
+        /// звук приземления звучал бы одинаково громко на оба случая.
+        /// </summary>
+        public event Action<float> Landed;
+
         public CharacterConfig Config => config;
         /// <summary>Куда должна целиться Cinemachine. Без назначенной точки — сам корень (запасной вариант для старых префабов).</summary>
         public Transform CameraTarget => cameraTarget != null ? cameraTarget : transform;
         public bool IsGrounded { get; private set; }
         public bool IsKnockedDown => knockdownTimer > 0f;
+
+        /// <summary>
+        /// Коллайдер, на котором персонаж стоит. Берётся из той же проверки опоры,
+        /// что и <see cref="IsGrounded"/> — отдельного луча под ноги ради поверхности
+        /// заводить не нужно. Пусто, когда персонаж в воздухе.
+        /// </summary>
+        public Collider GroundCollider { get; private set; }
 
         /// <summary>
         /// Персонаж не принимает толчки и импульсы. Нужен ролям, которые обязаны
@@ -939,10 +953,12 @@ namespace Igruha.Core.Player
                     castDistance, groundLayer, QueryTriggerInteraction.Ignore))
             {
                 groundNormal = Vector3.up;
+                GroundCollider = null;
                 return false;
             }
 
             groundNormal = ResolveSurfaceNormal(hit.normal, castDistance);
+            GroundCollider = hit.collider;
             return true;
         }
 
@@ -1242,6 +1258,11 @@ namespace Igruha.Core.Player
             if (!wasGrounded)
             {
                 wasGrounded = true;
+
+                // Событие поднимается до нокдауна, а не после: подписчику нужно
+                // знать скорость падения раньше, чем жёсткое приземление уронит
+                // персонажа и станет неотличимо от удара в лицо.
+                Landed?.Invoke(fallSpeed);
 
                 if (config.HardLandingSpeed > 0f && fallSpeed >= config.HardLandingSpeed)
                 {

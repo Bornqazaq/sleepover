@@ -8,7 +8,8 @@ namespace Igruha.Minigames.Circus
         [SerializeField] private AudioSource voice;
         [SerializeField] private AudioClip growl;
         [SerializeField] private AudioClip swipe;
-        [SerializeField] private AudioClip impact;
+        [Tooltip("Удар лапой. Пачка вариаций: три подряд одинаковых удара слышны как один зацикленный")]
+        [SerializeField] private AudioClip[] impacts;
         [SerializeField] private AudioClip step;
         [SerializeField] private ParticleSystem impactDust;
         [SerializeField] private ParticleSystem footDust;
@@ -19,6 +20,9 @@ namespace Igruha.Minigames.Circus
         private PitBear bear;
         private float attackStartedAt = -100f;
         private bool swiped = true;
+
+        /// <summary>Какая вариация удара звучала прошлый раз — чтобы не повторить её подряд.</summary>
+        private int lastImpact;
 
         private void Awake() => bear = GetComponent<PitBear>();
 
@@ -31,12 +35,29 @@ namespace Igruha.Minigames.Circus
 
         public void Impact(Vector3 point)
         {
-            if (voice != null && impact != null) voice.PlayOneShot(impact, .95f);
+            AudioClip hit = PickImpact();
+            if (voice != null && hit != null) voice.PlayOneShot(hit, .95f);
             if (impactDust != null)
             {
                 impactDust.transform.position = point;
                 impactDust.Emit(22);
             }
+        }
+
+        /// <summary>
+        /// Вариация удара — случайная, но не та же, что прошлый раз. Бить лапой
+        /// медведь может несколько раз подряд, и один и тот же файл в этом ритме
+        /// перестаёт звучать как удар.
+        /// </summary>
+        private AudioClip PickImpact()
+        {
+            if (impacts == null || impacts.Length == 0) return null;
+            if (impacts.Length == 1) return impacts[0];
+
+            int index = Random.Range(0, impacts.Length - 1);
+            if (index >= lastImpact) index++;
+            lastImpact = index;
+            return impacts[index];
         }
 
         private void LateUpdate()

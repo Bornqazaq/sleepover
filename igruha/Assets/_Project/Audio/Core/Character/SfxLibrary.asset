@@ -1,0 +1,128 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2574025c1373412bb9b8283feb02ca7, type: 3}
+  m_Name: SfxLibrary
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.MinigameSfxLibrary
+  entries:
+  - Id: SFX_CHR_Bodyfall
+    Clip: {fileID: 8300000, guid: e75680c430c44514aa2cd6d3b534c936, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: e75680c430c44514aa2cd6d3b534c936, type: 3}
+    - {fileID: 8300000, guid: 5b38473f37d69a6489122bb7284e0b6a, type: 3}
+    - {fileID: 8300000, guid: bbcbde318cc148b409ed46a57f88894c, type: 3}
+    - {fileID: 8300000, guid: 4198479e4e8b0e34d82bcdcde6fa3b7d, type: 3}
+    Volume: 1
+    Loop: 0
+    Spatial: 1
+  - Id: SFX_CHR_Jump_Land
+    Clip: {fileID: 8300000, guid: 49cec776ca8e55a4b90fee87d10fcf30, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: 49cec776ca8e55a4b90fee87d10fcf30, type: 3}
+    - {fileID: 8300000, guid: 0f8350a49e6570f41a95ce1b3ca9258b, type: 3}
+    - {fileID: 8300000, guid: 2acdd12a9287a1545ad3f375076215c9, type: 3}
+    - {fileID: 8300000, guid: d0d9042d864df3d4eb64ecdbe3d56a5d, type: 3}
+    - {fileID: 8300000, guid: b86c1d0d0e0ddac429afcf90077a379d, type: 3}
+    - {fileID: 8300000, guid: 6a2b1f96a39d7a44f8639a5a05de74a4, type: 3}
+    Volume: 1
+    Loop: 0
+    Spatial: 1
+  - Id: SFX_CHR_Push_Hit
+    Clip: {fileID: 8300000, guid: c1e13b383f3510b4697f670e168f847a, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: c1e13b383f3510b4697f670e168f847a, type: 3}
+    - {fileID: 8300000, guid: f2578d1eb3f60554c9a1a9e27e212419, type: 3}
+    Volume: 1
+    Loop: 0
+    Spatial: 1
+  - Id: SFX_CHR_Step_Carpet
+    Clip: {fileID: 8300000, guid: 56824812f66590d45924a0a3e09108ba, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: 56824812f66590d45924a0a3e09108ba, type: 3}
+    - {fileID: 8300000, guid: b45e00adc974df14f8d39438bc19733a, type: 3}
+    - {fileID: 8300000, guid: 4e3478e875ee92142a29b0212dcf2bd4, type: 3}
+    - {fileID: 8300000, guid: 1dd57ae7250f2044da4dae9d9c3e0078, type: 3}
+    - {fileID: 8300000, guid: 36fe165f518fc864d9753992e49685f5, type: 3}
+    - {fileID: 8300000, guid: 862f9d04624218f4385e0d26d5bad743, type: 3}
+    Volume: 1
+    Loop: 0
+    Spatial: 1
+  - Id: SFX_CHR_Step_Concrete
+    Clip: {fileID: 8300000, guid: b82735d758a9cd64598c0cd275b75974, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: b82735d758a9cd64598c0cd275b75974, type: 3}
+    - {fileID: 8300000, guid: 78543d2b63506984ea1ec1ac93b6ee25, type: 3}
+    - {fileID: 8300000, guid: 2d88a46cc89ef534392404168e21ddf3, type: 3}
+    - {fileID: 8300000, guid: 4245d978c8b1d474db87d00c613e93d4, type: 3}
+    - {fileID: 8300000, guid: bc840e77b435bfa478d4f05bc8a6669c, type: 3}
+    - {fileID: 8300000, guid: b5cef7551e30cd74ebc77ecb485dfd30, type: 3}
+    Volume: 1
+    Loop: 0
+    Spatial: 1
+  - Id: SFX_CHR_Step_Grass
+    Clip: {fileID: 8300000, guid: a37faa547046e8a45b7a3936ccee3467, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: a37faa547046e8a45b7a3936ccee3467, type: 3}
+    - {fileID: 8300000, guid: 30627a0c470983043b031ed0b369246a, type: 3}
+    - {fileID: 8300000, guid: f9222219f607fba47bbea2d0a6eaf349, type: 3}
+    - {fileID: 8300000, guid: d7c942db20a7fd7438732e38cdfe399d, type: 3}
+    - {fileID: 8300000, guid: 3731246ea1b7c8b4fab89c6299cbb394, type: 3}
+    - {fileID: 8300000, guid: 273d567e19bce794a9a0a435d02572c4, type: 3}
+    Volume: 1
+    Loop: 0
+    Spatial: 1
+  - Id: SFX_CHR_Step_Gravel
+    Clip: {fileID: 8300000, guid: 991e04043f83c6249878d235f08f129d, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: 991e04043f83c6249878d235f08f129d, type: 3}
+    - {fileID: 8300000, guid: 4b2f400b49a4046488f28cc9b05b9c2d, type: 3}
+    - {fileID: 8300000, guid: 25767f71cdbee2342a0a7a7447dd3fad, type: 3}
+    - {fileID: 8300000, guid: b43b56ffb38426543aec7bd0c9f560c3, type: 3}
+    - {fileID: 8300000, guid: 20527d5b55b141e4dac4451d1077d919, type: 3}
+    - {fileID: 8300000, guid: 2735f2fae456de94d9db8ab883074775, type: 3}
+    Volume: 1
+    Loop: 0
+    Spatial: 1
+  - Id: SFX_CHR_Step_Metal
+    Clip: {fileID: 8300000, guid: dc3a3a5fc39c8ff4d91c5f924f299532, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: dc3a3a5fc39c8ff4d91c5f924f299532, type: 3}
+    - {fileID: 8300000, guid: f76bdaf15208cdd4cbc1979b790bb40a, type: 3}
+    - {fileID: 8300000, guid: 1a1e1697602691044a79969acd432d6b, type: 3}
+    - {fileID: 8300000, guid: 3c2c31c3b0a98d942b26251a077c6bcd, type: 3}
+    - {fileID: 8300000, guid: 925949869a2375d42ace27a291290666, type: 3}
+    - {fileID: 8300000, guid: 2a57266300e8391499c6b9f6dea9e061, type: 3}
+    Volume: 1
+    Loop: 0
+    Spatial: 1
+  - Id: SFX_CHR_Step_Snow
+    Clip: {fileID: 8300000, guid: b2dc6d5f862f9644ea54bb15291229a4, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: b2dc6d5f862f9644ea54bb15291229a4, type: 3}
+    - {fileID: 8300000, guid: 44e0a048b8a157643bf459ba4b9cdd48, type: 3}
+    - {fileID: 8300000, guid: d74302fbe736337428b06965435aa70a, type: 3}
+    - {fileID: 8300000, guid: 308dfff08d2cde8498ea57e9736e6ba1, type: 3}
+    - {fileID: 8300000, guid: 47c373acfbb82fc4b93d68dd84a7213c, type: 3}
+    - {fileID: 8300000, guid: ec55fd9b05e360f46a772c8fc050936a, type: 3}
+    Volume: 1
+    Loop: 0
+    Spatial: 1
+  - Id: SFX_CHR_Step_Wood
+    Clip: {fileID: 8300000, guid: 02515b6fcedd19f4d997bfb86e4788a2, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: 02515b6fcedd19f4d997bfb86e4788a2, type: 3}
+    - {fileID: 8300000, guid: 36e25930cefee4d40acc6dc80956d598, type: 3}
+    - {fileID: 8300000, guid: 2df669bf6f59187448d57604794cdd50, type: 3}
+    - {fileID: 8300000, guid: 3d3ec8b5d2f5cbb44b6ecb4ec9b5de3f, type: 3}
+    - {fileID: 8300000, guid: dd825991db27b7f4082242f50c7989d8, type: 3}
+    Volume: 1
+    Loop: 0
+    Spatial: 1

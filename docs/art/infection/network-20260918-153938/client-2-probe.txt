@@ -1,0 +1,34 @@
+START original quarantine art probe
+PHASE=Idle
+ROSTER=4
+PHASE=Tutorial
+PHASE=Round
+ROUTE=Swings stage=0 maxHeight=0.00
+SAMPLE 0:Clean,1:Clean,2:Clean,3:Clean local=(7.00, 0.00, 12.00) particles=282
+SAMPLE 0:Clean,1:Clean,2:Clean,3:Clean local=(11.35, 0.00, 2.80) particles=284
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(11.06, 0.00, 3.42) particles=292
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(11.06, 0.00, 3.42) particles=290
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(11.06, 0.00, 3.42) particles=284
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(11.06, 0.00, 3.42) particles=293
+ROUTE=Swings stage=1 maxHeight=0.00
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(11.06, 0.00, 3.42) particles=292
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(8.84, 0.00, 10.82) particles=301
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(8.84, 0.00, 10.82) particles=298
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(8.84, 0.00, 10.82) particles=296
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(8.84, 0.00, 10.82) particles=287
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(8.84, 0.00, 10.82) particles=290
+ROUTE=Swings stage=2 maxHeight=0.00
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(8.85, 0.00, 10.76) particles=296
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(9.96, 0.00, 7.15) particles=288
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(9.96, 0.00, 7.15) particles=293
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(9.96, 0.00, 7.15) particles=285
+ROUTE=Swings stage=3 maxHeight=0.12
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(10.55, 0.00, 5.22) particles=290
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(10.74, 0.00, 4.60) particles=291
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(0.99, 0.40, 0.68) particles=315
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Infecting local=(-0.24, 0.40, 0.46) particles=309
+PHASE=Results
+RESULTS=0:1,1:1,2:4,3:3
+LIGHTING pipeline=InfectionLighting(Clone) post=True maxHeight=1.70
+PERF meanMs=16.80 frames=2342 splashFrames=81 tubeFrames=571
+END scene unloaded

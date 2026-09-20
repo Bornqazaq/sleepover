@@ -1,167 +1,91 @@
 {
   "game": "Дырки в стене",
-  "source": "docs/minigames/hole-in-wall.md — раздел 8.6, таблица «Звук»",
+  "source": "поставка звука (sounds.json). Слот без клипа — это заказ поставщику, а не ошибка.",
   "output_folder": "Assets/_Project/Audio/HoleInWall",
-  "provider": "fal",
-  "models": {
-    "sfx": "cassetteai/sound-effects-generator",
-    "music": "cassetteai/music-generator",
-    "sting": "fal-ai/stable-audio-25/text-to-audio"
-  },
   "slots": [
     {
       "id": "wall_start_gong",
       "event": "Старт стены",
-      "model": "sfx",
-      "duration": 3,
       "loop": false,
-      "volume": 0.7994,
       "spatial": false,
-      "prompt": "bright metallic game show gong, single clean strike, TV studio announcement, natural decay, no music, no voices"
+      "volume": 0.7994
     },
     {
       "id": "wall_move_loop",
       "event": "Подъезд стены (громкость и питч растут со скоростью)",
-      "model": "sfx",
-      "duration": 10,
       "loop": true,
-      "volume": 0.9729,
       "spatial": true,
-      "prompt": "low mechanical rumble of a huge sliding wall, continuous seamless drone, deep industrial hum, steady, no music, no melody",
-      "note": "Луп. В игре питч и громкость гонятся кодом от скорости стены. Правка 03.09: Было 0.70. Вместе с полом громкости в коде давало 0.15 на старте стены при теме раунда 0.35. Правка 03.09: у клипа срезан подъём в 1.2 с — внутри лупа он повторялся каждые 10 с, и стена начинала ехать в самый тихий его момент. Длина 10.0 → 8.79 с, шов 0.8 дБ."
+      "volume": 0.9729
     },
     {
       "id": "impact_warning",
       "event": "За 1.0 с до удара",
-      "model": "sfx",
-      "duration": 1,
       "loop": false,
-      "volume": 0.95,
       "spatial": false,
-      "prompt": "loud emergency buzzer blast, harsh electric alarm honk, factory press about to slam, warning of imminent crush, strong and clear, no music, no voices",
-      "note": "Правка 03.09: Было 0.85. Это сигнал безопасности, он обязан пробиваться."
+      "volume": 0.95
     },
     {
       "id": "pass_success_ding",
       "event": "Успешный проход — звонкий «дзынь»",
-      "model": "sfx",
-      "duration": 2,
       "loop": false,
-      "volume": 1.0,
       "spatial": true,
-      "prompt": "bright cheerful ding, single sparkling bell chime, correct answer success sound, clean, no music",
-      "source": "внешний файл, не генерация",
-      "note": "Правка 03.09, второй круг: генерированный «дзынь» заменён файлом pobeda--byistroe-opoveschenie.wav от геймдизайнера. 1.00 с вместо 2.00: короткий сигнал с резкой атакой и быстрым спадом вместо тянущегося колокольчика. ⚠️ КЛИП НЕ ГЕНЕРИРУЕТСЯ — не перезаписывать по prompt ниже. Сравнивался по АТАКЕ (RMS первых 0.3 с), а не по среднему RMS: у короткого стинга почти вся энергия в первых 0.2 с, и среднее по файлу занижает его слышимость на 6 дБ. Громкость 1.00 — потолок; атака ложится на 1.7 дБ тише прежнего дзыня. Если понадобится громче — лимитер на клип, а не ползунок."
+      "volume": 1.0
     },
     {
       "id": "crowd_cheer",
       "event": "Успешный проход — рёв студийной публики",
-      "model": "sfx",
-      "duration": 5,
       "loop": false,
-      "volume": 1.0,
       "spatial": false,
-      "prompt": "large studio audience cheering and applauding, sudden burst of excitement, live TV show crowd, energetic",
-      "note": "Отдельным слотом от «дзынь»: у дзыня атака мгновенная, у публики длинный хвост. Играются двумя источниками. Правка 03.09, второй круг: генерированный рёв заменён живой записью kriki_zabit_gol.mp3 от геймдизайнера. В записи 88 с и два дубля; взяты первые 5.0 с первого — он начинается с тишины и взлетает за 0.8 с, и это самые плотные пять секунд во всей записи. Хвост уведён фейдом 0.45 с. ⚠️ КЛИП НЕ ГЕНЕРИРУЕТСЯ — не перезаписывать по prompt ниже. Громкость 1.00, то есть потолок: живая запись на 2.6 дБ менее плотная, чем генерированная, и на слух ложится примерно на 1.2 дБ тише прежней настройки. Если понадобится громче — это лимитер на клип, а не ползунок.",
-      "source": "внешний файл, не генерация"
+      "volume": 1.0
     },
     {
       "id": "fail_body_hit",
       "event": "Провал — удар пластика по телу",
-      "model": "sfx",
-      "duration": 2,
       "loop": false,
-      "volume": 0.8,
       "spatial": true,
-      "prompt": "dull plastic panel slamming into a body, muffled thud with light rattle, comedic impact, dry, close mic",
-      "note": "Правка 03.09: Было 1.00. Освобождает место рёву публики: удар звучит на каждой дорожке, рёв — один на стену."
+      "volume": 0.8
     },
     {
       "id": "water_splash",
       "event": "Падение в воду",
-      "model": "sfx",
-      "duration": 3,
       "loop": false,
-      "volume": 0.5714,
       "spatial": true,
-      "prompt": "big water splash, heavy body falling into a pool, impact splash with scattering droplets, close perspective",
-      "note": "Правка 03.09, второй круг: генерированный всплеск был жёстким — «просто предмет упал в воду». Заменён принесённым файлом brief-heavy-water-splash.wav: 1.70 с вместо 3.00, RMS -21.1 вместо -16.1, короткий хвост. ⚠️ КЛИП НЕ ГЕНЕРИРУЕТСЯ — не перезаписывать генерацией по prompt ниже, он оставлен как история. Громкость поднята 0.55 → 0.85: новый клип на 5 дБ тише старого по RMS, и на 0.55 всплеск не стал бы мягче, а просто пропал бы.",
-      "source": "внешний файл, не генерация"
+      "volume": 0.5714
     },
     {
       "id": "underwater_loop",
       "event": "Барахтанье в воде (3 с приглушённого слоя)",
-      "model": "sfx",
-      "duration": 5,
       "loop": true,
-      "volume": 0.6,
       "spatial": true,
-      "prompt": "muffled underwater ambience, submerged bubbles and low pass filtered hum, seamless loop, no music",
-      "note": "Луп поверх основного микса на время барахтанья."
+      "volume": 0.6
     },
     {
       "id": "mirror_whoosh",
       "event": "Зеркальный переворот (7-я стена)",
-      "model": "sfx",
-      "duration": 2,
       "loop": false,
-      "volume": 0.9,
       "spatial": true,
-      "prompt": "sharp reverse whoosh transition, quick swirling air sweep, snappy sci-fi flip, no music"
+      "volume": 0.9
     },
     {
       "id": "morph_whoosh",
       "event": "Смена формы вырезов (подвох)",
-      "model": "sfx",
-      "duration": 2,
       "loop": false,
-      "volume": 0.9,
       "spatial": true,
-      "prompt": "morphing transformation whoosh, shape shifting warble with a quick pitch bend, snappy magical reshape, no music",
-      "note": "Сверх таблицы «Звук»: в ней назван только зеркальный переворот, но подвохов в игре два, и у смены формы свой эффект с 4.4. Один свуш на оба читался бы как один и тот же подвох."
+      "volume": 0.9
     },
     {
       "id": "round_end_jingle",
       "event": "Конец раунда — финальный джингл шоу",
-      "model": "sting",
-      "duration": 6,
       "loop": false,
-      "volume": 1.0,
       "spatial": false,
-      "prompt": "upbeat game show ending fanfare, celebratory brass and synth finale sting, retro TV competition, resolving on a bright major chord",
-      "note": "Stable Audio ($0.20): музыкальный джингл SFX-модели не даётся."
+      "volume": 1.0
     },
     {
       "id": "round_theme",
       "event": "Тема раунда (фон всей катки)",
-      "model": "music",
-      "duration": 60,
       "loop": true,
-      "volume": 0.737,
       "spatial": false,
-      "prompt": "energetic retro game show background loop, driving percussion, playful synth brass stabs, tense but fun TV competition bed, no vocals",
-      "note": "Луп на 65 с раунда (8.5). Микшируется тише SFX."
-    }
-  ],
-  "mix_review": {
-    "date": "2026-09-03",
-    "by": "геймдизайнер, на слух",
-    "kept": [
-      "round_theme",
-      "round_end_jingle"
-    ],
-    "note": "Разбор показал, что дело было не в клипах: по RMS wall_move_loop и crowd_cheer — самые громкие файлы набора (-12 dBFS), а слышно их было хуже всего. Виноваты множители громкости в коде и удвоение всплеска на паре. Правка 03.09, второй круг: громкости выставлены геймдизайнером в пульте (Igruha/Арт/Пульт звука) на слух и перенесены сюда из ассета."
-  },
-  "removed": [
-    {
-      "id": "fall_whoosh",
-      "date": "2026-09-03",
-      "why": "Убран по слуху геймдизайнера: мешал удару по телу, а не дополнял его. Генератор на нём был слаб с самого начала — три тишины из пяти вариантов, слот стоял на единственном годном (STATE 3.44). Провал озвучивают удар по телу, всплеск и подводный слой."
-    },
-    {
-      "id": "tether_strain_loop",
-      "date": "2026-09-03",
-      "why": "Убран: услышать его было физически невозможно. Эффективно -34.4 дБ — на 22.7 дБ тише самого громкого звука игры и на 5 дБ тише удара по телу. Сам клип самый тихий в наборе (RMS -29.3 при -11…-21 у остальных), ползунок 0.55 добивал. Слот и так был сверх таблицы «Звук» в спеке. Натяжение троса остаётся озвученным визуально — разряд из эффектов 4.4."
+      "volume": 0.737
     }
   ]
 }

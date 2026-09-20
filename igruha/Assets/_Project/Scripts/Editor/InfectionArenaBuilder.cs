@@ -37,8 +37,8 @@ namespace Igruha.EditorTools
         private const string SceneName = "Infection";
 
         // ===== Арена =====
-        private const float ArenaWidth = 52f;
-        private const float ArenaDepth = 40f;
+        private const float ArenaWidth = 42f;
+        private const float ArenaDepth = 36f;
         private const float FenceHeight = 3f;
         private const float FenceThickness = 0.4f;
 
@@ -74,14 +74,6 @@ namespace Igruha.EditorTools
         private const float SandWidth = 9f;
         private const float SandDepth = 6f;
         private const float SandBorder = 0.4f;
-
-        private static readonly Vector2[] SpawnPoints =
-        {
-            new Vector2(-11f, -15f), new Vector2(11f, -15f),
-            new Vector2(21f, -8f), new Vector2(21f, 8f),
-            new Vector2(11f, 15f), new Vector2(-11f, 15f),
-            new Vector2(-21f, 8f), new Vector2(-21f, -8f)
-        };
 
         private static readonly Color FloorColor = new Color(0.62f, 0.60f, 0.58f);
         private static readonly Color PropColor = new Color(0.70f, 0.68f, 0.64f);
@@ -134,6 +126,7 @@ namespace Igruha.EditorTools
             BuildTubes(arena);
             BuildClimber(arena);
             SpeedZone sand = BuildSandbox(arena, config);
+            InfectionCourtyardLayout.ApplyProps(arena.transform);
             MoveSpawns(spawns);
             SetupKillZone(bounds);
 
@@ -142,12 +135,13 @@ namespace Igruha.EditorTools
             WireManager(manager, definition, config, carousel, swings, sand, banner, ui);
 
             RegisterScene(definition);
+            InfectionQuarantineBuilder.Apply();
 
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
             AssetDatabase.SaveAssets();
 
-            Debug.Log("InfectionArenaBuilder: арена «Заражения» собрана — 52 × 40, шесть объектов, 8 спавнов");
+            Debug.Log("InfectionArenaBuilder: арена «Заражения» собрана — ломаный двор 42 × 36, шесть объектов, 8 спавнов");
         }
 
         // ================= ГЕОМЕТРИЯ =================
@@ -187,21 +181,15 @@ namespace Igruha.EditorTools
             Box(group, "Floor", new Vector3(0f, -0.2f, 0f),
                 new Vector3(ArenaWidth, 0.4f, ArenaDepth), Material("Floor", FloorColor), groundLayer);
 
-            // Забор непроходим и по нему же камера обходит арену: слой
-            // PlayerBarrier входит в её маску препятствий. Высота 3 — выше
-            // прыжка (около 1.6 от земли), перелезть нельзя.
-            float halfX = ArenaWidth * 0.5f;
-            float halfZ = ArenaDepth * 0.5f;
-            Material fence = Material("Fence", FenceColor);
-
-            Box(group, "Fence_North", new Vector3(0f, FenceHeight * 0.5f, halfZ),
-                new Vector3(ArenaWidth + FenceThickness, FenceHeight, FenceThickness), fence, barrierLayer);
-            Box(group, "Fence_South", new Vector3(0f, FenceHeight * 0.5f, -halfZ),
-                new Vector3(ArenaWidth + FenceThickness, FenceHeight, FenceThickness), fence, barrierLayer);
-            Box(group, "Fence_East", new Vector3(halfX, FenceHeight * 0.5f, 0f),
-                new Vector3(FenceThickness, FenceHeight, ArenaDepth + FenceThickness), fence, barrierLayer);
-            Box(group, "Fence_West", new Vector3(-halfX, FenceHeight * 0.5f, 0f),
-                new Vector3(FenceThickness, FenceHeight, ArenaDepth + FenceThickness), fence, barrierLayer);
+            var outline = InfectionCourtyardLayout.Load().boundary;
+            for (int i = 0; i < outline.Length; i++)
+            {
+                Vector3 a = outline[i].Position;
+                Vector3 b = outline[(i + 1) % outline.Length].Position;
+                var fence = Box(group, "Fence_" + i, (a + b) * .5f + Vector3.up * 1.5f,
+                    new Vector3((b - a).magnitude, FenceHeight, FenceThickness), Material("Fence", FenceColor), barrierLayer);
+                fence.transform.localRotation = Quaternion.Euler(0, -Mathf.Atan2(b.z - a.z, b.x - a.x) * Mathf.Rad2Deg, 0);
+            }
         }
 
         /// <summary>
@@ -500,6 +488,7 @@ namespace Igruha.EditorTools
 
         private static void MoveSpawns(GameObject spawns)
         {
+            var newSpawns = InfectionCourtyardLayout.Load().spawns;
             SpawnPoint[] points = spawns.GetComponentsInChildren<SpawnPoint>(true);
             var defaults = new List<SpawnPoint>(8);
             for (int i = 0; i < points.Length; i++)
@@ -516,7 +505,7 @@ namespace Igruha.EditorTools
                 }
             }
 
-            for (int i = 0; i < SpawnPoints.Length; i++)
+            for (int i = 0; i < newSpawns.Length; i++)
             {
                 SpawnPoint point;
                 if (i < defaults.Count)
@@ -530,13 +519,13 @@ namespace Igruha.EditorTools
                     point = go.AddComponent<SpawnPoint>();
                 }
 
-                Vector3 position = new Vector3(SpawnPoints[i].x, 0.1f, SpawnPoints[i].y);
+                Vector3 position = newSpawns[i].Position + Vector3.up * .1f;
                 point.transform.position = position;
                 point.transform.rotation = Quaternion.LookRotation(-position.normalized, Vector3.up);
                 point.gameObject.name = $"Spawn_{i + 1}";
             }
 
-            for (int i = SpawnPoints.Length; i < defaults.Count; i++)
+            for (int i = newSpawns.Length; i < defaults.Count; i++)
             {
                 Object.DestroyImmediate(defaults[i].gameObject);
             }

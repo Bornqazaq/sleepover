@@ -1,0 +1,97 @@
+{
+  "game": "Character",
+  "source": "поставка звука (sounds.json). Слот без клипа — это заказ поставщику, а не ошибка.",
+  "output_folder": "Assets/_Project/Audio/Core/Character",
+  "slots": [
+    {
+      "id": "SFX_CHR_Bodyfall",
+      "file": "SFX_CHR_Bodyfall",
+      "event": "падение тела",
+      "when": "нокдаун, жёсткое приземление",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0
+    },
+    {
+      "id": "SFX_CHR_Jump_Land",
+      "file": "SFX_CHR_Jump_Land",
+      "event": "прыжок и приземление",
+      "when": "PlayerController.Jumped и приземление",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0
+    },
+    {
+      "id": "SFX_CHR_Push_Hit",
+      "file": "SFX_CHR_Push_Hit",
+      "event": "толчок попал",
+      "when": "PlayerPushAbility — удар прошёл",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0
+    },
+    {
+      "id": "SFX_CHR_Step_Carpet",
+      "file": "SFX_CHR_Step_Carpet",
+      "event": "шаг: ковёр",
+      "when": "хаб, казино",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0
+    },
+    {
+      "id": "SFX_CHR_Step_Concrete",
+      "file": "SFX_CHR_Step_Concrete",
+      "event": "шаг: бетон/камень",
+      "when": "стройка, башня Duck Hunt, зал Ангелов",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0
+    },
+    {
+      "id": "SFX_CHR_Step_Grass",
+      "file": "SFX_CHR_Step_Grass",
+      "event": "шаг: трава/земля",
+      "when": "ферма Duck Hunt, двор Заражения",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0
+    },
+    {
+      "id": "SFX_CHR_Step_Gravel",
+      "file": "SFX_CHR_Step_Gravel",
+      "event": "шаг: гравий/грунт",
+      "when": "стройка; временно и песок",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0
+    },
+    {
+      "id": "SFX_CHR_Step_Metal",
+      "file": "SFX_CHR_Step_Metal",
+      "event": "шаг: металл",
+      "when": "плиты Рейса на память, решётки",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0
+    },
+    {
+      "id": "SFX_CHR_Step_Snow",
+      "file": "SFX_CHR_Step_Snow",
+      "event": "шаг: снег",
+      "when": "зимние этажи Duck Hunt",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0
+    },
+    {
+      "id": "SFX_CHR_Step_Wood",
+      "file": "SFX_CHR_Step_Wood",
+      "event": "шаг: дерево",
+      "when": "лестница хаба, клетки цирка, школа",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0
+    }
+  ]
+}

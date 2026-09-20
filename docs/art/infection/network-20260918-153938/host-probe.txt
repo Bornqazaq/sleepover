@@ -1,0 +1,34 @@
+START original quarantine art probe
+PHASE=Idle
+ROSTER=4
+PHASE=Tutorial
+PHASE=Round
+ROUTE=Tubes/Tube_West stage=0 maxHeight=0.00
+SAMPLE 0:Clean,1:Clean,2:Clean,3:Clean local=(-10.00, 0.00, -12.00) particles=287
+SAMPLE 0:Clean,1:Clean,2:Clean,3:Clean local=(-13.65, 0.00, -8.11) particles=286
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(-13.65, 0.00, -8.11) particles=296
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(-13.65, 0.00, -8.11) particles=293
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(-13.65, 0.00, -8.11) particles=283
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(-13.65, 0.00, -8.11) particles=293
+ROUTE=Tubes/Tube_West stage=1 maxHeight=0.00
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(-13.62, 0.00, -7.94) particles=292
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(-12.21, 0.00, -0.31) particles=291
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(-12.21, 0.00, -0.31) particles=292
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(-12.21, 0.00, -0.31) particles=293
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(-12.21, 0.00, -0.31) particles=286
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(-12.21, 0.00, -0.31) particles=295
+ROUTE=Tubes/Tube_West stage=2 maxHeight=0.00
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(-12.32, 0.00, -0.80) particles=290
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(-12.95, 0.00, -3.75) particles=290
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(-12.95, 0.00, -3.75) particles=289
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(-12.95, 0.00, -3.75) particles=287
+ROUTE=Tubes/Tube_West stage=3 maxHeight=0.00
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(-12.71, 0.00, -3.18) particles=289
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(-1.60, 0.55, 0.57) particles=295
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Clean local=(-0.36, 0.40, 0.67) particles=312
+SAMPLE 0:Clean,1:Clean,2:Infected,3:Infecting local=(-0.03, 0.40, 0.90) particles=302
+PHASE=Results
+RESULTS=0:1,1:1,2:4,3:3
+LIGHTING pipeline=InfectionLighting(Clone) post=True maxHeight=1.70
+PERF meanMs=24.47 frames=1608 splashFrames=54 tubeFrames=377
+END scene unloaded

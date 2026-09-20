@@ -43,8 +43,17 @@ namespace Igruha.Minigames.HoleInWall
         private bool shown;
         private bool waitingForHost;
 
-        private void OnEnable() => game.ResultsReported += Show;
-        private void OnDisable() => game.ResultsReported -= Show;
+        private void OnEnable()
+        {
+            game.ResultsReported += Show;
+            game.FinalStandingsReported += ShowStandings;
+        }
+
+        private void OnDisable()
+        {
+            game.ResultsReported -= Show;
+            game.FinalStandingsReported -= ShowStandings;
+        }
 
         private void Show(MinigameResults results)
         {
@@ -77,7 +86,10 @@ namespace Igruha.Minigames.HoleInWall
                     var track = game.TrackOf(entry.PlayerId);
                     row.place.text = place.ToString("00");
                     row.playerName.text = playerName + (local ? "  ·  вы" : string.Empty);
-                    row.lane.text = characterName + (track != null ? $"  ·  ДОРОЖКА {track.Index + 1:00}" : "  ·  ВЫШЕЛ ИЗ РАУНДА");
+                    row.lane.text = characterName + (track != null ? $"  ·  ДОРОЖКА {track.Index + 1:00}" : "  ·  ВЫШЕЛ ИЗ РАУНДА")
+                        + (!results.Awarded ? string.Empty
+                            : results.CountsTowardSession ? $"  ·  +{entry.Points} ОЧК.  ·  ВСЕГО {entry.Total}"
+                            : $"  ·  +{entry.Points} ОЧК.");
                     // Замороженный счёт вышедшего не передаётся клиентам. Не подменяем его нулём.
                     row.score.text = track != null ? $"<b>{track.Score}</b><size=65%> / {game.WallCount}</size>" : "—";
                     row.background.color = place == 1 ? Winner : Paper;
@@ -100,6 +112,58 @@ namespace Igruha.Minigames.HoleInWall
             UpdateFooter();
         }
 
+        /// <summary>
+        /// Таблица катки после последней игры серии — теми же строками:
+        /// место по сумме, имя, очки, отметка чемпиона.
+        /// </summary>
+        private void ShowStandings(SessionStandings standings)
+        {
+            if (rows.Length == 0 || rows[0].root == null || standings == null) return;
+            var session = SessionScoreboard.Current;
+            int localId = session?.LocalPlayer?.Id ?? -1;
+            var champions = session?.Champions;
+            int rowIndex = 0;
+            bool localChampion = false;
+            foreach (var entry in standings.Entries)
+            {
+                if (rowIndex >= rows.Length) break;
+                Row row = rows[rowIndex++];
+                SessionPlayer participant = session?.FindPlayer(entry.PlayerId);
+                string playerName = participant?.DisplayName ?? $"Игрок {entry.PlayerId + 1}";
+                bool champion = champions != null && champions.Count > 0 ? ChampionListed(champions, entry.PlayerId) : standings.IsLeader(entry.PlayerId);
+                bool local = entry.PlayerId == localId;
+                localChampion |= champion && local;
+                int character = CharacterOf(participant);
+                row.portrait.sprite = character >= 0 && character < portraits.Length ? portraits[character] : null;
+                row.portrait.enabled = row.portrait.sprite != null;
+                string characterName = character >= 0 ? roster.Characters[character].DisplayName : string.Empty;
+                row.place.text = entry.Place.ToString("00");
+                row.playerName.text = playerName + (local ? "  ·  вы" : string.Empty);
+                row.lane.text = characterName + (champion ? "  ·  ЧЕМПИОН КАТКИ" : $"  ·  ПОБЕД: {entry.Wins}");
+                row.score.text = $"<b>{entry.Score}</b><size=65%> очк.</size>";
+                row.background.color = champion ? Winner : Paper;
+                row.accent.color = champion ? Winner : Color.gray;
+                row.root.SetActive(true);
+            }
+            for (; rowIndex < rows.Length; rowIndex++) rows[rowIndex].root.SetActive(false);
+
+            platformCaption.text = standings.IsTie ? "НИЧЬЯ\n<size=55%>ЗА КОРОНУ</size>" : "ИТОГИ\n<size=55%>КАТКИ</size>";
+            title.text = localChampion ? "Ты — чемпион катки!" : "Итоги катки";
+            subtitle.text = $"Сыграно {standings.RoundsPlayed} {PartySeries.GamesWord(standings.RoundsPlayed)}" +
+                            (standings.IsTie ? "  ·  первое место делят" : string.Empty);
+            waitingForHost = false;
+            returnAt = Time.time + game.FinalStandingsSeconds;
+            lastSecond = -1;
+            shown = true;
+            UpdateFooter();
+        }
+
+        private static bool ChampionListed(System.Collections.Generic.IReadOnlyList<int> champions, int playerId)
+        {
+            for (int i = 0; i < champions.Count; i++) if (champions[i] == playerId) return true;
+            return false;
+        }
+
         private int CharacterOf(SessionPlayer player)
         {
             if (player == null || roster == null) return -1;
@@ -119,7 +183,7 @@ namespace Igruha.Minigames.HoleInWall
             int seconds = Mathf.Max(0, Mathf.CeilToInt(returnAt - Time.time));
             if (lastSecond == seconds) return;
             lastSecond = seconds;
-            string destination = PartySeries.Active ? "Следующий этап" : "Возврат в хаб";
+            string destination = PartySeries.Active && !PartySeries.Completed ? "Следующий этап" : "Возврат в хаб";
             footer.text = waitingForHost && !PartySeries.Active
                 ? $"Повтор запускает ведущий  ·  {destination} через {seconds} с"
                 : $"{destination} через {seconds} с";

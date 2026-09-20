@@ -2,6 +2,7 @@ using Unity.Cinemachine;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Igruha.Core.CameraSystems;
 using Igruha.Core.Player;
 
 namespace Igruha.Networking
@@ -59,8 +60,18 @@ namespace Igruha.Networking
                 return;
             }
 
-            rig.Follow = transform;
-            rig.LookAt = transform;
+            // Третьему лицу — грудь, а не корень: орбита центрируется на цели,
+            // и с корнем персонажа её центр оказывается на полу — камера висит
+            // на высоте пояса и смотрит в ноги (MinigameCameraController.ChestLevel).
+            //
+            // Первому лицу — наоборот, корень: FirstPersonCameraRig сам считает
+            // высоту глаза от капсулы и ждёт точку на уровне ступней. Дай ему
+            // грудь — и Охотник смотрит из-под потолка, а PlayerController на
+            // ней не находится вовсе.
+            Transform target = rig.GetComponent<ThirdPersonCameraRig>() != null
+                ? playerController.CameraTarget : transform;
+            rig.Follow = target;
+            rig.LookAt = target;
 
             // Мотор считает ввод относительно камеры — без ссылки он берёт
             // Camera.main, но после смены сцены её нужно обновить
