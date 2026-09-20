@@ -34,6 +34,7 @@ namespace Igruha.Minigames.CryingAngels
         private bool pushWasEnabled;
         private bool beamYawDriven;
         private float beamYaw;
+        private float beamPitch;
 
         /// <summary>Конус засветки Водящего. По нему в 14.5 считается попадание луча.</summary>
         public VisionCone Vision => vision;
@@ -172,10 +173,24 @@ namespace Igruha.Minigames.CryingAngels
         /// нулевым локальным поворотом. Соло-режим и болванка-Водящий этого
         /// не замечают.
         /// </summary>
-        public void SetBeamYaw(float worldYaw)
+        public void SetBeamYaw(float worldYaw) => SetBeamAim(worldYaw, beamPitch);
+
+        /// <summary>
+        /// То же, что <see cref="SetBeamYaw"/>, плюс наклон фонаря.
+        ///
+        /// <b>Наклон — только картинка.</b> <see cref="VisionCone"/> считает
+        /// засветку по горизонтали (иначе у ног Водящего появляется мёртвая
+        /// зона, в которой присевший невидим), поэтому опущенный фонарь ловит
+        /// ровно тех же, кого ловил бы горизонтальный. Чтобы это не превратилось
+        /// в то самое расхождение «прячусь по картинке, ловит другой конус»,
+        /// предел наклона задаётся конфигом и берётся заметно меньше половины
+        /// угла конуса: горизонт остаётся внутри пятна света при любом наклоне.
+        /// </summary>
+        public void SetBeamAim(float worldYaw, float worldPitch)
         {
             beamYawDriven = true;
             beamYaw = worldYaw;
+            beamPitch = worldPitch;
             ApplyBeamYaw();
         }
 
@@ -196,7 +211,7 @@ namespace Igruha.Minigames.CryingAngels
         {
             if (rigInstance != null)
             {
-                rigInstance.transform.rotation = Quaternion.Euler(0f, beamYaw, 0f);
+                rigInstance.transform.rotation = Quaternion.Euler(beamPitch, beamYaw, 0f);
             }
         }
 
@@ -206,6 +221,7 @@ namespace Igruha.Minigames.CryingAngels
             motor.MovementLocked = false;
             motor.ImpulseImmune = false;
             beamYawDriven = false;
+            beamPitch = 0f;
 
             motor.Teleported -= PinAfterTeleport;
             Unpin();
@@ -255,12 +271,15 @@ namespace Igruha.Minigames.CryingAngels
             }
         }
 
-        /// <summary>Потолок скорости поворота — его задаёт мини-игра по числу Бегущих.</summary>
+        /// <summary>
+        /// Потолок скорости поворота — его задаёт мини-игра по числу Бегущих.
+        /// Ноль означает «потолка нет»: обзор идёт ровно за мышью.
+        /// </summary>
         public void ApplyTurnSpeed(FirstPersonCameraRig rig, float degreesPerSecond)
         {
             if (rig != null)
             {
-                rig.SetMaxTurnSpeed(degreesPerSecond);
+                rig.SetMaxTurnSpeed(Mathf.Max(0f, degreesPerSecond));
             }
         }
 

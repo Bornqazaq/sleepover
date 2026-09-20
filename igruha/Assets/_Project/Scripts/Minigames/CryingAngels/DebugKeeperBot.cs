@@ -122,7 +122,7 @@ namespace Igruha.Minigames.CryingAngels
                 return;
             }
 
-            yaw += direction * game.KeeperTurnSpeed * delta;
+            yaw += direction * game.KeeperSweepSpeed * delta;
             motor.SetFacing(yaw);
         }
 
