@@ -29,6 +29,60 @@
       "loop": false,
       "spatial": true,
       "volume": 1.0
+    },
+    {
+      "id": "SFX_TRAP_Beam_Hit",
+      "file": "SFX_TRAP_Beam_Hit",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "event": "удар балки",
+      "when": "балка на кране прилетела в игрока"
+    },
+    {
+      "id": "SFX_TRAP_Button_Press",
+      "file": "SFX_TRAP_Button_Press",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "event": "кнопка активации",
+      "when": "игрок нажал кнопку ловушки"
+    },
+    {
+      "id": "SFX_TRAP_Hatch_Close",
+      "file": "SFX_TRAP_Hatch_Close",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "event": "люк закрылся",
+      "when": "створки встали на место"
+    },
+    {
+      "id": "SFX_TRAP_Hatch_Open",
+      "file": "SFX_TRAP_Hatch_Open",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "event": "люк открылся",
+      "when": "створки вниз: Экзамен, дно клетки цирка"
+    },
+    {
+      "id": "SFX_TRAP_Lift_Motor_Loop",
+      "file": "SFX_TRAP_Lift_Motor_Loop",
+      "loop": true,
+      "spatial": true,
+      "volume": 1.0,
+      "event": "мотор лифта и лебёдки",
+      "when": "луп, пока платформа движется"
+    },
+    {
+      "id": "SFX_TRAP_Lift_Move_Loop",
+      "file": "SFX_TRAP_Lift_Move_Loop",
+      "loop": true,
+      "spatial": true,
+      "volume": 1.0,
+      "event": "клетка едет вниз",
+      "when": "луп по ступеням"
     }
   ]
 }

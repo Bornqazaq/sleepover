@@ -29,28 +29,32 @@
       "event": "Успешный проход — звонкий «дзынь»",
       "loop": false,
       "spatial": true,
-      "volume": 1.0
+      "volume": 1.0,
+      "file": "Core/Flow/SFX_FLOW_Sting_Positive"
     },
     {
       "id": "crowd_cheer",
       "event": "Успешный проход — рёв студийной публики",
       "loop": false,
       "spatial": false,
-      "volume": 1.0
+      "volume": 1.0,
+      "file": "Core/Crowd/SFX_CROWD_Applause"
     },
     {
       "id": "fail_body_hit",
       "event": "Провал — удар пластика по телу",
       "loop": false,
       "spatial": true,
-      "volume": 0.8
+      "volume": 0.8,
+      "file": "Core/Traps/SFX_TRAP_Beam_Hit"
     },
     {
       "id": "water_splash",
       "event": "Падение в воду",
       "loop": false,
       "spatial": true,
-      "volume": 0.5714
+      "volume": 0.5714,
+      "file": "SFX_HOLE_Water_Splash"
     },
     {
       "id": "underwater_loop",
@@ -78,7 +82,8 @@
       "event": "Конец раунда — финальный джингл шоу",
       "loop": false,
       "spatial": false,
-      "volume": 1.0
+      "volume": 1.0,
+      "file": "Core/Flow/SFX_FLOW_Fanfare_Win"
     },
     {
       "id": "round_theme",
@@ -86,6 +91,15 @@
       "loop": true,
       "spatial": false,
       "volume": 0.737
+    },
+    {
+      "id": "SFX_HOLE_Water_Splash",
+      "file": "SFX_HOLE_Water_Splash",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "event": "падение в воду",
+      "when": "стена сбила игрока в бассейн"
     }
   ]
 }

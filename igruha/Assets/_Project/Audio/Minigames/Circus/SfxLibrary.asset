@@ -60,3 +60,17 @@ MonoBehaviour:
     Volume: 1
     Loop: 0
     Spatial: 0
+  - Id: SFX_CIRCUS_Bear_Growl
+    Clip: {fileID: 8300000, guid: 99d71d2996c02644ea68432953e5a357, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: 99d71d2996c02644ea68432953e5a357, type: 3}
+    - {fileID: 8300000, guid: 340d7b2c1de62c444b37164b3554c7af, type: 3}
+    - {fileID: 8300000, guid: 900d67d4ded66944096688bb8c81fcb8, type: 3}
+    - {fileID: 8300000, guid: 02b49a70e705998449d0ddd65e85fb2c, type: 3}
+    - {fileID: 8300000, guid: 12dc2276a1d2dd946a1c959cf740360d, type: 3}
+    - {fileID: 8300000, guid: 6d5abcd64784545408a67fa5cb3542cc, type: 3}
+    - {fileID: 8300000, guid: e3d61001e6877554ea430efb29ee13a0, type: 3}
+    - {fileID: 8300000, guid: d2de88342d71f404db29ee83d910033f, type: 3}
+    Volume: 1
+    Loop: 0
+    Spatial: 1

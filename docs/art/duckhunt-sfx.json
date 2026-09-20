@@ -65,6 +65,24 @@
       "loop": false,
       "spatial": true,
       "volume": 1.0
+    },
+    {
+      "id": "SFX_DUCK_Bullet_Ricochet",
+      "file": "SFX_DUCK_Bullet_Ricochet",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "event": "пуля прошла рядом",
+      "when": "рикошет у игрока; ставить случайно из восьми"
+    },
+    {
+      "id": "SFX_DUCK_Gun_Shot_Rifle",
+      "file": "SFX_DUCK_Gun_Shot_Rifle",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "event": "выстрел Охотника, винтовка",
+      "when": "ЧЕТЫРЕ РАЗНЫЕ модели: выбрать одну как оружие"
     }
   ]
 }

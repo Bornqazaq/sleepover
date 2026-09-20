@@ -62,8 +62,16 @@ MonoBehaviour:
     Loop: 0
     Spatial: 1
   - Id: bear_roar
-    Clip: {fileID: 8300000, guid: 4ffb51322af2dce4988c9c8150fa5313, type: 3}
-    Variants: []
+    Clip: {fileID: 8300000, guid: 99d71d2996c02644ea68432953e5a357, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: 99d71d2996c02644ea68432953e5a357, type: 3}
+    - {fileID: 8300000, guid: 340d7b2c1de62c444b37164b3554c7af, type: 3}
+    - {fileID: 8300000, guid: 900d67d4ded66944096688bb8c81fcb8, type: 3}
+    - {fileID: 8300000, guid: 02b49a70e705998449d0ddd65e85fb2c, type: 3}
+    - {fileID: 8300000, guid: 12dc2276a1d2dd946a1c959cf740360d, type: 3}
+    - {fileID: 8300000, guid: 6d5abcd64784545408a67fa5cb3542cc, type: 3}
+    - {fileID: 8300000, guid: e3d61001e6877554ea430efb29ee13a0, type: 3}
+    - {fileID: 8300000, guid: d2de88342d71f404db29ee83d910033f, type: 3}
     Volume: 0.9
     Loop: 0
     Spatial: 1
@@ -101,26 +109,44 @@ MonoBehaviour:
     Loop: 0
     Spatial: 0
   - Id: crowd_laugh
-    Clip: {fileID: 0}
-    Variants: []
+    Clip: {fileID: 8300000, guid: 0a16127f2797c1c4d90b2941819293a2, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: 0a16127f2797c1c4d90b2941819293a2, type: 3}
+    - {fileID: 8300000, guid: 14db2e0f828103c48bf84c09c775f37e, type: 3}
+    - {fileID: 8300000, guid: 2f5308201d4bbd44c8a1eacec8c9265f, type: 3}
+    - {fileID: 8300000, guid: 48898ef58d1285449946428836d1338a, type: 3}
+    - {fileID: 8300000, guid: 731078fb565078841953b255341552ed, type: 3}
+    - {fileID: 8300000, guid: 5093d90ba7b7dc84dac5a085f1cd04a0, type: 3}
     Volume: 0.7
     Loop: 0
     Spatial: 0
   - Id: crowd_ambience
-    Clip: {fileID: 0}
+    Clip: {fileID: 8300000, guid: 608ba54abe49d8c468b4e00daa127388, type: 3}
     Variants: []
     Volume: 0.35
     Loop: 1
     Spatial: 0
   - Id: fanfare
-    Clip: {fileID: 0}
-    Variants: []
+    Clip: {fileID: 8300000, guid: 6c61e00ad8a57b64e994d40fa1ea7fc1, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: 6c61e00ad8a57b64e994d40fa1ea7fc1, type: 3}
+    - {fileID: 8300000, guid: 4ea881c8cc1555f408cea8a9f66c0c15, type: 3}
+    - {fileID: 8300000, guid: 0b60765f4160c3041b4777358aff5d35, type: 3}
+    - {fileID: 8300000, guid: 96045659ffd3db64ba19705375718d3b, type: 3}
+    - {fileID: 8300000, guid: 98ce3c9c744ca8c4db23f4131655b481, type: 3}
+    - {fileID: 8300000, guid: da51c36fe65a215479fb0d69203437bf, type: 3}
     Volume: 0.85
     Loop: 0
     Spatial: 0
   - Id: applause
-    Clip: {fileID: 0}
-    Variants: []
+    Clip: {fileID: 8300000, guid: dae0f40bd3c59004abe7ee5dd9372175, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: dae0f40bd3c59004abe7ee5dd9372175, type: 3}
+    - {fileID: 8300000, guid: 2cda74061ab963a42867f00b414a69f1, type: 3}
+    - {fileID: 8300000, guid: 455e354314db09447af8f27a8b208bf8, type: 3}
+    - {fileID: 8300000, guid: 2f7f69651be75454c90e44bfe39af8e2, type: 3}
+    - {fileID: 8300000, guid: 1bb88fc0bb3b71948bc2799609050701, type: 3}
+    - {fileID: 8300000, guid: c25513a6001eb804096a0d2ce9b37321, type: 3}
     Volume: 0.7
     Loop: 0
     Spatial: 0

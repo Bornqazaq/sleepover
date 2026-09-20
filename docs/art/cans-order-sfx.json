@@ -33,7 +33,17 @@
       "event": "Игрок собрал скрытую расстановку — фанфара над его клеткой",
       "loop": false,
       "spatial": true,
-      "volume": 0.9
+      "volume": 0.9,
+      "file": "Core/Flow/SFX_FLOW_Fanfare_Bright"
+    },
+    {
+      "id": "SFX_BOTL_Can_Place",
+      "file": "SFX_BOTL_Can_Place",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "event": "банка на полку",
+      "when": "взять/поставить/поменять; слот can_swap"
     }
   ]
 }

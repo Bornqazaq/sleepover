@@ -31,3 +31,49 @@ MonoBehaviour:
     Volume: 1
     Loop: 0
     Spatial: 1
+  - Id: SFX_TRAP_Beam_Hit
+    Clip: {fileID: 8300000, guid: ee4eca069b9e61d49b15ee636e9edffd, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: ee4eca069b9e61d49b15ee636e9edffd, type: 3}
+    - {fileID: 8300000, guid: 206572d7700cf214c838509a868a25c3, type: 3}
+    Volume: 1
+    Loop: 0
+    Spatial: 1
+  - Id: SFX_TRAP_Button_Press
+    Clip: {fileID: 8300000, guid: 02b9c1c10804f76429bbf66410f6a6a6, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: 02b9c1c10804f76429bbf66410f6a6a6, type: 3}
+    - {fileID: 8300000, guid: d6aab1ff55f6e3946bae9c6d46cce59e, type: 3}
+    Volume: 1
+    Loop: 0
+    Spatial: 1
+  - Id: SFX_TRAP_Hatch_Close
+    Clip: {fileID: 8300000, guid: 7e4a303548cedb64a8e1316542d47a72, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 1
+  - Id: SFX_TRAP_Hatch_Open
+    Clip: {fileID: 8300000, guid: 19cf9d8221af34a48b28fc887edf432b, type: 3}
+    Variants: []
+    Volume: 1
+    Loop: 0
+    Spatial: 1
+  - Id: SFX_TRAP_Lift_Motor_Loop
+    Clip: {fileID: 8300000, guid: 3fcbbd712329c824fae1124f174ed202, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: 3fcbbd712329c824fae1124f174ed202, type: 3}
+    - {fileID: 8300000, guid: 8005afdd567411f40afff17a9ae21b51, type: 3}
+    - {fileID: 8300000, guid: 9836e1bffb833fd4eb0fe6cf5b98150a, type: 3}
+    - {fileID: 8300000, guid: 37533dd298590b44d9a24fea4a3eb04e, type: 3}
+    Volume: 1
+    Loop: 1
+    Spatial: 1
+  - Id: SFX_TRAP_Lift_Move_Loop
+    Clip: {fileID: 8300000, guid: 34911859645a7aa4bb6e596809740e7b, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: 34911859645a7aa4bb6e596809740e7b, type: 3}
+    - {fileID: 8300000, guid: ad9767fd457dd484f90d6104e91a09ad, type: 3}
+    Volume: 1
+    Loop: 1
+    Spatial: 1

@@ -31,3 +31,24 @@ MonoBehaviour:
     Volume: 1
     Loop: 0
     Spatial: 1
+  - Id: SFX_INFC_Heartbeat
+    Clip: {fileID: 8300000, guid: ce9300787faec0248a3bfba62fd3ac8c, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: ce9300787faec0248a3bfba62fd3ac8c, type: 3}
+    - {fileID: 8300000, guid: 38b62a9f8097ca34cade5c7be5d5fc8d, type: 3}
+    - {fileID: 8300000, guid: f0391d917861d094495b3d383b84095b, type: 3}
+    Volume: 1
+    Loop: 0
+    Spatial: 0
+  - Id: SFX_INFC_Swing_Creak
+    Clip: {fileID: 8300000, guid: fc7412f8cd8a0424db001ba352f10e5f, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: fc7412f8cd8a0424db001ba352f10e5f, type: 3}
+    - {fileID: 8300000, guid: 57adf52269017d641b6da34ec6759ac2, type: 3}
+    - {fileID: 8300000, guid: ec2eec2413b68f645a7f6f51a6e16edb, type: 3}
+    - {fileID: 8300000, guid: 4b3ef3d9d0675ad4894df007bf41bf49, type: 3}
+    - {fileID: 8300000, guid: ed8d786a99825f448808730ccaa4fd32, type: 3}
+    - {fileID: 8300000, guid: cddbfa86d51fe7446bd925c2457ec9c9, type: 3}
+    Volume: 1
+    Loop: 0
+    Spatial: 1

@@ -21915,6 +21915,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.UI.RoundHud
   timerText: {fileID: 1727900472}
+  timerPlate: {fileID: 0}
   resultsPanel: {fileID: 607293725}
   resultsText: {fileID: 0}
   spectatorPanel: {fileID: 97820490}
@@ -180636,6 +180637,7 @@ MonoBehaviour:
   onPlayerEntered:
     m_PersistentCalls:
       m_Calls: []
+  guardByHeight: 1
 --- !u!65 &1361623335
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -262824,7 +262826,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.Circus.CircusBearFeedback
   voice: {fileID: 2009410612}
-  growl: {fileID: 8300000, guid: 4ffb51322af2dce4988c9c8150fa5313, type: 3}
+  growl: {fileID: 8300000, guid: 99d71d2996c02644ea68432953e5a357, type: 3}
   swipe: {fileID: 8300000, guid: d1f0caa496728374d8d28d702f590118, type: 3}
   impacts:
   - {fileID: 8300000, guid: 91e3fe136a786d748a9e100b803e18d4, type: 3}

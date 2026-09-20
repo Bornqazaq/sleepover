@@ -1257,6 +1257,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.UI.RoundHud
   timerText: {fileID: 436195421}
+  timerPlate: {fileID: 0}
   resultsPanel: {fileID: 599958953}
   resultsText: {fileID: 0}
   spectatorPanel: {fileID: 1939904499}
@@ -11283,6 +11284,7 @@ MonoBehaviour:
   onPlayerEntered:
     m_PersistentCalls:
       m_Calls: []
+  guardByHeight: 1
 --- !u!65 &1361623335
 BoxCollider:
   m_ObjectHideFlags: 0

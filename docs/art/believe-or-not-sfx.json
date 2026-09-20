@@ -57,14 +57,16 @@
       "event": "Решающий угадал",
       "loop": false,
       "spatial": false,
-      "volume": 0.85
+      "volume": 0.85,
+      "file": "Core/Flow/SFX_FLOW_Sting_Positive"
     },
     {
       "id": "outcome_fail",
       "event": "Решающего обманули",
       "loop": false,
       "spatial": false,
-      "volume": 0.85
+      "volume": 0.85,
+      "file": "Core/Flow/SFX_FLOW_Sting_Negative"
     },
     {
       "id": "gag_puff",
@@ -78,7 +80,8 @@
       "event": "Реакция зала на раскрытие",
       "loop": false,
       "spatial": false,
-      "volume": 0.7
+      "volume": 0.7,
+      "file": "Core/Crowd/SFX_CROWD_Boo_Claps"
     },
     {
       "id": "hall_ambience",
