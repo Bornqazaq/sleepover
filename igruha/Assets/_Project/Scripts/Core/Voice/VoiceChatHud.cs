@@ -163,31 +163,29 @@ namespace Igruha.Core.Voice
         private void DrawSettings()
         {
             float width = Mathf.Max(Screen.width * 0.34f, 420f);
-            float height = Mathf.Max(Screen.height * 0.5f, 330f);
+            float height = Mathf.Max(Screen.height * 0.62f, 420f);
             var panel = new Rect((Screen.width - width) * 0.5f, (Screen.height - height) * 0.5f, width, height);
 
             Fill(new Rect(0f, 0f, Screen.width, Screen.height), new Color(0f, 0f, 0f, 0.55f));
             Fill(panel, new Color(0.08f, 0.09f, 0.12f, 0.97f));
 
             float pad = width * 0.05f;
-            float row = Mathf.Max(Screen.height * 0.042f, 26f);
+            float row = Mathf.Max(Screen.height * 0.034f, 22f);
             float y = panel.y + pad;
             float inner = panel.width - pad * 2f;
 
-            GUI.color = TextColor;
-            GUI.Label(new Rect(panel.x + pad, y, inner, row), "Голосовой чат", titleStyle);
+            Label(new Rect(panel.x + pad, y, inner, row), "Голосовой чат", TextColor, titleStyle);
             y += row * 1.2f;
 
             // Устройство
-            GUI.Label(new Rect(panel.x + pad, y, inner, row), "Микрофон", rowStyle);
+            Label(new Rect(panel.x + pad, y, inner, row), "Микрофон", TextColor, rowStyle);
             y += row * 0.9f;
 
             string[] devices = Microphone.devices;
             string current = string.IsNullOrEmpty(runtime.CaptureDevice) ? "не выбран" : runtime.CaptureDevice;
-            GUI.color = runtime.CaptureReady ? DimColor : MutedColor;
-            GUI.Label(new Rect(panel.x + pad, y, inner, row),
-                runtime.CaptureReady ? $"{current} · {runtime.CaptureRate} Гц" : runtime.CaptureError, rowStyle);
-            GUI.color = TextColor;
+            Label(new Rect(panel.x + pad, y, inner, row),
+                runtime.CaptureReady ? $"{current} · {runtime.CaptureRate} Гц" : runtime.CaptureError,
+                runtime.CaptureReady ? DimColor : MutedColor, rowStyle);
             y += row;
 
             if (devices != null && devices.Length > 1)
@@ -216,8 +214,8 @@ namespace Igruha.Core.Voice
             y += row * 1.3f;
 
             // Чувствительность
-            GUI.Label(new Rect(panel.x + pad, y, inner, row),
-                $"Чувствительность: {VoiceSettings.Threshold:0.000} (ниже — ловит тише)", rowStyle);
+            Label(new Rect(panel.x + pad, y, inner, row),
+                $"Чувствительность: {VoiceSettings.Threshold:0.000} (ниже — ловит тише)", TextColor, rowStyle);
             y += row * 0.85f;
             float threshold = GUI.HorizontalSlider(new Rect(panel.x + pad, y + row * 0.25f, inner, row * 0.5f),
                 VoiceSettings.Threshold, VoiceSettings.MinThreshold, VoiceSettings.MaxThreshold);
@@ -235,7 +233,7 @@ namespace Igruha.Core.Voice
             y += row;
 
             // Усиление
-            GUI.Label(new Rect(panel.x + pad, y, inner, row), $"Усиление микрофона: {VoiceSettings.Gain:0.0}×", rowStyle);
+            Label(new Rect(panel.x + pad, y, inner, row), $"Усиление микрофона: {VoiceSettings.Gain:0.0}×", TextColor, rowStyle);
             y += row * 0.85f;
             float gain = GUI.HorizontalSlider(new Rect(panel.x + pad, y + row * 0.25f, inner, row * 0.5f),
                 VoiceSettings.Gain, VoiceSettings.MinGain, VoiceSettings.MaxGain);
@@ -243,25 +241,21 @@ namespace Igruha.Core.Voice
             y += row * 1.1f;
 
             // Громкость чужих голосов
-            GUI.Label(new Rect(panel.x + pad, y, inner, row), $"Громкость собеседников: {VoiceSettings.Volume * 100f:0}%", rowStyle);
+            Label(new Rect(panel.x + pad, y, inner, row), $"Громкость собеседников: {VoiceSettings.Volume * 100f:0}%", TextColor, rowStyle);
             y += row * 0.85f;
             float volume = GUI.HorizontalSlider(new Rect(panel.x + pad, y + row * 0.25f, inner, row * 0.5f),
                 VoiceSettings.Volume, 0f, 1f);
             if (!Mathf.Approximately(volume, VoiceSettings.Volume)) runtime.SetVolume(volume);
             y += row * 1.2f;
 
-            GUI.color = DimColor;
-            GUI.Label(new Rect(panel.x + pad, y, inner, row * 2f),
-                "Играйте в наушниках: с колонками ваш микрофон ловит голоса\nостальных и возвращает их эхом.", rowStyle);
-            y += row * 1.8f;
+            Label(new Rect(panel.x + pad, y, inner, row * 2f),
+                "Играйте в наушниках: с колонками ваш микрофон ловит голоса\nостальных и возвращает их эхом.", DimColor, rowStyle);
 
-            GUI.color = TextColor;
             if (GUI.Button(new Rect(panel.x + pad, panel.yMax - pad - row, inner, row), "Закрыть (F4)"))
             {
                 runtime.SettingsOpen = false;
+                VoiceSettings.Flush();
             }
-
-            GUI.color = Color.white;
         }
 
         private static string NextDevice(string[] devices, string current)
@@ -299,6 +293,15 @@ namespace Igruha.Core.Voice
 
             rowStyle.fontSize = rowSize;
             titleStyle.fontSize = Mathf.RoundToInt(rowSize * 1.5f);
+        }
+
+        /// <summary>Подпись своим цветом, не пачкая цвет кнопок и ползунков.</summary>
+        private static void Label(Rect rect, string text, Color color, GUIStyle style)
+        {
+            Color previous = GUI.color;
+            GUI.color = color;
+            GUI.Label(rect, text, style);
+            GUI.color = previous;
         }
 
         private static void Fill(Rect rect, Color color)

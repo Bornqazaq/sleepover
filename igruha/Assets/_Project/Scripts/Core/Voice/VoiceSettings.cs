@@ -18,8 +18,8 @@ namespace Igruha.Core.Voice
     /// голосов — дело каждого, серверу до них нет дела и синхронизировать их
     /// нечего.
     ///
-    /// Сохраняются сразу при изменении: вечер с друзьями — это настроить один
-    /// раз и больше не возвращаться, а до выхода из игры дело может и не дойти.
+    /// Записываются на диск не сразу, а по <see cref="Flush"/> — когда человек
+    /// закрыл настройки или вышел из игры.
     /// </summary>
     public static class VoiceSettings
     {
@@ -35,58 +35,49 @@ namespace Igruha.Core.Voice
         public const float MinGain = 0.5f;
         public const float MaxGain = 6f;
 
+        /// <summary>
+        /// Записать настройки на диск.
+        ///
+        /// Отдельным вызовом, а не внутри каждого свойства: ползунок
+        /// чувствительности за одно перетаскивание меняет значение десятки
+        /// раз, а <c>PlayerPrefs.Save</c> — это запись на диск, и вызывать её
+        /// на каждый кадр перетаскивания значит подвешивать игру.
+        /// Достаточно сохранить, когда человек закрыл настройки.
+        /// </summary>
+        public static void Flush() => PlayerPrefs.Save();
+
         /// <summary>Включён ли микрофон. Выключенный — это полная тишина в эфир.</summary>
         public static bool MicrophoneEnabled
         {
             get => PlayerPrefs.GetInt(EnabledKey, 1) != 0;
-            set
-            {
-                PlayerPrefs.SetInt(EnabledKey, value ? 1 : 0);
-                PlayerPrefs.Save();
-            }
+            set => PlayerPrefs.SetInt(EnabledKey, value ? 1 : 0);
         }
 
         /// <summary>Громкость чужих голосов.</summary>
         public static float Volume
         {
             get => Mathf.Clamp01(PlayerPrefs.GetFloat(VolumeKey, 1f));
-            set
-            {
-                PlayerPrefs.SetFloat(VolumeKey, Mathf.Clamp01(value));
-                PlayerPrefs.Save();
-            }
+            set => PlayerPrefs.SetFloat(VolumeKey, Mathf.Clamp01(value));
         }
 
         /// <summary>Порог срабатывания открытого микрофона.</summary>
         public static float Threshold
         {
             get => Mathf.Clamp(PlayerPrefs.GetFloat(ThresholdKey, 0.02f), MinThreshold, MaxThreshold);
-            set
-            {
-                PlayerPrefs.SetFloat(ThresholdKey, Mathf.Clamp(value, MinThreshold, MaxThreshold));
-                PlayerPrefs.Save();
-            }
+            set => PlayerPrefs.SetFloat(ThresholdKey, Mathf.Clamp(value, MinThreshold, MaxThreshold));
         }
 
         /// <summary>Усиление своего микрофона — спасает тихие гарнитуры.</summary>
         public static float Gain
         {
             get => Mathf.Clamp(PlayerPrefs.GetFloat(GainKey, 1f), MinGain, MaxGain);
-            set
-            {
-                PlayerPrefs.SetFloat(GainKey, Mathf.Clamp(value, MinGain, MaxGain));
-                PlayerPrefs.Save();
-            }
+            set => PlayerPrefs.SetFloat(GainKey, Mathf.Clamp(value, MinGain, MaxGain));
         }
 
         public static VoiceInputMode Mode
         {
             get => (VoiceInputMode)PlayerPrefs.GetInt(ModeKey, (int)VoiceInputMode.Open);
-            set
-            {
-                PlayerPrefs.SetInt(ModeKey, (int)value);
-                PlayerPrefs.Save();
-            }
+            set => PlayerPrefs.SetInt(ModeKey, (int)value);
         }
 
         /// <summary>
@@ -97,11 +88,7 @@ namespace Igruha.Core.Voice
         public static string Device
         {
             get => PlayerPrefs.GetString(DeviceKey, string.Empty);
-            set
-            {
-                PlayerPrefs.SetString(DeviceKey, value ?? string.Empty);
-                PlayerPrefs.Save();
-            }
+            set => PlayerPrefs.SetString(DeviceKey, value ?? string.Empty);
         }
     }
 }

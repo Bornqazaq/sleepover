@@ -123,8 +123,11 @@ namespace Igruha.Core.Voice
             capture.FrameReady += OnFrameReady;
         }
 
+        private void OnApplicationQuit() => VoiceSettings.Flush();
+
         private void OnDestroy()
         {
+            VoiceSettings.Flush();
             capture.FrameReady -= OnFrameReady;
             capture.Stop();
             ClearSpeakers();
@@ -274,8 +277,17 @@ namespace Igruha.Core.Voice
             // печатает адрес хоста: перехватывать там клавиши нельзя.
             if (!networkActive || IsTypingSomewhere()) return;
 
-            if (VoiceKeys.MuteToggled) ToggleMicrophone();
-            if (VoiceKeys.SettingsToggled) SettingsOpen = !SettingsOpen;
+            if (VoiceKeys.MuteToggled)
+            {
+                ToggleMicrophone();
+                VoiceSettings.Flush();
+            }
+
+            if (VoiceKeys.SettingsToggled)
+            {
+                SettingsOpen = !SettingsOpen;
+                if (!SettingsOpen) VoiceSettings.Flush();
+            }
         }
 
         /// <summary>
