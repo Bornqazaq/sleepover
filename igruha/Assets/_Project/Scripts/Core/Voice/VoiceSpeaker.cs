@@ -22,24 +22,48 @@ namespace Igruha.Core.Voice
         /// <summary>Сколько секунд звука держит кольцо. С запасом на любую икоту сети.</summary>
         private const float BufferSeconds = 2f;
 
-        /// <summary>Запас перед стартом воспроизведения — два кадра, то есть 80 мс.</summary>
-        private const int PrimeFrames = 2;
+        /// <summary>Запас перед стартом воспроизведения — три кадра, то есть 120 мс.</summary>
+        private const int PrimeFrames = 3;
+
+        /// <summary>Докуда запас растёт на неровной сети — 240 мс. Дальше задержка слышнее обрывов.</summary>
+        private const int MaxPrimeFrames = 6;
 
         /// <summary>Потолок задержки: больше — выбрасываем старое, иначе разговор отстаёт.</summary>
-        private const int MaxFrames = 8;
+        private const int MaxFrames = 12;
+
+        /// <summary>
+        /// Сколько подряд потерянных кадров достраиваем сами. Два — это 80 мс;
+        /// дальше повтор слышен как заедающая пластинка, и честная тишина лучше.
+        /// </summary>
+        private const int MaxConcealedFrames = 2;
+
+        /// <summary>Во сколько раз тише каждый следующий достроенный кадр.</summary>
+        private const float ConcealDecay = 0.5f;
+
+        /// <summary>Через сколько чистых секунд разговора запас снова уменьшается на кадр.</summary>
+        private const float RelaxSeconds = 12f;
 
         /// <summary>Сколько считать человека говорящим после последнего пакета.</summary>
         private const float SpeakingHoldSeconds = 0.25f;
 
         private readonly VoiceJitterBuffer buffer;
         private readonly float[] decoded = new float[VoiceFormat.FrameSamples];
+
+        /// <summary>Последний услышанный кадр — из него достраиваются потерянные.</summary>
+        private readonly float[] previous = new float[VoiceFormat.FrameSamples];
+
         private readonly GameObject host;
         private readonly AudioSource source;
 
         private ushort lastSequence;
         private bool hasSequence;
+        private bool hasPrevious;
         private float lastPacketAt = -100f;
         private float level;
+
+        private int primeFrames = PrimeFrames;
+        private int knownUnderruns;
+        private float relaxAt;
 
         public VoiceSpeaker(ulong clientId, Transform parent, float volume)
         {
@@ -92,18 +116,30 @@ namespace Igruha.Core.Voice
         /// Принять кадр. Опоздавшие пакеты отбрасываются: доставка ненадёжная,
         /// и порядок она не держит, а звук, вставленный задним числом, слышен
         /// как щелчок.
+        ///
+        /// Пропуск в номерах означает потерю по дороге, а не паузу в речи:
+        /// молчащая машина кадров не шлёт вовсе и счётчик ей не двигает.
+        /// Поэтому короткий пропуск достраивается затухающим повтором
+        /// прошлого кадра — не ради красоты, а ради времени: без вставки
+        /// буфер пустеет на 40 мс раньше срока, глохнет и заново набирает
+        /// запас, и одна потеря превращается в четверть секунды тишины.
         /// </summary>
         public void Push(ushort sequence, byte[] data, int offset, int count)
         {
+            int lost = 0;
+
             if (hasSequence)
             {
                 // Разность со знаком переживает переполнение счётчика.
                 short age = (short)(sequence - lastSequence);
                 if (age <= 0) return;
+                lost = age - 1;
             }
 
             int samples = VoiceCodec.Decode(data, offset, count, decoded, 0);
             if (samples <= 0) return;
+
+            Conceal(lost);
 
             lastSequence = sequence;
             hasSequence = true;
@@ -111,6 +147,63 @@ namespace Igruha.Core.Voice
             level = VoiceActivityDetector.RootMeanSquare(decoded, 0, samples);
 
             buffer.Write(decoded, 0, samples);
+
+            System.Array.Copy(decoded, previous, samples);
+            hasPrevious = samples == VoiceFormat.FrameSamples;
+
+            AdjustPrime();
+        }
+
+        /// <summary>Достроить потерянные кадры повтором прошлого, всё тише с каждым.</summary>
+        private void Conceal(int lost)
+        {
+            if (lost <= 0 || lost > MaxConcealedFrames || !hasPrevious) return;
+
+            // Копия затухает прямо на месте: следующей строкой Push кладёт
+            // в неё свежий кадр, и портить тут нечего.
+            for (int frame = 0; frame < lost; frame++)
+            {
+                for (int i = 0; i < previous.Length; i++) previous[i] *= ConcealDecay;
+                buffer.Write(previous, 0, previous.Length);
+            }
+        }
+
+        /// <summary>
+        /// Подогнать запас буфера под эту сеть. Каждый обрыв поднимает его на
+        /// кадр, чистая минута разговора — опускает обратно.
+        ///
+        /// Подгонка нужна потому, что играем и по локальной сети, и через
+        /// Tailscale с чужого города: постоянный запас, годный для второго,
+        /// добавляет первому четверть секунды задержки ни за что.
+        /// </summary>
+        private void AdjustPrime()
+        {
+            int underruns = buffer.Underruns;
+            float now = Time.unscaledTime;
+
+            if (underruns != knownUnderruns)
+            {
+                knownUnderruns = underruns;
+                relaxAt = now + RelaxSeconds;
+
+                if (primeFrames >= MaxPrimeFrames) return;
+
+                primeFrames++;
+                buffer.SetPrime(VoiceFormat.FrameSamples * primeFrames);
+                return;
+            }
+
+            if (relaxAt <= 0f)
+            {
+                relaxAt = now + RelaxSeconds;
+                return;
+            }
+
+            if (now < relaxAt || primeFrames <= PrimeFrames) return;
+
+            primeFrames--;
+            relaxAt = now + RelaxSeconds;
+            buffer.SetPrime(VoiceFormat.FrameSamples * primeFrames);
         }
 
         /// <summary>Звуковой поток забирает отсчёты отсюда, не из главного.</summary>
