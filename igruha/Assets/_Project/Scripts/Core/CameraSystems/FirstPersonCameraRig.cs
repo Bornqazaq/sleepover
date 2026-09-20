@@ -31,7 +31,7 @@ namespace Igruha.Core.CameraSystems
         [SerializeField] private bool invertPitch;
 
         [Header("Ограничение обзора")]
-        [Tooltip("Потолок угловой скорости поворота по горизонтали, °/с")]
+        [Tooltip("Потолок угловой скорости поворота по горизонтали, °/с. Ноль — потолка нет, обзор идёт ровно за мышью")]
         [SerializeField] private float maxTurnSpeed = 90f;
         [Tooltip("Насколько низко можно опустить взгляд, °")]
         [SerializeField] private float minPitch = -20f;
@@ -174,15 +174,21 @@ namespace Igruha.Core.CameraSystems
         /// <summary>
         /// Потолок угловой скорости под правила конкретной мини-игры: в
         /// асимметричных играх он зависит от числа убегающих и потому не может
-        /// быть зашит в риг. Значение ≤ 0 игнорируется — риг остаётся на своём.
+        /// быть зашит в риг.
+        ///
+        /// <b>Ноль снимает потолок</b> — обзор идёт ровно за мышью, кадр в кадр.
+        /// Отрицательное игнорируется: риг остаётся на своём.
         /// </summary>
         public void SetMaxTurnSpeed(float degreesPerSecond)
         {
-            if (degreesPerSecond > 0f)
+            if (degreesPerSecond >= 0f)
             {
                 maxTurnSpeed = degreesPerSecond;
             }
         }
+
+        /// <summary>Идёт ли обзор ровно за мышью, без потолка угловой скорости.</summary>
+        public bool TurnSpeedUnlimited => maxTurnSpeed <= 0f;
 
         /// <summary>
         /// Поставить обзор напрямую, минуя ввод и потолок скорости. Через это
@@ -288,8 +294,11 @@ namespace Igruha.Core.CameraSystems
 
             // Желаемое направление копится без ограничений, а камера доезжает до него
             // с постоянной скоростью. Мгновенный рывок мышью превращается в доводку,
-            // и разворот на 180° честно занимает своё время.
-            yaw = Mathf.MoveTowardsAngle(yaw, desiredYaw, maxTurnSpeed * Time.deltaTime);
+            // и разворот на 180° честно занимает своё время. Без потолка доводки нет:
+            // обзор встаёт туда, куда попросили, тем же кадром.
+            yaw = TurnSpeedUnlimited
+                ? desiredYaw
+                : Mathf.MoveTowardsAngle(yaw, desiredYaw, maxTurnSpeed * Time.deltaTime);
             ApplyTransform();
 
             if (lockBodyRotation && trackedBody != null)
