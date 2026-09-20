@@ -24,10 +24,11 @@ namespace Igruha.Core.UI
     /// шрифты, и порядок отрисовки поверх чужого интерфейса, и тринадцать
     /// сцен снова. Меню паузы открыто секунды, ему хватает.
     ///
-    /// <b>Сцене со своим меню паузы мы уступаем.</b> В хабе стоит оформленный
-    /// <see cref="PauseMenuView"/>, и два обработчика Esc на кадр открыли бы
-    /// два меню разом. Поэтому на каждой загрузке сцены смотрим, нет ли в ней
-    /// собственной паузы, и на это время выключаемся целиком.
+    /// <b>Сцене со своим меню паузы мы уступаем Esc, но не громкость.</b>
+    /// В хабе стоит оформленный <see cref="PauseMenuView"/> — два обработчика
+    /// Esc открыли бы два меню. Поэтому свой <see cref="PauseScreen"/> там
+    /// выключается. Ползунки голоса и музыки при этом остаются: иначе в хабе
+    /// нечем убавить подложку, а именно хаб человек открывает первым.
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(PauseScreen))]
@@ -48,6 +49,12 @@ namespace Igruha.Core.UI
         private bool volumeTouched;
 
         private bool wasPaused;
+
+        /// <summary>
+        /// Сцена принесла своё меню: Esc обрабатывает она, мы рисуем только
+        /// ползунки рядом.
+        /// </summary>
+        private bool sceneOwnsPause;
 
         /// <summary>
         /// Поднять паузу на объекте, переживающем смену сцен. Момент тот же,
@@ -77,13 +84,13 @@ namespace Igruha.Core.UI
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode) => YieldToSceneOwnPause();
 
         /// <summary>
-        /// Настройки голоса пишутся на диск один раз, на закрытии паузы:
-        /// перетаскивание ползунка меняет значение десятки раз за секунду, и
-        /// запись на каждый кадр подвесила бы игру.
+        /// Настройки голоса и музыки пишутся на диск один раз, на закрытии
+        /// паузы: перетаскивание ползунка меняет значение десятки раз за
+        /// секунду, и запись на каждый кадр подвесила бы игру.
         /// </summary>
         private void Update()
         {
-            bool paused = pause.IsPaused;
+            bool paused = AnyPauseOpen();
             if (wasPaused && !paused && volumeTouched)
             {
                 VoiceSettings.Flush();
@@ -95,29 +102,47 @@ namespace Igruha.Core.UI
         }
 
         /// <summary>
-        /// Уступить сцене, которая принесла собственное меню паузы, и вернуться
-        /// в строй, когда такой сцены нет.
+        /// Уступить Esc сцене со своим меню, но остаться рисовать громкость.
         /// </summary>
         private void YieldToSceneOwnPause()
         {
             PauseScreen[] all = FindObjectsByType<PauseScreen>(FindObjectsInactive.Include, FindObjectsSortMode.None);
 
-            bool sceneHasItsOwn = false;
+            sceneOwnsPause = false;
             for (int i = 0; i < all.Length; i++)
             {
-                if (all[i] != pause) sceneHasItsOwn = true;
+                if (all[i] != pause) sceneOwnsPause = true;
             }
 
-            pause.enabled = !sceneHasItsOwn;
-            enabled = !sceneHasItsOwn;
+            // Esc и кнопки — у сцены. Мы сами остаёмся включёнными, чтобы
+            // ползунки музыки и голоса были видны и в хабе.
+            pause.enabled = !sceneOwnsPause;
+            enabled = true;
         }
 
         private void OnGUI()
         {
-            if (!pause.IsPaused) return;
+            if (!AnyPauseOpen()) return;
 
             EnsureStyles();
 
+            if (sceneOwnsPause) DrawVolumeCard();
+            else DrawFullMenu();
+        }
+
+        /// <summary>Открыта ли пауза — своя или сцены.</summary>
+        private bool AnyPauseOpen()
+        {
+            if (pause != null && pause.enabled && pause.IsPaused) return true;
+            PauseScreen current = PauseScreen.Current;
+            return current != null && current.IsPaused;
+        }
+
+        /// <summary>
+        /// Полное меню для сцен без своей паузы: продолжить, выйти, громкость.
+        /// </summary>
+        private void DrawFullMenu()
+        {
             float width = Mathf.Max(Screen.width * 0.3f, 420f);
             float row = Mathf.Max(Screen.height * 0.052f, 34f);
             float pad = width * 0.06f;
@@ -125,9 +150,6 @@ namespace Igruha.Core.UI
             bool inRound = MinigameControllerBase.Current != null && MinigameControllerBase.Current.CanLeaveRound;
             VoiceChatRuntime voice = VoiceChatRuntime.Instance;
 
-            // Высота считается теми же шагами, какими ниже раскладываются
-            // строки: карточка обязана сойтись с содержимым, а не быть
-            // подобранной на глаз под самый длинный случай.
             float lines = 2.2f + 1.25f + 1f;
             if (voice != null) lines += 2.8f;
             if (MusicPlayer.Instance != null) lines += 1.7f;
@@ -155,9 +177,6 @@ namespace Igruha.Core.UI
             if (GUI.Button(new Rect(x, y, inner, row), "Продолжить  ·  Esc", buttonStyle)) pause.Resume();
             y += row * 1.25f;
 
-            // Громкость собеседников стоит здесь, а не только за F4: человек,
-            // которому голос мешает, жмёт Esc, а не клавишу, о которой узнал
-            // из строчки в углу экрана.
             y = DrawVoiceVolume(x, y, inner, row, voice);
             y = DrawMusicVolume(x, y, inner, row);
 
@@ -173,6 +192,38 @@ namespace Igruha.Core.UI
             }
 
             if (GUI.Button(new Rect(x, y, inner, row), "Выйти из игры", buttonStyle)) pause.QuitGame();
+        }
+
+        /// <summary>
+        /// Карточка громкости рядом с оформленным меню хаба — справа снизу,
+        /// чтобы не перекрывать кнопки «Продолжить / Выйти».
+        /// </summary>
+        private void DrawVolumeCard()
+        {
+            float width = Mathf.Max(Screen.width * 0.22f, 320f);
+            float row = Mathf.Max(Screen.height * 0.04f, 28f);
+            float pad = width * 0.07f;
+
+            VoiceChatRuntime voice = VoiceChatRuntime.Instance;
+            float lines = 1.4f;
+            if (voice != null) lines += 1.9f;
+            if (MusicPlayer.Instance != null) lines += 1.7f;
+
+            float height = pad * 2f + row * lines;
+            var card = new Rect(Screen.width - width - 28f, Screen.height - height - 28f, width, height);
+
+            Fill(card, Card);
+            Fill(new Rect(card.x, card.y, 4f, card.height), Gold);
+
+            float inner = card.width - pad * 2f;
+            float x = card.x + pad;
+            float y = card.y + pad;
+
+            Label(new Rect(x, y, inner, row), "Звук", Ink, titleStyle);
+            y += row * 1.15f;
+
+            y = DrawMusicVolume(x, y, inner, row);
+            DrawVoiceVolume(x, y, inner, row, voice);
         }
 
         /// <summary>
@@ -197,8 +248,14 @@ namespace Igruha.Core.UI
             }
             y += row * 0.9f;
 
-            Label(new Rect(x, y, inner, row * 0.8f), VoiceKeys.Hint, Muted, rowStyle);
-            return y + row * 1.1f;
+            // Подсказка клавиш — только в полном меню: в хабе карточка узкая.
+            if (!sceneOwnsPause)
+            {
+                Label(new Rect(x, y, inner, row * 0.8f), VoiceKeys.Hint, Muted, rowStyle);
+                return y + row * 1.1f;
+            }
+
+            return y;
         }
 
         /// <summary>
