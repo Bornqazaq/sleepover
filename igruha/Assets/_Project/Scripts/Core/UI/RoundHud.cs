@@ -17,6 +17,10 @@ namespace Igruha.Core.UI
     public sealed class RoundHud : MonoBehaviour
     {
         [SerializeField] private TMP_Text timerText;
+
+        [Tooltip("Плашка таймера матча. Если задана — прячется на итогах раунда. " +
+                 "Пусто — таймер остаётся на экране, как было")]
+        [SerializeField] private GameObject timerPlate;
         [SerializeField] private GameObject resultsPanel;
         [SerializeField] private TMP_Text resultsText;
         [Tooltip("Панель наблюдателя: за кем сейчас смотрит выбывший")]
@@ -121,6 +125,7 @@ namespace Igruha.Core.UI
             resultsCursor.Restore();
             resultsCamera?.SetLookSuspended(false);
             timer = roundTimer;
+            SetTimerPlateVisible(true);
             if (resultsPanel != null)
             {
                 resultsPanel.SetActive(false);
@@ -219,6 +224,14 @@ namespace Igruha.Core.UI
             }
         }
 
+        private void SetTimerPlateVisible(bool visible)
+        {
+            if (timerPlate != null && timerPlate.activeSelf != visible)
+            {
+                timerPlate.SetActive(visible);
+            }
+        }
+
         private void Update()
         {
             if (timer == null || timerText == null)
@@ -289,6 +302,9 @@ namespace Igruha.Core.UI
 
         private void OpenResultsPanel(bool restartVisible)
         {
+            // Матчевый таймер на итогах продолжал идти под затемнением и тянул
+            // взгляд с мест на себя: раунд уже кончился, а секунды всё бегут.
+            SetTimerPlateVisible(false);
             resultsPanel.SetActive(true);
             resultsCursor.Release();
             resultsCamera?.SetLookSuspended(true);

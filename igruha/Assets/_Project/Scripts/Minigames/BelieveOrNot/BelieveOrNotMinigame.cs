@@ -856,6 +856,7 @@ namespace Igruha.Minigames.BelieveOrNot
             // персонажа, и выставленный только на сервере флаг не остановил
             // бы клиента — он продолжил бы ходить у себя.
             ApplySeatLocks();
+            FitChairs();
 
             if (HasAuthority)
             {
@@ -911,6 +912,25 @@ namespace Igruha.Minigames.BelieveOrNot
                 if (avatar.TryGetComponent(out CharacterAnimatorDriver animatorDriver))
                 {
                     animatorDriver.SetSitting(seated);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Подогнать оба кресла под севших. Зовётся на всех машинах, как и
+        /// блокировка: кресло — декорация без коллайдеров, и каждая машина
+        /// ставит его себе сама по реплицированному составу кона.
+        /// </summary>
+        private void FitChairs()
+        {
+            for (int seat = 0; seat < BelieveTable.SeatCount; seat++)
+            {
+                PlayerController avatar = FindPlayer(SeatedId(seat))?.Avatar;
+                Animator animator = avatar != null ? avatar.GetComponentInChildren<Animator>() : null;
+                if (animator != null)
+                {
+                    config.GetChairFit(animator.avatar, out float lift, out float forward);
+                    table.FitChair(seat, lift, forward);
                 }
             }
         }

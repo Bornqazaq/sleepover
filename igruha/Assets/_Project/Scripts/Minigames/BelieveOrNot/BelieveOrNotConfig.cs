@@ -60,13 +60,13 @@ namespace Igruha.Minigames.BelieveOrNot
         // зал читался не салоном, а спортзалом, в углу которого зачем-то
         // накрыт карточный стол, и стол на этом фоне казался игрушечным.
         //
-        // Стало 24 × 24 ШП (17.28 × 17.28 м), 299 м² — ровно вдвое меньше.
+        // Компактный клуб: 23 × 20 ШП (16.56 × 14.4 м), 238 м².
         // Свободная зона зрителей ужата с 10 до 7.5 ШП вслед за залом: она
         // и определяет, где начинается кольцо мебели, а не наоборот.
         [SerializeField] private float unitsPerWidth = 0.72f;
-        [Tooltip("24 = свободная зона 7.5 ШП вокруг стола + кольцо мебели 4.2 ШП до стены")]
-        [SerializeField] private float hallWidth = 24f;
-        [SerializeField] private float hallDepth = 24f;
+        [Tooltip("23 × 20 ШП: компактный зал; свободный круг зрителей 7.5 ШП сохранён")]
+        [SerializeField] private float hallWidth = 23f;
+        [SerializeField] private float hallDepth = 20f;
         [Tooltip("6 ШП = 4.32 м. На 7 потолок терялся в темноте и зал не имел верха вовсе")]
         [SerializeField] private float ceilingHeight = 6f;
         [SerializeField] private float tableDiameter = 4f;
@@ -88,6 +88,8 @@ namespace Igruha.Minigames.BelieveOrNot
         [Tooltip("Смещение коробки от центра стола к своему владельцу. Держать близко к центру: " +
                  "разнесённые по краям коробки не влезают в один кадр вместе с лицом оппонента")]
         [SerializeField] private float boxOffset = 0.55f;
+        [Tooltip("Зеркальный боковой сдвиг коробок, ШП: 0.25 = 0.18 м. Пара остаётся симметричной вокруг центра стола")]
+        [SerializeField] private float boxSideOffset = 0.25f;
         [SerializeField] private float lampHeight = 3.5f;
 
         [Header("Камера сидящего")]
@@ -127,6 +129,13 @@ namespace Igruha.Minigames.BelieveOrNot
                  "читаться, а не тонуть — стол под лампой всё равно вшестеро ярче")]
         [SerializeField] private Color ambientColor = new Color(0.1f, 0.098f, 0.115f);
 
+        [Header("Кресло")]
+        [Tooltip("Подгонка кресла под каждого сидящего: подъём и сдвиг к нему, метры. Руками не " +
+                 "заполнять: пишет обмер Igruha/Believe Or Not/Apply Original Table Props. Сидячие позы " +
+                 "ставят ступни на пол, поэтому таз у ростера оказывается от 0.27 до 0.48 м над полом, " +
+                 "а худой сидящий без сдвига оказывается на самом краю сиденья")]
+        [SerializeField] private ChairFit[] chairFits = System.Array.Empty<ChairFit>();
+
         public float SeatingSeconds => seatingSeconds;
         public float PeekSeconds => peekSeconds;
         public float PersuasionSeconds => persuasionSeconds;
@@ -160,6 +169,7 @@ namespace Igruha.Minigames.BelieveOrNot
         public float SpawnRingRadius => spawnRingRadius * unitsPerWidth;
         public float BoxSize => boxSize * unitsPerWidth;
         public float BoxOffset => boxOffset * unitsPerWidth;
+        public float BoxSideOffset => boxSideOffset * unitsPerWidth;
         public float LampHeight => lampHeight * unitsPerWidth;
 
         public float SeatCameraBack => seatCameraBack * unitsPerWidth;
@@ -178,6 +188,28 @@ namespace Igruha.Minigames.BelieveOrNot
         public float LampIntensity => lampIntensity;
         public Color LampColor => lampColor;
         public Color AmbientColor => ambientColor;
+
+        /// <summary>
+        /// Как подогнать кресло под персонажа с этим аватаром. Аватар — это и
+        /// есть персонаж: он свой у каждого из восьми и одинаков на всех машинах,
+        /// так что подгонку не нужно ни гонять по сети, ни искать по имени.
+        /// Неизвестный аватар сидит в кресле как есть.
+        /// </summary>
+        public void GetChairFit(Avatar avatar, out float lift, out float forward)
+        {
+            for (int i = 0; i < chairFits.Length; i++)
+            {
+                if (chairFits[i].Avatar == avatar)
+                {
+                    lift = chairFits[i].Lift;
+                    forward = chairFits[i].Forward;
+                    return;
+                }
+            }
+
+            lift = 0f;
+            forward = 0f;
+        }
 
         /// <summary>
         /// Сколько конов будет в матче. Считается ОДИН раз, на старте: от числа
@@ -203,6 +235,21 @@ namespace Igruha.Minigames.BelieveOrNot
                 case BelieveStage.Reaction: return reactionSeconds;
                 default: return 0f;
             }
+        }
+
+        /// <summary>Подгонка кресла под одного персонажа.</summary>
+        [System.Serializable]
+        private struct ChairFit
+        {
+            [SerializeField] private Avatar avatar;
+            [Tooltip("Подъём корпуса, метры. Отрицательный — опустить для коротких ног")]
+            [SerializeField] private float lift;
+            [Tooltip("Сдвиг кресла к сидящему, метры")]
+            [SerializeField] private float forward;
+
+            public Avatar Avatar => avatar;
+            public float Lift => lift;
+            public float Forward => forward;
         }
     }
 }
