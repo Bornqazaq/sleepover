@@ -117,6 +117,13 @@ namespace Igruha.EditorTools
         private static readonly int SmoothnessId = Shader.PropertyToID("_Smoothness");
         private static readonly int SmoothnessTextureChannelId = Shader.PropertyToID("_SmoothnessTextureChannel");
 
+        // Girl and Milez arrive with a valid metallic/smoothness map, but its
+        // alpha reads as a plastic-like highlight on the whole character. Keep
+        // the map (it still carries the per-pixel material response) and lower
+        // only its multiplier so rebuilding either prefab cannot restore the
+        // toy-like gloss. All other characters keep the original multiplier.
+        private const float MatteCharacterSmoothness = 0.1f;
+
         [MenuItem("Igruha/Player/Resize Karlan (Base Prefab)")]
         private static void ResizeKarlan()
         {
@@ -633,7 +640,7 @@ namespace Igruha.EditorTools
             }
 
             externalMaterial.CopyPropertiesFromMaterial(embeddedMaterial);
-            ApplyMapsToMaterial(externalMaterial, textures);
+            ApplyMapsToMaterial(externalMaterial, textures, characterName);
             EditorUtility.SetDirty(externalMaterial);
             AssetDatabase.SaveAssets();
 
@@ -647,7 +654,7 @@ namespace Igruha.EditorTools
         /// без них шейдер собирается в вариант без соответствующей карты, и
         /// назначенная текстура просто не читается.
         /// </summary>
-        private static void ApplyMapsToMaterial(Material material, CharacterTextureSet textures)
+        private static void ApplyMapsToMaterial(Material material, CharacterTextureSet textures, string characterName)
         {
             if (textures.BaseMap != null)
             {
@@ -681,9 +688,17 @@ namespace Igruha.EditorTools
                 // Множитель поверх карты — карта уже несёт готовые значения.
                 if (material.HasProperty(SmoothnessId))
                 {
-                    material.SetFloat(SmoothnessId, 1f);
+                    material.SetFloat(SmoothnessId, GetSmoothnessMultiplier(characterName));
                 }
             }
+        }
+
+        private static float GetSmoothnessMultiplier(string characterName)
+        {
+            return string.Equals(characterName, "Girl", System.StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(characterName, "Milez", System.StringComparison.OrdinalIgnoreCase)
+                ? MatteCharacterSmoothness
+                : 1f;
         }
 
         private static Texture2D FindTexture(string fileNameWithoutExtension)
