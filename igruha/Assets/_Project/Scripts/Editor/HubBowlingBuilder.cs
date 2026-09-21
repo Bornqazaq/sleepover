@@ -395,7 +395,7 @@ namespace Igruha.EditorTools
                 AssetDatabase.CreateFolder("Assets/_Project/Settings", "Physics");
             }
 
-            string path = $"{Folder}/{name}.physicsMaterial";
+            string path = $"{Folder}/{name}.asset";
             var material = AssetDatabase.LoadAssetAtPath<PhysicsMaterial>(path);
 
             if (material == null)
