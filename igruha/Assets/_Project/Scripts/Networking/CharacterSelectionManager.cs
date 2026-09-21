@@ -408,6 +408,52 @@ namespace Igruha.Networking
             return -1;
         }
 
+        /// <summary>
+        /// Выдать тело каждому подключённому, у кого его ещё нет. Только сервер.
+        ///
+        /// Нужно тем, кто зашёл или переподключился посреди катки:
+        /// <see cref="StartWaiting"/> им срока не заводит намеренно — посреди
+        /// чужого раунда человеку появляться незачем. Но «Полная игра» едет из
+        /// мини-игры сразу в следующую, минуя хаб, и экрана выбора для него
+        /// больше не будет вовсе — он оставался зрителем до конца всей катки.
+        ///
+        /// Поэтому на входе в новую сцену мини-игры сервер выдаёт таким
+        /// случайного свободного персонажа сам, не ожидая выбора: раунд для
+        /// них начинается прямо сейчас, и ждать нечего.
+        ///
+        /// Возвращает, скольким выдали, — зовущему это нужно только для лога.
+        /// </summary>
+        public int ServerGrantMissingBodies()
+        {
+            if (!IsSpawned || !IsServer)
+            {
+                return 0;
+            }
+
+            int granted = 0;
+            IReadOnlyList<ulong> ids = NetworkManager.ConnectedClientsIds;
+            for (int i = 0; i < ids.Count; i++)
+            {
+                ulong clientId = ids[i];
+                if (IndexOfClient(clientId) >= 0)
+                {
+                    continue;
+                }
+
+                int index = PickRandomFree();
+                if (index < 0)
+                {
+                    Debug.LogError("❌ Выбор персонажа: свободных не осталось — выдать нечего");
+                    break;
+                }
+
+                Claim(clientId, index);
+                granted++;
+            }
+
+            return granted;
+        }
+
         private int IndexOfClient(ulong clientId)
         {
             for (int i = 0; i < claims.Count; i++)
