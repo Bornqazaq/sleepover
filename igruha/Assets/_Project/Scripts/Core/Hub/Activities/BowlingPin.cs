@@ -25,24 +25,14 @@ namespace Igruha.Core.Hub.Activities
         [SerializeField] private float knockedOffset = 0.15f;
 
         private Rigidbody body;
-        private Collider shape;
-        private Renderer view;
         private Vector3 homePosition;
         private Quaternion homeRotation;
-
-        /// <summary>Кегля уже посчитана и убрана с дорожки.</summary>
-        public bool IsCleared { get; private set; }
 
         /// <summary>Сбита ли: наклонилась или уехала с места.</summary>
         public bool IsKnocked
         {
             get
             {
-                if (IsCleared)
-                {
-                    return true;
-                }
-
                 float tilt = Vector3.Angle(transform.up, Vector3.up);
                 if (tilt > knockedAngle)
                 {
@@ -62,8 +52,6 @@ namespace Igruha.Core.Hub.Activities
         private void Awake()
         {
             body = GetComponent<Rigidbody>();
-            shape = GetComponent<Collider>();
-            view = GetComponentInChildren<Renderer>();
 
             homePosition = transform.position;
             homeRotation = transform.rotation;
@@ -88,19 +76,9 @@ namespace Igruha.Core.Hub.Activities
             body.isKinematic = !WorldAuthority.HasAuthority;
         }
 
-        /// <summary>Убрать сбитую кеглю с дорожки до конца захода.</summary>
-        public void Clear()
-        {
-            IsCleared = true;
-            SetVisible(false);
-        }
-
         /// <summary>Вернуть на место и поставить ровно. Только на авторитете.</summary>
         public void ResetPin()
         {
-            IsCleared = false;
-            SetVisible(true);
-
             transform.SetPositionAndRotation(homePosition, homeRotation);
 
             if (body == null || body.isKinematic)
@@ -113,17 +91,5 @@ namespace Igruha.Core.Hub.Activities
             body.Sleep();
         }
 
-        private void SetVisible(bool visible)
-        {
-            if (view != null)
-            {
-                view.enabled = visible;
-            }
-
-            if (shape != null)
-            {
-                shape.enabled = visible;
-            }
-        }
     }
 }

@@ -4,13 +4,13 @@ using Igruha.Core.Player;
 namespace Igruha.Core.Hub.Activities
 {
     /// <summary>
-    /// Боулинг в хабе. Занял дорожку — катишь шар, кегли падают, табличка
-    /// показывает, сколько сбил за заход. Правила простые и такими задуманы:
-    /// ни фреймов, ни страйков, ни партии — из хаба в любой момент выдёргивают
-    /// в мини-игру, и длинная партия там никому не нужна.
+    /// Боулинг в хабе: катишь шар, кегли падают, шар возвращается, катишь
+    /// снова. Ни счёта, ни табло, ни захода из двух бросков — решение
+    /// геймдизайнера от 21.09: забава должна быть «кинул и сбил», а не партией.
     ///
-    /// Считает только авторитет. Клиент видит результат готовым — иначе у
-    /// каждой машины была бы своя правдоподобная картинка упавших кеглей.
+    /// Кегли остаются лежать там, где упали, и поднимаются все разом, когда
+    /// собьёшь последнюю. Физику считает только авторитет, остальные видят
+    /// реплику.
     /// </summary>
     public sealed class BowlingStation : HubActivityStation
     {
@@ -35,21 +35,16 @@ namespace Igruha.Core.Hub.Activities
         [SerializeField] private float releaseHeight = 0.35f;
 
         [Header("Заход")]
-        [Tooltip("Сколько бросков в заходе")]
-        [SerializeField] private int throwsPerFrame = 2;
-
         [Tooltip("Сколько ждать перед подсчётом, если кегли всё ещё шевелятся, с")]
         [SerializeField] private float settleTimeout = 3f;
 
-        [Tooltip("Сколько держать результат на табличке перед новым заходом, с")]
-        [SerializeField] private float resultSeconds = 1.5f;
+        [Tooltip("Пауза после того, как всё встало, перед возвратом шара, с")]
+        [SerializeField] private float resultSeconds = 1.2f;
 
         private Collider ballCollider;
         private Collider graceCollider;
         private float graceTimer;
 
-        private int throwIndex;
-        private int knockedTotal;
         private float waitTimer;
         private float resultTimer;
         private bool waitingForSettle;
@@ -137,8 +132,6 @@ namespace Igruha.Core.Hub.Activities
         {
             RestorePlayerCollision();
 
-            throwIndex = 0;
-            knockedTotal = 0;
             waitingForSettle = false;
             showingResult = false;
             waitTimer = 0f;
@@ -200,7 +193,7 @@ namespace Igruha.Core.Hub.Activities
             }
 
             waitingForSettle = false;
-            CountKnocked();
+            FinishThrow();
         }
 
         private bool EverythingResting()
@@ -224,7 +217,7 @@ namespace Igruha.Core.Hub.Activities
 
             for (int i = 0; i < pins.Length; i++)
             {
-                if (pins[i] != null && !pins[i].IsCleared && !pins[i].IsResting)
+                if (pins[i] != null && !pins[i].IsResting)
                 {
                     return false;
                 }
@@ -233,45 +226,19 @@ namespace Igruha.Core.Hub.Activities
             return true;
         }
 
-        private void CountKnocked()
+        /// <summary>
+        /// Бросок кончился. Считать нечего — сбитые кегли просто остаются
+        /// лежать. Проверяем только одно: не пора ли поднять их все.
+        /// </summary>
+        private void FinishThrow()
         {
-            int knocked = 0;
-
-            if (pins != null)
-            {
-                for (int i = 0; i < pins.Length; i++)
-                {
-                    BowlingPin pin = pins[i];
-                    if (pin == null || pin.IsCleared)
-                    {
-                        continue;
-                    }
-
-                    if (!pin.IsKnocked)
-                    {
-                        continue;
-                    }
-
-                    // Сбитую убираем: второй бросок идёт по тому, что осталось.
-                    pin.Clear();
-                    knocked++;
-                }
-            }
-
-            knockedTotal += knocked;
-            throwIndex++;
-
-            SetPhase(HubActivityPhase.Counting);
-            ReportScore((byte)knockedTotal, ResolveOccupantBody());
-
             showingResult = true;
             resultTimer = 0f;
         }
 
         /// <summary>
-        /// Подержать результат на табличке и начать следующий бросок — или
-        /// новый заход, если броски кончились. Игрока при этом не выгоняем:
-        /// он ждёт друзей, пусть катает, пока не надоест.
+        /// Вернуть шар в руки. Кегли поднимаются только когда сбиты все —
+        /// иначе человек, сбивший девять, лишился бы последней попытки.
         /// </summary>
         private void HoldResult()
         {
@@ -283,8 +250,7 @@ namespace Igruha.Core.Hub.Activities
 
             showingResult = false;
 
-            bool frameOver = throwIndex >= throwsPerFrame || AllPinsCleared();
-            if (frameOver)
+            if (AllPinsKnocked())
             {
                 ResetActivity();
             }
@@ -300,7 +266,7 @@ namespace Igruha.Core.Hub.Activities
             }
         }
 
-        private bool AllPinsCleared()
+        private bool AllPinsKnocked()
         {
             if (pins == null)
             {
@@ -309,7 +275,7 @@ namespace Igruha.Core.Hub.Activities
 
             for (int i = 0; i < pins.Length; i++)
             {
-                if (pins[i] != null && !pins[i].IsCleared)
+                if (pins[i] != null && !pins[i].IsKnocked)
                 {
                     return false;
                 }

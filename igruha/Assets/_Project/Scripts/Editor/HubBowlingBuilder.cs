@@ -72,23 +72,6 @@ namespace Igruha.EditorTools
         private const float PinRadius = 0.06f;
         private const float PinMass = 1.5f;
 
-        // ===== табло =====
-
-        /// <summary>За задником дорожки, чтобы не мешать разлёту кеглей.</summary>
-        private const float BoardX = -2.55f;
-
-        /// <summary>Высота середины доски над полом.</summary>
-        private const float BoardHeight = 1.35f;
-
-        /// <summary>Доска: длина вдоль дорожки, высота.</summary>
-        private static readonly Vector2 BoardSize = new Vector2(1.5f, 0.62f);
-
-        /// <summary>На сколько текст вынесен перед доской, чтобы не тонуть в ней.</summary>
-        private const float BoardDepth = 0.02f;
-
-        /// <summary>Толщина доски и рамки.</summary>
-        private const float BoardThickness = 0.05f;
-
         private const float RailHeight = 0.12f;
         private const float RailThickness = 0.08f;
 
@@ -116,10 +99,9 @@ namespace Igruha.EditorTools
             BuildRails(root);
             BowlingBall ball = BuildBall(root, ballHome.position);
             BowlingPin[] pins = BuildPins(root);
-            HubActivityBoard board = BuildBoard(root);
             HubActivityPowerGauge gauge = BuildGauge(root);
 
-            BuildStation(root, standPoint, ballHome, ball, pins, board, gauge);
+            BuildStation(root, standPoint, ballHome, ball, pins, gauge);
             HideDecorativeBall();
 
             Physics.SyncTransforms();
@@ -203,7 +185,7 @@ namespace Igruha.EditorTools
             go.transform.SetParent(root, false);
             go.transform.position = home + Vector3.up * BallRadius;
             go.transform.localScale = Vector3.one * (BallRadius * 2f);
-            go.GetComponent<MeshRenderer>().sharedMaterial = HubOriginalAssets.Mat("Ink");
+            go.GetComponent<MeshRenderer>().sharedMaterial = HubOriginalAssets.Mat("Blue");
 
             var shape = go.GetComponent<SphereCollider>();
             shape.material = PhysicsAssets.Ball();
@@ -430,101 +412,6 @@ namespace Igruha.EditorTools
             return mesh;
         }
 
-        /// <summary>
-        /// Табло за дорожкой: доска на двух стойках, лицом к игроку. Раньше
-        /// текст висел в воздухе и читался с изнанки зеркально — у надписи
-        /// без подложки нет ни лица, ни места, к которому она относится.
-        /// </summary>
-        private static HubActivityBoard BuildBoard(Transform root)
-        {
-            var go = new GameObject("Board");
-            go.transform.SetParent(root, false);
-            go.transform.position = new Vector3(BoardX, 0f, LaneCenterZ);
-
-            BuildBoardStand(go.transform);
-
-            // Табло не повёрнуто, поэтому «к игроку» — это −X: туда и выносим
-            // текст перед панелью, иначе он тонет в доске и не виден вовсе.
-            float front = -(BoardThickness * 0.5f + BoardDepth);
-            TMP_Text status = BuildLine(go.transform, "Status", new Vector3(front, BoardHeight + 0.10f, 0f), 1.5f);
-            TMP_Text best = BuildLine(go.transform, "Best", new Vector3(front, BoardHeight - 0.14f, 0f), 0.75f);
-
-            var board = go.AddComponent<HubActivityBoard>();
-
-            var serialized = new SerializedObject(board);
-            serialized.FindProperty("statusLine").objectReferenceValue = status;
-            serialized.FindProperty("bestLine").objectReferenceValue = best;
-            serialized.ApplyModifiedPropertiesWithoutUndo();
-
-            return board;
-        }
-
-        private static void BuildBoardStand(Transform parent)
-        {
-            var frame = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            frame.name = "Frame";
-            frame.transform.SetParent(parent, false);
-            frame.transform.localPosition = new Vector3(0f, BoardHeight, 0f);
-            frame.transform.localScale = new Vector3(BoardThickness, BoardSize.y + 0.09f, BoardSize.x + 0.09f);
-            frame.GetComponent<MeshRenderer>().sharedMaterial = HubOriginalAssets.Mat("Oak");
-            Object.DestroyImmediate(frame.GetComponent<Collider>());
-
-            var panel = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            panel.name = "Panel";
-            panel.transform.SetParent(parent, false);
-            panel.transform.localPosition = new Vector3(-0.012f, BoardHeight, 0f);
-            panel.transform.localScale = new Vector3(BoardThickness, BoardSize.y, BoardSize.x);
-            panel.GetComponent<MeshRenderer>().sharedMaterial = HubOriginalAssets.Mat("Walnut");
-            Object.DestroyImmediate(panel.GetComponent<Collider>());
-
-            foreach (float side in new[] { -1f, 1f })
-            {
-                var leg = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                leg.name = "Leg";
-                leg.transform.SetParent(parent, false);
-                leg.transform.localPosition = new Vector3(0f, BoardHeight * 0.5f, side * (BoardSize.x * 0.5f - 0.08f));
-                leg.transform.localScale = new Vector3(BoardThickness, BoardHeight, BoardThickness);
-                leg.GetComponent<MeshRenderer>().sharedMaterial = HubOriginalAssets.Mat("Oak");
-                Object.DestroyImmediate(leg.GetComponent<Collider>());
-            }
-
-            foreach (Transform t in parent.GetComponentsInChildren<Transform>())
-            {
-                GameObjectUtility.SetStaticEditorFlags(t.gameObject, StaticEditorFlags.BatchingStatic);
-            }
-        }
-
-        /// <summary>
-        /// Строка табло, читаемая с метки игрока.
-        ///
-        /// <c>forward</c> у неё смотрит **от** зрителя, а не на него: лицевая
-        /// сторона текста TMP — обратная его forward, и разворот «на игрока»
-        /// даёт зеркальную надпись. Так же устроены все вывески хаба.
-        /// </summary>
-        private static TMP_Text BuildLine(Transform parent, string name, Vector3 localPosition, float size)
-        {
-            var go = new GameObject(name);
-            go.transform.SetParent(parent, false);
-            go.transform.localPosition = localPosition;
-            go.transform.localRotation = Quaternion.LookRotation(Vector3.right, Vector3.up);
-
-            var label = go.AddComponent<TextMeshPro>();
-            label.font = HubBarAssets.LetteringFont();
-            label.text = string.Empty;
-            label.fontSize = size;
-            label.alignment = TextAlignmentOptions.Center;
-            label.color = HubCozyMaterials.Hex("F1DBAE");
-            label.rectTransform.sizeDelta = new Vector2(BoardSize.x - 0.08f, 0.26f);
-            label.textWrappingMode = TextWrappingModes.NoWrap;
-            label.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-
-            return label;
-        }
-
-        /// <summary>
-        /// Шкала силы геометрии в сцене больше не имеет: она рисуется на экране
-        /// у того, кто целится. Здесь остаётся только носитель компонента.
-        /// </summary>
         private static HubActivityPowerGauge BuildGauge(Transform root)
         {
             var go = new GameObject("PowerGauge");
@@ -539,7 +426,7 @@ namespace Igruha.EditorTools
         /// взаимодействия некуда адресовать.
         /// </summary>
         private static void BuildStation(Transform root, Transform standPoint, Transform ballHome,
-            BowlingBall ball, BowlingPin[] pins, HubActivityBoard board, HubActivityPowerGauge gauge)
+            BowlingBall ball, BowlingPin[] pins, HubActivityPowerGauge gauge)
         {
             var go = new GameObject("BowlingStation");
             go.transform.SetParent(root, false);
@@ -556,7 +443,6 @@ namespace Igruha.EditorTools
             var serialized = new SerializedObject(station);
             serialized.FindProperty("standPoint").objectReferenceValue = standPoint;
             serialized.FindProperty("activityName").stringValue = "боулинг";
-            serialized.FindProperty("board").objectReferenceValue = board;
             serialized.FindProperty("gauge").objectReferenceValue = gauge;
             serialized.FindProperty("ball").objectReferenceValue = ball;
             serialized.FindProperty("ballHome").objectReferenceValue = ballHome;

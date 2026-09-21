@@ -16,7 +16,6 @@ namespace Igruha.Core.Hub.Activities
         Free = 0,
         Occupied = 1,
         Launched = 2,
-        Counting = 3,
     }
 
     /// <summary>
@@ -45,9 +44,6 @@ namespace Igruha.Core.Hub.Activities
         /// <summary>Станция свободна. Ноль занять нельзя: это законный clientId хоста.</summary>
         public const ulong NoOccupant = ulong.MaxValue;
 
-        /// <summary>Лучшего результата ещё нет. Ноль занимать нельзя: это законный номер участника.</summary>
-        private const int NoPlayer = -1;
-
         [Header("Место игрока")]
         [Tooltip("Куда встаёт занявший станцию. Его forward — направление броска по умолчанию")]
         [SerializeField] private Transform standPoint;
@@ -66,24 +62,11 @@ namespace Igruha.Core.Hub.Activities
         [Tooltip("За сколько секунд шкала силы проходит от нуля до единицы")]
         [SerializeField] private float powerCycleSeconds = 1.2f;
 
-        [Tooltip("На сколько градусов можно отвернуть бросок от направления метки")]
-        [SerializeField] private float maxAimAngle = 60f;
-
         [Header("Показ")]
-        [SerializeField] private HubActivityBoard board;
         [SerializeField] private HubActivityPowerGauge gauge;
 
         private readonly NetworkVariable<ulong> occupant = new NetworkVariable<ulong>(NoOccupant);
         private readonly NetworkVariable<HubActivityPhase> phase = new NetworkVariable<HubActivityPhase>(HubActivityPhase.Free);
-        private readonly NetworkVariable<byte> lastScore = new NetworkVariable<byte>();
-        private readonly NetworkVariable<byte> bestScore = new NetworkVariable<byte>();
-        /// <summary>
-        /// Кто держит лучший результат — номер участника, а не его имя.
-        /// Имя живёт в табло сессии и берётся оттуда при показе: гнать его
-        /// второй раз по сети незачем, а две копии имени рано или поздно
-        /// разъедутся при переименовании на экране приставки.
-        /// </summary>
-        private readonly NetworkVariable<int> bestPlayerId = new NetworkVariable<int>(NoPlayer);
 
         /// <summary>
         /// Зеркала сетевого состояния для сцены, открытой без сети. Писать
@@ -92,9 +75,6 @@ namespace Igruha.Core.Hub.Activities
         /// </summary>
         private ulong offlineOccupant = NoOccupant;
         private HubActivityPhase offlinePhase = HubActivityPhase.Free;
-        private byte offlineLastScore;
-        private byte offlineBestScore;
-        private int offlineBestPlayerId = NoPlayer;
 
         /// <summary>Кого посадили за станцию. Нужен там, где сети нет и искать игрока по clientId не у кого.</summary>
         private PlayerController occupantPlayer;
@@ -108,24 +88,6 @@ namespace Igruha.Core.Hub.Activities
 
         public ulong Occupant => IsSpawned ? occupant.Value : offlineOccupant;
         public HubActivityPhase Phase => IsSpawned ? phase.Value : offlinePhase;
-        public byte LastScore => IsSpawned ? lastScore.Value : offlineLastScore;
-        public byte BestScore => IsSpawned ? bestScore.Value : offlineBestScore;
-        /// <summary>Имя держателя лучшего результата. Пусто, если его ещё нет или он ушёл из катки.</summary>
-        public string BestName
-        {
-            get
-            {
-                int id = IsSpawned ? bestPlayerId.Value : offlineBestPlayerId;
-                if (id == NoPlayer)
-                {
-                    return string.Empty;
-                }
-
-                SessionPlayer player = SessionScoreboard.Current?.FindPlayer(id);
-                return player != null ? player.DisplayName : string.Empty;
-            }
-        }
-
         /// <summary>Сила, набранная прямо сейчас: 0…1. Локальная, по сети не идёт.</summary>
         public float Power { get; private set; }
 
@@ -231,25 +193,16 @@ namespace Igruha.Core.Hub.Activities
         {
             base.OnNetworkSpawn();
 
-            occupant.OnValueChanged += OnOccupantChanged;
-            phase.OnValueChanged += OnPhaseChanged;
-            lastScore.OnValueChanged += OnScoreChanged;
-            bestScore.OnValueChanged += OnScoreChanged;
 
             if (IsServer && NetworkManager != null)
             {
                 NetworkManager.OnClientDisconnectCallback += OnClientDisconnected;
             }
 
-            RefreshBoard();
         }
 
         public override void OnNetworkDespawn()
         {
-            occupant.OnValueChanged -= OnOccupantChanged;
-            phase.OnValueChanged -= OnPhaseChanged;
-            lastScore.OnValueChanged -= OnScoreChanged;
-            bestScore.OnValueChanged -= OnScoreChanged;
 
             if (IsServer && NetworkManager != null)
             {
@@ -270,7 +223,6 @@ namespace Igruha.Core.Hub.Activities
 
         protected virtual void Start()
         {
-            RefreshBoard();
         }
 
         private void Update()
@@ -421,7 +373,7 @@ namespace Igruha.Core.Hub.Activities
             }
             else if (wasHolding)
             {
-                RequestLaunch(AimDirection(), Power);
+                RequestLaunch(Power);
                 Power = 0f;
                 powerTimer = 0f;
 
@@ -438,47 +390,56 @@ namespace Igruha.Core.Hub.Activities
         private static float Triangle(float t) => Mathf.PingPong(t, 1f);
 
         /// <summary>
-        /// Куда полетит: горизонтальная проекция взгляда камеры. Движение
-        /// заблокировано, поэтому персонаж не поворачивается, и единственное,
-        /// чем игрок целится, — камера.
+        /// Направление броска — строго вдоль метки, и ничего больше.
+        ///
+        /// Сначала оно бралось от камеры, «куда смотришь — туда и катится».
+        /// В игре это дало кривой бросок: орбита третьего лица почти никогда
+        /// не смотрит ровно вдоль дорожки, и шар уходил в борт при честном
+        /// прицеле прямо. Забава в хабе должна работать с первого раза, а не
+        /// требовать выравнивания камеры.
         /// </summary>
-        private Vector3 AimDirection()
+        protected Vector3 AimDirection()
         {
-            Camera view = Camera.main;
-            Vector3 raw = view != null ? view.transform.forward : standPoint.forward;
-            raw.y = 0f;
+            if (standPoint == null)
+            {
+                return Vector3.forward;
+            }
 
-            return raw.sqrMagnitude < 0.0001f ? standPoint.forward : raw.normalized;
+            Vector3 forward = standPoint.forward;
+            forward.y = 0f;
+
+            return forward.sqrMagnitude < 0.0001f ? Vector3.forward : forward.normalized;
         }
 
-        private void RequestLaunch(Vector3 direction, float power)
+        private void RequestLaunch(float power)
         {
             if (IsSpawned)
             {
-                RequestLaunchRpc(direction, power);
+                RequestLaunchRpc(power);
                 return;
             }
 
             // Сети нет — сцену открыли в редакторе, исполняем на месте.
-            ExecuteLaunch(direction, power);
+            ExecuteLaunch(power);
         }
 
         /// <summary>
         /// Клиент просит бросить. Отправителя берём из <c>RpcParams</c>, а не из
         /// аргумента: иначе чужим намерением можно было бы бросить за занявшего.
+        /// Направление клиент не присылает вовсе — оно задано меткой.
         /// </summary>
         [Rpc(SendTo.Server, RequireOwnership = false)]
-        private void RequestLaunchRpc(Vector3 direction, float power, RpcParams rpcParams = default)
+        private void RequestLaunchRpc(float power, RpcParams rpcParams = default)
         {
             if (Occupant != rpcParams.Receive.SenderClientId)
             {
                 return;
             }
 
-            ExecuteLaunch(direction, power);
+            ExecuteLaunch(power);
         }
 
-        private void ExecuteLaunch(Vector3 direction, float power)
+        private void ExecuteLaunch(float power)
         {
             if (Phase != HubActivityPhase.Occupied)
             {
@@ -486,31 +447,7 @@ namespace Igruha.Core.Hub.Activities
             }
 
             SetPhase(HubActivityPhase.Launched);
-            Launch(ClampAim(direction), Mathf.Clamp01(power));
-        }
-
-        /// <summary>
-        /// Бросок не разворачивается назад, в комнату: направление зажимается
-        /// в конус вокруг метки. Клиенту тут не доверяем — он мог прислать что угодно.
-        /// </summary>
-        private Vector3 ClampAim(Vector3 direction)
-        {
-            Vector3 forward = standPoint != null ? standPoint.forward : Vector3.forward;
-            forward.y = 0f;
-            forward.Normalize();
-
-            direction.y = 0f;
-            if (direction.sqrMagnitude < 0.0001f)
-            {
-                return forward;
-            }
-
-            direction.Normalize();
-
-            float angle = Vector3.SignedAngle(forward, direction, Vector3.up);
-            float clamped = Mathf.Clamp(angle, -maxAimAngle, maxAimAngle);
-
-            return Quaternion.AngleAxis(clamped, Vector3.up) * forward;
+            Launch(AimDirection(), Mathf.Clamp01(power));
         }
 
         // ================== сторож ==================
@@ -587,7 +524,6 @@ namespace Igruha.Core.Hub.Activities
             if (!IsSpawned)
             {
                 offlinePhase = value;
-                RefreshBoard();
             }
         }
 
@@ -602,83 +538,6 @@ namespace Igruha.Core.Hub.Activities
             if (!IsSpawned)
             {
                 offlineOccupant = value;
-            }
-        }
-
-        /// <summary>
-        /// Записать результат броска. Лучший за вечер держится с именем и
-        /// никуда не сохраняется: перезапустили хост — начали заново.
-        /// </summary>
-        protected void ReportScore(byte score, PlayerController player)
-        {
-            if (!HasAuthority)
-            {
-                return;
-            }
-
-            int playerId = PlayerIdOf(player);
-
-            if (IsSpawned && IsServer)
-            {
-                lastScore.Value = score;
-
-                if (score > bestScore.Value)
-                {
-                    bestScore.Value = score;
-                    bestPlayerId.Value = playerId;
-                }
-
-                return;
-            }
-
-            offlineLastScore = score;
-
-            if (score > offlineBestScore)
-            {
-                offlineBestScore = score;
-                offlineBestPlayerId = playerId;
-            }
-
-            RefreshBoard();
-        }
-
-        /// <summary>
-        /// Номер участника по его телу. Табло — единственное место, где тело
-        /// и участник катки связаны, поэтому спрашиваем там.
-        /// </summary>
-        private static int PlayerIdOf(PlayerController player)
-        {
-            if (player == null)
-            {
-                return NoPlayer;
-            }
-
-            System.Collections.Generic.IReadOnlyList<SessionPlayer> players = SessionScoreboard.Current?.Players;
-            if (players == null)
-            {
-                return NoPlayer;
-            }
-
-            for (int i = 0; i < players.Count; i++)
-            {
-                if (ReferenceEquals(players[i].Avatar, player))
-                {
-                    return players[i].Id;
-                }
-            }
-
-            return NoPlayer;
-        }
-
-        private void OnOccupantChanged(ulong before, ulong after) => RefreshBoard();
-        private void OnPhaseChanged(HubActivityPhase before, HubActivityPhase after) => RefreshBoard();
-        private void OnScoreChanged(byte before, byte after) => RefreshBoard();
-
-        private void RefreshBoard()
-        {
-            if (board != null)
-            {
-                board.Render(this);
             }
         }
 
