@@ -10,10 +10,6 @@ namespace Igruha.EditorTools
         internal static void Build(Transform root)
         {
             Rugs(root); Posters(root); Garland(root); Darts(root); Hoop(root); Popcorn(root); FitTelevision();
-            var g=new HubOriginalGeometry();
-            g.Box(new Vector3(4.5f,2.6f,9.66f),new Vector3(4.7f,1.65f,.12f),M("Sage"));g.Build(root,"ClubSignBacking");
-            Label(root,"SLEEPOVER",new Vector3(4.5f,2.80f,9.575f),0,7.4f,new Vector2(4.35f,.65f));
-            Label(root,"PLAY LATE  /  STAY AWHILE",new Vector3(4.5f,2.24f,9.57f),0,1.8f,new Vector2(4,.24f));
             Label(root,"SNACK CLUB",new Vector3(-9.62f,2.48f,1.2f),270,3.8f,new Vector2(3,.5f));
             Label(root,"ONE MORE ROUND",new Vector3(7.15f,2.60f,-9.61f),180,3.4f,new Vector2(3.7f,.5f));
             Label(root,"MAKE YOURSELF AT HOME",new Vector3(.65f,2.63f,-9.61f),180,2.3f,new Vector2(4.5f,.35f));
@@ -48,7 +44,7 @@ namespace Igruha.EditorTools
             Poster(root,"GOOD SPORT",new Vector3(1.15f,2.05f,9.66f),0,"Sage",1);
             Poster(root,"STAY & PLAY",new Vector3(9.66f,2.05f,3.65f),90,"Terracotta",2);
             Poster(root,"SIDE A",new Vector3(9.66f,2.05f,-.8f),90,"Blue",3);
-            Poster(root,"GAME NIGHT",new Vector3(-9.66f,2.25f,-5.6f),270,"Ochre",2);
+            Poster(root,"GAME NIGHT",new Vector3(-9.66f,2.25f,-4.95f),270,"Ochre",2);
         }
         private static void Poster(Transform root,string title,Vector3 p,float yaw,string color,int icon)
         {
