@@ -26,7 +26,10 @@ namespace Igruha.Core.Hub.Activities
         [SerializeField] private float minSpeed = 2f;
 
         [Tooltip("Скорость шара при полной силе, м/с")]
-        [SerializeField] private float maxSpeed = 9f;
+        [SerializeField] private float maxSpeed = 7.5f;
+
+        [Tooltip("Сколько секунд после броска шар не сталкивается с бросавшим, с")]
+        [SerializeField] private float releaseGraceSeconds = 0.8f;
 
         [Tooltip("Высота выпуска шара над меткой, м")]
         [SerializeField] private float releaseHeight = 0.35f;
@@ -40,6 +43,10 @@ namespace Igruha.Core.Hub.Activities
 
         [Tooltip("Сколько держать результат на табличке перед новым заходом, с")]
         [SerializeField] private float resultSeconds = 1.5f;
+
+        private Collider ballCollider;
+        private Collider graceCollider;
+        private float graceTimer;
 
         private int throwIndex;
         private int knockedTotal;
@@ -71,6 +78,8 @@ namespace Igruha.Core.Hub.Activities
                 return;
             }
 
+            SuspendPlayerCollision();
+
             Vector3 from = ballHome.position + Vector3.up * releaseHeight;
             ball.Roll(from, direction, Mathf.Lerp(minSpeed, maxSpeed, power));
 
@@ -79,11 +88,55 @@ namespace Igruha.Core.Hub.Activities
         }
 
         /// <summary>
+        /// На время выпуска шар не сталкивается с бросавшим. Без этого
+        /// достаточно шагнуть вперёд, чтобы своей же капсулой отпихнуть шар
+        /// вбок в первый же кадр — со стороны это выглядит как кривой бросок.
+        /// </summary>
+        private void SuspendPlayerCollision()
+        {
+            RestorePlayerCollision();
+
+            PlayerController player = ResolveOccupantBody();
+            if (player == null || ball == null)
+            {
+                return;
+            }
+
+            if (ballCollider == null)
+            {
+                ballCollider = ball.GetComponent<Collider>();
+            }
+
+            Collider body = player.GetComponent<Collider>();
+            if (ballCollider == null || body == null)
+            {
+                return;
+            }
+
+            Physics.IgnoreCollision(ballCollider, body, true);
+            graceCollider = body;
+            graceTimer = releaseGraceSeconds;
+        }
+
+        private void RestorePlayerCollision()
+        {
+            if (graceCollider != null && ballCollider != null)
+            {
+                Physics.IgnoreCollision(ballCollider, graceCollider, false);
+            }
+
+            graceCollider = null;
+            graceTimer = 0f;
+        }
+
+        /// <summary>
         /// Сброс дорожки: кегли на места, шар на подставку, заход сначала.
         /// Зовётся и при уходе игрока, и при выгрузке хаба в мини-игру.
         /// </summary>
         protected override void ResetActivity()
         {
+            RestorePlayerCollision();
+
             throwIndex = 0;
             knockedTotal = 0;
             waitingForSettle = false;
@@ -110,6 +163,16 @@ namespace Igruha.Core.Hub.Activities
 
         protected override void OnAuthorityUpdate()
         {
+            if (graceTimer > 0f)
+            {
+                graceTimer -= Time.deltaTime;
+
+                if (graceTimer <= 0f)
+                {
+                    RestorePlayerCollision();
+                }
+            }
+
             if (waitingForSettle)
             {
                 WaitForSettle();

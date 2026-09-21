@@ -45,7 +45,13 @@ namespace Igruha.EditorTools
         // ===== расстановка =====
 
         private const float StandX = -8.2f;
-        private const float BallHomeX = -7.9f;
+        /// <summary>
+        /// Шар стоит в 0.75 м перед меткой. Ближе нельзя: радиус капсулы
+        /// персонажа 0.36, радиус шара 0.11, и на прежних 0.30 м шар оказывался
+        /// внутри игрока — физика выталкивала его вбок ещё до броска, отчего
+        /// «кинул прямо, а ушло в сторону».
+        /// </summary>
+        private const float BallHomeX = -7.45f;
 
         /// <summary>Вершина треугольника кеглей — ближняя к игроку.</summary>
         private const float PinsHeadX = -4.3f;
@@ -114,6 +120,7 @@ namespace Igruha.EditorTools
             HubActivityPowerGauge gauge = BuildGauge(root);
 
             BuildStation(root, standPoint, ballHome, ball, pins, board, gauge);
+            HideDecorativeBall();
 
             Physics.SyncTransforms();
             AssetDatabase.SaveAssets();
@@ -121,6 +128,26 @@ namespace Igruha.EditorTools
 
             Debug.Log($"Боулинг собран: {pins.Length} кеглей, шар радиусом {BallRadius} м, " +
                       $"метка X={StandX}, игровая длина {Mathf.Abs(LaneEndX - StandX):F2} м.");
+        }
+
+        /// <summary>
+        /// Мебель дорожки несёт нарисованный шар — теперь их видно два, и
+        /// игрок целится не тем. Гасим рендер: сама мебель строится арт-проходом
+        /// хаба, трогать её файл незачем, а этот проход всё равно идёт следом.
+        /// </summary>
+        private static void HideDecorativeBall()
+        {
+            var decor = GameObject.Find("_HubOriginal/Games/BowlingLane/HO_Blue");
+            if (decor == null)
+            {
+                return;
+            }
+
+            var view = decor.GetComponent<Renderer>();
+            if (view != null)
+            {
+                view.enabled = false;
+            }
         }
 
         // ================== части ==================
@@ -185,6 +212,8 @@ namespace Igruha.EditorTools
             body.mass = BallMass;
             body.interpolation = RigidbodyInterpolation.Interpolate;
             body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+            body.solverIterations = 16;
+            body.solverVelocityIterations = 6;
 
             AddNetworking(go);
 
@@ -244,6 +273,11 @@ namespace Igruha.EditorTools
             rigid.mass = PinMass;
             rigid.interpolation = RigidbodyInterpolation.Interpolate;
             rigid.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+            // Тонкая капсула под ударом вчетверо более тяжёлого шара продавливается
+            // сквозь настил на стандартных шести итерациях: кегля уходит в пол.
+            rigid.solverIterations = 16;
+            rigid.solverVelocityIterations = 6;
+            rigid.maxDepenetrationVelocity = 3f;
 
             AddNetworking(go);
 
