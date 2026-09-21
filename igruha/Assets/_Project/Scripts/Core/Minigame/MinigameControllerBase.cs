@@ -147,6 +147,7 @@ namespace Igruha.Core.Minigame
             seriesFinal = false;
 
             hud?.Bind(roundTimer);
+            ClearInheritedLocks();
             SetPlayersControlEnabled(false);
             playersReady = true;
             OnPlayersReady();
@@ -655,20 +656,60 @@ namespace Igruha.Core.Minigame
         {
             for (int i = 0; i < playerList.Count; i++)
             {
+                ApplyControl(playerList[i].Avatar, enabled);
+            }
+
+            // Свой персонаж — отдельной строкой, даже если его нет в снимке
+            // состава. Список снимается один раз на старте раунда, и человек,
+            // чей аватар доехал позже, в него не попадал вовсе: раунд ему
+            // управление не возвращал, а конец прошлого раунда его уже отнял
+            // (EnterResults). В «Полной игре» это не лечилось ничем — серия
+            // едет из мини-игры сразу в следующую, минуя хаб с его
+            // страховкой, и человек доигрывал катку обездвиженным.
+            ApplyControl(SessionScoreboard.Current?.LocalPlayer?.Avatar, enabled);
+        }
+
+        private static void ApplyControl(PlayerController avatar, bool enabled)
+        {
+            if (avatar == null || !avatar.TryGetComponent(out PlayerInputReader reader))
+            {
+                return;
+            }
+
+            // Манекены локального теста и чужие сетевые копии лишены
+            // управления навсегда — их будить нельзя.
+            if (!reader.LocallyControlled)
+            {
+                return;
+            }
+
+            reader.enabled = enabled;
+        }
+
+        /// <summary>
+        /// Снять блокировки движения, доставшиеся от прошлой мини-игры.
+        ///
+        /// <c>MovementLocked</c> ставят роли — заморозка в «Ангелах», кресло в
+        /// «Верю / не верю», клетка в «Секундомере», всплеск краски в
+        /// «Заражении», — и снимает её тот, кто ставил. Персонаж при этом
+        /// переезжает между сценами живым, вместе со всем своим состоянием.
+        /// Одного несработавшего снятия хватало, чтобы человек приехал в
+        /// следующую игру каменным: в хабе это чинит <c>HubBootstrap</c>, но
+        /// «Полная игра» в хаб не заезжает вовсе.
+        ///
+        /// Зовётся до <see cref="OnPlayersReady"/>, то есть до того, как игра
+        /// раздаст свои роли и поставит свои блокировки, — чужое снимаем, своё
+        /// не трогаем.
+        /// </summary>
+        private void ClearInheritedLocks()
+        {
+            for (int i = 0; i < playerList.Count; i++)
+            {
                 PlayerController avatar = playerList[i].Avatar;
-                if (avatar == null || !avatar.TryGetComponent(out PlayerInputReader reader))
+                if (avatar != null)
                 {
-                    continue;
+                    avatar.MovementLocked = false;
                 }
-
-                // Манекены локального теста и чужие сетевые копии лишены
-                // управления навсегда — их будить нельзя.
-                if (!reader.LocallyControlled)
-                {
-                    continue;
-                }
-
-                reader.enabled = enabled;
             }
         }
 

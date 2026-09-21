@@ -45,6 +45,14 @@ namespace Igruha.Core.Player
         public event Action<float> Landed;
 
         public CharacterConfig Config => config;
+
+        /// <summary>
+        /// Что считается полом. Им же ищет пол под ступнями
+        /// <see cref="CharacterFootGrounding"/>: другой набор слоёв поднимал бы
+        /// модель над тем, на чём капсула не стоит.
+        /// </summary>
+        public LayerMask GroundLayers => groundLayer;
+
         /// <summary>Куда должна целиться Cinemachine. Без назначенной точки — сам корень (запасной вариант для старых префабов).</summary>
         public Transform CameraTarget => cameraTarget != null ? cameraTarget : transform;
         public bool IsGrounded { get; private set; }
@@ -230,6 +238,7 @@ namespace Igruha.Core.Player
         private bool wasGrounded = true;
         private float launchGraceTimer;
         private Vector3 groundNormal = Vector3.up;
+        private bool continuousRamp;
         private bool standingOnGround;
         private float snapSuppressTimer;
         private bool interpolationSuppressed;
@@ -803,8 +812,13 @@ namespace Igruha.Core.Player
             //
             // Вверх летящего это не трогает: у прыгнувшего и подброшенного
             // гейзером скорость по Y положительная, и ветка не его.
-            rb.linearVelocity = standingOnGround
-                ? Vector3.ProjectOnPlane(newHorizontal, groundNormal)
+            Vector3 slopeVelocity = Vector3.ProjectOnPlane(newHorizontal, groundNormal);
+            if (continuousRamp && standingOnGround)
+            {
+                float planar = new Vector2(slopeVelocity.x, slopeVelocity.z).magnitude;
+                if (planar > .0001f) slopeVelocity *= newHorizontal.magnitude / planar;
+            }
+            rb.linearVelocity = standingOnGround ? slopeVelocity
                 : new Vector3(newHorizontal.x, rb.linearVelocity.y, newHorizontal.z);
 
             NormalizedSpeed = config.MaxSpeed > 0f ? newHorizontal.magnitude / config.MaxSpeed : 0f;
@@ -953,10 +967,12 @@ namespace Igruha.Core.Player
                     castDistance, groundLayer, QueryTriggerInteraction.Ignore))
             {
                 groundNormal = Vector3.up;
+                continuousRamp = false;
                 GroundCollider = null;
                 return false;
             }
 
+            continuousRamp = hit.collider.TryGetComponent<WalkableRamp>(out _);
             groundNormal = ResolveSurfaceNormal(hit.normal, castDistance);
             GroundCollider = hit.collider;
             return true;
@@ -1004,7 +1020,9 @@ namespace Igruha.Core.Player
         {
             standingOnGround = IsGrounded
                                && !IsKnockedDown
-                               && rb.linearVelocity.y <= 0.01f
+                               && (continuousRamp
+                                   ? snapSuppressTimer <= 0f && Vector3.Dot(rb.linearVelocity, groundNormal) <= .1f
+                                   : rb.linearVelocity.y <= 0.01f)
                                && GroundAngle <= config.MaxSlopeAngle;
 
             rb.useGravity = !standingOnGround;
@@ -1072,6 +1090,7 @@ namespace Igruha.Core.Player
             rb.position += Vector3.down * drop;
             rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
             groundNormal = hit.normal;
+            continuousRamp = hit.collider.TryGetComponent<WalkableRamp>(out _);
             return true;
         }
 

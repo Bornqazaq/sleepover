@@ -14,7 +14,17 @@ namespace Igruha.Core.Player
     {
         [SerializeField] private PlayerInputReader inputReader;
 
-        private const int MaxTargets = 8;
+        /// <summary>
+        /// Стартовый размер выборки кандидатов. Это не предел: заполнился
+        /// буфер — он удваивается, и запрос повторяется (см.
+        /// <see cref="CollectSolidCandidates"/>).
+        ///
+        /// Раньше здесь стояло жёсткое 8, и 21.09 в хабе у телевизора треть
+        /// ударов в упор не валила цель: пол и стенки ямы, диван, кресла,
+        /// колонки и триггер зоны дивана занимали все восемь мест раньше
+        /// игрока. В остальном хабе так промахивался каждый двадцатый удар.
+        /// </summary>
+        private const int InitialCandidates = 16;
 
         /// <summary>Замах начался — визуал проигрывает клип удара.</summary>
         public event Action PunchStarted;
@@ -30,7 +40,7 @@ namespace Igruha.Core.Player
         private CapsuleCollider body;
         private Igruha.Core.Items.PlayerCarryAbility carryAbility;
         private IPushRelay pushRelay;
-        private readonly Collider[] overlapResults = new Collider[MaxTargets];
+        private Collider[] overlapResults = new Collider[InitialCandidates];
         private float cooldownTimer;
         private float impactTimer;
         private bool impactPending;
@@ -157,7 +167,7 @@ namespace Igruha.Core.Player
         private void PushTargetsInArc()
         {
             CharacterConfig config = self.Config;
-            int hitCount = Physics.OverlapSphereNonAlloc(transform.position, config.PushRadius, overlapResults);
+            int hitCount = CollectSolidCandidates(transform.position, config.PushRadius, ref overlapResults);
             float halfArc = config.PushArcAngle * 0.5f;
 
             for (int i = 0; i < hitCount; i++)
@@ -197,6 +207,39 @@ namespace Igruha.Core.Player
 
                 target.ApplyPush(toTarget, config.PushForce);
             }
+        }
+
+        /// <summary>
+        /// Все сплошные коллайдеры в сфере — без потерь, сколько бы их ни было.
+        ///
+        /// Триггеры не берутся: персонаж — сплошная капсула, а триггеры зон,
+        /// чекпоинтов и луз только занимают места в выборке (глобальный
+        /// <c>Physics.queriesHitTriggers</c> в проекте включён). Буфер,
+        /// заполнившийся до конца, значит, что кому-то места не хватило:
+        /// он удваивается, и запрос повторяется. Порядок выдачи у физики свой
+        /// (неподвижные раньше подвижных), и при усечении первыми выпадали
+        /// бы именно игроки. Растёт буфер редко и один раз на место — дальше
+        /// он переиспользуется, удар бывает не чаще кулдауна.
+        ///
+        /// Открыт для тестов: в режиме редактора <c>Awake</c> у персонажа не
+        /// идёт, а проверить надо ровно эту выборку.
+        /// </summary>
+        public static int CollectSolidCandidates(Vector3 center, float radius, ref Collider[] buffer)
+        {
+            // Пустой буфер удваивался бы в пустой же — бесконечно.
+            if (buffer == null || buffer.Length == 0)
+            {
+                buffer = new Collider[InitialCandidates];
+            }
+
+            int count = Physics.OverlapSphereNonAlloc(center, radius, buffer, Physics.AllLayers, QueryTriggerInteraction.Ignore);
+            while (count == buffer.Length)
+            {
+                buffer = new Collider[buffer.Length * 2];
+                count = Physics.OverlapSphereNonAlloc(center, radius, buffer, Physics.AllLayers, QueryTriggerInteraction.Ignore);
+            }
+
+            return count;
         }
     }
 }

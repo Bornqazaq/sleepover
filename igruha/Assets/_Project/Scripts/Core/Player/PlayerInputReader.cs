@@ -295,7 +295,9 @@ namespace Igruha.Core.Player
             JumpPressed |= WasPressed(jumpAction);
             PushPressed |= WasPressed(pushAction);
             PushHeld = pushAction != null && pushAction.action.IsPressed();
-            InteractPressed |= WasPressed(interactAction);
+            // A tap is an edge, not completion of the action's Hold interaction.
+            // Hold interactables independently consume InteractHeld below.
+            InteractPressed |= interactAction != null && interactAction.action.WasPressedThisFrame();
             CrouchHeld = crouchAction != null && crouchAction.action.IsPressed();
             InteractHeld = interactAction != null && interactAction.action.IsPressed();
             PoseRequest = ReadPose();
