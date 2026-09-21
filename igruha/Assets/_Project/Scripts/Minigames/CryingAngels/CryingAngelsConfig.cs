@@ -43,7 +43,7 @@ namespace Igruha.Minigames.CryingAngels
 
         [Header("Бегущий — окаменение")]
         [Tooltip("Сколько секунд под лучом до окаменения")]
-        [SerializeField] private float petrifyThreshold = 4f;
+        [SerializeField] private float petrifyThreshold = 1.5f;
         [Tooltip("Множитель накопления счётчика, пока луч на игроке")]
         [SerializeField] private float petrifyGainMultiplier = 1f;
         [Tooltip("Множитель отката счётчика, пока луча нет. 0.5 — полный откат вдвое дольше порога")]

@@ -14,17 +14,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.CryingAngels.CryingAngelsConfig
   arenaRadius: 21.6
   startCountdown: 3
+  beamFollowsMouse: 1
   turnSpeedAtFewestRunners: 60
   turnSpeedAtMostRunners: 90
   verticalLookLimit: 20
+  beamPitchLimit: 12
   touchRadius: 1.08
   stepHearingRadius: 4.32
-  petrifyThreshold: 2
+  petrifyThreshold: 1.5
   petrifyGainMultiplier: 1
   petrifyDecayMultiplier: 0.5
   petrifyAnimationDuration: 0.5
   runnerSpeedMultiplier: 0.5
   freezePoseCount: 6
+  freezeReleaseDelay: 0.25
   statuesRemainAsCover: 0
   beamColorFeedback: 1
   beamColorIdle: {r: 1, g: 0.79, b: 0.46, a: 1}
