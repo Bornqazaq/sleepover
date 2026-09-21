@@ -6,6 +6,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using Igruha.Core.Hub.Activities;
+using static Igruha.EditorTools.HubCompactPass;
 using Object = UnityEngine.Object;
 
 namespace Igruha.EditorTools
@@ -41,6 +42,12 @@ namespace Igruha.EditorTools
 
         /// <summary>Передняя грань задника в восточном конце.</summary>
         private const float LaneEndX = -3.04f;
+
+        /// <summary>Середина задника: мебель ставила его сюда же.</summary>
+        private const float BackboardX = -2.93f;
+
+        /// <summary>Высота задника над настилом.</summary>
+        private const float BackboardHeight = 0.9f;
 
         // ===== расстановка =====
 
@@ -106,7 +113,7 @@ namespace Igruha.EditorTools
             HubActivityPowerGauge gauge = BuildGauge(root);
 
             BuildStation(root, standPoint, ballHome, ball, pins, gauge);
-            HideDecorativeBall();
+            ReplaceDecorativeLane(root);
 
             Physics.SyncTransforms();
             AssetDatabase.SaveAssets();
@@ -117,23 +124,47 @@ namespace Igruha.EditorTools
         }
 
         /// <summary>
-        /// Мебель дорожки несёт нарисованный шар — теперь их видно два, и
-        /// игрок целится не тем. Гасим рендер: сама мебель строится арт-проходом
-        /// хаба, трогать её файл незачем, а этот проход всё равно идёт следом.
+        /// Мебель дорожки несёт нарисованные кегли и шар. Рядом с настоящими
+        /// они выглядят мусором: стоят себе и не сбиваются.
+        ///
+        /// Выборочно их не убрать — три из пяти кусков мебели сидят в одном
+        /// комбинированном меше всей сцены, и правка того меша задела бы
+        /// чужую геометрию. Поэтому гасим мебель целиком и строим настил,
+        /// разметку и задник своей геометрией: коллайдеры мебели при этом
+        /// остаются на месте, они не рендерятся.
         /// </summary>
-        private static void HideDecorativeBall()
+        private static void ReplaceDecorativeLane(Transform root)
         {
-            var decor = GameObject.Find("_HubOriginal/Games/BowlingLane/HO_Blue");
-            if (decor == null)
+            var lane = GameObject.Find("_HubOriginal/Games/BowlingLane");
+            if (lane != null)
             {
-                return;
+                foreach (var view in lane.GetComponentsInChildren<Renderer>(true))
+                {
+                    view.enabled = false;
+                }
             }
 
-            var view = decor.GetComponent<Renderer>();
-            if (view != null)
+            var g = new HubOriginalGeometry();
+
+            float length = LaneStartX - LaneEndX;
+            float centerX = (LaneStartX + LaneEndX) * 0.5f;
+
+            // Настил и его бортовые стенки — то, по чему катится шар.
+            g.Box(new Vector3(centerX, LaneTop * 0.5f, LaneCenterZ),
+                new Vector3(Mathf.Abs(length) + 0.2f, LaneTop, LaneWidth), M("Oak"));
+
+            // Разметка: четыре продольные линии, как на настоящей дорожке.
+            foreach (float offset in new[] { -0.52f, -0.18f, 0.18f, 0.52f })
             {
-                view.enabled = false;
+                g.Box(new Vector3(centerX, LaneTop + 0.002f, LaneCenterZ + offset),
+                    new Vector3(Mathf.Abs(length) + 0.2f, 0.004f, 0.022f), M("Cream"));
             }
+
+            // Задник в дальнем конце: в него упираются кегли и шар.
+            g.Box(new Vector3(BackboardX, LaneTop + BackboardHeight * 0.5f, LaneCenterZ),
+                new Vector3(0.22f, BackboardHeight, LaneWidth), M("Walnut"));
+
+            g.Build(root, "Lane");
         }
 
         // ================== части ==================
