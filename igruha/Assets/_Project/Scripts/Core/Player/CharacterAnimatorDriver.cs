@@ -77,6 +77,32 @@ namespace Igruha.Core.Player
             {
                 standingHeight = Mathf.Max(capsule.height, capsule.radius * 2f);
             }
+
+            AttachFootGrounding();
+        }
+
+        /// <summary>
+        /// Посадить ступни на пол — на каждой копии персонажа.
+        ///
+        /// Добавляется кодом, а не в префаб: префабы персонажей заморожены.
+        /// И живёт отдельным компонентом, а не внутри этого: у чужих копий
+        /// драйвер выключен, чтобы не затирать параметры NetworkAnimator, а
+        /// ступни проваливаются на всех машинах одинаково. Awake при этом
+        /// успевает отработать и у них — выключают драйвер позже, при спавне.
+        /// </summary>
+        private void AttachFootGrounding()
+        {
+            if (animator == null || visualRoot == null || motor == null)
+            {
+                return;
+            }
+
+            if (!TryGetComponent(out CharacterFootGrounding grounding))
+            {
+                grounding = gameObject.AddComponent<CharacterFootGrounding>();
+            }
+
+            grounding.Bind(animator, visualRoot, motor.GroundLayers);
         }
 
         private void OnEnable()
