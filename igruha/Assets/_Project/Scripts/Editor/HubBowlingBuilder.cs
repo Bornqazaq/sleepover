@@ -53,8 +53,12 @@ namespace Igruha.EditorTools
         /// </summary>
         private const float BallHomeX = -7.45f;
 
-        /// <summary>Вершина треугольника кеглей — ближняя к игроку.</summary>
-        private const float PinsHeadX = -4.3f;
+        /// <summary>
+        /// Вершина треугольника — ближняя к игроку. Отодвинута от задника:
+        /// на 0.42 м сбитые кегли сваливались под него кучей, разлёта не было
+        /// видно вовсе.
+        /// </summary>
+        private const float PinsHeadX = -4.75f;
 
         /// <summary>Шаг между кеглями поперёк дорожки.</summary>
         private const float PinStepZ = 0.3f;
@@ -185,7 +189,9 @@ namespace Igruha.EditorTools
             go.transform.SetParent(root, false);
             go.transform.position = home + Vector3.up * BallRadius;
             go.transform.localScale = Vector3.one * (BallRadius * 2f);
-            go.GetComponent<MeshRenderer>().sharedMaterial = HubOriginalAssets.Mat("Blue");
+            go.GetComponent<MeshRenderer>().sharedMaterial = BallMaterial();
+
+            BuildFingerHoles(go.transform);
 
             var shape = go.GetComponent<SphereCollider>();
             shape.material = PhysicsAssets.Ball();
@@ -200,6 +206,68 @@ namespace Igruha.EditorTools
             AddNetworking(go);
 
             return go.AddComponent<BowlingBall>();
+        }
+
+        /// <summary>
+        /// Три отверстия под пальцы. Сделаны вдавленными цилиндрами, а не
+        /// вырезом в меше: дыра в коллайдере шару не нужна, а по вращению
+        /// отверстий читается, как он катится — без них шар выглядит мячом.
+        /// </summary>
+        private static void BuildFingerHoles(Transform ball)
+        {
+            var dark = HubOriginalAssets.Mat("Ink");
+
+            // Локальные координаты шара: радиус здесь 0.5, потому что масштаб
+            // объекта уже равен диаметру.
+            Vector3 face = new Vector3(0.12f, 0.94f, 0.32f).normalized;
+            Vector3 right = Vector3.Cross(Vector3.up, face).normalized;
+            Vector3 up = Vector3.Cross(face, right).normalized;
+
+            var offsets = new[]
+            {
+                Vector3.zero,
+                right * 0.20f + up * 0.16f,
+                right * -0.20f + up * 0.16f,
+            };
+
+            foreach (Vector3 offset in offsets)
+            {
+                Vector3 direction = (face + offset).normalized;
+
+                var hole = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                hole.name = "Hole";
+                hole.transform.SetParent(ball, false);
+                // Торец приходится ровно на поверхность: глубже — пропадёт
+                // под сферой, выше — торчит заклёпкой.
+                hole.transform.localPosition = direction * 0.445f;
+                hole.transform.localRotation = Quaternion.FromToRotation(Vector3.up, direction);
+                hole.transform.localScale = new Vector3(0.125f, 0.055f, 0.125f);
+                hole.GetComponent<MeshRenderer>().sharedMaterial = dark;
+                Object.DestroyImmediate(hole.GetComponent<Collider>());
+            }
+        }
+
+        /// <summary>
+        /// Материал шара: полированный, с бликом. Обычные материалы хаба
+        /// матовые — шар на их фоне выглядел бы пластилиновым.
+        /// </summary>
+        private static Material BallMaterial()
+        {
+            const string path = "Assets/_Project/Art/Hub/Original/Materials/HO_BowlingBall.mat";
+
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material == null)
+            {
+                material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                AssetDatabase.CreateAsset(material, path);
+            }
+
+            material.SetColor("_BaseColor", new Color(0.09f, 0.28f, 0.42f));
+            material.SetFloat("_Smoothness", 0.88f);
+            material.SetFloat("_Metallic", 0.12f);
+            EditorUtility.SetDirty(material);
+
+            return material;
         }
 
         /// <summary>
@@ -269,15 +337,15 @@ namespace Igruha.EditorTools
         /// <summary>Две красные полоски на шее — по ним кегля и читается кеглей.</summary>
         private static void BuildPinStripes(Transform view)
         {
-            foreach (float height in new[] { 0.74f, 0.81f })
+            foreach (float height in new[] { 0.735f, 0.795f })
             {
-                float radius = PinProfileRadius(height) * 1.04f;
+                float radius = PinProfileRadius(height) * 1.015f;
 
                 var stripe = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
                 stripe.name = "Stripe";
                 stripe.transform.SetParent(view, false);
                 stripe.transform.localPosition = new Vector3(0f, PinHeight * height, 0f);
-                stripe.transform.localScale = new Vector3(radius * 2f, PinHeight * 0.018f, radius * 2f);
+                stripe.transform.localScale = new Vector3(radius * 2f, PinHeight * 0.013f, radius * 2f);
                 stripe.GetComponent<MeshRenderer>().sharedMaterial = HubOriginalAssets.Mat("Red");
                 Object.DestroyImmediate(stripe.GetComponent<Collider>());
             }
@@ -304,8 +372,8 @@ namespace Igruha.EditorTools
             new Vector2(0.880f, 0.56f),
             new Vector2(0.930f, 0.57f),
             new Vector2(0.965f, 0.48f),
-            new Vector2(0.990f, 0.28f),
-            new Vector2(1.000f, 0.00f),
+            new Vector2(0.985f, 0.30f),
+            new Vector2(1.000f, 0.20f),
         };
 
         private static float PinProfileRadius(float height)
@@ -345,10 +413,10 @@ namespace Igruha.EditorTools
             Mesh mesh = existing != null ? existing : new Mesh { name = "BowlingPin" };
             mesh.Clear();
 
-            const int segments = 20;
+            const int segments = 32;
             int rings = PinProfile.Length;
 
-            var vertices = new Vector3[rings * (segments + 1) + 1];
+            var vertices = new Vector3[rings * (segments + 1) + 2];
             var uv = new Vector2[vertices.Length];
             int v = 0;
 
@@ -366,12 +434,19 @@ namespace Igruha.EditorTools
                 }
             }
 
-            // Донышко одной точкой в центре пятки — кегля не должна просвечивать снизу.
+            // Пятка и макушка закрываются веером из центра. Профиль намеренно
+            // не сходится в точку: вырожденные треугольники на вершине рвут
+            // нормали, и макушка кегли выглядела гранёным осколком.
             int bottomCenter = v;
             vertices[v] = Vector3.zero;
             uv[v] = new Vector2(0.5f, 0f);
+            v++;
 
-            var triangles = new System.Collections.Generic.List<int>((rings - 1) * segments * 6 + segments * 3);
+            int topCenter = v;
+            vertices[v] = new Vector3(0f, PinHeight, 0f);
+            uv[v] = new Vector2(0.5f, 1f);
+
+            var triangles = new System.Collections.Generic.List<int>((rings - 1) * segments * 6 + segments * 6);
 
             for (int r = 0; r < rings - 1; r++)
             {
@@ -392,6 +467,11 @@ namespace Igruha.EditorTools
                 triangles.Add(bottomCenter);
                 triangles.Add(s);
                 triangles.Add(s + 1);
+
+                int top = (rings - 1) * (segments + 1) + s;
+                triangles.Add(topCenter);
+                triangles.Add(top);
+                triangles.Add(top + 1);
             }
 
             mesh.vertices = vertices;
