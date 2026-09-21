@@ -5,66 +5,44 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using Igruha.Core.Hub.Activities;
-using static Igruha.EditorTools.HubCompactPass;
 using Object = UnityEngine.Object;
 
 namespace Igruha.EditorTools
 {
     /// <summary>
-    /// Собирает бильярд на существующем столе хаба: сукно, борта, лузы,
-    /// 16 шаров, метку игрока, прицел и шкалу силы. Спека —
-    /// <c>docs/hub-activities.md</c> §9.2; счёта нет — как у боулинга.
-    ///
-    /// Живёт своим корнем <c>_HubBilliards</c>, а не внутри <c>_HubOriginal</c>:
-    /// тот корень сносит арт-проход хаба, а здесь физика и сетевые объекты.
-    /// Проход идемпотентный.
+    /// Собирает бильярд в хабе. Визуал стола — модель из Blender
+    /// (<c>Art/Hub/Billiards</c>): ножки, царга, сукно, лузы. Родная мебель
+    /// <c>_HubOriginal/Games/Billiards</c> гасится целиком (нарисованные шары
+    /// и прежний «ящик»). Физика, игровые шары и станция живут в
+    /// <c>_HubBilliards</c>.
     /// </summary>
     public static class HubBilliardsBuilder
     {
         private const string RootName = "_HubBilliards";
         private const string ScenePath = "Assets/_Project/Scenes/Hub.unity";
-
-        // ===== геометрия стола, замерена по мебели хаба =====
+        private const string TableFbx = "Assets/_Project/Art/Hub/Billiards/Models/HubBilliardsTable.fbx";
 
         private static readonly Vector3 TableCenter = new Vector3(6.80f, 0f, 1.70f);
 
-        /// <summary>Внешний габарит мебели по X (короткая сторона).</summary>
-        private const float OuterWidth = 1.62f;
-
-        /// <summary>Внешний габарит мебели по Z (длинная сторона).</summary>
-        private const float OuterLength = 2.92f;
-
-        /// <summary>Высота сукна над полом.</summary>
+        /// <summary>Сукно по замеру мебели HO_Sage, не внешний габарит.</summary>
+        private const float PlayWidth = 1.23f;
+        private const float PlayLength = 2.51f;
         private const float ClothY = 0.95f;
+        private const float RailHeight = 0.08f;
+        private const float RailThickness = 0.11f;
 
-        /// <summary>Толщина борта сверху сукна.</summary>
-        private const float RailHeight = 0.07f;
-
-        /// <summary>Ширина борта: сукно уже внешнего габарита.</summary>
-        private const float RailWidth = 0.14f;
-
-        private const float PlayWidth = OuterWidth - RailWidth * 2f;
-        private const float PlayLength = OuterLength - RailWidth * 2f;
-
-        // ===== расстановка =====
-
-        /// <summary>
-        /// Метка у южного короткого края. Смотрит вдоль стола (+Z).
-        /// Отступ от сукна, чтобы капсула 0.36 не пересеклась с битком.
-        /// </summary>
         private const float StandOffset = 0.85f;
-
-        private const float BallRadius = 0.045f;
+        private const float BallRadius = 0.042f;
         private const float BallMass = 0.55f;
         private const float CueMass = 0.6f;
+        private const float CueInset = 0.48f;
+        private const float RackInset = 0.58f;
 
-        /// <summary>Биток — ближе к игроку, с зазором от капсулы и от борта.</summary>
-        private const float CueInset = 0.42f;
-
-        /// <summary>Вершина пирамиды — ближе к дальнему борту.</summary>
-        private const float RackInset = 0.55f;
-
-        private const float PocketRadius = 0.09f;
+        /// <summary>
+        /// Радиус триггера лузы. Раньше 0.09 — шар задевал краем и пропадал.
+        /// Теперь чуть больше радиуса шара: надо реально провалиться в отверстие.
+        /// </summary>
+        private const float PocketRadius = 0.052f;
 
         [MenuItem("Igruha/Хаб/Собрать бильярд")]
         public static void Apply()
@@ -76,6 +54,7 @@ namespace Igruha.EditorTools
             }
 
             HubOriginalAssets.Import();
+            AssetDatabase.ImportAsset(TableFbx, ImportAssetOptions.ForceUpdate);
 
             GameObject existing = GameObject.Find(RootName);
             if (existing != null)
@@ -85,11 +64,12 @@ namespace Igruha.EditorTools
 
             Transform root = new GameObject(RootName).transform;
 
-            HideDecorativeTable();
-            BuildClothAndRails(root);
+            HideOriginalFurniture();
+            PlaceBlenderTable(root);
+            BuildPhysics(root);
             BilliardsPocket[] pockets = BuildPockets(root);
             Transform standPoint = BuildStandPoint(root);
-            BilliardsBall cueBall = BuildBall(root, CueHome(), true, "CueBall", CueMaterial());
+            BilliardsBall cueBall = BuildBall(root, CueHome(), 0, true);
             BilliardsBall[] objectBalls = BuildRack(root);
             Transform aimLine = BuildAimLine(root);
             HubActivityPowerGauge gauge = BuildGauge(root);
@@ -100,16 +80,15 @@ namespace Igruha.EditorTools
             AssetDatabase.SaveAssets();
             EditorSceneManager.MarkSceneDirty(scene);
 
-            Debug.Log($"Billiards built: {objectBalls.Length + 1} balls, pockets={pockets.Length}, " +
-                      $"play {PlayWidth:F2}x{PlayLength:F2}, clothY={ClothY}");
+            Debug.Log($"Billiards rebuilt with Blender table: {objectBalls.Length + 1} balls, " +
+                      $"pocketR={PocketRadius}, play {PlayWidth:F2}x{PlayLength:F2}");
         }
 
         /// <summary>
-        /// Мебель несёт нарисованные шары на сукне. Выборочно их не погасить —
-        /// куски сидят в комбинированном меше. Гасим рендер целиком, коллайдеры
-        /// мебели остаются: они не рисуются и держат стол в комнате.
+        /// Старая мебель — комбинированный «ящик» с нарисованными шарами.
+        /// Гасим рендер, коллайдеры комнаты оставляем.
         /// </summary>
-        private static void HideDecorativeTable()
+        private static void HideOriginalFurniture()
         {
             var table = GameObject.Find("_HubOriginal/Games/Billiards");
             if (table == null)
@@ -123,63 +102,78 @@ namespace Igruha.EditorTools
             }
         }
 
-        private static void BuildClothAndRails(Transform root)
+        private static void PlaceBlenderTable(Transform root)
         {
-            var g = new HubOriginalGeometry();
+            var source = AssetDatabase.LoadAssetAtPath<GameObject>(TableFbx);
+            if (source == null)
+            {
+                throw new InvalidOperationException($"Нет модели стола: {TableFbx}. Сначала tools/blender/hub_billiards_table.py");
+            }
 
-            // Сукно — тонкая плита на высоте мебели.
-            g.Box(new Vector3(TableCenter.x, ClothY - 0.02f, TableCenter.z),
-                new Vector3(PlayWidth, 0.04f, PlayLength), M("Sage"));
+            var table = (GameObject)PrefabUtility.InstantiatePrefab(source, root);
+            table.name = "TableVisual";
+            // Blender Z-up → Unity Y-up: пустой корень FBX не конвертит детей,
+            // без -90° по X стол встаёт стеной.
+            table.transform.SetPositionAndRotation(TableCenter, Quaternion.Euler(-90f, 0f, 0f));
 
-            // Ноги/цоколь — чтобы стол не висел после гашения мебели.
-            g.Box(new Vector3(TableCenter.x, ClothY * 0.5f, TableCenter.z),
-                new Vector3(OuterWidth - 0.08f, ClothY - 0.04f, OuterLength - 0.08f), M("Walnut"));
+            foreach (var renderer in table.GetComponentsInChildren<Renderer>(true))
+            {
+                renderer.sharedMaterial = MaterialForPart(renderer.gameObject.name);
+                GameObjectUtility.SetStaticEditorFlags(renderer.gameObject, StaticEditorFlags.BatchingStatic);
+            }
+
+            // Коллайдеры из FBX не нужны — физику строим сами под игровой размер.
+            foreach (var col in table.GetComponentsInChildren<Collider>(true))
+            {
+                Object.DestroyImmediate(col);
+            }
+        }
+
+        private static Material MaterialForPart(string name)
+        {
+            if (name.StartsWith("Cloth", StringComparison.Ordinal))
+            {
+                return HubOriginalAssets.Mat("Sage");
+            }
+
+            if (name.StartsWith("Cushion", StringComparison.Ordinal) || name.StartsWith("Bed", StringComparison.Ordinal))
+            {
+                return HubOriginalAssets.Mat("Oak");
+            }
+
+            if (name.StartsWith("Pocket", StringComparison.Ordinal))
+            {
+                return HubOriginalAssets.Mat("Ink");
+            }
+
+            if (name.StartsWith("Sight", StringComparison.Ordinal))
+            {
+                return HubOriginalAssets.Mat("Cream");
+            }
+
+            return HubOriginalAssets.Mat("Walnut");
+        }
+
+        /// <summary>
+        /// Только невидимые коллайдеры. Рисует стол из Blender.
+        /// </summary>
+        private static void BuildPhysics(Transform root)
+        {
+            var cloth = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            cloth.name = "ClothCollider";
+            cloth.transform.SetParent(root, false);
+            cloth.transform.position = new Vector3(TableCenter.x, ClothY - 0.025f, TableCenter.z);
+            cloth.transform.localScale = new Vector3(PlayWidth, 0.05f, PlayLength);
+            Object.DestroyImmediate(cloth.GetComponent<MeshRenderer>());
+            cloth.GetComponent<BoxCollider>().material = PhysicsAssets.Cloth();
 
             float halfW = PlayWidth * 0.5f;
             float halfL = PlayLength * 0.5f;
             float railY = ClothY + RailHeight * 0.5f;
-
-            // Длинные борта (вдоль Z).
-            g.Box(new Vector3(TableCenter.x - halfW - RailWidth * 0.5f, railY, TableCenter.z),
-                new Vector3(RailWidth, RailHeight, PlayLength), M("Walnut"));
-            g.Box(new Vector3(TableCenter.x + halfW + RailWidth * 0.5f, railY, TableCenter.z),
-                new Vector3(RailWidth, RailHeight, PlayLength), M("Walnut"));
-
-            // Короткие борта (вдоль X), с вырезом под угловые лузы — короче сукна.
-            float shortLen = PlayWidth - PocketRadius * 2.2f;
-            g.Box(new Vector3(TableCenter.x, railY, TableCenter.z - halfL - RailWidth * 0.5f),
-                new Vector3(shortLen, RailHeight, RailWidth), M("Walnut"));
-            g.Box(new Vector3(TableCenter.x, railY, TableCenter.z + halfL + RailWidth * 0.5f),
-                new Vector3(shortLen, RailHeight, RailWidth), M("Walnut"));
-
-            g.Build(root, "Table");
-
-            // Физика бортов и сукна — отдельные коллайдеры: batched-меш без них.
-            BuildPlaySurfaceCollider(root);
-            BuildRailColliders(root);
-        }
-
-        private static void BuildPlaySurfaceCollider(Transform root)
-        {
-            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            go.name = "ClothCollider";
-            go.transform.SetParent(root, false);
-            go.transform.position = new Vector3(TableCenter.x, ClothY - 0.025f, TableCenter.z);
-            go.transform.localScale = new Vector3(PlayWidth, 0.05f, PlayLength);
-            Object.DestroyImmediate(go.GetComponent<MeshRenderer>());
-            go.GetComponent<BoxCollider>().material = PhysicsAssets.Cloth();
-        }
-
-        private static void BuildRailColliders(Transform root)
-        {
-            float halfW = PlayWidth * 0.5f;
-            float halfL = PlayLength * 0.5f;
-            float railY = ClothY + RailHeight * 0.5f;
-            float shortLen = PlayWidth - PocketRadius * 2.2f;
-            // Длинный борт рвём на две половины с зазором под боковую лузу.
-            float longSeg = (PlayLength - PocketRadius * 2.4f) * 0.5f;
-            float longCenter = halfL * 0.5f + PocketRadius * 0.2f;
-            var mat = PhysicsAssets.Cushion();
+            float shortLen = PlayWidth - PocketRadius * 2.6f;
+            float longSeg = (PlayLength - PocketRadius * 2.8f) * 0.5f;
+            float longCenter = halfL * 0.5f + PocketRadius * 0.15f;
+            var cushion = PhysicsAssets.Cushion();
 
             void Rail(string name, Vector3 pos, Vector3 size)
             {
@@ -189,30 +183,31 @@ namespace Igruha.EditorTools
                 go.transform.position = pos;
                 go.transform.localScale = size;
                 Object.DestroyImmediate(go.GetComponent<MeshRenderer>());
-                go.GetComponent<BoxCollider>().material = mat;
+                go.GetComponent<BoxCollider>().material = cushion;
             }
 
-            float wx = TableCenter.x - halfW - RailWidth * 0.5f;
-            float ex = TableCenter.x + halfW + RailWidth * 0.5f;
+            float wx = TableCenter.x - halfW - RailThickness * 0.5f;
+            float ex = TableCenter.x + halfW + RailThickness * 0.5f;
             Rail("Rail_W_S", new Vector3(wx, railY, TableCenter.z - longCenter),
-                new Vector3(RailWidth, RailHeight, longSeg));
+                new Vector3(RailThickness, RailHeight, longSeg));
             Rail("Rail_W_N", new Vector3(wx, railY, TableCenter.z + longCenter),
-                new Vector3(RailWidth, RailHeight, longSeg));
+                new Vector3(RailThickness, RailHeight, longSeg));
             Rail("Rail_E_S", new Vector3(ex, railY, TableCenter.z - longCenter),
-                new Vector3(RailWidth, RailHeight, longSeg));
+                new Vector3(RailThickness, RailHeight, longSeg));
             Rail("Rail_E_N", new Vector3(ex, railY, TableCenter.z + longCenter),
-                new Vector3(RailWidth, RailHeight, longSeg));
-            Rail("Rail_S", new Vector3(TableCenter.x, railY, TableCenter.z - halfL - RailWidth * 0.5f),
-                new Vector3(shortLen, RailHeight, RailWidth));
-            Rail("Rail_N", new Vector3(TableCenter.x, railY, TableCenter.z + halfL + RailWidth * 0.5f),
-                new Vector3(shortLen, RailHeight, RailWidth));
+                new Vector3(RailThickness, RailHeight, longSeg));
+            Rail("Rail_S", new Vector3(TableCenter.x, railY, TableCenter.z - halfL - RailThickness * 0.5f),
+                new Vector3(shortLen, RailHeight, RailThickness));
+            Rail("Rail_N", new Vector3(TableCenter.x, railY, TableCenter.z + halfL + RailThickness * 0.5f),
+                new Vector3(shortLen, RailHeight, RailThickness));
         }
 
         private static BilliardsPocket[] BuildPockets(Transform root)
         {
             float halfW = PlayWidth * 0.5f;
             float halfL = PlayLength * 0.5f;
-            float y = ClothY + 0.02f;
+            // Триггер чуть ниже сукна: шар должен провалиться, а не задеть краешек.
+            float y = ClothY - 0.01f;
 
             var spots = new[]
             {
@@ -225,12 +220,8 @@ namespace Igruha.EditorTools
             };
 
             var pockets = new BilliardsPocket[spots.Length];
-            var g = new HubOriginalGeometry();
-
             for (int i = 0; i < spots.Length; i++)
             {
-                g.Sphere(spots[i] + Vector3.down * 0.02f, PocketRadius * 0.85f, M("Ink"));
-
                 var go = new GameObject($"Pocket_{i}");
                 go.transform.SetParent(root, false);
                 go.transform.position = spots[i];
@@ -242,7 +233,6 @@ namespace Igruha.EditorTools
                 pockets[i] = go.AddComponent<BilliardsPocket>();
             }
 
-            g.Build(root, "Pockets", castShadows: false);
             return pockets;
         }
 
@@ -267,18 +257,9 @@ namespace Igruha.EditorTools
         {
             float north = TableCenter.z + PlayLength * 0.5f;
             Vector3 head = new Vector3(TableCenter.x, ClothY + BallRadius, north - RackInset);
-
-            // Шаг пирамиды чуть больше диаметра, чтобы шары не клинили на старте.
-            float step = BallRadius * 2.05f;
+            float step = BallRadius * 2.08f;
             var balls = new System.Collections.Generic.List<BilliardsBall>();
             int number = 1;
-
-            string[] palette =
-            {
-                "Cream", "Red", "Blue", "Cream", "Red",
-                "Blue", "Cream", "Ink", "Red", "Blue",
-                "Cream", "Red", "Blue", "Cream", "Red",
-            };
 
             for (int row = 0; row < 5; row++)
             {
@@ -286,9 +267,7 @@ namespace Igruha.EditorTools
                 {
                     float x = head.x + (i - row * 0.5f) * step;
                     float z = head.z - row * step * 0.866f;
-                    string mat = palette[(number - 1) % palette.Length];
-                    balls.Add(BuildBall(root, new Vector3(x, head.y, z), false,
-                        $"Ball_{number:00}", HubOriginalAssets.Mat(mat)));
+                    balls.Add(BuildBall(root, new Vector3(x, head.y, z), number, false));
                     number++;
                 }
             }
@@ -296,14 +275,19 @@ namespace Igruha.EditorTools
             return balls.ToArray();
         }
 
-        private static BilliardsBall BuildBall(Transform root, Vector3 position, bool cue, string name, Material material)
+        /// <summary>
+        /// Один шар — одна сфера с текстурой: полоса и номер запечены в PNG.
+        /// Вложенная «полоса-сфера» давала шов покебола.
+        /// </summary>
+        private static BilliardsBall BuildBall(Transform root, Vector3 position, int number, bool cue)
         {
+            string name = cue ? "CueBall" : $"Ball_{number:00}";
             var go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             go.name = name;
             go.transform.SetParent(root, false);
             go.transform.position = position;
             go.transform.localScale = Vector3.one * (BallRadius * 2f);
-            go.GetComponent<MeshRenderer>().sharedMaterial = material;
+            go.GetComponent<MeshRenderer>().sharedMaterial = BallSkin(number, cue);
 
             var shape = go.GetComponent<SphereCollider>();
             shape.material = PhysicsAssets.PoolBall();
@@ -327,30 +311,225 @@ namespace Igruha.EditorTools
             return ball;
         }
 
-        private static Material CueMaterial()
+        private static readonly Color[] BallColors =
         {
-            const string path = "Assets/_Project/Art/Hub/Original/Materials/HO_CueBall.mat";
-            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            new Color(0.92f, 0.92f, 0.88f),
+            new Color(0.92f, 0.78f, 0.12f),
+            new Color(0.12f, 0.28f, 0.72f),
+            new Color(0.78f, 0.12f, 0.12f),
+            new Color(0.42f, 0.14f, 0.55f),
+            new Color(0.92f, 0.48f, 0.08f),
+            new Color(0.10f, 0.48f, 0.22f),
+            new Color(0.48f, 0.10f, 0.12f),
+            new Color(0.06f, 0.06f, 0.07f),
+        };
+
+        private static Color ColorOf(int number)
+        {
+            int solid = number <= 8 ? number : number - 8;
+            return solid is >= 1 and <= 8 ? BallColors[solid] : BallColors[0];
+        }
+
+        private static Material BallSkin(int number, bool cue)
+        {
+            string key = cue ? "Cue" : $"Ball_{number:00}";
+            string matPath = $"Assets/_Project/Art/Hub/Billiards/Materials/Pool{key}.mat";
+            string texPath = $"Assets/_Project/Art/Hub/Billiards/Textures/Pool{key}.png";
+
+            EnsureFolder("Assets/_Project/Art/Hub/Billiards/Materials");
+            EnsureFolder("Assets/_Project/Art/Hub/Billiards/Textures");
+
+            var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(texPath);
+            if (texture == null)
+            {
+                texture = BakeBallTexture(number, cue);
+                System.IO.File.WriteAllBytes(
+                    System.IO.Path.Combine(Application.dataPath, "_Project/Art/Hub/Billiards/Textures",
+                        $"Pool{key}.png"),
+                    texture.EncodeToPNG());
+                AssetDatabase.ImportAsset(texPath);
+                var importer = (TextureImporter)AssetImporter.GetAtPath(texPath);
+                if (importer != null)
+                {
+                    importer.sRGBTexture = true;
+                    importer.mipmapEnabled = true;
+                    importer.SaveAndReimport();
+                }
+
+                texture = AssetDatabase.LoadAssetAtPath<Texture2D>(texPath);
+            }
+
+            var material = AssetDatabase.LoadAssetAtPath<Material>(matPath);
             if (material == null)
             {
                 material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-                AssetDatabase.CreateAsset(material, path);
+                AssetDatabase.CreateAsset(material, matPath);
             }
 
-            material.SetColor("_BaseColor", new Color(0.92f, 0.92f, 0.88f));
+            material.SetColor("_BaseColor", Color.white);
+            material.SetTexture("_BaseMap", texture);
             material.SetFloat("_Smoothness", 0.9f);
-            material.SetFloat("_Metallic", 0.05f);
+            material.SetFloat("_Metallic", 0.06f);
             EditorUtility.SetDirty(material);
             return material;
         }
 
+        private static void EnsureFolder(string path)
+        {
+            if (AssetDatabase.IsValidFolder(path))
+            {
+                return;
+            }
+
+            string parent = System.IO.Path.GetDirectoryName(path)?.Replace('\\', '/');
+            string name = System.IO.Path.GetFileName(path);
+            if (!string.IsNullOrEmpty(parent) && !AssetDatabase.IsValidFolder(parent))
+            {
+                EnsureFolder(parent);
+            }
+
+            AssetDatabase.CreateFolder(parent, name);
+        }
+
+        /// <summary>
+        /// UV сферы Unity: U — долгота, V — от низа к верху. Полоса — пояс
+        /// по экватору, номер — белый кружок у полюса.
+        /// </summary>
+        private static Texture2D BakeBallTexture(int number, bool cue)
+        {
+            const int size = 256;
+            var tex = new Texture2D(size, size, TextureFormat.RGB24, false);
+            Color cream = BallColors[0];
+            Color paint = cue ? cream : ColorOf(number);
+            bool striped = !cue && number >= 9;
+
+            var pixels = new Color[size * size];
+            for (int y = 0; y < size; y++)
+            {
+                float v = y / (float)(size - 1);
+                for (int x = 0; x < size; x++)
+                {
+                    Color c;
+                    if (cue)
+                    {
+                        c = cream;
+                    }
+                    else if (striped)
+                    {
+                        c = v > 0.34f && v < 0.66f ? paint : cream;
+                    }
+                    else
+                    {
+                        c = paint;
+                    }
+
+                    pixels[y * size + x] = c;
+                }
+            }
+
+            if (!cue)
+            {
+                // Белый кружок с цифрой у «макушки» (V ≈ 0.82).
+                int cx = size / 2;
+                int cy = (int)(size * 0.82f);
+                int radius = size / 11;
+                for (int dy = -radius; dy <= radius; dy++)
+                {
+                    for (int dx = -radius; dx <= radius; dx++)
+                    {
+                        if (dx * dx + dy * dy > radius * radius)
+                        {
+                            continue;
+                        }
+
+                        int px = cx + dx;
+                        int py = cy + dy;
+                        if (px >= 0 && px < size && py >= 0 && py < size)
+                        {
+                            pixels[py * size + px] = Color.white;
+                        }
+                    }
+                }
+
+                StampDigit(pixels, size, number, Color.black, cx, cy, radius);
+            }
+
+            tex.SetPixels(pixels);
+            tex.Apply();
+            return tex;
+        }
+
+        private static void StampDigit(Color[] pixels, int size, int number, Color ink, int cx, int cy, int badgeR)
+        {
+            string[][] glyphs =
+            {
+                new[] { "01110", "10001", "10001", "10001", "10001", "10001", "01110" },
+                new[] { "00100", "01100", "00100", "00100", "00100", "00100", "01110" },
+                new[] { "01110", "10001", "00001", "00110", "01000", "10000", "11111" },
+                new[] { "01110", "10001", "00001", "00110", "00001", "10001", "01110" },
+                new[] { "00010", "00110", "01010", "10010", "11111", "00010", "00010" },
+                new[] { "11111", "10000", "11110", "00001", "00001", "10001", "01110" },
+                new[] { "01110", "10000", "11110", "10001", "10001", "10001", "01110" },
+                new[] { "11111", "00001", "00010", "00100", "01000", "01000", "01000" },
+                new[] { "01110", "10001", "10001", "01110", "10001", "10001", "01110" },
+                new[] { "01110", "10001", "10001", "01111", "00001", "00001", "01110" },
+            };
+
+            void DrawOne(int digit, int originX, int originY, int cell)
+            {
+                string[] g = glyphs[Mathf.Clamp(digit, 0, 9)];
+                for (int row = 0; row < 7; row++)
+                {
+                    for (int col = 0; col < 5; col++)
+                    {
+                        if (g[row][col] != '1')
+                        {
+                            continue;
+                        }
+
+                        for (int py = 0; py < cell; py++)
+                        {
+                            for (int px = 0; px < cell; px++)
+                            {
+                                int x = originX + col * cell + px;
+                                int y = originY + row * cell + py;
+                                if (x >= 0 && x < size && y >= 0 && y < size)
+                                {
+                                    pixels[y * size + x] = ink;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            int cell = Mathf.Max(1, badgeR / 6);
+            int glyphW = 5 * cell;
+            int glyphH = 7 * cell;
+            int oy = cy - glyphH / 2;
+
+            if (number >= 10)
+            {
+                DrawOne(number / 10, cx - glyphW - 1, oy, cell);
+                DrawOne(number % 10, cx + 1, oy, cell);
+            }
+            else
+            {
+                DrawOne(number, cx - glyphW / 2, oy, cell);
+            }
+        }
+
+        // Старые хелперы полосы/бейджа сняты — всё в BakeBallTexture.
+
         private static Transform BuildAimLine(Transform root)
         {
-            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            // Тонкий «кий»: тёмный цилиндр. Раньше толстый кремовый куб читался
+            // палкой, брошенной поперёк стола.
+            var go = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             go.name = "AimLine";
             go.transform.SetParent(root, false);
-            go.transform.localScale = new Vector3(0.03f, 0.03f, 1.4f);
-            go.GetComponent<MeshRenderer>().sharedMaterial = HubOriginalAssets.Mat("Cream");
+            go.transform.localScale = new Vector3(0.018f, 0.7f, 0.018f);
+            go.GetComponent<MeshRenderer>().sharedMaterial = HubOriginalAssets.Mat("Walnut");
             Object.DestroyImmediate(go.GetComponent<Collider>());
             go.SetActive(false);
             return go.transform;
@@ -385,6 +564,7 @@ namespace Igruha.EditorTools
             serialized.FindProperty("gauge").objectReferenceValue = gauge;
             serialized.FindProperty("cueBall").objectReferenceValue = cueBall;
             serialized.FindProperty("aimLine").objectReferenceValue = aimLine;
+            serialized.FindProperty("aimLineLength").floatValue = 1.35f;
 
             SerializedProperty objects = serialized.FindProperty("objectBalls");
             objects.arraySize = objectBalls.Length;

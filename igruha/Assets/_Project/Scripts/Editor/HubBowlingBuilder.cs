@@ -602,10 +602,10 @@ namespace Igruha.EditorTools
         internal static PhysicsMaterial PoolBall() => Load("PoolBall", 0.08f, 0.06f, 0.55f);
 
         /// <summary>Сукно: тормозит качение без залипания.</summary>
-        internal static PhysicsMaterial Cloth() => Load("PoolCloth", 0.25f, 0.2f, 0.02f);
+        internal static PhysicsMaterial Cloth() => Load("PoolCloth", 0.35f, 0.28f, 0.01f);
 
         /// <summary>Борт: упругий, шары не вязнут.</summary>
-        internal static PhysicsMaterial Cushion() => Load("PoolCushion", 0.15f, 0.12f, 0.7f);
+        internal static PhysicsMaterial Cushion() => Load("PoolCushion", 0.18f, 0.14f, 0.62f);
 
         private static PhysicsMaterial Load(string name, float staticFriction, float dynamicFriction, float bounciness)
         {

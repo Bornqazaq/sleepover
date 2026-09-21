@@ -8,8 +8,8 @@ PhysicsMaterial:
   m_PrefabAsset: {fileID: 0}
   m_Name: PoolCushion
   serializedVersion: 2
-  m_DynamicFriction: 0.12
-  m_StaticFriction: 0.15
-  m_Bounciness: 0.7
+  m_DynamicFriction: 0.14
+  m_StaticFriction: 0.18
+  m_Bounciness: 0.62
   m_FrictionCombine: 0
   m_BounceCombine: 0

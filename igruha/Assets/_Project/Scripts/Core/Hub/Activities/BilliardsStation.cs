@@ -148,11 +148,18 @@ namespace Igruha.Core.Hub.Activities
 
         /// <summary>
         /// Луза позвала. Счёт не ведём: просто убираем шар. Биток вернётся
-        /// после остановки стола.
+        /// после остановки стола. Шар должен быть достаточно медленным —
+        /// иначе рикошет по краю лузы засчитывался бы как забитый.
         /// </summary>
         public void NotifyPocketed(BilliardsBall ball)
         {
             if (!HasAuthority || ball == null || ball.IsPocketed)
+            {
+                return;
+            }
+
+            Rigidbody body = ball.GetComponent<Rigidbody>();
+            if (body != null && body.linearVelocity.sqrMagnitude > 12f)
             {
                 return;
             }
@@ -349,11 +356,12 @@ namespace Igruha.Core.Hub.Activities
 
             Vector3 direction = AimDirection();
             Vector3 from = cueBall.transform.position;
-            aimLine.position = from;
-            aimLine.rotation = Quaternion.LookRotation(direction, Vector3.up);
-            aimLine.localScale = new Vector3(0.03f, 0.03f, aimLineLength);
-            // Центр цилиндра — середина отрезка: сдвигаем вперёд на полдлины.
-            aimLine.position = from + direction * (aimLineLength * 0.5f);
+            // Цилиндр по умолчанию вдоль Y: кладём его вдоль прицела позади битка,
+            // как кий, а не толстой палкой поперёк стола.
+            float half = aimLineLength * 0.5f;
+            aimLine.position = from - direction * (half + 0.06f);
+            aimLine.rotation = Quaternion.FromToRotation(Vector3.up, direction);
+            aimLine.localScale = new Vector3(0.018f, half, 0.018f);
         }
 
         private void SetAimLineVisible(bool visible)
