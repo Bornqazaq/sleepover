@@ -66,6 +66,23 @@ namespace Igruha.EditorTools
         private const float PinRadius = 0.06f;
         private const float PinMass = 1.5f;
 
+        // ===== табло =====
+
+        /// <summary>За задником дорожки, чтобы не мешать разлёту кеглей.</summary>
+        private const float BoardX = -2.55f;
+
+        /// <summary>Высота середины доски над полом.</summary>
+        private const float BoardHeight = 1.35f;
+
+        /// <summary>Доска: длина вдоль дорожки, высота.</summary>
+        private static readonly Vector2 BoardSize = new Vector2(1.5f, 0.62f);
+
+        /// <summary>На сколько текст вынесен перед доской, чтобы не тонуть в ней.</summary>
+        private const float BoardDepth = 0.02f;
+
+        /// <summary>Толщина доски и рамки.</summary>
+        private const float BoardThickness = 0.05f;
+
         private const float RailHeight = 0.12f;
         private const float RailThickness = 0.08f;
 
@@ -159,7 +176,7 @@ namespace Igruha.EditorTools
             go.transform.SetParent(root, false);
             go.transform.position = home + Vector3.up * BallRadius;
             go.transform.localScale = Vector3.one * (BallRadius * 2f);
-            go.GetComponent<MeshRenderer>().sharedMaterial = HubOriginalAssets.Mat("Blue");
+            go.GetComponent<MeshRenderer>().sharedMaterial = HubOriginalAssets.Mat("Ink");
 
             var shape = go.GetComponent<SphereCollider>();
             shape.material = PhysicsAssets.Ball();
@@ -206,23 +223,17 @@ namespace Igruha.EditorTools
             go.transform.SetParent(parent, false);
             go.transform.position = footPosition + Vector3.up * (PinHeight * 0.5f);
 
-            // Тело кегли: цилиндр с шариком-головой. Коллайдер — капсула:
-            // она валится естественнее составного меша и дешевле.
-            var body = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            body.name = "Body";
-            body.transform.SetParent(go.transform, false);
-            body.transform.localScale = new Vector3(PinRadius * 2f, PinHeight * 0.5f, PinRadius * 2f);
-            body.GetComponent<MeshRenderer>().sharedMaterial = HubOriginalAssets.Mat("Cream");
-            Object.DestroyImmediate(body.GetComponent<Collider>());
+            var view = new GameObject("View");
+            view.transform.SetParent(go.transform, false);
+            // Меш строится от пятки, а корень стоит в середине высоты: так
+            // капсула-коллайдер и центр масс совпадают с телом кегли.
+            view.transform.localPosition = new Vector3(0f, -PinHeight * 0.5f, 0f);
+            view.AddComponent<MeshFilter>().sharedMesh = PinMeshAsset();
+            view.AddComponent<MeshRenderer>().sharedMaterial = HubOriginalAssets.Mat("Cream");
 
-            var head = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            head.name = "Head";
-            head.transform.SetParent(go.transform, false);
-            head.transform.localPosition = new Vector3(0f, PinHeight * 0.5f, 0f);
-            head.transform.localScale = Vector3.one * (PinRadius * 1.5f);
-            head.GetComponent<MeshRenderer>().sharedMaterial = HubOriginalAssets.Mat("Red");
-            Object.DestroyImmediate(head.GetComponent<Collider>());
+            BuildPinStripes(view.transform);
 
+            // Коллайдер — капсула: валится естественнее составного меша и дешевле.
             var shape = go.AddComponent<CapsuleCollider>();
             shape.height = PinHeight;
             shape.radius = PinRadius;
@@ -239,18 +250,170 @@ namespace Igruha.EditorTools
             return go.AddComponent<BowlingPin>();
         }
 
+        /// <summary>Две красные полоски на шее — по ним кегля и читается кеглей.</summary>
+        private static void BuildPinStripes(Transform view)
+        {
+            foreach (float height in new[] { 0.74f, 0.81f })
+            {
+                float radius = PinProfileRadius(height) * 1.04f;
+
+                var stripe = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                stripe.name = "Stripe";
+                stripe.transform.SetParent(view, false);
+                stripe.transform.localPosition = new Vector3(0f, PinHeight * height, 0f);
+                stripe.transform.localScale = new Vector3(radius * 2f, PinHeight * 0.018f, radius * 2f);
+                stripe.GetComponent<MeshRenderer>().sharedMaterial = HubOriginalAssets.Mat("Red");
+                Object.DestroyImmediate(stripe.GetComponent<Collider>());
+            }
+        }
+
+        /// <summary>
+        /// Силуэт кегли: узкая пятка, живот, шея, голова. Долями от полного
+        /// радиуса — так профиль не зависит от того, какой размер выберут потом.
+        /// </summary>
+        private static readonly Vector2[] PinProfile =
+        {
+            new Vector2(0.000f, 0.42f),
+            new Vector2(0.040f, 0.47f),
+            new Vector2(0.100f, 0.64f),
+            new Vector2(0.180f, 0.84f),
+            new Vector2(0.260f, 0.96f),
+            new Vector2(0.340f, 1.00f),
+            new Vector2(0.430f, 0.94f),
+            new Vector2(0.520f, 0.76f),
+            new Vector2(0.610f, 0.55f),
+            new Vector2(0.690f, 0.42f),
+            new Vector2(0.760f, 0.41f),
+            new Vector2(0.820f, 0.47f),
+            new Vector2(0.880f, 0.56f),
+            new Vector2(0.930f, 0.57f),
+            new Vector2(0.965f, 0.48f),
+            new Vector2(0.990f, 0.28f),
+            new Vector2(1.000f, 0.00f),
+        };
+
+        private static float PinProfileRadius(float height)
+        {
+            for (int i = 1; i < PinProfile.Length; i++)
+            {
+                if (height > PinProfile[i].x)
+                {
+                    continue;
+                }
+
+                Vector2 a = PinProfile[i - 1];
+                Vector2 b = PinProfile[i];
+                float t = Mathf.InverseLerp(a.x, b.x, height);
+
+                return Mathf.Lerp(a.y, b.y, t) * PinRadius;
+            }
+
+            return 0f;
+        }
+
+        /// <summary>
+        /// Меш кегли — один на все десять: тело вращения по профилю. Хранится
+        /// ассетом, иначе сцена потеряет его при следующем открытии.
+        /// </summary>
+        private static Mesh PinMeshAsset()
+        {
+            const string folder = "Assets/_Project/Art/Hub/Original/Meshes";
+            const string path = folder + "/BowlingPin.asset";
+
+            if (!AssetDatabase.IsValidFolder(folder))
+            {
+                AssetDatabase.CreateFolder("Assets/_Project/Art/Hub/Original", "Meshes");
+            }
+
+            var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+            Mesh mesh = existing != null ? existing : new Mesh { name = "BowlingPin" };
+            mesh.Clear();
+
+            const int segments = 20;
+            int rings = PinProfile.Length;
+
+            var vertices = new Vector3[rings * (segments + 1) + 1];
+            var uv = new Vector2[vertices.Length];
+            int v = 0;
+
+            for (int r = 0; r < rings; r++)
+            {
+                float y = PinProfile[r].x * PinHeight;
+                float radius = PinProfile[r].y * PinRadius;
+
+                for (int s = 0; s <= segments; s++)
+                {
+                    float angle = s / (float)segments * Mathf.PI * 2f;
+                    vertices[v] = new Vector3(Mathf.Cos(angle) * radius, y, Mathf.Sin(angle) * radius);
+                    uv[v] = new Vector2(s / (float)segments, PinProfile[r].x);
+                    v++;
+                }
+            }
+
+            // Донышко одной точкой в центре пятки — кегля не должна просвечивать снизу.
+            int bottomCenter = v;
+            vertices[v] = Vector3.zero;
+            uv[v] = new Vector2(0.5f, 0f);
+
+            var triangles = new System.Collections.Generic.List<int>((rings - 1) * segments * 6 + segments * 3);
+
+            for (int r = 0; r < rings - 1; r++)
+            {
+                for (int s = 0; s < segments; s++)
+                {
+                    int a = r * (segments + 1) + s;
+                    int b = a + 1;
+                    int c = a + segments + 1;
+                    int d = c + 1;
+
+                    triangles.Add(a); triangles.Add(c); triangles.Add(b);
+                    triangles.Add(b); triangles.Add(c); triangles.Add(d);
+                }
+            }
+
+            for (int s = 0; s < segments; s++)
+            {
+                triangles.Add(bottomCenter);
+                triangles.Add(s);
+                triangles.Add(s + 1);
+            }
+
+            mesh.vertices = vertices;
+            mesh.uv = uv;
+            mesh.SetTriangles(triangles, 0);
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+
+            if (existing == null)
+            {
+                AssetDatabase.CreateAsset(mesh, path);
+            }
+            else
+            {
+                EditorUtility.SetDirty(mesh);
+            }
+
+            return mesh;
+        }
+
+        /// <summary>
+        /// Табло за дорожкой: доска на двух стойках, лицом к игроку. Раньше
+        /// текст висел в воздухе и читался с изнанки зеркально — у надписи
+        /// без подложки нет ни лица, ни места, к которому она относится.
+        /// </summary>
         private static HubActivityBoard BuildBoard(Transform root)
         {
             var go = new GameObject("Board");
             go.transform.SetParent(root, false);
+            go.transform.position = new Vector3(BoardX, 0f, LaneCenterZ);
 
-            // Над задником, лицом к игроку — то есть смотрит в −X.
-            go.transform.SetPositionAndRotation(
-                new Vector3(LaneEndX + 0.1f, 1.45f, LaneCenterZ),
-                Quaternion.Euler(0f, -90f, 0f));
+            BuildBoardStand(go.transform);
 
-            TMP_Text status = BuildLine(go.transform, "Status", new Vector3(0f, 0.22f, 0f), 1.6f);
-            TMP_Text best = BuildLine(go.transform, "Best", Vector3.zero, 0.8f);
+            // Табло не повёрнуто, поэтому «к игроку» — это −X: туда и выносим
+            // текст перед панелью, иначе он тонет в доске и не виден вовсе.
+            float front = -(BoardThickness * 0.5f + BoardDepth);
+            TMP_Text status = BuildLine(go.transform, "Status", new Vector3(front, BoardHeight + 0.10f, 0f), 1.5f);
+            TMP_Text best = BuildLine(go.transform, "Best", new Vector3(front, BoardHeight - 0.14f, 0f), 0.75f);
 
             var board = go.AddComponent<HubActivityBoard>();
 
@@ -262,11 +425,54 @@ namespace Igruha.EditorTools
             return board;
         }
 
+        private static void BuildBoardStand(Transform parent)
+        {
+            var frame = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            frame.name = "Frame";
+            frame.transform.SetParent(parent, false);
+            frame.transform.localPosition = new Vector3(0f, BoardHeight, 0f);
+            frame.transform.localScale = new Vector3(BoardThickness, BoardSize.y + 0.09f, BoardSize.x + 0.09f);
+            frame.GetComponent<MeshRenderer>().sharedMaterial = HubOriginalAssets.Mat("Oak");
+            Object.DestroyImmediate(frame.GetComponent<Collider>());
+
+            var panel = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            panel.name = "Panel";
+            panel.transform.SetParent(parent, false);
+            panel.transform.localPosition = new Vector3(-0.012f, BoardHeight, 0f);
+            panel.transform.localScale = new Vector3(BoardThickness, BoardSize.y, BoardSize.x);
+            panel.GetComponent<MeshRenderer>().sharedMaterial = HubOriginalAssets.Mat("Walnut");
+            Object.DestroyImmediate(panel.GetComponent<Collider>());
+
+            foreach (float side in new[] { -1f, 1f })
+            {
+                var leg = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                leg.name = "Leg";
+                leg.transform.SetParent(parent, false);
+                leg.transform.localPosition = new Vector3(0f, BoardHeight * 0.5f, side * (BoardSize.x * 0.5f - 0.08f));
+                leg.transform.localScale = new Vector3(BoardThickness, BoardHeight, BoardThickness);
+                leg.GetComponent<MeshRenderer>().sharedMaterial = HubOriginalAssets.Mat("Oak");
+                Object.DestroyImmediate(leg.GetComponent<Collider>());
+            }
+
+            foreach (Transform t in parent.GetComponentsInChildren<Transform>())
+            {
+                GameObjectUtility.SetStaticEditorFlags(t.gameObject, StaticEditorFlags.BatchingStatic);
+            }
+        }
+
+        /// <summary>
+        /// Строка табло, читаемая с метки игрока.
+        ///
+        /// <c>forward</c> у неё смотрит **от** зрителя, а не на него: лицевая
+        /// сторона текста TMP — обратная его forward, и разворот «на игрока»
+        /// даёт зеркальную надпись. Так же устроены все вывески хаба.
+        /// </summary>
         private static TMP_Text BuildLine(Transform parent, string name, Vector3 localPosition, float size)
         {
             var go = new GameObject(name);
             go.transform.SetParent(parent, false);
             go.transform.localPosition = localPosition;
+            go.transform.localRotation = Quaternion.LookRotation(Vector3.right, Vector3.up);
 
             var label = go.AddComponent<TextMeshPro>();
             label.font = HubBarAssets.LetteringFont();
@@ -274,7 +480,7 @@ namespace Igruha.EditorTools
             label.fontSize = size;
             label.alignment = TextAlignmentOptions.Center;
             label.color = HubCozyMaterials.Hex("F1DBAE");
-            label.rectTransform.sizeDelta = new Vector2(1.6f, 0.3f);
+            label.rectTransform.sizeDelta = new Vector2(BoardSize.x - 0.08f, 0.26f);
             label.textWrappingMode = TextWrappingModes.NoWrap;
             label.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
 
@@ -282,42 +488,15 @@ namespace Igruha.EditorTools
         }
 
         /// <summary>
-        /// Шкала силы стоит перед игроком, у начала дорожки: смотреть на неё
-        /// и на кегли надо одновременно.
+        /// Шкала силы геометрии в сцене больше не имеет: она рисуется на экране
+        /// у того, кто целится. Здесь остаётся только носитель компонента.
         /// </summary>
         private static HubActivityPowerGauge BuildGauge(Transform root)
         {
             var go = new GameObject("PowerGauge");
             go.transform.SetParent(root, false);
-            go.transform.position = new Vector3(StandX + 0.9f, 1.15f, LaneCenterZ);
 
-            const float length = 0.9f;
-            const float height = 0.08f;
-
-            var back = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            back.name = "Back";
-            back.transform.SetParent(go.transform, false);
-            back.transform.localScale = new Vector3(length, height, 0.02f);
-            back.GetComponent<MeshRenderer>().sharedMaterial = HubOriginalAssets.Mat("Ink");
-            Object.DestroyImmediate(back.GetComponent<Collider>());
-
-            var fill = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            fill.name = "Fill";
-            fill.transform.SetParent(go.transform, false);
-            fill.transform.localPosition = new Vector3(0f, 0f, -0.012f);
-            fill.transform.localScale = new Vector3(length, height * 0.7f, 0.02f);
-            fill.GetComponent<MeshRenderer>().sharedMaterial = HubOriginalAssets.Mat("Ochre");
-            Object.DestroyImmediate(fill.GetComponent<Collider>());
-
-            var gauge = go.AddComponent<HubActivityPowerGauge>();
-
-            var serialized = new SerializedObject(gauge);
-            serialized.FindProperty("fill").objectReferenceValue = fill.transform;
-            serialized.FindProperty("root").objectReferenceValue = go;
-            serialized.FindProperty("length").floatValue = length;
-            serialized.ApplyModifiedPropertiesWithoutUndo();
-
-            return gauge;
+            return go.AddComponent<HubActivityPowerGauge>();
         }
 
         /// <summary>

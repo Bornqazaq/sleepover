@@ -3,86 +3,101 @@ using UnityEngine;
 namespace Igruha.Core.Hub.Activities
 {
     /// <summary>
-    /// Шкала силы броска — полоска в мире, а не в Canvas: у хаба нет своего
-    /// игрового HUD, а заводить его ради одной полоски незачем.
+    /// Шкала силы броска — полоса внизу экрана у того, кто целится.
     ///
-    /// Видна только тому, кто целится: станция включает её у себя и ни у кого
-    /// больше. Остальным чужая шкала не нужна и только мешала бы смотреть.
+    /// Раньше она была геометрией в мире и висела перед лицом чёрной палкой,
+    /// закрывая дорожку: мировой объект нельзя показать одному человеку, не
+    /// испортив кадр всем остальным. Экран решает обе задачи сразу — шкалу
+    /// видит только владелец станции, и в сцене от неё не остаётся ничего.
+    ///
+    /// Рисуется через IMGUI, как экран запуска и настройки голоса: своего
+    /// Canvas у хаба нет, а заводить его ради одной полосы незачем.
     /// </summary>
     public sealed class HubActivityPowerGauge : MonoBehaviour
     {
-        [Tooltip("Заполняемая часть шкалы. Тянется по локальной оси X от левого края")]
-        [SerializeField] private Transform fill;
+        [Tooltip("Ширина полосы, доля ширины экрана")]
+        [SerializeField] private float widthFraction = 0.24f;
 
-        [Tooltip("Корень шкалы — его и прячем целиком")]
-        [SerializeField] private GameObject root;
+        [Tooltip("Высота полосы, пикселей")]
+        [SerializeField] private float height = 16f;
 
-        [Tooltip("Полная длина шкалы, м")]
-        [SerializeField] private float length = 0.9f;
+        [Tooltip("Отступ снизу, пикселей")]
+        [SerializeField] private float bottomMargin = 64f;
 
-        /// <summary>Разворачивать ли шкалу к камере каждый кадр.</summary>
-        [SerializeField] private bool faceCamera = true;
+        [Tooltip("Подпись над шкалой")]
+        [SerializeField] private string caption = "ЛКМ — сила броска";
 
+        private static readonly Color FrameColor = new Color(0.07f, 0.06f, 0.05f, 0.82f);
+        private static readonly Color FillColor = new Color(0.85f, 0.62f, 0.24f, 1f);
+        private static readonly Color CaptionColor = new Color(0.95f, 0.86f, 0.68f, 0.9f);
+
+        private Texture2D pixel;
+        private GUIStyle captionStyle;
         private float power;
+        private bool visible;
 
         private void Awake()
         {
-            if (root == null)
-            {
-                root = gameObject;
-            }
-
-            SetVisible(false);
+            pixel = new Texture2D(1, 1, TextureFormat.RGBA32, false) { hideFlags = HideFlags.HideAndDontSave };
+            pixel.SetPixel(0, 0, Color.white);
+            pixel.Apply();
         }
 
-        private void LateUpdate()
+        private void OnDestroy()
         {
-            if (!faceCamera || root == null || !root.activeSelf)
+            if (pixel != null)
+            {
+                Destroy(pixel);
+            }
+        }
+
+        public void SetVisible(bool value)
+        {
+            visible = value;
+
+            if (!value)
+            {
+                power = 0f;
+            }
+        }
+
+        /// <summary>Сила 0…1.</summary>
+        public void SetPower(float value) => power = Mathf.Clamp01(value);
+
+        private void OnGUI()
+        {
+            if (!visible || pixel == null)
             {
                 return;
             }
 
-            Camera view = Camera.main;
-            if (view == null)
+            float width = Screen.width * widthFraction;
+            float x = (Screen.width - width) * 0.5f;
+            float y = Screen.height - bottomMargin - height;
+
+            const float border = 2f;
+            Draw(new Rect(x - border, y - border, width + border * 2f, height + border * 2f), FrameColor);
+            Draw(new Rect(x, y, width * power, height), FillColor);
+
+            if (captionStyle == null)
             {
-                return;
+                captionStyle = new GUIStyle(GUI.skin.label)
+                {
+                    alignment = TextAnchor.MiddleCenter,
+                    fontSize = 13,
+                };
             }
 
-            Vector3 toCamera = view.transform.position - transform.position;
-            toCamera.y = 0f;
-
-            if (toCamera.sqrMagnitude > 0.0001f)
-            {
-                transform.rotation = Quaternion.LookRotation(-toCamera.normalized, Vector3.up);
-            }
+            captionStyle.normal.textColor = CaptionColor;
+            GUI.Label(new Rect(x, y - 22f, width, 20f), caption, captionStyle);
         }
 
-        public void SetVisible(bool visible)
+        private void Draw(Rect rect, Color color)
         {
-            if (root != null && root.activeSelf != visible)
-            {
-                root.SetActive(visible);
-            }
-        }
-
-        /// <summary>Сила 0…1. Полоска растёт вправо от своего левого края.</summary>
-        public void SetPower(float value)
-        {
-            power = Mathf.Clamp01(value);
-
-            if (fill == null)
-            {
-                return;
-            }
-
-            Vector3 scale = fill.localScale;
-            scale.x = Mathf.Max(0.0001f, power);
-            fill.localScale = scale;
-
-            // Растягивание идёт от центра, поэтому левый край держим смещением.
-            Vector3 position = fill.localPosition;
-            position.x = -0.5f * length * (1f - power);
-            fill.localPosition = position;
+            Color before = GUI.color;
+            GUI.color = color;
+            GUI.DrawTexture(rect, pixel);
+            GUI.color = before;
         }
     }
 }
