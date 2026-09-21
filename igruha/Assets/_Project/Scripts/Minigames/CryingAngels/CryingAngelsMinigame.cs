@@ -1552,7 +1552,6 @@ namespace Igruha.Minigames.CryingAngels
             screamer.Play(
                 runner.PlayerId,
                 runner.Avatar != null ? runner.Avatar.gameObject : null,
-                keeperAvatar != null ? keeperAvatar.gameObject : null,
                 firstPersonRig,
                 keeper != null ? keeper.Beam : null,
                 IsLocal(keeperPlayerId),
