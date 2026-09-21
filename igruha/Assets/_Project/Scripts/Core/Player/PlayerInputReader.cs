@@ -271,7 +271,9 @@ namespace Igruha.Core.Player
             EmoteHeld = emoteAction != null && emoteAction.action.IsPressed();
             JumpPressed |= WasPressed(jumpAction);
             PushPressed |= WasPressed(pushAction);
-            InteractPressed |= WasPressed(interactAction);
+            // A tap is an edge, not completion of the action's Hold interaction.
+            // Hold interactables independently consume InteractHeld below.
+            InteractPressed |= interactAction != null && interactAction.action.WasPressedThisFrame();
             CrouchHeld = crouchAction != null && crouchAction.action.IsPressed();
             InteractHeld = interactAction != null && interactAction.action.IsPressed();
             PoseRequest = ReadPose();

@@ -21,7 +21,7 @@ namespace Igruha.EditorTools
     /// 48 → 0, а перекрытие каждого этажа строится с дырой ровно над
     /// лестничной комнатой предыдущего.
     /// </summary>
-    internal static class DuckHuntArenaBuilder
+    internal static partial class DuckHuntArenaBuilder
     {
         private const string ConfigPath = "Assets/_Project/Settings/Gameplay/Minigames/DuckHuntConfig.asset";
         private const string MaterialFolder = "Assets/_Project/Materials/DuckHunt";
@@ -485,8 +485,7 @@ namespace Igruha.EditorTools
         private static Material buttonReadyMaterial;
         private static Material buttonBusyMaterial;
 
-        [MenuItem("Igruha/Minigames/Rebuild Duck Hunt Arena")]
-        private static void Rebuild()
+        private static void RebuildLegacy()
         {
             config = AssetDatabase.LoadAssetAtPath<DuckHuntConfig>(ConfigPath);
             if (config == null)
@@ -2750,9 +2749,9 @@ namespace Igruha.EditorTools
             // платформы, и на косых углах перекрывают весь дальний конец башни.
             Transform rails = ResetGroup(root, "Rails");
             GameObject railA = Box(rails, "Rail_A", groundLayer, metalMaterial,
-                x - half - 0.5f, x - half, minH, maxH + 2f, z - half, z - half + 0.5f);
+                x - half - 0.5f, x - half, minH, maxH + 2f, z - half - 1.5f, z - half - 1f);
             GameObject railB = Box(rails, "Rail_B", groundLayer, metalMaterial,
-                x + half, x + half + 0.5f, minH, maxH + 2f, z + half - 0.5f, z + half);
+                x + half, x + half + 0.5f, minH, maxH + 2f, z - half - 1.5f, z - half - 1f);
             Object.DestroyImmediate(railA.GetComponent<Collider>());
             Object.DestroyImmediate(railB.GetComponent<Collider>());
 
@@ -3469,7 +3468,8 @@ namespace Igruha.EditorTools
                 return null;
             }
 
-            DuckHuntDress.Apply(box, dress, currentWinter, dressRandom);
+            if (!blockoutOnly)
+                DuckHuntDress.Apply(box, dress, currentWinter, dressRandom);
             return box;
         }
 

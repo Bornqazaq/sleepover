@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Igruha.Minigames.DuckHunt
 {
     /// <summary>
-    /// Площадка финиша на крыше: Утка вошла — место зафиксировано.
+    /// Приподнятая площадка финиша пятого этажа: Утка вошла — место зафиксировано.
     ///
     /// Зона только сообщает о входе. Засчитывает прибытие мини-игра: порядок
     /// финиша решает места, а значит считаться он обязан в одном месте и под
@@ -21,10 +21,16 @@ namespace Igruha.Minigames.DuckHunt
             GetComponent<Collider>().isTrigger = true;
         }
 
-        private void OnTriggerEnter(Collider other)
+        private void OnTriggerEnter(Collider other) => CheckArrival(other);
+
+        private void OnTriggerStay(Collider other) => CheckArrival(other);
+
+        private void CheckArrival(Collider other)
         {
             DuckProgress duck = other.GetComponentInParent<DuckProgress>();
-            if (duck != null && !duck.Retired)
+            // A capsule jumping UNDER the raised finish must not win by touching
+            // the trigger with its head. Stay handles legitimate landings after entry.
+            if (duck != null && !duck.Retired && duck.transform.position.y >= transform.position.y - .15f)
             {
                 DuckArrived?.Invoke(duck);
             }

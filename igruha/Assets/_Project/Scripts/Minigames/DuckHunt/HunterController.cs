@@ -69,6 +69,8 @@ namespace Igruha.Minigames.DuckHunt
 
         /// <summary>Высота плеча над подошвами, м. Замеряется один раз: у восьмерых она разная.</summary>
         private float shoulderHeight;
+        private float rifleFit = 1f;
+        private float visualRecoil;
 
         /// <summary>Оружие Охотника — HUD читает у него обойму и перезарядку.</summary>
         public HitscanWeapon Weapon => weapon;
@@ -257,7 +259,13 @@ namespace Igruha.Minigames.DuckHunt
             // написано в конфиге.
             rifleProp = Instantiate(config.RifleProp, transform);
             rifleProp.name = "RifleProp";
-            rifleProp.transform.localScale = Vector3.one * config.RifleScale;
+            Transform upper=animator.GetBoneTransform(HumanBodyBones.LeftUpperArm);
+            Transform lower=animator.GetBoneTransform(HumanBodyBones.LeftLowerArm);
+            Transform hand=animator.GetBoneTransform(HumanBodyBones.LeftHand);
+            float reach=upper!=null && lower!=null && hand!=null
+                ? Vector3.Distance(upper.position,lower.position)+Vector3.Distance(lower.position,hand.position) : .52f;
+            rifleFit=Mathf.Clamp(reach/.52f,.72f,1.08f);
+            rifleProp.transform.localScale = Vector3.one * config.RifleScale * rifleFit;
 
             var colliders = rifleProp.GetComponentsInChildren<Collider>(true);
             for (int i = 0; i < colliders.Length; i++)
@@ -276,6 +284,8 @@ namespace Igruha.Minigames.DuckHunt
 
             gripIk.GripPoint = CreateGripPoint("RifleGrip", config.RifleGripPoint);
             gripIk.ForePoint = CreateGripPoint("RifleFore", config.RifleForePoint);
+            gripIk.GripPoint.localPosition += new Vector3(.055f,-.035f,0);
+            gripIk.ForePoint.localPosition += new Vector3(-.035f,-.060f,0);
             gripIk.Weight = 1f;
 
             UpdateRiflePose();
@@ -306,8 +316,8 @@ namespace Igruha.Minigames.DuckHunt
         /// одинаково у всех, а разброс тел отрабатывает IK, подтягивая кисти.
         ///
         /// Считается в <see cref="Update"/>, а не в <c>LateUpdate</c>:
-        /// <c>OnAnimatorIK</c> вызывается между ними, и точки хвата обязаны
-        /// стоять на месте раньше, иначе IK тянет кисти к прошлому кадру.
+        /// Ролевой решатель рук работает после Animator в LateUpdate;
+        /// точки хвата уже должны соответствовать текущему кадру.
         /// </summary>
         private void UpdateRiflePose()
         {
@@ -326,10 +336,15 @@ namespace Igruha.Minigames.DuckHunt
             // крен персонажа, и на наклонной платформе лифта ствол не встаёт
             // «ровно по горизонту» поперёк позы.
             Quaternion aim = Quaternion.LookRotation(direction, transform.up);
-            Quaternion rotation = aim * Quaternion.Euler(config.RifleTilt);
+            visualRecoil = Mathf.MoveTowards(visualRecoil,0f,Time.deltaTime*7f);
+            Quaternion rotation = aim * Quaternion.Euler(config.RifleTilt + new Vector3(-2.0f*visualRecoil,0,0));
 
             Vector3 anchor = transform.position + transform.up * shoulderHeight;
-            rifleProp.transform.SetPositionAndRotation(anchor + aim * config.RifleGripOffset, rotation);
+            // Role-only fit: lower the stock away from the neck and put the trigger
+            // ahead of the chest. Short arms get a proportionate prop, not stretched elbows.
+            Vector3 fitOffset=config.RifleGripOffset+new Vector3(.03f,-.16f,.11f)*rifleFit;
+            fitOffset.z -= visualRecoil*.025f;
+            rifleProp.transform.SetPositionAndRotation(anchor + aim * fitOffset, rotation);
         }
 
         /// <summary>Снять роль: тело снова обычное. Нужно при пересдаче ролей в соло-тесте.</summary>
@@ -553,6 +568,7 @@ namespace Igruha.Minigames.DuckHunt
         /// </summary>
         private void RaiseShot(HitscanWeapon.HitResult result)
         {
+            visualRecoil=1f;
             animatorDriver?.PlayFire();
             Fired?.Invoke(result);
         }
