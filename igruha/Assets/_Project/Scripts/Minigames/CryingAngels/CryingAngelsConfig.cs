@@ -56,6 +56,8 @@ namespace Igruha.Minigames.CryingAngels
         [SerializeField] private float runnerSpeedMultiplier = 1f;
         [Tooltip("Сколько разных поз заморозки перебирается случайно")]
         [SerializeField] private int freezePoseCount = 6;
+        [Tooltip("Сколько секунд держится заморозка после того, как луч ушёл. 0 — отпускает мгновенно")]
+        [SerializeField] private float freezeReleaseDelay = 0.25f;
 
         [Header("Флаги плейтеста")]
         [Tooltip("Статуи окаменевших остаются на арене как укрытия. По умолчанию выкл: к концу раунда укрытий вдвое больше, и Водящий слабеет ровно тогда, когда должен додавливать")]
@@ -100,6 +102,21 @@ namespace Igruha.Minigames.CryingAngels
         public float PetrifyAnimationDuration => petrifyAnimationDuration;
         public float RunnerSpeedMultiplier => runnerSpeedMultiplier;
         public int FreezePoseCount => Mathf.Max(1, freezePoseCount);
+
+        /// <summary>
+        /// Сколько заморозка держится после ухода луча, с.
+        ///
+        /// Спека требовала мгновенной разморозки, и при потолке скорости
+        /// поворота это было верно: луч подходил медленно, держал и уходил
+        /// заметно. Сняв потолок (луч идёт за мышью), Водящий стал мести
+        /// быстрее, чем длится один такт физики, — цель ловится и отпускается
+        /// за 20 мс, и со стороны Бегущего это читается как «луч по мне прошёл,
+        /// а меня не остановило». Короткая задержка возвращает правилу
+        /// читаемость и не превращается в залипание.
+        ///
+        /// Ноль возвращает прежнее поведение — поле для этого и оставлено.
+        /// </summary>
+        public float FreezeReleaseDelay => Mathf.Max(0f, freezeReleaseDelay);
         public bool StatuesRemainAsCover => statuesRemainAsCover;
         public bool BeamColorFeedback => beamColorFeedback;
         public Color BeamColorIdle => beamColorIdle;

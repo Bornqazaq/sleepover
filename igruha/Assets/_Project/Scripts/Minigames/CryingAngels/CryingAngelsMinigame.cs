@@ -436,6 +436,7 @@ namespace Igruha.Minigames.CryingAngels
                 return;
             }
 
+            TrackBeamSweep();
             keeperVision.Evaluate(runnerBodies);
 
             // Счётчик копится и откатывается у всех, а не только у засвеченных:
@@ -464,6 +465,32 @@ namespace Igruha.Minigames.CryingAngels
         }
 
         /// <summary>
+        /// Сказать конусу, насколько луч провернулся с прошлого такта.
+        ///
+        /// Конус проверяет засветку как сектор в одной точке времени, а луч с
+        /// тех пор, как с него сняли потолок скорости, за такт проходит
+        /// десятки градусов — больше собственной ширины. Быстрый взмах
+        /// проскакивал цель между двумя тактами: на экране прошёл по человеку,
+        /// по расчёту не коснулся. Это и была жалоба «луч был на мне, а меня
+        /// не остановило».
+        ///
+        /// Угол берём у самого глаза конуса, а не у сетевой переменной: так
+        /// считается ровно то, чем в этот такт светят, кто бы луч ни вёл —
+        /// сервер, болванка или соло-режим.
+        /// </summary>
+        private void TrackBeamSweep()
+        {
+            float yaw = keeperVision.Origin.eulerAngles.y;
+
+            // Первый такт после включения фонаря замаха не имеет: до него луч
+            // мог стоять где угодно, и разница ничего не значит.
+            keeperVision.SetSweep(beamYawKnown ? Mathf.DeltaAngle(previousBeamYaw, yaw) : 0f);
+
+            previousBeamYaw = yaw;
+            beamYawKnown = true;
+        }
+
+        /// <summary>
         /// Луч уходит от белого к красному по счётчику самой «горячей» цели.
         /// Без этого Водящий не понимает, что счётчик существует, и бросает
         /// жертву за полсекунды до окаменения.
@@ -477,6 +504,10 @@ namespace Igruha.Minigames.CryingAngels
 
             keeper.SetBeamColor(Color.Lerp(config.BeamColorIdle, config.BeamColorPetrifying, progress));
         }
+
+        /// <summary>Куда смотрел конус в прошлом такте и знаем ли мы это.</summary>
+        private float previousBeamYaw;
+        private bool beamYawKnown;
 
         /// <summary>Решение авторитета: фонарь загорелся или погас.</summary>
         private void SetBeamEnabled(bool enabled)
@@ -560,6 +591,10 @@ namespace Igruha.Minigames.CryingAngels
             }
 
             BeamEnabled = enabled;
+
+            // Замах считается заново: пока фонарь был погашен, луч мог
+            // уехать куда угодно, и эта разница ничего не значит.
+            beamYawKnown = false;
 
             // Гаснущий фонарь отпускает всех тем же кадром: держать заморозку
             // выключенным лучом нечем.

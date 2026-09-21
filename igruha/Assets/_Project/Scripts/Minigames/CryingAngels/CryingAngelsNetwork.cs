@@ -81,8 +81,21 @@ namespace Igruha.Minigames.CryingAngels
     /// </summary>
     public sealed class CryingAngelsNetwork : NetworkBehaviour
     {
-        /// <summary>Сколько раз в секунду владелец шлёт серверу желаемое направление.</summary>
-        private const float DesiredYawSendRate = 20f;
+        /// <summary>
+        /// Сколько раз в секунду владелец шлёт серверу желаемое направление.
+        ///
+        /// Было двадцать — при потолке скорости поворота этого хватало с
+        /// запасом: сервер всё равно доводил луч сам и между посылками ему
+        /// было чем заняться. Сняв потолок, мы сделали намерение единственным
+        /// источником направления, и полсотни миллисекунд между посылками
+        /// превратились в отставание серверного конуса от картинки на
+        /// десятки градусов — то есть на ширину конуса целиком.
+        ///
+        /// Шестьдесят — это кадр в кадр на обычном мониторе; две пачки по
+        /// четыре байта, ненадёжной доставкой, шестьдесят раз в секунду — на
+        /// фоне голоса в 64 кбит/с этого не видно.
+        /// </summary>
+        private const float DesiredYawSendRate = 60f;
 
         /// <summary>
         /// С какого расхождения обзор владельца подтягивается к серверному, °.
@@ -173,6 +186,11 @@ namespace Igruha.Minigames.CryingAngels
         private float displayPitch;
 
         private float nextYawSendTime;
+
+        /// <summary>Что владелец отправил серверу в прошлый раз — чтобы не слать то же самое.</summary>
+        private float lastSentYaw;
+        private float lastSentPitch;
+        private bool sentAimKnown;
 
         /// <summary>Последнее увиденное серверное направление и момент, когда оно перестало меняться.</summary>
         private float lastSeenServerYaw;
@@ -456,8 +474,24 @@ namespace Igruha.Minigames.CryingAngels
                 return;
             }
 
+            float yaw = ownerRig.DesiredYaw;
+            float pitch = ownerRig.Pitch;
+
+            // Молчим, пока мышь стоит. Шестьдесят посылок в секунду нужны на
+            // развороте, а Водящий половину раунда целится в одну точку —
+            // и всё это время слал бы серверу одно и то же число.
+            if (sentAimKnown &&
+                Mathf.Approximately(yaw, lastSentYaw) &&
+                Mathf.Approximately(pitch, lastSentPitch))
+            {
+                return;
+            }
+
             nextYawSendTime = Time.time + 1f / DesiredYawSendRate;
-            SubmitDesiredAimRpc(ownerRig.DesiredYaw, ownerRig.Pitch);
+            lastSentYaw = yaw;
+            lastSentPitch = pitch;
+            sentAimKnown = true;
+            SubmitDesiredAimRpc(yaw, pitch);
         }
 
         /// <summary>

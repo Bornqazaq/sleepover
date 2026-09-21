@@ -4,6 +4,7 @@ using Unity.Netcode;
 using UnityEngine;
 using Igruha.Core.CameraSystems;
 using Igruha.Core.Player;
+using Igruha.Core.Scenes;
 using Igruha.Core.Session;
 using Igruha.Core.Spawning;
 using Igruha.Core.UI;
@@ -27,6 +28,12 @@ namespace Igruha.Core.Minigame
         /// ниже которой сеть бессмысленна. Кого пускать в матч — дело лобби (EPIC 3).
         /// </summary>
         private const int MinNetworkPlayers = 2;
+
+        /// <summary>
+        /// Сколько ждать события «сцену догрузили все», прежде чем начинать
+        /// без него. Потерянное событие не должно стоить раунда.
+        /// </summary>
+        private const float PlacementGateTimeout = 20f;
 
         [SerializeField] private PlayerSpawner playerSpawner;
         [SerializeField] private MinigameControllerBase minigame;
@@ -103,6 +110,32 @@ namespace Igruha.Core.Minigame
         private IEnumerator WaitForNetworkRoster()
         {
             float deadline = Time.realtimeSinceStartup + networkRosterTimeout;
+
+            // Сначала шлюз расстановки: сцену обязаны догрузить все, и общая
+            // раскладка по точкам спавна обязана пройти ДО того, как игра
+            // начнёт раздавать свои места. Иначе общий телепорт прилетает
+            // следом и выдёргивает людей из клеток и кресел — разбор в
+            // ScenePlacementGate.
+            // Ждём шлюз недолго и отдельно от общего срока: событие загрузки
+            // приходит за секунды, а если оно потерялось вовсе, лучше начать
+            // игру с опозданием, чем не начать её три минуты.
+            float gateDeadline = Mathf.Min(deadline, Time.realtimeSinceStartup + PlacementGateTimeout);
+            while (!ScenePlacementGate.IsOpen && Time.realtimeSinceStartup < gateDeadline)
+            {
+                yield return null;
+            }
+
+            if (!ScenePlacementGate.IsOpen)
+            {
+                Debug.LogWarning($"{name}: ⏳ событие загрузки сцены не пришло за {PlacementGateTimeout:F0} с — " +
+                                 "начинаю без общей раскладки по точкам спавна", this);
+            }
+
+            // Шлюз открыло настоящее сетевое событие — значит в сцене уже все,
+            // и состав вырасти больше не может. Выдержка на «устаканивание»
+            // здесь только добавила бы секунду свободного падения с точки
+            // спавна до места, которое игра отведёт человеку сама.
+            float settleTime = ScenePlacementGate.OpenedByNetwork ? 0f : networkRosterSettleTime;
             int settledCount = 0;
             float settledSince = 0f;
 
@@ -117,7 +150,7 @@ namespace Igruha.Core.Minigame
                     settledCount = count;
                     settledSince = Time.realtimeSinceStartup;
                 }
-                else if (Time.realtimeSinceStartup - settledSince >= networkRosterSettleTime)
+                else if (Time.realtimeSinceStartup - settledSince >= settleTime)
                 {
                     yield break;
                 }

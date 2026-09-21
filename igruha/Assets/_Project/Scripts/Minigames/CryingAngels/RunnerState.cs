@@ -61,6 +61,9 @@ namespace Igruha.Minigames.CryingAngels
                 ? Mathf.Clamp01(petrifyTimer / config.PetrifyThreshold)
                 : 0f;
 
+        /// <summary>Сколько осталось держать заморозку после ухода луча, с.</summary>
+        private float releaseTimer;
+
         private void Awake()
         {
             motor = GetComponent<PlayerController>();
@@ -81,6 +84,23 @@ namespace Igruha.Minigames.CryingAngels
             // игрока на старт, чем бы его в это время ни светили.
             if (Current == Phase.Petrified)
             {
+                return;
+            }
+
+            if (frozen)
+            {
+                // Луч вернулся раньше, чем отпустило, — держим дальше.
+                releaseTimer = 0f;
+            }
+            else if (Current == Phase.Frozen && config != null && config.FreezeReleaseDelay > 0f)
+            {
+                // Отпускаем не сразу: разбор в CryingAngelsConfig.FreezeReleaseDelay.
+                // Отсчёт ведёт Tick, то есть тот же авторитет, что и всю игру.
+                if (releaseTimer <= 0f)
+                {
+                    releaseTimer = config.FreezeReleaseDelay;
+                }
+
                 return;
             }
 
@@ -172,6 +192,8 @@ namespace Igruha.Minigames.CryingAngels
                 return;
             }
 
+            TickRelease(deltaTime);
+
             float rate = lit ? config.PetrifyGainMultiplier : -config.PetrifyDecayMultiplier;
             petrifyTimer = Mathf.Clamp(petrifyTimer + rate * deltaTime, 0f, config.PetrifyThreshold);
 
@@ -179,6 +201,31 @@ namespace Igruha.Minigames.CryingAngels
             {
                 BeginPetrification();
             }
+        }
+
+        /// <summary>Досидеть задержку разморозки и отпустить.</summary>
+        private void TickRelease(float deltaTime)
+        {
+            if (releaseTimer <= 0f)
+            {
+                return;
+            }
+
+            releaseTimer -= deltaTime;
+            if (releaseTimer > 0f)
+            {
+                return;
+            }
+
+            releaseTimer = 0f;
+            if (Current != Phase.Frozen)
+            {
+                return;
+            }
+
+            Current = Phase.Free;
+            motor.MovementLocked = false;
+            Changed?.Invoke(Current);
         }
 
         /// <summary>
@@ -214,6 +261,7 @@ namespace Igruha.Minigames.CryingAngels
         {
             petrifyTimer = 0f;
             petrifyAnimationTimer = 0f;
+            releaseTimer = 0f;
 
             if (Current == Phase.Petrified)
             {
