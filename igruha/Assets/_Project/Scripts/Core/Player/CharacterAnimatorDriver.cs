@@ -348,6 +348,29 @@ namespace Igruha.Core.Player
                 return;
             }
 
+            PlayKnockdown(animator, type);
+        }
+
+        /// <summary>
+        /// Запустить падение нужного направления, сняв отложенные нажатия.
+        ///
+        /// Удар, прыжок и танец входят из AnyState и в себя не переходят.
+        /// Второе нажатие ЛКМ, пока первый удар ещё идёт (кулдаун 0.6 с короче
+        /// клипа — 0.7–1.4 с), не теряется, а ждёт триггером. Падение — не
+        /// «сам в себя», и ждущий удар срабатывал сразу за ним: аниматор
+        /// выдёргивало из падения обратно в удар, потом в стойку, а тело при
+        /// этом лежало без управления ещё две секунды (IGR-582, «застываю в
+        /// стойке»). Контроллеры заморожены, поэтому переходы не трогаются —
+        /// падение просто начинается с чистого листа.
+        ///
+        /// Открыт для тестов: в режиме редактора подписки на мотор не идут,
+        /// а проверить надо ровно эту последовательность.
+        /// </summary>
+        public static void PlayKnockdown(Animator animator, KnockdownType type)
+        {
+            animator.ResetTrigger(PunchParameterHash);
+            animator.ResetTrigger(JumpParameterHash);
+            animator.ResetTrigger(EmotePlayHash);
             animator.SetTrigger(type == KnockdownType.FlyBack ? KnockdownFrontHash : KnockdownBackHash);
         }
     }
