@@ -45,6 +45,14 @@ namespace Igruha.Core.Player
         public event Action<float> Landed;
 
         public CharacterConfig Config => config;
+
+        /// <summary>
+        /// Что считается полом. Им же ищет пол под ступнями
+        /// <see cref="CharacterFootGrounding"/>: другой набор слоёв поднимал бы
+        /// модель над тем, на чём капсула не стоит.
+        /// </summary>
+        public LayerMask GroundLayers => groundLayer;
+
         /// <summary>Куда должна целиться Cinemachine. Без назначенной точки — сам корень (запасной вариант для старых префабов).</summary>
         public Transform CameraTarget => cameraTarget != null ? cameraTarget : transform;
         public bool IsGrounded { get; private set; }

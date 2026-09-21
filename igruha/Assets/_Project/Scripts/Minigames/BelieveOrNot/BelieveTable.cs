@@ -32,6 +32,9 @@ namespace Igruha.Minigames.BelieveOrNot
         [Tooltip("Коробки. Ровно две, и они обязаны быть неразличимы")]
         [SerializeField] private BelieveBox[] boxes = new BelieveBox[SeatCount];
 
+        [Tooltip("Кресла мест. Ровно два, подгоняются под того, кто сел")]
+        [SerializeField] private BelieveChairFit[] chairs = new BelieveChairFit[SeatCount];
+
         [Tooltip("Единственная фиксированная камера сцены. Игра переставляет её к нужному месту")]
         [SerializeField] private Transform fixedCameraRig;
 
@@ -67,21 +70,36 @@ namespace Igruha.Minigames.BelieveOrNot
                 return transform.position;
             }
 
-            return transform.position + toSeat.normalized * boxOffset + Vector3.up * boxHeight;
+            Vector3 forward = toSeat.normalized;
+            Vector3 side = Vector3.Cross(Vector3.up, forward);
+            return transform.position + forward * boxOffset + side * boxSideOffset + Vector3.up * boxHeight;
         }
 
         [Header("Раскладка коробок")]
         [Tooltip("Смещение коробки от центра стола к своему владельцу, метры. Ставит билдер из конфига")]
         [SerializeField] private float boxOffset = 0.72f;
 
+        [Tooltip("Зеркальный боковой сдвиг, метры. Ставит билдер из конфига")]
+        [SerializeField] private float boxSideOffset;
+
         [Tooltip("Высота центра коробки над центром стола, метры. Ставит билдер из конфига")]
         [SerializeField] private float boxHeight = 1.01f;
 
         /// <summary>Задать раскладку из конфига — зовёт билдер сцены.</summary>
-        public void ConfigureLayout(float offsetMeters, float heightMeters)
+        public void ConfigureLayout(float offsetMeters, float heightMeters, float sideOffsetMeters)
         {
             boxOffset = offsetMeters;
+            boxSideOffset = sideOffsetMeters;
             boxHeight = heightMeters;
+        }
+
+        /// <summary>Подогнать кресло места под сидящего: подъём и сдвиг в метрах, см. <see cref="BelieveChairFit"/>.</summary>
+        public void FitChair(int seat, float lift, float forward)
+        {
+            if (IsValidSeat(seat) && chairs[seat] != null)
+            {
+                chairs[seat].Fit(lift, forward);
+            }
         }
 
         /// <summary>Спрятать оба пузыря: кон кончился или матч закрылся.</summary>
@@ -102,6 +120,7 @@ namespace Igruha.Minigames.BelieveOrNot
             EnsureLength(ref seatLookTargets, nameof(seatLookTargets));
             EnsureLength(ref seatBubbles, nameof(seatBubbles));
             EnsureLength(ref boxes, nameof(boxes));
+            EnsureLength(ref chairs, nameof(chairs));
         }
 
         private void EnsureLength<T>(ref T[] array, string fieldName)

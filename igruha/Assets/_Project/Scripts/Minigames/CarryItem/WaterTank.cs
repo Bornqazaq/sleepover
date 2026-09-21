@@ -23,6 +23,8 @@ namespace Igruha.Minigames.CarryItem
         [SerializeField] private Transform waterMesh;
         [Tooltip("Что красится в цвет команды: обод бака и прочие метки принадлежности")]
         [SerializeField] private Renderer[] teamTint;
+        [Tooltip("Зона слива — триггер вокруг бака. Пусто: возьмём триггер с этого объекта")]
+        [SerializeField] private Collider pourZone;
 
         /// <summary>Команда долила порцию: сколько единиц и в какой момент общих часов.</summary>
         public event Action<int, double> Delivered;
@@ -30,7 +32,15 @@ namespace Igruha.Minigames.CarryItem
         /// <summary>Бутыль слита целиком и убрана — ходка закрыта.</summary>
         public event Action BottleFinished;
 
+        /// <summary>
+        /// Бутыли в зоне и сколько их коллайдеров её сейчас задевает.
+        ///
+        /// Считаем вхождения, а не храним флаг: у бутыли коллайдеров
+        /// несколько, событий приходит столько же, и выход одного из них не
+        /// означает, что бутыль покинула бак.
+        /// </summary>
         private readonly List<WaterBottle> insideZone = new List<WaterBottle>(4);
+        private readonly List<int> insideTouches = new List<int>(4);
 
         private TeamSide team = TeamSide.None;
         private MaterialPropertyBlock materialBlock;
@@ -48,8 +58,57 @@ namespace Igruha.Minigames.CarryItem
 
         private void Awake()
         {
-            GetComponent<Collider>().isTrigger = true;
+            ResolvePourZone();
             materialBlock = new MaterialPropertyBlock();
+        }
+
+        /// <summary>
+        /// Найти зону слива, не тронув тело бака.
+        ///
+        /// Здесь стояло <c>GetComponent&lt;Collider&gt;().isTrigger = true</c> —
+        /// и брало это <b>первый</b> коллайдер объекта. А коллайдеров на баке
+        /// два: сплошное тело, об которое игрок останавливается, и широкая
+        /// зона слива вокруг него. Первым лежит тело — и код каждый запуск
+        /// превращал его в триггер. Отсюда сразу три жалобы с прогона:
+        /// сквозь бак можно пройти насквозь, донесённая бутыль его не
+        /// наполняет и шкала воды не растёт.
+        ///
+        /// Последние два — потому, что триггеров становилось два, а
+        /// <see cref="OnTriggerExit"/> выкидывал бутыль из зоны по выходу из
+        /// <b>любого</b> из них: бутыль стоит в баке, а бак её уже не видит.
+        ///
+        /// Берём явную ссылку, иначе — тот коллайдер, который уже размечен
+        /// триггером. Триггера нет вовсе (старые сцены с одним коллайдером) —
+        /// делаем триггером единственный, как раньше, но говорим об этом.
+        /// </summary>
+        private void ResolvePourZone()
+        {
+            if (pourZone != null)
+            {
+                pourZone.isTrigger = true;
+                return;
+            }
+
+            var colliders = GetComponents<Collider>();
+            for (int i = 0; i < colliders.Length; i++)
+            {
+                if (colliders[i].isTrigger)
+                {
+                    pourZone = colliders[i];
+                    return;
+                }
+            }
+
+            if (colliders.Length == 1)
+            {
+                pourZone = colliders[0];
+                pourZone.isTrigger = true;
+                Debug.LogWarning($"{name}: у бака один коллайдер — он стал зоной слива, " +
+                                 "и сквозь бак можно пройти. Добавь телу отдельный сплошной коллайдер", this);
+                return;
+            }
+
+            Debug.LogError($"{name}: у бака нет коллайдера-триггера — зону слива брать неоткуда", this);
         }
 
         /// <summary>Подключить бак к команде. Зовут правила раунда на старте.</summary>
@@ -61,6 +120,7 @@ namespace Igruha.Minigames.CarryItem
             pourAccumulator = 0f;
             shownStep = -1;
             insideZone.Clear();
+            insideTouches.Clear();
             ApplyLevelVisual();
             ApplyTeamTint();
         }
@@ -97,23 +157,53 @@ namespace Igruha.Minigames.CarryItem
         private void OnTriggerEnter(Collider other)
         {
             WaterBottle bottle = other.GetComponentInParent<WaterBottle>();
-            if (bottle != null && !insideZone.Contains(bottle))
+            if (bottle == null)
+            {
+                return;
+            }
+
+            int index = insideZone.IndexOf(bottle);
+            if (index < 0)
             {
                 insideZone.Add(bottle);
+                insideTouches.Add(1);
+                return;
             }
+
+            insideTouches[index]++;
         }
 
         private void OnTriggerExit(Collider other)
         {
             WaterBottle bottle = other.GetComponentInParent<WaterBottle>();
-            if (bottle != null)
+            if (bottle == null)
             {
-                insideZone.Remove(bottle);
-
-                // Вынесли на середине — накопленная доля единицы пропадает
-                // вместе с попыткой, а не ждёт следующего захода.
-                pourAccumulator = 0f;
+                return;
             }
+
+            int index = insideZone.IndexOf(bottle);
+            if (index < 0)
+            {
+                return;
+            }
+
+            insideTouches[index]--;
+            if (insideTouches[index] > 0)
+            {
+                return;
+            }
+
+            RemoveFromZone(index);
+
+            // Вынесли на середине — накопленная доля единицы пропадает
+            // вместе с попыткой, а не ждёт следующего захода.
+            pourAccumulator = 0f;
+        }
+
+        private void RemoveFromZone(int index)
+        {
+            insideZone.RemoveAt(index);
+            insideTouches.RemoveAt(index);
         }
 
         /// <summary>
@@ -147,7 +237,7 @@ namespace Igruha.Minigames.CarryItem
                 WaterBottle bottle = insideZone[i];
                 if (bottle == null || bottle.IsGone)
                 {
-                    insideZone.RemoveAt(i);
+                    RemoveFromZone(i);
                     continue;
                 }
 
@@ -210,7 +300,12 @@ namespace Igruha.Minigames.CarryItem
 
         private void FinishBottle(WaterBottle bottle)
         {
-            insideZone.Remove(bottle);
+            int index = insideZone.IndexOf(bottle);
+            if (index >= 0)
+            {
+                RemoveFromZone(index);
+            }
+
             pourAccumulator = 0f;
             BottleFinished?.Invoke();
             bottle.Vanish();

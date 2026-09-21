@@ -44,6 +44,30 @@ namespace Igruha.Core.Vision
 
         public bool IsVisible(Collider target) => target != null && visible.Contains(target);
 
+        /// <summary>Насколько градусов источник повернулся за этот такт, со знаком.</summary>
+        private float sweepDegrees;
+
+        /// <summary>
+        /// Больше этого один такт размахом не считается: телепорт источника
+        /// или смена роли не должны просветить пол-арены разом.
+        /// </summary>
+        private const float MaxSweepDegrees = 90f;
+
+        /// <summary>
+        /// Учесть, что за прошедший такт источник повернулся: конус проверяется
+        /// не как застывший сектор, а как то, что он <b>замёл</b> по дороге.
+        ///
+        /// Без этого быстрый взмах проходит сквозь цель между двумя тактами и
+        /// не задевает её ни в одном: на экране луч по человеку прошёл, а по
+        /// расчёту не коснулся. У «Плачущих ангелов» это стало видно сразу,
+        /// как с поворота Водящего сняли потолок скорости.
+        ///
+        /// Ставится перед <see cref="Evaluate"/> и действует на один вызов:
+        /// размах — свойство такта, а не настройка конуса.
+        /// </summary>
+        public void SetSweep(float degreesThisTick) =>
+            sweepDegrees = Mathf.Clamp(degreesThisTick, -MaxSweepDegrees, MaxSweepDegrees);
+
         /// <summary>
         /// Пересчитать видимость всего списка и разослать события входа/выхода.
         /// Буферы переиспользуются — вызов не аллоцирует и годится для FixedUpdate.
@@ -132,7 +156,17 @@ namespace Igruha.Core.Vision
                 return false;
             }
 
-            if (Vector3.Angle(forward, toTarget) > coneAngle * 0.5f)
+            // Замах такта разворачивает проверку назад на половину размаха и на
+            // столько же расширяет сектор: получается ровно та полоса, по
+            // которой луч прошёл, а не точка, где он оказался.
+            float halfAngle = coneAngle * 0.5f;
+            if (sweepDegrees != 0f)
+            {
+                forward = Quaternion.Euler(0f, -sweepDegrees * 0.5f, 0f) * forward;
+                halfAngle += Mathf.Abs(sweepDegrees) * 0.5f;
+            }
+
+            if (Vector3.Angle(forward, toTarget) > halfAngle)
             {
                 return false;
             }

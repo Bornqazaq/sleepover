@@ -27,6 +27,17 @@ namespace Igruha.Minigames.BelieveOrNot
         [SerializeField] private TMP_Text hintText;
         [SerializeField] private TMP_Text countdownText;
 
+        [Header("Отсчёт")]
+        [Tooltip("Цвет отсчёта, пока время есть")]
+        [SerializeField] private Color countdownColor = new Color(0.93f, 0.91f, 0.85f);
+
+        [Tooltip("Цвет отсчёта на последних секундах. Над кадром висит ещё и матчевый " +
+                 "таймер, и без этого важный отсчёт терялся рядом с ним")]
+        [SerializeField] private Color countdownUrgentColor = new Color(0.98f, 0.78f, 0.35f);
+
+        [Tooltip("С какой секунды отсчёт становится тревожным")]
+        [SerializeField] private int urgentSeconds = 5;
+
         /// <summary>Решающий решил. Дальше слово за игрой, а в фазе 3 — за сервером.</summary>
         public event Action<Decision> DecisionPicked;
 
@@ -74,13 +85,21 @@ namespace Igruha.Minigames.BelieveOrNot
             SetRootActive(true);
         }
 
-        /// <summary>Сколько осталось до конца уговоров.</summary>
+        /// <summary>
+        /// Сколько осталось до конца уговоров. Последние секунды идут другим
+        /// цветом: решение принимается именно по этому числу, а не по матчевому
+        /// таймеру над кадром, и на общем кремовом они не отличались ничем.
+        /// </summary>
         public void SetCountdown(float secondsLeft)
         {
-            if (countdownText != null)
+            if (countdownText == null)
             {
-                countdownText.text = Mathf.CeilToInt(Mathf.Max(0f, secondsLeft)).ToString();
+                return;
             }
+
+            int whole = Mathf.CeilToInt(Mathf.Max(0f, secondsLeft));
+            countdownText.text = whole.ToString();
+            countdownText.color = whole <= urgentSeconds ? countdownUrgentColor : countdownColor;
         }
 
         /// <summary>

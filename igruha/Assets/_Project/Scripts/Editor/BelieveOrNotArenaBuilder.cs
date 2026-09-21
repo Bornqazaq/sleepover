@@ -131,10 +131,14 @@ namespace Igruha.EditorTools
             }
 
             StripTemplate();
+            UiFonts.EnsureAll();
+            BelieveCardArt.EnsureAssets();
             BelieveOrNotDress.Begin();
             BelieveTable table = BuildArena(config);
             PlaceSpawnPoints(config);
             ApplyLighting(config);
+            BelieveClubFurnitureBuilder.Build(GameObject.Find(ArenaRoot).transform, config);
+            BelieveClubDetailsBuilder.Build(GameObject.Find(ArenaRoot).transform, config);
             WireManager(config, table);
 
             // Звук ставится после связей менеджера: ему нужен уже собранный
@@ -146,14 +150,15 @@ namespace Igruha.EditorTools
             Debug.Log(BelieveOrNotDress.Report(arena), arena);
             BelieveOrNotPaletteAssets.Flush();
 
-            // Физика декора — последним шагом сборки. Дресс срезает коллайдеры
-            // моделей, и всё, что поставлено в зал само по себе, без коробки
-            // блокаута, до этого шага проходилось насквозь.
-            PropColliders.Build(arena);
+            // IGR-565: the club shell is decorative; no PropColliders pass here.
 
             // Оформление интерфейса — тем же прогоном: иначе пересборка арены
             // вернула бы серые прямоугольники шаблона.
             UiSkinPass.Apply();
+
+            // Клубный стиль — поверх общего скина и тем же прогоном: общий
+            // скин пересобирает таймер, брифинг и итоги с нуля (IGR-565).
+            BelieveOrNotUiSkin.Apply();
 
             EditorSceneManager.MarkAllScenesDirty();
             EditorSceneManager.SaveOpenScenes();
@@ -401,13 +406,7 @@ namespace Igruha.EditorTools
             light.range = config.LampHeight * 3f;
             light.shadows = LightShadows.Soft;
 
-            GameObject shade = CreateBox(parent, "LampShade",
-                new Vector3(0.9f, 0.35f, 0.9f),
-                new Vector3(0f, config.LampHeight + 0.2f, 0f),
-                new Color(0.05f, 0.04f, 0.04f));
-            SetLayer(shade, "Ground");
-            BelieveOrNotDress.DressLamp(shade, config);
-            BelieveOrNotEffects.BeamDust(parent, config);
+            // Pendant, chain and air are built by BelieveOrNotHall from the original kit.
         }
 
         /// <summary>
@@ -423,11 +422,13 @@ namespace Igruha.EditorTools
             var lookTargets = new Transform[BelieveTable.SeatCount];
             var bubbles = new SpeechBubble[BelieveTable.SeatCount];
             var boxes = new BelieveBox[BelieveTable.SeatCount];
+            var chairs = new BelieveChairFit[BelieveTable.SeatCount];
 
             for (int seat = 0; seat < BelieveTable.SeatCount; seat++)
             {
                 Vector3 direction = SeatDirection(seat);
                 Vector3 seatPosition = direction * config.SeatDistance;
+                chairs[seat] = table.transform.Find($"Chair_{seat}").GetComponentInChildren<BelieveChairFit>(true);
 
                 var anchor = new GameObject($"Seat_{seat}");
                 anchor.transform.SetParent(table.transform, false);
@@ -483,7 +484,9 @@ namespace Igruha.EditorTools
             AssignArray(so, "seatLookTargets", lookTargets);
             AssignArray(so, "seatBubbles", bubbles);
             AssignArray(so, "boxes", boxes);
+            AssignArray(so, "chairs", chairs);
             so.FindProperty("boxOffset").floatValue = config.BoxOffset;
+            so.FindProperty("boxSideOffset").floatValue = config.BoxSideOffset;
             so.FindProperty("boxHeight").floatValue = config.TableHeight + config.BoxSize * 0.5f;
             so.ApplyModifiedPropertiesWithoutUndo();
 
@@ -501,7 +504,9 @@ namespace Igruha.EditorTools
             var root = new GameObject($"Box_{seat}");
             root.transform.SetParent(parent, false);
             root.transform.localPosition =
-                SeatDirection(seat) * config.BoxOffset + Vector3.up * (config.TableHeight + size * 0.5f);
+                SeatDirection(seat) * config.BoxOffset +
+                Vector3.Cross(Vector3.up, SeatDirection(seat)) * config.BoxSideOffset +
+                Vector3.up * (config.TableHeight + size * 0.5f);
             root.transform.localRotation = Quaternion.LookRotation(-SeatDirection(seat), Vector3.up);
 
             var boxColor = new Color(0.34f, 0.22f, 0.12f);
@@ -533,17 +538,17 @@ namespace Igruha.EditorTools
             // коробкой и разворачивается к камере. Лежащая на дне пластина не
             // читается ни сидящим (он смотрит вдоль неё и видит торец), ни залу
             // (её закрывает откинутая крышка) — плейтест 28.08.
-            // Знак поднимается не строго над своей коробкой, а со сдвигом вбок.
-            // Обе коробки стоят на одной оси с камерой сидящего, и знаки,
-            // поднятые ровно вверх, закрывают друг друга: ближний — дальний.
-            // Коробки развёрнуты друг к другу, поэтому один и тот же сдвиг
-            // по локальной оси разводит знаки в разные стороны сам.
+            // Знак поднимается строго над своей коробкой. Раньше он уходил вбок
+            // на 0.55 размера: пока коробки стояли на одной оси с камерой
+            // сидящего, иначе ближний знак закрывал дальний. С тех пор коробки
+            // разведены по диагонали (boxSideOffset, IGR-565), и прежний сдвиг
+            // уводил каждую карточку на сторону чужой коробки.
             var cardPivot = new GameObject("CardPivot");
             cardPivot.transform.SetParent(root.transform, false);
-            cardPivot.transform.localPosition = new Vector3(size * 0.55f, size * 0.1f, 0f);
+            cardPivot.transform.localPosition = new Vector3(0f, size * 0.1f, 0f);
 
-            GameObject win = BuildSign(cardPivot.transform, "Card_Win", size, true);
-            GameObject lose = BuildSign(cardPivot.transform, "Card_Lose", size, false);
+            GameObject win = BuildSign(cardPivot.transform, "Card_Win", true);
+            GameObject lose = BuildSign(cardPivot.transform, "Card_Lose", false);
 
             var glow = new GameObject("PeekGlow");
             glow.transform.SetParent(root.transform, false);
@@ -565,7 +570,9 @@ namespace Igruha.EditorTools
             so.FindProperty("peekGlow").objectReferenceValue = glow;
             so.FindProperty("gagPuff").objectReferenceValue = gag;
             so.FindProperty("cardPivot").objectReferenceValue = cardPivot.transform;
-            so.FindProperty("revealLift").floatValue = size * 0.95f;
+            // Подъём — до высоты, где карточка не закрывает лицо соперника
+            // (BelieveCardArt.CardRevealCenterHeight), а не долей размера коробки.
+            so.FindProperty("revealLift").floatValue = BelieveCardArt.RevealLift(cardPivot.transform.position.y);
             so.ApplyModifiedPropertiesWithoutUndo();
 
             BelieveOrNotDress.DressBox(component, body, hinge.transform, lid, size);
@@ -574,58 +581,18 @@ namespace Igruha.EditorTools
         }
 
         /// <summary>
-        /// Знак исхода: щит с галочкой или с крестом.
+        /// Знак исхода — карточка с галочкой или с крестом (IGR-565).
         ///
-        /// Собран геометрией, а не текстом, намеренно. Значков ✓ и ✗ нет в
-        /// статическом атласе шрифта — тот же случай, на котором «Экзамен»
-        /// потерял разметку (`STATE.md`, 3.12). Плюс геометрия читается
-        /// с любого расстояния и не зависит от языка: зрителю с десяти метров
-        /// нужен силуэт, а не подпись.
+        /// Рисунком, а не текстом: значков ✓ и ✗ нет в статическом атласе
+        /// шрифта — тот же случай, на котором «Экзамен» потерял разметку
+        /// (`STATE.md`, 3.12). Лицо, рубашку и ореол собирает
+        /// <see cref="BelieveCardArt"/>; здесь только корень, который включает игра.
         /// </summary>
-        private static GameObject BuildSign(Transform parent, string name, float size, bool win)
+        private static GameObject BuildSign(Transform parent, string name, bool win)
         {
             var root = new GameObject(name);
             root.transform.SetParent(parent, false);
-
-            float plate = size * 0.55f;
-            Color faceColor = win ? new Color(0.10f, 0.42f, 0.18f) : new Color(0.52f, 0.10f, 0.10f);
-            Color markColor = win ? new Color(0.55f, 1f, 0.6f) : new Color(1f, 0.72f, 0.68f);
-
-            CreateUnlitBox(root.transform, "Face", new Vector3(plate, plate, size * 0.06f), Vector3.zero, faceColor);
-
-            // Полосы знака вынесены вперёд щита: держатель разворачивается
-            // к камере лицом (+Z), и знак обязан оказаться перед фоном.
-            float bar = plate * 0.2f;
-            float front = size * 0.05f;
-
-            if (win)
-            {
-                CreateUnlitBox(root.transform, "Mark_Short", new Vector3(bar, plate * 0.42f, bar),
-                    new Vector3(-plate * 0.16f, -plate * 0.12f, front), markColor)
-                    .transform.localRotation = Quaternion.Euler(0f, 0f, 40f);
-
-                CreateUnlitBox(root.transform, "Mark_Long", new Vector3(bar, plate * 0.78f, bar),
-                    new Vector3(plate * 0.08f, plate * 0.04f, front), markColor)
-                    .transform.localRotation = Quaternion.Euler(0f, 0f, -25f);
-            }
-            else
-            {
-                CreateUnlitBox(root.transform, "Mark_A", new Vector3(bar, plate * 0.8f, bar),
-                    new Vector3(0f, 0f, front), markColor)
-                    .transform.localRotation = Quaternion.Euler(0f, 0f, 45f);
-
-                CreateUnlitBox(root.transform, "Mark_B", new Vector3(bar, plate * 0.8f, bar),
-                    new Vector3(0f, 0f, front), markColor)
-                    .transform.localRotation = Quaternion.Euler(0f, 0f, -45f);
-            }
-
-            foreach (Collider collider in root.GetComponentsInChildren<Collider>())
-            {
-                Object.DestroyImmediate(collider);
-            }
-
-            BelieveOrNotEffects.CardGlow(root.transform, plate, win);
-
+            BelieveCardArt.BuildCard(root.transform, win);
             root.SetActive(false);
             return root;
         }
@@ -637,53 +604,7 @@ namespace Igruha.EditorTools
         /// </summary>
         private static ParticleSystem BuildGagPuff(Transform parent, float size)
         {
-            // Сначала эффект пака (подфаза 4.4), и только если паков на машине
-            // нет — заглушка фазы 2 ниже. Она остаётся не «на всякий случай»:
-            // паки в репозиторий не кладутся, и у напарника без них коробка
-            // обязана пыхать хоть чем-то.
-            ParticleSystem packPuff = BelieveOrNotEffects.GagPuff(parent, size);
-            if (packPuff != null)
-            {
-                return packPuff;
-            }
-
-            var go = new GameObject("GagPuff");
-            go.transform.SetParent(parent, false);
-            go.transform.localPosition = new Vector3(0f, size * 0.45f, 0f);
-            go.transform.localRotation = Quaternion.Euler(-60f, 0f, 0f);
-
-            var system = go.AddComponent<ParticleSystem>();
-
-            ParticleSystem.MainModule main = system.main;
-            main.duration = 1f;
-            main.loop = false;
-            main.playOnAwake = false;
-            main.startLifetime = 1.1f;
-            main.startSpeed = 2.2f;
-            main.startSize = 0.35f;
-            main.startColor = new Color(0.85f, 0.85f, 0.88f, 0.7f);
-            main.gravityModifier = -0.05f;
-
-            ParticleSystem.EmissionModule emission = system.emission;
-            emission.rateOverTime = 0f;
-            emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 24) });
-
-            ParticleSystem.ShapeModule shape = system.shape;
-            shape.shapeType = ParticleSystemShapeType.Cone;
-            shape.angle = 22f;
-            shape.radius = 0.05f;
-
-            // ⚠️ У ParticleSystemRenderer по умолчанию встроенный материал не
-            // из URP: в сборке он стал бы фиолетовым, хотя в редакторе выглядит
-            // нормально (тот же класс бага, что STATE 3.9).
-            var renderer = go.GetComponent<ParticleSystemRenderer>();
-            Shader shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
-            if (shader != null)
-            {
-                renderer.sharedMaterial = new Material(shader);
-            }
-
-            return system;
+            return BelieveCardArt.BuildPuff(parent, size);
         }
 
         private static SpeechBubble BuildBubble(GameObject host)
@@ -755,26 +676,7 @@ namespace Igruha.EditorTools
         /// </summary>
         private static void ApplyLighting(BelieveOrNotConfig config)
         {
-            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-            RenderSettings.ambientLight = config.AmbientColor;
-            RenderSettings.fog = false;
-
-            Light[] lights = Object.FindObjectsByType<Light>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-            for (int i = 0; i < lights.Length; i++)
-            {
-                if (lights[i].type != LightType.Directional)
-                {
-                    continue;
-                }
-
-                // Не выключаем совсем: без него силуэты зрителей сливаются
-                // в чёрное пятно и по залу непонятно, где кто. На 0.06 так
-                // и было — зритель, отбежавший от лампы, оставался в почти
-                // полной темноте (плейтест 28.08).
-                lights[i].intensity = 0.18f;
-                lights[i].color = new Color(0.55f, 0.6f, 0.8f);
-                lights[i].shadows = LightShadows.None;
-            }
+            BelievePrivateClubBuilder.ConfigureLighting(GameObject.Find(ArenaRoot).transform);
         }
 
         // ========== ИНТЕРФЕЙС И СВЯЗИ ==========
@@ -1254,26 +1156,6 @@ namespace Igruha.EditorTools
             // строки счёта.
             text.textWrappingMode = TextWrappingModes.Normal;
             return text;
-        }
-
-        /// <summary>
-        /// Кубик без света: цвет виден такой, какой задан, независимо от того,
-        /// куда смотрит грань. Нужен ровно для знаков исхода — вертикальная
-        /// пластина под лампой сверху остаётся почти чёрной и не читается,
-        /// а исход кона обязан быть виден с любого места зала.
-        /// </summary>
-        private static GameObject CreateUnlitBox(Transform parent, string name, Vector3 size, Vector3 position,
-            Color color)
-        {
-            GameObject go = CreateBox(parent, name, size, position, color);
-
-            Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
-            if (shader != null)
-            {
-                go.GetComponent<Renderer>().sharedMaterial = new Material(shader) { color = color };
-            }
-
-            return go;
         }
 
         private static GameObject CreateBox(Transform parent, string name, Vector3 size, Vector3 position, Color color)

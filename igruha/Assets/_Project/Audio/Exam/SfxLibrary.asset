@@ -38,13 +38,13 @@ MonoBehaviour:
     Loop: 0
     Spatial: 0
   - Id: hatch_open
-    Clip: {fileID: 0}
+    Clip: {fileID: 8300000, guid: 19cf9d8221af34a48b28fc887edf432b, type: 3}
     Variants: []
     Volume: 1
     Loop: 0
     Spatial: 1
   - Id: hatch_close
-    Clip: {fileID: 0}
+    Clip: {fileID: 8300000, guid: 7e4a303548cedb64a8e1316542d47a72, type: 3}
     Variants: []
     Volume: 1
     Loop: 0
@@ -62,20 +62,34 @@ MonoBehaviour:
     Loop: 0
     Spatial: 1
   - Id: lonely_bonus
-    Clip: {fileID: 0}
-    Variants: []
+    Clip: {fileID: 8300000, guid: be1f90c46c22a954c9f70a1227a506ab, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: be1f90c46c22a954c9f70a1227a506ab, type: 3}
+    - {fileID: 8300000, guid: 816b2e4a416ceb742bd36abb871caab9, type: 3}
+    - {fileID: 8300000, guid: 4e512947175f58841906b65d852a28ed, type: 3}
+    - {fileID: 8300000, guid: 6a18103cc688a0347ac5bee628491f93, type: 3}
     Volume: 0.8
     Loop: 0
     Spatial: 0
   - Id: question_skipped
-    Clip: {fileID: 0}
-    Variants: []
+    Clip: {fileID: 8300000, guid: 727bf5c4a0520de4d9ccd968bf5e1244, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: 727bf5c4a0520de4d9ccd968bf5e1244, type: 3}
+    - {fileID: 8300000, guid: 3072fd0f058a8d04bb4e104efa9366ef, type: 3}
+    - {fileID: 8300000, guid: c468fbf7736923444880a985a7580dd6, type: 3}
+    - {fileID: 8300000, guid: 4cb4aba5e8369be47855d779d34a6edb, type: 3}
     Volume: 0.85
     Loop: 0
     Spatial: 0
   - Id: match_fanfare
-    Clip: {fileID: 0}
-    Variants: []
+    Clip: {fileID: 8300000, guid: 6c61e00ad8a57b64e994d40fa1ea7fc1, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: 6c61e00ad8a57b64e994d40fa1ea7fc1, type: 3}
+    - {fileID: 8300000, guid: 4ea881c8cc1555f408cea8a9f66c0c15, type: 3}
+    - {fileID: 8300000, guid: 0b60765f4160c3041b4777358aff5d35, type: 3}
+    - {fileID: 8300000, guid: 96045659ffd3db64ba19705375718d3b, type: 3}
+    - {fileID: 8300000, guid: 98ce3c9c744ca8c4db23f4131655b481, type: 3}
+    - {fileID: 8300000, guid: da51c36fe65a215479fb0d69203437bf, type: 3}
     Volume: 0.9
     Loop: 0
     Spatial: 0

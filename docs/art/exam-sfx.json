@@ -36,14 +36,16 @@
       "event": "Створки пошли вниз",
       "loop": false,
       "spatial": true,
-      "volume": 1.0
+      "volume": 1.0,
+      "file": "Core/Traps/SFX_TRAP_Hatch_Open"
     },
     {
       "id": "hatch_close",
       "event": "Створки встали на место",
       "loop": false,
       "spatial": true,
-      "volume": 1.0
+      "volume": 1.0,
+      "file": "Core/Traps/SFX_TRAP_Hatch_Close"
     },
     {
       "id": "fall_scream",
@@ -64,21 +66,24 @@
       "event": "Одиночка угадал верно",
       "loop": false,
       "spatial": false,
-      "volume": 0.8
+      "volume": 0.8,
+      "file": "Core/Flow/SFX_FLOW_Sting_Positive"
     },
     {
       "id": "question_skipped",
       "event": "Ведущий не успел — вопрос не состоялся",
       "loop": false,
       "spatial": false,
-      "volume": 0.85
+      "volume": 0.85,
+      "file": "Core/Flow/SFX_FLOW_Sting_Negative"
     },
     {
       "id": "match_fanfare",
       "event": "Итоги матча",
       "loop": false,
       "spatial": false,
-      "volume": 0.9
+      "volume": 0.9,
+      "file": "Core/Flow/SFX_FLOW_Fanfare_Win"
     }
   ]
 }

@@ -65,6 +65,15 @@
       "loop": false,
       "spatial": false,
       "volume": 1.0
+    },
+    {
+      "id": "SFX_CIRCUS_Bear_Growl",
+      "file": "SFX_CIRCUS_Bear_Growl",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "event": "рык настоящего медведя",
+      "when": "слот growl; заменяет временный Bear_Roar"
     }
   ]
 }

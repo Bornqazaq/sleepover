@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2574025c1373412bb9b8283feb02ca7, type: 3}
+  m_Name: SfxLibrary
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.MinigameSfxLibrary
+  entries:
+  - Id: SFX_FLOW_Fanfare_Bright
+    Clip: {fileID: 8300000, guid: 0ef5188709c4ff74bb99460159ac34b4, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: 0ef5188709c4ff74bb99460159ac34b4, type: 3}
+    - {fileID: 8300000, guid: 35d53e30c2350d0438d224a4c01dd90a, type: 3}
+    Volume: 1
+    Loop: 0
+    Spatial: 0
+  - Id: SFX_FLOW_Fanfare_Win
+    Clip: {fileID: 8300000, guid: 6c61e00ad8a57b64e994d40fa1ea7fc1, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: 6c61e00ad8a57b64e994d40fa1ea7fc1, type: 3}
+    - {fileID: 8300000, guid: 4ea881c8cc1555f408cea8a9f66c0c15, type: 3}
+    - {fileID: 8300000, guid: 0b60765f4160c3041b4777358aff5d35, type: 3}
+    - {fileID: 8300000, guid: 96045659ffd3db64ba19705375718d3b, type: 3}
+    - {fileID: 8300000, guid: 98ce3c9c744ca8c4db23f4131655b481, type: 3}
+    - {fileID: 8300000, guid: da51c36fe65a215479fb0d69203437bf, type: 3}
+    Volume: 1
+    Loop: 0
+    Spatial: 0
+  - Id: SFX_FLOW_Sting_Negative
+    Clip: {fileID: 8300000, guid: 727bf5c4a0520de4d9ccd968bf5e1244, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: 727bf5c4a0520de4d9ccd968bf5e1244, type: 3}
+    - {fileID: 8300000, guid: 3072fd0f058a8d04bb4e104efa9366ef, type: 3}
+    - {fileID: 8300000, guid: c468fbf7736923444880a985a7580dd6, type: 3}
+    - {fileID: 8300000, guid: 4cb4aba5e8369be47855d779d34a6edb, type: 3}
+    Volume: 1
+    Loop: 0
+    Spatial: 0
+  - Id: SFX_FLOW_Sting_Positive
+    Clip: {fileID: 8300000, guid: be1f90c46c22a954c9f70a1227a506ab, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: be1f90c46c22a954c9f70a1227a506ab, type: 3}
+    - {fileID: 8300000, guid: 816b2e4a416ceb742bd36abb871caab9, type: 3}
+    - {fileID: 8300000, guid: 4e512947175f58841906b65d852a28ed, type: 3}
+    - {fileID: 8300000, guid: 6a18103cc688a0347ac5bee628491f93, type: 3}
+    Volume: 1
+    Loop: 0
+    Spatial: 0

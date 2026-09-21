@@ -20,6 +20,24 @@
       "loop": false,
       "spatial": true,
       "volume": 1.0
+    },
+    {
+      "id": "SFX_INFC_Heartbeat",
+      "file": "SFX_INFC_Heartbeat",
+      "loop": false,
+      "spatial": false,
+      "volume": 1.0,
+      "event": "сердцебиение",
+      "when": "последние секунды; ритм задаёт код"
+    },
+    {
+      "id": "SFX_INFC_Swing_Creak",
+      "file": "SFX_INFC_Swing_Creak",
+      "loop": false,
+      "spatial": true,
+      "volume": 1.0,
+      "event": "скрип качелей",
+      "when": "качели и лазалки во дворе качнулись"
     }
   ]
 }

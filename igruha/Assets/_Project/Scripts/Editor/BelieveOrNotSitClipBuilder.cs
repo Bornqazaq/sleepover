@@ -181,6 +181,54 @@ namespace Igruha.EditorTools
 
         private static bool BuildOne(string prefabName, string characterName, StringBuilder report)
         {
+            return WithSittingCharacter(prefabName, characterName, (animator, measurer) =>
+            {
+                float[] muscles = Sitting();
+                SitBounds bounds = measurer.PlaceOnGround(muscles);
+                WriteClip(ClipPath(characterName), $"{characterName}_Sit", muscles, bounds.RootHeight);
+
+                report.AppendLine(
+                    $"  {characterName,-8} таз={bounds.HipHeight:F3} колени={bounds.KneeHeight:F3} " +
+                    $"ступни вперёд={bounds.FootForward:F3} высота={bounds.Height:F3} RootT.y={bounds.RootHeight:F4}");
+            });
+        }
+
+        /// <summary>
+        /// Кожа персонажа в сидячей позе — для подгонки кресла. Точки в осях
+        /// персонажа (X вбок, Y вверх, Z вперёд, начало в точке посадки на полу);
+        /// <paramref name="seatSkin"/> отмечает таз, корпус и бёдра — то, что
+        /// ложится на подушку, в отличие от голеней и ступней.
+        ///
+        /// Поза та же, что пишется в клип: те же мышцы и та же посадка ступнями
+        /// на пол. Сверено с Play 19.09 на Boss и Shlanga — таз совпал до 3 мм.
+        /// </summary>
+        internal static bool TrySampleSeatedSkin(int character, out Avatar avatar, out Vector3[] points,
+            out bool[] seatSkin)
+        {
+            Avatar sampledAvatar = null;
+            Vector3[] sampledPoints = null;
+            bool[] sampledSeat = null;
+            bool built = WithSittingCharacter(PrefabNames[character], CharacterNames[character], (animator, measurer) =>
+            {
+                measurer.PlaceOnGround(Sitting());
+                sampledAvatar = animator.avatar;
+                measurer.SampleSkin(out sampledPoints, out sampledSeat);
+            });
+
+            avatar = sampledAvatar;
+            points = sampledPoints;
+            seatSkin = sampledSeat;
+            return built;
+        }
+
+        /// <summary>
+        /// Поднять персонажа в превью-сцену и отдать его обмерщику. Он нужен
+        /// живым, чтобы считать мышцы через HumanPoseHandler и обмерить кожу,
+        /// а открытую сцену геймдизайнера трогать нельзя.
+        /// </summary>
+        private static bool WithSittingCharacter(string prefabName, string characterName,
+            System.Action<Animator, SitMeasurer> measure)
+        {
             string prefabPath = PlayerPrefabFolder + prefabName + ".prefab";
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
             if (prefab == null)
@@ -189,9 +237,6 @@ namespace Igruha.EditorTools
                 return false;
             }
 
-            // Персонажа поднимаем в превью-сцену: он нужен живым, чтобы считать
-            // мышцы через HumanPoseHandler и обмерить кожу, а открытую сцену
-            // геймдизайнера трогать нельзя.
             UnityEngine.SceneManagement.Scene preview =
                 UnityEditor.SceneManagement.EditorSceneManager.NewPreviewScene();
             var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, preview);
@@ -215,14 +260,7 @@ namespace Igruha.EditorTools
                     return false;
                 }
 
-                var measurer = new SitMeasurer(animator, skin);
-                float[] muscles = Sitting();
-                SitBounds bounds = measurer.PlaceOnGround(muscles);
-                WriteClip(ClipPath(characterName), $"{characterName}_Sit", muscles, bounds.RootHeight);
-
-                report.AppendLine(
-                    $"  {characterName,-8} таз={bounds.HipHeight:F3} колени={bounds.KneeHeight:F3} " +
-                    $"ступни вперёд={bounds.FootForward:F3} высота={bounds.Height:F3} RootT.y={bounds.RootHeight:F4}");
+                measure(animator, new SitMeasurer(animator, skin));
                 return true;
             }
             finally
@@ -486,12 +524,84 @@ namespace Igruha.EditorTools
                 return t == null ? 0f : t.position.z;
             }
 
-            private void Measure(out float minY, out float maxY)
+            /// <summary>
+            /// Кожа в текущей позе и отметка «таз, корпус, бедро» на каждой точке.
+            /// Шаг выборки мельче, чем у обмера клипа: здесь ищут касание
+            /// с креслом, и крупный шаг проскочил бы край подушки или икру.
+            /// </summary>
+            public void SampleSkin(out Vector3[] points, out bool[] seatSkin)
+            {
+                bool[] seatBones = FindSeatBones();
+                UpdateBoneMatrices();
+
+                int count = (vertices.Length + SkinSampleStride - 1) / SkinSampleStride;
+                points = new Vector3[count];
+                seatSkin = new bool[count];
+                for (int i = 0, v = 0; i < count; i++, v += SkinSampleStride)
+                {
+                    points[i] = Skin(v);
+                    seatSkin[i] = seatBones[weights[v].boneIndex0];
+                }
+            }
+
+            private const int SkinSampleStride = 2;
+
+            /// <summary>Кости меша, ближайшая Humanoid-кость которых — таз, корпус или бедро.</summary>
+            private bool[] FindSeatBones()
+            {
+                var humanBones = new System.Collections.Generic.HashSet<Transform>();
+                for (int b = 0; b < (int)HumanBodyBones.LastBone; b++)
+                {
+                    Transform bone = animator.GetBoneTransform((HumanBodyBones)b);
+                    if (bone != null)
+                    {
+                        humanBones.Add(bone);
+                    }
+                }
+
+                var seatHumanBones = new System.Collections.Generic.HashSet<Transform>();
+                foreach (HumanBodyBones id in SeatBoneIds)
+                {
+                    Transform bone = animator.GetBoneTransform(id);
+                    if (bone != null)
+                    {
+                        seatHumanBones.Add(bone);
+                    }
+                }
+
+                var flags = new bool[bones.Length];
+                for (int b = 0; b < bones.Length; b++)
+                {
+                    for (Transform t = bones[b]; t != null; t = t.parent)
+                    {
+                        if (humanBones.Contains(t))
+                        {
+                            flags[b] = seatHumanBones.Contains(t);
+                            break;
+                        }
+                    }
+                }
+
+                return flags;
+            }
+
+            private static readonly HumanBodyBones[] SeatBoneIds =
+            {
+                HumanBodyBones.Hips, HumanBodyBones.Spine, HumanBodyBones.Chest, HumanBodyBones.UpperChest,
+                HumanBodyBones.LeftUpperLeg, HumanBodyBones.RightUpperLeg
+            };
+
+            private void UpdateBoneMatrices()
             {
                 for (int b = 0; b < bones.Length; b++)
                 {
                     boneMatrices[b] = bones[b].localToWorldMatrix * bindPoses[b];
                 }
+            }
+
+            private void Measure(out float minY, out float maxY)
+            {
+                UpdateBoneMatrices();
 
                 minY = float.MaxValue;
                 maxY = float.MinValue;

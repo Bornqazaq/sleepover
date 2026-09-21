@@ -1,0 +1,43 @@
+{
+  "game": "Flow",
+  "source": "поставка звука, sounds.json",
+  "output_folder": "Assets/_Project/Audio/Core/Flow",
+  "slots": [
+    {
+      "id": "SFX_FLOW_Fanfare_Bright",
+      "file": "SFX_FLOW_Fanfare_Bright",
+      "loop": false,
+      "spatial": false,
+      "volume": 1.0,
+      "event": "короткая яркая фанфара",
+      "when": "расстановка банок собрана, ходка засчитана"
+    },
+    {
+      "id": "SFX_FLOW_Fanfare_Win",
+      "file": "SFX_FLOW_Fanfare_Win",
+      "loop": false,
+      "spatial": false,
+      "volume": 1.0,
+      "event": "фанфара победы",
+      "when": "итоги матча, пьедестал"
+    },
+    {
+      "id": "SFX_FLOW_Sting_Negative",
+      "file": "SFX_FLOW_Sting_Negative",
+      "loop": false,
+      "spatial": false,
+      "volume": 1.0,
+      "event": "негативный стингер",
+      "when": "Решающего обманули, вопрос не состоялся, выбывание"
+    },
+    {
+      "id": "SFX_FLOW_Sting_Positive",
+      "file": "SFX_FLOW_Sting_Positive",
+      "loop": false,
+      "spatial": false,
+      "volume": 1.0,
+      "event": "позитивный стингер",
+      "when": "верный ответ, очко начислено, бонус одиночки"
+    }
+  ]
+}

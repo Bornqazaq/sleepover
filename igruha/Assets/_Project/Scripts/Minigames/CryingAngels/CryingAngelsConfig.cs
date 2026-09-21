@@ -24,12 +24,16 @@ namespace Igruha.Minigames.CryingAngels
         [SerializeField] private float startCountdown = 3f;
 
         [Header("Водящий — поворот")]
-        [Tooltip("Потолок скорости поворота при минимуме Бегущих (2), °/сек")]
+        [Tooltip("Луч идёт ровно за мышью, без потолка угловой скорости. Выключить — вернётся кривая потолка ниже")]
+        [SerializeField] private bool beamFollowsMouse = true;
+        [Tooltip("Потолок скорости поворота при минимуме Бегущих (2), °/сек. Работает, только если луч не идёт за мышью")]
         [SerializeField] private float turnSpeedAtFewestRunners = 60f;
-        [Tooltip("Потолок скорости поворота при максимуме Бегущих (7), °/сек")]
+        [Tooltip("Потолок скорости поворота при максимуме Бегущих (7), °/сек. Работает, только если луч не идёт за мышью")]
         [SerializeField] private float turnSpeedAtMostRunners = 90f;
         [Tooltip("Вертикальный обзор, ±°. Чисто визуальный: на засветку не влияет")]
         [SerializeField] private float verticalLookLimit = 20f;
+        [Tooltip("Наклон фонаря вслед за мышью, ±°. Больше половины угла конуса ставить нельзя: засветка считается по горизонтали, и картинка разойдётся с ловлей")]
+        [SerializeField] private float beamPitchLimit = 12f;
 
         [Header("Водящий — касание")]
         [Tooltip("Радиус засчитываемого касания Водящего по горизонтали, юниты")]
@@ -39,7 +43,7 @@ namespace Igruha.Minigames.CryingAngels
 
         [Header("Бегущий — окаменение")]
         [Tooltip("Сколько секунд под лучом до окаменения")]
-        [SerializeField] private float petrifyThreshold = 4f;
+        [SerializeField] private float petrifyThreshold = 1.5f;
         [Tooltip("Множитель накопления счётчика, пока луч на игроке")]
         [SerializeField] private float petrifyGainMultiplier = 1f;
         [Tooltip("Множитель отката счётчика, пока луча нет. 0.5 — полный откат вдвое дольше порога")]
@@ -52,6 +56,8 @@ namespace Igruha.Minigames.CryingAngels
         [SerializeField] private float runnerSpeedMultiplier = 1f;
         [Tooltip("Сколько разных поз заморозки перебирается случайно")]
         [SerializeField] private int freezePoseCount = 6;
+        [Tooltip("Сколько секунд держится заморозка после того, как луч ушёл. 0 — отпускает мгновенно")]
+        [SerializeField] private float freezeReleaseDelay = 0.25f;
 
         [Header("Флаги плейтеста")]
         [Tooltip("Статуи окаменевших остаются на арене как укрытия. По умолчанию выкл: к концу раунда укрытий вдвое больше, и Водящий слабеет ровно тогда, когда должен додавливать")]
@@ -81,6 +87,13 @@ namespace Igruha.Minigames.CryingAngels
         public float ArenaRadius => arenaRadius;
         public float StartCountdown => startCountdown;
         public float VerticalLookLimit => verticalLookLimit;
+
+        /// <summary>Луч идёт за мышью кадр в кадр, потолок угловой скорости не применяется.</summary>
+        public bool BeamFollowsMouse => beamFollowsMouse;
+
+        /// <summary>Предел наклона фонаря, ±°. Ноль — фонарь остаётся строго горизонтальным.</summary>
+        public float BeamPitchLimit => Mathf.Max(0f, beamPitchLimit);
+
         public float TouchRadius => touchRadius;
         public float StepHearingRadius => stepHearingRadius;
         public float PetrifyThreshold => petrifyThreshold;
@@ -89,6 +102,21 @@ namespace Igruha.Minigames.CryingAngels
         public float PetrifyAnimationDuration => petrifyAnimationDuration;
         public float RunnerSpeedMultiplier => runnerSpeedMultiplier;
         public int FreezePoseCount => Mathf.Max(1, freezePoseCount);
+
+        /// <summary>
+        /// Сколько заморозка держится после ухода луча, с.
+        ///
+        /// Спека требовала мгновенной разморозки, и при потолке скорости
+        /// поворота это было верно: луч подходил медленно, держал и уходил
+        /// заметно. Сняв потолок (луч идёт за мышью), Водящий стал мести
+        /// быстрее, чем длится один такт физики, — цель ловится и отпускается
+        /// за 20 мс, и со стороны Бегущего это читается как «луч по мне прошёл,
+        /// а меня не остановило». Короткая задержка возвращает правилу
+        /// читаемость и не превращается в залипание.
+        ///
+        /// Ноль возвращает прежнее поведение — поле для этого и оставлено.
+        /// </summary>
+        public float FreezeReleaseDelay => Mathf.Max(0f, freezeReleaseDelay);
         public bool StatuesRemainAsCover => statuesRemainAsCover;
         public bool BeamColorFeedback => beamColorFeedback;
         public Color BeamColorIdle => beamColorIdle;

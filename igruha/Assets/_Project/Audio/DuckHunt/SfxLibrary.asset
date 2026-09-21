@@ -55,3 +55,27 @@ MonoBehaviour:
     Volume: 1
     Loop: 0
     Spatial: 1
+  - Id: SFX_DUCK_Bullet_Ricochet
+    Clip: {fileID: 8300000, guid: 7a2d59c1fcdb40742a6906a7f4ca65d3, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: 7a2d59c1fcdb40742a6906a7f4ca65d3, type: 3}
+    - {fileID: 8300000, guid: 5f800d927dc3c5c4fa7bda22e3ad4776, type: 3}
+    - {fileID: 8300000, guid: 0adbd5da49f6984488f19afb02290463, type: 3}
+    - {fileID: 8300000, guid: 1b2e3cd04ad9c7e45821dc0b6645e333, type: 3}
+    - {fileID: 8300000, guid: 55f1c5709545fe84cb69769e42ae7d11, type: 3}
+    - {fileID: 8300000, guid: 6d238878af36b34409a4854c418c606b, type: 3}
+    - {fileID: 8300000, guid: cd202caf6f0e6f84b8f2ee29d4d48ac2, type: 3}
+    - {fileID: 8300000, guid: 2e46eb0f36be6e94e9376b684fa3a71c, type: 3}
+    Volume: 1
+    Loop: 0
+    Spatial: 1
+  - Id: SFX_DUCK_Gun_Shot_Rifle
+    Clip: {fileID: 8300000, guid: c2487b4007cfb3f468c61d8b80e9e4c0, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: c2487b4007cfb3f468c61d8b80e9e4c0, type: 3}
+    - {fileID: 8300000, guid: a6eb4178c256f7f44aa853e65dba1734, type: 3}
+    - {fileID: 8300000, guid: 5da9e75855a2f734d9c9b9e58c8058b4, type: 3}
+    - {fileID: 8300000, guid: 3a66ca57fd42b9740a96015c9d331df2, type: 3}
+    Volume: 1
+    Loop: 0
+    Spatial: 1
