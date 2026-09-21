@@ -16,10 +16,16 @@ namespace Igruha.Minigames.CryingAngels
     /// продолжают идти к постаменту, и Водящий обязан вернуться к лучу
     /// меньше чем через секунду.
     ///
-    /// Момент двусторонний: Водящему в лицо вылетает дошедший, а дошедшему —
-    /// Водящий (зеркало, по камере наблюдателя: свой аватар в этот же тик
-    /// снимается с арены, и камера уходит к оставшимся). Остальные видят
-    /// только всполох на экране.
+    /// <b>Сцена односторонняя: призрака видит только Водящий.</b> Дошедшему
+    /// и остальным достаётся всполох на экране, и не больше.
+    ///
+    /// Зеркало «дошедшему в лицо вылетает Водящий» здесь было и убрано после
+    /// прогона 21.09 по просьбе геймдизайнера. Оно читалось задом наперёд:
+    /// пугают того, кто выиграл момент, лицом того, кого он только что
+    /// осалил. Технически оно вдобавок не могло стоять ровно — место призрака
+    /// считается от глаза зрителя, а у дошедшего камера в этот самый тик
+    /// снимает его аватар с арены и уезжает к оставшимся, так что лицо
+    /// плавало вместе с ней.
     ///
     /// Призрак — копия модели дошедшего, а не сам аватар: аватар едет под
     /// NetworkTransform и снимается с арены в тот же тик. Появляется он там,
@@ -88,13 +94,17 @@ namespace Igruha.Minigames.CryingAngels
         private Animator ghostAnimator;
         private GameObject lamp;
 
-        public void Play(int playerId, GameObject victimAvatar, GameObject keeperAvatar, FirstPersonCameraRig rig, KeeperBeam beam, bool localIsKeeper, bool localIsToucher)
+        /// <param name="localIsToucher">
+        /// Эта машина — дошедший. Призрака он не получает, но в логе роль
+        /// различается: по ней разбирают жалобы «у меня скример не тот».
+        /// </param>
+        public void Play(int playerId, GameObject victimAvatar, FirstPersonCameraRig rig, KeeperBeam beam, bool localIsKeeper, bool localIsToucher)
         {
             Stop();
             Started?.Invoke(playerId);
             Debug.Log($"🎃 Ангелы: скример касания игрока {playerId} — я {(localIsKeeper ? "Водящий" : localIsToucher ? "дошедший" : "зритель")}, " +
-                      $"дошедший={(victimAvatar != null ? victimAvatar.name : "нет")}, Водящий={(keeperAvatar != null ? keeperAvatar.name : "нет")}, риг={(rig != null)}", this);
-            running = StartCoroutine(Run(victimAvatar, keeperAvatar, rig, beam, localIsKeeper, localIsToucher));
+                      $"дошедший={(victimAvatar != null ? victimAvatar.name : "нет")}, риг={(rig != null)}", this);
+            running = StartCoroutine(Run(victimAvatar, rig, beam, localIsKeeper));
         }
 
         /// <summary>Оборвать сцену: конец раунда или смена ролей посреди неё.</summary>
@@ -119,10 +129,9 @@ namespace Igruha.Minigames.CryingAngels
             Stop();
         }
 
-        private IEnumerator Run(GameObject victimAvatar, GameObject keeperAvatar, FirstPersonCameraRig rig, KeeperBeam beam, bool localIsKeeper, bool localIsToucher)
+        private IEnumerator Run(GameObject victimAvatar, FirstPersonCameraRig rig, KeeperBeam beam, bool localIsKeeper)
         {
             bool eyes = localIsKeeper && rig != null;
-            bool mirror = !eyes && localIsToucher && keeperAvatar != null;
             Vector3 forward = Vector3.forward;
             Vector3 eye = Vector3.zero;
             Vector3 modelScale = Vector3.one;
@@ -133,10 +142,6 @@ namespace Igruha.Minigames.CryingAngels
             {
                 basePitch = rig.Pitch;
                 ghost = BuildGhost(victimAvatar, out modelScale, out modelTwist);
-            }
-            else if (mirror)
-            {
-                ghost = BuildGhost(keeperAvatar, out modelScale, out modelTwist);
             }
 
             if (ghost != null)
@@ -151,7 +156,9 @@ namespace Igruha.Minigames.CryingAngels
                 light.shadows = LightShadows.None;
             }
 
-            float flashAlpha = localIsKeeper || localIsToucher ? keeperFlashAlpha : othersFlashAlpha;
+            // Полная вспышка — только у того, кому в лицо вылетели. Дошедшему
+            // белый экран без призрака читался бы как «что-то сломалось».
+            float flashAlpha = eyes ? keeperFlashAlpha : othersFlashAlpha;
             float elapsed = 0f;
             while (elapsed < duration)
             {
@@ -254,26 +261,22 @@ namespace Igruha.Minigames.CryingAngels
             return clone;
         }
 
-        /// <summary>Откуда смотрит зритель сцены: глаз рига Водящего или главная камера дошедшего.</summary>
+        /// <summary>
+        /// Откуда смотрит Водящий. Берётся каждый кадр: риг крутится мышью,
+        /// и призрак обязан держаться перед глазами, а не перед тем местом,
+        /// где глаза были в начале сцены.
+        /// </summary>
         private static bool TryResolveEye(bool eyes, FirstPersonCameraRig rig, out Vector3 eye, out Vector3 forward)
         {
-            if (eyes)
-            {
-                eye = rig.EyePosition;
-                forward = rig.transform.forward;
-                return true;
-            }
-
-            Camera camera = Camera.main;
-            if (camera == null)
+            if (!eyes)
             {
                 eye = Vector3.zero;
                 forward = Vector3.forward;
                 return false;
             }
 
-            eye = camera.transform.position;
-            forward = camera.transform.forward;
+            eye = rig.EyePosition;
+            forward = rig.transform.forward;
             return true;
         }
 
