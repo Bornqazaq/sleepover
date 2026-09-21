@@ -54,7 +54,6 @@ namespace Igruha.EditorTools
             }
 
             HubOriginalAssets.Import();
-            AssetDatabase.ImportAsset(TableFbx, ImportAssetOptions.ForceUpdate);
 
             GameObject existing = GameObject.Find(RootName);
             if (existing != null)
