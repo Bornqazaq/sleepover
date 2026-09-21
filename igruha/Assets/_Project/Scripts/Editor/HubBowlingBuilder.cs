@@ -598,6 +598,15 @@ namespace Igruha.EditorTools
         /// <summary>Кегля: цепляется за настил, чтобы не разъезжаться от сквозняка.</summary>
         internal static PhysicsMaterial Pin() => Load("BowlingPin", 0.45f, 0.4f, 0.1f);
 
+        /// <summary>Бильярдный шар: малое трение, умеренный отскок.</summary>
+        internal static PhysicsMaterial PoolBall() => Load("PoolBall", 0.08f, 0.06f, 0.55f);
+
+        /// <summary>Сукно: тормозит качение без залипания.</summary>
+        internal static PhysicsMaterial Cloth() => Load("PoolCloth", 0.25f, 0.2f, 0.02f);
+
+        /// <summary>Борт: упругий, шары не вязнут.</summary>
+        internal static PhysicsMaterial Cushion() => Load("PoolCushion", 0.15f, 0.12f, 0.7f);
+
         private static PhysicsMaterial Load(string name, float staticFriction, float dynamicFriction, float bounciness)
         {
             if (!AssetDatabase.IsValidFolder(Folder))

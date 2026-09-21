@@ -359,6 +359,10 @@ namespace Igruha.Core.Hub.Activities
                 return;
             }
 
+            // Прицел (A/D и прочее) — до шкалы силы: так отпускание ЛКМ
+            // берёт уже актуальное направление.
+            OnLocalAiming(boundPlayer, boundInput);
+
             bool holding = boundInput.PushHeld;
 
             if (holding)
@@ -390,15 +394,18 @@ namespace Igruha.Core.Hub.Activities
         private static float Triangle(float t) => Mathf.PingPong(t, 1f);
 
         /// <summary>
-        /// Направление броска — строго вдоль метки, и ничего больше.
+        /// Направление броска по умолчанию — строго вдоль метки.
         ///
         /// Сначала оно бралось от камеры, «куда смотришь — туда и катится».
         /// В игре это дало кривой бросок: орбита третьего лица почти никогда
         /// не смотрит ровно вдоль дорожки, и шар уходил в борт при честном
         /// прицеле прямо. Забава в хабе должна работать с первого раза, а не
         /// требовать выравнивания камеры.
+        ///
+        /// Бильярд переопределяет: там прицел крутится A/D, а камера
+        /// по-прежнему не участвует.
         /// </summary>
-        protected Vector3 AimDirection()
+        protected virtual Vector3 AimDirection()
         {
             if (standPoint == null)
             {
@@ -413,33 +420,48 @@ namespace Igruha.Core.Hub.Activities
 
         private void RequestLaunch(float power)
         {
+            // Направление считает машина целившегося: у бильярда yaw локальный,
+            // на сервере его нет. Отправителя по-прежнему берём из RpcParams.
+            Vector3 direction = AimDirection();
+
             if (IsSpawned)
             {
-                RequestLaunchRpc(power);
+                RequestLaunchRpc(power, direction);
                 return;
             }
 
             // Сети нет — сцену открыли в редакторе, исполняем на месте.
-            ExecuteLaunch(power);
+            ExecuteLaunch(power, direction);
         }
 
         /// <summary>
         /// Клиент просит бросить. Отправителя берём из <c>RpcParams</c>, а не из
         /// аргумента: иначе чужим намерением можно было бы бросить за занявшего.
-        /// Направление клиент не присылает вовсе — оно задано меткой.
+        /// Направление — аргумент: у боулинга оно совпадает с меткой, у бильярда
+        /// это локальный прицел A/D, которого на сервере нет.
         /// </summary>
         [Rpc(SendTo.Server, RequireOwnership = false)]
-        private void RequestLaunchRpc(float power, RpcParams rpcParams = default)
+        private void RequestLaunchRpc(float power, Vector3 direction, RpcParams rpcParams = default)
         {
             if (Occupant != rpcParams.Receive.SenderClientId)
             {
                 return;
             }
 
-            ExecuteLaunch(power);
+            direction.y = 0f;
+            if (direction.sqrMagnitude < 0.0001f)
+            {
+                direction = AimDirection();
+            }
+            else
+            {
+                direction.Normalize();
+            }
+
+            ExecuteLaunch(power, direction);
         }
 
-        private void ExecuteLaunch(float power)
+        private void ExecuteLaunch(float power, Vector3 direction)
         {
             if (Phase != HubActivityPhase.Occupied)
             {
@@ -447,7 +469,7 @@ namespace Igruha.Core.Hub.Activities
             }
 
             SetPhase(HubActivityPhase.Launched);
-            Launch(AimDirection(), Mathf.Clamp01(power));
+            Launch(direction, Mathf.Clamp01(power));
         }
 
         // ================== сторож ==================
@@ -551,6 +573,15 @@ namespace Igruha.Core.Hub.Activities
 
         /// <summary>Игрок занял станцию. Забава выдаёт снаряд и готовит мишени.</summary>
         protected virtual void OnTaken(PlayerController player)
+        {
+        }
+
+        /// <summary>
+        /// Локальный прицел, пока станция занята своим игроком. Боулинг
+        /// ничего не делает: направление задано меткой. Бильярд крутит yaw
+        /// по A/D — Move свободен, потому что MovementLocked глушит ходьбу.
+        /// </summary>
+        protected virtual void OnLocalAiming(PlayerController player, PlayerInputReader input)
         {
         }
 
