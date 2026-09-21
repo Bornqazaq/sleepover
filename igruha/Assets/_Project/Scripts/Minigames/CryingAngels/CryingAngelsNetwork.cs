@@ -187,6 +187,11 @@ namespace Igruha.Minigames.CryingAngels
 
         private float nextYawSendTime;
 
+        /// <summary>Что владелец отправил серверу в прошлый раз — чтобы не слать то же самое.</summary>
+        private float lastSentYaw;
+        private float lastSentPitch;
+        private bool sentAimKnown;
+
         /// <summary>Последнее увиденное серверное направление и момент, когда оно перестало меняться.</summary>
         private float lastSeenServerYaw;
         private float serverStillSince;
@@ -469,8 +474,24 @@ namespace Igruha.Minigames.CryingAngels
                 return;
             }
 
+            float yaw = ownerRig.DesiredYaw;
+            float pitch = ownerRig.Pitch;
+
+            // Молчим, пока мышь стоит. Шестьдесят посылок в секунду нужны на
+            // развороте, а Водящий половину раунда целится в одну точку —
+            // и всё это время слал бы серверу одно и то же число.
+            if (sentAimKnown &&
+                Mathf.Approximately(yaw, lastSentYaw) &&
+                Mathf.Approximately(pitch, lastSentPitch))
+            {
+                return;
+            }
+
             nextYawSendTime = Time.time + 1f / DesiredYawSendRate;
-            SubmitDesiredAimRpc(ownerRig.DesiredYaw, ownerRig.Pitch);
+            lastSentYaw = yaw;
+            lastSentPitch = pitch;
+            sentAimKnown = true;
+            SubmitDesiredAimRpc(yaw, pitch);
         }
 
         /// <summary>
