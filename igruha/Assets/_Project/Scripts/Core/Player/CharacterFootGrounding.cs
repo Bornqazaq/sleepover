@@ -26,6 +26,15 @@ namespace Igruha.Core.Player
     ///
     /// Чисто визуально и считается на каждой машине сама: поза у всех своя
     /// (аниматор идёт у каждой копии), сети здесь делать нечего.
+    ///
+    /// <b>Кожа, а не только кости (21.09, вечер).</b> Кость голеностопа у
+    /// наших персонажей стоит на 11–22 см выше подошвы, и подъём по костям
+    /// включался, когда подошва уже глубоко в полу. Хуже всего — падение и
+    /// вставание после удара: подошва до 25 см в полу, лежащее тело до 29 см.
+    /// Если для персонажа собраны <see cref="CharacterSkinProbes"/>, подъём
+    /// считается по настоящим вершинам кожи: подошве, спине, животу, ладоням.
+    /// Правило по костям ступней остаётся в силе и поверх этого — нижняя
+    /// граница: кость ступни под пол не уходит ни в каком режиме.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class CharacterFootGrounding : MonoBehaviour
@@ -61,6 +70,23 @@ namespace Igruha.Core.Player
         /// <summary>Меньше этого — шум позы, а не провал. Иначе модель дрожит на миллиметры.</summary>
         private const float LiftDeadZone = 0.003f;
 
+        /// <summary>
+        /// Больше этого не поднимаем по коже, м. Замер 21.09 на живом
+        /// аниматоре: встающий Толстый уходит в пол до 58 см, а Milez лёжа в
+        /// конце падения — до 93: его клипы падения записаны с большим
+        /// перепадом высоты. Глубже метра — уже не поза, а ошибка данных.
+        /// Поднимается только картинка: капсула персонажа стоит, где стояла.
+        /// </summary>
+        private const float MaxSkinLift = 1f;
+
+        /// <summary>
+        /// Сколько кожи может остаться в полу, м. В обычной стойке подошва
+        /// сидит в полу на 0.3–1.7 см — это толщина подошвы, а не провал, и
+        /// подвешивать из-за неё персонажа нельзя: стойка не поднимается.
+        /// Вычитается, а не обрезает — подъём растёт плавно, без скачка на пороге.
+        /// </summary>
+        private const float SkinTolerance = 0.02f;
+
         private readonly Transform[] feet = new Transform[4];
         private int footCount;
 
@@ -70,8 +96,24 @@ namespace Igruha.Core.Player
         private Vector3 baseLocalPosition;
         private float lift;
 
+        private Transform[] skinBones;
+        private Matrix4x4[] bindPoses;
+        private Matrix4x4[] skinMatrices;
+        private CharacterSkinProbes.Probe[] probes;
+        private readonly Vector3[] groupLowest = new Vector3[CharacterSkinProbes.GroupCount];
+        private float lowestSkinBeforeLift = float.NaN;
+
         /// <summary>На сколько модель приподнята в этом кадре, м. Ноль — ступни и так над полом.</summary>
         public float CurrentLift => lift;
+
+        /// <summary>Подъём считается по коже, а не только по костям ступней.</summary>
+        public bool UsesSkin => probes != null;
+
+        /// <summary>
+        /// Мировая высота нижней точки кожи после подъёма. Нет точек кожи —
+        /// NaN. Открыта для тестов: проверить надо то, что видит игрок.
+        /// </summary>
+        public float LowestSkinHeight => lowestSkinBeforeLift + lift;
 
         /// <summary>
         /// Подключить к модели. Зовёт <see cref="CharacterAnimatorDriver"/>:
@@ -101,6 +143,39 @@ namespace Igruha.Core.Player
                     feet[footCount++] = bone;
                 }
             }
+
+            BindSkin();
+        }
+
+        /// <summary>
+        /// Найти точки кожи этого персонажа. Нет записи или она собрана под
+        /// другую сетку — остаёмся на костях ступней: персонаж без данных не
+        /// ломается, а просто стоит, как стоял до них.
+        /// </summary>
+        private void BindSkin()
+        {
+            probes = null;
+            skinBones = null;
+            lowestSkinBeforeLift = float.NaN;
+
+            CharacterSkinProbes library = CharacterSkinProbes.Shared;
+            var skin = visualRoot.GetComponentInChildren<SkinnedMeshRenderer>(true);
+            if (library == null || skin == null || !library.TryGet(skin.sharedMesh, out CharacterSkinProbes.Entry entry))
+            {
+                return;
+            }
+
+            Transform[] bones = skin.bones;
+            if (entry.Probes == null || entry.Probes.Length == 0 ||
+                entry.BindPoses == null || entry.BindPoses.Length != bones.Length)
+            {
+                return;
+            }
+
+            skinBones = bones;
+            bindPoses = entry.BindPoses;
+            skinMatrices = new Matrix4x4[bones.Length];
+            probes = entry.Probes;
         }
 
         /// <summary>
@@ -128,7 +203,14 @@ namespace Igruha.Core.Player
             }
 
             float needed = RequiredLift();
-            float next = needed < LiftDeadZone ? 0f : Mathf.Min(needed, MaxLift);
+            float maxLift = MaxLift;
+            if (probes != null)
+            {
+                needed = Mathf.Max(needed, RequiredSkinLift() - SkinTolerance);
+                maxLift = MaxSkinLift;
+            }
+
+            float next = needed < LiftDeadZone ? 0f : Mathf.Min(needed, maxLift);
             if (Mathf.Approximately(next, lift))
             {
                 return;
@@ -171,6 +253,108 @@ namespace Igruha.Core.Player
             }
 
             return needed;
+        }
+
+        /// <summary>
+        /// Насколько кожа ушла в пол, м. Точки считаются по позам костей и
+        /// весам — как их считает видеокарта, — поэтому лежат ровно на коже,
+        /// которую видит игрок, и тело не зависает над полом из-за грубой
+        /// оценки у сустава.
+        ///
+        /// Пол ищется не под каждой точкой — их сотни, — а под самой нижней
+        /// точкой каждой части тела: на склоне у двух ног разный пол.
+        /// Подъём прошлого кадра вычитается, как и по костям ступней.
+        /// </summary>
+        private float RequiredSkinLift()
+        {
+            for (int i = 0; i < skinBones.Length; i++)
+            {
+                skinMatrices[i] = skinBones[i].localToWorldMatrix * bindPoses[i];
+            }
+
+            for (int g = 0; g < groupLowest.Length; g++)
+            {
+                groupLowest[g] = new Vector3(0f, float.MaxValue, 0f);
+            }
+
+            float lowest = float.MaxValue;
+            for (int i = 0; i < probes.Length; i++)
+            {
+                Vector3 point = Skin(probes[i]);
+                point.y -= lift;
+
+                int group = probes[i].Group;
+                if (point.y < groupLowest[group].y)
+                {
+                    groupLowest[group] = point;
+                }
+
+                if (point.y < lowest)
+                {
+                    lowest = point.y;
+                }
+            }
+
+            lowestSkinBeforeLift = lowest;
+
+            // Вся кожа выше любого пола, который мы признаём, — прыжок или
+            // полёт после удара. Лучи тогда не нужны вовсе.
+            float floorCeiling = transform.position.y + MaxFloorAboveRoot;
+            if (lowest > floorCeiling)
+            {
+                return 0f;
+            }
+
+            PhysicsScene physics = gameObject.scene.GetPhysicsScene();
+            float needed = 0f;
+
+            for (int g = 0; g < groupLowest.Length; g++)
+            {
+                Vector3 point = groupLowest[g];
+                if (point.y > floorCeiling)
+                {
+                    continue;
+                }
+
+                var origin = new Vector3(point.x, floorCeiling, point.z);
+                if (!physics.Raycast(origin, Vector3.down, out RaycastHit hit, MaxFloorAboveRoot + ProbeDepth,
+                        groundLayers, QueryTriggerInteraction.Ignore))
+                {
+                    continue;
+                }
+
+                float depth = hit.point.y - point.y;
+                if (depth > needed)
+                {
+                    needed = depth;
+                }
+            }
+
+            return needed;
+        }
+
+        /// <summary>Мировое положение вершины кожи в текущей позе.</summary>
+        private Vector3 Skin(in CharacterSkinProbes.Probe probe)
+        {
+            Vector4 weights = probe.Weights;
+            Vector3 result = skinMatrices[probe.Bone(0)].MultiplyPoint3x4(probe.Position) * weights.x;
+
+            if (weights.y > 0f)
+            {
+                result += skinMatrices[probe.Bone(1)].MultiplyPoint3x4(probe.Position) * weights.y;
+            }
+
+            if (weights.z > 0f)
+            {
+                result += skinMatrices[probe.Bone(2)].MultiplyPoint3x4(probe.Position) * weights.z;
+            }
+
+            if (weights.w > 0f)
+            {
+                result += skinMatrices[probe.Bone(3)].MultiplyPoint3x4(probe.Position) * weights.w;
+            }
+
+            return result;
         }
     }
 }
