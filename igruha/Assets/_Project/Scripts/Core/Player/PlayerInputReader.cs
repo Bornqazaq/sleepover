@@ -63,6 +63,13 @@ namespace Igruha.Core.Player
         public int PoseRequest { get; private set; }
 
         /// <summary>
+        /// Кнопка толчка зажата. Отдельно от <see cref="PushPressed"/>: есть
+        /// занятия, где нажатие набирает силу всё удержание, а срабатывает на
+        /// отпускании — шкала броска у забав в хабе.
+        /// </summary>
+        public bool PushHeld { get; private set; }
+
+        /// <summary>
         /// Кнопка взаимодействия зажата. Отдельно от <see cref="InteractPressed"/>:
         /// есть интерактивы, которые живут всё удержание, а не срабатывают
         /// разово — кнопка отсчёта в «Секундомере» тикает, пока её держат.
@@ -173,6 +180,21 @@ namespace Igruha.Core.Player
         }
 
         /// <summary>
+        /// Удержание толчка извне: им набирают силу броска забавы в хабе.
+        /// Состояние, а не нажатие, поэтому снимать его обязан тот же, кто
+        /// поставил, — потребитель его не гасит.
+        /// </summary>
+        public void DrivePushHold(bool held)
+        {
+            if (LocallyControlled && !Autopilot)
+            {
+                return;
+            }
+
+            PushHeld = held;
+        }
+
+        /// <summary>
         /// Поза извне: болванке соло-теста. Состояние, а не нажатие, — как
         /// и у живого игрока, который держит клавишу; снимать его обязан тот,
         /// кто поставил.
@@ -243,6 +265,7 @@ namespace Igruha.Core.Player
             MoveInput = Vector2.zero;
             LookDelta = Vector2.zero;
             JumpPressed = PushPressed = InteractPressed = EmoteHeld = false;
+            PushHeld = false;
             CrouchHeld = false;
             InteractHeld = false;
             PoseRequest = 0;
@@ -271,6 +294,7 @@ namespace Igruha.Core.Player
             EmoteHeld = emoteAction != null && emoteAction.action.IsPressed();
             JumpPressed |= WasPressed(jumpAction);
             PushPressed |= WasPressed(pushAction);
+            PushHeld = pushAction != null && pushAction.action.IsPressed();
             InteractPressed |= WasPressed(interactAction);
             CrouchHeld = crouchAction != null && crouchAction.action.IsPressed();
             InteractHeld = interactAction != null && interactAction.action.IsPressed();
