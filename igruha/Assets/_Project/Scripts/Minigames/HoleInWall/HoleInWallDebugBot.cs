@@ -35,12 +35,29 @@ namespace Igruha.Minigames.HoleInWall
         /// <summary>Ближе этого расстояния до своей точки болванка стоит, м.</summary>
         private const float ArriveRadius = 0.12f;
 
+        /// <summary>
+        /// Болванка встаёт как человек, а не как станок: в правильную позу,
+        /// но примерно у дырки, и дальше стоит — последние сантиметры
+        /// доводит воронка выреза (<see cref="WallFunnel"/>).
+        ///
+        /// Без этого стенд не проверял главного: точная болванка приходит
+        /// в центр выреза за секунды до стены, и опоздание сервера на
+        /// сетевой путь ей ничем не грозит. Человек же попадает «примерно»,
+        /// и именно на нём плейтест 20.09 поймал «прошёл, а всё равно упал».
+        /// </summary>
+        public const string SloppyFlag = "--bot-sloppy";
+
+        /// <summary>Цель сдвинулась дальше этого — вставшая болванка идёт заново (зеркальный переворот), м.</summary>
+        private const float ResettleDistance = 0.3f;
+
         [SerializeField] private HoleInWallMinigame game;
         [Tooltip("С какой вероятностью болванка ошибается на стене: 0 — проходит всё, 1 — не проходит ничего. Нужна, чтобы в соло-прогоне были и проходы, и провалы, и каскады")]
         [Range(0f, 1f)]
         [SerializeField] private float mistakeChance = 0.25f;
         [Tooltip("Отдать болванке и персонажа этой машины — тогда соло-прогон идёт целиком сам, без рук. Только для одиночного прогона")]
         [SerializeField] private bool autopilotLocalPlayer;
+        [Tooltip("Насколько мимо центра встаёт болванка под --bot-sloppy, м. В пределах дальнобойности воронки, но заметно дальше допуска попадания")]
+        [SerializeField] private float sloppyOffset = 0.35f;
 
         /// <summary>Решение на текущую стену: как именно этот участник её провалит.</summary>
         private struct Mistake
@@ -50,6 +67,12 @@ namespace Igruha.Minigames.HoleInWall
         }
 
         private readonly Dictionary<int, Mistake> mistakes = new Dictionary<int, Mistake>(8);
+
+        /// <summary>Куда встала болванка на этой стене (X цели). Встала — больше не ходит, ждёт стену.</summary>
+        private readonly Dictionary<int, float> settled = new Dictionary<int, float>(8);
+        private bool sloppy;
+
+        private void Awake() => sloppy = LaunchArguments.HasFlag(SloppyFlag);
         private int decidedWall = -1;
         private bool networkNoticed;
         private bool autopilotNoticed;
@@ -158,6 +181,7 @@ namespace Igruha.Minigames.HoleInWall
         /// </summary>
         private void DecideMistakes()
         {
+            settled.Clear();
             IReadOnlyList<HoleInWallTrack> tracks = game.PlayingTracks;
             for (int t = 0; t < tracks.Count; t++)
             {
@@ -207,8 +231,24 @@ namespace Igruha.Minigames.HoleInWall
 
             // Мимо на два допуска: провал уверенный, но болванка всё ещё стоит
             // на платформе, а не уходит с неё сама.
-            float error = mistake.WrongPlace ? MistakeOffset(member) * game.Config.HitTolerance * 2f : 0f;
+            bool human = sloppy && !mistake.WrongPlace;
+            float error = mistake.WrongPlace ? MistakeOffset(member) * game.Config.HitTolerance * 2f
+                : human ? MistakeOffset(member) * sloppyOffset : 0f;
             float targetX = track.transform.position.x + offset + error;
+            HoleInWallPose wanted = mistake.WrongPose ? OtherPose(pose) : pose;
+
+            // Человек стоит, пока дырка рядом: трос утащил дальше, чем достаёт
+            // воронка, — он пойдёт обратно, и болванка тоже.
+            float cutoutX = track.transform.position.x + offset;
+            bool withinReach = Mathf.Abs(member.Avatar.Position.x - cutoutX) <= game.Config.HitTolerance;
+            if (human && withinReach && settled.TryGetValue(member.PlayerId, out float settledX) &&
+                Mathf.Abs(settledX - targetX) < ResettleDistance)
+            {
+                // Встала и ждёт: дальше её ведут только воронка и трос, как человека.
+                member.Input.DrivePose((int)wanted);
+                member.Input.DriveMove(Vector2.zero);
+                return;
+            }
 
             Vector3 position = member.Avatar.transform.position;
             var toTarget = new Vector3(targetX - position.x, 0f, track.transform.position.z - position.z);
@@ -220,8 +260,13 @@ namespace Igruha.Minigames.HoleInWall
             // нажатие пришлось бы на кадр, в котором позу тут же снимает ход,
             // а повторно она бы не нажалась — способность ловит фронт нажатия,
             // а не удержание.
-            member.Input.DrivePose(arrived ? (int)(mistake.WrongPose ? OtherPose(pose) : pose) : 0);
+            member.Input.DrivePose(arrived ? (int)wanted : 0);
             member.Input.DriveMove(arrived ? Vector2.zero : member.Avatar.WorldToMoveInput(toTarget));
+
+            if (arrived && human)
+            {
+                settled[member.PlayerId] = targetX;
+            }
         }
 
         /// <summary>В какую сторону промахнуться. Зависит от участника, чтобы двое не сошлись в одной точке.</summary>
