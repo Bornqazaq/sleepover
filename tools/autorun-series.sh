@@ -21,6 +21,9 @@ PLAYERS="${1:-3}"
 GAMES="${2:-Stopwatch,Exam}"
 TIMEOUT="${3:-900}"
 HOST_ADDRESS="${HOST_ADDRESS:-127.0.0.1}"
+# Дополнительные флаги болванкам всех процессов, например
+# BOT_ARGS=--bot-sloppy — «Дырка в стене» встаёт как человек, примерно у дырки.
+BOT_ARGS="${BOT_ARGS:-}"
 
 if [[ ! -x "$APP" ]]; then
     echo "Нет тестового билда: $APP" >&2
@@ -45,7 +48,7 @@ pids=()
 cleanup() { for pid in "${pids[@]}"; do kill "$pid" 2>/dev/null || true; done; wait 2>/dev/null || true; }
 trap cleanup EXIT INT TERM
 
-"$APP" --autostart "$GAMES" --series --wait-players "$PLAYERS" --bot \
+"$APP" --autostart "$GAMES" --series --wait-players "$PLAYERS" --bot $BOT_ARGS \
        -screen-fullscreen 0 -screen-width 1280 -screen-height 720 \
        -logFile "$LOGS/host.log" >/dev/null 2>&1 &
 pids+=("$!")
@@ -53,7 +56,7 @@ echo "🟢 хост поднят, лог $LOGS/host.log"
 sleep 6
 
 for (( i = 1; i < PLAYERS; i++ )); do
-    "$APP" --client --host "$HOST_ADDRESS" --bot \
+    "$APP" --client --host "$HOST_ADDRESS" --bot $BOT_ARGS \
            -batchmode -nographics \
            -logFile "$LOGS/client-$i.log" >/dev/null 2>&1 &
     pids+=("$!")
