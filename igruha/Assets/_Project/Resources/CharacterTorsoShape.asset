@@ -138,6 +138,9 @@ MonoBehaviour:
       - 0.18765341
     LeftHandTip: {x: -0.024008714, y: 0.042536616, z: -0.0009739102}
     RightHandTip: {x: 0.024619317, y: 0.044566784, z: -0.0017521258}
+    UpperArmRadius: 0.12627846
+    LowerArmRadius: 0.092021726
+    HandRadius: 0.067933664
   - Mesh: {fileID: -4732297964077508377, guid: 29170d1c8e5867845a770f496965696c, type: 3}
     BoneCount: 34
     Slices:
@@ -263,6 +266,9 @@ MonoBehaviour:
       - 0.23319922
     LeftHandTip: {x: 0.017997406, y: 0.025980685, z: -0.011768156}
     RightHandTip: {x: -0.01974091, y: 0.025241971, z: -0.011122062}
+    UpperArmRadius: 0.15574893
+    LowerArmRadius: 0.11395679
+    HandRadius: 0.078741595
   - Mesh: {fileID: -8889964121841698168, guid: 14e37d99f42300a43b34d4f9e9553fc8, type: 3}
     BoneCount: 34
     Slices:
@@ -388,6 +394,9 @@ MonoBehaviour:
       - 0.2206117
     LeftHandTip: {x: 0.021918386, y: 0.027171314, z: -0.010031919}
     RightHandTip: {x: -0.022282012, y: 0.024030892, z: -0.010232642}
+    UpperArmRadius: 0.12927832
+    LowerArmRadius: 0.09615138
+    HandRadius: 0.08163013
   - Mesh: {fileID: 7158796146257112550, guid: 46320299878b7ce4c92497e1e578a3b7, type: 3}
     BoneCount: 28
     Slices:
@@ -513,6 +522,9 @@ MonoBehaviour:
       - 0.19966996
     LeftHandTip: {x: 0.10340856, y: 0.074092716, z: 0.033544425}
     RightHandTip: {x: -0.103571884, y: 0.07372119, z: 0.03354614}
+    UpperArmRadius: 0.112169236
+    LowerArmRadius: 0.07469392
+    HandRadius: 0.09469049
   - Mesh: {fileID: 7158796146257112550, guid: b38673c3da537b44c8612d8d3b797bb8, type: 3}
     BoneCount: 34
     Slices:
@@ -638,6 +650,9 @@ MonoBehaviour:
       - 0.13396361
     LeftHandTip: {x: -0.034791064, y: 0.040282473, z: 0.029714914}
     RightHandTip: {x: -0.020187134, y: 0.044787973, z: -0.029202547}
+    UpperArmRadius: 0.12472711
+    LowerArmRadius: 0.100108616
+    HandRadius: 0.052892394
   - Mesh: {fileID: 8980185973765492123, guid: f41ee9d4fe6eae7449eccd30199bee9e, type: 3}
     BoneCount: 34
     Slices:
@@ -763,6 +778,9 @@ MonoBehaviour:
       - 0.20247504
     LeftHandTip: {x: 0.01860217, y: 0.028282566, z: -0.013640883}
     RightHandTip: {x: -0.023836901, y: 0.02526653, z: -0.010598421}
+    UpperArmRadius: 0.116880976
+    LowerArmRadius: 0.10323145
+    HandRadius: 0.09939601
   - Mesh: {fileID: 4111288081708817414, guid: 2b441780a3044d74fae9fdc643bf32fb, type: 3}
     BoneCount: 34
     Slices:
@@ -888,6 +906,9 @@ MonoBehaviour:
       - 0.16934097
     LeftHandTip: {x: 0.020314656, y: 0.026327781, z: -0.009153546}
     RightHandTip: {x: -0.024075376, y: 0.021200776, z: 0.007711109}
+    UpperArmRadius: 0.080656335
+    LowerArmRadius: 0.07384673
+    HandRadius: 0.05600397
   - Mesh: {fileID: 6402961464619234872, guid: 737af398c38b7d948af857e7d3ce8a60, type: 3}
     BoneCount: 34
     Slices:
@@ -1013,3 +1034,6 @@ MonoBehaviour:
       - 0.09086585
     LeftHandTip: {x: -0.018641546, y: 0.027775345, z: 0.0055179754}
     RightHandTip: {x: 0.018417655, y: 0.024285587, z: 0.0056443694}
+    UpperArmRadius: 0.06340935
+    LowerArmRadius: 0.039029397
+    HandRadius: 0.042665552

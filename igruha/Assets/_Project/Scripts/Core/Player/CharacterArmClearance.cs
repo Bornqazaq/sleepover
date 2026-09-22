@@ -10,20 +10,28 @@ namespace Igruha.Core.Player
     ///
     /// <b>Зачем.</b> Все восемь персонажей танцуют одними клипами —
     /// <c>Shlanga@dance1..8</c>. Замер 22.09 на живом аниматоре, глубина
-    /// захода костей руки внутрь <see cref="CharacterTorsoShape"/>:
+    /// захода кожи руки внутрь <see cref="CharacterTorsoShape"/> — до
+    /// доворота и после, см, и наибольший доворот:
     ///
     /// <code>
-    ///            d1  d3  d4  d5  d6  d7  d8
-    ///   Shlanga   0   0   0   0   0   0   0   ← эталон, на нём записаны клипы
-    ///   Fat       0  22  12   1   0   8   9
-    ///   Boss      2  15   6   0   0   2   1
-    ///   Aza       0  11   2   0   0   2   0
+    ///               d1        d3        d4        d8
+    ///   Shlanga    0-&gt;0/0°   2-&gt;1/4°   8-&gt;2/14°  15-&gt;5/21°  ← эталон
+    ///   Fat       22-&gt;4/39° 33-&gt;3/40° 29-&gt;11/40° 33-&gt;15/40°
+    ///   Boss      18-&gt;8/40° 31-&gt;5/40° 30-&gt;15/40° 29-&gt;16/40°
     /// </code>
     ///
     /// У Толстого на <c>dance3</c> оба предплечья пропадают внутри живота
     /// целиком — это и есть «модель косаебит». Коллайдер тут ни при чём: он
     /// на анимацию не влияет. Та же природа, что у ступней под полом, которые
     /// поднимает <see cref="CharacterFootGrounding"/>.
+    ///
+    /// <b>Меряется кожа, а не кость.</b> Первый заход правки выводил наружу
+    /// кость и смотрел на предплечье от середины. У Толстого этого хватило,
+    /// чтобы отчитаться нулём, и не хватило, чтобы вылечить картинку:
+    /// запястье с кулаком уже снаружи, а локоть и половина предплечья ещё в
+    /// животе — на экране рука перечёркивала футболку поперёк. Поэтому в
+    /// набор точек добавлен локоть, а к радиусу тела — полутолщина руки
+    /// (<see cref="CharacterTorsoShape.Entry.LowerArmRadius"/> и соседи).
     ///
     /// <b>Почему кодом, а не правкой клипов.</b> Анимации, аниматоры и
     /// префабы персонажей заморожены (<c>igruha/CLAUDE.md</c>, раздел 🔒 0).
@@ -47,19 +55,23 @@ namespace Igruha.Core.Player
     public sealed class CharacterArmClearance : MonoBehaviour
     {
         /// <summary>
-        /// Насколько кости руки держатся снаружи поверхности тела, м.
-        /// Радиус торса вписанный — взят по самому узкому месту сектора, —
-        /// поэтому запас нужен небольшой: он отвечает только за то, чтобы
-        /// кость не лежала ровно на поверхности, а кожа руки не сливалась
-        /// с кожей живота.
+        /// Зазор между кожей руки и кожей тела, м. Толщину самой руки
+        /// добавляет <see cref="CharacterTorsoShape.Entry.LowerArmRadius"/>
+        /// и его соседи, так что запас отвечает только за то, чтобы кожа
+        /// руки не сливалась с кожей живота.
         /// </summary>
         private const float Margin = 0.02f;
 
         /// <summary>
-        /// Больше этого плечо не доворачивает, град. Самый глубокий заход по
-        /// замеру — 22 см, а это около 21° поворота в плече при длине руки
-        /// 0.6 м. Потолок нужен на случай позы, которую доворотом не спасти:
-        /// лучше оставить провал, чем вывернуть руку за спину.
+        /// Больше этого плечо не доворачивает, град. Потолок нужен на случай
+        /// позы, которую доворотом не спасти: лучше оставить провал, чем
+        /// вывернуть руку за спину.
+        ///
+        /// На толстых телах он упирается почти всюду, и часть провала
+        /// остаётся — 15 см из 33 на восьмом танце, где персонаж катается по
+        /// полу и рука прижата телом. Поднимать потолок ради этих кадров
+        /// нельзя: на стоячих танцах, где доворота хватает с запасом, рука
+        /// начнёт отходить от тела дальше, чем нужно.
         /// </summary>
         private const float MaxShoulderAngle = 40f;
 
@@ -93,11 +105,27 @@ namespace Igruha.Core.Player
         /// <summary>Базовый слой аниматора — танцы живут только на нём.</summary>
         private const int BaseLayer = 0;
 
-        /// <summary>Точек на руке: середина предплечья, ближе к запястью, запястье, кончик ладони.</summary>
-        private const int PointCount = 4;
+        /// <summary>Точек на руке: локоть, три по предплечью до запястья, кончик ладони.</summary>
+        private const int PointCount = 5;
 
-        /// <summary>Где вдоль предплечья стоят первые три точки: 0 — локоть, 1 — запястье.</summary>
-        private static readonly float[] ForearmPoints = { 0.5f, 0.75f, 1f };
+        /// <summary>
+        /// Где вдоль предплечья стоят первые четыре точки: 0 — локоть,
+        /// 1 — запястье.
+        ///
+        /// Локоть здесь не для красоты. Прежний набор начинался с середины
+        /// предплечья, и у Толстого сходилось так: запястье с кулаком уже
+        /// снаружи, а локоть и половина предплечья всё ещё в животе —
+        /// на картинке рука перечёркивала футболку поперёк. Проверка, не
+        /// видящая локтя, объявляла позу вылеченной.
+        /// </summary>
+        private static readonly float[] ForearmPoints = { 0f, 0.35f, 0.7f, 1f };
+
+        /// <summary>
+        /// С какой точки начинает локоть. Локоть — сам сустав, а точку рядом
+        /// с суставом поворот в нём почти не двигает: рычаг мал, и доворот
+        /// вышел бы огромным ради сантиметра.
+        /// </summary>
+        private const int ElbowFirstPoint = 2;
 
         /// <summary>Имена состояний танца в контроллере — по ним и включается доворот.</summary>
         private static readonly int[] EmoteStates = BuildEmoteStates();
@@ -124,6 +152,13 @@ namespace Igruha.Core.Player
         private Vector3[] sliceFronts;
         private readonly Arm[] arms = new Arm[2];
         private readonly Vector3[] points = new Vector3[PointCount];
+
+        /// <summary>
+        /// Полутолщина руки в каждой точке, м. Кость идёт по середине руки,
+        /// и без этой поправки «кость снаружи» означает «половина руки ещё
+        /// внутри»: у Толстого это 9.6 см предплечья в животе.
+        /// </summary>
+        private readonly float[] pointRadii = new float[PointCount];
 
         private bool ready;
         private bool written;
@@ -187,6 +222,16 @@ namespace Igruha.Core.Player
             {
                 return;
             }
+
+            // Локоть толщиной с конец плеча, а не с предплечье: у Толстого
+            // это разница в три сантиметра, и берём большее.
+            pointRadii[0] = Mathf.Max(entry.UpperArmRadius, entry.LowerArmRadius);
+            for (int i = 1; i < ForearmPoints.Length; i++)
+            {
+                pointRadii[i] = entry.LowerArmRadius;
+            }
+
+            pointRadii[ForearmPoints.Length] = entry.HandRadius;
 
             slices = entry.Slices;
             sliceCenters = new Vector3[slices.Length];
@@ -392,7 +437,7 @@ namespace Igruha.Core.Player
             float usedElbow = 0f;
             for (int pass = 0; pass < ElbowPasses && usedElbow < MaxElbowAngle; pass++)
             {
-                usedElbow += Push(arm, arm.Lower, ForearmPoints.Length - 1, MaxElbowAngle - usedElbow, false);
+                usedElbow += Push(arm, arm.Lower, ElbowFirstPoint, MaxElbowAngle - usedElbow, false);
             }
 
             Quaternion targetUpper = Quaternion.Inverse(rawUpper) * arm.Upper.localRotation;
@@ -457,7 +502,7 @@ namespace Igruha.Core.Player
             return angle;
         }
 
-        /// <summary>Четыре точки руки в мире: предплечье, запястье, кончик ладони.</summary>
+        /// <summary>Точки руки в мире: локоть, предплечье, запястье, кончик ладони.</summary>
         private void FillPoints(Arm arm)
         {
             Vector3 elbow = arm.Lower.position;
@@ -494,7 +539,8 @@ namespace Igruha.Core.Player
 
                     Vector3 radial = offset - sliceAxes[s] * along;
                     float distance = radial.magnitude;
-                    float radius = slices[s].Radius(Vector3.Dot(radial, sliceSides[s]), Vector3.Dot(radial, sliceFronts[s])) + Margin;
+                    float radius = slices[s].Radius(Vector3.Dot(radial, sliceSides[s]), Vector3.Dot(radial, sliceFronts[s]))
+                                   + pointRadii[i] + Margin;
                     if (distance >= radius)
                     {
                         continue;

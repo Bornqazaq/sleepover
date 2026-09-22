@@ -23,6 +23,10 @@ namespace Igruha.EditorTools
     /// получаем поверхность в самом узком месте сектора. Минимум брать нельзя
     /// — одна случайная вершина у шва посадит радиус на ноль.
     ///
+    /// <b>Заодно обмеряется толщина руки</b> — плечо, предплечье и кисть по
+    /// коже. Кость идёт по середине руки, и без этой поправки доворот
+    /// считает работу сделанной там, где половина руки ещё в животе.
+    ///
     /// <b>Всё меряется в позе привязки</b>, то есть в пространстве сетки, где
     /// персонаж стоит прямо, а потом переводится в локальное пространство той
     /// кости позвоночника, к которой срез привязан. Поэтому набор не зависит
@@ -45,6 +49,17 @@ namespace Igruha.EditorTools
 
         /// <summary>Какая доля расстояний в ячейке уходит внутрь радиуса, %.</summary>
         private const int RadiusPercentile = 20;
+
+        /// <summary>
+        /// Какая доля вершин руки уходит внутрь её полутолщины, %. Здесь, в
+        /// отличие от торса, нужен не вписанный радиус, а рабочий: по нему
+        /// рука выставляется наружу, и занизить его значит снова утопить её
+        /// в животе. Максимум брать нельзя — его задаёт выпирающая косточка.
+        /// </summary>
+        private const int ArmRadiusPercentile = 70;
+
+        /// <summary>Меньше этого числа вершин на кости — толщину не мерим, она останется нулевой.</summary>
+        private const int MinArmVertices = 32;
 
         /// <summary>Меньше этого числа вершин в ячейке — данных нет, радиус берётся у соседей.</summary>
         private const int MinCellVertices = 10;
@@ -110,7 +125,8 @@ namespace Igruha.EditorTools
             if (TryBuildEntry(character, animator, skin, out CharacterTorsoShape.Entry entry))
             {
                 entries.Add(entry);
-                Debug.Log($"Объём торса: {character} — {entry.Slices.Length} срезов");
+                Debug.Log($"Объём торса: {character} — {entry.Slices.Length} срезов, рука по коже " +
+                          $"{entry.UpperArmRadius * 100f:F1}/{entry.LowerArmRadius * 100f:F1}/{entry.HandRadius * 100f:F1} см");
             }
         }
 
@@ -163,16 +179,80 @@ namespace Igruha.EditorTools
 
             HumanBodyBones[] nearest = NearestHumanBones(animator, bones);
             float[,] radii = MeasureRadii(mesh, nearest, bottom, axis, side, front, height, scale);
+            Vector3 leftHandTip = HandTip(mesh, nearest, bindPoses, bones, animator, HumanBodyBones.LeftHand);
 
             entry = new CharacterTorsoShape.Entry
             {
                 Mesh = mesh,
                 BoneCount = bones.Length,
                 Slices = BuildSlices(animator, bones, bindPoses, radii, bottom, axis, side, front, height, scale),
-                LeftHandTip = HandTip(mesh, nearest, bindPoses, bones, animator, HumanBodyBones.LeftHand),
-                RightHandTip = HandTip(mesh, nearest, bindPoses, bones, animator, HumanBodyBones.RightHand)
+                LeftHandTip = leftHandTip,
+                RightHandTip = HandTip(mesh, nearest, bindPoses, bones, animator, HumanBodyBones.RightHand),
+                UpperArmRadius = ArmRadius(mesh, nearest, bindPoses, bones, animator, HumanBodyBones.LeftUpperArm,
+                    HumanBodyBones.LeftLowerArm, Vector3.zero, scale),
+                LowerArmRadius = ArmRadius(mesh, nearest, bindPoses, bones, animator, HumanBodyBones.LeftLowerArm,
+                    HumanBodyBones.LeftHand, Vector3.zero, scale),
+                HandRadius = ArmRadius(mesh, nearest, bindPoses, bones, animator, HumanBodyBones.LeftHand,
+                    HumanBodyBones.LastBone, leftHandTip, scale)
             };
             return true;
+        }
+
+        /// <summary>
+        /// Полутолщина кости руки по коже, м: расстояние от оси кости до
+        /// висящих на ней вершин по <see cref="ArmRadiusPercentile"/>.
+        ///
+        /// Нужна потому, что кость идёт по середине руки. Рука, выставленная
+        /// костью ровно на поверхность живота, наполовину остаётся внутри —
+        /// ровно это и видно у Толстого, у которого предплечье толщиной
+        /// 9.6 см при прежнем запасе доворота в 2 см.
+        ///
+        /// Ось кости — направление на следующий сустав; у кисти следующего
+        /// нет, и её задаёт кончик ладони (<paramref name="fallbackAxis"/>,
+        /// в локальном пространстве кости).
+        /// </summary>
+        private static float ArmRadius(Mesh mesh, HumanBodyBones[] nearest, Matrix4x4[] bindPoses, Transform[] bones,
+            Animator animator, HumanBodyBones bone, HumanBodyBones child, Vector3 fallbackAxis, float scale)
+        {
+            int index = BoneIndex(animator, bones, bone);
+            if (index < 0)
+            {
+                return 0f;
+            }
+
+            Vector3 origin = Origin(bindPoses, index);
+            int childIndex = child == HumanBodyBones.LastBone ? -1 : BoneIndex(animator, bones, child);
+            Vector3 axis = childIndex >= 0
+                ? Origin(bindPoses, childIndex) - origin
+                : bindPoses[index].inverse.MultiplyVector(fallbackAxis);
+            if (axis.sqrMagnitude <= Mathf.Epsilon)
+            {
+                return 0f;
+            }
+
+            axis.Normalize();
+
+            Vector3[] vertices = mesh.vertices;
+            BoneWeight[] weights = mesh.boneWeights;
+            var distances = new List<float>();
+            for (int v = 0; v < vertices.Length; v++)
+            {
+                if (nearest[DominantBone(weights[v])] != bone)
+                {
+                    continue;
+                }
+
+                Vector3 offset = vertices[v] - origin;
+                distances.Add((offset - axis * Vector3.Dot(offset, axis)).magnitude * scale);
+            }
+
+            if (distances.Count < MinArmVertices)
+            {
+                return 0f;
+            }
+
+            distances.Sort();
+            return distances[distances.Count * ArmRadiusPercentile / 100];
         }
 
         /// <summary>
