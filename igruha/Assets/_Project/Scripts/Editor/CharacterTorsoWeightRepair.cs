@@ -5,21 +5,30 @@ using UnityEngine;
 namespace Igruha.EditorTools
 {
     /// <summary>
-    /// Исправляет веса торса в модели Толстого (IGR-583).
+    /// Исправляет подтверждённые дефекты весов торса у семи персонажей (IGR-583).
     /// Исходный Mixamo-скин привязал участки живота к ключицам, вплоть до
     /// веса 1. При поднятии рук они уходили вверх, образуя складки насквозь.
     /// Торс получает плавную смесь таза и груди; у плеч и бёдер сохраняется
     /// плавный переход к исходным весам. Геометрия, UV, скелет и клипы прежние.
     /// Выполняется при импорте, без чтения сетки или расходов в игре.
     /// </summary>
-    internal sealed class FatSkinWeightRepair : AssetPostprocessor
+    internal sealed class CharacterTorsoWeightRepair : AssetPostprocessor
     {
-        // Именно из этого FBX префаб берёт сетку. Другие Fat@ содержат клипы,
-        // а Art/Models/Fat.fbx — модель без скелета, в игре она не используется.
-        private const string ModelPath = "Assets/_Project/Art/Animations/Fat@Neutral Idle.fbx";
+        // Только FBX, из которых игровые префабы берут сетки. Другие файлы
+        // этих персонажей содержат клипы. У Shlanga дефект не воспроизведён.
+        private static readonly string[] ModelPaths =
+        {
+            "Assets/_Project/Art/Animations/Aza@Happy Idle.fbx",
+            "Assets/_Project/Art/Animations/Boss@defaultRunning.fbx",
+            "Assets/_Project/Art/Animations/Fat@Neutral Idle.fbx",
+            "Assets/_Project/Art/Animations/Girl@idle.fbx",
+            "Assets/_Project/Art/Animations/Milez@idle.fbx",
+            "Assets/_Project/Art/Animations/MyBoy@Old Man Idle.fbx",
+            "Assets/_Project/Art/Animations/Karlan@Fast Run.fbx"
+        };
 
         // Все расстояния — доли высоты торса или расстояния плеча от оси тела,
-        // в позе привязки. У этого FBX координаты сетки в сотни раз меньше метра.
+        // в позе привязки. Координаты импортированных сеток могут быть в сотни раз меньше метра.
         private const float HipBlendHalfHeight = 0.12f;
         private const float ChestBlendStartBelowArm = 0.30f;
         private const float ChestBlendEndBelowArm = 0.04f;
@@ -28,11 +37,11 @@ namespace Igruha.EditorTools
         private const float OuterTorsoHalfWidth = 1.55f;
         private const int InfluenceCount = 4;
 
-        public override uint GetVersion() => 2;
+        public override uint GetVersion() => 3;
 
         private void OnPostprocessModel(GameObject model)
         {
-            if (!string.Equals(assetPath, ModelPath, StringComparison.Ordinal))
+            if (Array.IndexOf(ModelPaths, assetPath) < 0)
             {
                 return;
             }
@@ -59,7 +68,7 @@ namespace Igruha.EditorTools
             Matrix4x4[] bindPoses = mesh.bindposes;
             if (hips < 0 || neck < 0 || chest < 0 || arm < 0 || bindPoses.Length != bones.Length)
             {
-                Debug.LogError("Fat: скелет изменился, исправление весов торса требует проверки.");
+                Debug.LogError($"{skin.name}: скелет изменился, исправление весов торса требует проверки.");
                 return;
             }
 
@@ -85,7 +94,7 @@ namespace Igruha.EditorTools
             BoneWeight[] weights = mesh.boneWeights;
             if (weights.Length != vertices.Length)
             {
-                Debug.LogError("Fat: число весов не совпадает с числом вершин.");
+                Debug.LogError($"{skin.name}: число весов не совпадает с числом вершин.");
                 return;
             }
 
