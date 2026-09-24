@@ -1,0 +1,5 @@
+{
+    "name": "Igruha.PlayMode.Tests",
+    "references": ["Igruha.Core"],
+    "optionalUnityReferences": ["TestAssemblies"]
+}
