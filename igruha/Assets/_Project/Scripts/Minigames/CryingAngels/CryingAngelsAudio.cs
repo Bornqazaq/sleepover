@@ -134,10 +134,10 @@ namespace Igruha.Minigames.CryingAngels
             MinigamePhase phase = game.Phase;
             if (phase == lastPhase) return;
 
-            bool wasRound = lastPhase == MinigamePhase.Round;
+            bool wasRound = lastPhase.IsGameplay();
             lastPhase = phase;
 
-            if (phase == MinigamePhase.Round)
+            if (phase.IsGameplay())
             {
                 audioPlayer.StartLoop(SlotHallAmbience);
                 BindStoneSteps();
@@ -160,7 +160,7 @@ namespace Igruha.Minigames.CryingAngels
         private void TrackPedestal()
         {
             PlayerController keeper = game.Keeper;
-            if (keeper == null || lastPhase != MinigamePhase.Round)
+            if (keeper == null || !lastPhase.IsGameplay())
             {
                 if (audioPlayer.IsLoopPlaying(SlotPedestalGrind)) audioPlayer.StopLoop(SlotPedestalGrind);
                 keeperYawKnown = false;

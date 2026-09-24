@@ -1943,7 +1943,7 @@ namespace Igruha.Minigames.CansOrder
                 CollectAlivePlayers();
             }
 
-            if (bear == null || !HasAuthority || Phase != MinigamePhase.Round)
+            if (bear == null || !HasAuthority || !Phase.IsGameplay())
             {
                 return;
             }

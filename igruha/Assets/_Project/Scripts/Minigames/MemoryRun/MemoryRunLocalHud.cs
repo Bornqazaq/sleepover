@@ -45,7 +45,7 @@ namespace Igruha.Minigames.MemoryRun
                 return;
             }
 
-            bool visible = game.Phase == MinigamePhase.Round && game.CurrentWalkerId != TurnQueue.NoPlayer;
+            bool visible = game.Phase.IsGameplay() && game.CurrentWalkerId != TurnQueue.NoPlayer;
             if (statusPanel != null && statusPanel.activeSelf != visible)
                 statusPanel.SetActive(visible);
             if (!visible)

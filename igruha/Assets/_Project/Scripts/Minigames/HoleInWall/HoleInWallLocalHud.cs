@@ -39,7 +39,7 @@ namespace Igruha.Minigames.HoleInWall
                 return;
             }
 
-            if (game.Phase != MinigamePhase.Round)
+            if (!game.Phase.IsGameplay())
             {
                 HideStatus();
                 return;

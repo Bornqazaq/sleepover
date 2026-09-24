@@ -156,13 +156,15 @@ namespace Igruha.Core.Session
         public bool HasPlayedSpecialRole(int playerId, string roleKey) =>
             specialRoles.HasPlayed(roleKey, playerId);
 
-        public void MarkSpecialRole(int playerId, string roleKey) =>
-            specialRoles.Mark(roleKey, playerId);
+        public void MarkSpecialRole(int playerId, string roleKey)
+        {
+            if (Igruha.Core.Minigame.MinigameControllerBase.Current?.IsPractice != true) specialRoles.Mark(roleKey, playerId);
+        }
 
         /// <summary>
         /// История переживает смену мини-игр: ClearPlayers чистит ростер сцены,
         /// а память о ролях остаётся на всю катку, как и счёт.
         /// </summary>
-        public int PickSpecialRole(string roleKey) => specialRoles.Pick(roleKey, players);
+        public int PickSpecialRole(string roleKey) => specialRoles.Pick(roleKey, players, Igruha.Core.Minigame.MinigameControllerBase.Current?.IsPractice != true);
     }
 }

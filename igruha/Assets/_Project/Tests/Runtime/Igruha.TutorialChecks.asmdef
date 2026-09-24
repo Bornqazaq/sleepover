@@ -1,0 +1,6 @@
+{
+  "name": "Igruha.TutorialChecks",
+  "references": ["Igruha.Core", "Unity.Netcode.Runtime"],
+  "autoReferenced": true,
+  "defineConstraints": ["UNITY_EDITOR || DEVELOPMENT_BUILD"]
+}

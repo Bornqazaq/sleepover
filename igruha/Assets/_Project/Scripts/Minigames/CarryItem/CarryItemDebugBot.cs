@@ -135,7 +135,7 @@ namespace Igruha.Minigames.CarryItem
             // Управление на обучалке отнимают только у живых игроков: у
             // болванки ридер и так не «локально управляемый», и без этой
             // проверки она уходит в ходку, пока остальные читают правила.
-            if (game.Phase != MinigamePhase.Round)
+            if (!game.Phase.IsGameplay())
             {
                 reader.DriveInteractHold(false);
                 walker.Stop();

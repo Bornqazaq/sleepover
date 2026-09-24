@@ -336,6 +336,7 @@ namespace Igruha.Minigames.DuckHunt
             }
 
             UnsubscribeTraps();
+            ClearHunter();
         }
 
         /// <summary>

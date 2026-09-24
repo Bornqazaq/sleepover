@@ -7,9 +7,10 @@ using Object = UnityEngine.Object;
 namespace Igruha.Tests.Editor
 {
     /// <summary>IGR-583: живот не должен ехать за ключицами при поднятии рук.</summary>
-    public sealed class FatSkinWeightTests
+    public sealed class CharacterSkinWeightTests
     {
-        private const string PrefabPath = "Assets/_Project/Prefabs/Player/Fat.prefab";
+        private static readonly string[] Characters = { "Aza", "Boss", "Fat", "Girl", "Milez", "MyBoy", "Shlanga", "Player" };
+        private static string PrefabPath(string character) => $"Assets/_Project/Prefabs/Player/{character}.prefab";
         private GameObject instance;
         private Mesh before;
         private Mesh after;
@@ -23,9 +24,9 @@ namespace Igruha.Tests.Editor
         }
 
         [Test]
-        public void RaisingShouldersDoesNotPullTheBellyApart()
+        public void RaisingShouldersDoesNotPullTheBellyApart([ValueSource(nameof(Characters))] string character)
         {
-            instance = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath));
+            instance = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath(character)));
             Animator animator = instance.GetComponentInChildren<Animator>();
             animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
             animator.Rebind();
@@ -76,9 +77,9 @@ namespace Igruha.Tests.Editor
         }
 
         [Test]
-        public void ImportedWeightsAreNormalizedAndReferenceExistingBones()
+        public void ImportedWeightsAreNormalizedAndReferenceExistingBones([ValueSource(nameof(Characters))] string character)
         {
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath(character));
             var skin = prefab.GetComponentInChildren<SkinnedMeshRenderer>();
             BoneWeight[] weights = skin.sharedMesh.boneWeights;
             int invalid = 0;

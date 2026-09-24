@@ -254,7 +254,7 @@ namespace Igruha.Minigames.HoleInWall
 
             WatchPhase();
 
-            if (game.Phase != MinigamePhase.Round)
+            if (!game.Phase.IsGameplay())
             {
                 return;
             }
@@ -293,10 +293,10 @@ namespace Igruha.Minigames.HoleInWall
                 return;
             }
 
-            bool leftRound = lastPhase == MinigamePhase.Round;
+            bool leftRound = lastPhase.IsGameplay();
             lastPhase = phase;
 
-            if (phase == MinigamePhase.Round)
+            if (phase.IsGameplay())
             {
                 audioPlayer.StartLoop(SlotTheme);
                 return;
