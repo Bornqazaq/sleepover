@@ -25,7 +25,7 @@ namespace Igruha.Core.UI
         [SerializeField] private TMP_Text categoryText;
         [Tooltip("Готовые строки управления. Лишние прячутся, нехватка молча отбрасывает хвост подсказок")]
         [SerializeField] private TutorialHintRow[] hintRows = Array.Empty<TutorialHintRow>();
-        [Tooltip("Полоса, показывающая, сколько осталось до автостарта")]
+        [Tooltip("Старая ссылка сборщика сцены; автостарт отключён")]
         [SerializeField] private Image timerFill;
         [Tooltip("Появление карточки")]
         [SerializeField] private UiPop cardPop;
@@ -35,10 +35,10 @@ namespace Igruha.Core.UI
 
 
         private Action onClosed;
-        private Action<bool> setPracticeControls;
+        private Action<bool> setReading;
+        private Action restartPractice;
         private bool expanded;
         private bool practiceComplete;
-        private TutorialArenaPreview arenaPreview;
         private TutorialView view;
         private float inputEnabledAt;
         private const float InputGuardSeconds = 0.3f;
@@ -47,11 +47,13 @@ namespace Igruha.Core.UI
         private bool visible;
 
         public bool IsVisible => visible;
+        public bool RulesExpanded => expanded;
 
-        public void Show(MinigameDefinition definition, Action readyCallback, Action<bool> practiceControls = null)
+        public void Show(MinigameDefinition definition, Action readyCallback, Action<bool> reading = null, Action restart = null)
         {
             onClosed = readyCallback;
-            setPracticeControls = practiceControls;
+            setReading = reading;
+            restartPractice = restart;
             practiceComplete = false;
             if (panel != null) panel.SetActive(false);
             if (view == null)
@@ -60,9 +62,7 @@ namespace Igruha.Core.UI
                 UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(view.gameObject, gameObject.scene);
                 view.Build(definition != null && definition.TutorialFont != null
                     ? definition.TutorialFont : titleText != null ? titleText.font : TMP_Settings.defaultFontAsset,
-                    RequestReady, TogglePractice);
-                arenaPreview = view.gameObject.AddComponent<TutorialArenaPreview>();
-                arenaPreview.Bind(view.ArenaPreview);
+                    RequestReady, TogglePractice, RequestRestart);
             }
             if (!visible)
             {
@@ -71,10 +71,8 @@ namespace Igruha.Core.UI
             }
             visible = true;
             inputEnabledAt = Time.unscaledTime + InputGuardSeconds;
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
             view.Show(definition);
-            SetExpanded(true);
+            SetExpanded(false);
         }
 
         public void SetReadiness(IReadOnlyList<SessionPlayer> players,
@@ -101,7 +99,7 @@ namespace Igruha.Core.UI
 
         public void TogglePractice()
         {
-            if (!visible || practiceComplete) return;
+            if (!visible) return;
             SetExpanded(!expanded);
         }
 
@@ -109,24 +107,28 @@ namespace Igruha.Core.UI
         {
             expanded = value;
             view.SetExpanded(value);
-            arenaPreview.SetVisible(value);
-            setPracticeControls?.Invoke(!value);
-            Cursor.lockState = value ? CursorLockMode.None : oldCursorLock;
-            Cursor.visible = value || oldCursorVisible;
+            setReading?.Invoke(value || practiceComplete);
+            Cursor.lockState = value || practiceComplete ? CursorLockMode.None : CursorLockMode.Locked;
+            Cursor.visible = value || practiceComplete;
         }
 
         public void SetPracticeComplete()
         {
             practiceComplete = true;
-            SetExpanded(true);
+            SetExpanded(false);
             view.SetPracticeComplete();
+        }
+
+        private void RequestRestart()
+        {
+            if (visible && practiceComplete) restartPractice?.Invoke();
         }
 
         public void Hide()
         {
             onClosed = null;
-            setPracticeControls = null;
-            if (arenaPreview != null) arenaPreview.SetVisible(false);
+            setReading = null;
+            restartPractice = null;
             if (panel != null) panel.SetActive(false);
             if (view != null) view.gameObject.SetActive(false);
             if (!visible) return;

@@ -34,6 +34,13 @@ namespace Igruha.Core.Minigame
         [Tooltip("Длительность демонстрации; не запускает раунд автоматически")]
         [SerializeField] private float tutorialDuration = 6f;
 
+        [Tooltip("Три коротких шага поверх тренировочной арены")]
+        [SerializeField] private string[] tutorialSteps = System.Array.Empty<string>();
+        [Tooltip("Короткие подсказки основных действий на тренировке")]
+        [SerializeField] private string[] tutorialQuickHints = System.Array.Empty<string>();
+        public string[] TutorialSteps => tutorialSteps;
+        public string[] TutorialQuickHints => tutorialQuickHints;
+
         public string DisplayName => displayName;
         public MinigameCategory Category => category;
         public string SceneName => sceneName;

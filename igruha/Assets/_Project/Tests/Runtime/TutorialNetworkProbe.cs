@@ -19,6 +19,7 @@ namespace Igruha.Tests
         private bool completed;
         private bool cancelSent;
         private bool endedPractice;
+        private bool repeatedPractice;
         private int historyBefore;
         private float roundStartedAt;
         private bool endedRound;
@@ -89,6 +90,14 @@ namespace Igruha.Tests
                 checkedWaiting = true;
                 if (!game.AwaitingTutorialReady) { Fail("tutorial closed early"); return; }
                 if (SessionScoreboard.Current != null && SessionScoreboard.Current.History.Count != historyBefore) { Fail("practice reported results"); return; }
+                if (scenario == "repeat")
+                {
+                    bool hostReady = false;
+                    for (int i=0;i<game.TutorialParticipants.Count;i++)
+                        if(game.TutorialParticipants[i].PlayerId==0) hostReady=game.TutorialParticipants[i].Ready;
+                    if(!hostReady || game.Phase!=MinigamePhase.Practice) { Fail("practice retry lost readiness or did not restart"); return; }
+                    Debug.Log("TUTORIAL_CHECK repeat preserved host readiness");
+                }
                 Debug.Log("TUTORIAL_CHECK practice waiting verified");
             }
             if (scenario == "disconnect" && !host && network.LocalClientId > 1)
@@ -96,11 +105,17 @@ namespace Igruha.Tests
                 if (elapsed > ClientReadyDelay) { Debug.Log("TUTORIAL_CHECK disconnecting unready client"); Application.Quit(); }
                 return;
             }
-            if (scenario == "finish" && host && !endedPractice && elapsed > 3f)
+            if ((scenario == "finish" || scenario == "repeat") && host && !endedPractice && elapsed > 3f)
             {
                 endedPractice = true;
                 game.EndMinigame();
                 Debug.Log("TUTORIAL_CHECK ended practice without results");
+            }
+            if (scenario == "repeat" && !host && network.LocalClientId == 1 && !repeatedPractice && elapsed > 4f)
+            {
+                repeatedPractice = true;
+                game.RequestPracticeRestart();
+                Debug.Log("TUTORIAL_CHECK repeat requested by client");
             }
             float delay = host ? HostReadyDelay : ClientReadyDelay;
             if (scenario == "cancel") delay = host ? 6f : 2f;

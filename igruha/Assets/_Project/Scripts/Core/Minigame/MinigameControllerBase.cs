@@ -64,9 +64,15 @@ namespace Igruha.Core.Minigame
 
         public void BindTutorialCamera(Igruha.Core.CameraSystems.MinigameCameraController camera) => tutorialCamera = camera;
         private static string preparedRoundScene;
+        private static string preparedPracticeScene;
+        private static readonly TutorialReadiness preparedPracticeReadiness = new TutorialReadiness();
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetPreparedRound() => preparedRoundScene = null;
+        private static void ResetPreparedRound()
+        {
+            preparedRoundScene = preparedPracticeScene = null;
+            preparedPracticeReadiness.Reset();
+        }
 
         public bool IsPractice => practiceSession;
         public bool GameplayActive => phase.IsGameplay();
@@ -181,6 +187,10 @@ namespace Igruha.Core.Minigame
 
             if (practiceSession) InitializeTutorialReadiness();
             GoToPhase(practiceSession ? MinigamePhase.Practice : MinigamePhase.Round);
+            // При повторе неготовый участник мог отключиться во время загрузки.
+            // Если все оставшиеся уже готовы, нового клика для старта не требуется.
+            if (practiceSession && tutorialReadiness.AllReady && !restartPending)
+                StartCoroutine(ReloadTutorialArena(true));
         }
 
         /// <summary>
@@ -378,9 +388,8 @@ namespace Igruha.Core.Minigame
 
         private void EnterTutorial()
         {
-            SetPlayersControlEnabled(false);
             if (tutorialScreen == null) tutorialScreen = gameObject.AddComponent<TutorialScreen>();
-            tutorialScreen.Show(definition, ToggleTutorialReady, SetPracticeControls);
+            tutorialScreen.Show(definition, ToggleTutorialReady, SetTutorialReading, RequestPracticeRestart);
             RefreshTutorialReadiness();
             if (LaunchArguments.BotEnabled && !LaunchArguments.TryGetValue("--tutorial-check", out _))
                 StartCoroutine(ConfirmTutorialForBot());
@@ -407,8 +416,11 @@ namespace Igruha.Core.Minigame
                 SessionPlayer player = playerList[i];
                 if (networked && selection != null && !selection.HasCharacter(player.Id)) continue;
                 // В прямом запуске сцены остальные персонажи — манекены без собственного ввода.
-                tutorialReadiness.Add(player.Id, !networked && player.Id != LocalTutorialPlayerId);
+                bool retainedReady = preparedPracticeScene == gameObject.scene.path && preparedPracticeReadiness.IsReady(player.Id);
+                tutorialReadiness.Add(player.Id, retainedReady || (!networked && player.Id != LocalTutorialPlayerId));
             }
+            preparedPracticeScene = null;
+            preparedPracticeReadiness.Reset();
             tutorialBridge?.PublishTutorialReadiness(TutorialParticipants);
         }
 
@@ -445,7 +457,7 @@ namespace Igruha.Core.Minigame
         {
             tutorialBridge?.PublishTutorialReadiness(TutorialParticipants);
             RefreshTutorialReadiness();
-            if (tutorialReadiness.AllReady && !restartPending) StartCoroutine(StartPreparedRound());
+            if (tutorialReadiness.AllReady && !restartPending) StartCoroutine(ReloadTutorialArena(true));
         }
 
         private void RefreshTutorialReadiness()
@@ -454,20 +466,44 @@ namespace Igruha.Core.Minigame
                 tutorialScreen?.SetReadiness(playerList, TutorialParticipants, LocalTutorialPlayerId);
         }
 
-        private void SetPracticeControls(bool enabled)
+        private void SetTutorialReading(bool reading)
         {
-            SetPlayersControlEnabled(enabled && phase == MinigamePhase.Practice);
-            tutorialCamera?.SetTutorialLookSuspended(!enabled);
+            // Правила — подсказка поверх практики, а не скрытая блокировка WASD.
+            SetPlayersControlEnabled(phase == MinigamePhase.Practice);
+            tutorialCamera?.SetTutorialLookSuspended(reading);
         }
 
-        private IEnumerator StartPreparedRound()
+        public void RequestPracticeRestart()
+        {
+            if (phase != MinigamePhase.PracticeComplete) return;
+            if (bridge != null && bridge.IsNetworkSession) tutorialBridge?.RequestPracticeRestart();
+            else RestartPractice(LocalTutorialPlayerId);
+        }
+
+        public void RestartPractice(int playerId)
+        {
+            if (!HasAuthority || phase != MinigamePhase.PracticeComplete || restartPending) return;
+            for (int i = 0; i < TutorialParticipants.Count; i++)
+            {
+                if (TutorialParticipants[i].PlayerId != playerId) continue;
+                StartCoroutine(ReloadTutorialArena(false));
+                return;
+            }
+        }
+
+        private IEnumerator ReloadTutorialArena(bool scoredRound)
         {
             restartPending = true;
             string path = gameObject.scene.path;
             GoToPhase(MinigamePhase.PreparingRound);
             // Завершить текущий сетевой кадр перед выгрузкой контроллера.
             yield return null;
-            preparedRoundScene = path;
+            if (scoredRound) preparedRoundScene = path;
+            else
+            {
+                preparedPracticeScene = path;
+                preparedPracticeReadiness.Apply(TutorialParticipants);
+            }
             NetworkManager network = NetworkManager.Singleton;
             if (network == null || !network.IsListening)
             {
@@ -476,7 +512,7 @@ namespace Igruha.Core.Minigame
             }
             SceneEventProgressStatus status = network.SceneManager.LoadScene(path, LoadSceneMode.Single);
             if (status == SceneEventProgressStatus.Started) yield break;
-            preparedRoundScene = null;
+            ResetPreparedRound();
             restartPending = false;
             Debug.LogError($"{name}: не удалось подготовить раунд: {status}", this);
             // Сбой загрузки не выдаёт очки и не запускает повреждённую арену.

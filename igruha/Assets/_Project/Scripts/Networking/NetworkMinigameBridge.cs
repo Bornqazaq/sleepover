@@ -132,6 +132,17 @@ namespace Igruha.Networking
             tutorialTarget?.SetTutorialReady((int)rpc.Receive.SenderClientId, ready);
         }
 
+        public void RequestPracticeRestart()
+        {
+            if (IsSpawned) RestartPracticeServerRpc();
+        }
+
+        [ServerRpc(RequireOwnership = false)]
+        private void RestartPracticeServerRpc(ServerRpcParams rpc = default)
+        {
+            tutorialTarget?.RestartPractice((int)rpc.Receive.SenderClientId);
+        }
+
         private void OnTutorialParticipantDisconnected(ulong clientId) =>
             tutorialTarget?.RemoveTutorialParticipant((int)clientId);
 

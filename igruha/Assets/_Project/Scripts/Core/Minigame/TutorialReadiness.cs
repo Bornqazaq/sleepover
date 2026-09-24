@@ -86,6 +86,7 @@ namespace Igruha.Core.Minigame
     {
         void PublishTutorialReadiness(IReadOnlyList<TutorialParticipant> participants);
         void RequestTutorialReady(bool ready);
+        void RequestPracticeRestart();
     }
 
     public interface ITutorialNetworkTarget
@@ -94,5 +95,6 @@ namespace Igruha.Core.Minigame
         void ApplyTutorialReadiness(IReadOnlyList<TutorialParticipant> participants);
         void SetTutorialReady(int playerId, bool ready);
         void RemoveTutorialParticipant(int playerId);
+        void RestartPractice(int playerId);
     }
 }
