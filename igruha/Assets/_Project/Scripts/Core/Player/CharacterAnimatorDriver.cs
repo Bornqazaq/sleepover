@@ -31,6 +31,14 @@ namespace Igruha.Core.Player
         private const float PunchPlantHold = 0.1f;
 
         /// <summary>
+        /// Приставка имени состояния танца в контроллере: <c>Dance_1</c>..
+        /// <c>Dance_8</c>. Имена даёт <c>PlayerAnimatorControllerBuilder</c>,
+        /// а читает их <see cref="CharacterArmClearance"/> — держать строку в
+        /// двух местах значит однажды разойтись.
+        /// </summary>
+        public const string EmoteStatePrefix = "Dance_";
+
+        /// <summary>
         /// Имя слоя ружья в контроллере. Слой отдельный и лежит поверх основного:
         /// пока его вес ноль, персонаж анимируется ровно как раньше, а роль
         /// со стойкой и выстрелом не задевает ни одного замороженного состояния.
@@ -78,7 +86,31 @@ namespace Igruha.Core.Player
                 standingHeight = Mathf.Max(capsule.height, capsule.radius * 2f);
             }
 
+            AttachArmClearance();
             AttachFootGrounding();
+        }
+
+        /// <summary>
+        /// Вывести руки из тела на танцах — на каждой копии персонажа.
+        ///
+        /// Добавляется кодом и по тем же причинам, что и посадка ступней:
+        /// префабы персонажей заморожены, а поза у чужих копий считается на
+        /// каждой машине своим аниматором. Цепляется раньше посадки ступней,
+        /// чтобы та видела уже доведённые ладони.
+        /// </summary>
+        private void AttachArmClearance()
+        {
+            if (animator == null)
+            {
+                return;
+            }
+
+            if (!TryGetComponent(out CharacterArmClearance clearance))
+            {
+                clearance = gameObject.AddComponent<CharacterArmClearance>();
+            }
+
+            clearance.Bind(animator);
         }
 
         /// <summary>
