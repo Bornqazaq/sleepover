@@ -90,7 +90,7 @@ namespace Igruha.EditorTools
             }
             BuildLandmarks(l);
             Flush();
-            DressGun();BuildHud();Lighting();BuildEffects();OneBulletSfx.Build();
+            DressGun();BuildHud();Lighting();BuildEffects();OneBulletSfx.Build();OneBulletFirstPersonBuilder.Configure();
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());AssetDatabase.SaveAssets();
             int triangles=0;foreach(var mf in art.GetComponentsInChildren<MeshFilter>())triangles+=mf.sharedMesh.triangles.Length/3;
             Debug.Log("OneBullet art: "+art.GetComponentsInChildren<Renderer>().Length+" renderers, "+triangles+" triangles; decorative colliders="+art.GetComponentsInChildren<Collider>().Length);

@@ -14,6 +14,9 @@ namespace Igruha.Tests
         private string scenario;
         private OneBulletNetwork relay;
         private bool ready, missed, hit, movedToStage, loggedFinal, loggedReturn;
+        private Igruha.Core.CameraSystems.FirstPersonCameraRig firstPersonRig;
+        private OneBulletFirstPerson firstPerson;
+        private bool checkedView;
         private float createdAt, nextLog;
         private double moveUntil;
         private Vector3 moveTarget;
@@ -37,6 +40,8 @@ namespace Igruha.Tests
             if(current!=game && current!=null)
             {
                 game=current; relay=game.GetComponent<OneBulletNetwork>();
+                firstPersonRig=Object.FindFirstObjectByType<Igruha.Core.CameraSystems.FirstPersonCameraRig>(FindObjectsInactive.Include);
+                firstPerson=Object.FindFirstObjectByType<OneBulletFirstPerson>();
                 game.Shot+=(a,b,c)=>{shots++;Debug.Log("ONE_BULLET shot="+shots+" hit="+c);};
                 game.Died+=(id,p)=>{deaths++;Debug.Log("ONE_BULLET death="+id);};
                 game.PickedUp+=id=>{pickups++;Debug.Log("ONE_BULLET pickup="+id);};
@@ -44,7 +49,7 @@ namespace Igruha.Tests
             if(game==null)
             {
                 if(loggedFinal&&!loggedReturn && UnityEngine.SceneManagement.SceneManager.GetActiveScene().name=="Hub")
-                {loggedReturn=true;var p=SessionScoreboard.Current?.LocalPlayer;Debug.Log("ONE_BULLET RETURN lock="+(p?.Avatar!=null&&p.Avatar.MovementLocked));Application.Quit();}
+                {loggedReturn=true;var p=SessionScoreboard.Current?.LocalPlayer;Debug.Log("ONE_BULLET RETURN lock="+(p?.Avatar!=null&&p.Avatar.MovementLocked));if(Object.FindFirstObjectByType<OneBulletFirstPerson>()!=null)Debug.LogError("ONE_BULLET FAIL first person leaked into hub");Application.Quit();}
                 else if(!loggedFinal&&Time.realtimeSinceStartup-createdAt>150) {Debug.LogError("ONE_BULLET FAIL no scene");Application.Quit(2);}
                 return;
             }
@@ -89,8 +94,31 @@ namespace Igruha.Tests
             // After the second pickup, both peers stand in the same known corridor.
             if(t>20 && (game.Round.Holder==0||movedToStage))
             {
+                if(!movedToStage && id==0)
+                {
+                    var mouse=UnityEngine.InputSystem.Mouse.current;
+                    if(mouse==null)mouse=UnityEngine.InputSystem.InputSystem.AddDevice<UnityEngine.InputSystem.Mouse>();
+                    UnityEngine.InputSystem.InputSystem.QueueStateEvent(mouse,new UnityEngine.InputSystem.LowLevel.MouseState().WithButton(UnityEngine.InputSystem.LowLevel.MouseButton.Right));
+                }
                 movedToStage=true;
                 local.Motor.TeleportTo(new Vector3(-19.2f,0.1f,-19.2f+(id==0?0:1.4f)),Quaternion.identity);
+                if(id==0)
+                    foreach(var target in game.Participants)
+                    {
+                        if(target.Player.Id==id || target.Dead || target.Motor==null)continue;
+                        Vector3 direction=target.Capsule.bounds.center-OneBulletMinigame.ShotOrigin(local);
+                        float yaw=Mathf.Atan2(direction.x,direction.z)*Mathf.Rad2Deg;
+                        float pitch=-Mathf.Atan2(direction.y,new Vector2(direction.x,direction.z).magnitude)*Mathf.Rad2Deg;
+                        firstPersonRig.SetView(yaw,pitch);
+                        break;
+                    }
+            }
+            if(t>22 && id==0 && !checkedView && game.Round.Holder==0)
+            {
+                checkedView=true;
+                bool valid=firstPersonRig.isActiveAndEnabled && firstPerson.IsAiming && firstPerson.WeaponVisible && firstPerson.AimBlend>.99f;
+                Debug.Log("ONE_BULLET ADS valid="+valid);
+                if(!valid)Debug.LogError("ONE_BULLET FAIL first-person ADS");
             }
             if(scenario=="timeout"&&id==0&&t>23&&!hit&&game.Round.Holder==0)
             {
@@ -100,7 +128,7 @@ namespace Igruha.Tests
                 relay.Publish();Debug.Log("ONE_BULLET TEST deadline accelerated");
             }
             if(scenario!="timeout"&&id==0&&t>23&&!hit&&game.Round.Holder==0)
-            {hit=true;relay.RequestShot(Vector3.forward);}
+            {hit=true;game.HandlePushButton(local.Motor);}
         }
     }
 }

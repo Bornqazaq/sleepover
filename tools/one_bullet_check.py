@@ -44,7 +44,7 @@ try:
         failed |= not valid
         print(log.name, 'PASS' if valid else 'FAIL', flush=True)
         for line in data.splitlines():
-            if any(marker in line for marker in ['ONE_BULLET FINAL', 'ONE_BULLET RETURN', 'ONE_BULLET FAIL', 'ONE_BULLET DISCONNECT', 'итоги раунда']):
+            if any(marker in line for marker in ['ONE_BULLET ADS', 'ONE_BULLET FINAL', 'ONE_BULLET RETURN', 'ONE_BULLET FAIL', 'ONE_BULLET DISCONNECT', 'итоги раунда']):
                 print(line, flush=True)
     if len(set(rankings)) != 1 or len(rankings) != players - disconnected:
         print("FAIL: result tables do not match")

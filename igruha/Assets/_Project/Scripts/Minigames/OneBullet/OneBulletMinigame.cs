@@ -19,6 +19,7 @@ namespace Igruha.Minigames.OneBullet
         [SerializeField] private Transform[] safeSpawns;
         [SerializeField] private SpectatorCamera spectator;
         [SerializeField] private Camera gameCamera;
+        [SerializeField] private FirstPersonCameraRig firstPersonRig;
         private readonly OneBulletRound round = new OneBulletRound();
         private readonly List<OneBulletParticipant> participants = new List<OneBulletParticipant>(8);
         private readonly List<SessionPlayer> alive = new List<SessionPlayer>(8);
@@ -39,6 +40,10 @@ namespace Igruha.Minigames.OneBullet
         public IReadOnlyList<OneBulletParticipant> Participants => participants;
         public int LocalId => local != null ? local.Player.Id : OneBulletRound.Nobody;
         public bool LocalArmed => RoundActive && round.Holder == LocalId && local != null && !local.Dead;
+        public OneBulletParticipant LocalParticipant => local;
+        public bool LocalInputAvailable => RoundActive && local?.Input != null && local.Input.enabled &&
+            !local.Input.Suspended && !local.Dead && local.Motor != null && !local.Motor.IsKnockedDown &&
+            !Igruha.Core.UI.TutorialScreen.PointerInputActive && Igruha.Core.UI.PauseScreen.Current?.IsPaused != true;
         public Vector3 PickupPosition => round.Pickup >= 0 && round.Pickup < weaponSpawns.Length ? weaponSpawns[round.Pickup].position : Vector3.zero;
         public event Action<Vector3, Vector3, bool> Shot;
         public event Action<int> PickedUp;
@@ -53,6 +58,8 @@ namespace Igruha.Minigames.OneBullet
         }
         protected override void OnPlayersReady()
         {
+            // Elimination must capture the real model before the local camera hides it.
+            firstPersonRig?.SetOwnModelVisible(true);
             participants.Clear(); ids.Clear(); alive.Clear(); local = null; restored = false;
             foreach (var p in Players)
             {
@@ -62,6 +69,7 @@ namespace Igruha.Minigames.OneBullet
                 participants.Add(entry); alive.Add(p);
                 if (entry.Input != null && entry.Input.LocallyControlled) local = entry;
             }
+            firstPersonRig?.SetOwnModelVisible(false);
         }
         protected override void OnRoundStarted()
         {
@@ -93,9 +101,8 @@ namespace Igruha.Minigames.OneBullet
                 shownAlive = round.AliveCount;
                 Hud?.ShowStatus($"В лабиринте: {shownAlive}  •  Слушай шаги");
             }
-            if (local != null && local.Input != null && local.Input.enabled && !local.Input.Suspended &&
-                !Igruha.Core.UI.TutorialScreen.PointerInputActive && !local.Dead &&
-                (Mouse.current?.rightButton.wasPressedThisFrame == true || Keyboard.current?.leftShiftKey.wasPressedThisFrame == true || Keyboard.current?.rightShiftKey.wasPressedThisFrame == true))
+            if (LocalInputAvailable &&
+                ((!LocalArmed && Mouse.current?.rightButton.wasPressedThisFrame == true) || Keyboard.current?.leftShiftKey.wasPressedThisFrame == true || Keyboard.current?.rightShiftKey.wasPressedThisFrame == true))
                 local.Push?.RequestPush();
         }
         private void FixedUpdate()
@@ -168,7 +175,7 @@ namespace Igruha.Minigames.OneBullet
             for (int i = 0; i < count; i++)
                 if (aimHits[i].collider != p.Capsule && aimHits[i].distance < closest)
                 { closest = aimHits[i].distance; target = aimHits[i].point; }
-            Vector3 direction = (target - (player.Position + Vector3.up * AimHeight)).normalized;
+            Vector3 direction = (target - ShotOrigin(p)).normalized;
             if (network != null && network.Active) network.RequestShot(direction);
             else QueueShot(p.Player.Id, direction);
             return true;
@@ -182,12 +189,15 @@ namespace Igruha.Minigames.OneBullet
         }
         public static bool ValidDirection(Vector3 direction) =>
             float.IsFinite(direction.x) && float.IsFinite(direction.y) && float.IsFinite(direction.z) && direction.sqrMagnitude > .5f && direction.sqrMagnitude < 1.5f;
+        public const float EyeDrop = .15f;
+        public static float EyeHeight(CapsuleCollider capsule) => Mathf.Max(capsule.center.y + capsule.height * .5f - EyeDrop, capsule.radius);
+        public static Vector3 ShotOrigin(OneBulletParticipant player) => player.Motor.Position + Vector3.up * EyeHeight(player.Capsule);
         private void ResolveShot(int id, Vector3 direction, double now)
         {
             if (!round.CanFire(id, now)) return;
             var shooter = Find(id);
             if (shooter?.Motor == null || shooter.Motor.IsKnockedDown) return;
-            Vector3 origin = shooter.Motor.Position + Vector3.up * AimHeight;
+            Vector3 origin = ShotOrigin(shooter);
             if (!weapon.TryFire(origin, direction, out HitscanWeapon.HitResult hit)) return;
             int victim = OneBulletRound.Nobody;
             foreach (var p in participants)
@@ -206,6 +216,9 @@ namespace Igruha.Minigames.OneBullet
             alive.Remove(p.Player);
             // Disconnect may remove the avatar before the callback; the event must still reach presentation.
             Vector3 facing = p.Motor != null ? p.Motor.Facing : Vector3.forward;
+            // Release the camera's renderer ownership before elimination hides the body.
+            // Otherwise disabling the first-person rig in spectator mode reveals it again.
+            if (p == local) firstPersonRig?.SetOwnModelVisible(true);
             p.SetDead(facing * (id % 2 == 0 ? -config.DeathImpulse : config.DeathImpulse));
             if (p.Elimination != null) p.Elimination.BodyHidden += OnBodyHidden;
             Died?.Invoke(id, p.LastPosition);
@@ -248,12 +261,14 @@ namespace Igruha.Minigames.OneBullet
         private void RestorePlayers()
         {
             if (restored) return;
+            firstPersonRig?.SetOwnModelVisible(true);
             restored = true; spectator?.Deactivate(); shotPending = false;
             foreach (var p in participants)
             {
                 if (p.Elimination != null) p.Elimination.BodyHidden -= OnBodyHidden;
                 p.Restore();
             }
+            firstPersonRig?.SetOwnModelVisible(false);
         }
         protected override void OnDisable() { RestorePlayers(); base.OnDisable(); }
         protected override void CollectResults(MinigameResults results) => round.Collect(results);

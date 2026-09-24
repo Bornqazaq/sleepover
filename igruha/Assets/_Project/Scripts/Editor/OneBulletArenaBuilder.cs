@@ -98,7 +98,7 @@ namespace Igruha.EditorTools
             for(int i=0;i<guns.Length;i++)
             {
                 guns[i]=new GameObject("WeaponSpawn_"+i).transform;guns[i].SetParent(gunPoints,false);
-                guns[i].position=Position(l,l.guns[i])+Vector3.up*.18f;
+                guns[i].position=OneBulletFirstPersonBuilder.WeaponPosition(l,l.guns[i]);
             }
             var bounds=GameObject.Find("_Bounds");
             var kill=bounds.GetComponentInChildren<KillZone>();
@@ -125,6 +125,7 @@ namespace Igruha.EditorTools
             Set(spectator,"cameraRig",camera.GetComponentInChildren<ThirdPersonCameraRig>());Set(spectator,"hud",hud);
             Set(game,"spectator",spectator);Set(game,"gameCamera",camera.GetComponentInChildren<Camera>());
             BuildPresentation(game,canvas.transform);
+            OneBulletFirstPersonBuilder.Configure();
             Register(definition);
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());AssetDatabase.SaveAssets();
