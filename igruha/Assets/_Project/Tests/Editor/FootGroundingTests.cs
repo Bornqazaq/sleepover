@@ -7,11 +7,13 @@ using UnityEngine;
 namespace Igruha.Tests
 {
     /// <summary>
-    /// Ступни персонажей не уходят под пол ни в одном клипе.
+    /// Логика <see cref="CharacterFootGrounding"/>, которую можно проверить
+    /// без живого аниматора.
     ///
-    /// Проверка идёт на настоящих префабах и настоящих клипах всех восьми
-    /// персонажей: замер 21.09 показал провал до 10 см в танцах и до 7 см
-    /// в ходьбе в приседе, и чинит это <see cref="CharacterFootGrounding"/>.
+    /// Проверки «ни одна часть тела не под полом» здесь нет намеренно: она
+    /// живёт в PlayMode (<c>LiveFootGroundingTests</c>). Выборка клипа в
+    /// редакторе ставит тело почти вдвое выше, чем настоящий аниматор, и
+    /// проверка по ней была зелёной, пока в игре руки и ноги уходили в пол.
     /// </summary>
     public sealed class FootGroundingTests
     {
@@ -53,58 +55,6 @@ namespace Igruha.Tests
             }
 
             spawned.Clear();
-        }
-
-        [Test]
-        public void NoClipOfAnyCharacterPutsFeetUnderTheFloor([ValueSource(nameof(Characters))] string character)
-        {
-            Rig rig = Build(character);
-            var failures = new List<string>();
-
-            foreach (AnimationClip clip in Clips(rig.Animator))
-            {
-                int samples = Mathf.Max(8, Mathf.CeilToInt(clip.length * SamplesPerSecond));
-                for (int i = 0; i <= samples; i++)
-                {
-                    Sample(rig, clip, clip.length * i / samples);
-                    float lowest = LowestFoot(rig.Animator);
-                    if (lowest < -Tolerance)
-                    {
-                        failures.Add($"{clip.name} @ {clip.length * i / samples:F2} с: ступня на {-lowest * 100f:F1} см под полом");
-                        break;
-                    }
-                }
-            }
-
-            Assert.That(failures, Is.Empty, $"{character}:\n" + string.Join("\n", failures));
-        }
-
-        /// <summary>
-        /// Обратная сторона: подъём не должен подвешивать персонажа в обычной
-        /// стойке. Ступни и так на полу — модель стоит там же, где стояла.
-        /// </summary>
-        [Test]
-        public void IdlePoseIsNotLifted([ValueSource(nameof(Characters))] string character)
-        {
-            Rig rig = Build(character);
-            AnimationClip idle = null;
-            foreach (AnimationClip clip in Clips(rig.Animator))
-            {
-                if (clip.name.ToLowerInvariant().Contains("idle"))
-                {
-                    idle = clip;
-                    break;
-                }
-            }
-
-            Assert.That(idle, Is.Not.Null, $"{character}: нет клипа стойки");
-
-            for (int i = 0; i <= 10; i++)
-            {
-                Sample(rig, idle, idle.length * i / 10f);
-                Assert.That(rig.Grounding.CurrentLift, Is.EqualTo(0f).Within(0.001f),
-                    $"{character}: в стойке модель поднята на {rig.Grounding.CurrentLift * 100f:F1} см");
-            }
         }
 
         /// <summary>

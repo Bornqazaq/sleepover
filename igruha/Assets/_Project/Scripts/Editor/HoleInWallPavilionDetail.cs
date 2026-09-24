@@ -117,13 +117,25 @@ namespace Igruha.EditorTools
             }
             air.Save(root,"Sun through vault",beam);
             var floor=new Surface();
+            // Высота блика — над настилом, а не над нулём сцены. Было .047, а
+            // верх настила стоит на .034: лишние 1.3 см блик лежал над полом,
+            // и персонаж тонул в нём подошвами, а в танцах — ладонями
+            // (замер 21.09). Два миллиметра оставлены, чтобы блик и настил не
+            // мерцали совпавшими поверхностями.
+            float glazingY=DeckTopY+GlazingClearance;
             for(int i=0;i<c.TrackCount;i++)
             {
                 float x=c.TrackCenterX(i);
-                floor.Quad(new Vector3(x-4,.047f,c.PlatformBackZ),new Vector3(x+4,.047f,c.PlatformBackZ),new Vector3(x+4,.047f,c.PlatformFrontZ),new Vector3(x-4,.047f,c.PlatformFrontZ),Color.white);
+                floor.Quad(new Vector3(x-4,glazingY,c.PlatformBackZ),new Vector3(x+4,glazingY,c.PlatformBackZ),new Vector3(x+4,glazingY,c.PlatformFrontZ),new Vector3(x-4,glazingY,c.PlatformFrontZ),Color.white);
             }
             floor.Save(root,"Glazing light on decks",patches);
         }
+        /// <summary>Верх настила стартовых платформ, м — по нему и кладётся блик.</summary>
+        private const float DeckTopY=.034f;
+
+        /// <summary>Зазор блика над настилом, м: меньше — мерцает, больше — персонаж тонет в блике.</summary>
+        private const float GlazingClearance=.002f;
+
         private static void Water(Transform arena,HoleInWallConfig c)
         {
             var surface=arena.Find("Pool/Water");
