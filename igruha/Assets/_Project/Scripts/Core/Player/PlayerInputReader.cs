@@ -290,11 +290,12 @@ namespace Igruha.Core.Player
             }
 
             MoveInput = moveAction != null ? moveAction.action.ReadValue<Vector2>() : Vector2.zero;
-            LookDelta = lookAction != null ? lookAction.action.ReadValue<Vector2>() : Vector2.zero;
+            bool tutorialPointer = Igruha.Core.UI.TutorialScreen.PointerInputActive;
+            LookDelta = !tutorialPointer && lookAction != null ? lookAction.action.ReadValue<Vector2>() : Vector2.zero;
             EmoteHeld = emoteAction != null && emoteAction.action.IsPressed();
             JumpPressed |= WasPressed(jumpAction);
-            PushPressed |= WasPressed(pushAction);
-            PushHeld = pushAction != null && pushAction.action.IsPressed();
+            PushPressed = !tutorialPointer && (PushPressed || WasPressed(pushAction));
+            PushHeld = !tutorialPointer && pushAction != null && pushAction.action.IsPressed();
             // A tap is an edge, not completion of the action's Hold interaction.
             // Hold interactables independently consume InteractHeld below.
             InteractPressed |= interactAction != null && interactAction.action.WasPressedThisFrame();

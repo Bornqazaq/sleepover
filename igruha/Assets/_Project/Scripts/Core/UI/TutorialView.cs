@@ -100,9 +100,10 @@ namespace Igruha.Core.UI
                 playerStates[i]=Text("State","",0,75,126,22,15,Muted,false,TextAlignmentOptions.Center);
             }
             content=layout;
-            readyButton=MakeButton("Ready",1478,942,366,70,Gold,ready);
+            readyButton=MakeButton("Ready",1478,935,366,70,Gold,ready);
             readyFace=readyButton.GetComponent<TutorialPanel>();
-            readyLabel=Text("ReadyLabel","F2   Я готов!",1493,956,336,44,29,Ink,true,TextAlignmentOptions.Center);
+            readyLabel=Text("ReadyLabel","F2   Я готов!",1493,949,336,44,29,Ink,true,TextAlignmentOptions.Center);
+            Text("CursorHint","Зажми Alt — курсор",1478,1010,366,29,19,Paper,false,TextAlignmentOptions.Center);
 
             details=Group("DetailedRules");
             content=details;
@@ -244,6 +245,7 @@ namespace Igruha.Core.UI
             face.raycastTarget=true;
             var button=face.gameObject.AddComponent<Button>();
             button.targetGraphic=face;
+            button.navigation=new Navigation { mode=Navigation.Mode.None };
             button.onClick.AddListener(()=>action());
             return button;
         }

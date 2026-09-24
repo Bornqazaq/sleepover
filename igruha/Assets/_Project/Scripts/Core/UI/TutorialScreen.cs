@@ -45,9 +45,19 @@ namespace Igruha.Core.UI
         private bool oldCursorVisible;
         private CursorLockMode oldCursorLock;
         private bool visible;
+        private bool pointerHeld;
+        private bool wasPaused;
+        private static TutorialScreen activeScreen;
 
         public bool IsVisible => visible;
         public bool RulesExpanded => expanded;
+        // Читается ридером непосредственно из состояния клавиш: клик по UI
+        // не должен стать ударом из-за порядка Update двух компонентов.
+        public static bool PointerInputActive => activeScreen != null && activeScreen.visible &&
+            (activeScreen.expanded || activeScreen.practiceComplete || PointerKeyHeld);
+
+        private static bool PointerKeyHeld => Keyboard.current != null &&
+            (Keyboard.current.leftAltKey.isPressed || Keyboard.current.rightAltKey.isPressed);
 
         public void Show(MinigameDefinition definition, Action readyCallback, Action<bool> reading = null, Action restart = null)
         {
@@ -70,6 +80,9 @@ namespace Igruha.Core.UI
                 oldCursorLock = Cursor.lockState;
             }
             visible = true;
+            activeScreen = this;
+            pointerHeld = PointerKeyHeld;
+            wasPaused = false;
             inputEnabledAt = Time.unscaledTime + InputGuardSeconds;
             view.Show(definition);
             SetExpanded(false);
@@ -89,8 +102,19 @@ namespace Igruha.Core.UI
 
         private void Update()
         {
-            if (!visible || Time.unscaledTime < inputEnabledAt ||
-                (PauseScreen.Current != null && PauseScreen.Current.IsPaused)) return;
+            if (!visible) return;
+            if (PauseScreen.Current != null && PauseScreen.Current.IsPaused)
+            {
+                wasPaused = true;
+                return;
+            }
+            if (pointerHeld != PointerKeyHeld || wasPaused)
+            {
+                pointerHeld = PointerKeyHeld;
+                wasPaused = false;
+                RefreshCursor();
+            }
+            if (Time.unscaledTime < inputEnabledAt) return;
             var keyboard = Keyboard.current;
             if (keyboard == null) return;
             if (keyboard.f1Key.wasPressedThisFrame) TogglePractice();
@@ -107,9 +131,15 @@ namespace Igruha.Core.UI
         {
             expanded = value;
             view.SetExpanded(value);
-            setReading?.Invoke(value || practiceComplete);
-            Cursor.lockState = value || practiceComplete ? CursorLockMode.None : CursorLockMode.Locked;
-            Cursor.visible = value || practiceComplete;
+            RefreshCursor();
+        }
+
+        private void RefreshCursor()
+        {
+            bool release = expanded || practiceComplete || pointerHeld;
+            setReading?.Invoke(release);
+            Cursor.lockState = release ? CursorLockMode.None : CursorLockMode.Locked;
+            Cursor.visible = release;
         }
 
         public void SetPracticeComplete()
@@ -133,6 +163,7 @@ namespace Igruha.Core.UI
             if (view != null) view.gameObject.SetActive(false);
             if (!visible) return;
             visible = false;
+            if (activeScreen == this) activeScreen = null;
             Cursor.lockState = oldCursorLock;
             Cursor.visible = oldCursorVisible;
         }
