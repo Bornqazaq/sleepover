@@ -574,7 +574,7 @@ namespace Igruha.Networking
                 return;
             }
 
-            specialRoles.Mark(roleKey, playerId);
+            if (Igruha.Core.Minigame.MinigameControllerBase.Current?.IsPractice != true) specialRoles.Mark(roleKey, playerId);
         }
 
         /// <summary>
@@ -588,7 +588,7 @@ namespace Igruha.Networking
                 return SpecialRoleHistory.NoPlayer;
             }
 
-            int picked = specialRoles.Pick(roleKey, mirror);
+            int picked = specialRoles.Pick(roleKey, mirror, Igruha.Core.Minigame.MinigameControllerBase.Current?.IsPractice != true);
             Debug.Log($"🎭 [СЕРВЕР] роль «{roleKey}» досталась игроку {picked}");
             return picked;
         }

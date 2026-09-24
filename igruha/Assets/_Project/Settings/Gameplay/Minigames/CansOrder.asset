@@ -19,6 +19,7 @@ MonoBehaviour:
   minPlayers: 2
   maxPlayers: 8
   cameraMode: 0
+  tutorialFont: {fileID: 11400000, guid: 87b63952b34fc45079bca7750c2ef239, type: 2}
   objective: "\u0415\u0441\u0442\u044C \u043E\u0434\u043D\u0430 \u0441\u043A\u0440\u044B\u0442\u0430\u044F
     \u0440\u0430\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0430 \u0431\u0430\u043D\u043E\u043A
     \u2014 \u043E\u0434\u043D\u0430 \u043D\u0430 \u0432\u0441\u0435\u0445, \u0438

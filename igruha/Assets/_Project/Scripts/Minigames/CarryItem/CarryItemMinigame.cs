@@ -474,7 +474,7 @@ namespace Igruha.Minigames.CarryItem
                 return;
             }
 
-            if (Phase != MinigamePhase.Round || config == null)
+            if (!Phase.IsGameplay() || config == null)
             {
                 ClearStatus();
                 return;

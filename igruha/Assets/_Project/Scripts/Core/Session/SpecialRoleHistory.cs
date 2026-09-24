@@ -38,7 +38,7 @@ namespace Igruha.Core.Session
         /// история по ключу сбрасывается и круг начинается заново.
         /// Звать только там, где есть авторитет: рандом обязан быть серверным.
         /// </summary>
-        public int Pick(string roleKey, IReadOnlyList<SessionPlayer> players)
+        public int Pick(string roleKey, IReadOnlyList<SessionPlayer> players, bool record = true)
         {
             if (players == null || players.Count == 0)
             {
@@ -58,7 +58,7 @@ namespace Igruha.Core.Session
 
             if (candidates.Count == 0)
             {
-                played.Clear();
+                if (record) played.Clear();
                 for (int i = 0; i < players.Count; i++)
                 {
                     candidates.Add(players[i].Id);
@@ -66,7 +66,7 @@ namespace Igruha.Core.Session
             }
 
             int picked = candidates[Random.Range(0, candidates.Count)];
-            played.Add(picked);
+            if (record) played.Add(picked);
             return picked;
         }
 

@@ -1,4 +1,5 @@
 using UnityEngine;
+using TMPro;
 
 namespace Igruha.Core.Minigame
 {
@@ -25,11 +26,12 @@ namespace Igruha.Core.Minigame
         [SerializeField] private CameraMode cameraMode = CameraMode.ThirdPerson;
 
         [Header("Обучающая заставка")]
+        [SerializeField] private TMP_FontAsset tutorialFont;
         [TextArea]
         [SerializeField] private string objective = "Цель игры";
         [Tooltip("Строки подсказок управления, например «WASD — бег»")]
         [SerializeField] private string[] controlHints = System.Array.Empty<string>();
-        [Tooltip("Сколько секунд висит заставка, если её не закрыли вводом")]
+        [Tooltip("Длительность демонстрации; не запускает раунд автоматически")]
         [SerializeField] private float tutorialDuration = 6f;
 
         public string DisplayName => displayName;
@@ -39,6 +41,7 @@ namespace Igruha.Core.Minigame
         public int MinPlayers => minPlayers;
         public int MaxPlayers => maxPlayers;
         public CameraMode CameraMode => cameraMode;
+        public TMP_FontAsset TutorialFont => tutorialFont;
         public string Objective => objective;
         public string[] ControlHints => controlHints;
         public float TutorialDuration => tutorialDuration;

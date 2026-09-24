@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 using Igruha.Core.Minigame;
@@ -10,7 +11,7 @@ namespace Igruha.Networking
     /// через RPC (это событие, а не состояние). Правила игры остаются обычным
     /// MonoBehaviour и работают без моста, когда сцену открывают напрямую.
     /// </summary>
-    public sealed class NetworkMinigameBridge : NetworkBehaviour, IMinigameNetworkBridge
+    public sealed class NetworkMinigameBridge : NetworkBehaviour, IMinigameNetworkBridge, ITutorialNetworkBridge
     {
         [Tooltip("Сколько раз в секунду сервер рассылает время раунда")]
         [Range(1f, 30f)]
@@ -26,6 +27,9 @@ namespace Igruha.Networking
         private readonly MinigameResults incoming = new MinigameResults();
 
         private IMinigameNetworkTarget target;
+        private ITutorialNetworkTarget tutorialTarget;
+        private NetworkList<TutorialParticipant> tutorialParticipants;
+        private readonly List<TutorialParticipant> tutorialMirror = new List<TutorialParticipant>();
         private float nextSyncTime;
 
         public bool HasAuthority => !IsSpawned || IsServer;
@@ -40,6 +44,8 @@ namespace Igruha.Networking
         private void Awake()
         {
             target = GetComponent<IMinigameNetworkTarget>();
+            tutorialTarget = GetComponent<ITutorialNetworkTarget>();
+            tutorialParticipants = new NetworkList<TutorialParticipant>();
             if (target == null)
             {
                 Debug.LogError($"{name}: NetworkMinigameBridge не нашёл контроллер мини-игры на своём объекте", this);
@@ -50,6 +56,13 @@ namespace Igruha.Networking
         {
             base.OnNetworkSpawn();
 
+            tutorialParticipants.OnListChanged += OnTutorialChanged;
+            if (IsServer)
+            {
+                NetworkManager.OnClientDisconnectCallback += OnTutorialParticipantDisconnected;
+                if (tutorialTarget != null) PublishTutorialReadiness(tutorialTarget.TutorialParticipants);
+            }
+            else ApplyTutorialSnapshot();
             phase.OnValueChanged += OnPhaseChanged;
             roundRemaining.OnValueChanged += OnRoundTimeChanged;
 
@@ -62,6 +75,8 @@ namespace Igruha.Networking
 
         public override void OnNetworkDespawn()
         {
+            tutorialParticipants.OnListChanged -= OnTutorialChanged;
+            if (IsServer) NetworkManager.OnClientDisconnectCallback -= OnTutorialParticipantDisconnected;
             phase.OnValueChanged -= OnPhaseChanged;
             roundRemaining.OnValueChanged -= OnRoundTimeChanged;
 
@@ -89,6 +104,47 @@ namespace Igruha.Networking
                 roundRemaining.Value = remaining;
                 roundDuration.Value = duration;
             }
+        }
+
+        public void PublishTutorialReadiness(IReadOnlyList<TutorialParticipant> participants)
+        {
+            if (!IsSpawned || !IsServer) return;
+            // Один снимок состава; дальше меняются только изменившиеся строки.
+            if (tutorialParticipants.Count != participants.Count)
+            {
+                tutorialParticipants.Clear();
+                for (int i = 0; i < participants.Count; i++) tutorialParticipants.Add(participants[i]);
+                return;
+            }
+            for (int i = 0; i < participants.Count; i++)
+                if (!tutorialParticipants[i].Equals(participants[i])) tutorialParticipants[i] = participants[i];
+        }
+
+        public void RequestTutorialReady(bool ready)
+        {
+            if (IsSpawned) TutorialReadyServerRpc(ready);
+        }
+
+        [ServerRpc(RequireOwnership = false)]
+        private void TutorialReadyServerRpc(bool ready, ServerRpcParams rpc = default)
+        {
+            // Номер игрока не приходит в полезной нагрузке: его задаёт транспорт.
+            tutorialTarget?.SetTutorialReady((int)rpc.Receive.SenderClientId, ready);
+        }
+
+        private void OnTutorialParticipantDisconnected(ulong clientId) =>
+            tutorialTarget?.RemoveTutorialParticipant((int)clientId);
+
+        private void OnTutorialChanged(NetworkListEvent<TutorialParticipant> change)
+        {
+            if (!IsServer) ApplyTutorialSnapshot();
+        }
+
+        private void ApplyTutorialSnapshot()
+        {
+            tutorialMirror.Clear();
+            for (int i = 0; i < tutorialParticipants.Count; i++) tutorialMirror.Add(tutorialParticipants[i]);
+            tutorialTarget?.ApplyTutorialReadiness(tutorialMirror);
         }
 
         // ========== СЕРВЕР ПУБЛИКУЕТ ==========

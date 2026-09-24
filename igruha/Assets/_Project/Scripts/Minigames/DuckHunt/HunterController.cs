@@ -359,14 +359,19 @@ namespace Igruha.Minigames.DuckHunt
 
             // Пассажира снимаем вместе с ролью: платформа держит ссылку на
             // тело и продолжила бы возить его после пересдачи ролей.
-            elevator?.SetPassenger(null);
+            if (elevator != null) elevator.SetPassenger(null);
             animatorDriver?.SetRifleAiming(false);
             ShowRifleProp(false);
-            cameraRig?.SetOwnModelVisible(false);
+            if (cameraRig != null) cameraRig.SetOwnModelVisible(false);
 
             // Риг общий на все игры: отвод камеры снимаем вместе с ролью,
             // иначе следующая роль первого лица получит вид из-за плеча.
-            cameraRig?.SetShoulderOffset(Vector3.zero);
+            if (cameraRig != null) cameraRig.SetShoulderOffset(Vector3.zero);
+            // Аватар переживает перезагрузку тренировочной арены, риг и лифт — нет.
+            // Повторный Detach не должен обращаться к уже уничтоженной сцене.
+            cameraRig = null;
+            elevator = null;
+            Relay = null;
 
             if (motor != null)
             {
@@ -593,7 +598,7 @@ namespace Igruha.Minigames.DuckHunt
                 return;
             }
 
-            elevator?.SetAxis(axis);
+            if (elevator != null) elevator.SetAxis(axis);
         }
 
         /// <summary>

@@ -20,7 +20,7 @@ namespace Igruha.Core.Minigame
     /// остальные машины их применяют. Если моста нет (сцена открыта напрямую),
     /// авторитет у локальной машины и цикл работает как раньше.
     /// </summary>
-    public abstract class MinigameControllerBase : MonoBehaviour, IMinigame, IMinigameNetworkTarget
+    public abstract class MinigameControllerBase : MonoBehaviour, IMinigame, IMinigameNetworkTarget, ITutorialNetworkTarget
     {
         [SerializeField] private MinigameDefinition definition;
         [SerializeField] private RoundTimer roundTimer;
@@ -39,6 +39,9 @@ namespace Igruha.Core.Minigame
         private readonly List<SessionPlayer> playerList = new List<SessionPlayer>(8);
         private readonly SessionStandings standings = new SessionStandings();
         private IMinigameNetworkBridge bridge;
+        private ITutorialNetworkBridge tutorialBridge;
+        private readonly TutorialReadiness tutorialReadiness = new TutorialReadiness();
+        public IReadOnlyList<TutorialParticipant> TutorialParticipants => tutorialReadiness.Participants;
         private MinigamePhase phase = MinigamePhase.Idle;
 
         /// <summary>
@@ -56,6 +59,19 @@ namespace Igruha.Core.Minigame
         /// </summary>
         private bool playersReady;
         private bool restartPending;
+        private bool practiceSession = true;
+        private Igruha.Core.CameraSystems.MinigameCameraController tutorialCamera;
+
+        public void BindTutorialCamera(Igruha.Core.CameraSystems.MinigameCameraController camera) => tutorialCamera = camera;
+        private static string preparedRoundScene;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetPreparedRound() => preparedRoundScene = null;
+
+        public bool IsPractice => practiceSession;
+        public bool GameplayActive => phase.IsGameplay();
+        public bool AwaitingTutorialReady => phase == MinigamePhase.Tutorial ||
+            phase == MinigamePhase.Practice || phase == MinigamePhase.PracticeComplete;
 
         /// <summary>Фаза, приехавшая из сети раньше состава. Ждёт <see cref="StartMinigame"/>.</summary>
         private MinigamePhase pendingPhase;
@@ -87,7 +103,7 @@ namespace Igruha.Core.Minigame
         public MinigamePhase Phase => phase;
 
         protected IReadOnlyList<SessionPlayer> Players => playerList;
-        protected bool RoundActive => phase == MinigamePhase.Round;
+        protected bool RoundActive => GameplayActive;
         protected RoundTimer Timer => roundTimer;
         /// <summary>Длительность таймера: игра с расписанием может вычислять её из своего конфига.</summary>
         protected virtual float RoundDuration => definition != null ? definition.RoundDuration : 0f;
@@ -100,6 +116,7 @@ namespace Igruha.Core.Minigame
         protected virtual void Awake()
         {
             bridge = GetComponent<IMinigameNetworkBridge>();
+            tutorialBridge = GetComponent<ITutorialNetworkBridge>();
         }
 
         protected virtual void OnEnable()
@@ -143,6 +160,8 @@ namespace Igruha.Core.Minigame
                 playerList.Add(players[i]);
             }
 
+            practiceSession = !HasAuthority || preparedRoundScene != gameObject.scene.path;
+            if (HasAuthority) preparedRoundScene = null;
             startingPlayerCount = playerList.Count;
             seriesFinal = false;
 
@@ -160,7 +179,8 @@ namespace Igruha.Core.Minigame
                 return;
             }
 
-            GoToPhase(tutorialScreen != null ? MinigamePhase.Tutorial : MinigamePhase.Round);
+            if (practiceSession) InitializeTutorialReadiness();
+            GoToPhase(practiceSession ? MinigamePhase.Practice : MinigamePhase.Round);
         }
 
         /// <summary>
@@ -181,6 +201,7 @@ namespace Igruha.Core.Minigame
                 }
 
                 playerList.RemoveAt(i);
+                RemoveTutorialParticipant(playerId);
                 return true;
             }
 
@@ -190,7 +211,7 @@ namespace Igruha.Core.Minigame
         /// <summary>
         /// Идёт раунд (или обучалка перед ним) — из него есть куда выходить.
         /// </summary>
-        public bool CanLeaveRound => phase == MinigamePhase.Round || phase == MinigamePhase.Tutorial;
+        public bool CanLeaveRound => GameplayActive || AwaitingTutorialReady;
 
         /// <summary>
         /// Локальный игрок выходит из раунда, оставаясь в катке. Дальше он
@@ -228,6 +249,7 @@ namespace Igruha.Core.Minigame
                 return;
             }
 
+            if (AwaitingTutorialReady) RemoveTutorialParticipant(playerId);
             OnPlayerLeftRound(playerId);
         }
 
@@ -251,12 +273,12 @@ namespace Igruha.Core.Minigame
         /// <summary>Завершение раунда: по таймеру или досрочно правилами игры.</summary>
         public void EndMinigame()
         {
-            if (phase == MinigamePhase.Results || phase == MinigamePhase.Idle)
+            if (!HasAuthority || !GameplayActive)
             {
                 return;
             }
 
-            GoToPhase(MinigamePhase.Results);
+            GoToPhase(IsPractice ? MinigamePhase.PracticeComplete : MinigamePhase.Results);
         }
 
         // ========== ФАЗЫ ==========
@@ -269,7 +291,7 @@ namespace Igruha.Core.Minigame
             }
 
             ApplyPhase(next);
-            bridge?.PublishPhase(next);
+            bridge?.PublishPhase(phase);
         }
 
         /// <summary>
@@ -302,7 +324,9 @@ namespace Igruha.Core.Minigame
                 return;
             }
 
+            MinigamePhase previous = phase;
             phase = next;
+            practiceSession = next != MinigamePhase.Round && next != MinigamePhase.Results;
 
             if (roundTimer != null)
             {
@@ -311,6 +335,22 @@ namespace Igruha.Core.Minigame
 
             switch (next)
             {
+                case MinigamePhase.Practice:
+                    EnterRound();
+                    if (phase == MinigamePhase.Practice) EnterTutorial();
+                    break;
+                case MinigamePhase.PracticeComplete:
+                    roundTimer?.StopTimer();
+                    if (previous == MinigamePhase.Practice) OnRoundEnded();
+                    EnterTutorial();
+                    tutorialScreen?.SetPracticeComplete();
+                    break;
+                case MinigamePhase.PreparingRound:
+                    roundTimer?.StopTimer();
+                    if (previous == MinigamePhase.Practice) OnRoundEnded();
+                    SetPlayersControlEnabled(false);
+                    tutorialScreen?.Hide();
+                    break;
                 case MinigamePhase.Tutorial:
                     EnterTutorial();
                     break;
@@ -339,18 +379,114 @@ namespace Igruha.Core.Minigame
         private void EnterTutorial()
         {
             SetPlayersControlEnabled(false);
-            tutorialScreen?.Show(definition, HandleTutorialClosed);
+            if (tutorialScreen == null) tutorialScreen = gameObject.AddComponent<TutorialScreen>();
+            tutorialScreen.Show(definition, ToggleTutorialReady, SetPracticeControls);
+            RefreshTutorialReadiness();
+            if (LaunchArguments.BotEnabled && !LaunchArguments.TryGetValue("--tutorial-check", out _))
+                StartCoroutine(ConfirmTutorialForBot());
         }
 
-        private void HandleTutorialClosed()
+        private IEnumerator ConfirmTutorialForBot()
         {
-            // У клиента заставка гаснет только визуально: раунд начнёт сервер.
-            GoToPhase(MinigamePhase.Round);
+            // Явный --bot — участник автоматического стенда, не таймаут для человека.
+            yield return new WaitForSecondsRealtime(1f);
+            if (AwaitingTutorialReady && !tutorialReadiness.IsReady(LocalTutorialPlayerId))
+                ToggleTutorialReady();
+        }
+
+        private int LocalTutorialPlayerId => SessionScoreboard.Current?.LocalPlayer?.Id ??
+            (bridge != null && bridge.IsNetworkSession ? -1 : playerList.Count > 0 ? playerList[0].Id : -1);
+
+        private void InitializeTutorialReadiness()
+        {
+            tutorialReadiness.Reset();
+            bool networked = bridge != null && bridge.IsNetworkSession;
+            ICharacterSelection selection = CharacterSelection.Current;
+            for (int i = 0; i < playerList.Count; i++)
+            {
+                SessionPlayer player = playerList[i];
+                if (networked && selection != null && !selection.HasCharacter(player.Id)) continue;
+                // В прямом запуске сцены остальные персонажи — манекены без собственного ввода.
+                tutorialReadiness.Add(player.Id, !networked && player.Id != LocalTutorialPlayerId);
+            }
+            tutorialBridge?.PublishTutorialReadiness(TutorialParticipants);
+        }
+
+        public void ToggleTutorialReady()
+        {
+            if (!AwaitingTutorialReady) return;
+            bool ready = !tutorialReadiness.IsReady(LocalTutorialPlayerId);
+            if (bridge != null && bridge.IsNetworkSession)
+                tutorialBridge?.RequestTutorialReady(ready);
+            else
+                SetTutorialReady(LocalTutorialPlayerId, ready);
+        }
+
+        public void SetTutorialReady(int playerId, bool ready)
+        {
+            if (!HasAuthority || !AwaitingTutorialReady || !tutorialReadiness.SetReady(playerId, ready)) return;
+            PublishTutorialReadiness();
+        }
+
+        public void RemoveTutorialParticipant(int playerId)
+        {
+            if (!HasAuthority || !AwaitingTutorialReady || !tutorialReadiness.Remove(playerId)) return;
+            PublishTutorialReadiness();
+        }
+
+        public void ApplyTutorialReadiness(IReadOnlyList<TutorialParticipant> participants)
+        {
+            if (HasAuthority) return;
+            tutorialReadiness.Apply(participants);
+            RefreshTutorialReadiness();
+        }
+
+        private void PublishTutorialReadiness()
+        {
+            tutorialBridge?.PublishTutorialReadiness(TutorialParticipants);
+            RefreshTutorialReadiness();
+            if (tutorialReadiness.AllReady && !restartPending) StartCoroutine(StartPreparedRound());
+        }
+
+        private void RefreshTutorialReadiness()
+        {
+            if (AwaitingTutorialReady)
+                tutorialScreen?.SetReadiness(playerList, TutorialParticipants, LocalTutorialPlayerId);
+        }
+
+        private void SetPracticeControls(bool enabled)
+        {
+            SetPlayersControlEnabled(enabled && phase == MinigamePhase.Practice);
+            tutorialCamera?.SetTutorialLookSuspended(!enabled);
+        }
+
+        private IEnumerator StartPreparedRound()
+        {
+            restartPending = true;
+            string path = gameObject.scene.path;
+            GoToPhase(MinigamePhase.PreparingRound);
+            // Завершить текущий сетевой кадр перед выгрузкой контроллера.
+            yield return null;
+            preparedRoundScene = path;
+            NetworkManager network = NetworkManager.Singleton;
+            if (network == null || !network.IsListening)
+            {
+                SceneManager.LoadScene(path, LoadSceneMode.Single);
+                yield break;
+            }
+            SceneEventProgressStatus status = network.SceneManager.LoadScene(path, LoadSceneMode.Single);
+            if (status == SceneEventProgressStatus.Started) yield break;
+            preparedRoundScene = null;
+            restartPending = false;
+            Debug.LogError($"{name}: не удалось подготовить раунд: {status}", this);
+            // Сбой загрузки не выдаёт очки и не запускает повреждённую арену.
+            GoToPhase(MinigamePhase.PracticeComplete);
         }
 
         private void EnterRound()
         {
             tutorialScreen?.Hide();
+            tutorialCamera?.SetTutorialLookSuspended(false);
             SetPlayersControlEnabled(true);
 
             if (HasAuthority && roundTimer != null && definition != null)
