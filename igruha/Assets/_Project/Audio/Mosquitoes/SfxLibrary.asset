@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2574025c1373412bb9b8283feb02ca7, type: 3}
+  m_Name: SfxLibrary
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.MinigameSfxLibrary
+  entries:
+  - Id: buzz_loop
+    Clip: {fileID: 0}
+    Variants: []
+    Volume: 1
+    Loop: 1
+    Spatial: 1
+  - Id: bite
+    Clip: {fileID: 0}
+    Variants: []
+    Volume: 0.9
+    Loop: 0
+    Spatial: 1
+  - Id: lamp_switch
+    Clip: {fileID: 0}
+    Variants: []
+    Volume: 0.8
+    Loop: 0
+    Spatial: 1
+  - Id: mosquito_death
+    Clip: {fileID: 0}
+    Variants: []
+    Volume: 0.9
+    Loop: 0
+    Spatial: 1
+  - Id: bed_creak
+    Clip: {fileID: 0}
+    Variants: []
+    Volume: 0.6
+    Loop: 0
+    Spatial: 1
+  - Id: room_ambience
+    Clip: {fileID: 0}
+    Variants: []
+    Volume: 0.25
+    Loop: 1
+    Spatial: 0
+  - Id: sleep_final_ten
+    Clip: {fileID: 0}
+    Variants: []
+    Volume: 0.5
+    Loop: 0
+    Spatial: 0
