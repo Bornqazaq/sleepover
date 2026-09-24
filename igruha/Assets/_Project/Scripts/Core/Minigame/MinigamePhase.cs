@@ -13,6 +13,18 @@ namespace Igruha.Core.Minigame
         /// <summary>Идёт раунд, таймер тикает.</summary>
         Round = 2,
         /// <summary>Раунд кончился, показаны места.</summary>
-        Results = 3
+        Results = 3,
+        /// <summary>Настоящая арена, пробный раунд без зачёта.</summary>
+        Practice = 4,
+        /// <summary>Проба закончилась; ждём готовности без таймаута.</summary>
+        PracticeComplete = 5,
+        /// <summary>Все готовы; сервер пересоздаёт арену для зачётного раунда.</summary>
+        PreparingRound = 6
+    }
+
+    public static class MinigamePhaseExtensions
+    {
+        public static bool IsGameplay(this MinigamePhase phase) =>
+            phase == MinigamePhase.Round || phase == MinigamePhase.Practice;
     }
 }

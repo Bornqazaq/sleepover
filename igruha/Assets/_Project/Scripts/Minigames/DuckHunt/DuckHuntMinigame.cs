@@ -182,6 +182,8 @@ namespace Igruha.Minigames.DuckHunt
             public PlayerElimination Elimination;
             /// <summary>Водитель болванки. Пусто у живого игрока, в сетевой катке и когда болванок не гонят.</summary>
             public DebugPlayerBot Bot;
+            public DuckHuntBotTraversal Traversal;
+            public bool DirectTraversal;
 
             /// <summary>
             /// Этой копией не управляет человек. Отдельно от <see cref="Bot"/>:
@@ -334,6 +336,7 @@ namespace Igruha.Minigames.DuckHunt
             }
 
             UnsubscribeTraps();
+            ClearHunter();
         }
 
         /// <summary>
@@ -423,6 +426,7 @@ namespace Igruha.Minigames.DuckHunt
 
         protected override void OnRoundEnded()
         {
+            leverPrompt?.Show(false);
             liveTime = NotAnnounced;
             SetRoundLive(false);
             StopAllBots();
@@ -688,6 +692,7 @@ namespace Igruha.Minigames.DuckHunt
                 LastFloor = progress.Floor,
                 Frozen = DuckOutcome.From(progress)
             };
+            if (record.Bot != null) record.Traversal = new DuckHuntBotTraversal(arena, avatar);
 
             // Подписка одна на аватар за раунд: Restore не отписывает, поэтому
             // снимаем прошлую подписку перед новой — при пересдаче ролей иначе
@@ -1402,14 +1407,19 @@ namespace Igruha.Minigames.DuckHunt
         /// <c>InteractionPrompt</c> склеивает текст, и держать это в кадре
         /// нельзя.
         /// </summary>
+        private DuckHuntLeverPrompt leverPrompt;
+
         private void TickDuckPrompt()
         {
+            if (leverPrompt == null) leverPrompt = gameObject.AddComponent<DuckHuntLeverPrompt>();
             if (Hud == null || IsLocal(hunterPlayerId))
             {
+                leverPrompt.Show(false);
                 return;
             }
 
             IInteractable target = RoundLive ? ResolveLocalInteractable() : null;
+            leverPrompt.Show(target is Igruha.Core.Traps.TrapActivationButton);
             if (ReferenceEquals(target, promptTarget))
             {
                 return;
@@ -1423,7 +1433,8 @@ namespace Igruha.Minigames.DuckHunt
                 return;
             }
 
-            Hud.ShowStatus($"[E] {target.InteractionPrompt}");
+            if (target is Igruha.Core.Traps.TrapActivationButton) Hud.HideStatus();
+            else Hud.ShowStatus($"[E] {target.InteractionPrompt}");
         }
 
         /// <summary>
@@ -1545,7 +1556,11 @@ namespace Igruha.Minigames.DuckHunt
                 }
 
                 Vector3 duckTarget = GetDuckTarget(duck, out bool stopOnArrival);
-                duck.Bot.SetTarget(duckTarget, stopOnArrival);
+                // The generic obstacle probe sees a distant platform edge as a wall.
+                // For prescribed jumps use the same direct motor input as the player check.
+                duck.Bot.enabled = !duck.DirectTraversal;
+                if (duck.DirectTraversal) duck.Traversal.DriveTarget(duckTarget);
+                else duck.Bot.SetTarget(duckTarget, stopOnArrival);
             }
         }
 
@@ -1561,13 +1576,22 @@ namespace Igruha.Minigames.DuckHunt
         {
             Vector3 position = duck.Avatar.transform.position;
             stopOnArrival = false;
+            duck.DirectTraversal = false;
 
-            // Выше верхнего этажа болванка может быть только на крыше — там
-            // цель одна, площадка финиша.
-            if (finishZone != null && position.y >= arena.GetFloorBaseY(arena.FloorCount) - 0.1f)
+            // The switchback now exits at the BACK of the tower. Clear its opening
+            // before taking the corridor route; a diagonal shortcut would drop back down.
+            if (duck.Progress.Floor > 0 && duck.Progress.Floor < arena.FloorCount - 1 && duck.Progress.Progress < 9f)
             {
-                stopOnArrival = true;
-                return finishZone.transform.position;
+                float depth = arena.transform.InverseTransformPoint(position).z / config.CharacterWidth;
+                return arena.GetWorldPoint(duck.Progress.Floor,
+                    depth < 11.8f ? duck.Progress.Progress : 9.5f, 12.3f);
+            }
+
+            Vector3 traversalTarget;
+            if (duck.Traversal != null && duck.Traversal.TryGetTarget(duck.Progress, out traversalTarget))
+            {
+                duck.DirectTraversal = true;
+                return traversalTarget;
             }
 
             float stairRoomStart = config.FloorLengthWidths - config.StairRoomSizeUnits / config.CharacterWidth;
@@ -1597,7 +1621,7 @@ namespace Igruha.Minigames.DuckHunt
                 // Глубину берём ближе к открытой грани: прямо над лестницей в
                 // перекрытии проём, и цель посреди коридора увела бы обратно в него.
                 int next = Mathf.Min(duck.Progress.Floor + 1, arena.FloorCount - 1);
-                return arena.GetWorldPoint(next, 4f, StairExitDepthWidths);
+                return arena.GetWorldPoint(next, 4f, 12.3f);
             }
 
             return GetRouteTarget(duck, stairRoomStart);

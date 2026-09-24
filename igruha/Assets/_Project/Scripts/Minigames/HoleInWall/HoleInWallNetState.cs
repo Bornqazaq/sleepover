@@ -152,14 +152,27 @@ namespace Igruha.Minigames.HoleInWall
         /// <summary>Номер позы 1…4, ноль — <see cref="HoleInWallPose.None"/>.</summary>
         public byte Pose;
 
+        /// <summary>
+        /// Счётчик поправок сервера. Растёт, когда сервер отказал в позе,
+        /// которую клиент у себя уже показал.
+        ///
+        /// Без него поправка не доезжала: клиент ставит позу у себя сразу,
+        /// а сервер, отказав (игрок ещё в струе возврата), записывает «без
+        /// позы» — то же, что уже лежит в списке. Строка не меняется, пакета
+        /// нет, и клиент стоит в позе, которой у сервера нет, — до следующего
+        /// нажатия другой цифры. Та же цифра не помогает: у себя поза уже она.
+        /// </summary>
+        public byte Revision;
+
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
             serializer.SerializeValue(ref PlayerId);
             serializer.SerializeValue(ref Pose);
+            serializer.SerializeValue(ref Revision);
         }
 
         public bool Equals(HoleInWallPoseNetState other) =>
-            PlayerId == other.PlayerId && Pose == other.Pose;
+            PlayerId == other.PlayerId && Pose == other.Pose && Revision == other.Revision;
     }
 
     /// <summary>

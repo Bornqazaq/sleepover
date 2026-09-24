@@ -663,7 +663,7 @@ namespace Igruha.Minigames.Stopwatch
         /// </summary>
         private void Update()
         {
-            if (bear == null || !HasAuthority || Phase != MinigamePhase.Round)
+            if (bear == null || !HasAuthority || !Phase.IsGameplay())
             {
                 return;
             }

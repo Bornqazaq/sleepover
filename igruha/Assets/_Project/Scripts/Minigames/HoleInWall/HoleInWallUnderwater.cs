@@ -17,7 +17,7 @@ namespace Igruha.Minigames.HoleInWall
         private void Update()
         {
             if (game == null || config == null) return;
-            bool playing = game.Phase == MinigamePhase.Round;
+            bool playing = game.Phase.IsGameplay();
             if (!playing) { Clear(); return; }
             var tracks = game.PlayingTracks;
             for (int track = 0; track < tracks.Count; track++)

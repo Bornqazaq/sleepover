@@ -92,6 +92,7 @@ namespace Igruha.Core.Minigame
             }
 
             BindLocalPlayer(players);
+            minigame.BindTutorialCamera(cameraController);
             minigame.StartMinigame(players);
         }
 

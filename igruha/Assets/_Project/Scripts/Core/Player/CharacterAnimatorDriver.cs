@@ -31,6 +31,14 @@ namespace Igruha.Core.Player
         private const float PunchPlantHold = 0.1f;
 
         /// <summary>
+        /// Приставка имени состояния танца в контроллере: <c>Dance_1</c>..
+        /// <c>Dance_8</c>. Имена даёт <c>PlayerAnimatorControllerBuilder</c>,
+        /// а читает их <see cref="CharacterArmClearance"/> — держать строку в
+        /// двух местах значит однажды разойтись.
+        /// </summary>
+        public const string EmoteStatePrefix = "Dance_";
+
+        /// <summary>
         /// Имя слоя ружья в контроллере. Слой отдельный и лежит поверх основного:
         /// пока его вес ноль, персонаж анимируется ровно как раньше, а роль
         /// со стойкой и выстрелом не задевает ни одного замороженного состояния.
@@ -78,7 +86,31 @@ namespace Igruha.Core.Player
                 standingHeight = Mathf.Max(capsule.height, capsule.radius * 2f);
             }
 
+            AttachArmClearance();
             AttachFootGrounding();
+        }
+
+        /// <summary>
+        /// Вывести руки из тела на танцах — на каждой копии персонажа.
+        ///
+        /// Добавляется кодом и по тем же причинам, что и посадка ступней:
+        /// префабы персонажей заморожены, а поза у чужих копий считается на
+        /// каждой машине своим аниматором. Цепляется раньше посадки ступней,
+        /// чтобы та видела уже доведённые ладони.
+        /// </summary>
+        private void AttachArmClearance()
+        {
+            if (animator == null)
+            {
+                return;
+            }
+
+            if (!TryGetComponent(out CharacterArmClearance clearance))
+            {
+                clearance = gameObject.AddComponent<CharacterArmClearance>();
+            }
+
+            clearance.Bind(animator);
         }
 
         /// <summary>
@@ -348,6 +380,29 @@ namespace Igruha.Core.Player
                 return;
             }
 
+            PlayKnockdown(animator, type);
+        }
+
+        /// <summary>
+        /// Запустить падение нужного направления, сняв отложенные нажатия.
+        ///
+        /// Удар, прыжок и танец входят из AnyState и в себя не переходят.
+        /// Второе нажатие ЛКМ, пока первый удар ещё идёт (кулдаун 0.6 с короче
+        /// клипа — 0.7–1.4 с), не теряется, а ждёт триггером. Падение — не
+        /// «сам в себя», и ждущий удар срабатывал сразу за ним: аниматор
+        /// выдёргивало из падения обратно в удар, потом в стойку, а тело при
+        /// этом лежало без управления ещё две секунды (IGR-582, «застываю в
+        /// стойке»). Контроллеры заморожены, поэтому переходы не трогаются —
+        /// падение просто начинается с чистого листа.
+        ///
+        /// Открыт для тестов: в режиме редактора подписки на мотор не идут,
+        /// а проверить надо ровно эту последовательность.
+        /// </summary>
+        public static void PlayKnockdown(Animator animator, KnockdownType type)
+        {
+            animator.ResetTrigger(PunchParameterHash);
+            animator.ResetTrigger(JumpParameterHash);
+            animator.ResetTrigger(EmotePlayHash);
             animator.SetTrigger(type == KnockdownType.FlyBack ? KnockdownFrontHash : KnockdownBackHash);
         }
     }

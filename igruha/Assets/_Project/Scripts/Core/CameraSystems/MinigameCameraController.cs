@@ -27,6 +27,12 @@ namespace Igruha.Core.CameraSystems
         /// <summary>За кем камера следит сейчас.</summary>
         public Transform CurrentTarget { get; private set; }
 
+        public void SetTutorialLookSuspended(bool suspended)
+        {
+            if (thirdPersonRig != null && thirdPersonRig.TryGetComponent(out ThirdPersonCameraRig look))
+                look.SetLookSuspended(suspended);
+        }
+
         public void Apply(CameraMode mode, Transform followTarget)
         {
             followTarget = ChestLevel(mode, followTarget);

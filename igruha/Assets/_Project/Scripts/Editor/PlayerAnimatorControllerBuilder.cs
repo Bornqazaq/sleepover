@@ -552,7 +552,7 @@ namespace Igruha.EditorTools
                 int emoteNumber = i + 1;
                 AnimatorState danceState = AddState(
                     machine,
-                    $"Dance_{emoteNumber}",
+                    CharacterAnimatorDriver.EmoteStatePrefix + emoteNumber,
                     dance,
                     1f,
                     new Vector3(1100f, i * 90f - 180f, 0f));

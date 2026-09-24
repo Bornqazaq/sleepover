@@ -60,7 +60,7 @@ namespace Igruha.Minigames.HoleInWall
                 return;
             }
 
-            bool live = game.Phase == MinigamePhase.Round && track.Active;
+            bool live = game.Phase.IsGameplay() && track.Active;
             int wall = live ? game.CurrentWallNumber : 0;
             int wallCount = game.WallCount;
             int score = live ? track.Score : -1;

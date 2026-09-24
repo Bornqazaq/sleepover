@@ -35,7 +35,21 @@ namespace Igruha.Minigames.HoleInWall
     /// это были бы полсотни пакетов в секунду на игрока. Исход по-прежнему
     /// считает сервер и по своим числам — воронка на вердикт не влияет
     /// ничем, кроме того, что двигает тело, а тело он и так видит.
+    ///
+    /// <b>Скорость, а не сила (IGR-594).</b> До 22.09 край толкал импульсом
+    /// с потолком 25 м/с², а мотор персонажа без ввода каждый шаг гасит
+    /// горизонталь с замедлением 20 м/с² — и съедал почти весь толчок.
+    /// На стенде воронка работала все полсекунды, а сдвигала на 0.10–0.14 м:
+    /// с 0.53 до 0.41, с 0.27 до 0.17. Досягаемость в 0.58 м не работала
+    /// никогда; проходил только тот, кто сам встал ближе 0.22 м к центру,
+    /// и это было «встал в позу у самой дырки, а всё равно упал».
+    /// Теперь край задаёт поперечную скорость к центру, а считается это
+    /// после мотора (<see cref="DefaultExecutionOrderAttribute"/>), по уже
+    /// заторможенной скорости. Трос этим не перебит: когда оба стоят в своих
+    /// вырезах, он провисает (разнос вырезов не больше 5 ШП при длине 6 ШП),
+    /// а убежавший напарник идёт без позы — и воронка ему не помогает.
     /// </remarks>
+    [DefaultExecutionOrder(100)]
     [RequireComponent(typeof(PlayerController))]
     public sealed class WallFunnel : MonoBehaviour
     {
@@ -51,24 +65,18 @@ namespace Igruha.Minigames.HoleInWall
         private const float Lead = 0.5f;
 
         /// <summary>
-        /// Максимальное ускорение доводки, м/с². Столько же, сколько у троса:
-        /// сильнее — и воронка перетягивала бы натянутый трос, а он в этой игре
-        /// главнее, он и есть комедия.
+        /// С какой скоростью край ведёт к центру на каждый метр промаха, 1/с.
+        /// С <see cref="Lead"/> и нарастанием силы это сводит 0.58 м к 0.08,
+        /// а 0.35 — к 0.03: заведомо внутрь допуска 0.15 м. Без перелёта —
+        /// сводится по экспоненте, а не качается пружиной.
         /// </summary>
-        private const float MaxAcceleration = 25f;
+        private const float Gain = 8f;
 
         /// <summary>
-        /// Жёсткость доводки, 1/с². Подобрана под <see cref="Lead"/>: с 0.58 м
-        /// за полсекунды доводка укладывается, не упираясь в потолок ускорения.
+        /// Потолок скорости сведения, м/с. Шаг вбок, а не рывок — и вдвое
+        /// ниже порога нокдауна персонажа (5 м/с), чтобы доводка не роняла.
         /// </summary>
-        private const float Stiffness = 90f;
-
-        /// <summary>
-        /// Гашение поперечной скорости, 1/с. Около критического для
-        /// <see cref="Stiffness"/>: без него игрок проскакивает центр и
-        /// начинает качаться в дырке.
-        /// </summary>
-        private const float Damping = 17f;
+        private const float MaxSpeed = 2f;
 
         private PlayerController motor;
         private PlayerPoseAbility ability;
@@ -109,6 +117,19 @@ namespace Igruha.Minigames.HoleInWall
         /// <summary>Раунд кончился: больше никуда не доводим.</summary>
         public void Release() => wall = null;
 
+        /// <summary>Сколько шагов физики воронка доводила на текущей стене. Для строки «у себя».</summary>
+        public int EngagedSteps { get; private set; }
+
+        /// <summary>Смещение от центра выреза в первый шаг доводки на текущей стене, м.</summary>
+        public float EngagedFrom { get; private set; }
+
+        /// <summary>Новая стена — счёт доводки с нуля.</summary>
+        public void ResetStats()
+        {
+            EngagedSteps = 0;
+            EngagedFrom = 0f;
+        }
+
         /// <summary>
         /// Доводка идёт в шаге физики: это сила, а не кадр отрисовки
         /// (igruha/CLAUDE.md, раздел 2).
@@ -121,12 +142,18 @@ namespace Igruha.Minigames.HoleInWall
             }
 
             float offset = targetX - motor.Position.x;
+            if (EngagedSteps++ == 0)
+            {
+                EngagedFrom = -offset;
+            }
+
+            // Мотор в этом шаге уже отработал: скорость тут — после его торможения.
             float lateral = physics != null ? physics.linearVelocity.x : 0f;
-            float acceleration = Mathf.Clamp(
-                Stiffness * offset - Damping * lateral, -MaxAcceleration, MaxAcceleration) * strength;
+            float desired = Mathf.Clamp(Gain * offset, -MaxSpeed, MaxSpeed);
+            float next = Mathf.Lerp(lateral, desired, strength);
 
             float mass = physics != null ? physics.mass : 1f;
-            motor.ApplyImpulse(Vector3.right * (acceleration * Time.fixedDeltaTime * mass));
+            motor.ApplyImpulse(Vector3.right * ((next - lateral) * mass));
         }
 
         /// <summary>
@@ -161,8 +188,13 @@ namespace Igruha.Minigames.HoleInWall
                 return false;
             }
 
-            float remaining = (wall.FrontZ - config.CheckLineZ) / Mathf.Max(0.01f, wall.Speed);
-            if (remaining < 0f || remaining > Lead)
+            // Отсчёт — до того, что наступит раньше: грань у линии проверки
+            // или грань у самого тела. Стоящего ближе к стене, чем линия,
+            // плиты достают раньше вердикта, и довести его надо к их подходу,
+            // а держать — до самой линии, где его разберут.
+            float target = Mathf.Max(config.CheckLineZ, motor.Position.z);
+            float remaining = (wall.FrontZ - target) / Mathf.Max(0.01f, wall.Speed);
+            if (remaining > Lead || wall.FrontZ < config.CheckLineZ)
             {
                 return false;
             }
@@ -176,7 +208,7 @@ namespace Igruha.Minigames.HoleInWall
             // Сила нарастает по мере подхода стены: издали край едва трогает,
             // у самой плиты доводит уверенно. Так это и читается краем дырки,
             // а не магнитом, включённым щелчком.
-            strength = 1f - Mathf.Clamp01(remaining / Lead);
+            strength = 1f - Mathf.Clamp01(Mathf.Max(0f, remaining) / Lead);
             return true;
         }
     }

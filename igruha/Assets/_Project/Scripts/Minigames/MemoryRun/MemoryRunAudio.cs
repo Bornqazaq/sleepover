@@ -139,12 +139,12 @@ namespace Igruha.Minigames.MemoryRun
                 return;
             }
 
-            if (phase == MinigamePhase.Round)
+            if (phase.IsGameplay())
             {
                 audioPlayer.Play(SlotRoundStart);
                 audioPlayer.StartLoop(SlotAmbience);
             }
-            else if (lastPhase == MinigamePhase.Round)
+            else if (lastPhase.IsGameplay())
             {
                 audioPlayer.StopLoop(SlotAmbience);
                 audioPlayer.Play(SlotRoundEnd);

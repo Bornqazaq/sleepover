@@ -70,6 +70,15 @@ namespace Igruha.Minigames.HoleInWall
         private readonly List<HoleInWallTrackNetState> trackBuffer = new List<HoleInWallTrackNetState>(4);
         private readonly List<HoleInWallWallNetState> scheduleBuffer = new List<HoleInWallWallNetState>(32);
 
+        /// <summary>
+        /// Какие строки поз клиент уже применил. Применяются только изменившиеся:
+        /// раньше любая чужая смена позы переприменяла весь список, в том числе
+        /// свою строку, где сервер ещё не успел отразить только что нажатое, —
+        /// и своя поза на круг связи слетала обратно.
+        /// </summary>
+        private readonly Dictionary<int, HoleInWallPoseNetState> appliedPoses =
+            new Dictionary<int, HoleInWallPoseNetState>(8);
+
         /// <summary>Ушедшие, которых осталось разобрать. Почему не сразу — см. <see cref="OnClientDisconnected"/>.</summary>
         private readonly List<ulong> pendingLeavers = new List<ulong>(4);
 
@@ -239,6 +248,7 @@ namespace Igruha.Minigames.HoleInWall
             if (ApplyTracks())
             {
                 scheduleDirty = posesDirty = stageDirty = true;
+                appliedPoses.Clear();
             }
         }
 
@@ -401,7 +411,12 @@ namespace Igruha.Minigames.HoleInWall
         }
 
         /// <summary>Объявить подтверждённую позу участника. Видят все: чужие позы — половина зрелища.</summary>
-        public void PublishPose(int playerId, HoleInWallPose pose)
+        /// <param name="correction">
+        /// Сервер отказал в позе, которую клиент у себя уже показал: строку
+        /// надо разослать, даже если поза в ней не изменилась
+        /// (см. <see cref="HoleInWallPoseNetState.Revision"/>).
+        /// </param>
+        public void PublishPose(int playerId, HoleInWallPose pose, bool correction = false)
         {
             if (!IsSpawned || !IsServer)
             {
@@ -417,6 +432,7 @@ namespace Igruha.Minigames.HoleInWall
                     continue;
                 }
 
+                next.Revision = correction ? (byte)(poses[i].Revision + 1) : poses[i].Revision;
                 if (!poses[i].Equals(next))
                 {
                     poses[i] = next;
@@ -429,6 +445,41 @@ namespace Igruha.Minigames.HoleInWall
         }
 
         private void OnPosesChanged(NetworkListEvent<HoleInWallPoseNetState> change) => posesDirty = true;
+
+        // ========== ОТЧЁТ ВЛАДЕЛЬЦА ==========
+
+        /// <summary>
+        /// Отдать серверу, где стоит своё тело в момент проверки по своим
+        /// часам. Зовётся только у клиента и только для тела, которое он ведёт.
+        ///
+        /// Почему это вообще нужно — см. <see cref="HoleInWallCheck"/>: клиент
+        /// видит стену позже сервера, а сервер видит клиента позже, чем тот
+        /// стоит. Вдвоём эти опоздания давали 0.2–0.3 с, за которые воронка
+        /// как раз доводит человека в дырку.
+        /// </summary>
+        /// <param name="struck">Плита коснулась тела раньше линии: это удар, а не проверка.</param>
+        public void ReportCheck(int wallIndex, Vector3 position, bool struck)
+        {
+            if (IsSpawned && !IsServer)
+            {
+                CheckReportRpc((byte)wallIndex, position, struck);
+            }
+        }
+
+        /// <summary>
+        /// Сервер принимает отчёт. Кто отчитывается — берётся у отправителя,
+        /// а не из сообщения: иначе клиент отчитался бы за соседа. Место
+        /// сервер ещё сверит со своим видом, а позу возьмёт свою.
+        ///
+        /// Надёжный канал на этом же объекте, что и намерение позы
+        /// (<see cref="SetPoseRpc"/>), поэтому все позы, нажатые до отчёта,
+        /// сервер к его приезду уже применил.
+        /// </summary>
+        [Rpc(SendTo.Server, RequireOwnership = false)]
+        private void CheckReportRpc(byte wallIndex, Vector3 position, bool struck, RpcParams rpcParams = default)
+        {
+            game?.ApplyCheckReport((int)rpcParams.Receive.SenderClientId, wallIndex, position, struck);
+        }
 
         // ========== ВЕРДИКТ ==========
 
@@ -513,6 +564,7 @@ namespace Igruha.Minigames.HoleInWall
                 // Дорожки пересобраны — расписание, позы и стадию надо
                 // разложить по ним заново.
                 scheduleDirty = posesDirty = stageDirty = true;
+                appliedPoses.Clear();
             }
 
             if (scheduleDirty)
@@ -540,7 +592,14 @@ namespace Igruha.Minigames.HoleInWall
 
                 for (int i = 0; i < poses.Count; i++)
                 {
-                    game.ApplyNetworkPose(poses[i].PlayerId, (HoleInWallPose)poses[i].Pose);
+                    HoleInWallPoseNetState row = poses[i];
+                    if (appliedPoses.TryGetValue(row.PlayerId, out HoleInWallPoseNetState applied) && applied.Equals(row))
+                    {
+                        continue;
+                    }
+
+                    appliedPoses[row.PlayerId] = row;
+                    game.ApplyNetworkPose(row.PlayerId, (HoleInWallPose)row.Pose);
                 }
             }
         }
