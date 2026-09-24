@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 using Igruha.Core.Player;
+using Igruha.Core.Session;
 
 namespace Igruha.Minigames.HoleInWall
 {
@@ -48,12 +50,26 @@ namespace Igruha.Minigames.HoleInWall
             /// <summary>Момент возврата на платформу в общих часах.</summary>
             public double ReturnAt { get; set; }
 
+            /// <summary>Сетевой объект аватара. По нему видно, ведёт ли это тело сама эта машина.</summary>
+            public NetworkObject Body { get; }
+
+            /// <summary>Тело ведёт эта машина: ввод, физика и столкновения у него здесь, а не в копии.</summary>
+            public bool DrivenHere => WorldAuthority.DrivenHere(Body);
+
+            /// <summary>Радиус капсулы, м. Им меряется, когда видимая грань стены доходит до тела.</summary>
+            public float Radius { get; }
+
+            /// <summary>Разбор участника на текущей стене у сервера.</summary>
+            public HoleInWallCheck Check { get; } = new HoleInWallCheck();
+
             public Member(int playerId, PlayerController avatar, PlayerPoseAbility pose,
                 StuckDetector stuck, PlayerRespawner respawner, PlayerInputReader input,
                 CutoutShapes shapes, WallFunnel funnel, PlayerBuoyancy buoyancy)
             {
                 PlayerId = playerId;
                 Avatar = avatar;
+                Body = avatar != null ? avatar.GetComponent<NetworkObject>() : null;
+                Radius = avatar != null && avatar.TryGetComponent(out CapsuleCollider capsule) ? capsule.radius : 0f;
                 Pose = pose;
                 Stuck = stuck;
                 Respawner = respawner;
@@ -109,22 +125,97 @@ namespace Igruha.Minigames.HoleInWall
         /// <summary>Вердикт по текущей стене уже посчитан. Считается ровно один раз.</summary>
         public bool WallResolved { get; set; }
 
+        /// <summary>
+        /// Стена текущего прохода дошла до линии проверки на ЭТОЙ машине, и её
+        /// участники, которых эта машина ведёт, уже сверены со своими вырезами.
+        /// Отметка своя у каждой машины: вердикт при этом решает только сервер.
+        /// </summary>
+        public bool LocalChecked { get; set; }
+
+        /// <summary>
+        /// Клиент уже сообщил серверу об ударе стеной по своему телу на этой
+        /// стене. Касание приходит каждый шаг физики, отчёт нужен один.
+        /// </summary>
+        public bool StrikeReported { get; set; }
+
+        /// <summary>
+        /// Сервер дошёл до линии проверки и собирает разбор участников: свой
+        /// вид — сразу, отчёты владельцев — по приезде. Вердикт выносится,
+        /// когда разобраны все или вышел <see cref="CheckDeadline"/>.
+        /// </summary>
+        public bool CheckPending { get; private set; }
+
+        /// <summary>Момент линии проверки у сервера в общих часах.</summary>
+        public double CheckOpenedAt { get; private set; }
+
+        /// <summary>До какого момента ждать отчёты владельцев.</summary>
+        public double CheckDeadline { get; private set; }
+
+        /// <summary>Открыть сбор разбора на линии проверки.</summary>
+        public void OpenCheck(double now, float timeout)
+        {
+            CheckPending = true;
+            CheckOpenedAt = now;
+            CheckDeadline = now + timeout;
+        }
+
+        /// <summary>Все участники разобраны — вердикт можно выносить.</summary>
+        public bool AllChecked
+        {
+            get
+            {
+                for (int i = 0; i < members.Count; i++)
+                {
+                    if (!members[i].Check.Decided)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+        }
+
+        /// <summary>Момент последнего засчитанного прохода в общих часах. Бесконечность в прошлом — ещё не проходили.</summary>
+        public double PassedAt { get; private set; } = double.NegativeInfinity;
+
+        /// <summary>Номер последней засчитанной стены, с единицы.</summary>
+        public int PassedWall { get; private set; }
+
         /// <summary>Новая стена: сбросить всё, что относилось к предыдущей.</summary>
         public void BeginWall()
         {
             WallLaunched = false;
             WallResolved = false;
+            LocalChecked = false;
+            StrikeReported = false;
+            ResetChecks();
+        }
+
+        private void ResetChecks()
+        {
+            CheckPending = false;
+            for (int i = 0; i < members.Count; i++)
+            {
+                members[i].Check.Reset();
+                members[i].Funnel?.ResetStats();
+            }
         }
 
         /// <summary>Освободить дорожку от прошлого раунда.</summary>
         public void ResetTrack()
         {
+            ResetChecks();
             members.Clear();
             patterns.Clear();
             Score = 0;
             Tether = null;
             WallLaunched = false;
             WallResolved = false;
+            LocalChecked = false;
+            StrikeReported = false;
+            PassedAt = double.NegativeInfinity;
+            PassedWall = 0;
 
             if (soloBanner != null)
             {
@@ -170,9 +261,11 @@ namespace Igruha.Minigames.HoleInWall
         }
 
         /// <summary>Стена пройдена: очко каждому участнику дорожки.</summary>
-        public void AwardWall()
+        public void AwardWall(int wallNumber, double time)
         {
             Score++;
+            PassedWall = wallNumber;
+            PassedAt = time;
         }
 
         /// <summary>Счёт, объявленный сервером. Клиент его только применяет — считает всегда сервер.</summary>
