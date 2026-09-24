@@ -65,3 +65,6 @@ igruha/Assets/_Project/Art/Hub/Original/Meshes/*.asset filter=lfs diff=lfs merge
 
 # Reproducible Copperwood geometry batches; not hand-mergeable gameplay settings.
 igruha/Assets/_Project/Art/DuckHuntBarn/Meshes/*.asset filter=lfs diff=lfs merge=lfs -text
+
+# Reproducible One Bullet stone/paving batches.
+igruha/Assets/_Project/Art/Minigames/OneBullet/Geometry/*.asset filter=lfs diff=lfs merge=lfs -text
