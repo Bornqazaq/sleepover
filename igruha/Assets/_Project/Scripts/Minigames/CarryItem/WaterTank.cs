@@ -33,14 +33,10 @@ namespace Igruha.Minigames.CarryItem
         public event Action BottleFinished;
 
         /// <summary>
-        /// Бутыли в зоне и сколько их коллайдеров её сейчас задевает.
-        ///
-        /// Считаем вхождения, а не храним флаг: у бутыли коллайдеров
-        /// несколько, событий приходит столько же, и выход одного из них не
-        /// означает, что бутыль покинула бак.
+        /// Бутыли, фактически пересекающие зону на текущем шаге физики.
         /// </summary>
         private readonly List<WaterBottle> insideZone = new List<WaterBottle>(4);
-        private readonly List<int> insideTouches = new List<int>(4);
+        private Collider[] overlaps = new Collider[32];
 
         private TeamSide team = TeamSide.None;
         private MaterialPropertyBlock materialBlock;
@@ -74,7 +70,7 @@ namespace Igruha.Minigames.CarryItem
         /// наполняет и шкала воды не растёт.
         ///
         /// Последние два — потому, что триггеров становилось два, а
-        /// <see cref="OnTriggerExit"/> выкидывал бутыль из зоны по выходу из
+        /// обработчик выхода выкидывал бутыль из зоны по выходу из
         /// <b>любого</b> из них: бутыль стоит в баке, а бак её уже не видит.
         ///
         /// Берём явную ссылку, иначе — тот коллайдер, который уже размечен
@@ -120,7 +116,6 @@ namespace Igruha.Minigames.CarryItem
             pourAccumulator = 0f;
             shownStep = -1;
             insideZone.Clear();
-            insideTouches.Clear();
             ApplyLevelVisual();
             ApplyTeamTint();
         }
@@ -154,56 +149,61 @@ namespace Igruha.Minigames.CarryItem
             }
         }
 
-        private void OnTriggerEnter(Collider other)
+        private void FixedUpdate()
         {
-            WaterBottle bottle = other.GetComponentInParent<WaterBottle>();
-            if (bottle == null)
+            if (config == null || !WorldAuthority.HasAuthority)
             {
                 return;
             }
 
-            int index = insideZone.IndexOf(bottle);
-            if (index < 0)
+            RefreshBottlesInZone();
+            for (int i = insideZone.Count - 1; i >= 0; i--)
             {
-                insideZone.Add(bottle);
-                insideTouches.Add(1);
-                return;
+                WaterBottle bottle = insideZone[i];
+                if (bottle != null && !bottle.IsGone && bottle.Team == team)
+                {
+                    Pour(bottle, Time.fixedDeltaTime);
+                }
             }
-
-            insideTouches[index]++;
         }
 
-        private void OnTriggerExit(Collider other)
+        private void RefreshBottlesInZone()
         {
-            WaterBottle bottle = other.GetComponentInParent<WaterBottle>();
-            if (bottle == null)
+            insideZone.Clear();
+            if (pourZone == null || !pourZone.enabled || !pourZone.gameObject.activeInHierarchy)
             {
+                pourAccumulator = 0f;
                 return;
             }
 
-            int index = insideZone.IndexOf(bottle);
-            if (index < 0)
+            // Enter/Exit can be lost on reset, disable or despawn. Query the
+            // actual shape, including sleeping bottles, on the authority.
+            Bounds bounds = pourZone.bounds;
+            int count;
+            while (true)
             {
-                return;
+                count = Physics.OverlapBoxNonAlloc(bounds.center, bounds.extents, overlaps,
+                    Quaternion.identity, Physics.AllLayers, QueryTriggerInteraction.Ignore);
+                if (count < overlaps.Length) break;
+                Array.Resize(ref overlaps, overlaps.Length * 2);
             }
 
-            insideTouches[index]--;
-            if (insideTouches[index] > 0)
+            for (int i = 0; i < count; i++)
             {
-                return;
+                Collider other = overlaps[i];
+                overlaps[i] = null;
+                WaterBottle bottle = other.GetComponentInParent<WaterBottle>();
+                if (bottle == null || bottle.IsGone || bottle.Team != team || insideZone.Contains(bottle))
+                    continue;
+
+                // Bounds are only the broad phase: rotated zones must not
+                // accept bottles in the empty corners of their world AABB.
+                if (Physics.ComputePenetration(pourZone, pourZone.transform.position, pourZone.transform.rotation,
+                    other, other.transform.position, other.transform.rotation, out _, out _))
+                    insideZone.Add(bottle);
             }
 
-            RemoveFromZone(index);
-
-            // Вынесли на середине — накопленная доля единицы пропадает
-            // вместе с попыткой, а не ждёт следующего захода.
-            pourAccumulator = 0f;
-        }
-
-        private void RemoveFromZone(int index)
-        {
-            insideZone.RemoveAt(index);
-            insideTouches.RemoveAt(index);
+            if (insideZone.Count == 0) pourAccumulator = 0f;
         }
 
         /// <summary>
@@ -220,36 +220,6 @@ namespace Igruha.Minigames.CarryItem
 
             water = Mathf.Max(0, value);
             ApplyLevelVisual();
-        }
-
-        private void Update()
-        {
-            // Слив — потеря воды и прибавка к счёту разом, то есть исход раунда.
-            // Считает его только авторитет: у клиента зона бака та же, и без
-            // этой проверки каждая машина долила бы свою порцию.
-            if (config == null || insideZone.Count == 0 || !WorldAuthority.HasAuthority)
-            {
-                return;
-            }
-
-            for (int i = insideZone.Count - 1; i >= 0; i--)
-            {
-                WaterBottle bottle = insideZone[i];
-                if (bottle == null || bottle.IsGone)
-                {
-                    RemoveFromZone(i);
-                    continue;
-                }
-
-                // Чужую тару бак не принимает: иначе донести соперника до своего
-                // бака было бы выгоднее, чем нести своё.
-                if (bottle.Team != team)
-                {
-                    continue;
-                }
-
-                Pour(bottle, Time.deltaTime);
-            }
         }
 
         /// <summary>
@@ -303,7 +273,7 @@ namespace Igruha.Minigames.CarryItem
             int index = insideZone.IndexOf(bottle);
             if (index >= 0)
             {
-                RemoveFromZone(index);
+                insideZone.RemoveAt(index);
             }
 
             pourAccumulator = 0f;

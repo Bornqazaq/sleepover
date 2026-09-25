@@ -91,9 +91,17 @@ namespace Igruha.EditorTools
                     web.transform.localScale = Vector3.one * 1.7f;
                 }
             }
+            // Плиты мрамора толще нуля, и положенные НА коллайдер они поднимают
+            // видимый пол над тем, по которому ходит персонаж: подошвы, а в
+            // танцах и ладони с коленями, оказываются в полу (замер 21.09 —
+            // 3.3 см). Садим пол на коллайдер, оставив 2 мм, чтобы мрамор и
+            // тёмный раствор под ним не мерцали совпавшими поверхностями.
+            SitOnFloor(paving, floor, PavingClearance);
+
             var pedestal = arena.Find("Pedestal");
             pedestal.GetComponent<Renderer>().enabled = false;
-            CryingAngelsGalleryAssets.Place("CA_KeeperDais", gallery.transform, Vector3.zero, Quaternion.identity);
+            var dais = CryingAngelsGalleryAssets.Place("CA_KeeperDais", gallery.transform, Vector3.zero, Quaternion.identity);
+            SitOnFloor(dais.transform, pedestal, PavingClearance);
             foreach (Transform wall in arena.Find("Wall")) wall.GetComponent<Renderer>().enabled = false;
             SetupLighting(scene, gallery.transform, radius);
             SetupAtmosphere(gallery.transform, radius);
@@ -416,6 +424,25 @@ namespace Igruha.EditorTools
             light.type=type; light.transform.localPosition=position; light.color=color; light.intensity=intensity;
             return light;
         }
+        /// <summary>Зазор между видимой поверхностью и коллайдером, м: меньше — мерцает, больше — видно ступеньку.</summary>
+        private const float PavingClearance = .002f;
+
+        /// <summary>
+        /// Опустить положенный арт так, чтобы его верх сел на коллайдер, по
+        /// которому персонаж ходит. Модели из Blender имеют собственную
+        /// толщину, и положенные «на пол» они поднимают видимую поверхность
+        /// над физической.
+        /// </summary>
+        private static void SitOnFloor(Transform art, Transform floor, float clearance)
+        {
+            var renderers = art.GetComponentsInChildren<Renderer>();
+            if (renderers.Length == 0) return;
+            float top = float.MinValue;
+            foreach (var renderer in renderers) top = Mathf.Max(top, renderer.bounds.max.y);
+            float surface = floor.GetComponent<Collider>().bounds.max.y;
+            art.position += Vector3.up * (surface + clearance - top);
+        }
+
         private static Transform Group(Transform parent,string name)
         {
             var go=new GameObject(name);go.transform.SetParent(parent,false);return go.transform;
