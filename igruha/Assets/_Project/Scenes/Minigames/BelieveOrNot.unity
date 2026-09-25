@@ -28353,7 +28353,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -7511558181221131132, guid: e72650868ffd741858393405a3e3bfd8, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
-      value: 
+      value:
       objectReference: {fileID: 2100000, guid: 00e20a70d86d24051a0e6377a5a19b98, type: 2}
     - target: {fileID: 919132149155446097, guid: e72650868ffd741858393405a3e3bfd8, type: 3}
       propertyPath: m_Name
@@ -63547,7 +63547,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7ab0863a1ef86b34fb810c5c28ccfc6e, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.UI.EmoteWheelSlot
   background: {fileID: 1763213682}
   label: {fileID: 2131974238}
@@ -63566,7 +63566,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
   m_Color: {r: 0.055, g: 0.063, b: 0.086, a: 0.86}
