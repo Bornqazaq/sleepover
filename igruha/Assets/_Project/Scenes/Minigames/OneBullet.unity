@@ -29644,7 +29644,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4288470015
+    rgba: 4294967295
   m_fontColor: {r: 1, g: 0.86, b: 0.61, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -29657,7 +29657,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: -1183493901
+  m_TextStyleHashCode: 0
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -31769,20 +31769,10 @@ MonoBehaviour:
   output: {fileID: 1753238434}
   gunSource: {fileID: 69648330}
   reticle: {fileID: 2015294522}
-  roster: {fileID: 11400000, guid: e3b6a37137cf96c419aef650157ec842, type: 2}
-  armPrefabs:
-  - {fileID: 7502797678248389934, guid: 900f28c2107db48c08b7992f494f2908, type: 3}
-  - {fileID: 1720129199317980735, guid: c3120c80b1a7640188fde03781a281b8, type: 3}
-  - {fileID: 3675017112549712372, guid: 98da0898075654a158aa0a0ca48a4359, type: 3}
-  - {fileID: 7593380415213257155, guid: 77a2479a840804747aaad813a90f0ec5, type: 3}
-  - {fileID: 6197835055369474895, guid: 9a14f64de651a4277bdd27361e183c7a, type: 3}
-  - {fileID: 3166230408041311424, guid: 8d4b609746904455e8559393e3bcd579, type: 3}
-  - {fileID: 5050480295716505575, guid: f75944f6c3169406bb0439895ef9732c, type: 3}
-  - {fileID: 787341607702781349, guid: 49331d925289d4aea9a727e7ca809c7a, type: 3}
   hipFieldOfView: 72
   aimFieldOfView: 48
   aimSpeed: 7
-  hipPosition: {x: 0.17, y: -0.16, z: 0.46}
+  hipPosition: {x: 0.17, y: -0.22, z: 0.46}
   aimPosition: {x: 0, y: -0.094, z: 0.46}
 --- !u!1 &871839302
 GameObject:
@@ -41499,7 +41489,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: -1183493901
+  m_TextStyleHashCode: 0
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -44768,7 +44758,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: -1183493901
+  m_TextStyleHashCode: 0
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -51377,7 +51367,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: -1183493901
+  m_TextStyleHashCode: 0
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -60589,7 +60579,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: -1183493901
+  m_TextStyleHashCode: 0
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -64843,7 +64833,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4291284146
+    rgba: 4294967295
   m_fontColor: {r: 0.7, g: 0.8, b: 0.78, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -64856,7 +64846,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: -1183493901
+  m_TextStyleHashCode: 0
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -69025,7 +69015,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1750013276}
   - component: {fileID: 1750013277}
-  - component: {fileID: 1750013278}
   m_Layer: 0
   m_Name: RuinSun
   m_TagString: Untagged
@@ -69113,35 +69102,6 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
---- !u!114 &1750013278
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1750013275}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
-  m_UsePipelineSettings: 1
-  m_AdditionalLightsShadowResolutionTier: 2
-  m_CustomShadowLayers: 0
-  m_LightCookieSize: {x: 1, y: 1}
-  m_LightCookieOffset: {x: 0, y: 0}
-  m_SoftShadowQuality: 0
-  m_RenderingLayersMask:
-    serializedVersion: 0
-    m_Bits: 1
-  m_ShadowRenderingLayersMask:
-    serializedVersion: 0
-    m_Bits: 1
-  m_Version: 4
-  m_LightLayerMask: 1
-  m_ShadowLayerMask: 1
-  m_RenderingLayers: 1
-  m_ShadowRenderingLayers: 1
 --- !u!1001 &1750090084
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -79402,7 +79362,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4290636031
+    rgba: 4294967295
   m_fontColor: {r: 1, g: 0.91, b: 0.74, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -79415,7 +79375,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: -1183493901
+  m_TextStyleHashCode: 0
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
