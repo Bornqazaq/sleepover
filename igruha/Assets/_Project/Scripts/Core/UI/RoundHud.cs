@@ -41,6 +41,7 @@ namespace Igruha.Core.UI
         [SerializeField] private ResultRow[] resultRows = Array.Empty<ResultRow>();
         [Tooltip("Заголовок панели: «Итоги раунда» или «Итоги катки». Пусто — берётся текст «Title» внутри панели")]
         [SerializeField] private TMP_Text resultsTitle;
+        [SerializeField] private RoundResultsView resultsView;
 
         [Header("Оформление")]
         [Tooltip("Появление цифры отсчёта. Не назначено — цифра просто меняется")]
@@ -58,6 +59,11 @@ namespace Igruha.Core.UI
 
         private readonly PanelCursor resultsCursor = new PanelCursor();
         private RoundTimer timer;
+        private RectTransform statusRect;
+        private bool practiceLayout;
+        private static readonly Vector2 PracticeStatusAnchor = new Vector2(1, 1), RoundStatusAnchor = new Vector2(.5f, 1);
+        private static readonly Vector2 PracticeStatusPosition = new Vector2(-44, -128), RoundStatusPosition = new Vector2(0, -128);
+        private static readonly Vector2 PracticeStatusSize = new Vector2(840, 104), RoundStatusSize = new Vector2(1100, 104);
         private int lastShownSeconds = -1;
         private int lastShownCountdown = -1;
 
@@ -76,6 +82,7 @@ namespace Igruha.Core.UI
 
         private void Awake()
         {
+            statusRect = statusPlate != null ? statusPlate.transform as RectTransform : null;
             // Панель собрана билдером с заголовком, но ссылки на него у HUD не
             // было. Ищем один раз по имени, чтобы не пересобирать десять сцен.
             if (resultsTitle == null && resultsPanel != null)
@@ -239,6 +246,14 @@ namespace Igruha.Core.UI
 
         private void Update()
         {
+            bool practice = MinigameControllerBase.Current != null && MinigameControllerBase.Current.IsPractice;
+            if (practice != practiceLayout && statusRect != null)
+            {
+                practiceLayout = practice;
+                statusRect.anchorMin = statusRect.anchorMax = statusRect.pivot = practice ? PracticeStatusAnchor : RoundStatusAnchor;
+                statusRect.anchoredPosition = practice ? PracticeStatusPosition : RoundStatusPosition;
+                statusRect.sizeDelta = practice ? PracticeStatusSize : RoundStatusSize;
+            }
             if (timer == null || timerText == null)
             {
                 return;
@@ -261,6 +276,13 @@ namespace Igruha.Core.UI
         {
             if (resultsPanel == null)
             {
+                return;
+            }
+
+            if (resultsView != null)
+            {
+                resultsView.Show(results, players);
+                OpenResultsPanel(restartAllowed);
                 return;
             }
 
@@ -291,6 +313,13 @@ namespace Igruha.Core.UI
                 return;
             }
 
+            if (resultsView != null)
+            {
+                resultsView.ShowStandings(standings, players, champions);
+                OpenResultsPanel(false);
+                return;
+            }
+
             SetTitle(SeriesTitleFor(standings));
 
             if (resultRows.Length > 0)
@@ -304,6 +333,9 @@ namespace Igruha.Core.UI
 
             OpenResultsPanel(false);
         }
+
+        public void ConfigureResults(MinigameControllerBase game, float seconds, string destination, bool hostOnly) =>
+            resultsView?.Configure(game, seconds, destination, hostOnly);
 
         private void OpenResultsPanel(bool restartVisible)
         {

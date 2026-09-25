@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
 using Igruha.Core.Minigame;
@@ -208,20 +209,10 @@ namespace Igruha.Networking
             }
 
             var entries = results.Entries;
-            var ids = new int[entries.Count];
-            var places = new int[entries.Count];
-            var points = new int[entries.Count];
-            var totals = new int[entries.Count];
-
-            for (int i = 0; i < entries.Count; i++)
-            {
-                ids[i] = entries[i].PlayerId;
-                places[i] = entries[i].Place;
-                points[i] = entries[i].Points;
-                totals[i] = entries[i].Total;
-            }
-
-            ApplyResultsRpc(ids, places, points, totals, results.PlayerCount, results.CountsTowardSession, seriesFinal);
+            var payload = new NetworkRoundResult[entries.Count];
+            for (int i = 0; i < entries.Count; i++) payload[i] = new NetworkRoundResult(entries[i]);
+            ApplyResultsRpc(payload, results.PlayerCount, results.CountsTowardSession, seriesFinal,
+                new FixedString64Bytes(results.MetricTitle), results.AreTeams);
         }
 
         // ========== КЛИЕНТ ПРИМЕНЯЕТ ==========
@@ -239,17 +230,16 @@ namespace Igruha.Networking
 
         /// <summary>Хост уже показал итоги локально, поэтому шлём только остальным.</summary>
         [Rpc(SendTo.NotServer)]
-        private void ApplyResultsRpc(int[] ids, int[] places, int[] points, int[] totals, int playerCount,
-                                     bool countsTowardSession, bool seriesFinal)
+        private void ApplyResultsRpc(NetworkRoundResult[] payload, int playerCount,
+                                     bool countsTowardSession, bool seriesFinal, FixedString64Bytes metricTitle, bool areTeams)
         {
             incoming.Reset();
             incoming.PlayerCount = playerCount;
             incoming.CountsTowardSession = countsTowardSession;
-            int count = Mathf.Min(Mathf.Min(ids.Length, places.Length), Mathf.Min(points.Length, totals.Length));
-            for (int i = 0; i < count; i++)
-            {
-                incoming.Add(ids[i], places[i], points[i], totals[i]);
-            }
+            incoming.MetricTitle = metricTitle.ToString();
+            incoming.AreTeams = areTeams;
+            foreach (var entry in payload)
+                incoming.Add(entry.PlayerId, entry.Place, entry.Points, entry.Total, entry.Detail);
 
             target?.ApplyResults(incoming, seriesFinal);
         }

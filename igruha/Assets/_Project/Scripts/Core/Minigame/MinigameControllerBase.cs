@@ -95,6 +95,10 @@ namespace Igruha.Core.Minigame
         /// <summary>Сколько секунд висит таблица катки до отъезда в хаб.</summary>
         public float FinalStandingsSeconds => finalStandingsSeconds;
 
+        public virtual string ResultMetricTitle => "РЕЗУЛЬТАТ";
+        public virtual bool ResultsAreTeams => false;
+        public virtual RoundResultDetail GetResultDetail(int playerId) => new RoundResultDetail("—");
+
         /// <summary>
         /// Мини-игра текущей сцены. Пусто — сцена без мини-игры, то есть хаб.
         /// По этому и различает свои две роли кнопка «Выход» на паузе: из
@@ -559,6 +563,10 @@ namespace Igruha.Core.Minigame
                 ? definition.SceneName
                 : gameObject.scene.name;
             CollectResults(results);
+            results.MetricTitle = ResultMetricTitle;
+            results.AreTeams = ResultsAreTeams;
+            for (int i = 0; i < results.Entries.Count; i++)
+                results.SetDetail(i, GetResultDetail(results.Entries[i].PlayerId));
 
             ISessionScoreboard session = SessionScoreboard.Current;
             int rosterCount = session != null ? session.Players.Count : playerList.Count;
@@ -732,6 +740,7 @@ namespace Igruha.Core.Minigame
 
             standings.Rebuild(session);
             FinalStandingsReported?.Invoke(standings);
+            hud?.ConfigureResults(this, finalStandingsSeconds, "Возврат в хаб", false);
             hud?.ShowFinalStandings(standings, session.Players, session.Champions);
             LogStandingsForComparison(session);
         }
@@ -780,6 +789,8 @@ namespace Igruha.Core.Minigame
             // катке сцену перезагружает сервер, клиент за собой её утащить
             // не может.
             hud?.SetRestartAvailable(HasAuthority && !PartySeries.Active);
+            string next = seriesFinal ? "Итоги катки" : finalResults.CountsTowardSession ? "Следующая игра" : "Возврат в хаб";
+            hud?.ConfigureResults(this, resultsDisplaySeconds, next, !HasAuthority && !finalResults.CountsTowardSession);
             hud?.ShowResults(finalResults, playerList);
         }
 
