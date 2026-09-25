@@ -829,6 +829,17 @@ namespace Igruha.Minigames.CarryItem
         ///
         /// Считает только сервер — клиенту приедут готовые места.
         /// </summary>
+        public override string ResultMetricTitle => "ВОДА";
+        public override bool ResultsAreTeams => true;
+        public override RoundResultDetail GetResultDetail(int playerId)
+        {
+            TeamSide side = TeamOfPlayer(playerId);
+            if (side == TeamSide.None) return new RoundResultDetail("—", "Вышел из раунда");
+            bool a = side == TeamSide.A;
+            return new RoundResultDetail((a ? state.TeamA.Water : state.TeamB.Water).ToString(),
+                a ? "КОМАНДА А" : "КОМАНДА Б", a ? new Color(.18f, .52f, .78f) : new Color(.88f, .37f, .24f));
+        }
+
         protected override void CollectResults(MinigameResults results)
         {
             rankingBuffer.Clear();

@@ -1,3 +1,4 @@
+using Igruha.Core.UI;
 using System.Collections.Generic;
 using UnityEngine;
 using Igruha.Core.CameraSystems;
@@ -2749,6 +2750,14 @@ namespace Igruha.Minigames.CansOrder
         /// (600 с в <c>MinigameDefinition</c>) — тогда их разводит компаратор
         /// по правилу 6.5, а полное равенство оставляет им общее место.
         /// </summary>
+        public override string ResultMetricTitle => "ПОПЫТКИ";
+        public override RoundResultDetail GetResultDetail(int playerId)
+        {
+            var contestant = Find(playerId);
+            return contestant != null ? new RoundResultDetail(contestant.Entry.Attempts.ToString(),
+                contestant.Entry.Alive ? "Продержался до конца" : "Выбыл") : new RoundResultDetail("—", "Вышел из раунда");
+        }
+
         protected override void CollectResults(MinigameResults results)
         {
             // Матч мог кончиться, не дойдя до створок: например, ушли все,

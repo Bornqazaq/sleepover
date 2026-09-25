@@ -30,6 +30,8 @@ namespace Igruha.EditorTools
                 if (SceneManager.GetSceneAt(i).isDirty)
                     throw new InvalidOperationException("Save the open scene before styling all minigames.");
 
+            UnifiedResultsBuilder.BuildPrefab();
+            UnifiedPauseMenuBuilder.BuildPrefab();
             var setup = EditorSceneManager.GetSceneManagerSetup();
             try
             {
@@ -60,8 +62,10 @@ namespace Igruha.EditorTools
 
         public static void Apply(Scene scene)
         {
+            UnifiedPauseMenuBuilder.Install(scene);
             foreach (GameObject root in scene.GetRootGameObjects())
                 foreach (RoundHud hud in root.GetComponentsInChildren<RoundHud>(true)) Apply(hud);
+            UnifiedGamePanels.Apply(scene);
         }
 
         private static void Apply(RoundHud hud)
@@ -95,8 +99,20 @@ namespace Igruha.EditorTools
                 caption.characterSpacing = 2f;
                 Center(caption.rectTransform, new Vector2(0f, 25f), new Vector2(TimerWidth - 24f, 20f));
             }
-            if (statusPlate != null) data.FindProperty("statusPlate").objectReferenceValue = statusPlate.gameObject;
+            if (statusPlate != null)
+            {
+                data.FindProperty("statusPlate").objectReferenceValue = statusPlate.gameObject;
+                var rect = statusPlate.rectTransform;
+                rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(.5f, 1f);
+                rect.anchoredPosition = new Vector2(0, -128f);
+                rect.sizeDelta = new Vector2(1100f, 104f);
+                status.rectTransform.anchorMin = Vector2.zero; status.rectTransform.anchorMax = Vector2.one;
+                status.rectTransform.offsetMin = new Vector2(24, 10); status.rectTransform.offsetMax = new Vector2(-24, -10);
+                status.textWrappingMode = TextWrappingModes.Normal;
+                status.enableAutoSizing = true; status.fontSizeMin = 20; status.fontSizeMax = BodySize;
+            }
             data.ApplyModifiedPropertiesWithoutUndo();
+            UnifiedResultsBuilder.Apply(hud);
         }
 
         private static TMP_FontAsset Require(TMP_FontAsset font)

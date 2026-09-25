@@ -1,3 +1,4 @@
+using Igruha.Core.UI;
 using System.Collections.Generic;
 using UnityEngine;
 using Igruha.Core.CameraSystems;
@@ -1286,6 +1287,14 @@ namespace Igruha.Minigames.Exam
             Debug.Log($"📚 [Экзамен] матч окончен: {reason}", this);
             stageState?.StopSequence();
             EndMinigame();
+        }
+
+        public override string ResultMetricTitle => "БАЛЛЫ";
+        public override RoundResultDetail GetResultDetail(int playerId)
+        {
+            foreach (var entry in entries) if (entry.PlayerId == playerId)
+                return new RoundResultDetail(entry.Score.ToString(), $"Верных ответов: {entry.CorrectAnswers}");
+            return new RoundResultDetail("—", "Вышел из раунда");
         }
 
         protected override void CollectResults(MinigameResults results) => ExamRanking.Fill(entries, results);

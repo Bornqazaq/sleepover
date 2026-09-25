@@ -1,4 +1,5 @@
 using Igruha.Core.Minigame;
+using Igruha.Core.UI;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -14,11 +15,23 @@ namespace Igruha.Minigames.OneBullet
         [SerializeField] private Image progress, accent;
         private int shown = int.MinValue;
         private const float FadeSpeed = 6f, PulseSpeed = 5f;
-        private static readonly Color Gold = new Color(1f, .76f, .36f);
-        private static readonly Color Pale = new Color(1f, .92f, .72f);
+        private static readonly Color Gold = MinigameUiStyle.Accent;
+        private static readonly Color Pale = MinigameUiStyle.Paper;
+
+        private RectTransform panel;
+        private bool practiceLayout;
+        private static readonly Vector2 PracticeAnchor = new Vector2(1, 1), RoundAnchor = new Vector2(.5f, 0);
+        private static readonly Vector2 PracticePosition = new Vector2(-44, -254), RoundPosition = new Vector2(0, 28);
+        private void Awake() => panel = (RectTransform)visibility.transform;
 
         private void Update()
         {
+            if (practiceLayout != game.IsPractice)
+            {
+                practiceLayout = game.IsPractice;
+                panel.anchorMin = panel.anchorMax = panel.pivot = practiceLayout ? PracticeAnchor : RoundAnchor;
+                panel.anchoredPosition = practiceLayout ? PracticePosition : RoundPosition;
+            }
             bool visible = game.GameplayActive && !game.LocalArmed;
             visibility.alpha = Mathf.MoveTowards(visibility.alpha, visible ? 1 : 0, Time.unscaledDeltaTime * FadeSpeed);
             if (!visible) { shown = int.MinValue; return; }
