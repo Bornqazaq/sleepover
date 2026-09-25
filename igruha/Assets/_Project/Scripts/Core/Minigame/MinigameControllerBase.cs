@@ -190,7 +190,7 @@ namespace Igruha.Core.Minigame
             // При повторе неготовый участник мог отключиться во время загрузки.
             // Если все оставшиеся уже готовы, нового клика для старта не требуется.
             if (practiceSession && tutorialReadiness.AllReady && !restartPending)
-                StartCoroutine(ReloadTutorialArena(true));
+                BeginArenaReload(true);
         }
 
         /// <summary>
@@ -457,7 +457,7 @@ namespace Igruha.Core.Minigame
         {
             tutorialBridge?.PublishTutorialReadiness(TutorialParticipants);
             RefreshTutorialReadiness();
-            if (tutorialReadiness.AllReady && !restartPending) StartCoroutine(ReloadTutorialArena(true));
+            if (tutorialReadiness.AllReady && !restartPending) BeginArenaReload(true);
         }
 
         private void RefreshTutorialReadiness()
@@ -486,16 +486,24 @@ namespace Igruha.Core.Minigame
             for (int i = 0; i < TutorialParticipants.Count; i++)
             {
                 if (TutorialParticipants[i].PlayerId != playerId) continue;
-                StartCoroutine(ReloadTutorialArena(false));
+                BeginArenaReload(false);
                 return;
             }
         }
 
-        private IEnumerator ReloadTutorialArena(bool scoredRound)
+        private void BeginArenaReload(bool scoredRound)
         {
             restartPending = true;
-            string path = gameObject.scene.path;
+            // OnRoundEnded у некоторых игр останавливает все их корутины.
+            // Сначала завершаем практику, затем запускаем переход, чтобы игра
+            // не отменила его изнутри первого же MoveNext.
             GoToPhase(MinigamePhase.PreparingRound);
+            StartCoroutine(ReloadTutorialArena(scoredRound));
+        }
+
+        private IEnumerator ReloadTutorialArena(bool scoredRound)
+        {
+            string path = gameObject.scene.path;
             // Завершить текущий сетевой кадр перед выгрузкой контроллера.
             yield return null;
             if (scoredRound) preparedRoundScene = path;
