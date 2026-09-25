@@ -59,6 +59,7 @@ namespace Igruha.EditorTools
             OneBulletArenaBuilder.Set(component, "rig", rig);
             OneBulletArenaBuilder.Set(component, "output", camera);
             OneBulletArenaBuilder.Set(component, "gunSource", gun);
+            OneBulletViewArmsBuilder.Configure(component);
             OneBulletArenaBuilder.Set(rig, "fieldOfView", 72f);
             OneBulletArenaBuilder.Set(rig, "eyeDropFromTop", OneBulletMinigame.EyeDrop);
             OneBulletArenaBuilder.Set(rig, "maxTurnSpeed", 0f);
@@ -85,7 +86,7 @@ namespace Igruha.EditorTools
             }
             OneBulletWeaponHudBuilder.Configure(view, game, group.transform.parent);
             var pose = new SerializedObject(component);
-            pose.FindProperty("hipPosition").vector3Value = new Vector3(.17f, -.22f, .46f);
+            pose.FindProperty("hipPosition").vector3Value = new Vector3(.17f, -.16f, .46f);
             pose.FindProperty("aimPosition").vector3Value = new Vector3(0, -.094f, .46f);
             pose.ApplyModifiedPropertiesWithoutUndo();
             var layout = OneBulletArenaBuilder.ReadLayout();

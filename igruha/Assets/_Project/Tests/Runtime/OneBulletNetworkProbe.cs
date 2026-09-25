@@ -17,6 +17,7 @@ namespace Igruha.Tests
         private Igruha.Core.CameraSystems.FirstPersonCameraRig firstPersonRig;
         private OneBulletFirstPerson firstPerson;
         private bool checkedView;
+        private OneBulletHandsProbe hands;
         private float createdAt, nextLog;
         private double moveUntil;
         private Vector3 moveTarget;
@@ -42,6 +43,7 @@ namespace Igruha.Tests
                 game=current; relay=game.GetComponent<OneBulletNetwork>();
                 firstPersonRig=Object.FindFirstObjectByType<Igruha.Core.CameraSystems.FirstPersonCameraRig>(FindObjectsInactive.Include);
                 firstPerson=Object.FindFirstObjectByType<OneBulletFirstPerson>();
+                if(scenario=="hands") { hands=game.gameObject.AddComponent<OneBulletHandsProbe>(); hands.Initialize(game,firstPerson,firstPersonRig); }
                 game.Shot+=(a,b,c)=>{shots++;Debug.Log("ONE_BULLET shot="+shots+" hit="+c);};
                 game.Died+=(id,p)=>{deaths++;Debug.Log("ONE_BULLET death="+id);};
                 game.PickedUp+=id=>{pickups++;Debug.Log("ONE_BULLET pickup="+id);};
@@ -58,6 +60,7 @@ namespace Igruha.Tests
             if(game.Phase==MinigamePhase.Results&&!loggedFinal)
             {
                 loggedFinal=true;
+                hands?.Report();
                 Debug.Log("ONE_BULLET FINAL alive="+game.Round.AliveCount+" winner="+game.Round.Winner+" shots="+shots+" deaths="+deaths+" pickups="+pickups);
                 if(scenario=="disconnect")
                 {
@@ -78,6 +81,7 @@ namespace Igruha.Tests
             local.Input.EngageAutopilot();local.Input.DriveMove(Vector2.zero);
             double now=NetworkClock.Now, t=now-game.Round.BeginsAt;
             int id=game.LocalId;
+            if(hands!=null && hands.Step(t,local)) return;
             // Keep idle test players away from all random weapon locations.
             if((id==0&&t<17)||(id>1&&t<20))
                 local.Motor.TeleportTo(new Vector3(-14.4f, .1f, id==0?-19.2f:-14.4f),Quaternion.identity);

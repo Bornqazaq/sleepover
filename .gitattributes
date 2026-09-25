@@ -68,3 +68,6 @@ igruha/Assets/_Project/Art/DuckHuntBarn/Meshes/*.asset filter=lfs diff=lfs merge
 
 # Reproducible One Bullet stone/paving batches.
 igruha/Assets/_Project/Art/Minigames/OneBullet/Geometry/*.asset filter=lfs diff=lfs merge=lfs -text
+
+# Reproducible first-person arm meshes extracted from the character roster.
+igruha/Assets/_Project/Art/Minigames/OneBullet/ViewArms/*.asset filter=lfs diff=lfs merge=lfs -text
