@@ -30,6 +30,8 @@ namespace Igruha.Core.UI
         [SerializeField] private TMP_Text countdownText;
         [Tooltip("Строка состояния роли: обойма стрелка, число жизней, текущая цель. Не назначена — строка просто не показывается")]
         [SerializeField] private TMP_Text statusText;
+        [Tooltip("Подложка состояния. Скрывается вместе с текстом, чтобы не оставлять пустую плашку")]
+        [SerializeField] private GameObject statusPlate;
         [Tooltip("Кнопка «ещё раз» на экране результатов. Не назначена — кнопки просто нет, остальные сцены править не надо")]
         [SerializeField] private Button restartButton;
         [SerializeField] private ThirdPersonCameraRig resultsCamera;
@@ -125,6 +127,7 @@ namespace Igruha.Core.UI
             resultsCursor.Restore();
             resultsCamera?.SetLookSuspended(false);
             timer = roundTimer;
+            lastShownSeconds = -1;
             SetTimerPlateVisible(true);
             if (resultsPanel != null)
             {
@@ -194,10 +197,12 @@ namespace Igruha.Core.UI
 
             statusText.text = status;
             statusText.gameObject.SetActive(!string.IsNullOrEmpty(status));
+            if (statusPlate != null) statusPlate.SetActive(!string.IsNullOrEmpty(status));
         }
 
         public void HideStatus()
         {
+            if (statusPlate != null) statusPlate.SetActive(false);
             if (statusText != null)
             {
                 statusText.gameObject.SetActive(false);
@@ -248,7 +253,7 @@ namespace Igruha.Core.UI
             lastShownSeconds = seconds;
             int minutes = seconds / 60;
             timerText.text = $"{minutes}:{seconds % 60:00}";
-            timerText.color = seconds <= criticalSeconds ? UiSkin.Danger : UiSkin.TextPrimary;
+            timerText.color = seconds <= criticalSeconds ? MinigameUiStyle.Urgent : MinigameUiStyle.OnDark;
         }
 
         /// <summary>Итоги раунда: место, имя, очки за раунд и сумма катки.</summary>
@@ -305,6 +310,9 @@ namespace Igruha.Core.UI
             // Матчевый таймер на итогах продолжал идти под затемнением и тянул
             // взгляд с мест на себя: раунд уже кончился, а секунды всё бегут.
             SetTimerPlateVisible(false);
+            HideStatus();
+            HideCountdown();
+            HideSpectatorTarget();
             resultsPanel.SetActive(true);
             resultsCursor.Release();
             resultsCamera?.SetLookSuspended(true);
