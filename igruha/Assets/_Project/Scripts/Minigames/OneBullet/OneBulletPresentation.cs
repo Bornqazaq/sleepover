@@ -1,6 +1,4 @@
 using UnityEngine;
-using TMPro;
-using Igruha.Core.Minigame;
 
 namespace Igruha.Minigames.OneBullet
 {
@@ -15,13 +13,11 @@ namespace Igruha.Minigames.OneBullet
         [SerializeField] private ParticleSystem impact;
         [SerializeField] private Light muzzleFlash;
         [SerializeField] private LineRenderer pickupRing;
-        [SerializeField] private TMP_Text weaponStatus;
         private int holder = -1, pickup = -1;
-        private int shownWeaponState = int.MinValue;
         private float tracerUntil;
-        private const float HeldScale = 1.1f, PickupScale = 2f, PalmDrop = .06f;
-        private static readonly Vector3 GripCenter = new Vector3(0, -.075f, -.078f);
-        private const float SpinSpeed = 35f, BobAmplitude = .06f, BobSpeed = 2f;
+        private const float HeldScale = 1f, PickupScale = 1.15f, PalmDrop = .06f;
+        private static readonly Vector3 GripCenter = new Vector3(0, -.067f, -.060f);
+        private const float SpinSpeed = 35f, BobAmplitude = .035f, BobSpeed = 2f;
         private void OnEnable() { game.Changed += Refresh; game.Shot += OnShot; }
         private void OnDisable() { game.Changed -= Refresh; game.Shot -= OnShot; }
         private void Refresh()
@@ -32,18 +28,16 @@ namespace Igruha.Minigames.OneBullet
             pickupLight.enabled = visible && pickup >= 0;
             if (pickupRing != null) pickupRing.enabled = visible && pickup >= 0;
             ammunition.alpha = game.LocalArmed ? 1f : 0f;
-            shownWeaponState = int.MinValue;
         }
         private void LateUpdate()
         {
             tracer.enabled = Time.time < tracerUntil;
             if (muzzleFlash != null) muzzleFlash.enabled = Time.time < tracerUntil;
-            UpdateStatus();
             if (!game.GameplayActive) return;
             if (pickup >= 0)
             {
                 gun.localScale = Vector3.one * PickupScale;
-                gun.position = game.PickupPosition + Vector3.up * (.48f + Mathf.Sin(Time.time * BobSpeed) * BobAmplitude);
+                gun.position = game.PickupPosition + Vector3.up * (.25f + Mathf.Sin(Time.time * BobSpeed) * BobAmplitude);
                 gun.rotation = Quaternion.Euler(0, Time.time * SpinSpeed, -12);
                 pickupLight.transform.position = gun.position + Vector3.up * .3f;
                 if (pickupRing != null) pickupRing.transform.position = game.PickupPosition - Vector3.up * .08f;
@@ -59,17 +53,6 @@ namespace Igruha.Minigames.OneBullet
                     gun.position = grip - gun.rotation * (GripCenter * HeldScale);
                 }
             }
-        }
-        private void UpdateStatus()
-        {
-            if (weaponStatus == null) return;
-            int state = !game.GameplayActive ? -4 : game.LocalArmed ? -3 : game.Round.Holder >= 0 ? -2 :
-                game.Round.Pickup >= 0 ? -1 : Mathf.Max(0, Mathf.CeilToInt((float)(game.Round.SpawnAt - NetworkClock.Now)));
-            if (state == shownWeaponState) return;
-            shownWeaponState = state;
-            weaponStatus.text = state == -4 ? "" : state == -3 ? "ОДИН ПАТРОН. ВЫБИРАЙ МОМЕНТ." :
-                state == -2 ? "ОРУЖИЕ ПОДОБРАНО • СЛУШАЙ ШАГИ" : state == -1 ? "РЕВОЛЬВЕР В ЛАБИРИНТЕ • ИЩИ ЗОЛОТОЕ СВЕЧЕНИЕ" :
-                $"РЕВОЛЬВЕР ПОЯВИТСЯ ЧЕРЕЗ {state} С";
         }
         private void OnShot(Vector3 origin, Vector3 end, bool hit)
         {

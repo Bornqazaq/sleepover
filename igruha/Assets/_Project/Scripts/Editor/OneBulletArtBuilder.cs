@@ -35,9 +35,10 @@ namespace Igruha.EditorTools
             var old=GameObject.Find("_OneBulletArt");if(old!=null)Object.DestroyImmediate(old);
             art=new GameObject("_OneBulletArt").transform;
             stone=new Material[7];floor=new Material[5];
-            for(int i=0;i<stone.Length;i++)stone[i]=Mat("Stone_"+i,new Color(.59f+i*.018f,.55f+i*.017f,.47f+i*.016f));
-            for(int i=0;i<floor.Length;i++)floor[i]=Mat("Paving_"+i,new Color(.64f+i*.02f,.60f+i*.018f,.50f+i*.016f));
-            var mortar=Mat("WarmMortar",new Color(.43f,.405f,.35f));
+            for(int i=0;i<stone.Length;i++)stone[i]=Mat("Stone_"+i,new Color(.69f+i*.014f,.63f+i*.013f,.52f+i*.012f));
+            for(int i=0;i<floor.Length;i++)floor[i]=Mat("Paving_"+i,new Color(.70f+i*.017f,.64f+i*.016f,.52f+i*.015f));
+            OneBulletSurfaceBuilder.Apply(stone);OneBulletSurfaceBuilder.Apply(floor);
+            var mortar=Mat("WarmMortar",new Color(.35f,.32f,.26f));
             var sand=Mat("Sand",new Color(.71f,.62f,.44f));
             var arena=GameObject.Find("_Arena").transform;
             foreach(var renderer in arena.GetComponentsInChildren<MeshRenderer>())
@@ -45,8 +46,9 @@ namespace Igruha.EditorTools
                 bool wall=renderer.name.StartsWith("Wall_");renderer.sharedMaterial=wall?mortar:sand;
                 if(wall)
                 {
-                    var b=renderer.bounds;
-                    Add("__Backing",new Vector3(b.center.x,b.max.y-.04f,b.center.z),Quaternion.identity,new Vector3(b.size.x,.08f,b.size.z),mortar);
+                    var box=renderer.GetComponent<BoxCollider>();
+                    // Copy the authoritative wall volume directly; Renderer.bounds can vary after static batching.
+                    Add("__Backing",renderer.transform.TransformPoint(box.center),renderer.transform.rotation,Vector3.Scale(box.size,renderer.transform.lossyScale),mortar);
                     renderer.enabled=false; // collision volumes are dressed by a separate stone shell
                 }
             }
@@ -98,7 +100,6 @@ namespace Igruha.EditorTools
         private static void WallFace(Vector3 a,Vector3 b,Vector3 inward)
         {
             Vector3 tangent=(b-a).normalized;float length=Vector3.Distance(a,b);var rot=Quaternion.LookRotation(-inward);
-            Add("__Backing",(a+b)*.5f-inward*.5f+Vector3.up*(Top*.5f),rot,new Vector3(length,Top,.15f),Mat("WarmMortar",new Color(.43f,.405f,.35f)));
             int rows=9;
             for(int row=0;row<rows;row++)
             {
@@ -110,7 +111,7 @@ namespace Igruha.EditorTools
                     float height=Top/rows;
                     float next=i==count-1?length:(i+1)*step+((float)random.NextDouble()-.5f)*step*.38f;
                     float width=next-cursor;
-                    var p=a+tangent*(cursor+width*.5f)-inward*(.19f+(float)random.NextDouble()*.01f)+Vector3.up*((row+.5f)*height);
+                    var p=a+tangent*(cursor+width*.5f)-inward*(.12f+(float)random.NextDouble()*.01f)+Vector3.up*((row+.5f)*height);
                     cursor=next;
                     int shade=random.Next(stone.Length);
                     // North-east gallery is a little cooler; the sun still unifies it.
@@ -128,6 +129,18 @@ namespace Igruha.EditorTools
                     float size=.10f+(float)random.NextDouble()*.16f;
                     Add("OB_Stone_"+random.Next(3),p,Quaternion.Euler(0,random.Next(360),random.Next(-12,12)),new Vector3(size,.09f,size*.75f),stone[random.Next(stone.Length)]);
                 }
+            }
+            if(length>3.5f&&random.NextDouble()<.20)
+            {
+                var relief=(a+b)*.5f+inward*.17f;
+                relief.y=Mathf.Clamp(Mathf.Min(relief.x,relief.z)/4.8f,0,2)*1.08f+1.65f;
+                Prop("OB_SunRelief",relief,Quaternion.LookRotation(inward),Vector3.one*.72f);
+            }
+            if(length>2f&&random.NextDouble()<.4)
+            {
+                var shrub=Vector3.Lerp(a,b,.2f+(float)random.NextDouble()*.6f)+inward*.19f;
+                shrub.y=Mathf.Clamp(Mathf.Min(shrub.x,shrub.z)/4.8f,0,2)*1.08f+.06f;
+                Prop("OB_Olive",shrub,Quaternion.Euler(0,random.Next(360),0),Vector3.one*(.7f+(float)random.NextDouble()*.3f));
             }
             if(length>1.6f&&random.NextDouble()<.7)
             {
@@ -147,6 +160,12 @@ namespace Igruha.EditorTools
                 var c=new GameObject("RoomCover_"+i);c.transform.SetParent(cover,false);c.transform.position=p;c.layer=LayerMask.NameToLayer("Cover");
                 if(i==0){var box=c.AddComponent<BoxCollider>();box.center=Vector3.up*1.04f;box.size=new Vector3(.85f,2.08f,.85f);}
                 else{var box=c.AddComponent<BoxCollider>();box.center=Vector3.up*.35f;box.size=new Vector3(1.86f,.7f,1.86f);}
+                var pottery=p+new Vector3(2.38f,.06f,-2.38f);
+                Prop("OB_Amphora",pottery,Quaternion.Euler(0,30+i*70,0),Vector3.one*1.2f);
+                Prop("OB_Amphora",pottery+new Vector3(-.54f,0,-.10f),Quaternion.Euler(0,-25,0),Vector3.one*.75f);
+                Prop("OB_Olive",p+new Vector3(-2.48f,.06f,-2.35f),Quaternion.Euler(0,30,0),Vector3.one*1.35f);
+                var potteryCover=new GameObject("PotteryCover_"+i);potteryCover.transform.SetParent(cover,false);potteryCover.transform.position=pottery;potteryCover.layer=LayerMask.NameToLayer("Cover");
+                var potCollider=potteryCover.AddComponent<CapsuleCollider>();potCollider.radius=.22f;potCollider.height=.69f;potCollider.center=Vector3.up*.345f;
                 Prop("OB_Backpack",p+new Vector3(1.95f,0,1.92f),Quaternion.Euler(0,-35,0),Vector3.one);
                 Prop("OB_Rope",p+new Vector3(1.3f,.02f,2.05f),Quaternion.identity,Vector3.one);
                 Prop("OB_Campfire",p+new Vector3(-1.9f,0,-1.8f),Quaternion.identity,Vector3.one);
@@ -165,10 +184,12 @@ namespace Igruha.EditorTools
         {
             var view=Object.FindFirstObjectByType<OneBulletPresentation>();var so=new SerializedObject(view);
             var old=(Transform)so.FindProperty("gun").objectReferenceValue;var parent=old.parent;Object.DestroyImmediate(old.gameObject);
-            var g=Prop("OB_Revolver",Vector3.zero,Quaternion.identity,Vector3.one*1.6f);g.transform.SetParent(parent,true);g.name="Revolver";g.SetActive(false);
+            var g=Prop("OB_Revolver",Vector3.zero,Quaternion.identity,Vector3.one*1.15f);g.transform.SetParent(parent,true);g.name="Revolver";g.SetActive(false);
             OneBulletArenaBuilder.Set(view,"gun",g.transform);
             var light=(Light)so.FindProperty("pickupLight").objectReferenceValue;
             light.range=2.1f;light.intensity=1.6f;light.shadows=LightShadows.Soft;
+            var lightData=light.GetUniversalAdditionalLightData();
+            OneBulletArenaBuilder.Set(lightData,"m_AdditionalLightsShadowResolutionTier",UniversalAdditionalLightData.AdditionalLightsShadowResolutionTierMedium);
         }
         private static void BuildHud()
         {
@@ -190,19 +211,19 @@ namespace Igruha.EditorTools
             // The template carries auxiliary lamps; the ruin needs one coherent sun.
             foreach(var light in Object.FindObjectsByType<Light>(FindObjectsSortMode.None))
                 if(light.name!="PickupGlow")Object.DestroyImmediate(light.gameObject);
-            var sun=new GameObject("RuinSun").AddComponent<Light>();sun.transform.SetParent(root.transform,false);sun.type=LightType.Directional;sun.transform.rotation=Quaternion.Euler(58,-34,0);
-            sun.color=new Color(1f,.89f,.7f);sun.intensity=2.4f;sun.shadows=LightShadows.Soft;sun.shadowStrength=.8f;sun.shadowBias=.025f;sun.shadowNormalBias=.15f;
-            RenderSettings.sun=sun;RenderSettings.ambientMode=AmbientMode.Trilight;RenderSettings.ambientSkyColor=new Color(.65f,.73f,.83f);RenderSettings.ambientEquatorColor=new Color(.54f,.58f,.65f);RenderSettings.ambientGroundColor=new Color(.42f,.38f,.30f);RenderSettings.ambientIntensity=1;
-            var ambient=new SphericalHarmonicsL2();ambient.AddAmbientLight(new Color(.47f,.50f,.55f));RenderSettings.ambientProbe=ambient;
+            var sun=new GameObject("RuinSun").AddComponent<Light>();sun.transform.SetParent(root.transform,false);sun.type=LightType.Directional;sun.transform.rotation=Quaternion.Euler(53,-34,0);
+            sun.color=new Color(1f,.89f,.7f);sun.intensity=2.8f;sun.shadows=LightShadows.Soft;sun.shadowStrength=1f;sun.shadowBias=.025f;sun.shadowNormalBias=.065f;
+            RenderSettings.sun=sun;RenderSettings.ambientMode=AmbientMode.Trilight;RenderSettings.ambientSkyColor=new Color(.40f,.47f,.57f);RenderSettings.ambientEquatorColor=new Color(.30f,.33f,.38f);RenderSettings.ambientGroundColor=new Color(.23f,.20f,.16f);RenderSettings.ambientIntensity=1;
+            var ambient=new SphericalHarmonicsL2();ambient.AddAmbientLight(new Color(.29f,.33f,.40f));RenderSettings.ambientProbe=ambient;
             RenderSettings.fog=true;RenderSettings.fogMode=FogMode.ExponentialSquared;RenderSettings.fogColor=new Color(.70f,.76f,.79f);RenderSettings.fogDensity=.004f;
             var sky=Mat("Sky",new Color(.53f,.72f,.85f));sky.shader=Shader.Find("Skybox/Procedural");sky.SetColor("_SkyTint",new Color(.5f,.5f,.5f));sky.SetFloat("_AtmosphereThickness",1f);sky.SetFloat("_Exposure",1.3f);sky.SetFloat("_SunSize",.035f);RenderSettings.skybox=sky;
             var volume=root.AddComponent<Volume>();volume.isGlobal=true;volume.priority=30;var path=Root+"RuinVolume.asset";
             var profile=AssetDatabase.LoadAssetAtPath<VolumeProfile>(path);if(profile==null){profile=ScriptableObject.CreateInstance<VolumeProfile>();AssetDatabase.CreateAsset(profile,path);}volume.sharedProfile=profile;
             if(!profile.TryGet<Tonemapping>(out var tone))tone=profile.Add<Tonemapping>(true);tone.mode.Override(TonemappingMode.ACES);
-            if(!profile.TryGet<ColorAdjustments>(out var color))color=profile.Add<ColorAdjustments>(true);color.postExposure.Override(.1f);color.contrast.Override(4);color.saturation.Override(-4);
+            if(!profile.TryGet<ColorAdjustments>(out var color))color=profile.Add<ColorAdjustments>(true);color.postExposure.Override(.1f);color.contrast.Override(12);color.saturation.Override(9);
             if(!profile.TryGet<Bloom>(out var bloom))bloom=profile.Add<Bloom>(true);bloom.intensity.Override(.12f);bloom.threshold.Override(1.25f);
             if(!profile.TryGet<Vignette>(out var vignette))vignette=profile.Add<Vignette>(true);vignette.intensity.Override(.13f);vignette.smoothness.Override(.4f);
-            EditorUtility.SetDirty(profile);var camera=GameObject.Find("_Camera").GetComponentInChildren<Camera>();camera.GetUniversalAdditionalCameraData().renderPostProcessing=true;
+            EditorUtility.SetDirty(profile);var camera=GameObject.Find("_Camera").GetComponentInChildren<Camera>();var data=camera.GetUniversalAdditionalCameraData();data.renderPostProcessing=true;data.antialiasing=AntialiasingMode.SubpixelMorphologicalAntiAliasing;data.antialiasingQuality=AntialiasingQuality.High;
         }
         private static void BuildEffects()
         {
@@ -256,7 +277,7 @@ namespace Igruha.EditorTools
             {
                 var mesh=new Mesh{indexFormat=IndexFormat.UInt32,name=pair.Key};mesh.CombineMeshes(pair.Value.Parts.ToArray(),true,true);
                 string path=Root+"Geometry/"+pair.Key+".asset";var saved=AssetDatabase.LoadAssetAtPath<Mesh>(path);
-                if(saved==null){AssetDatabase.CreateAsset(mesh,path);saved=mesh;}else{EditorUtility.CopySerialized(mesh,saved);EditorUtility.SetDirty(saved);Object.DestroyImmediate(mesh);}
+                if(saved==null){AssetDatabase.CreateAsset(mesh,path);saved=mesh;}else{saved.Clear(false);saved.indexFormat=IndexFormat.UInt32;saved.vertices=mesh.vertices;saved.normals=mesh.normals;saved.tangents=mesh.tangents;saved.uv=mesh.uv;saved.uv2=mesh.uv2;saved.triangles=mesh.triangles;saved.RecalculateBounds();saved.UploadMeshData(false);EditorUtility.SetDirty(saved);Object.DestroyImmediate(mesh);}
                 var g=new GameObject(pair.Key,typeof(MeshFilter),typeof(MeshRenderer));g.transform.SetParent(art,false);g.GetComponent<MeshFilter>().sharedMesh=saved;g.GetComponent<MeshRenderer>().sharedMaterial=pair.Value.Material;g.isStatic=true;
             }
             foreach(var m in meshes.Values)Object.DestroyImmediate(m);meshes.Clear();
@@ -276,7 +297,17 @@ namespace Igruha.EditorTools
             Color c=new Color(.62f,.58f,.49f);float metallic=0,smooth=.17f;
             if(name.Contains("PaleStone"))c=new Color(.76f,.70f,.59f);
             else if(name.Contains("Crevice"))c=new Color(.13f,.13f,.12f);
+            else if(name.Contains("BlueSteel")){c=new Color(.16f,.20f,.23f);metallic=.72f;smooth=.46f;}
+            else if(name.Contains("BurnishedEdge")){c=new Color(.47f,.51f,.53f);metallic=.68f;smooth=.48f;}
+            else if(name.Contains("Walnut")){c=new Color(.34f,.14f,.062f);smooth=.26f;}
+            else if(name.Contains("SightIvory")){c=new Color(.94f,.83f,.57f);smooth=.28f;}
+            else if(name.Contains("Terracotta"))c=new Color(.64f,.27f,.14f);
+            else if(name.Contains("ClayRim"))c=new Color(.81f,.43f,.24f);
+            else if(name.Contains("OliveLeaf"))c=new Color(.32f,.39f,.16f);
+            else if(name.Contains("SageLeaf"))c=new Color(.47f,.51f,.27f);
             else if(name.Contains("OldWood"))c=new Color(.44f,.25f,.12f);
+            else if(name.Contains("RussetLeaf"))c=new Color(.55f,.26f,.13f);
+            else if(name.Contains("DriedGoldLeaf"))c=new Color(.72f,.46f,.22f);
             else if(name.Contains("CopperLeaf"))c=new Color(.55f,.28f,.13f);
             else if(name.Contains("AmberLeaf"))c=new Color(.70f,.43f,.19f);
             else if(name.Contains("Vine"))c=new Color(.29f,.15f,.07f);

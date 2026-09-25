@@ -75,18 +75,19 @@ namespace Igruha.EditorTools
             var ammo = group.transform.Find("Ammo")?.GetComponent<TMP_Text>();
             if (ammo != null)
             {
-                ammo.text = "<size=36>1</size>  /  1\n<size=16>ЛКМ — ВЫСТРЕЛ    ПКМ — ПРИЦЕЛ</size>";
-                ammo.rectTransform.sizeDelta = new Vector2(600, 90);
+                ammo.text = "<size=36>1</size>  /  1\n<size=15>ЛКМ ВЫСТРЕЛ · ПКМ ПРИЦЕЛ</size>";
+                ammo.rectTransform.anchorMin = ammo.rectTransform.anchorMax = new Vector2(1, 0);
+                ammo.rectTransform.pivot = new Vector2(1, 0);
+                ammo.rectTransform.anchoredPosition = new Vector2(-44, 39);
+                ammo.rectTransform.sizeDelta = new Vector2(288, 66);
+                ammo.alignment = TextAlignmentOptions.Right;
+                OneBulletWeaponHudBuilder.ConfigureAmmo(group.transform);
             }
-            Transform previous = group.transform.parent.Find("WeaponStatus");
-            if (previous != null) Object.DestroyImmediate(previous.gameObject);
-            var label = new GameObject("WeaponStatus", typeof(RectTransform)).AddComponent<TextMeshProUGUI>();
-            label.transform.SetParent(group.transform.parent, false);
-            label.rectTransform.anchorMin = label.rectTransform.anchorMax = new Vector2(.5f, .085f);
-            label.rectTransform.sizeDelta = new Vector2(950, 35);
-            label.fontSize = 19; label.alignment = TextAlignmentOptions.Center;
-            label.color = new Color(1, .86f, .61f); label.raycastTarget = false;
-            OneBulletArenaBuilder.Set(view, "weaponStatus", label);
+            OneBulletWeaponHudBuilder.Configure(view, game, group.transform.parent);
+            var pose = new SerializedObject(component);
+            pose.FindProperty("hipPosition").vector3Value = new Vector3(.17f, -.22f, .46f);
+            pose.FindProperty("aimPosition").vector3Value = new Vector3(0, -.094f, .46f);
+            pose.ApplyModifiedPropertiesWithoutUndo();
             var layout = OneBulletArenaBuilder.ReadLayout();
             var points = new SerializedObject(game).FindProperty("weaponSpawns");
             for (int i = 0; i < points.arraySize; i++)
@@ -96,13 +97,13 @@ namespace Igruha.EditorTools
             var ring = new GameObject("PickupRing").AddComponent<LineRenderer>();
             ring.transform.SetParent(view.transform, false);
             ring.useWorldSpace = false; ring.loop = true; ring.positionCount = 64;
-            ring.startWidth = ring.endWidth = .024f;
+            ring.startWidth = ring.endWidth = .018f;
             ring.alignment = LineAlignment.TransformZ;
             ring.transform.rotation = Quaternion.Euler(90, 0, 0);
             for (int i = 0; i < 64; i++)
             {
                 float angle = i * Mathf.PI * 2f / 64;
-                ring.SetPosition(i, new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0) * .48f);
+                ring.SetPosition(i, new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0) * .30f);
             }
             var material = AssetDatabase.LoadAssetAtPath<Material>(MaterialPath);
             if (material == null)

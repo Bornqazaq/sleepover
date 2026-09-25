@@ -106,17 +106,6 @@ for row in range(2):
   o=box('WellStone',(math.cos(a)*.83,math.sin(a)*.83,.2+row*.34),(.43,.32,.32),pale if (i+row)%4==0 else stone,.045)
   o.rotation_euler.z=a+math.pi*.5
 finish('OB_Well')
-# Wall vine: three hanging stems, smaller tendrils and copper leaves.
-for branch in range(4):
- pts=[];x0=(branch-1.5)*.24
- for j in range(12):pts.append((x0+.13*math.sin(j*.7+branch),.035*math.sin(j),2.5-j*.22))
- tube('ClimbingVine',pts,.018,stem)
- for j in range(1,11):
-  x,y,z=pts[j];side=(-1)**(j+branch)
-  tube('Tendril',[(x,y,z),(x+side*.14,y-.025,z+.09),(x+side*.25,y,z+.12)],.009,stem)
-  m=bpy.data.meshes.new('Leaf');m.from_pydata([(x+side*.09,y-.018,z+.03),(x+side*.20,y-.08,z+.015),(x+side*.31,y-.04,z+.17),(x+side*.18,y+.005,z+.20)],[],[(0,1,2),(0,2,3)])
-  o=bpy.data.objects.new('CopperLeaf',m);scene.collection.objects.link(o);add(o,leaf if j%3 else ochre)
-finish('OB_Ivy')
 # A weathered sign with crossed-out attempt marks.
 box('Stake',(0,0,.58),(.11,.12,1.16),wood,.025)
 box('Board',(0,-.07,1.05),(.72,.105,.32),wood,.055)
@@ -145,20 +134,6 @@ for i in range(9):
 for i in range(3):
  o=cylinder('CharredLog',(0,(i-1)*.11,.13),.045,.56,dark,10);o.rotation_euler.y=math.pi*.5;o.rotation_euler.z=(i-1)*.35
 finish('OB_Campfire')
-# Readable compact revolver, forward is -Y in Blender / +Z in Unity.
-box('Frame',(0,0,.04),(.095,.20,.12),metal,.02)
-barrel=cylinder('Barrel',(0,-.19,.075),.039,.29,silver,12);barrel.rotation_euler.x=math.pi*.5
-muzzle=cylinder('Bore',(0,-.342,.075),.022,.006,dark,12);muzzle.rotation_euler.x=math.pi*.5
-cyl=cylinder('Chamber',(0,-.016,.05),.068,.11,metal,12);cyl.rotation_euler.x=math.pi*.5
-for i in range(6):
- a=i*math.tau/6
- c=cylinder('ChamberFlute',(math.cos(a)*.062,-.016,.05+math.sin(a)*.062),.012,.115,silver,8);c.rotation_euler.x=math.pi*.5
-handle=box('WalnutGrip',(0,.078,-.075),(.079,.093,.21),wood,.031);handle.rotation_euler.x=-.27
-for x in [-.044,.044]:uvball('GripScrew',(x,.082,-.085),(.007,.013,.013),brass)
-tube('TriggerGuard',[(-.015,.045,-.025),(-.015,.025,-.094),(-.015,-.063,-.096),(-.015,-.08,-.028)],.009,metal)
-box('Hammer',(0,.083,.12),(.035,.06,.032),silver,.006)
-box('FrontSight',(0,-.28,.12),(.013,.028,.028),metal,.003)
-finish('OB_Revolver')
 # Save source and a preview camera, without touching the initial user scene.
 scene.world=bpy.data.worlds.new('OB_Daylight');scene.world.use_nodes=True
 bg=next(n for n in scene.world.node_tree.nodes if n.type=='BACKGROUND');bg.inputs['Color'].default_value=(.55,.68,.82,1);bg.inputs['Strength'].default_value=.5
@@ -167,3 +142,7 @@ bpy.ops.object.camera_add(location=(13,-14,14));cam=bpy.context.object;cam.rotat
 scene.render.resolution_x=1400;scene.render.resolution_y=1000;scene.render.resolution_percentage=100
 bpy.ops.wm.save_as_mainfile(filepath=str(SOURCE/'one_bullet_kit.blend'))
 print('ONE_BULLET_KIT',len([p for p in OUT.glob('*.fbx')]),'models',sum(len(o.data.polygons) for o in scene.objects if o.type=='MESH'),'faces')
+
+# Detail kit owns the current revolver; a complete rebuild must not restore its old model.
+import runpy
+runpy.run_path(str(Path(__file__).with_name("one_bullet_details.py")), run_name="__main__")

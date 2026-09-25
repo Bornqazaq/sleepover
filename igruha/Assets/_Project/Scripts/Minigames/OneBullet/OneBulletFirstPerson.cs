@@ -17,9 +17,9 @@ namespace Igruha.Minigames.OneBullet
         [SerializeField] private Transform gunSource;
         [SerializeField] private CanvasGroup reticle;
         [SerializeField] private float hipFieldOfView = 72f, aimFieldOfView = 48f, aimSpeed = 7f;
-        [SerializeField] private Vector3 hipPosition = new Vector3(.19f, -.20f, .40f);
-        [SerializeField] private Vector3 aimPosition = new Vector3(0, -.158f, .52f);
-        private const float ViewScale = 1.1f, PitchLimit = 80f;
+        [SerializeField] private Vector3 hipPosition = new Vector3(.17f, -.22f, .46f);
+        [SerializeField] private Vector3 aimPosition = new Vector3(0, -.094f, .46f);
+        private const float ViewScale = 1f, PitchLimit = 80f;
         private static readonly Vector3 StudioPosition = new Vector3(10000, 10000, 10000);
         private Camera weaponCamera;
         private UniversalAdditionalCameraData outputData;
