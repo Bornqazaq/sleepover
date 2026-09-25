@@ -1,6 +1,13 @@
 {
-  "name": "Igruha.TutorialChecks",
-  "references": ["Igruha.Core", "Igruha.Minigames", "Unity.Netcode.Runtime"],
-  "autoReferenced": true,
-  "defineConstraints": ["UNITY_EDITOR || DEVELOPMENT_BUILD"]
+    "name": "Igruha.TutorialChecks",
+    "references": [
+        "Igruha.Core",
+        "Igruha.Minigames",
+        "Unity.Netcode.Runtime",
+        "Unity.InputSystem"
+    ],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "UNITY_EDITOR || DEVELOPMENT_BUILD"
+    ]
 }

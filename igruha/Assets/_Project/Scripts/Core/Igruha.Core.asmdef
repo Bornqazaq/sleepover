@@ -9,7 +9,8 @@
         "Unity.ResourceManager",
         "Unity.Netcode.Runtime",
         "Unity.Netcode.Components",
-        "Unity.Networking.Transport"
+        "Unity.Networking.Transport",
+        "Unity.RenderPipelines.Universal.Runtime"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

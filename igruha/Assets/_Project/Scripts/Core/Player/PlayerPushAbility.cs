@@ -89,6 +89,21 @@ namespace Igruha.Core.Player
                 return;
             }
 
+            BeginPush();
+        }
+
+        /// <summary>Run the existing punch from a scene-specific input action, including its network relay.</summary>
+        public void RequestPush()
+        {
+            if (!enabled || inputReader == null || !inputReader.LocallyControlled ||
+                !inputReader.enabled || inputReader.Suspended || self.MovementLocked || self.IsKnockedDown ||
+                self.Config == null || cooldownTimer > 0f) return;
+
+            BeginPush();
+        }
+
+        private void BeginPush()
+        {
             cooldownTimer = self.Config.PushCooldown;
             impactTimer = self.Config.PunchImpactDelay;
             impactPending = true;

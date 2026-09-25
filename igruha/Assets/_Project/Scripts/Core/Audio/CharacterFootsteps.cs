@@ -54,6 +54,10 @@ namespace Igruha.Core.Audio
 
         /// <summary>Слот шага в обход поверхности — ставит мини-игра: шаг заражённого, шаг по воде.</summary>
         private string slotOverride;
+        private float rangeOverride;
+        public string SlotOverride => slotOverride;
+        public float RangeOverride => rangeOverride;
+        public void SetRangeOverride(float metres) => rangeOverride = Mathf.Max(0f, metres);
 
         private Vector3 lastPosition;
         private float travelled;
@@ -113,7 +117,7 @@ namespace Igruha.Core.Audio
             if (travelled < stride) return;
 
             travelled -= stride;
-            audioPlayer.PlayAt(ResolveSlot(), position, crouched ? CrouchVolume : 1f);
+            audioPlayer.PlayAt(ResolveSlot(), position, crouched ? CrouchVolume : 1f, rangeOverride);
         }
 
         private string ResolveSlot()
