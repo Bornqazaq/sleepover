@@ -27,6 +27,10 @@ namespace Igruha.Networking
         private PlayerCarryAbility carryAbility;
         private ProjectileShooter shooter;
         private Rigidbody body;
+        private PlayerPushAbility pushAbility;
+        private readonly System.Collections.Generic.HashSet<ulong> scopedPushTargets = new System.Collections.Generic.HashSet<ulong>();
+        private double scopedPushAt = double.NegativeInfinity;
+        private const double SameSwingWindow = 0.08;
 
         /// <summary>
         /// Присед владельца. Состояние, а не событие, поэтому NetworkVariable, а не RPC.
@@ -49,6 +53,7 @@ namespace Igruha.Networking
             carryAbility = GetComponent<PlayerCarryAbility>();
             shooter = GetComponentInChildren<ProjectileShooter>(true);
             body = GetComponent<Rigidbody>();
+            pushAbility = GetComponent<PlayerPushAbility>();
         }
 
         public override void OnNetworkSpawn()
@@ -208,6 +213,23 @@ namespace Igruha.Networking
             {
                 Debug.LogWarning($"⛔ [{name}] Толчок отклонён: цель вне радиуса ({toTarget.magnitude:F2} > {maxDistance:F2})");
                 return;
+            }
+
+            // A game may narrow punch cadence for its round, without changing the
+            // shared character config. Validate it on the server as well as locally.
+            if (pushAbility != null && pushAbility.CooldownOverride > 0f)
+            {
+                if (!pushAbility.enabled || playerController.MovementLocked || playerController.IsKnockedDown ||
+                    targetController.playerController == null || targetController.playerController.ImpulseImmune ||
+                    targetController.playerController.MovementLocked) return;
+                double now = NetworkManager.ServerTime.Time;
+                if (now - scopedPushAt >= pushAbility.EffectiveCooldown)
+                {
+                    scopedPushAt = now;
+                    scopedPushTargets.Clear();
+                }
+                else if (now - scopedPushAt > SameSwingWindow) return;
+                if (!scopedPushTargets.Add(targetObject.NetworkObjectId)) return;
             }
 
             targetController.ServerApplyPush(toTarget, config.PushForce);
