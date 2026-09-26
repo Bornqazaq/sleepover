@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 94a07ded77e334b22b0a23afc13ff2f2, type: 3}
+  m_Name: SumoConfig
+  m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.SumoRing.SumoConfig
+  characterWidth: 0.72
+  outerDiameterWidths: 24
+  centreDiameterWidths: 6
+  platformHeightWidths: 3
+  sectors: 24
+  collapseTimes:
+  - 10
+  - 20
+  - 30
+  - 45
+  - 60
+  - 75
+  warningSeconds: 2
+  collapseSweepSeconds: 0.5
+  countdownSeconds: 3
+  fallSeconds: 1.5
+  pushCooldown: 1
+  fallTolerance: 0.35
