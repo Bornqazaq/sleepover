@@ -1,3 +1,4 @@
+using Igruha.Core.UI;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -2195,6 +2196,16 @@ namespace Igruha.Minigames.DuckHunt
         /// Охотник встаёт ровно после дошедших — его место равно числу
         /// финишировавших плюс один.
         /// </summary>
+        public override string ResultMetricTitle => "РЕЗУЛЬТАТ";
+        public override RoundResultDetail GetResultDetail(int playerId)
+        {
+            if (playerId == hunterPlayerId) return new RoundResultDetail("Охотник", "ОСОБАЯ РОЛЬ");
+            foreach (var duck in ducks) if (duck.PlayerId == playerId)
+                return new RoundResultDetail(duck.Outcome.Finished ? "Финиш" : $"Этаж {duck.Outcome.Floor + 1}",
+                    duck.Left ? "Вышел из раунда" : duck.Outcome.Dead ? "Выбыл" : "УТКА");
+            return new RoundResultDetail("—", "Вышел из раунда");
+        }
+
         protected override void CollectResults(MinigameResults results)
         {
             ducks.Sort(DuckRanking);

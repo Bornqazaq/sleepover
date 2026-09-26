@@ -792,6 +792,14 @@ namespace Igruha.Minigames.MemoryRun
             return queue.ActiveCount == 1 && playerIds.Count > 1;
         }
 
+        public override string ResultMetricTitle => "ШАГИ";
+        public override RoundResultDetail GetResultDetail(int playerId)
+        {
+            foreach (var record in state.Records) if (record.PlayerId == playerId)
+                return new RoundResultDetail(record.BestStep.ToString(), record.Finished ? "Финишировал" : $"Падений: {record.Deaths}");
+            return new RoundResultDetail("—", "Вышел из раунда");
+        }
+
         protected override void CollectResults(MinigameResults results)
         {
             ranking.Fill(results, state.Records, queue);

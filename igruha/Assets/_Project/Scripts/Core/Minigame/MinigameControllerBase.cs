@@ -95,6 +95,10 @@ namespace Igruha.Core.Minigame
         /// <summary>Сколько секунд висит таблица катки до отъезда в хаб.</summary>
         public float FinalStandingsSeconds => finalStandingsSeconds;
 
+        public virtual string ResultMetricTitle => "РЕЗУЛЬТАТ";
+        public virtual bool ResultsAreTeams => false;
+        public virtual RoundResultDetail GetResultDetail(int playerId) => new RoundResultDetail("—");
+
         /// <summary>
         /// Мини-игра текущей сцены. Пусто — сцена без мини-игры, то есть хаб.
         /// По этому и различает свои две роли кнопка «Выход» на паузе: из
@@ -190,7 +194,7 @@ namespace Igruha.Core.Minigame
             // При повторе неготовый участник мог отключиться во время загрузки.
             // Если все оставшиеся уже готовы, нового клика для старта не требуется.
             if (practiceSession && tutorialReadiness.AllReady && !restartPending)
-                StartCoroutine(ReloadTutorialArena(true));
+                BeginArenaReload(true);
         }
 
         /// <summary>
@@ -457,7 +461,7 @@ namespace Igruha.Core.Minigame
         {
             tutorialBridge?.PublishTutorialReadiness(TutorialParticipants);
             RefreshTutorialReadiness();
-            if (tutorialReadiness.AllReady && !restartPending) StartCoroutine(ReloadTutorialArena(true));
+            if (tutorialReadiness.AllReady && !restartPending) BeginArenaReload(true);
         }
 
         private void RefreshTutorialReadiness()
@@ -486,16 +490,24 @@ namespace Igruha.Core.Minigame
             for (int i = 0; i < TutorialParticipants.Count; i++)
             {
                 if (TutorialParticipants[i].PlayerId != playerId) continue;
-                StartCoroutine(ReloadTutorialArena(false));
+                BeginArenaReload(false);
                 return;
             }
         }
 
-        private IEnumerator ReloadTutorialArena(bool scoredRound)
+        private void BeginArenaReload(bool scoredRound)
         {
             restartPending = true;
-            string path = gameObject.scene.path;
+            // OnRoundEnded у некоторых игр останавливает все их корутины.
+            // Сначала завершаем практику, затем запускаем переход, чтобы игра
+            // не отменила его изнутри первого же MoveNext.
             GoToPhase(MinigamePhase.PreparingRound);
+            StartCoroutine(ReloadTutorialArena(scoredRound));
+        }
+
+        private IEnumerator ReloadTutorialArena(bool scoredRound)
+        {
+            string path = gameObject.scene.path;
             // Завершить текущий сетевой кадр перед выгрузкой контроллера.
             yield return null;
             if (scoredRound) preparedRoundScene = path;
@@ -551,6 +563,10 @@ namespace Igruha.Core.Minigame
                 ? definition.SceneName
                 : gameObject.scene.name;
             CollectResults(results);
+            results.MetricTitle = ResultMetricTitle;
+            results.AreTeams = ResultsAreTeams;
+            for (int i = 0; i < results.Entries.Count; i++)
+                results.SetDetail(i, GetResultDetail(results.Entries[i].PlayerId));
 
             ISessionScoreboard session = SessionScoreboard.Current;
             int rosterCount = session != null ? session.Players.Count : playerList.Count;
@@ -724,6 +740,7 @@ namespace Igruha.Core.Minigame
 
             standings.Rebuild(session);
             FinalStandingsReported?.Invoke(standings);
+            hud?.ConfigureResults(this, finalStandingsSeconds, "Возврат в хаб", false);
             hud?.ShowFinalStandings(standings, session.Players, session.Champions);
             LogStandingsForComparison(session);
         }
@@ -772,6 +789,8 @@ namespace Igruha.Core.Minigame
             // катке сцену перезагружает сервер, клиент за собой её утащить
             // не может.
             hud?.SetRestartAvailable(HasAuthority && !PartySeries.Active);
+            string next = seriesFinal ? "Итоги катки" : finalResults.CountsTowardSession ? "Следующая игра" : "Возврат в хаб";
+            hud?.ConfigureResults(this, resultsDisplaySeconds, next, !HasAuthority && !finalResults.CountsTowardSession);
             hud?.ShowResults(finalResults, playerList);
         }
 

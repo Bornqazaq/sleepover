@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Igruha.Core.UI;
 
 namespace Igruha.Core.Minigame
 {
@@ -27,19 +28,21 @@ namespace Igruha.Core.Minigame
 
             /// <summary>Сумма катки после начисления. Ноль до начисления.</summary>
             public int Total { get; }
+            public RoundResultDetail Detail { get; }
 
             public PlayerResult(int playerId, int place) : this(playerId, place, 0, 0) { }
 
-            public PlayerResult(int playerId, int place, int points, int total)
+            public PlayerResult(int playerId, int place, int points, int total, RoundResultDetail detail = default)
             {
                 PlayerId = playerId;
                 Place = place;
                 Points = points;
                 Total = total;
+                Detail = detail;
             }
 
             public PlayerResult WithAward(int points, int total) =>
-                new PlayerResult(PlayerId, Place, points, total);
+                new PlayerResult(PlayerId, Place, points, total, Detail);
         }
 
         private readonly List<PlayerResult> entries = new List<PlayerResult>(8);
@@ -55,6 +58,8 @@ namespace Igruha.Core.Minigame
 
         /// <summary>Ключ игры для журнала катки — имя сцены. Пусто — табло запишет «?».</summary>
         public string GameKey { get; set; } = string.Empty;
+        public string MetricTitle { get; set; } = "РЕЗУЛЬТАТ";
+        public bool AreTeams { get; set; }
 
         /// <summary>
         /// Очки этого раунда идут в общий счёт катки. Так только в серии
@@ -83,16 +88,24 @@ namespace Igruha.Core.Minigame
             Clear();
             PlayerCount = 0;
             GameKey = string.Empty;
+            MetricTitle = "РЕЗУЛЬТАТ";
+            AreTeams = false;
             CountsTowardSession = false;
         }
 
         public void Add(int playerId, int place) => entries.Add(new PlayerResult(playerId, place));
 
         /// <summary>Добавить с готовыми очками — так итоги приезжают по сети.</summary>
-        public void Add(int playerId, int place, int points, int total)
+        public void Add(int playerId, int place, int points, int total, RoundResultDetail detail = default)
         {
-            entries.Add(new PlayerResult(playerId, place, points, total));
+            entries.Add(new PlayerResult(playerId, place, points, total, detail));
             Awarded = true;
+        }
+
+        public void SetDetail(int index, RoundResultDetail detail)
+        {
+            var entry = entries[index];
+            entries[index] = new PlayerResult(entry.PlayerId, entry.Place, entry.Points, entry.Total, detail);
         }
 
         public int IndexOf(int playerId)
@@ -130,6 +143,8 @@ namespace Igruha.Core.Minigame
 
             PlayerCount = other.PlayerCount;
             GameKey = other.GameKey;
+            MetricTitle = other.MetricTitle;
+            AreTeams = other.AreTeams;
             CountsTowardSession = other.CountsTowardSession;
             for (int i = 0; i < other.entries.Count; i++)
             {

@@ -1,3 +1,4 @@
+using Igruha.Core.UI;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -1721,6 +1722,16 @@ namespace Igruha.Minigames.CryingAngels
         /// остальные по лучшему радиусу за раунд. Водящий встаёт ровно после
         /// дошедших: его место = число дошедших + 1.
         /// </summary>
+        public override string ResultMetricTitle => "РЕЗУЛЬТАТ";
+        public override RoundResultDetail GetResultDetail(int playerId)
+        {
+            if (playerId == keeperPlayerId) return new RoundResultDetail("Водящий", "ОСОБАЯ РОЛЬ");
+            foreach (var runner in runners) if (runner.PlayerId == playerId)
+                return new RoundResultDetail(runner.Touched ? "Дошёл" : runner.BestRadius < float.MaxValue ? $"{runner.BestRadius:0.0} м" : "—",
+                    runner.Touched ? "Коснулся постамента" : "Ближе всего к постаменту");
+            return new RoundResultDetail("—", "Вышел из раунда");
+        }
+
         protected override void CollectResults(MinigameResults results)
         {
             runners.Sort(RunnerRanking);

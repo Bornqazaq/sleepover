@@ -340,6 +340,20 @@ namespace Igruha.Minigames.BelieveOrNot
             Debug.Log(table.ToString(), this);
         }
 
+        public override string ResultMetricTitle => "ПОБЕДЫ";
+        public override bool ResultsAreTeams => entries.Count > 0 && entries[0].Team != TeamId.None;
+        public override RoundResultDetail GetResultDetail(int playerId)
+        {
+            foreach (var entry in entries) if (entry.PlayerId == playerId)
+            {
+                if (entry.Team == TeamId.None) return new RoundResultDetail(entry.RoundsWon.ToString(), $"За столом: {entry.RoundsSeated}");
+                bool a = entry.Team == TeamId.A;
+                return new RoundResultDetail((a ? match.TeamAWins : match.TeamBWins).ToString(),
+                    a ? "КОМАНДА А" : "КОМАНДА Б", a ? new Color(.18f, .52f, .78f) : new Color(.88f, .37f, .24f));
+            }
+            return new RoundResultDetail("—", "Вышел из раунда");
+        }
+
         protected override void CollectResults(MinigameResults results)
         {
             BelieveRanking.Fill(entries, match.TeamAWins, match.TeamBWins, results);

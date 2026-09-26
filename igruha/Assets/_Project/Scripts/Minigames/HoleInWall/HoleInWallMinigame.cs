@@ -1,3 +1,4 @@
+using Igruha.Core.UI;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -1759,6 +1760,22 @@ namespace Igruha.Minigames.HoleInWall
         /// Оба в паре всегда имеют одинаковый счёт, поэтому делят одно место
         /// автоматически — отдельного правила под пары не нужно.
         /// </summary>
+        public override string ResultMetricTitle => "СТЕНЫ";
+        public override bool ResultsAreTeams
+        {
+            get
+            {
+                foreach (var track in playingTracks) if (track.Members.Count > 1) return true;
+                return false;
+            }
+        }
+        public override RoundResultDetail GetResultDetail(int playerId)
+        {
+            var track = TrackOf(playerId);
+            return track != null ? new RoundResultDetail($"{track.Score} / {WallCount}", $"ДОРОЖКА {track.Index + 1:00}", HoleInWallPalette.LaneAccent(track.Index))
+                : new RoundResultDetail("—", "Вышел из раунда");
+        }
+
         protected override void CollectResults(MinigameResults results)
         {
             ranking.Clear();

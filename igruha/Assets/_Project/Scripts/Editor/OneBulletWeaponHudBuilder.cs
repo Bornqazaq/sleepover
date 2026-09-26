@@ -62,7 +62,7 @@ namespace Igruha.EditorTools
         {
             var label = new GameObject(name, typeof(RectTransform)).AddComponent<TextMeshProUGUI>();
             label.transform.SetParent(parent, false); label.rectTransform.anchoredPosition = position; label.rectTransform.sizeDelta = size;
-            label.fontSize = fontSize; label.color = color; label.alignment = alignment; label.raycastTarget = false; return label;
+            label.font = UiFonts.SansMedium; label.fontSize = fontSize; label.color = color; label.alignment = alignment; label.raycastTarget = false; return label;
         }
     }
 }

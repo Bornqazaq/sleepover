@@ -600,6 +600,14 @@ namespace Igruha.Minigames.Infection
         /// (+ компенсация Нулевому). Считаем в десятых долях секунды: при
         /// целых секундах двое, разошедшиеся на полсекунды, делили бы место.
         /// </summary>
+        public override string ResultMetricTitle => "БЕЗ ВИРУСА";
+        public override RoundResultDetail GetResultDetail(int playerId)
+        {
+            foreach (var state in states) if (state != null && state.PlayerId == playerId)
+                return new RoundResultDetail($"{state.CleanSeconds:0.0} с", $"Заразил: {state.PersonalInfections}" + (state.IsPatientZero ? "  ·  Нулевой" : ""));
+            return new RoundResultDetail("—", "Вышел из раунда");
+        }
+
         protected override void CollectResults(MinigameResults results)
         {
             ranking.Clear();

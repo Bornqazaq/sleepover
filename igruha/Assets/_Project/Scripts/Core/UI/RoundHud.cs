@@ -30,6 +30,8 @@ namespace Igruha.Core.UI
         [SerializeField] private TMP_Text countdownText;
         [Tooltip("Строка состояния роли: обойма стрелка, число жизней, текущая цель. Не назначена — строка просто не показывается")]
         [SerializeField] private TMP_Text statusText;
+        [Tooltip("Подложка состояния. Скрывается вместе с текстом, чтобы не оставлять пустую плашку")]
+        [SerializeField] private GameObject statusPlate;
         [Tooltip("Кнопка «ещё раз» на экране результатов. Не назначена — кнопки просто нет, остальные сцены править не надо")]
         [SerializeField] private Button restartButton;
         [SerializeField] private ThirdPersonCameraRig resultsCamera;
@@ -39,6 +41,7 @@ namespace Igruha.Core.UI
         [SerializeField] private ResultRow[] resultRows = Array.Empty<ResultRow>();
         [Tooltip("Заголовок панели: «Итоги раунда» или «Итоги катки». Пусто — берётся текст «Title» внутри панели")]
         [SerializeField] private TMP_Text resultsTitle;
+        [SerializeField] private RoundResultsView resultsView;
 
         [Header("Оформление")]
         [Tooltip("Появление цифры отсчёта. Не назначено — цифра просто меняется")]
@@ -56,6 +59,11 @@ namespace Igruha.Core.UI
 
         private readonly PanelCursor resultsCursor = new PanelCursor();
         private RoundTimer timer;
+        private RectTransform statusRect;
+        private bool practiceLayout;
+        private static readonly Vector2 PracticeStatusAnchor = new Vector2(1, 1), RoundStatusAnchor = new Vector2(.5f, 1);
+        private static readonly Vector2 PracticeStatusPosition = new Vector2(-44, -128), RoundStatusPosition = new Vector2(0, -128);
+        private static readonly Vector2 PracticeStatusSize = new Vector2(840, 104), RoundStatusSize = new Vector2(1100, 104);
         private int lastShownSeconds = -1;
         private int lastShownCountdown = -1;
 
@@ -74,6 +82,7 @@ namespace Igruha.Core.UI
 
         private void Awake()
         {
+            statusRect = statusPlate != null ? statusPlate.transform as RectTransform : null;
             // Панель собрана билдером с заголовком, но ссылки на него у HUD не
             // было. Ищем один раз по имени, чтобы не пересобирать десять сцен.
             if (resultsTitle == null && resultsPanel != null)
@@ -125,6 +134,7 @@ namespace Igruha.Core.UI
             resultsCursor.Restore();
             resultsCamera?.SetLookSuspended(false);
             timer = roundTimer;
+            lastShownSeconds = -1;
             SetTimerPlateVisible(true);
             if (resultsPanel != null)
             {
@@ -194,10 +204,12 @@ namespace Igruha.Core.UI
 
             statusText.text = status;
             statusText.gameObject.SetActive(!string.IsNullOrEmpty(status));
+            if (statusPlate != null) statusPlate.SetActive(!string.IsNullOrEmpty(status));
         }
 
         public void HideStatus()
         {
+            if (statusPlate != null) statusPlate.SetActive(false);
             if (statusText != null)
             {
                 statusText.gameObject.SetActive(false);
@@ -234,6 +246,14 @@ namespace Igruha.Core.UI
 
         private void Update()
         {
+            bool practice = MinigameControllerBase.Current != null && MinigameControllerBase.Current.IsPractice;
+            if (practice != practiceLayout && statusRect != null)
+            {
+                practiceLayout = practice;
+                statusRect.anchorMin = statusRect.anchorMax = statusRect.pivot = practice ? PracticeStatusAnchor : RoundStatusAnchor;
+                statusRect.anchoredPosition = practice ? PracticeStatusPosition : RoundStatusPosition;
+                statusRect.sizeDelta = practice ? PracticeStatusSize : RoundStatusSize;
+            }
             if (timer == null || timerText == null)
             {
                 return;
@@ -248,7 +268,7 @@ namespace Igruha.Core.UI
             lastShownSeconds = seconds;
             int minutes = seconds / 60;
             timerText.text = $"{minutes}:{seconds % 60:00}";
-            timerText.color = seconds <= criticalSeconds ? UiSkin.Danger : UiSkin.TextPrimary;
+            timerText.color = seconds <= criticalSeconds ? MinigameUiStyle.Urgent : MinigameUiStyle.OnDark;
         }
 
         /// <summary>Итоги раунда: место, имя, очки за раунд и сумма катки.</summary>
@@ -256,6 +276,13 @@ namespace Igruha.Core.UI
         {
             if (resultsPanel == null)
             {
+                return;
+            }
+
+            if (resultsView != null)
+            {
+                resultsView.Show(results, players);
+                OpenResultsPanel(restartAllowed);
                 return;
             }
 
@@ -286,6 +313,13 @@ namespace Igruha.Core.UI
                 return;
             }
 
+            if (resultsView != null)
+            {
+                resultsView.ShowStandings(standings, players, champions);
+                OpenResultsPanel(false);
+                return;
+            }
+
             SetTitle(SeriesTitleFor(standings));
 
             if (resultRows.Length > 0)
@@ -300,11 +334,17 @@ namespace Igruha.Core.UI
             OpenResultsPanel(false);
         }
 
+        public void ConfigureResults(MinigameControllerBase game, float seconds, string destination, bool hostOnly) =>
+            resultsView?.Configure(game, seconds, destination, hostOnly);
+
         private void OpenResultsPanel(bool restartVisible)
         {
             // Матчевый таймер на итогах продолжал идти под затемнением и тянул
             // взгляд с мест на себя: раунд уже кончился, а секунды всё бегут.
             SetTimerPlateVisible(false);
+            HideStatus();
+            HideCountdown();
+            HideSpectatorTarget();
             resultsPanel.SetActive(true);
             resultsCursor.Release();
             resultsCamera?.SetLookSuspended(true);

@@ -1,3 +1,4 @@
+using Igruha.Core.UI;
 using System;
 using System.Collections.Generic;
 using Igruha.Core.CameraSystems;
@@ -271,6 +272,13 @@ namespace Igruha.Minigames.OneBullet
             firstPersonRig?.SetOwnModelVisible(false);
         }
         protected override void OnDisable() { RestorePlayers(); base.OnDisable(); }
+        public override string ResultMetricTitle => "ПОПАДАНИЯ";
+        public override RoundResultDetail GetResultDetail(int playerId)
+        {
+            var record = round.Find(playerId);
+            return record != null ? new RoundResultDetail(record.Kills.ToString(), $"Продержался {record.Life:0.0} с") : new RoundResultDetail("—");
+        }
+
         protected override void CollectResults(MinigameResults results) => round.Collect(results);
         public OneBulletParticipant Find(int id) { foreach (var p in participants) if (p.Player.Id == id) return p; return null; }
         private OneBulletParticipant Find(PlayerController motor) { foreach (var p in participants) if (p.Motor == motor) return p; return null; }
