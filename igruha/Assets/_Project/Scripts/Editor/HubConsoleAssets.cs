@@ -24,10 +24,10 @@ namespace Igruha.EditorTools
                 library = ScriptableObject.CreateInstance<ConsoleArtworkLibrary>();
                 AssetDatabase.CreateAsset(library, path);
             }
-            string[] ids = { "CryingAngels", "Stopwatch", "CansOrder", "Exam", "BelieveOrNot", "MemoryRun", "CarryItem", "HoleInWall", "DuckHunt", "Infection", "OneBullet" };
-            string[] definitions = { "CryingAngelsDefinition", "StopwatchDefinition", "CansOrder", "Exam", "BelieveOrNot", "MemoryRun", "CarryItem", "HoleInWall", "DuckHuntDefinition", "Infection", "OneBullet" };
-            string[] accents = { "98CED9", "F4BE81", "DFC38F", "DFACE9", "C7D39C", "BBB3F0", "91D6CD", "F4ADB2", "F2D47D", "9BE07A", "EFC18B" };
-            string[] genres = { "ПРЯТКИ В ТЕМНОТЕ", "ПОЧУВСТВУЙ ВРЕМЯ", "ЛОГИКА И ИНТУИЦИЯ", "УГАДАЙ МЫСЛИ ВЕДУЩЕГО", "БЛЕФ ЗА ОДНИМ СТОЛОМ", "ЗАПОМНИ БЕЗОПАСНЫЙ ПУТЬ", "ВМЕСТЕ ДО ПОСЛЕДНЕЙ КАПЛИ", "ПОПАДИ В СИЛУЭТ", "ГОНКА НА ВЕРШИНУ", "БЕГИ, ПОКА ЧИСТЫЙ", "ОДИН ВЫСТРЕЛ — ОДИН ШАНС" };
+            string[] ids = { "CryingAngels", "Stopwatch", "CansOrder", "Exam", "BelieveOrNot", "MemoryRun", "CarryItem", "HoleInWall", "DuckHunt", "Infection", "OneBullet", "SumoRing" };
+            string[] definitions = { "CryingAngelsDefinition", "StopwatchDefinition", "CansOrder", "Exam", "BelieveOrNot", "MemoryRun", "CarryItem", "HoleInWall", "DuckHuntDefinition", "Infection", "OneBullet", "SumoRing" };
+            string[] accents = { "98CED9", "F4BE81", "DFC38F", "DFACE9", "C7D39C", "BBB3F0", "91D6CD", "F4ADB2", "F2D47D", "9BE07A", "EFC18B", "E7BA74" };
+            string[] genres = { "ПРЯТКИ В ТЕМНОТЕ", "ПОЧУВСТВУЙ ВРЕМЯ", "ЛОГИКА И ИНТУИЦИЯ", "УГАДАЙ МЫСЛИ ВЕДУЩЕГО", "БЛЕФ ЗА ОДНИМ СТОЛОМ", "ЗАПОМНИ БЕЗОПАСНЫЙ ПУТЬ", "ВМЕСТЕ ДО ПОСЛЕДНЕЙ КАПЛИ", "ПОПАДИ В СИЛУЭТ", "ГОНКА НА ВЕРШИНУ", "БЕГИ, ПОКА ЧИСТЫЙ", "ОДИН ВЫСТРЕЛ — ОДИН ШАНС", "ОСТАНЬСЯ НА РИНГЕ" };
             string[] summaries =
             {
                 "Подкрадись к ведущему и замри, когда на тебя попадёт свет. Одно лишнее движение — и ты выдашь себя.",
@@ -40,7 +40,8 @@ namespace Igruha.EditorTools
                 "Вы связаны одной верёвкой, а стена уже близко. Займите нужные позы и пройдите сквозь отверстия вместе.",
                 "Утки штурмуют башню, охотник мешает им добраться до вершины. Ловушки и пять этажей до победы!",
                 "Один заражён, остальные бегут. Зелёная краска липнет от касания, и с каждым новым заражённым бежать становится некуда.",
-                "Затеряйся в каменном лабиринте. Найди единственный револьвер, слушай шаги и реши, когда потратить последний патрон."
+                "Затеряйся в каменном лабиринте. Найди единственный револьвер, слушай шаги и реши, когда потратить последний патрон.",
+                "Выталкивай соперников с глиняного ринга. Край трещит и осыпается — займи центр и останься последним на ногах."
             };
             var data = new SerializedObject(library);
             var entries = data.FindProperty("entries");

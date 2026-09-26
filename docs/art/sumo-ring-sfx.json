@@ -1,0 +1,13 @@
+{
+  "game":"SumoRing",
+  "source":"Лицензированная поставка проекта, повторное использование исходных WAV без копий. Звук отдельного таико/гонга пока отсутствует: старт обозначен существующим коротким позитивным сигналом.",
+  "output_folder":"Assets/_Project/Audio/SumoRing",
+  "slots":[
+    {"id":"sumo_start","file":"Core/Flow/SFX_FLOW_Sting_Positive_01","event":"начало после отсчёта","spatial":false,"loop":false,"volume":0.5},
+    {"id":"sumo_warning","file":"CryingAngels/SFX_ANGL_Petrify_Crumble_01","event":"за 2 с до обвала, один раз на кольцо","spatial":false,"loop":false,"volume":0.5},
+    {"id":"sumo_collapse","file":"Core/Traps/SFX_TRAP_Floor_Collapse_01","event":"обвал, один раз на кольцо","spatial":false,"loop":false,"volume":0.7},
+    {"id":"sumo_crowd","file":"Core/Crowd/SFX_CROWD_Amb_Stomp_Loop_01","event":"тихий фон зала во время боя","spatial":false,"loop":true,"volume":0.09},
+    {"id":"sumo_react","file":"Core/Crowd/SFX_CROWD_Applause","event":"реакция на выбывание с ограничением частоты","spatial":true,"loop":false,"volume":0.3},
+    {"id":"sumo_final","file":"Core/Flow/SFX_FLOW_Fanfare_Bright_01","event":"окончание боя","spatial":false,"loop":false,"volume":0.45}
+  ]
+}
