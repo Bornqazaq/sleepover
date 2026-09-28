@@ -4,7 +4,7 @@ using Igruha.Core.Player;
 namespace Igruha.Core.Audio
 {
     /// <summary>
-    /// Шаги следуют двум опорам цикла Run/CrouchWalk настоящего Animator.
+    /// Шаги следуют постановке стоп в Run/CrouchWalk настоящего Animator.
     /// Каждый персонаж сохраняет частоту своего клипа. Позиция нужна только
     /// для отсечения покоя/телепортов; поверхности и локальные копии общие.
     /// </summary>
@@ -15,7 +15,9 @@ namespace Igruha.Core.Audio
         private const float CrouchVolume = 0.4f;
         private const float MinSpeed = 0.6f;
         private const float TeleportDistance = 2.5f;
-        private const int StepsPerCycle = 2;
+        private const float MovementGraceSeconds = 0.12f;
+        private const float MinimumFootSwing = 0.03f;
+        private const float PlantTravel = 0.005f;
         private static readonly int RunHash = Animator.StringToHash("Run");
         private static readonly int CrouchWalkHash = Animator.StringToHash("CrouchWalk");
 
@@ -38,9 +40,51 @@ namespace Igruha.Core.Audio
         private Vector3 lastPosition;
         private Animator animator;
         private CapsuleCollider capsule;
+        private Transform leftFoot;
+        private Transform rightFoot;
+        private Renderer[] renderers;
+        private FootPlant leftPlant;
+        private FootPlant rightPlant;
+        private float lastMovedAt = float.NegativeInfinity;
         private int previousState;
         private int previousStep;
         private bool trackingCycle;
+        private bool sampledFeet;
+
+        /// <summary>After a forward swing, the foot starts moving backwards
+        /// relative to the body when it plants. Hysteresis ignores pose noise.
+        /// Unlike a fixed two-beat cycle this also follows clips with four steps.</summary>
+        private struct FootPlant
+        {
+            private float rear;
+            private float front;
+            private bool swinging;
+
+            public void Reset(float position)
+            {
+                rear = front = position;
+                swinging = false;
+            }
+
+            public bool Sample(float position)
+            {
+                if (!swinging)
+                {
+                    rear = Mathf.Min(rear, position);
+                    if (position - rear >= MinimumFootSwing)
+                    {
+                        swinging = true;
+                        front = position;
+                    }
+                    return false;
+                }
+                front = Mathf.Max(front, position);
+                if (front - position < PlantTravel) return false;
+                swinging = false;
+                rear = position;
+                return true;
+            }
+        }
 
         /// <summary>Разобранная поверхность прошлого шага. Пол под ногами меняется редко, а искать метку каждый шаг незачем.</summary>
         private Collider cachedGround;
@@ -57,7 +101,13 @@ namespace Igruha.Core.Audio
         {
             if (controller == null) controller = GetComponent<PlayerController>();
             animator = GetComponentInChildren<Animator>(true);
+            renderers = animator != null ? animator.GetComponentsInChildren<Renderer>(true) : null;
             capsule = GetComponent<CapsuleCollider>();
+            if (animator != null && animator.isHuman)
+            {
+                leftFoot = animator.GetBoneTransform(HumanBodyBones.LeftFoot);
+                rightFoot = animator.GetBoneTransform(HumanBodyBones.RightFoot);
+            }
             lastPosition = transform.position;
         }
 
@@ -65,19 +115,29 @@ namespace Igruha.Core.Audio
         {
             lastPosition = transform.position;
             trackingCycle = false;
+            lastMovedAt = float.NegativeInfinity;
         }
 
         private void LateUpdate()
         {
             if (controller == null || audioPlayer == null || animator == null) return;
 
-            Vector3 position = controller.Position;
+            // Rigidbody.position changes only on physics ticks. Reading it in
+            // LateUpdate made intervening render frames reset the entire gait.
+            Vector3 position = transform.position;
             Vector3 delta = position - lastPosition;
-            delta.y = 0f;
             lastPosition = position;
-            float distance = delta.magnitude;
-            if (controller.IsKnockedDown ||
-                distance > TeleportDistance || distance < MinSpeed * Time.deltaTime)
+            if (controller.IsKnockedDown || controller.MovementLocked ||
+                delta.sqrMagnitude > TeleportDistance * TeleportDistance)
+            {
+                trackingCycle = false;
+                lastMovedAt = float.NegativeInfinity;
+                return;
+            }
+            delta.y = 0f;
+            float minDistance = MinSpeed * Time.deltaTime;
+            if (delta.sqrMagnitude > minDistance * minDistance) lastMovedAt = Time.time;
+            if (Time.time - lastMovedAt > MovementGraceSeconds)
             {
                 trackingCycle = false;
                 return;
@@ -98,15 +158,51 @@ namespace Igruha.Core.Audio
                 return;
             }
 
-            int step = Mathf.FloorToInt(state.normalizedTime * StepsPerCycle);
-            bool play = trackingCycle && previousState == hash && step > previousStep;
+            bool play;
+            Vector3 soundPosition = position;
+            bool sampleFeet = FeetAreUpdating();
+            if (sampleFeet != sampledFeet) trackingCycle = false;
+            sampledFeet = sampleFeet;
+            if (sampleFeet)
+            {
+                Transform visual = animator.transform;
+                float left = Vector3.Dot(leftFoot.position - visual.position, visual.forward);
+                float right = Vector3.Dot(rightFoot.position - visual.position, visual.forward);
+                if (!trackingCycle || previousState != hash)
+                {
+                    leftPlant.Reset(left);
+                    rightPlant.Reset(right);
+                }
+                bool leftContact = leftPlant.Sample(left);
+                bool rightContact = rightPlant.Sample(right);
+                play = leftContact || rightContact;
+                soundPosition = leftContact ? leftFoot.position : rightFoot.position;
+            }
+            else
+            {
+                // CullUpdateTransforms still advances the state, but freezes bones
+                // outside the camera. Keep the clip's cadence there without
+                // changing the Animator's culling or any animation asset.
+                int contacts = hash == CrouchWalkHash ? 4 : 2;
+                int step = Mathf.FloorToInt(state.normalizedTime * contacts - .5f);
+                play = trackingCycle && previousState == hash && step > previousStep;
+                previousStep = step;
+            }
             previousState = hash;
-            previousStep = step;
             trackingCycle = true;
             // One sound at most after a long frame; never replay missed steps in a burst.
             if (play)
-                audioPlayer.PlayAt(ResolveSlot(ground), position,
+                audioPlayer.PlayAt(ResolveSlot(ground), soundPosition,
                     controller.IsCrouched ? CrouchVolume : 1f, rangeOverride);
+        }
+
+        private bool FeetAreUpdating()
+        {
+            if (leftFoot == null || rightFoot == null) return false;
+            if (animator.cullingMode == AnimatorCullingMode.AlwaysAnimate) return true;
+            for (int i = 0; i < renderers.Length; i++)
+                if (renderers[i].enabled && renderers[i].isVisible) return true;
+            return false;
         }
 
         private bool TryGetGround(out Collider ground)
