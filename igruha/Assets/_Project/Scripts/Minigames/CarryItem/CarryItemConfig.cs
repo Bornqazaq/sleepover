@@ -21,7 +21,7 @@ namespace Igruha.Minigames.CarryItem
     public sealed class CarryItemConfig : ScriptableObject
     {
         [Header("Возврат после падения")]
-        [SerializeField, Min(0f)] private float respawnDelaySeconds = 5.5f;
+        [SerializeField, Min(0f)] private float respawnDelaySeconds = 5f;
         public float RespawnDelaySeconds => Mathf.Max(0f, respawnDelaySeconds);
 
         [Header("Арена, ШИ (8.1)")]

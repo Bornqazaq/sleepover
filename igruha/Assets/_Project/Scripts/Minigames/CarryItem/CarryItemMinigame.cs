@@ -70,6 +70,7 @@ namespace Igruha.Minigames.CarryItem
         [SerializeField] private SpawnPointSet spawnPoints;
         [SerializeField] private BottleRamDetector ramDetector;
         [SerializeField] private TeamProgressBar progressBar;
+        [SerializeField] private CarryItemRespawnPresentation respawnPresentation;
 
         [Header("Команды")]
         [SerializeField] private TeamRig teamA = new TeamRig { SpawnRole = SpawnRole.TeamA };
@@ -82,7 +83,6 @@ namespace Igruha.Minigames.CarryItem
         [SerializeField] private LayerMask botObstacles;
 
         private int shownWater = int.MinValue;
-        private int shownRespawnSeconds = -1;
         private bool shownPouring;
         private bool shownCarried;
         private bool statusShown;
@@ -176,6 +176,7 @@ namespace Igruha.Minigames.CarryItem
 
             progressBar?.ResetBars(config.TankCapacity);
             RefreshLocalTeam();
+            respawnPresentation?.Bind(Players);
         }
 
         /// <summary>
@@ -270,6 +271,7 @@ namespace Igruha.Minigames.CarryItem
             teamB.Stack?.SetTeamSize(SizeOf(TeamSide.B));
 
             RefreshLocalTeam();
+            respawnPresentation?.Bind(Players);
 
             // Болванку автопрогона вешаем только теперь: на OnPlayersReady у
             // этой машины состава ещё не было, и вешать её было не на кого.
@@ -529,6 +531,7 @@ namespace Igruha.Minigames.CarryItem
 
         private void OnDestroy()
         {
+            respawnPresentation?.ResetPresentation();
             for (int i = 0; i < entries.Count; i++)
             {
                 var entry = entries[i];
@@ -576,24 +579,20 @@ namespace Igruha.Minigames.CarryItem
                 return;
             }
 
-            TeamSide side = TeamOfPlayer(SessionScoreboard.Current?.LocalPlayer?.Id ?? -1);
+            int localId = SessionScoreboard.Current?.LocalPlayer?.Id ?? (Players.Count > 0 ? Players[0].Id : -1);
+            TeamSide side = TeamOfPlayer(localId);
             if (side == TeamSide.None)
             {
                 ClearStatus();
                 return;
             }
 
-            int localIndex = IndexOfPlayer(SessionScoreboard.Current?.LocalPlayer?.Id ?? -1);
-            int remaining = localIndex >= 0 && entries[localIndex].RespawnAt > 0
-                ? Mathf.Max(1, Mathf.CeilToInt((float)(entries[localIndex].RespawnAt - NetworkClock.Now))) : 0;
-            if (remaining > 0)
+            if ((respawnPresentation != null && respawnPresentation.IsWaiting) ||
+                (TryGetRespawnDeadline(localId, out double deadline) && deadline > 0))
             {
-                if (remaining != shownRespawnSeconds) Hud.ShowStatus($"Возврат на стройку через {remaining} с");
-                shownRespawnSeconds = remaining;
-                statusShown = false;
+                ClearStatus();
                 return;
             }
-            shownRespawnSeconds = -1;
 
             WaterBottle bottle = StackOf(side)?.LiveBottle;
             int water = bottle != null ? bottle.Water : -1;
@@ -808,6 +807,14 @@ namespace Igruha.Minigames.CarryItem
             return -1;
         }
 
+        /// <summary>Presentation reads the replicated deadline; it never starts or ends a penalty.</summary>
+        public bool TryGetRespawnDeadline(int playerId, out double deadline)
+        {
+            int index = IndexOfPlayer(playerId);
+            deadline = index >= 0 ? entries[index].RespawnAt : 0;
+            return index >= 0 && !entries[index].Left;
+        }
+
         // ========== КОНЕЦ ==========
 
         /// <summary>
@@ -822,6 +829,7 @@ namespace Igruha.Minigames.CarryItem
         /// </summary>
         protected override void OnRoundEnded()
         {
+            respawnPresentation?.ResetPresentation();
             if (countdownRoutine != null)
             {
                 StopCoroutine(countdownRoutine);

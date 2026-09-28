@@ -65,18 +65,55 @@ namespace Igruha.Tests
         {
             foreach (var bot in FindObjectsByType<CarryItemDebugBot>(FindObjectsSortMode.None)) bot.enabled = false;
             yield return new WaitForSeconds(3);
+            yield return CarryFall(false);
+            yield return new WaitForSeconds(8);
+            int id = (int)NetworkManager.Singleton.LocalClientId;
+            yield return new WaitForSeconds(id * 6);
+            yield return CarryFall(true);
+            // Keep the host and earlier clients present while the last client tests.
+            yield return new WaitForSeconds(24 - id * 6);
+        }
+        private IEnumerator CarryFall(bool expectLive)
+        {
             var avatar = SessionScoreboard.Current.LocalPlayer.Avatar;
             var input = avatar.GetComponent<PlayerInputReader>(); input.EngageAutopilot(); input.DriveMove(Vector2.zero);
+            var view = game.GetComponent<CarryItemRespawnPresentation>();
+            var camera = FindFirstObjectByType<MinigameCameraController>();
+            if (view == null || camera == null) { Fail("carry presentation missing"); yield break; }
+            var renderers = avatar.GetComponentsInChildren<Renderer>(true);
+            var hiddenBefore = new bool[renderers.Length];
+            for (int i = 0; i < renderers.Length; i++) hiddenBefore[i] = renderers[i].forceRenderingOff;
             var initial = avatar.Position;
             avatar.TeleportTo(new Vector3(initial.x,-8,initial.z),avatar.transform.rotation);
             float start = Time.realtimeSinceStartup;
-            bool waited = false;
-            while (Time.realtimeSinceStartup-start < 10 && (avatar.Position.y < -4 || !avatar.enabled || avatar.MovementLocked))
-            { waited |= !avatar.enabled && avatar.MovementLocked; yield return null; }
+            bool waited = false, sawView = false, sawLive = false, sawFallback = false;
+            var seconds = new HashSet<int>();
+            while (Time.realtimeSinceStartup-start < 10 && (avatar.Position.y < -4 || !avatar.enabled || avatar.MovementLocked || view.IsWaiting))
+            {
+                waited |= !avatar.enabled && avatar.MovementLocked;
+                if (view.IsWaiting)
+                {
+                    sawView = true; sawLive |= view.HasLiveTarget;
+                    sawFallback |= camera.CurrentTarget != null && camera.CurrentTarget.name == "RespawnArenaView";
+                    seconds.Add(view.SecondsLeft);
+                    if (camera.CurrentTarget == avatar.CameraTarget) Fail("carry still watches fallen self");
+                    if (input.enabled) Fail("carry spectator input not blocked");
+                    for (int i = 0; i < renderers.Length; i++)
+                        if (!renderers[i].forceRenderingOff) { Fail("carry fallen renderer visible"); break; }
+                    var panel = (GameObject)typeof(CarryItemRespawnPresentation).GetField("panel", Private).GetValue(view);
+                    if (panel == null || !panel.activeInHierarchy) Fail("carry countdown panel hidden");
+                }
+                yield return null;
+            }
             float duration = Time.realtimeSinceStartup-start;
-            if (!waited || duration < 5.3f || duration > 7.5f || !avatar.enabled || avatar.MovementLocked)
+            if (!waited || duration < 4.8f || duration > 7.5f || !avatar.enabled || avatar.MovementLocked)
                 Fail($"carry recovery duration={duration:F2} waited={waited} enabled={avatar.enabled} locked={avatar.MovementLocked} y={avatar.Position.y}");
-            else Debug.Log($"PLAYTEST_CHECK carry returned in {duration:F2}s");
+            if (!sawView || seconds.Count < 3 || (expectLive && !sawLive) || (!expectLive && !sawFallback))
+                Fail($"carry view={sawView} countdownChanges={seconds.Count} live={sawLive} fallback={sawFallback} expectLive={expectLive}");
+            if (view.IsWaiting || camera.CurrentTarget != avatar.CameraTarget || !input.enabled) Fail("carry camera/input did not return");
+            for (int i = 0; i < renderers.Length; i++)
+                if (renderers[i].forceRenderingOff != hiddenBefore[i]) { Fail("carry renderer not restored"); break; }
+            Debug.Log($"PLAYTEST_CHECK carry returned in {duration:F2}s live={sawLive} fallback={sawFallback} countdownChanges={seconds.Count}");
             var before = avatar.Position; input.DriveMove(Vector2.up); yield return new WaitForSeconds(1); input.DriveMove(Vector2.zero);
             if (Vector3.Distance(before,avatar.Position)<1)
                 Fail($"carry movement not restored from={before} to={avatar.Position} kinematic={avatar.GetComponent<Rigidbody>().isKinematic} input={input.MoveInput} suspended={input.Suspended} motor={avatar.enabled} lock={avatar.MovementLocked} bot={avatar.GetComponent<CarryItemDebugBot>().enabled}");

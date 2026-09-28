@@ -1491,6 +1491,7 @@ namespace Igruha.EditorTools
             so.FindProperty("botObstacles").intValue =
                 (1 << LayerMask.NameToLayer("Ground")) | (1 << LayerMask.NameToLayer("Cover"));
             so.ApplyModifiedPropertiesWithoutUndo();
+            CarryItemRespawnBuilder.Ensure(game);
 
             var bootstrap = manager.GetComponent<MinigameBootstrap>();
             if (bootstrap != null)
