@@ -664,6 +664,13 @@ namespace Igruha.Minigames.Stopwatch
         /// </summary>
         private void Update()
         {
+            // Наблюдатель читает этот список по ссылке. Обновляем и на клиенте,
+            // до серверной отсечки медведя: живые меняются после вылета/ухода.
+            if (spectator != null && spectator.IsActive)
+            {
+                CollectAlivePlayers();
+            }
+
             if (bear == null || !HasAuthority || !Phase.IsGameplay())
             {
                 return;
@@ -809,7 +816,7 @@ namespace Igruha.Minigames.Stopwatch
             aliveBuffer.Clear();
             for (int i = 0; i < contestants.Count; i++)
             {
-                if (contestants[i].Alive)
+                if (contestants[i].Alive && contestants[i].Session.Avatar != null)
                 {
                     aliveBuffer.Add(contestants[i].Session);
                 }
