@@ -150,6 +150,12 @@ namespace Igruha.Minigames.BelieveOrNot
             Show(line, good ? goodColor : badColor, seconds);
         }
 
+        /// <summary>Отмена — общее нейтральное сообщение, а не победа одной из сторон.</summary>
+        public void ShowCancellation(float seconds)
+        {
+            Show("Кон отменён — Знающий вышел. Очко никому.", neutralColor, seconds);
+        }
+
         /// <summary>Убрать обе строки: кон кончился, матч закрылся, игрок уехал в хаб.</summary>
         public void HideAll()
         {
