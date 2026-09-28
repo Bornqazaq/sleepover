@@ -18,12 +18,12 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 130' INT TERM
 
-"$APP" --autostart CarryItem --wait-players "$PLAYERS" --port "$PORT" --bot --carry-delivery-check true \
+"$APP" --autostart CarryItem --wait-players "$PLAYERS" --port "$PORT" --carry-delivery-check true \
     -batchmode -nographics -logFile "$LOGS/host.log" >/dev/null 2>&1 &
 pids+=("$!")
 sleep 6
 for ((i = 1; i < PLAYERS; i++)); do
-    "$APP" --client --host 127.0.0.1 --port "$PORT" --bot --carry-delivery-check true \
+    "$APP" --client --host 127.0.0.1 --port "$PORT" --carry-delivery-check true \
         -batchmode -nographics -logFile "$LOGS/client-$i.log" >/dev/null 2>&1 &
     pids+=("$!")
     sleep 1
