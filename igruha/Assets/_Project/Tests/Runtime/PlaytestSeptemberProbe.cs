@@ -43,6 +43,12 @@ namespace Igruha.Tests
         private IEnumerator Start()
         {
             LaunchArguments.TryGetValue("--playtest-check", out string mode);
+            if (mode.StartsWith("countdown-"))
+            {
+                yield return Countdown();
+                yield return Finish(mode);
+                yield break;
+            }
             if (mode == "footsteps")
             {
                 yield return HubFootsteps();
@@ -71,6 +77,66 @@ namespace Igruha.Tests
             if (!failed) Debug.Log("PLAYTEST_CHECK PASS mode=" + mode + " id=" + NetworkManager.Singleton.LocalClientId);
             yield return new WaitForSecondsRealtime(NetworkManager.Singleton.IsServer ? 12 : 4);
             Application.Quit(failed ? 1 : 0);
+        }
+        private IEnumerator Countdown()
+        {
+            for (int pass = 0; pass < 2; pass++)
+            {
+                var phase = pass == 0 ? MinigamePhase.Practice : MinigamePhase.Round;
+                float deadline = Time.realtimeSinceStartup + 120;
+                while (Time.realtimeSinceStartup < deadline)
+                {
+                    game = MinigameControllerBase.Current;
+                    if (game != null && game.Phase == phase && game.StartCountdownActive &&
+                        SessionScoreboard.Current?.LocalPlayer?.Avatar != null) break;
+                    yield return null;
+                }
+                if (game == null || game.Phase != phase || !game.StartCountdownActive)
+                { Fail("countdown not observed in " + phase); yield break; }
+                foreach (var behaviour in FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None))
+                    if (behaviour.GetType().Name.Contains("DebugBot")) behaviour.enabled = false;
+                var avatar = SessionScoreboard.Current.LocalPlayer.Avatar;
+                var input = avatar.GetComponent<PlayerInputReader>(); input.EngageAutopilot();
+                var push = avatar.GetComponent<PlayerPushAbility>();
+                int punches = 0;
+                Action onPunch = () => punches++;
+                push.PunchStarted += onPunch;
+                yield return new WaitForFixedUpdate(); yield return new WaitForFixedUpdate();
+                var start = avatar.Position;
+                float lockedAt = Time.time;
+                int frames = 0;
+                while (game != null && game.Phase == phase && game.StartCountdownActive && Time.realtimeSinceStartup < deadline)
+                {
+                    frames++;
+                    input.DriveMove(Vector2.up); input.DriveJump(); input.DrivePushHold(true);
+                    input.DriveInteract(); input.DriveInteractHold(true); input.DrivePose(2); push.RequestPush();
+                    if (!input.Suspended || input.MoveInput != Vector2.zero || input.JumpPressed || input.PushPressed ||
+                        input.InteractPressed || input.InteractHeld || input.PushHeld || input.PoseRequest != 0)
+                    { Fail("countdown accepted input in " + phase); break; }
+                    var delta = avatar.Position - start; delta.y = 0;
+                    if (delta.magnitude > .12f) { Fail("countdown moved " + delta + " in " + phase); break; }
+                    yield return null;
+                }
+                push.PunchStarted -= onPunch;
+                if (frames < 5 || punches != 0 || game == null || game.Phase != phase || game.StartCountdownActive)
+                { Fail($"countdown incomplete {phase} frames={frames} punches={punches}"); yield break; }
+                float duration = Time.time - lockedAt;
+                // A role may keep its body locked (hunter/keeper); the shared
+                // input gate must still release without removing that role lock.
+                if (input.Suspended || input.JumpPressed || input.PushPressed || input.InteractPressed)
+                    Fail("countdown did not release cleanly in " + phase);
+                input.DriveJump(); input.DriveInteract();
+                if (!input.JumpPressed || !input.InteractPressed) Fail("countdown input not restored");
+                input.ConsumeJump(); input.ConsumeInteract();
+                if (!avatar.MovementLocked)
+                {
+                    var before = avatar.Position;
+                    input.DriveMove(Vector2.up); yield return new WaitForSeconds(.3f); input.DriveMove(Vector2.zero);
+                    if (Vector3.Distance(before,avatar.Position) < .1f) Fail("countdown movement not restored in " + phase);
+                }
+                Debug.Log($"PLAYTEST_CHECK countdown phase={phase} locked={duration:F2}s frames={frames} punches={punches} roleLocked={avatar.MovementLocked}");
+                if (pass == 0) game.ToggleTutorialReady();
+            }
         }
         private IEnumerator HubFootsteps()
         {

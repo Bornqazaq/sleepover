@@ -64,6 +64,7 @@ namespace Igruha.Minigames.SumoRing
         protected override void OnRoundStarted()
         {
             countdownFinished = false; shownSecond = shownAlive = shownRing = -1;
+            SetStartCountdownActive(true);
             if (HasAuthority) round.Reset(ids, NetworkClock.Now + config.Countdown);
             Timer?.StopTimer(); arena.ResetArena();
             if (timerPlate != null) timerPlate.SetActive(false);
@@ -80,6 +81,7 @@ namespace Igruha.Minigames.SumoRing
                 if (elapsed >= 0)
                 {
                     countdownFinished = true; Hud?.HideCountdown();
+                    SetStartCountdownActive(false);
                     foreach (var p in participants) if (!p.Dead && p.Motor != null) p.Motor.MovementLocked = false;
                     FightStarted?.Invoke();
                 }

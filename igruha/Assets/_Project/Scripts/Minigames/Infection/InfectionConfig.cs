@@ -16,7 +16,7 @@ namespace Igruha.Minigames.Infection
     public sealed class InfectionConfig : ScriptableObject
     {
         [Header("Раунд")]
-        [Tooltip("Разбегание: все чистые, Нулевого ещё нет. Нужно, чтобы он не заразил соседа по спавну на первой секунде")]
+        [Tooltip("Стартовый отсчёт: все чистые, ввод заблокирован. После него назначается Нулевой с грейсом")]
         [SerializeField] private float scatterSeconds = 3f;
 
         [Tooltip("Грейс Нулевого: заражён, мигает, но заражать не может")]

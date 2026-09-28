@@ -669,7 +669,7 @@ namespace Igruha.Minigames.CarryItem
         /// </summary>
         private IEnumerator CountdownThenGo()
         {
-            SetInputSuspended(true);
+            SetStartCountdownActive(true);
 
             float remaining = config.CountdownSeconds;
             while (remaining > 0f)
@@ -680,7 +680,7 @@ namespace Igruha.Minigames.CarryItem
             }
 
             Hud?.HideCountdown();
-            SetInputSuspended(false);
+            SetStartCountdownActive(false);
             countdownRoutine = null;
         }
 
@@ -866,7 +866,7 @@ namespace Igruha.Minigames.CarryItem
                 }
             }
 
-            SetInputSuspended(false);
+            SetStartCountdownActive(false);
 
             LogFinalTable();
 
@@ -1030,18 +1030,6 @@ namespace Igruha.Minigames.CarryItem
         /// <summary>Бак этой команды. Нужен болванкам соло-теста.</summary>
         public WaterTank TankOf(TeamSide side) =>
             side == TeamSide.A ? teamA.Tank : side == TeamSide.B ? teamB.Tank : null;
-
-        private void SetInputSuspended(bool suspended)
-        {
-            for (int i = 0; i < entries.Count; i++)
-            {
-                PlayerController avatar = entries[i].Avatar;
-                if (avatar != null && avatar.TryGetComponent(out PlayerInputReader reader))
-                {
-                    reader.SetSuspended(suspended);
-                }
-            }
-        }
 
         /// <summary>
         /// Повесить болванки.

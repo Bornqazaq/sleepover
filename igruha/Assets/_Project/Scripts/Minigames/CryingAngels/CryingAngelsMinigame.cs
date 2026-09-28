@@ -212,6 +212,7 @@ namespace Igruha.Minigames.CryingAngels
         {
             roundElapsed = 0f;
             countdownRemaining = config != null ? config.StartCountdown : 0f;
+            SetStartCountdownActive(countdownRemaining > 0f);
             beamMismatchReported = false;
             ResetRunnersForRound();
             SetBeamEnabled(false);
@@ -417,6 +418,7 @@ namespace Igruha.Minigames.CryingAngels
             }
 
             countdownRemaining = 0f;
+            SetStartCountdownActive(false);
             Hud?.HideCountdown();
 
             // Фонарь — исход раунда: клиент дожидается сети, а не зажигает свой.

@@ -31,6 +31,7 @@ namespace Igruha.Tests
         private static void Install()
         {
             if (!LaunchArguments.TryGetValue("--tutorial-check", out string mode)) return;
+            if (mode == "countdown") return; // Readiness belongs to PlaytestSeptemberProbe.
             var go = new GameObject("TutorialNetworkProbe");
             DontDestroyOnLoad(go);
             var probe = go.AddComponent<TutorialNetworkProbe>();

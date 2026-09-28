@@ -9,7 +9,10 @@ import time
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 APP = ROOT / 'igruha/Builds/Autotest/sleepover.app/Contents/MacOS/sleepover'
 GAMES = {'carry': 'CarryItem', 'infection': 'Infection', 'exam': 'Exam', 'cans': 'CansOrder',
-         'memory': 'MemoryRun', 'tutorial': 'MemoryRun', 'footsteps': None}
+         'memory': 'MemoryRun', 'tutorial': 'MemoryRun', 'footsteps': None,
+         'countdown-infection': 'Infection', 'countdown-carry': 'CarryItem',
+         'countdown-angels': 'CryingAngels', 'countdown-duck': 'DuckHunt',
+         'countdown-sumo': 'SumoRing', 'countdown-bullet': 'OneBullet'}
 
 
 def run(mode, port):
@@ -30,6 +33,8 @@ def run(mode, port):
                 args.append('-nographics')
             if mode == 'tutorial':
                 args += ['--tutorial-check', 'repeat']
+            if mode.startswith('countdown-'):
+                args += ['--tutorial-check', 'countdown']
             processes.append(subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT))
             time.sleep(6 if index == 0 else 1.5)
         deadline = time.monotonic() + 360
