@@ -125,7 +125,7 @@ namespace Igruha.Core.Player
         /// </summary>
         public void DriveMove(Vector2 move)
         {
-            if (LocallyControlled && !Autopilot)
+            if (Suspended || (LocallyControlled && !Autopilot))
             {
                 return;
             }
@@ -136,7 +136,7 @@ namespace Igruha.Core.Player
         /// <summary>Прыжок извне. Гасится потребителем через <see cref="ConsumeJump"/>, как обычное нажатие.</summary>
         public void DriveJump()
         {
-            if (LocallyControlled && !Autopilot)
+            if (Suspended || (LocallyControlled && !Autopilot))
             {
                 return;
             }
@@ -156,7 +156,7 @@ namespace Igruha.Core.Player
         /// </summary>
         public void DriveInteract()
         {
-            if (LocallyControlled && !Autopilot)
+            if (Suspended || (LocallyControlled && !Autopilot))
             {
                 return;
             }
@@ -171,7 +171,7 @@ namespace Igruha.Core.Player
         /// </summary>
         public void DriveInteractHold(bool held)
         {
-            if (LocallyControlled && !Autopilot)
+            if (Suspended || (LocallyControlled && !Autopilot))
             {
                 return;
             }
@@ -186,7 +186,7 @@ namespace Igruha.Core.Player
         /// </summary>
         public void DrivePushHold(bool held)
         {
-            if (LocallyControlled && !Autopilot)
+            if (Suspended || (LocallyControlled && !Autopilot))
             {
                 return;
             }
@@ -205,7 +205,7 @@ namespace Igruha.Core.Player
         /// </summary>
         public void DrivePose(int pose)
         {
-            if (LocallyControlled && !Autopilot)
+            if (Suspended || (LocallyControlled && !Autopilot))
             {
                 return;
             }
@@ -247,12 +247,15 @@ namespace Igruha.Core.Player
         /// забыла — <c>PlayerPushAbility</c> толкал прямо на отсчёте, — и следующая
         /// забудет точно так же. Одна точка отказа надёжнее восьми проверок.
         /// </summary>
-        public bool Suspended { get; private set; }
+        private bool suspended;
+        public bool Suspended => suspended ||
+            (Igruha.Core.Minigame.MinigameControllerBase.Current != null &&
+             Igruha.Core.Minigame.MinigameControllerBase.Current.StartCountdownActive);
 
         /// <summary>Заморозить или вернуть ввод. На заморозке накопленные нажатия гасятся, чтобы не выстрелить после разморозки.</summary>
         public void SetSuspended(bool suspended)
         {
-            Suspended = suspended;
+            this.suspended = suspended;
 
             if (suspended)
             {
@@ -260,7 +263,7 @@ namespace Igruha.Core.Player
             }
         }
 
-        private void ClearInput()
+        internal void ClearInput()
         {
             MoveInput = Vector2.zero;
             LookDelta = Vector2.zero;

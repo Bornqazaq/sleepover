@@ -27,6 +27,7 @@ namespace Igruha.Core.Items
         private PickupItem carried;
         private PlayerController motor;
         private IInteractionRelay relay;
+        private PlayerInputReader input;
 
         public bool IsCarrying => carried != null;
 
@@ -47,6 +48,7 @@ namespace Igruha.Core.Items
         private void Awake()
         {
             motor = GetComponent<PlayerController>();
+            input = GetComponent<PlayerInputReader>();
             relay = GetComponent<IInteractionRelay>();
         }
 
@@ -74,7 +76,7 @@ namespace Igruha.Core.Items
         /// </summary>
         public bool TryPickup(PickupItem item)
         {
-            if (HandsBlocked || IsCarrying || item == null || item.IsHeld || holdAnchor == null)
+            if ((input != null && input.Suspended) || HandsBlocked || IsCarrying || item == null || item.IsHeld || holdAnchor == null)
             {
                 return false;
             }
@@ -89,7 +91,7 @@ namespace Igruha.Core.Items
         /// </summary>
         public void Throw()
         {
-            if (!IsCarrying)
+            if (!IsCarrying || (input != null && input.Suspended))
             {
                 return;
             }
@@ -109,7 +111,7 @@ namespace Igruha.Core.Items
         /// </summary>
         public void ServerThrow(bool withImpulse)
         {
-            if (!IsCarrying)
+            if (!IsCarrying || (withImpulse && input != null && input.Suspended))
             {
                 return;
             }

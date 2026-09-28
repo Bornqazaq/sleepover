@@ -388,7 +388,7 @@ namespace Igruha.Core.Player
             // Блокировка живёт рядом с нокдауном, а не внутри него: пока идёт
             // нокдаун, он главнее (персонаж и так не управляется), а когда
             // закончится — блокировка продолжит держать тело на месте.
-            if (MovementLocked)
+            if (MovementLocked || (inputReader != null && inputReader.Suspended))
             {
                 inputReader?.ConsumeJump();
                 jumpBufferTimer = 0f;
@@ -648,7 +648,7 @@ namespace Igruha.Core.Player
             // её значение: иначе UpdateCrouch каждый такт клал бы crouchRequested
             // в false, а мини-игра каждый кадр возвращала бы true, и кто победит
             // зависело бы от порядка выполнения скриптов.
-            if (inputReader != null && inputReader.enabled && !MovementLocked && !CrouchInputSuppressed)
+            if (inputReader != null && inputReader.enabled && !inputReader.Suspended && !MovementLocked && !CrouchInputSuppressed)
             {
                 SetCrouched(inputReader.CrouchHeld);
             }
