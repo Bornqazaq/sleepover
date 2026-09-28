@@ -474,7 +474,7 @@ namespace Igruha.Minigames.BelieveOrNot
                 case BelieveStage.Seating:
                     if (RoundInterrupted)
                     {
-                        GoToReveal();
+                        FinishRound();
                         break;
                     }
 
@@ -484,7 +484,7 @@ namespace Igruha.Minigames.BelieveOrNot
                 case BelieveStage.Peek:
                     if (RoundInterrupted)
                     {
-                        GoToReveal();
+                        FinishRound();
                         break;
                     }
 
@@ -493,12 +493,12 @@ namespace Igruha.Minigames.BelieveOrNot
 
                 case BelieveStage.Persuasion:
                     // Таймер истёк без решения — засчитывается «Оставить».
-                    if (match.Decision == Decision.None)
+                    if (match.Decision == Decision.None && !match.Cancelled)
                     {
                         match.Decision = Decision.Keep;
                     }
 
-                    GoToReveal();
+                    FinishRound();
                     break;
 
                 case BelieveStage.Reveal:
@@ -506,6 +506,7 @@ namespace Igruha.Minigames.BelieveOrNot
                     break;
 
                 case BelieveStage.Reaction:
+                case BelieveStage.Cancelled:
                     if (match.RoundNumber >= match.TotalRounds)
                     {
                         Debug.Log($"🎴 матч окончен: {match.TeamAWins}:{match.TeamBWins}");
@@ -528,9 +529,19 @@ namespace Igruha.Minigames.BelieveOrNot
         /// </summary>
         private bool RoundInterrupted => match.Cancelled || match.Decision != Decision.None;
 
-        /// <summary>Закрыть кон: посчитать исход и открыть крышки.</summary>
-        private void GoToReveal()
+        /// <summary>Закрыть кон: отменить без исхода либо посчитать его и открыть крышки.</summary>
+        private void FinishRound()
         {
+            if (match.Cancelled)
+            {
+                // Отдельная стадия едет тем же NetworkVariable, что остальные.
+                // Клиенту не нужно ждать флага из другого канала или получать
+                // содержимое коробок, чтобы показать отмену вместо победителя.
+                PublishMatch();
+                stageState.EnterStage(BelieveStage.Cancelled, config.ReactionSeconds);
+                return;
+            }
+
             ResolveRound();
             stageState.EnterStage(BelieveStage.Reveal, config.RevealSeconds);
         }
@@ -850,6 +861,10 @@ namespace Igruha.Minigames.BelieveOrNot
 
                 case BelieveStage.Reaction:
                     ApplyReactionStage();
+                    break;
+
+                case BelieveStage.Cancelled:
+                    ApplyCancelledStage();
                     break;
             }
 
@@ -1254,6 +1269,25 @@ namespace Igruha.Minigames.BelieveOrNot
             seatHud?.ShowTalk(NameOf(playerId), phrase, config.PhraseBubbleSeconds);
 
             PhraseShown?.Invoke(seat, playerId == match.KnowerPlayerId);
+        }
+
+        private void ApplyCancelledStage()
+        {
+            peekView?.Close();
+            decisionPanel?.Close();
+            phrasePanel?.Close();
+            seatHud?.HideAll();
+            table.HideBubbles();
+            localCard = BelieveCard.Unknown;
+
+            for (int seat = 0; seat < BelieveTable.SeatCount; seat++)
+            {
+                table.GetBox(seat)?.Prepare(BelieveCard.Unknown,
+                    seat == 0 ? BoxSlot.Seat0 : BoxSlot.Seat1,
+                    table.GetBoxPosition(seat));
+            }
+
+            seatHud?.ShowCancellation(config.ReactionSeconds);
         }
 
         private void ApplyRevealStage()

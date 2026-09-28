@@ -138,7 +138,9 @@ namespace Igruha.Minigames.BelieveOrNot
 
         private void Pick(Decision decision)
         {
-            if (!IsOpen)
+            // И клавиши, и кнопки приходят сюда. Меню Esc забирает ввод,
+            // даже когда сетевая игра продолжает идти за ним.
+            if (!IsOpen || PauseScreen.Current?.IsPaused == true)
             {
                 return;
             }
