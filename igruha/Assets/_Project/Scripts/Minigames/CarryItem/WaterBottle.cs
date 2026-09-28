@@ -130,8 +130,20 @@ namespace Igruha.Minigames.CarryItem
         /// <summary>Бутыль уже списана и доживает кадр до уничтожения.</summary>
         public bool IsGone => gone;
 
-        /// <summary>Вправе ли эта машина списывать воду. Вне сети — да, иначе только сервер.</summary>
-        private bool HasAuthority => IsSpawned ? IsServer : WorldAuthority.HasAuthority;
+        /// <summary>Вправе ли эта машина менять бутыль: вне сети или на работающем сервере.</summary>
+        private bool HasAuthority
+        {
+            get
+            {
+                var manager = NetworkManager;
+                // При shutdown ручки ещё снимаются, а IsServer/IsSpawned ещё true.
+                // Списание воды здесь вызвало бы RPC через уже разобранную сеть.
+                if (manager != null && manager.ShutdownInProgress) return false;
+                return IsSpawned
+                    ? IsServer && manager != null && manager.IsListening
+                    : WorldAuthority.HasAuthority;
+            }
+        }
 
         private void Awake()
         {

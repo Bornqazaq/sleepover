@@ -266,7 +266,10 @@ namespace Igruha.Minigames.CarryItem
         /// </summary>
         private void OnClientDisconnected(ulong clientId)
         {
-            if (IsServer)
+            // NGO вызывает disconnect и при остановке хоста, уже после разборки RPC.
+            // Это завершение сессии, а не выход участника из продолжающегося раунда.
+            var manager = NetworkManager;
+            if (IsServer && manager != null && manager.IsListening && !manager.ShutdownInProgress)
             {
                 game?.HandlePlayerLeft((int)clientId);
             }

@@ -29,6 +29,7 @@ namespace Igruha.Tests
         {
             float deadline = Time.realtimeSinceStartup + Timeout;
             bool requestedCharacter = false;
+            bool tutorialReady = false;
             while (Time.realtimeSinceStartup < deadline)
             {
                 var selection = CharacterSelection.Current;
@@ -42,6 +43,11 @@ namespace Igruha.Tests
                     Debug.Log("CARRY_DELIVERY_CHECK selected character in Hub id=" + network.LocalClientId);
                 }
                 game = MinigameControllerBase.Current as CarryItemMinigame;
+                if (game != null && game.AwaitingTutorialReady && !tutorialReady)
+                {
+                    tutorialReady = true;
+                    game.ToggleTutorialReady();
+                }
                 if (game != null && game.Phase == MinigamePhase.Round) break;
                 yield return null;
             }
@@ -51,14 +57,18 @@ namespace Igruha.Tests
                 yield break;
             }
 
-            foreach (var bot in FindObjectsByType<CarryItemDebugBot>(FindObjectsSortMode.None))
-                bot.enabled = false;
+            // --bot can re-enable autopilot when a delayed roster arrives. It races
+            // this probe for the next bottle, so this runner must own all deliveries.
+            if (LaunchArguments.BotEnabled)
+            {
+                Fail("run without --bot");
+                Application.Quit(1);
+                yield break;
+            }
             yield return new WaitForSeconds(5f);
 
             if (NetworkManager.Singleton.IsServer)
             {
-                game.StackOf(TeamSide.A).ClearLiveBottle();
-                game.StackOf(TeamSide.B).ClearLiveBottle();
                 for (int i = 1; i <= Deliveries && !failed; i++)
                 {
                     yield return Deliver(TeamSide.A, i);
@@ -100,7 +110,12 @@ namespace Igruha.Tests
         private IEnumerator Deliver(TeamSide side, int number)
         {
             var bottle = game.StackOf(side).Dispense(null);
-            if (bottle == null) { Fail("dispense " + side); yield break; }
+            if (bottle == null)
+            {
+                var live = game.StackOf(side).LiveBottle;
+                Fail($"dispense {side} live={live} carriers={live?.Carry.CarrierCount}");
+                yield break;
+            }
             bottle.Carry.enabled = false;
             bottle.enabled = false;
             var body = bottle.GetComponent<Rigidbody>();
