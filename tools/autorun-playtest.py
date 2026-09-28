@@ -9,7 +9,7 @@ import time
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 APP = ROOT / 'igruha/Builds/Autotest/sleepover.app/Contents/MacOS/sleepover'
 GAMES = {'carry': 'CarryItem', 'infection': 'Infection', 'exam': 'Exam', 'cans': 'CansOrder',
-         'memory': 'MemoryRun', 'tutorial': 'MemoryRun'}
+         'memory': 'MemoryRun', 'tutorial': 'MemoryRun', 'footsteps': None}
 
 
 def run(mode, port):
@@ -21,9 +21,13 @@ def run(mode, port):
     try:
         for index in range(4):
             role = ['--autostart', GAMES[mode], '--wait-players', '4'] if index == 0 else ['--client', '--host', '127.0.0.1']
+            if mode == 'footsteps' and index == 0:
+                role = []
             path = logs / ('host.log' if index == 0 else f'client-{index}.log')
             args = [str(APP), *role, '--port', str(port), '--bot', '--playtest-check', mode,
-                    '-batchmode', '-nographics', '-logFile', str(path)]
+                    '-batchmode', '-logFile', str(path)]
+            if mode != 'footsteps':
+                args.append('-nographics')
             if mode == 'tutorial':
                 args += ['--tutorial-check', 'repeat']
             processes.append(subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT))

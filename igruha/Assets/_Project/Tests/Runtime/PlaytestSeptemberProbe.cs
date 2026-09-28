@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using Igruha.Core.Audio;
 using Igruha.Core.CameraSystems;
 using Igruha.Core.Items;
 using Igruha.Core.Minigame;
@@ -41,6 +42,13 @@ namespace Igruha.Tests
         }
         private IEnumerator Start()
         {
+            LaunchArguments.TryGetValue("--playtest-check", out string mode);
+            if (mode == "footsteps")
+            {
+                yield return HubFootsteps();
+                yield return Finish(mode);
+                yield break;
+            }
             float deadline = Time.realtimeSinceStartup + 150;
             while (Time.realtimeSinceStartup < deadline)
             {
@@ -49,7 +57,6 @@ namespace Igruha.Tests
                 yield return null;
             }
             if (game == null || game.Phase != MinigamePhase.Round) { Fail("round timeout"); Application.Quit(1); yield break; }
-            LaunchArguments.TryGetValue("--playtest-check", out string mode);
             if (mode == "carry") yield return Carry();
             else if (mode == "infection") yield return Infection();
             else if (mode == "exam") yield return Exam();
@@ -57,9 +64,74 @@ namespace Igruha.Tests
             else if (mode == "memory") yield return Memory();
             else if (mode == "tutorial") yield return new WaitForSeconds(1);
             else Fail("unknown mode");
+            yield return Finish(mode);
+        }
+        private IEnumerator Finish(string mode)
+        {
             if (!failed) Debug.Log("PLAYTEST_CHECK PASS mode=" + mode + " id=" + NetworkManager.Singleton.LocalClientId);
             yield return new WaitForSecondsRealtime(NetworkManager.Singleton.IsServer ? 12 : 4);
             Application.Quit(failed ? 1 : 0);
+        }
+        private IEnumerator HubFootsteps()
+        {
+            float deadline = Time.realtimeSinceStartup + 120;
+            while (Time.realtimeSinceStartup < deadline)
+            {
+                var board = SessionScoreboard.Current;
+                bool ready = board != null && board.Players.Count == 4 && board.LocalPlayer?.Avatar != null;
+                if (ready) foreach (var player in board.Players) ready &= player.Avatar != null;
+                if (ready) break;
+                yield return null;
+            }
+            var scoreboard = SessionScoreboard.Current;
+            if (scoreboard?.LocalPlayer?.Avatar == null || scoreboard.Players.Count != 4)
+            { Fail("footsteps Hub roster timeout"); yield break; }
+            foreach (var bot in FindObjectsByType<DebugPlayerBot>(FindObjectsSortMode.None)) bot.enabled = false;
+            var local = scoreboard.LocalPlayer.Avatar;
+            var input = local.GetComponent<PlayerInputReader>();
+            input.EngageAutopilot(); input.DriveMove(Vector2.zero);
+            var reference = new GameObject("Footsteps test movement reference");
+            local.SetCameraReference(reference.transform);
+            local.TeleportTo(new Vector3(-1.5f + NetworkManager.Singleton.LocalClientId * 1.2f, .2f, -2), Quaternion.identity);
+            yield return new WaitForSeconds(3);
+            var sources = new Dictionary<AudioSource, (AudioClip clip, int sample, bool playing)>();
+            var counts = new Dictionary<PlayerController, int>();
+            foreach (var player in scoreboard.Players)
+            {
+                if (player.Avatar == null) { Fail("footsteps missing remote avatar"); yield break; }
+                counts.Add(player.Avatar, 0);
+                foreach (var source in player.Avatar.GetComponent<MinigameAudioPlayer>().GetComponentsInChildren<AudioSource>(true))
+                    sources.Add(source, (null, 0, false));
+            }
+            float start = Time.time;
+            while (Time.time - start < 8)
+            {
+                input.DriveMove(Mathf.FloorToInt((Time.time-start) / .8f) % 2 == 0 ? Vector2.up : Vector2.down);
+                foreach (var player in scoreboard.Players)
+                {
+                    foreach (var source in player.Avatar.GetComponent<MinigameAudioPlayer>().GetComponentsInChildren<AudioSource>(true))
+                    {
+                        var previous = sources[source];
+                        bool step = source.isPlaying && source.clip != null && source.clip.name.StartsWith("SFX_CHR_Step_");
+                        if (step && (!previous.playing || previous.clip != source.clip || source.timeSamples < previous.sample))
+                        {
+                            counts[player.Avatar]++;
+                            if (source.mute || source.volume <= 0) Fail("footsteps muted source");
+                        }
+                        sources[source] = (source.clip, source.clip != null ? source.timeSamples : 0, step);
+                    }
+                }
+                yield return null;
+            }
+            input.DriveMove(Vector2.zero);
+            foreach (var pair in counts)
+            {
+                var animator = pair.Key.GetComponentInChildren<Animator>();
+                Debug.Log($"PLAYTEST_CHECK footsteps avatar={pair.Key.name} local={pair.Key == local} sounds={pair.Value} culling={animator.cullingMode} ground={pair.Key.GroundCollider?.name} position={pair.Key.transform.position}");
+                if (pair.Value < 4) Fail("footsteps too few sounds: " + pair.Key.name + "=" + pair.Value);
+            }
+            if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name != "Hub") Fail("footsteps left Hub");
+            Destroy(reference);
         }
         private IEnumerator Carry()
         {
