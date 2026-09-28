@@ -22,6 +22,12 @@ namespace Igruha.Minigames.CansOrder
         /// Собравшие не попадают в тройку никогда, и их расстановка не
         /// показывается вообще: она и есть ответ (спека 5.3).
         /// </summary>
+        public static int CompareFinish(CansOrderEntry a, CansOrderEntry b)
+        {
+            if (a.Solved != b.Solved) return a.Solved ? -1 : 1;
+            return a.Solved ? a.ConfirmTime.CompareTo(b.ConfirmTime) : 0;
+        }
+
         public static int CompareForBoard(CansOrderEntry a, CansOrderEntry b)
         {
             int byMatches = b.Matches.CompareTo(a.Matches);

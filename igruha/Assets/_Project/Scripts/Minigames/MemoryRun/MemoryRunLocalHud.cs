@@ -1,4 +1,5 @@
 using System.Text;
+using TMPro;
 using UnityEngine;
 using Igruha.Core.Minigame;
 using Igruha.Core.Player;
@@ -26,11 +27,13 @@ namespace Igruha.Minigames.MemoryRun
     public sealed class MemoryRunLocalHud : MonoBehaviour
     {
         /// <summary>Сколько следующих участников показывать в очереди.</summary>
-        private const int QueuePreview = 2;
+        private const int QueuePreview = 7;
 
         [SerializeField] private MemoryRunMinigame game;
         [SerializeField] private RoundHud hud;
         [SerializeField] private GameObject statusPanel;
+        [SerializeField] private TMP_Text[] queueBoards;
+        private int shownQueueVersion;
 
         private readonly StringBuilder builder = new StringBuilder(128);
         private int shownSeconds = -1;
@@ -50,6 +53,8 @@ namespace Igruha.Minigames.MemoryRun
                 statusPanel.SetActive(visible);
             if (!visible)
             {
+                SetBoards("РЕЙС НА ПАМЯТЬ\nОжидание участников");
+                shownSeconds = -1;
                 return;
             }
 
@@ -67,14 +72,20 @@ namespace Igruha.Minigames.MemoryRun
             int seconds = game.TurnArmed ? Mathf.CeilToInt(game.TurnSecondsLeft) : 0;
             int deaths = localPlayerId != TurnQueue.NoPlayer ? game.DeathsOf(localPlayerId) : 0;
 
+            int queueVersion = 17;
+            var order = game.TurnOrder;
+            if (order != null) for (int i = 0; i < order.Count; i++)
+                queueVersion = unchecked(queueVersion * 31 + (game.IsStillWalking(order[i]) ? order[i] + 1 : 0));
+
             // Строка пересобирается только когда изменилась. Собирать её каждый
             // кадр значит аллоцировать строку шестьдесят раз в секунду на ровном
             // месте — а это как раз то, чего правила проекта не разрешают.
-            if (seconds == shownSeconds && walkerId == shownWalker && deaths == shownDeaths)
+            if (seconds == shownSeconds && walkerId == shownWalker && deaths == shownDeaths && queueVersion == shownQueueVersion)
             {
                 return;
             }
 
+            shownQueueVersion = queueVersion;
             shownSeconds = seconds;
             shownWalker = walkerId;
             shownDeaths = deaths;
@@ -89,9 +100,11 @@ namespace Igruha.Minigames.MemoryRun
 
             AppendQueue(walkerId);
 
+            SetBoards(builder.ToString());
+            builder.Clear();
             if (localPlayerId != TurnQueue.NoPlayer)
             {
-                builder.Append("\nСмертей: ").Append(deaths).Append(" / ").Append(game.DeathLimit);
+                builder.Append("Смертей: ").Append(deaths).Append(" / ").Append(game.DeathLimit);
             }
 
             hud.ShowStatus(builder.ToString());
@@ -106,6 +119,13 @@ namespace Igruha.Minigames.MemoryRun
         /// реплицированного состояния, поэтому у хоста и у клиента строка
         /// получается одна и та же.
         /// </summary>
+        private void SetBoards(string text)
+        {
+            if (queueBoards == null) return;
+            for (int i = 0; i < queueBoards.Length; i++)
+                if (queueBoards[i] != null && queueBoards[i].text != text) queueBoards[i].text = text;
+        }
+
         private void AppendQueue(int walkerId)
         {
             var order = game.TurnOrder;

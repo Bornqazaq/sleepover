@@ -577,16 +577,9 @@ namespace Igruha.Minigames.Exam
                 case StageReveal:
                     questionInput?.Close();
 
-                    // Три секунды чтения: высокий силуэт ученика (особенно
-                    // Шланги) может закрыть мировую доску в обычной орбите.
-                    // Показываем ему существующий общий план; Ведущий пока
-                    // остаётся в кадре кафедры. При выборе вернётся 3rd person.
-                    if (!FindEntryPlayer(match.HostPlayerId).IsLocal &&
-                        cameraController != null && hallCameraRig != null)
-                    {
-                        cameraController.Apply(CameraMode.Fixed, hallCameraRig);
-                        CutReadingTransition();
-                    }
+                    // Отвечающие сохраняют свою орбиту от чтения до выбора.
+                    // Короткий общий план между этими фазами заставлял камеру
+                    // прыгать зал → лицо на каждом вопросе (IGR-587).
 
                     // Текст уходит клиентам ровно в этот момент и ни секундой
                     // раньше: в фазе печати его нет ни у кого, кроме Ведущего
@@ -643,11 +636,6 @@ namespace Igruha.Minigames.Exam
                     // ради чего он его писал: кто куда побежит и кто провалится.
                     // Камера кафедры смотрит НА кафедру — с неё этого не видно
                     // вовсе, и вся развязка проходила бы мимо него.
-                    if (!FindEntryPlayer(match.HostPlayerId).IsLocal)
-                    {
-                        RestoreHostCamera();
-                        CutReadingTransition();
-                    }
                     ApplyHallCamera();
 
                     for (int i = 0; i < bots.Count; i++)
@@ -1374,7 +1362,7 @@ namespace Igruha.Minigames.Exam
                 return;
             }
 
-            cameraController.Apply(CameraMode.Fixed, podiumCameraRig);
+            ApplyExamCamera(CameraMode.Fixed, podiumCameraRig);
         }
 
         /// <summary>
@@ -1391,15 +1379,15 @@ namespace Igruha.Minigames.Exam
                 return;
             }
 
-            cameraController.Apply(CameraMode.Fixed, hallCameraRig);
+            ApplyExamCamera(CameraMode.Fixed, hallCameraRig);
         }
 
-        // The reading shot lasts only three seconds. Cut between these local
-        // positions so the shared two-second blend does not consume the shot.
-        // No shared camera settings are changed.
-        private static void CutReadingTransition()
+        private void ApplyExamCamera(CameraMode mode, Transform target)
         {
-            Camera.main?.GetComponent<Unity.Cinemachine.CinemachineBrain>()?.ResetState();
+            // Повторные снимки сети не должны сбрасывать орбиту и blend.
+            if (cameraController.CurrentMode == mode && cameraController.CurrentTarget == target)
+                return;
+            cameraController.Apply(mode, target);
         }
 
         private void RestoreHostCamera()
@@ -1412,7 +1400,7 @@ namespace Igruha.Minigames.Exam
             SessionPlayer local = SessionScoreboard.Current?.LocalPlayer;
             if (local?.Avatar != null)
             {
-                cameraController.Apply(CameraMode.ThirdPerson, local.Avatar.transform);
+                ApplyExamCamera(CameraMode.ThirdPerson, local.Avatar.CameraTarget);
             }
         }
 

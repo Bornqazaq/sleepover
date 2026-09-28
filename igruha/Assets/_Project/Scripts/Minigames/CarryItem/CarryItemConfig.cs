@@ -20,6 +20,10 @@ namespace Igruha.Minigames.CarryItem
     [CreateAssetMenu(fileName = "CarryItemConfig", menuName = "Igruha/Minigames/Carry Item Config")]
     public sealed class CarryItemConfig : ScriptableObject
     {
+        [Header("Возврат после падения")]
+        [SerializeField, Min(0f)] private float respawnDelaySeconds = 5.5f;
+        public float RespawnDelaySeconds => Mathf.Max(0f, respawnDelaySeconds);
+
         [Header("Арена, ШИ (8.1)")]
         [Tooltip("Ширина игрока, м. Единица измерения всего проекта: 1 ШИ = 0.72 м")]
         [SerializeField] private float unitMeters = 0.72f;

@@ -6,6 +6,7 @@
         "Igruha.Networking",
         "Unity.Collections",
         "Unity.Netcode.Runtime",
+        "Unity.Netcode.Components",
         "Unity.InputSystem",
         "Unity.Cinemachine",
         "Unity.TextMeshPro",

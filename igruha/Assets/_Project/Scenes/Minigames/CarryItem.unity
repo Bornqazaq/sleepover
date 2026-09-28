@@ -3728,7 +3728,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d79a48ae087930a4e82624b416bc31e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Arena.KillZone
-  mode: 0
+  mode: 1
   onPlayerEntered:
     m_PersistentCalls:
       m_Calls: []
@@ -37086,7 +37086,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -154197,7 +154197,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d79a48ae087930a4e82624b416bc31e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Arena.KillZone
-  mode: 0
+  mode: 1
   onPlayerEntered:
     m_PersistentCalls:
       m_Calls: []
@@ -155554,7 +155554,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d79a48ae087930a4e82624b416bc31e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Arena.KillZone
-  mode: 0
+  mode: 1
   onPlayerEntered:
     m_PersistentCalls:
       m_Calls: []
@@ -291244,7 +291244,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Button
 --- !u!114 &1995825528 stripped
 MonoBehaviour:
@@ -291255,7 +291255,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
 --- !u!1 &1995825529 stripped
 GameObject:
@@ -291271,7 +291271,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8e48853eed27f4c1d837f62450063e7f, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.UI.RoundResultsView
 --- !u!1001 &1999268703
 PrefabInstance:

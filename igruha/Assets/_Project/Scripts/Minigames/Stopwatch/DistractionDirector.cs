@@ -40,6 +40,11 @@ namespace Igruha.Minigames.Stopwatch
         private AudioSource tickSource;
         private AudioSource roarSource;
         private AudioSource crowdSource;
+        private float crowdTimer;
+        private float crowdBurstLeft;
+        private const float CrowdMinInterval = 20f;
+        private const float CrowdMaxInterval = 32f;
+        private const float CrowdBurstSeconds = 2.5f;
         private Light spotlight;
 
         private float intensity;
@@ -67,7 +72,7 @@ namespace Igruha.Minigames.Stopwatch
         {
             tickSource = CreateSource("Tick", tickClip != null ? tickClip : GenerateTick(), false);
             roarSource = CreateSource("Roar", roarClip != null ? roarClip : GenerateRoar(), false);
-            crowdSource = CreateSource("Crowd", crowdClip != null ? crowdClip : GenerateCrowd(), true);
+            crowdSource = CreateSource("Crowd", crowdClip != null ? crowdClip : GenerateCrowd(), false);
             CreateSpotlight();
             random = new System.Random(unchecked(GetInstanceID() * 31));
         }
@@ -97,14 +102,9 @@ namespace Igruha.Minigames.Stopwatch
             if (crowdSource != null)
             {
                 crowdSource.volume = crowdVolume * intensity;
-                if (running && !crowdSource.isPlaying)
-                {
-                    crowdSource.Play();
-                }
-                else if (!running && crowdSource.isPlaying)
-                {
-                    crowdSource.Stop();
-                }
+                crowdSource.Stop();
+                crowdTimer = NextInterval(new Vector2(CrowdMinInterval, CrowdMaxInterval));
+                crowdBurstLeft = 0f;
             }
         }
 
@@ -123,6 +123,18 @@ namespace Igruha.Minigames.Stopwatch
 
         private void Update()
         {
+            if (running && crowdSource != null)
+            {
+                crowdTimer -= Time.deltaTime;
+                crowdBurstLeft -= Time.deltaTime;
+                if (crowdBurstLeft <= 0f && crowdSource.isPlaying) crowdSource.Stop();
+                if (crowdTimer <= 0f)
+                {
+                    crowdSource.Play();
+                    crowdBurstLeft = CrowdBurstSeconds;
+                    crowdTimer = NextInterval(new Vector2(CrowdMinInterval, CrowdMaxInterval));
+                }
+            }
             if (!running)
             {
                 return;

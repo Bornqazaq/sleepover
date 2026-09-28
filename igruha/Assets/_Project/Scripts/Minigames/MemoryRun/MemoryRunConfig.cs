@@ -50,10 +50,11 @@ namespace Igruha.Minigames.MemoryRun
         [SerializeField] private float unitsPerWidth = 0.72f;
         [Tooltip("Сторона плиты")]
         [SerializeField] private float plateSize = 4f;
+        [SerializeField] private float plateWidth = 2.6f;
         [Tooltip("Толщина плиты — только на вид, игрок ходит по верхней грани")]
         [SerializeField] private float plateThickness = 0.5f;
         [Tooltip("Зазор между плитами внутри ряда. Он же определяет длину диагонального прыжка центр ↔ край")]
-        [SerializeField] private float laneGap = 1f;
+        [SerializeField] private float laneGap = 0.3f;
         [Tooltip("Пропасть между шагами. Подобран заведомо с запасом: прыжок берёт 4.69 м, здесь 1.44")]
         [SerializeField] private float stepGap = 2f;
         [Tooltip("Широкий заводской зал; рабочая сетка плит остаётся в центре")]
@@ -85,6 +86,7 @@ namespace Igruha.Minigames.MemoryRun
 
         public float UnitsPerWidth => unitsPerWidth;
         public float PlateSize => plateSize * unitsPerWidth;
+        public float PlateWidth => plateWidth * unitsPerWidth;
         public float PlateThickness => plateThickness * unitsPerWidth;
         public float LaneGap => laneGap * unitsPerWidth;
         public float StepGap => stepGap * unitsPerWidth;
@@ -99,13 +101,13 @@ namespace Igruha.Minigames.MemoryRun
         public float GateHeight => gateHeight * unitsPerWidth;
 
         /// <summary>Шаг между центрами соседних полос: плита плюс зазор.</summary>
-        public float LanePitch => PlateSize + LaneGap;
+        public float LanePitch => PlateWidth + LaneGap;
 
         /// <summary>Шаг между центрами соседних рядов: плита плюс пропасть.</summary>
         public float StepPitch => PlateSize + StepGap;
 
         /// <summary>Ширина ряда целиком — три плиты и два зазора.</summary>
-        public float RowWidth => LaneCount * PlateSize + (LaneCount - 1) * LaneGap;
+        public float RowWidth => LaneCount * PlateWidth + (LaneCount - 1) * LaneGap;
 
         /// <summary>
         /// Длина всей цепочки плит: десять рядов и девять пропастей между ними.
@@ -165,7 +167,7 @@ namespace Igruha.Minigames.MemoryRun
                 return false;
             }
 
-            if (Mathf.Abs(worldPosition.x - LaneX(laneIndex)) > half)
+            if (Mathf.Abs(worldPosition.x - LaneX(laneIndex)) > PlateWidth * 0.5f)
             {
                 return false;
             }
@@ -205,13 +207,13 @@ namespace Igruha.Minigames.MemoryRun
 
         /// <summary>
         /// Самый длинный прыжок, который маршрут вообще может потребовать, —
-        /// диагональ центр ↔ край от края плиты до края следующей.
+        /// диагональ край ↔ противоположный край между ближайшими углами плит.
         ///
         /// Существует затем, чтобы построитель арены мог сверить это число
         /// с дальностью прыжка персонажа и заорать, если планировка уехала.
         /// Именно на этом сорвался LDD: переход лево ↔ право требовал 4.55 м
         /// при дальности 4.69, то есть 3% запаса и только с идеального угла.
         /// </summary>
-        public float LongestRequiredJump => Mathf.Sqrt(LaneGap * LaneGap + StepGap * StepGap);
+        public float LongestRequiredJump => Mathf.Sqrt(Mathf.Pow(PlateWidth + 2f * LaneGap, 2f) + StepGap * StepGap);
     }
 }

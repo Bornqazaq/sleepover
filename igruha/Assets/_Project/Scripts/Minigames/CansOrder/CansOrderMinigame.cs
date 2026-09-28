@@ -255,6 +255,8 @@ namespace Igruha.Minigames.CansOrder
 
         /// <summary>Состояние раунда. Наружу — табло и отладочным болванкам соло-прогона.</summary>
         public CansOrderRoundState Round => round;
+        public float PuzzleSecondsLeft => round.Deadline <= 0 ? config.RoundSeconds : Mathf.Clamp((float)(round.Deadline - NetworkClock.Now), 0f, config.RoundSeconds);
+        public float PuzzleDuration => config.RoundSeconds;
 
         /// <summary>Сколько участников в матче.</summary>
         public int ContestantCount => contestants.Count;
@@ -514,6 +516,7 @@ namespace Igruha.Minigames.CansOrder
                 return;
             }
 
+            Timer?.StopTimer();
             BeginRound();
         }
 
@@ -595,11 +598,12 @@ namespace Igruha.Minigames.CansOrder
 
             rosterDirty = false;
 
-            round.Round++;
+            round.Round = 1;
+            round.Deadline = NetworkClock.Now + config.BriefingSeconds + config.RoundSeconds;
             round.Circle = BriefingCircle;
             round.AliveAtStart = alive;
             round.CanCount = config.GetCanCount(alive);
-            round.Quota = config.GetEliminationQuota(alive);
+            round.Quota = 0;
             round.SolvedCount = 0;
 
             GenerateSolution(round.CanCount);
@@ -756,15 +760,17 @@ namespace Igruha.Minigames.CansOrder
 
         private void BeginCircle()
         {
+            if (PuzzleSecondsLeft <= 0f) { EnterHatch(false); return; }
             round.Circle++;
             resultsRevealed = false;
 
             for (int i = 0; i < contestants.Count; i++)
             {
                 Contestant c = contestants[i];
+                c.Entry.SolvedThisCircle = false;
+                if (c.Entry.Solved) continue;
                 c.Entry.Confirmed = false;
                 c.Entry.Matches = 0;
-                c.Entry.SolvedThisCircle = false;
                 c.Submitted.Clear();
 
                 // Полка хранит прошлую расстановку между кругами: в новом круге
@@ -779,7 +785,7 @@ namespace Igruha.Minigames.CansOrder
                 AssignStartingShelf(c);
             }
 
-            stageState.BeginSubround(round.Circle, StagePlacement, config.PlacementWindowSeconds);
+            stageState.BeginSubround(round.Circle, StagePlacement, Mathf.Min(config.PlacementWindowSeconds, PuzzleSecondsLeft));
         }
 
         /// <summary>
@@ -1260,23 +1266,12 @@ namespace Igruha.Minigames.CansOrder
                     break;
 
                 case StageReveal:
-                    if (ShouldEndRound())
+                    if (NotSolvedCount == 0 || PuzzleSecondsLeft <= 0f)
                     {
                         EnterHatch(false);
                         return;
                     }
-
-                    if (round.Circle >= config.RoundCircleCap)
-                    {
-                        // Потолок кругов — страховка, а не правило: в нормальной
-                        // игре до неё не доходит даже вдвоём (спека 6.5).
-                        Debug.LogWarning($"{name}: раунд {round.Round} упёрся в потолок {config.RoundCircleCap} кругов — " +
-                                         "выбывают худшие по лучшему достигнутому счёту", this);
-                        EnterHatch(true);
-                        return;
-                    }
-
-                    stageState.EnterStage(StagePause, config.PauseSeconds);
+                    stageState.EnterStage(StagePause, Mathf.Min(config.PauseSeconds, PuzzleSecondsLeft));
                     break;
 
                 case StagePause:
@@ -1284,14 +1279,8 @@ namespace Igruha.Minigames.CansOrder
                     break;
 
                 case StageHatch:
-                    if (AliveCount < 2)
-                    {
-                        waitingForPitFinale = true;
-                        TryFinishPitFinale();
-                        return;
-                    }
-
-                    BeginRound();
+                    waitingForPitFinale = true;
+                    TryFinishPitFinale();
                     break;
             }
         }
@@ -1395,7 +1384,7 @@ namespace Igruha.Minigames.CansOrder
 
             int alive = AliveCount;
             round.AliveAtStart = alive;
-            round.Quota = config.GetEliminationQuota(alive);
+            round.Quota = 0;
 
             Debug.Log($"🚪 Состав изменился: живых {alive}, квота вылета {round.Quota}, " +
                       $"собрать до конца раунда {Mathf.Max(0, alive - round.Quota)}", this);
@@ -1447,13 +1436,15 @@ namespace Igruha.Minigames.CansOrder
         /// это единственный смысл пустой клетки на арене и кладбище,
         /// которое никто не рисовал (спека 5.7 и 7).
         ///
-        /// Забег в яме идёт <b>параллельно</b> следующему раунду: стадия
-        /// створок длится 2 с и ничего не ждёт, а погоня доигрывается внизу
-        /// фоном. Блокирующая сцена добавляла бы по 5–9 с к каждому раунду.
+        /// После подъёма и открытия створок финал ждёт завершения погони.
+        /// Новый раунд не начинается.
         /// </summary>
         private void EnterHatch(bool byCircleCap)
         {
-            SelectEliminated(byCircleCap, eliminatedThisRound);
+            eliminatedThisRound.Clear();
+            for (int i = 0; i < contestants.Count; i++)
+                if (contestants[i].Entry.Alive && !contestants[i].Entry.Solved)
+                    eliminatedThisRound.Add(contestants[i].Entry.PlayerId);
 
             // Ушедшие из матча в этом раунде делят место с теми, кого выбило
             // правилом: они выбыли на текущий момент и попадают в текущую
@@ -1682,10 +1673,9 @@ namespace Igruha.Minigames.CansOrder
                 return false;
             }
 
-            // 1. Стадия. Окно этого круга ещё идёт либо кончилось не более
-            //    ConfirmGraceSeconds назад: пакет, отправленный до дедлайна,
-            //    не должен пропадать из-за пинга.
-            if (placementWindowCircle != round.Circle || arrival > placementWindowEnd + ConfirmGraceSeconds)
+            // 1. Сервер ещё принимает ответы этого круга. После ResolveCircle
+            //    поздний пакет уже нельзя включить в опубликованный счёт.
+            if (Stage != StagePlacement || placementWindowCircle != round.Circle || arrival > placementWindowEnd)
             {
                 Debug.LogWarning($"{name}: подтверждение игрока {playerId} пришло вне окна круга {round.Circle} — отказ", this);
                 return false;
@@ -1721,12 +1711,8 @@ namespace Igruha.Minigames.CansOrder
             CopyInto(arrangement, c.Submitted);
             c.Entry.Confirmed = true;
 
-            // Время подтверждения для тайбрейка берётся из метки, зажатой
-            // в границы окна, а не из момента прибытия: иначе тайбрейк решал бы
-            // качество канала, а не то, кто раньше нажал.
-            c.Entry.ConfirmTime = stamp < placementWindowStart
-                ? placementWindowStart
-                : (stamp > placementWindowEnd ? placementWindowEnd : stamp);
+            // Порядок финиша определяет сервер, клиент не может прислать более раннее время.
+            c.Entry.ConfirmTime = arrival;
 
             // Лампа и замершая полка — только у того, кто нажал, и только
             // на его машине. Иначе хост видел бы, кто уже подтвердил, а клиенты
@@ -1753,10 +1739,6 @@ namespace Igruha.Minigames.CansOrder
             // Все, кому ещё было что подтверждать, подтвердили — дальше окно
             // тикает впустую, и люди просто сидят и смотрят на таймер каждый
             // круг (IGR-373). Закрываем стадию досрочно.
-            //
-            // Стадию проверяем явно: пакет мог прийти в допуске 0.3 с ПОСЛЕ
-            // дедлайна, когда показ результатов уже идёт, — и тогда EndStageNow
-            // обрубил бы не окно выставления, а показ.
             //
             // Решает только сервер: EndStageNow сам уходит по !HasAuthority,
             // но мы и так под ним — вся эта функция серверная.
@@ -1921,8 +1903,7 @@ namespace Igruha.Minigames.CansOrder
         }
 
         /// <summary>
-        /// Шаг медведя. Забег в яме идёт параллельно: следующий раунд
-        /// стартует сразу, а погоня доигрывается внизу фоном.
+        /// Шаг медведя. Финал завершается после погони за неуспевшими.
         ///
         /// В фазе 3 этот <c>Update</c> уйдёт целиком за <c>IsServer</c> — медведя
         /// двигает только сервер, остальные получают позицию через
@@ -2237,6 +2218,7 @@ namespace Igruha.Minigames.CansOrder
                 Solved = c.Entry.Solved,
                 DoorsOpen = c.Cage != null && c.Cage.DoorsOpen,
                 Attempts = (byte)Mathf.Clamp(c.Entry.Attempts, 0, byte.MaxValue),
+                FinishTime = c.Entry.Solved ? c.Entry.ConfirmTime : 0,
                 HeightFraction = c.Entry.HeightFraction,
                 Revealed = resultsRevealed,
                 Confirmed = resultsRevealed && c.Entry.Confirmed,
@@ -2364,7 +2346,7 @@ namespace Igruha.Minigames.CansOrder
         /// отыгран на сервере, скрытой расстановки здесь нет и не будет.
         /// </summary>
         public void ApplyNetworkRound(int roundNumber, int circle, int canCount,
-            int quota, int aliveAtStart, int solvedCount)
+            int quota, int aliveAtStart, int solvedCount, double deadline = 0)
         {
             if (HasAuthority || config == null)
             {
@@ -2384,6 +2366,7 @@ namespace Igruha.Minigames.CansOrder
             round.Quota = quota;
             round.AliveAtStart = aliveAtStart;
             round.SolvedCount = solvedCount;
+            round.Deadline = deadline;
 
             if (needShelves)
             {
@@ -2502,6 +2485,7 @@ namespace Igruha.Minigames.CansOrder
             c.Entry.Alive = state.Alive;
             c.Entry.Solved = state.Solved;
             c.Entry.Attempts = state.Attempts;
+            if (state.Solved) c.Entry.ConfirmTime = state.FinishTime;
 
             // Совпадения, подтверждение и «собрал в этом круге» приезжают только
             // со стадии показа — до неё их в пакете нет. Затирать ими своё
@@ -2750,34 +2734,25 @@ namespace Igruha.Minigames.CansOrder
         /// (600 с в <c>MinigameDefinition</c>) — тогда их разводит компаратор
         /// по правилу 6.5, а полное равенство оставляет им общее место.
         /// </summary>
-        public override string ResultMetricTitle => "ПОПЫТКИ";
+        public override string ResultMetricTitle => "ВРЕМЯ";
         public override RoundResultDetail GetResultDetail(int playerId)
         {
-            var contestant = Find(playerId);
-            return contestant != null ? new RoundResultDetail(contestant.Entry.Attempts.ToString(),
-                contestant.Entry.Alive ? "Продержался до конца" : "Выбыл") : new RoundResultDetail("—", "Вышел из раунда");
+            var c = Find(playerId);
+            if (c == null || !c.Entry.Solved) return new RoundResultDetail("—", "Не успел");
+            double elapsed = System.Math.Max(0, c.Entry.ConfirmTime - (round.Deadline - config.RoundSeconds));
+            return new RoundResultDetail($"{elapsed:F1} с", "Собрал");
         }
 
         protected override void CollectResults(MinigameResults results)
         {
-            // Матч мог кончиться, не дойдя до створок: например, ушли все,
-            // кроме одного. Ушедшие этого раунда получают место последней
-            // группой вылета — иначе их не будет в итогах вовсе.
-            if (leftThisRound.Count > 0)
-            {
-                ranking.AddEliminationGroup(leftThisRound);
-                leftThisRound.Clear();
-            }
-
+            results.Clear();
             for (int i = 0; i < contestants.Count; i++)
             {
-                if (contestants[i].Entry.Alive)
-                {
-                    ranking.AddSurvivor(contestants[i].Entry.PlayerId);
-                }
+                int place = 1;
+                for (int j = 0; j < contestants.Count; j++)
+                    if (CanOrderRanking.CompareFinish(contestants[j].Entry, contestants[i].Entry) < 0) place++;
+                results.Add(contestants[i].Entry.PlayerId, place);
             }
-
-            ranking.Build(results, CompareSurvivors);
         }
 
         /// <summary>

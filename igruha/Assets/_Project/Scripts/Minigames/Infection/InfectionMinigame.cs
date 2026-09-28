@@ -160,6 +160,7 @@ namespace Igruha.Minigames.Infection
 
             for (int i = 0; i < states.Count; i++)
             {
+                if (states[i].TryGetComponent(out Igruha.Core.Items.PlayerCarryAbility carry)) carry.Drop();
                 states[i].ResetRole();
             }
 
