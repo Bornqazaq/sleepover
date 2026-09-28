@@ -25,7 +25,7 @@ namespace Igruha.Minigames.CansOrder
     /// </summary>
     public sealed class CanConfirmButton : MonoBehaviour, IInteractable
     {
-        private const string PromptConfirm = "Подтвердить расстановку";
+        private const string PromptConfirm = InteractionPromptText.Hold + "подтвердить расстановку";
 
         [Tooltip("Колпак лампы. Единственная обратная связь: погашен или «принято»")]
         [SerializeField] private Renderer lamp;

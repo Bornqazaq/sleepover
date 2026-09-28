@@ -1013,7 +1013,7 @@ namespace Igruha.EditorTools
 
             var carry = root.AddComponent<MultiCarryObject>();
             var carrySo = new SerializedObject(carry);
-            carrySo.FindProperty("interactionPrompt").stringValue = "Взяться за бутыль (E)";
+            carrySo.FindProperty("interactionPrompt").stringValue = "взяться за бутыль";
             carrySo.FindProperty("groundLayers").intValue =
                 (1 << LayerMask.NameToLayer("Ground")) | (1 << LayerMask.NameToLayer("Cover"));
             ApplySettings(carrySo.FindProperty("settings"), WaterBottle.BuildCarrySettings(config));
@@ -1418,7 +1418,7 @@ namespace Igruha.EditorTools
                 AssetDatabase.LoadAssetAtPath<WaterBottle>(BottlePrefabPath);
             so.FindProperty("spawnPoint").objectReferenceValue = spawnPoint.transform;
             so.FindProperty("readyIndicator").objectReferenceValue = indicator;
-            so.FindProperty("prompt").stringValue = "Взять бутыль (держать E)";
+            so.FindProperty("prompt").stringValue = "взять бутыль";
             SetArray(so.FindProperty("teamTint"), tinted.ToArray());
             so.ApplyModifiedPropertiesWithoutUndo();
 
@@ -1738,7 +1738,7 @@ namespace Igruha.EditorTools
             var so = new SerializedObject(dispenser);
             so.FindProperty("itemPrefab").objectReferenceValue = brick;
             so.FindProperty("spawnPoint").objectReferenceValue = spawnPoint.transform;
-            so.FindProperty("prompt").stringValue = "Взять кирпич (E)";
+            so.FindProperty("prompt").stringValue = "взять кирпич";
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 

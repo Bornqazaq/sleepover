@@ -296,9 +296,10 @@ namespace Igruha.Core.Player
             JumpPressed |= WasPressed(jumpAction);
             PushPressed = !tutorialPointer && (PushPressed || WasPressed(pushAction));
             PushHeld = !tutorialPointer && pushAction != null && pushAction.action.IsPressed();
-            // A tap is an edge, not completion of the action's Hold interaction.
-            // Hold interactables independently consume InteractHeld below.
-            InteractPressed |= interactAction != null && interactAction.action.WasPressedThisFrame();
+            // Обычные интерактивы срабатывают после замороженного Hold (IGR-328).
+            // WasPressedThisFrame обходил бы удержание и принимал короткий тап.
+            // Непрерывные IHoldInteractable независимо читают InteractHeld ниже.
+            InteractPressed |= WasPressed(interactAction);
             CrouchHeld = crouchAction != null && crouchAction.action.IsPressed();
             InteractHeld = interactAction != null && interactAction.action.IsPressed();
             PoseRequest = ReadPose();

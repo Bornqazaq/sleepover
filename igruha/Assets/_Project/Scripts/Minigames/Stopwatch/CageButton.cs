@@ -120,7 +120,12 @@ namespace Igruha.Minigames.Stopwatch
         /// <summary>Успел ли хозяин закрыть отсчёт в этом подраунде.</summary>
         public bool Completed => State == ButtonState.Stopped;
 
-        public string InteractionPrompt => State == ButtonState.Idle ? "Держать кнопку" : "Отпустить";
+        public string InteractionPrompt => State switch
+        {
+            ButtonState.Idle => InteractionPromptText.Hold + "держать кнопку",
+            ButtonState.Running => InteractionPromptText.Release + "остановить отсчёт",
+            _ => string.Empty
+        };
 
         private void Awake()
         {

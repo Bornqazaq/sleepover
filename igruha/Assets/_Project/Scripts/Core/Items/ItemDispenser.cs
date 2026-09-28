@@ -27,14 +27,15 @@ namespace Igruha.Core.Items
         [SerializeField] private PickupItem itemPrefab;
         [Tooltip("Откуда появляется предмет. Пусто — из этого же объекта")]
         [SerializeField] private Transform spawnPoint;
-        [Tooltip("Подсказка над кучкой")]
-        [SerializeField] private string prompt = "Взять кирпич (E)";
+        [Tooltip("Действие над кучкой, без клавиши: её добавляет InteractionPromptText")]
+        [SerializeField] private string prompt = "взять кирпич";
         [Tooltip("Сколько выданных предметов держим на арене. Дойдя до потолка, кучка убирает самый старый свободный")]
         [SerializeField] private int maxLiveItems = 24;
 
         private readonly List<PickupItem> dispensed = new List<PickupItem>(32);
 
-        public string InteractionPrompt => prompt;
+        [System.NonSerialized] private string cachedPrompt;
+        public string InteractionPrompt => cachedPrompt ??= InteractionPromptText.Hold + prompt;
 
         private void Awake()
         {
