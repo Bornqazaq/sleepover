@@ -11,6 +11,77 @@ namespace Igruha.Tests
     public sealed class PlaytestSeptemberTests
     {
         [Test]
+        public void GeneratedMemoryRoutesIncludeAllLaneTransitionsWithoutTripleRepeats()
+        {
+            var config = ScriptableObject.CreateInstance<MemoryRunConfig>();
+            try
+            {
+                var route = new MemoryRunRoute();
+                var transitions = new bool[MemoryRunConfig.LaneCount, MemoryRunConfig.LaneCount];
+                for (int seed = 0; seed < 256; seed++)
+                {
+                    route.Generate(config, seed);
+                    Assert.That(route.Steps, Is.EqualTo(config.Steps));
+                    int previous = -1, run = 0;
+                    for (int step = 0; step < route.Steps; step++)
+                    {
+                        int safeCount = 0, chosen = -1;
+                        for (int lane = 0; lane < MemoryRunConfig.LaneCount; lane++)
+                        {
+                            if (!route.IsSafe(step, lane)) continue;
+                            safeCount++;
+                            chosen = lane;
+                        }
+                        Assert.That(safeCount, Is.EqualTo(1), $"seed {seed}, step {step}");
+                        run = chosen == previous ? run + 1 : 1;
+                        Assert.That(run, Is.LessThanOrEqualTo(config.MaxSameLaneRun));
+                        if (previous >= 0) transitions[previous, chosen] = true;
+                        previous = chosen;
+                    }
+                }
+                for (int from = 0; from < MemoryRunConfig.LaneCount; from++)
+                    for (int to = 0; to < MemoryRunConfig.LaneCount; to++)
+                        Assert.That(transitions[from, to], Is.True, $"Missing transition {from + 1}->{to + 1}");
+            }
+            finally { Object.DestroyImmediate(config); }
+        }
+
+        [Test]
+        public void MemoryRouteValidationAcceptsExtremeJumpsAndStillRejectsInvalidRoutes()
+        {
+            Assert.That(MemoryRunRoute.IsValidSequence(new[] { 0, 2, 0, 2, 2, 0, 1, 1, 0, 2 }, 2), Is.True);
+            for (int lane = 0; lane < MemoryRunConfig.LaneCount; lane++)
+                Assert.That(MemoryRunRoute.IsValidSequence(new[] { lane, lane, lane }, 2), Is.False);
+            Assert.That(MemoryRunRoute.IsValidSequence(new[] { 0, 3 }, 2), Is.False);
+            Assert.That(MemoryRunRoute.IsValidSequence(new[] { -1, 2 }, 2), Is.False);
+            Assert.That(MemoryRunRoute.IsValidSequence(new int[0], 2), Is.False);
+        }
+
+        [TestCase(0, 2)]
+        [TestCase(2, 0)]
+        public void MemoryBotCanChooseOppositeLaneWhenSafeOrLastUnknown(int from, int to)
+        {
+            var go = new GameObject("Memory bot extreme lane regression");
+            go.SetActive(false);
+            try
+            {
+                var bot = go.AddComponent<MemoryRunDebugBot>();
+                var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+                var safe = new bool[1, MemoryRunConfig.LaneCount];
+                var mines = new bool[1, MemoryRunConfig.LaneCount];
+                typeof(MemoryRunDebugBot).GetField("provedSafe", flags).SetValue(bot, safe);
+                typeof(MemoryRunDebugBot).GetField("provedMine", flags).SetValue(bot, mines);
+                var choose = typeof(MemoryRunDebugBot).GetMethod("ChooseLane", flags);
+                safe[0, to] = true;
+                Assert.That(choose.Invoke(bot, new object[] { 0, from }), Is.EqualTo(to));
+                safe[0, to] = false;
+                for (int lane = 0; lane < MemoryRunConfig.LaneCount; lane++) mines[0, lane] = lane != to;
+                Assert.That(choose.Invoke(bot, new object[] { 0, from }), Is.EqualTo(to));
+            }
+            finally { Object.DestroyImmediate(go); }
+        }
+
+        [Test]
         public void FinishTimeWinsRegardlessOfAttemptsAndNonFinishersShareLastPlace()
         {
             var early = new CansOrderEntry { Solved = true, ConfirmTime = 12, Attempts = 4 };
