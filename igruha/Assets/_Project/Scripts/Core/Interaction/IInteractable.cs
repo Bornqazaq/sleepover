@@ -8,7 +8,11 @@ namespace Igruha.Core.Interaction
     /// </summary>
     public interface IInteractable
     {
-        /// <summary>Текст подсказки «нажми E — …».</summary>
+        /// <summary>
+        /// Готовая подсказка с клавишей и способом ввода (InteractionPromptText).
+        /// Обычный Interact требует удержания E; HUD не добавляет клавишу повторно.
+        /// Специальный ввод, например ЛКМ у полки, указывается самим объектом.
+        /// </summary>
         string InteractionPrompt { get; }
 
         bool CanInteract(PlayerController player);

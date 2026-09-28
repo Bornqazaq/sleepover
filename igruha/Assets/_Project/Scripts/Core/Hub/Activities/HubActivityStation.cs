@@ -48,7 +48,7 @@ namespace Igruha.Core.Hub.Activities
         [Tooltip("Куда встаёт занявший станцию. Его forward — направление броска по умолчанию")]
         [SerializeField] private Transform standPoint;
 
-        [Tooltip("Название забавы для подсказки: «E — боулинг»")]
+        [Tooltip("Название забавы для подсказки: «Зажми E — боулинг»")]
         [SerializeField] private string activityName = "играть";
 
         [Header("Дистанции, м")]
@@ -98,16 +98,18 @@ namespace Igruha.Core.Hub.Activities
 
         // ================== взаимодействие ==================
 
+        [System.NonSerialized] private string enterPrompt;
+
         public string InteractionPrompt
         {
             get
             {
                 if (Occupant == NoOccupant)
                 {
-                    return $"E — {activityName}";
+                    return enterPrompt ??= InteractionPromptText.Hold + activityName;
                 }
 
-                return IsOccupiedByLocalPlayer() ? "E — отойти" : string.Empty;
+                return IsOccupiedByLocalPlayer() ? InteractionPromptText.Hold + "отойти" : string.Empty;
             }
         }
 

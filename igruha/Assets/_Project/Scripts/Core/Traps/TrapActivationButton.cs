@@ -35,7 +35,9 @@ namespace Igruha.Core.Traps
         /// <summary>Хотя бы одна связанная ловушка готова сработать.</summary>
         public bool IsReady => isReady;
 
-        public string InteractionPrompt => $"Активировать: {buttonName}";
+        [System.NonSerialized] private string cachedPrompt;
+        public string InteractionPrompt => cachedPrompt ??=
+            InteractionPromptText.Hold + $"активировать: {buttonName}";
 
         private void OnEnable()
         {
