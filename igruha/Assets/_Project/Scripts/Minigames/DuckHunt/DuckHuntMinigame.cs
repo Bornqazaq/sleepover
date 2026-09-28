@@ -427,7 +427,7 @@ namespace Igruha.Minigames.DuckHunt
 
         protected override void OnRoundEnded()
         {
-            leverPrompt?.Show(false);
+            leverPrompt?.Show(null);
             liveTime = NotAnnounced;
             SetRoundLive(false);
             StopAllBots();
@@ -1415,12 +1415,12 @@ namespace Igruha.Minigames.DuckHunt
             if (leverPrompt == null) leverPrompt = gameObject.AddComponent<DuckHuntLeverPrompt>();
             if (Hud == null || IsLocal(hunterPlayerId))
             {
-                leverPrompt.Show(false);
+                leverPrompt.Show(null);
                 return;
             }
 
             IInteractable target = RoundLive ? ResolveLocalInteractable() : null;
-            leverPrompt.Show(target is Igruha.Core.Traps.TrapActivationButton);
+            leverPrompt.Show(target is Igruha.Core.Traps.TrapActivationButton ? target.InteractionPrompt : null);
             if (ReferenceEquals(target, promptTarget))
             {
                 return;
@@ -1435,7 +1435,7 @@ namespace Igruha.Minigames.DuckHunt
             }
 
             if (target is Igruha.Core.Traps.TrapActivationButton) Hud.HideStatus();
-            else Hud.ShowStatus($"[E] {target.InteractionPrompt}");
+            else Hud.ShowStatus(target.InteractionPrompt);
         }
 
         /// <summary>

@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Igruha.Core.Interaction;
 using Igruha.Core.Items;
 using Igruha.Core.Minigame;
 using Igruha.Core.Player;
@@ -504,7 +505,7 @@ namespace Igruha.Minigames.CarryItem
 
             if (bottle == null)
             {
-                Hud.ShowStatus("Тары нет — держи E у своего штабеля");
+                Hud.ShowStatus(InteractionPromptText.Hold + "взять бутыль у своего штабеля");
                 return;
             }
 
@@ -519,14 +520,14 @@ namespace Igruha.Minigames.CarryItem
             if (water == 0)
             {
                 Hud.ShowStatus(carried
-                    ? "Бутыль пуста — отпустите её (E), штабель выдаст новую"
+                    ? InteractionPromptText.Hold + "отпустить пустую бутыль, штабель выдаст новую"
                     : "Бутыль пуста — отойдите, штабель выдаст новую");
                 return;
             }
 
             Hud.ShowStatus(carried
                 ? $"В бутыли {water} из {config.BottleCapacity} — несите к своему баку"
-                : $"Бутыль стоит: {water} из {config.BottleCapacity} — берись за ручку (E)");
+                : InteractionPromptText.Hold + $"взяться за бутыль ({water} из {config.BottleCapacity})");
         }
 
         private void ClearStatus()

@@ -39,8 +39,8 @@ namespace Igruha.Minigames.CarryItem
         [SerializeField] private Transform spawnPoint;
         [Tooltip("Что показывает, что штабель готов выдать. Гаснет, пока команда несёт свою бутыль")]
         [SerializeField] private GameObject readyIndicator;
-        [Tooltip("Подсказка над штабелем")]
-        [SerializeField] private string prompt = "Взять бутыль (держать E)";
+        [Tooltip("Действие без клавиши: её добавляет InteractionPromptText")]
+        [SerializeField] private string prompt = "взять бутыль";
         [Tooltip("Что красится в цвет команды: ящик штабеля и прочие метки принадлежности")]
         [SerializeField] private Renderer[] teamTint;
         [Tooltip("С какого расстояния можно браться, м. Запас над радиусом взаимодействия: у сервера позиция клиента отстаёт")]
@@ -80,7 +80,8 @@ namespace Igruha.Minigames.CarryItem
         private WaterBottle liveBottle;
         private readonly List<Holder> holders = new List<Holder>(MultiCarryObject.MaxHandles);
 
-        public string InteractionPrompt => prompt;
+        [System.NonSerialized] private string cachedPrompt;
+        public string InteractionPrompt => cachedPrompt ??= InteractionPromptText.Hold + prompt;
 
         /// <summary>Живая бутыль команды. Null — команда осталась без тары, штабель готов выдать.</summary>
         public WaterBottle LiveBottle => liveBottle;
