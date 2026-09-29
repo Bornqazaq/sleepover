@@ -202,6 +202,9 @@ namespace Igruha.Minigames.CryingAngels
         /// <summary>Идёт сетевая катка и сетевая половина живая.</summary>
         private bool Networked => network != null && network.IsActive;
 
+        // Разминка длится до готовности игроков; лимит времени нужен только в зачёте.
+        protected override float RoundDuration => IsPractice ? 0f : base.RoundDuration;
+
         protected override void OnPlayersReady()
         {
             CacheArenaCenter();
@@ -211,11 +214,14 @@ namespace Igruha.Minigames.CryingAngels
         protected override void OnRoundStarted()
         {
             roundElapsed = 0f;
-            countdownRemaining = config != null ? config.StartCountdown : 0f;
+            countdownRemaining = !IsPractice && config != null ? config.StartCountdown : 0f;
             SetStartCountdownActive(countdownRemaining > 0f);
+            Hud?.SetTimerPlateVisible(!IsPractice);
             beamMismatchReported = false;
             ResetRunnersForRound();
-            SetBeamEnabled(false);
+            // Клиент мог уже получить включённый фонарь раньше фазы Practice.
+            // Не затираем серверный снимок: новой смены beamOn в разминке не будет.
+            if (HasAuthority) SetBeamEnabled(countdownRemaining <= 0f);
             SetDummyBotsRunning(true);
         }
 
@@ -400,9 +406,8 @@ namespace Igruha.Minigames.CryingAngels
         }
 
         /// <summary>
-        /// Отсчёт идёт уже внутри раунда: таймер тикает, ввод у всех включён,
-        /// Бегущие расходятся — не горит только фонарь. Так у них есть фора,
-        /// а Водящий не смотрит в пустой зал.
+        /// Отсчёт идёт только в зачётном раунде: таймер тикает, ввод заблокирован,
+        /// фонарь выключен. В разминке фонарь работает сразу, без отсчёта.
         /// </summary>
         private void TickCountdown(float deltaTime)
         {
