@@ -9,7 +9,7 @@ import time
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 APP = ROOT / 'igruha/Builds/Autotest/sleepover.app/Contents/MacOS/sleepover'
 GAMES = {'carry': 'CarryItem', 'infection': 'Infection', 'exam': 'Exam', 'cans': 'CansOrder',
-         'memory': 'MemoryRun', 'tutorial': 'MemoryRun', 'footsteps': None,
+         'memory': 'MemoryRun', 'angels': 'CryingAngels', 'tutorial': 'MemoryRun', 'footsteps': None,
          'countdown-infection': 'Infection', 'countdown-carry': 'CarryItem',
          'countdown-angels': 'CryingAngels', 'countdown-duck': 'DuckHunt',
          'countdown-sumo': 'SumoRing', 'countdown-bullet': 'OneBullet'}

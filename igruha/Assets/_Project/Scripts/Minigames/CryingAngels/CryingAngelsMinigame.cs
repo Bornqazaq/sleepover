@@ -143,10 +143,11 @@ namespace Igruha.Minigames.CryingAngels
         /// событие арены здесь слышат не все, потому что «кого-то держат» —
         /// знание скрытое.
         /// </summary>
-        public event Action<Vector3> RunnerCaught;
+        public event Action<RunnerState> RunnerCaught;
 
         /// <summary>Аватар Водящего этого раунда. Null до раздачи ролей.</summary>
         public PlayerController Keeper => keeperAvatar;
+        public KeeperBeam KeeperLight => keeper != null ? keeper.Beam : null;
 
         /// <summary>Центр арены — точка постамента. По ней меряется радиус Бегущих.</summary>
         public Vector3 ArenaCenter => arenaCenter;
@@ -899,6 +900,30 @@ namespace Igruha.Minigames.CryingAngels
                     DropRunner(i);
                 }
             }
+
+            // NetworkList arrives as individual add/remove deltas. The initial
+            // snapshot may also be empty when ConfigureKeeper first runs.
+            // Reconcile additions as well: removing an absent record must not
+            // leave that runner permanently unable to receive later states.
+            bool added = false;
+            for (int i = 0; i < playerIds.Count; i++)
+            {
+                int id = playerIds[i];
+                if (id == keeperPlayerId || FindRunner(id) != null) continue;
+                for (int j = 0; j < Players.Count; j++)
+                {
+                    SessionPlayer player = Players[j];
+                    if (player.Id != id || player.Avatar == null) continue;
+                    runners.Add(CreateRunner(id, player.Avatar));
+                    added = true;
+                    break;
+                }
+            }
+            if (added)
+            {
+                RebindVision();
+                BindVignette();
+            }
         }
 
         // ========== УХОД ИГРОКА ==========
@@ -1380,7 +1405,7 @@ namespace Igruha.Minigames.CryingAngels
         /// <summary>Луч взял Бегущего. Объявляется на каждой машине — см. <see cref="RunnerCaught"/>.</summary>
         private void AnnounceCaught(RunnerRecord runner)
         {
-            RunnerCaught?.Invoke(runner.Avatar != null ? runner.Avatar.Position : transform.position);
+            RunnerCaught?.Invoke(runner.State);
         }
 
         private void ClearStatues()

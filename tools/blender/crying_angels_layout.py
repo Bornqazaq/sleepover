@@ -1,6 +1,6 @@
 """Deterministic night-gallery layout, shared by Unity and the Blender source.
 
-Third pass (scale pass): far fewer exhibits than the ring layout, arranged as
+Open-floor revision: the original sculptures and columns, arranged as
 islands with open lanes between them so the keeper can actually catch runners
 crossing the floor. Scale spans four octaves: knee-high plinths, human-sized
 statues, four-metre giants, ruined wall segments and columns up to the dome.
@@ -11,6 +11,10 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 OUT=ROOT/'igruha/Assets/_Project/Art/CryingAngels/CA_NightLayout.json'
 rng=random.Random(935)
+WALL_RADIUS=34.0
+POSITION_SCALE=WALL_RADIUS/28.08
+OPEN_RADIUS=12.5
+EXHIBIT_OUTER_RADIUS=28.2
 highs=['WeepingAngel','ShroudedFigure','ShatteredPillar','WarningAngel','MourningObelisk','PrayingAngel']
 # Only solid-topped pieces hide a crouched head: the urn is narrow, the visage and reliquary crest are open.
 # A sarcophagus stretched to LOW_H reads as a chest tomb, a plinth as a taller plinth.
@@ -42,34 +46,30 @@ rows=[]
 def polar(r,deg):
  a=math.radians(deg);return r*math.sin(a),r*math.cos(a)
 def add(name,model,x,z,yaw,size,group):
- rows.append(dict(name=name,model='CA_'+model,position=dict(x=x,y=size[1]/2,z=z),size=dict(zip(('x','y','z'),size)),yaw=yaw,group=group))
+ rows.append(dict(name=name,model='CA_'+model,position=dict(x=x*POSITION_SCALE,y=size[1]/2,z=z*POSITION_SCALE),size=dict(zip(('x','y','z'),size)),yaw=yaw,group=group))
 PEDESTAL_RADIUS=2.16;PEDESTAL_GAP=1.3
 # Eight tall screens keep the unchanged outer spawns out of the opening sweep.
 for i in range(8):
- x,z=polar(24.6,i*45)
+ x,z=polar(26.5/POSITION_SCALE,i*45)
  add(f'Cover_SpawnScreen_{i+1:02}_High',highs[i%6],x,z,i*45,(1.65,2.4,1.12),f'screen{i}')
-# Near the dais: the final dash has something to break line of sight, but stays a dash.
-# Low only: a tall exhibit 3.6 m from the keeper's eye eclipses a 15-degree wedge all the way to the wall,
-# and runners walk up the visible beam without ever being lit (net watch 09.09).
-# Plinths only: the keeper looks down from 2.06 m, and this close a domed sarcophagus lid loses height at its edges.
-for i,(r,deg,model) in enumerate([(5.3,15,'BrokenPlinth'),(5.3,135,'BrokenPlinth'),(5.3,255,'BrokenPlinth'),(7.6,75,'BrokenPlinth'),(7.6,195,'BrokenPlinth'),(7.6,315,'BrokenPlinth')]):
- x,z=polar(r,deg);high=model in highs
- add(f'Cover_Inner_{i:02}_'+('High' if high else 'Low'),model,x,z,deg+rng.uniform(-20,20),sizes[model],f'inner{i}')
+# The final 12.5 m are open in every direction. Crouching only helps behind
+# an actual exhibit; it cannot turn the entire approach into a hidden route.
 # Columns to the dome, scattered rather than on a ring.
-# Nothing tall inside 12 m: closer, a 2 m column hides a corridor wider than the beam itself.
-for i,(r,deg) in enumerate([(12.4,40),(13.6,110),(12.8,175),(14.8,230),(13.0,300),(17.5,20),(19.2,150),(16.4,265)]):
+# Tall exhibits stay outside the exposed inner floor.
+for i,(r,deg) in enumerate([(20.0,22.5),(23.0,67.5),(21.0,112.5),(24.0,157.5),(20.5,202.5),(23.5,247.5),(21.5,292.5),(24.5,337.5)]):
+ r/=POSITION_SCALE
  x,z=polar(r,deg);h=ceiling(r)+.35
  add(f'Cover_Column_{i:02}_High','GreatColumn',x,z,rng.uniform(0,360),(1.95,h,1.95),f'column{i}')
 # Long ruined walls, tangential: a wall reads as a wall, not as another statue.
-for i,(r,deg,tilt) in enumerate([(15.6,70,95),(19.0,205,80),(13.5,330,70),(20.2,120,100),(17.0,260,85),(21.0,285,92)]):
+for i,(r,deg,tilt) in enumerate([(17.8,70,95),(19.0,205,80),(18.0,330,70),(20.2,120,100)]):
  x,z=polar(r,deg)
  add(f'Cover_Wall_{i:02}_High','RuinedWall',x,z,deg+tilt,sizes['RuinedWall'],f'wall{i}')
 # Giants: twice human height, visible from anywhere in the hall.
 for i,(r,deg,model) in enumerate([(12.6,100,'WeepingAngel'),(15.4,165,'PrayingAngel'),(13.0,355,'WarningAngel'),(18.2,315,'WeepingAngel'),(16.6,45,'ShroudedFigure')]):
  x,z=polar(r,deg)
  add(f'Cover_Giant_{i:02}_High',model,x,z,deg+180+rng.uniform(-25,25),GIANT[model],f'giant{i}')
-# Islands of two to four human-scale exhibits; the lanes between islands stay open.
-islands=[(10.8,20,3),(13.2,65,3),(11.4,140,4),(16.8,100,3),(12.2,205,3),(19.4,180,3),(11.0,320,3),(15.5,290,4),(20.5,235,3),(21.6,60,3),(18.9,335,3),(14.6,20,2)]
+# Pairs of human-scale exhibits; the broad lanes between groups stay open.
+islands=[(13.8,15,2),(16.2,65,2),(13.8,140,2),(17.0,180,2),(14.0,225,2),(18.0,280,2),(14.4,320,2),(21.6,40,2)]
 hi=0;lo=0
 for n,(r,deg,count) in enumerate(islands):
  cx,cz=polar(r,deg)
@@ -89,7 +89,7 @@ for n,(r,deg,count) in enumerate(islands):
 
 # Conservative circles enclose each rotated box. Neighbours inside one island may
 # stand close; anything else keeps a lane wide enough to be caught in.
-GAP_ISLAND=1.5;GAP_LANE=3.0
+GAP_ISLAND=1.5;GAP_LANE=3.3
 def radius_of(r): return r['radius'] if 'radius' in r else math.hypot(r['size']['x'],r['size']['z'])/2
 def needed(a,b):
  if 'radius' in a or 'radius' in b:return PEDESTAL_GAP
@@ -98,35 +98,46 @@ def gap_of(a,b):
  dx=a['position']['x']-b['position']['x'];dz=a['position']['z']-b['position']['z']
  return math.hypot(dx,dz)-radius_of(a)-radius_of(b),dx,dz
 def fixed(r): return 'radius' in r or 'SpawnScreen' in r['name'] or 'Column' in r['name']
-WALL_RADIUS=28.08
+
 # The dais takes part in the push as an immovable circle; the wall clamps radially.
 rows.append(dict(name='Dais',position=dict(x=0,y=0,z=0),radius=PEDESTAL_RADIUS,group='dais'))
 # Tall exhibits keep their distance from the dais even after the push: from 2 m up a statue
 # 4 m from the keeper's eye eclipses a wedge wider than the beam, and the hall behind it goes blind.
-TALL_MIN_RADIUS=11.5
+TALL_MIN_RADIUS=16.5
 def is_tall(r): return 'radius' not in r and r['name'].endswith('High') and 'SpawnScreen' not in r['name']
 def clamp(r):
  if 'radius' in r:return
- d=math.hypot(r['position']['x'],r['position']['z']);limit=WALL_RADIUS-1.0-radius_of(r)
+ d=math.hypot(r['position']['x'],r['position']['z']);limit=EXHIBIT_OUTER_RADIUS-radius_of(r)
  if d>limit:r['position']['x']*=limit/d;r['position']['z']*=limit/d;return
- if is_tall(r):
-  floor_r=TALL_MIN_RADIUS+radius_of(r)
+ if 'SpawnScreen' not in r['name']:
+  floor_r=(TALL_MIN_RADIUS if is_tall(r) else OPEN_RADIUS)+radius_of(r)
   if d<floor_r and d>0:r['position']['x']*=floor_r/d;r['position']['z']*=floor_r/d
-# Relax every offending pair a little per sweep (Jacobi style); one-worst-pair
-# updates oscillate once islands and lanes compete.
-for sweep in range(600):
- moved=False
- for i,a in enumerate(rows):
-  for b in rows[i+1:]:
-   g,dx,dz=gap_of(a,b);short=needed(a,b)-g
-   if short<=0:continue
-   moved=True;d=math.hypot(dx,dz) or 1.0;push=(short+.03)*.5
-   if d<.01:dx,dz=1.0,0.0;d=1.0
-   wa=0 if fixed(a) else (1 if fixed(b) else .5);wb=0 if fixed(b) else (1 if fixed(a) else .5)
-   a['position']['x']+=dx/d*push*wa;a['position']['z']+=dz/d*push*wa
-   b['position']['x']-=dx/d*push*wb;b['position']['z']-=dz/d*push*wb
-   clamp(a);clamp(b)
- if not moved:break
+# Pack the fixed landmarks first, then preserve each exhibit's intended area
+# using the nearest valid location. A constructive search avoids the old
+# relaxation pushing long walls back and forth through neighbouring columns.
+preferred={r['name']:(r['position']['x'],r['position']['z']) for r in rows}
+placed=[r for r in rows if fixed(r)]
+for row in placed: clamp(row)
+pending=[r for r in rows if not fixed(r)]
+pending.sort(key=lambda row:-radius_of(row))
+for row in pending:
+    floor_r=(TALL_MIN_RADIUS if is_tall(row) else OPEN_RADIUS)+radius_of(row)
+    max_r=EXHIBIT_OUTER_RADIUS-radius_of(row)
+    px,pz=preferred[row['name']]
+    best=None
+    for radial_step in range(math.ceil((max_r-floor_r)/.35)+1):
+        r=min(max_r,floor_r+radial_step*.35)
+        for angle in range(360):
+            x,z=polar(r,angle)
+            cost=(x-px)**2+(z-pz)**2
+            if best and cost>=best[0]: continue
+            row['position']['x'],row['position']['z']=x,z
+            if all(gap_of(row,other)[0]>=needed(row,other)+.015 for other in placed):
+                best=(cost,x,z)
+    assert best is not None,('no clear location',row['name'])
+    row['position']['x'],row['position']['z']=best[1:]
+    placed.append(row)
+rows=placed
 rows.remove(next(r for r in rows if 'radius' in r))
 minimum=(999,None);lane=(999,None)
 for i,a in enumerate(rows):
@@ -135,13 +146,15 @@ for i,a in enumerate(rows):
   if g<minimum[0]:minimum=(g,(a['name'],b['name']))
   if a['group']!=b['group'] and g<lane[0]:lane=(g,(a['name'],b['name']))
 assert minimum[0]>=1.44,minimum
-assert lane[0]>=2.9,lane
+assert lane[0]>=GAP_LANE-.1,lane
 pedestal=min(math.hypot(r['position']['x'],r['position']['z'])-radius_of(r)-PEDESTAL_RADIUS for r in rows)
 assert pedestal>=PEDESTAL_GAP-.02,pedestal
 outer=max(math.hypot(r['position']['x'],r['position']['z'])+radius_of(r) for r in rows)
-assert outer<=WALL_RADIUS-1.0,outer
+assert outer<=EXHIBIT_OUTER_RADIUS+.01,outer
 nearest_tall=min(math.hypot(r['position']['x'],r['position']['z'])-radius_of(r) for r in rows if is_tall(r))
 assert nearest_tall>=TALL_MIN_RADIUS-.05,nearest_tall
+nearest_cover=min(math.hypot(r['position']['x'],r['position']['z'])-radius_of(r) for r in rows)
+assert nearest_cover>=OPEN_RADIUS-.05,nearest_cover
 for r in rows: del r['group']
 OUT.write_text(json.dumps(dict(referenceRadius=WALL_RADIUS,covers=rows),indent=2)+'\n')
-print(json.dumps(dict(covers=len(rows),high=sum(r['name'].endswith('High') for r in rows),minimumGap=round(minimum[0],2),minimumLane=round(lane[0],2),pedestalGap=round(pedestal,2),outermost=round(outer,2))))
+print(json.dumps(dict(covers=len(rows),high=sum(r['name'].endswith('High') for r in rows),minimumGap=round(minimum[0],2),minimumLane=round(lane[0],2),pedestalGap=round(pedestal,2),outermost=round(outer,2),openRadius=round(nearest_cover,2))))

@@ -70,6 +70,7 @@ namespace Igruha.Tests
             else if (mode == "exam") yield return Exam();
             else if (mode == "cans") yield return Cans();
             else if (mode == "memory") yield return Memory();
+            else if (mode == "angels") yield return AngelsHuntCheck.Run((CryingAngelsMinigame)game, Fail);
             else if (mode == "tutorial") yield return new WaitForSeconds(1);
             else Fail("unknown mode");
             yield return Finish(mode);
@@ -143,7 +144,16 @@ namespace Igruha.Tests
                 {
                     var before = avatar.Position;
                     input.DriveMove(Vector2.up); yield return new WaitForSeconds(.3f); input.DriveMove(Vector2.zero);
-                    if (Vector3.Distance(before,avatar.Position) < .1f) Fail("countdown movement not restored in " + phase);
+                    if (Vector3.Distance(before,avatar.Position) < .1f)
+                    {
+                        // A newly active beam can legitimately catch an angel during
+                        // this movement sample. The countdown gate was checked above;
+                        // do not mistake the independent gameplay freeze for that gate.
+                        var runner = avatar.GetComponent<RunnerState>();
+                        bool caught = game is CryingAngelsMinigame && runner != null && !runner.IsFree;
+                        if (!caught) Fail($"countdown movement not restored in {phase}: before={before} after={avatar.Position} locked={avatar.MovementLocked} suspended={input.Suspended}");
+                        else Debug.Log("PLAYTEST_CHECK countdown released input; active beam caught runner during movement sample");
+                    }
                 }
                 Debug.Log($"PLAYTEST_CHECK countdown phase={phase} locked={duration:F2}s frames={frames} punches={punches} roleLocked={avatar.MovementLocked}");
                 if (game is CryingAngelsMinigame)
@@ -191,8 +201,15 @@ namespace Igruha.Tests
             if (!avatar.MovementLocked)
             {
                 var before = avatar.Position;
-                input.DriveMove(Vector2.up); yield return new WaitForSeconds(.3f); input.DriveMove(Vector2.zero);
-                if (Vector3.Distance(before, avatar.Position) < .1f) Fail("angels practice movement blocked");
+                // The spawn now has a sculpture behind it. Test the open inward
+                // approach instead of an arbitrary camera-relative direction.
+                var reference = new GameObject("Angels practice movement reference");
+                avatar.SetCameraReference(reference.transform);
+                input.DriveMove(new Vector2(-before.x, -before.z).normalized);
+                yield return new WaitForSeconds(.3f); input.DriveMove(Vector2.zero);
+                Destroy(reference);
+                if (Vector3.Distance(before, avatar.Position) < .1f)
+                    Fail($"angels practice movement blocked before={before} after={avatar.Position} locked={avatar.MovementLocked} suspended={input.Suspended} phase={game.Phase}");
             }
             Debug.Log($"PLAYTEST_CHECK angels free practice waited={wait}s timer=off countdown=off beam=on roleLocked={avatar.MovementLocked}");
             if (!host) game.ToggleTutorialReady();

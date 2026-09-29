@@ -20,7 +20,7 @@ namespace Igruha.EditorTools
         // Every fourth bay keeps its moon glass; the rest are boarded with dark panes.
         private const int LitBayStep = 4;
         // Torch strength against a full-range cookie; the old 720 was tuned against a cookie that peaked at 0.19.
-        private const float TorchIntensity = 400f;
+        private const float TorchIntensity = 650f;
         private static readonly string[] HighModels = { "CA_WeepingAngel", "CA_PrayingAngel", "CA_WarningAngel" };
         private static readonly string[] LowModels = { "CA_FallenVisage", "CA_Reliquary", "CA_BrokenPlinth" };
 
@@ -140,7 +140,7 @@ namespace Igruha.EditorTools
             var existing = Root(scene, "_Lighting");
             foreach (var light in existing.GetComponentsInChildren<Light>(true)) light.enabled = false;
             var lights = Group(parent, "Moonlight");
-            var moon = AddLight(lights, "ColdMoon", LightType.Directional, new Vector3(0,12,0), new Color(.66f,.74f,.92f), 1.35f);
+            var moon = AddLight(lights, "ColdMoon", LightType.Directional, new Vector3(0,12,0), new Color(.56f,.67f,.84f), .42f);
             moon.transform.rotation = Quaternion.Euler(48f,-32f,0f);
             moon.shadows = LightShadows.Soft;
             moon.shadowBias = .025f;
@@ -151,19 +151,19 @@ namespace Igruha.EditorTools
             RenderSettings.customReflectionTexture = CryingAngelsGalleryAssets.EnsureNightReflection();
             RenderSettings.reflectionIntensity = 1f;
             RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(.14f,.18f,.26f);
-            RenderSettings.ambientEquatorColor = new Color(.09f,.11f,.17f);
-            RenderSettings.ambientGroundColor = new Color(.04f,.05f,.08f);
+            RenderSettings.ambientSkyColor = new Color(.09f,.12f,.18f);
+            RenderSettings.ambientEquatorColor = new Color(.035f,.05f,.075f);
+            RenderSettings.ambientGroundColor = new Color(.015f,.025f,.04f);
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.ExponentialSquared;
             RenderSettings.fogColor = new Color(.010f,.018f,.036f);
-            RenderSettings.fogDensity = .017f;
+            RenderSettings.fogDensity = .014f;
             for (int i = 0; i < BayCount / LitBayStep; i++)
             {
                 // Same bay convention as the architecture loop: Blender +X,+Y maps to Unity +X,-Z.
                 float a = i * LitBayStep * 360f / BayCount * Mathf.Deg2Rad;
                 Vector3 dir = new Vector3(Mathf.Cos(a),0f,-Mathf.Sin(a));
-                var window = AddLight(lights,"WindowBounce_"+i,LightType.Spot,dir*(radius-1.2f)+Vector3.up*8.5f,new Color(.55f,.72f,1f),14f);
+                var window = AddLight(lights,"WindowBounce_"+i,LightType.Spot,dir*(radius-1.2f)+Vector3.up*8.5f,new Color(.48f,.63f,1f),10f);
                 window.range = 21f; window.spotAngle = 58f; window.innerSpotAngle = 24f;
                 window.transform.rotation = Quaternion.LookRotation(dir*(-6f)+Vector3.down*8f);
                 window.shadows = LightShadows.None;
@@ -186,7 +186,7 @@ namespace Igruha.EditorTools
             var grain = Ensure<FilmGrain>(profile);
             grain.type.Override(FilmGrainLookup.Medium1); grain.intensity.Override(.26f); grain.response.Override(.78f);
             var grade = Ensure<ColorAdjustments>(profile);
-            grade.saturation.Override(-4f); grade.contrast.Override(12f); grade.colorFilter.Override(new Color(.92f,.95f,1f));
+            grade.saturation.Override(-18f); grade.contrast.Override(18f); grade.colorFilter.Override(new Color(.87f,.93f,1f));
             volume.sharedProfile = profile; EditorUtility.SetDirty(profile);
         }
 
@@ -320,12 +320,12 @@ namespace Igruha.EditorTools
                 light.color=new Color(1f,.79f,.46f);
                 light.shadows=LightShadows.Soft;
                 light.shadowBias=.01f; light.shadowNormalBias=.06f;
-                light.intensity=TorchIntensity; light.innerSpotAngle=24f; light.shadowCustomResolution=2048;
+                light.intensity=TorchIntensity; light.innerSpotAngle=28f; light.shadowCustomResolution=2048;
                 light.cookie=CryingAngelsGalleryAssets.EnsureTorchCookie();
                 var beam=root.GetComponentInChildren<Igruha.Minigames.CryingAngels.KeeperBeam>(true);
                 var beamSo=new SerializedObject(beam); beamSo.FindProperty("intensity").floatValue=TorchIntensity; beamSo.ApplyModifiedPropertiesWithoutUndo();
                 var cone=root.GetComponentInChildren<Igruha.Minigames.CryingAngels.KeeperBeamCone>(true);
-                var coneSo=new SerializedObject(cone);coneSo.FindProperty("alpha").floatValue=.16f;coneSo.ApplyModifiedPropertiesWithoutUndo();
+                var coneSo=new SerializedObject(cone);coneSo.FindProperty("alpha").floatValue=.10f;coneSo.ApplyModifiedPropertiesWithoutUndo();
                 cone.GetComponent<MeshRenderer>().sharedMaterial=CryingAngelsGalleryAssets.EnsureMaterial("CA_KeeperBeam","Igruha/CryingAngels/KeeperBeam");
                 SetupBeamDust(cone.transform);
                 SetupKeeperLocalView(root);

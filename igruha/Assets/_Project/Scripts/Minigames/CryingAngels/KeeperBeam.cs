@@ -16,6 +16,13 @@ namespace Igruha.Minigames.CryingAngels
         [Tooltip("Яркость включённого фонаря")]
         [SerializeField] private float intensity = 6f;
 
+        // Light.range is the point where Unity fades illumination to zero.
+        // Keep that fade beyond the playable wall, while gameplay/cone length stay exact.
+        private const float LightRangePadding = 1.65f;
+        private const float ClearSightConeFraction = 0.8f;
+        private float gameplayRange;
+        private int sightBlockers;
+
         private Light beam;
         private KeeperBeamCone cone;
 
@@ -25,6 +32,7 @@ namespace Igruha.Minigames.CryingAngels
             cone = GetComponentInChildren<KeeperBeamCone>(true);
             beam.type = LightType.Spot;
             beam.intensity = intensity;
+            sightBlockers = LayerMask.GetMask("Ground", "Cover");
             SetVisible(false);
         }
 
@@ -40,9 +48,15 @@ namespace Igruha.Minigames.CryingAngels
             }
 
             beam.spotAngle = coneAngle;
-            beam.range = range;
+            gameplayRange = range;
+            beam.range = range * LightRangePadding;
             ResolveCone()?.Build(coneAngle, range);
         }
+
+        /// <summary>Visible body inside the current bright cone, not its swept sector.</summary>
+        public bool ClearlySees(Collider target) => beam != null && beam.enabled &&
+            KeeperSightConfirmation.FullyVisible(beam.transform, beam.spotAngle * ClearSightConeFraction,
+                gameplayRange, target, sightBlockers);
 
         /// <summary>Фонарь горит. Выключен на стартовом отсчёте и после конца раунда.</summary>
         public void SetVisible(bool visible)
