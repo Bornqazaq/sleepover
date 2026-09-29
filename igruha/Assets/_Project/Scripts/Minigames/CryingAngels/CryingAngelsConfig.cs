@@ -17,10 +17,10 @@ namespace Igruha.Minigames.CryingAngels
     {
         [Header("Арена")]
         [Tooltip("Радиус зала, юниты. По нему пересобирается арена (меню Igruha/Minigames) и настраивается дальность луча")]
-        [SerializeField] private float arenaRadius = 21.6f;
+        [SerializeField] private float arenaRadius = 34f;
 
         [Header("Раунд")]
-        [Tooltip("Стартовый отсчёт: фонарь выключен, Бегущие расходятся, с")]
+        [Tooltip("Стартовый отсчёт зачётного раунда: фонарь и ввод выключены, с")]
         [SerializeField] private float startCountdown = 3f;
 
         [Header("Водящий — поворот")]
@@ -43,13 +43,16 @@ namespace Igruha.Minigames.CryingAngels
 
         [Header("Бегущий — окаменение")]
         [Tooltip("Сколько секунд под лучом до окаменения")]
-        [SerializeField] private float petrifyThreshold = 1.5f;
+        [SerializeField] private float petrifyThreshold = 0.9f;
         [Tooltip("Множитель накопления счётчика, пока луч на игроке")]
         [SerializeField] private float petrifyGainMultiplier = 1f;
         [Tooltip("Множитель отката счётчика, пока луча нет. 0.5 — полный откат вдвое дольше порога")]
         [SerializeField] private float petrifyDecayMultiplier = 0.5f;
         [Tooltip("Анимация окаменения до телепорта на точку спавна, с")]
-        [SerializeField] private float petrifyAnimationDuration = 0.5f;
+        [SerializeField] private float petrifyAnimationDuration = 0.3f;
+
+        [Tooltip("Непрерывная полная видимость в яркой части фонаря до звука у Водящего, с")]
+        [SerializeField] private float sightConfirmSeconds = 0.3f;
 
         [Header("Бегущий — движение")]
         [Tooltip("Множитель к CharacterConfig.MaxSpeed именно в этой мини-игре")]
@@ -97,6 +100,7 @@ namespace Igruha.Minigames.CryingAngels
         public float TouchRadius => touchRadius;
         public float StepHearingRadius => stepHearingRadius;
         public float PetrifyThreshold => petrifyThreshold;
+        public float SightConfirmSeconds => sightConfirmSeconds;
         public float PetrifyGainMultiplier => petrifyGainMultiplier;
         public float PetrifyDecayMultiplier => petrifyDecayMultiplier;
         public float PetrifyAnimationDuration => petrifyAnimationDuration;

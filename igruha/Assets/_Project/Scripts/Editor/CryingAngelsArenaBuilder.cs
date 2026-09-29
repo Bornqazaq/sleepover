@@ -39,7 +39,7 @@ namespace Igruha.EditorTools
         private const float InnerRingT = 0.528f;
         private const float MiddleRingT = 0.736f;
         private const float OuterRingT = 0.861f;
-        private const float SpawnRingT = 0.95f;
+        private const float SpawnRingT = 0.86f;       // место для камеры за спиной, вне внешнего пояса
         private const int WallSegments = 16;
         /// <summary>Пол, постамент и стены обязаны быть на Ground: по нему считается «стою на земле» и по нему же камера обходит препятствия.</summary>
         private const string GroundLayerName = "Ground";
@@ -55,6 +55,8 @@ namespace Igruha.EditorTools
         [MenuItem("Igruha/Minigames/Rebuild Crying Angels Arena")]
         private static void Rebuild()
         {
+            if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name != "CryingAngels")
+                throw new System.InvalidOperationException("Open CryingAngels before rebuilding its arena.");
             var config = AssetDatabase.LoadAssetAtPath<CryingAngelsConfig>(ConfigPath);
             if (config == null)
             {

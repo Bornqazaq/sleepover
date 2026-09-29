@@ -8,8 +8,10 @@ using Igruha.Core.Items;
 using Igruha.Core.Minigame;
 using Igruha.Core.Player;
 using Igruha.Core.Session;
+using Igruha.Core.UI;
 using Igruha.Minigames.CansOrder;
 using Igruha.Minigames.CarryItem;
+using Igruha.Minigames.CryingAngels;
 using Igruha.Minigames.Exam;
 using Igruha.Minigames.MemoryRun;
 using Unity.Netcode;
@@ -68,6 +70,7 @@ namespace Igruha.Tests
             else if (mode == "exam") yield return Exam();
             else if (mode == "cans") yield return Cans();
             else if (mode == "memory") yield return Memory();
+            else if (mode == "angels") yield return AngelsHuntCheck.Run((CryingAngelsMinigame)game, Fail);
             else if (mode == "tutorial") yield return new WaitForSeconds(1);
             else Fail("unknown mode");
             yield return Finish(mode);
@@ -87,14 +90,23 @@ namespace Igruha.Tests
                 while (Time.realtimeSinceStartup < deadline)
                 {
                     game = MinigameControllerBase.Current;
-                    if (game != null && game.Phase == phase && game.StartCountdownActive &&
+                    if (game != null && game.Phase == phase &&
+                        (game.StartCountdownActive || (pass == 0 && game is CryingAngelsMinigame)) &&
                         SessionScoreboard.Current?.LocalPlayer?.Avatar != null) break;
                     yield return null;
                 }
-                if (game == null || game.Phase != phase || !game.StartCountdownActive)
+                if (game == null || game.Phase != phase)
                 { Fail("countdown not observed in " + phase); yield break; }
                 foreach (var behaviour in FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None))
                     if (behaviour.GetType().Name.Contains("DebugBot")) behaviour.enabled = false;
+                if (pass == 0 && game is CryingAngelsMinigame)
+                {
+                    yield return AngelsPractice();
+                    if (failed) yield break;
+                    continue;
+                }
+                if (!game.StartCountdownActive)
+                { Fail("countdown not observed in " + phase); yield break; }
                 var avatar = SessionScoreboard.Current.LocalPlayer.Avatar;
                 var input = avatar.GetComponent<PlayerInputReader>(); input.EngageAutopilot();
                 var push = avatar.GetComponent<PlayerPushAbility>();
@@ -105,9 +117,18 @@ namespace Igruha.Tests
                 var start = avatar.Position;
                 float lockedAt = Time.time;
                 int frames = 0;
+                var countdownTimer = FindFirstObjectByType<RoundTimer>();
+                var countdownHud = FindFirstObjectByType<RoundHud>();
+                var countdownPlate = (GameObject)typeof(RoundHud).GetField("timerPlate", Private).GetValue(countdownHud);
                 while (game != null && game.Phase == phase && game.StartCountdownActive && Time.realtimeSinceStartup < deadline)
                 {
                     frames++;
+                    if (game is CryingAngelsMinigame &&
+                        (countdownPlate.activeInHierarchy ||
+                         (NetworkManager.Singleton.IsServer && countdownTimer.IsRunning) ||
+                         (Time.time - lockedAt > .25f && countdownTimer.Duration <= 0f) ||
+                         countdownTimer.Remaining < countdownTimer.Duration - .05f))
+                    { Fail($"angels spent round time during 3–2–1: {countdownTimer.Remaining:F2}/{countdownTimer.Duration:F2}"); break; }
                     input.DriveMove(Vector2.up); input.DriveJump(); input.DrivePushHold(true);
                     input.DriveInteract(); input.DriveInteractHold(true); input.DrivePose(2); push.RequestPush();
                     if (!input.Suspended || input.MoveInput != Vector2.zero || input.JumpPressed || input.PushPressed ||
@@ -132,11 +153,90 @@ namespace Igruha.Tests
                 {
                     var before = avatar.Position;
                     input.DriveMove(Vector2.up); yield return new WaitForSeconds(.3f); input.DriveMove(Vector2.zero);
-                    if (Vector3.Distance(before,avatar.Position) < .1f) Fail("countdown movement not restored in " + phase);
+                    if (Vector3.Distance(before,avatar.Position) < .1f)
+                    {
+                        // A newly active beam can legitimately catch an angel during
+                        // this movement sample. The countdown gate was checked above;
+                        // do not mistake the independent gameplay freeze for that gate.
+                        var runner = avatar.GetComponent<RunnerState>();
+                        bool caught = game is CryingAngelsMinigame && runner != null && !runner.IsFree;
+                        if (!caught) Fail($"countdown movement not restored in {phase}: before={before} after={avatar.Position} locked={avatar.MovementLocked} suspended={input.Suspended}");
+                        else Debug.Log("PLAYTEST_CHECK countdown released input; active beam caught runner during movement sample");
+                    }
                 }
                 Debug.Log($"PLAYTEST_CHECK countdown phase={phase} locked={duration:F2}s frames={frames} punches={punches} roleLocked={avatar.MovementLocked}");
+                if (game is CryingAngelsMinigame)
+                {
+                    var timer = FindFirstObjectByType<RoundTimer>();
+                    var hud = FindFirstObjectByType<RoundHud>();
+                    var plate = (GameObject)typeof(RoundHud).GetField("timerPlate", Private).GetValue(hud);
+                    if (!timer.IsRunning || timer.Remaining <= 0f || !plate.activeInHierarchy)
+                        Fail("angels scored round timer missing");
+                    if (timer.Remaining < timer.Duration - 1f)
+                        Fail($"angels lost round time before play: {timer.Remaining:F2}/{timer.Duration:F2}");
+                    float remainingAtStart = timer.Remaining;
+                    yield return new WaitForSeconds(1f);
+                    float spent = remainingAtStart - timer.Remaining;
+                    if (spent < .6f || spent > 1.4f) Fail($"angels timer not ticking after countdown: {spent:F2}");
+                    Debug.Log($"PLAYTEST_CHECK angels timer held during countdown, started={remainingAtStart:F2}/{timer.Duration:F2}, spentAfterStart={spent:F2}");
+                }
                 if (pass == 0) game.ToggleTutorialReady();
             }
+        }
+        private IEnumerator AngelsPractice()
+        {
+            var angels = (CryingAngelsMinigame)game;
+            var timer = FindFirstObjectByType<RoundTimer>();
+            var hud = FindFirstObjectByType<RoundHud>();
+            var plate = (GameObject)typeof(RoundHud).GetField("timerPlate", Private).GetValue(hud);
+            var countdown = (TMPro.TMP_Text)typeof(RoundHud).GetField("countdownText", Private).GetValue(hud);
+            var avatar = SessionScoreboard.Current.LocalPlayer.Avatar;
+            var input = avatar.GetComponent<PlayerInputReader>();
+            input.EngageAutopilot(); input.DriveMove(Vector2.zero);
+            int history = SessionScoreboard.Current.History.Count;
+            float start = Time.realtimeSinceStartup;
+            bool host = NetworkManager.Singleton.IsServer;
+            var keeperView = FindFirstObjectByType<FirstPersonCameraRig>();
+            bool ready = false, cancelled = false, reconfirmed = false;
+            float wait = host ? 8f : 10f;
+            while (Time.realtimeSinceStartup - start < wait)
+            {
+                float elapsed = Time.realtimeSinceStartup - start;
+                // Keep the live beam away from the movement sample. Beam freezes
+                // are covered separately by AngelsHuntCheck, not by this input gate test.
+                if (avatar == angels.Keeper && keeperView != null)
+                {
+                    keeperView.SetViewDrivenExternally(true);
+                    keeperView.SetView(20f, -55f);
+                }
+                if (game == null || game.Phase != MinigamePhase.Practice || game.StartCountdownActive ||
+                    timer.IsRunning || timer.Remaining != 0f || plate.activeInHierarchy ||
+                    countdown.gameObject.activeInHierarchy || input.Suspended ||
+                    SessionScoreboard.Current.History.Count != history)
+                { Fail("angels practice started countdown/timer, blocked input or ended before ready"); yield break; }
+                // Allow the server beam snapshot to arrive, then verify the practice is playable.
+                if (elapsed > 1f && !angels.BeamEnabled)
+                { Fail("angels practice beam stayed off"); yield break; }
+                if (host && !ready && elapsed > 2f) { ready = true; game.ToggleTutorialReady(); }
+                if (host && !cancelled && elapsed > 4f) { cancelled = true; game.ToggleTutorialReady(); }
+                if (host && !reconfirmed && elapsed > 6f) { reconfirmed = true; game.ToggleTutorialReady(); }
+                yield return null;
+            }
+            if (!avatar.MovementLocked)
+            {
+                var before = avatar.Position;
+                // The spawn now has a sculpture behind it. Test the open inward
+                // approach instead of an arbitrary camera-relative direction.
+                var reference = new GameObject("Angels practice movement reference");
+                avatar.SetCameraReference(reference.transform);
+                input.DriveMove(new Vector2(-before.x, -before.z).normalized);
+                yield return new WaitForSeconds(.6f); input.DriveMove(Vector2.zero);
+                Destroy(reference);
+                if (Vector3.Distance(before, avatar.Position) < .1f)
+                    Fail($"angels practice movement blocked before={before} after={avatar.Position} locked={avatar.MovementLocked} suspended={input.Suspended} phase={game.Phase}");
+            }
+            Debug.Log($"PLAYTEST_CHECK angels free practice waited={wait}s timer=off countdown=off beam=on roleLocked={avatar.MovementLocked}");
+            if (!host) game.ToggleTutorialReady();
         }
         private IEnumerator HubFootsteps()
         {

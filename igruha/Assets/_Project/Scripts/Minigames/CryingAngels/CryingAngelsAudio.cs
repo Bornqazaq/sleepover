@@ -83,6 +83,13 @@ namespace Igruha.Minigames.CryingAngels
 
         /// <summary>Кому подменён шаг. Список нужен, чтобы вернуть обычный шаг на выходе из раунда.</summary>
         private readonly List<CharacterFootsteps> stoneWalkers = new List<CharacterFootsteps>(8);
+        private sealed class SightCue
+        {
+            public RunnerState Runner;
+            public Collider Body;
+            public KeeperSightConfirmation Confirmation;
+        }
+        private readonly List<SightCue> sightCues = new List<SightCue>(8);
 
         private MinigamePhase lastPhase = MinigamePhase.Idle;
         private float keeperYaw;
@@ -112,6 +119,7 @@ namespace Igruha.Minigames.CryingAngels
             if (caughtFeedback != null) caughtFeedback.Caught -= OnCaughtByBeam;
 
             ReleaseStoneSteps();
+            sightCues.Clear();
             CancelInvoke();
             audioPlayer?.StopAll();
         }
@@ -122,6 +130,7 @@ namespace Igruha.Minigames.CryingAngels
 
             TrackPhase();
             TrackPedestal();
+            TrackSightCues();
         }
 
         /// <summary>
@@ -229,21 +238,37 @@ namespace Igruha.Minigames.CryingAngels
         /// <summary>
         /// Луч кого-то взял. Играем только у Водящего — и только у него.
         ///
-        /// До 20.09 поимку слышал один пойманный, а у ловца она проходила молча:
-        /// он видел, что счётчик пошёл, но узнавал об этом глазами, по цвету
-        /// луча. Теперь у поимки есть звук с обеих сторон — тот же сти́нг, что
-        /// и у жертвы, потому что это одно событие, а не два.
+        /// Событие заморозки только ставит кандидата на подтверждение.
+        /// Короткий взмах и частично закрытая фигура не должны работать сонаром:
+        /// звук разрешён после непрерывной полной видимости в текущем фонаре.
         ///
         /// Зрителям и остальным Бегущим не играем намеренно. Событие поднимается
         /// у всех, но «кого-то держат» — знание скрытое: по звуку через комнату
         /// было бы слышно, что луч занят, и половина игры (следить за лучом
         /// глазами) обесценилась бы.
         /// </summary>
-        private void OnRunnerCaught(Vector3 point)
+        private void OnRunnerCaught(RunnerState runner)
         {
-            if (audioPlayer == null || !LocalPlayerIsKeeper()) return;
+            if (audioPlayer == null || runner == null || !LocalPlayerIsKeeper()) return;
+            for (int i = 0; i < sightCues.Count; i++)
+                if (sightCues[i].Runner == runner) { sightCues[i].Confirmation = default; return; }
+            sightCues.Add(new SightCue { Runner = runner, Body = runner.GetComponent<Collider>() });
+        }
 
-            audioPlayer.Play(SlotSpottedSting);
+        private void TrackSightCues()
+        {
+            if (!game.GameplayActive || !LocalPlayerIsKeeper()) { sightCues.Clear(); return; }
+            KeeperBeam beam = game.KeeperLight;
+            for (int i = sightCues.Count - 1; i >= 0; i--)
+            {
+                SightCue cue = sightCues[i];
+                if (cue.Runner == null || !cue.Runner.gameObject.activeInHierarchy ||
+                    cue.Runner.Current != RunnerState.Phase.Frozen)
+                { sightCues.RemoveAt(i); continue; }
+                bool visible = beam != null && beam.ClearlySees(cue.Body);
+                if (config != null && cue.Confirmation.Tick(visible, Time.deltaTime, config.SightConfirmSeconds))
+                    audioPlayer.Play(SlotSpottedSting);
+            }
         }
 
         /// <summary>Локальный игрок — Водящий этого раунда.</summary>

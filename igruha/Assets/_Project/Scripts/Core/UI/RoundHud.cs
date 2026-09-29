@@ -236,7 +236,8 @@ namespace Igruha.Core.UI
             }
         }
 
-        private void SetTimerPlateVisible(bool visible)
+        /// <summary>Скрыть таймер в режимах без ограничения времени.</summary>
+        public void SetTimerPlateVisible(bool visible)
         {
             if (timerPlate != null && timerPlate.activeSelf != visible)
             {
