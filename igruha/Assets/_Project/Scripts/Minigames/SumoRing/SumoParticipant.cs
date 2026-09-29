@@ -13,7 +13,6 @@ namespace Igruha.Minigames.SumoRing
         public PlayerElimination Elimination { get; }
         public bool Dead { get; private set; }
         public Vector3 LastPosition { get; private set; }
-        public double AimUntil { get; set; }
         private readonly PlayerRespawner respawner;
         private readonly StuckDetector stuck;
         private readonly Rigidbody body;
@@ -39,6 +38,9 @@ namespace Igruha.Minigames.SumoRing
                 previousCooldown = Push.CooldownOverride; previousOverride = Push.ButtonOverride;
                 Push.CancelPendingPush();
                 Push.CooldownOverride = config.PushCooldown; Push.ButtonOverride = button;
+                // Sumo owns the input and resolves contacts itself. The shared server relay
+                // also rejects disabled abilities, so legacy punch RPCs cannot bypass guard.
+                Push.enabled = false;
             }
             if (respawner != null) { previousRespawn = respawner.RespawnPoint; respawner.SetRespawnPoint(recovery); }
             Elimination = Motor.GetComponent<PlayerElimination>();

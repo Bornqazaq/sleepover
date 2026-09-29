@@ -16,6 +16,7 @@ namespace Igruha.EditorTools
     {
         private static readonly Dictionary<string, Material> palette = new Dictionary<string, Material>();
         private static Transform root;
+        private const float AuthoredRadius = 8.64f, CanopyAnchorHeight = 8.6f;
         [MenuItem("Igruha/Minigames/Art Sumo Ring")]
         public static void Build()
         {
@@ -28,6 +29,7 @@ namespace Igruha.EditorTools
             var floor = GameObject.Find("SafeSand"); floor.transform.localScale = new Vector3(54,.4f,54);
             floor.GetComponent<Renderer>().sharedMaterial = Material("FloorSand", new Color(.55f,.46f,.34f));
             var config = AssetDatabase.LoadAssetAtPath<SumoConfig>(Settings + "SumoConfig.asset");
+            RefreshDimensions(config);
             // Center uses the same clay section as every shrinking ring; broad warm top is continuous.
             var centre = GameObject.Find("PermanentCentre");
             var centerMesh = Disk(config.CentreRadius,config.Height);
@@ -66,7 +68,38 @@ namespace Igruha.EditorTools
                 Line(root,"RakedSand",points,.017f,palette["SandShade"]);
             }
             Stands(); ClaySections(config); RopeBoundaries(config); Dust(config); Lighting();
+            ScaleLayout(config);
             Save(); Debug.Log("SUMO ART: original 11-model kit, suspended canopy, 28 lanterns, audience, rope and collapse dust.");
+        }
+        [MenuItem("Igruha/Minigames/Resize Sumo Ring from config")]
+        public static void Resize()
+        {
+            RequireScene();
+            root = GameObject.Find("_SumoArt").transform;
+            var config = AssetDatabase.LoadAssetAtPath<SumoConfig>(Settings + "SumoConfig.asset");
+            palette["Rope"] = AssetDatabase.LoadAssetAtPath<Material>(Art + "/Materials/Rope.mat");
+            RefreshDimensions(config); ClaySections(config, false); RopeBoundaries(config); ScaleLayout(config);
+            Physics.SyncTransforms(); Save();
+            Debug.Log("SUMO RESIZE: diameter " + (config.Radius * 2) + ", spawn radius " + config.SpawnRadius);
+        }
+        private static void ScaleLayout(SumoConfig config)
+        {
+            // The imported canopy was authored at unit scale. Its current scale records the
+            // applied layout size, so repeated resize and full art builds converge to the same scene.
+            float scale = config.Radius / AuthoredRadius;
+            float ratio = scale / root.Find("SM_Canopy").localScale.x;
+            foreach (Transform child in root)
+            {
+                Vector3 p = child.localPosition, size = child.localScale;
+                p.x *= ratio; p.z *= ratio;
+                bool suspended = child.name == "SM_Canopy" || child.name == "SM_Tassel" || child.name == "SM_Chain" || child.name == "SM_Lantern";
+                if (suspended) { p.y = CanopyAnchorHeight + (p.y - CanopyAnchorHeight) * ratio; size *= ratio; }
+                else if (child.name == "HallWall" || child.name == "AudienceTier" || child.name == "FrontRail" || child.name == "RakedSand")
+                { size.x *= ratio; size.z *= ratio; }
+                if (child.name == "LanternGlow") p.y = CanopyAnchorHeight + (p.y - CanopyAnchorHeight) * ratio;
+                child.localPosition = p; child.localScale = size;
+            }
+            GameObject.Find("SafeSand").transform.localScale = new Vector3(54 * scale, .4f, 54 * scale);
         }
         private static void Palette()
         {
@@ -104,7 +137,7 @@ namespace Igruha.EditorTools
             return go;
         }
         private static Vector3 Polar(float r,float degrees) { float a=degrees*Mathf.Deg2Rad;return new Vector3(Mathf.Sin(a)*r,0,Mathf.Cos(a)*r); }
-        private static void ClaySections(SumoConfig config)
+        private static void ClaySections(SumoConfig config, bool createStrokes = true)
         {
             // The support stays exact; only the lower clay silhouette bulges and softens.
             for(int ring=0;ring<config.RingCount;ring++)
@@ -128,6 +161,7 @@ namespace Igruha.EditorTools
                 foreach(var segment in Object.FindObjectsByType<SumoRingSegment>(FindObjectsSortMode.None))
                     if(segment.Ring==ring)segment.transform.Find("ClayVisual").GetComponent<MeshFilter>().sharedMesh=mesh;
             }
+            if (!createStrokes) return;
             // Traditional starting strokes stay on the permanent centre.
             var parent=GameObject.Find("PermanentCentre").transform;
             foreach(float z in new[]{-.55f,.55f})
@@ -265,7 +299,8 @@ namespace Igruha.EditorTools
         public static void Capture()
         {
             RequireScene();string folder=Path.GetFullPath(Path.Combine(Application.dataPath,"../../docs/art/previews"));Directory.CreateDirectory(folder);
-            var go=new GameObject("SumoReviewCamera");var camera=go.AddComponent<Camera>();camera.transform.position=new Vector3(15.5f,11.6f,-18.7f);camera.transform.LookAt(new Vector3(0,4.5f,0));camera.fieldOfView=65;camera.nearClipPlane=.1f;camera.farClipPlane=100;
+            float layoutScale=AssetDatabase.LoadAssetAtPath<SumoConfig>(Settings+"SumoConfig.asset").Radius/AuthoredRadius;
+            var go=new GameObject("SumoReviewCamera");var camera=go.AddComponent<Camera>();camera.transform.position=new Vector3(15.5f*layoutScale,11.6f,-18.7f*layoutScale);camera.transform.LookAt(new Vector3(0,4.5f,0));camera.fieldOfView=65;camera.nearClipPlane=.1f;camera.farClipPlane=100;
             camera.clearFlags=CameraClearFlags.SolidColor;camera.backgroundColor=new Color(.018f,.017f,.026f);camera.GetUniversalAdditionalCameraData().renderPostProcessing=true;
             var rt=new RenderTexture(1600,1100,24,RenderTextureFormat.ARGB32);camera.targetTexture=rt;camera.Render();
             var old=RenderTexture.active;RenderTexture.active=rt;var image=new Texture2D(rt.width,rt.height,TextureFormat.RGB24,false);image.ReadPixels(new Rect(0,0,rt.width,rt.height),0,0);

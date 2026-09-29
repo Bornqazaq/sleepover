@@ -31,9 +31,7 @@ namespace Igruha.EditorTools
             Set(definition, "displayName", "Ринг сумо"); Set(definition, "sceneName", "SumoRing");
             Set(definition, "minPlayers", 3); Set(definition, "maxPlayers", 8); Set(definition, "roundDuration", 0f);
             Set(definition, "objective", "Вытолкни соперников с ринга. Край осыпается — последний устоявший побеждает.");
-            Strings(definition, "controlHints", new[] { "WASD — движение · мышь — камера", "ЛКМ — толчок · Space — прыжок", "Трещины предупреждают об обвале за 2 секунды.", "Упал с ринга — наблюдаешь. Одновременный вылет делит место." });
-            Strings(definition, "tutorialSteps", new[] { "Подойди к сопернику и толкни его за край.", "Следи за трещинами: внешние кольца осыпаются.", "Займи центр и останься последним на ринге." });
-            Strings(definition, "tutorialQuickHints", new[] { "ЛКМ — толчок", "Space — прыжок", "Край трещит — отойди к центру" });
+            SumoCombatBuilder.Build();
             var arena = GameObject.Find("_Arena").transform; Clear(arena);
             Clear(GameObject.Find("_Traps").transform); Clear(GameObject.Find("_Pickups").transform); Clear(GameObject.Find("_Bounds").transform);
             var grey = Material("Clay", new Color(.46f, .46f, .44f));
@@ -100,7 +98,7 @@ namespace Igruha.EditorTools
             {
                 float a = i * Mathf.PI * .25f; var spawn = new GameObject("Spawn_" + i);
                 spawn.transform.SetParent(spawnRoot.transform, false);
-                spawn.transform.position = new Vector3(Mathf.Cos(a) * 5.4f, config.Height + .06f, Mathf.Sin(a) * 5.4f);
+                spawn.transform.position = new Vector3(Mathf.Cos(a) * config.SpawnRadius, config.Height + .06f, Mathf.Sin(a) * config.SpawnRadius);
                 spawn.transform.rotation = Quaternion.LookRotation(new Vector3(-Mathf.Cos(a), 0, -Mathf.Sin(a)));
                 spawn.AddComponent<SpawnPoint>();
             }
@@ -122,6 +120,44 @@ namespace Igruha.EditorTools
             Set(spectator, "cameraRig", cameraRoot.GetComponentInChildren<ThirdPersonCameraRig>()); Set(spectator, "hud", hud); Set(game, "spectator", spectator);
             Set(ringArena, "game", game); References(ringArena, "segments", segmentList.ToArray()); References(ringArena, "boundaries", boundaryList.ToArray());
             Register(definition); Save(); Debug.Log("SUMO: blockout built, 144 sectors + permanent centre, 8 spawns.");
+        }
+        /// <summary>Resize existing support and warning geometry without rebuilding scene objects or audio bindings.</summary>
+        public static void RefreshDimensions(SumoConfig config)
+        {
+            var segments = Object.FindObjectsByType<SumoRingSegment>(FindObjectsSortMode.None);
+            for (int ring = 0; ring < config.RingCount; ring++)
+            {
+                var mesh = SectorMesh(config.OuterRadius(ring) - config.RingWidth, config.OuterRadius(ring), config.Height, 360f / config.Sectors);
+                string path = Art + "/Meshes/Ring_" + ring + ".asset";
+                var saved = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+                if (saved == null) { AssetDatabase.CreateAsset(mesh, path); saved = mesh; }
+                else { EditorUtility.CopySerialized(mesh, saved); Object.DestroyImmediate(mesh); }
+                foreach (var segment in segments)
+                {
+                    if (segment.Ring != ring) continue;
+                    var collider = segment.GetComponent<MeshCollider>(); collider.sharedMesh = null; collider.sharedMesh = saved;
+                    var cracks = segment.transform.Find("ClayVisual/WarningCracks").GetComponentsInChildren<LineRenderer>(true);
+                    for (int line = 0; line < cracks.Length; line++)
+                        for (int p = 0; p < cracks[line].positionCount; p++)
+                        {
+                            float radius = config.OuterRadius(ring) - config.RingWidth + config.RingWidth * p / (cracks[line].positionCount - 1);
+                            float a = (line == 0 ? 3f : 11f) * Mathf.Deg2Rad + Mathf.Sin(p * 2.8f + segment.Sector) * .02f;
+                            cracks[line].SetPosition(p, new Vector3(Mathf.Cos(a) * radius, config.Height + .015f, Mathf.Sin(a) * radius));
+                        }
+                    var dust = segment.transform.Find("CollapseDust");
+                    if (dust != null)
+                    {
+                        float a = 180f / config.Sectors * Mathf.Deg2Rad, radius = config.OuterRadius(ring) - config.RingWidth * .5f;
+                        dust.localPosition = new Vector3(Mathf.Cos(a) * radius, config.Height - .1f, Mathf.Sin(a) * radius);
+                    }
+                }
+            }
+            var spawnRoot = GameObject.Find("_Spawns");
+            foreach (var point in spawnRoot.GetComponentsInChildren<SpawnPoint>())
+            {
+                var direction = point.transform.position; direction.y = 0; direction.Normalize();
+                point.transform.position = direction * config.SpawnRadius + Vector3.up * (config.Height + .06f);
+            }
         }
         private static Mesh SectorMesh(float inner, float outer, float height, float degrees)
         {
