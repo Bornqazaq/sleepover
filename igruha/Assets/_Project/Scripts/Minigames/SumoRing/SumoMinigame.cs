@@ -26,18 +26,23 @@ namespace Igruha.Minigames.SumoRing
         private int shownSecond = -1, shownAlive = -1, shownRing = -1;
         private string[,] collapseStatus;
         private string[] warningStatus, finalStatus;
-        private const float AimReleaseGrace = .1f;
         public SumoConfig Config => config;
         public SumoRound Round => round;
         public IReadOnlyList<SumoParticipant> Participants => participants;
         public bool LocalRosterReady => participants.Count > 0;
         public bool Running => RoundActive && round.Ready;
+        public SumoCombat Combat { get; private set; }
         public double Elapsed => round.Ready ? NetworkClock.Now - round.BeginsAt : -config.Countdown;
         public event Action Changed;
         public event Action<int, Vector3> Eliminated;
         public event Action FightStarted;
         public event Action FightEnded;
         protected override float RoundDuration => 0;
+        protected override void Awake()
+        {
+            base.Awake();
+            Combat = gameObject.AddComponent<SumoCombat>();
+        }
         protected override void OnPlayersReady()
         {
             participants.Clear(); alive.Clear(); ids.Clear(); leaving.Clear(); local = null; restored = false;
@@ -49,6 +54,9 @@ namespace Igruha.Minigames.SumoRing
                 participants.Add(p); alive.Add(player); p.Elimination.BodyHidden += OnBodyHidden;
                 if (p.Input != null && p.Input.LocallyControlled) local = p;
             }
+            Combat.Bind(this, config, gameCamera);
+            var label = Hud != null ? Hud.GetComponentInChildren<TMPro.TMP_Text>(true) : null;
+            Combat.BindHud(label != null ? label.font : null);
             // Build HUD text outside the frame loop; only swap cached strings during play.
             int maxSeconds = Mathf.CeilToInt(config.CollapseAt(config.RingCount - 1) + config.Countdown);
             collapseStatus = new string[maxSeconds + 1, ids.Count + 1];
@@ -66,6 +74,7 @@ namespace Igruha.Minigames.SumoRing
             countdownFinished = false; shownSecond = shownAlive = shownRing = -1;
             SetStartCountdownActive(true);
             if (HasAuthority) round.Reset(ids, NetworkClock.Now + config.Countdown);
+            Combat.ResetCombat();
             Timer?.StopTimer(); arena.ResetArena();
             if (timerPlate != null) timerPlate.SetActive(false);
             foreach (var p in participants) if (p.Motor != null) p.Motor.MovementLocked = true;
@@ -86,8 +95,6 @@ namespace Igruha.Minigames.SumoRing
                     FightStarted?.Invoke();
                 }
             }
-            if (local?.Motor != null && local.AimUntil > 0 && NetworkClock.Now > local.AimUntil)
-            { local.Motor.FacingOverride = null; local.AimUntil = 0; }
             int ring = config.NextRing(elapsed);
             int seconds = ring < config.RingCount ? Mathf.CeilToInt((float)(config.CollapseAt(ring) - elapsed)) : 0;
             if (shownSecond == seconds && shownAlive == round.AliveCount && shownRing == ring) return;
@@ -101,6 +108,7 @@ namespace Igruha.Minigames.SumoRing
             foreach (var p in participants) p.RememberPosition();
             if (!HasAuthority) return;
             double now = NetworkClock.Now;
+            Combat.TickAuthority(now);
             if (round.Finished)
             {
                 if (now >= round.FinishedAt + config.FallSeconds) EndMinigame();
@@ -119,23 +127,7 @@ namespace Igruha.Minigames.SumoRing
             if (!changed) return;
             ApplySnapshotPresentation(); Changed?.Invoke();
         }
-        public bool HandlePushButton(PlayerController motor)
-        {
-            if (!Running || !countdownFinished || round.Finished) return true;
-            foreach (var p in participants)
-            {
-                if (p.Motor != motor) continue;
-                if (p.Dead) return true;
-                if (gameCamera != null && p.Input != null && p.Input.LocallyControlled)
-                {
-                    Vector3 forward = gameCamera.transform.forward; forward.y = 0;
-                    if (forward.sqrMagnitude > .001f) motor.FacingOverride = forward.normalized;
-                    p.AimUntil = NetworkClock.Now + motor.Config.PunchImpactDelay + AimReleaseGrace;
-                }
-                return false;
-            }
-            return true;
-        }
+        public bool HandlePushButton(PlayerController motor) => true;
         public void ApplySnapshotPresentation()
         {
             if (!RoundActive) return;
@@ -160,6 +152,7 @@ namespace Igruha.Minigames.SumoRing
         {
             if (restored) return;
             restored = true; spectator?.Deactivate();
+            Combat?.Release();
             foreach (var p in participants)
             {
                 if (p.Elimination != null) p.Elimination.BodyHidden -= OnBodyHidden;

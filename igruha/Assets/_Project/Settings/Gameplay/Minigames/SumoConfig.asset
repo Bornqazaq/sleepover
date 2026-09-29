@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: SumoConfig
   m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.SumoRing.SumoConfig
   characterWidth: 0.72
-  outerDiameterWidths: 24
+  outerDiameterWidths: 19.2
   centreDiameterWidths: 6
   platformHeightWidths: 3
   sectors: 24
@@ -30,3 +30,29 @@ MonoBehaviour:
   fallSeconds: 1.5
   pushCooldown: 1
   fallTolerance: 0.35
+  motions: {fileID: 11400000, guid: a109dc98da84544479868aac5d9bf2d2, type: 2}
+  combatEffectMaterial: {fileID: 2100000, guid: 5ca9215ddb19c4b9b9ac3e04e75844a5, type: 2}
+  combatReach: 0.55
+  attackArc: 110
+  guardArc: 120
+  quickWindup: 0.22
+  heavyWindup: 0.32
+  counterWindup: 0.14
+  chargeSeconds: 0.65
+  maximumChargeSeconds: 1.8
+  recoverySeconds: 0.38
+  heavyRecoverySeconds: 0.65
+  parryWindow: 0.2
+  parryCooldown: 0.65
+  counterWindow: 0.5
+  staggerSeconds: 0.24
+  parriedStaggerSeconds: 0.6
+  guardBreakSeconds: 0.65
+  guardPushMultiplier: 0.25
+  guardSpeed: 2.3
+  chargeSpeed: 1.6
+  quickPushSpeed: 5.5
+  heavyPushSpeed: 8
+  counterPushSpeed: 9
+  quickSlideSeconds: 0.32
+  heavySlideSeconds: 0.52

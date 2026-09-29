@@ -45,9 +45,9 @@ namespace Igruha.Tests
             var c = ScriptableObject.CreateInstance<SumoConfig>();
             try
             {
-                Assert.That(c.Radius, Is.EqualTo(8.64f).Within(.001f));
-                Assert.That(c.SupportRadius(Vector3.right, 10.1), Is.EqualTo(7.56f).Within(.001f));
-                Assert.That(c.SupportRadius(Vector3.back, 10.1), Is.EqualTo(8.64f).Within(.001f));
+                Assert.That(c.Radius, Is.EqualTo(6.912f).Within(.001f));
+                Assert.That(c.SupportRadius(Vector3.right, 10.1), Is.EqualTo(6.12f).Within(.001f));
+                Assert.That(c.SupportRadius(Vector3.back, 10.1), Is.EqualTo(6.912f).Within(.001f));
                 Assert.That(c.SupportRadius(Vector3.right, 10000), Is.EqualTo(2.16f).Within(.001f));
                 Assert.That(c.NextRing(74.99), Is.EqualTo(5)); Assert.That(c.NextRing(75), Is.EqualTo(6));
             }
@@ -76,7 +76,7 @@ namespace Igruha.Tests
             Assert.That(PartySeries.BuildQueue(catalog, 3, new System.Random(1), _ => true).Any(g => g == definition), Is.True);
         }
         [Test]
-        public void ShippedSceneKeepsTheExactSupportHeightAndFullSizeDecorativeRoof()
+        public void ShippedSceneMatchesCompactSupportSpawnsAndDecorativeRoof()
         {
             const string path = "Assets/_Project/Scenes/Minigames/SumoRing.unity";
             var scene = UnityEngine.SceneManagement.SceneManager.GetSceneByPath(path);
@@ -91,9 +91,24 @@ namespace Igruha.Tests
                 var art = transforms.Single(t => t.name == "_SumoArt");
                 Assert.That(art.GetComponentsInChildren<Collider>().Length, Is.Zero, "Decor must not shorten the camera boom or block a falling player.");
                 var roof = art.GetComponentsInChildren<MeshRenderer>().Single(r => r.name == "SM_Canopy");
-                Assert.That(roof.bounds.size.x, Is.InRange(21f, 23f));
+                Assert.That(roof.bounds.size.x, Is.EqualTo(17.36f).Within(.02f));
                 Assert.That(roof.bounds.min.y, Is.GreaterThan(8f));
                 Assert.That(transforms.Count(t => t.GetComponent<SumoRingSegment>() != null), Is.EqualTo(144));
+                var config = AssetDatabase.LoadAssetAtPath<SumoConfig>("Assets/_Project/Settings/Gameplay/Minigames/SumoConfig.asset");
+                foreach (var segment in transforms.Select(t => t.GetComponent<SumoRingSegment>()).Where(s => s != null))
+                {
+                    var support = segment.GetComponent<MeshCollider>();
+                    float radius = config.OuterRadius(segment.Ring) - config.RingWidth * .5f;
+                    float a = (segment.Sector + .5f) * Mathf.PI * 2 / config.Sectors;
+                    var ray = new Ray(new Vector3(Mathf.Cos(a) * radius, 5, Mathf.Sin(a) * radius), Vector3.down);
+                    Assert.That(support.Raycast(ray, out var hit, 5), Is.True, segment.name);
+                    Assert.That(hit.point.y, Is.EqualTo(config.Height).Within(.002f), segment.name);
+                    float outer = support.sharedMesh.vertices.Max(v => new Vector2(v.x, v.z).magnitude);
+                    Assert.That(outer, Is.EqualTo(config.OuterRadius(segment.Ring)).Within(.001f));
+                }
+                var spawns = transforms.Where(t => t.GetComponent<Igruha.Core.Spawning.SpawnPoint>() != null).ToArray();
+                Assert.That(spawns.Length, Is.EqualTo(8));
+                foreach (var spawn in spawns) Assert.That(new Vector2(spawn.position.x, spawn.position.z).magnitude, Is.EqualTo(config.SpawnRadius).Within(.001f));
             }
             finally { if (opened) UnityEditor.SceneManagement.EditorSceneManager.CloseScene(scene, true); }
         }

@@ -40,7 +40,7 @@ namespace Igruha.Tests
             var current = MinigameControllerBase.Current as SumoMinigame;
             if (current != null && current != game)
             {
-                if (local?.Push != null) local.Push.PunchStarted -= OnPunchStarted;
+                if (game != null) game.Combat.Contact -= OnCombatContact;
                 game = current; local = null; ready = punched = staged = jumped = departed = false; warnings = collapses = deaths = punches = 0;
                 game.Eliminated += (id, position) => { deaths++; Debug.Log("SUMO_CHECK death=" + id); };
                 var arena = game.GetComponentInChildren<SumoArena>();
@@ -54,7 +54,7 @@ namespace Igruha.Tests
                     {
                         local = p; var bot = p.Motor.GetComponent<DebugPlayerBot>(); if (bot != null) bot.enabled = false;
                         p.Input.EngageAutopilot();
-                        p.Push.PunchStarted += OnPunchStarted;
+                        game.Combat.Contact += OnCombatContact;
                     }
             if (game != null && game.Phase == MinigamePhase.Practice && local != null && !ready)
             { ready = true; game.ToggleTutorialReady(); }
@@ -77,7 +77,7 @@ namespace Igruha.Tests
                 if (motor == null && Time.realtimeSinceStartup - hubArrived < 10) return;
                 returned = true;
                 var push = motor != null ? motor.GetComponent<PlayerPushAbility>() : null;
-                bool clean = motor != null && !motor.MovementLocked && !motor.ImpulseImmune && push != null && push.CooldownOverride == 0 && push.ButtonOverride == null;
+                bool clean = motor != null && !motor.MovementLocked && !motor.ImpulseImmune && push != null && push.CooldownOverride == 0 && push.ButtonOverride == null && push.enabled && motor.GetComponent<SumoFighter>() == null && motor.GetComponent<SumoCombatPose>() == null;
                 Debug.Log("SUMO_CHECK RETURN restored=" + clean + " avatar=" + (motor != null));
                 if (!clean) Debug.LogError("SUMO_CHECK FAIL leaked player state");
                 if (!clean) Application.Quit(2);
@@ -87,19 +87,20 @@ namespace Igruha.Tests
             if (quitAt > 0 && Time.realtimeSinceStartup >= quitAt) Application.Quit();
             if (Time.realtimeSinceStartup - started > 180) { Debug.LogError("SUMO_CHECK FAIL timeout"); Application.Quit(2); }
         }
-        private void OnPunchStarted() => punches++;
+        private void OnCombatContact(SumoCombatHit hit) { if (local != null && hit.Attacker == local.Player.Id) punches++; }
+        private void RequestCombatPush() { game.Combat.Submit(local.Player.Id, SumoCommand.AttackDown, 180); game.Combat.Submit(local.Player.Id, SumoCommand.AttackUp, 180); }
         private void FixedUpdate()
         {
             if (game == null || game.Phase != MinigamePhase.Round || local?.Motor == null || local.Dead || !game.Round.Ready) return;
             double t = game.Elapsed; int id = local.Player.Id;
             local.Input.DriveMove(Vector2.zero);
             // Hold two bodies at arm's length until all peers have their positions.
-            if (t < 3.5 && id < 2)
+            if (scenario != "combat" && t < 3.5 && id < 2)
                 local.Motor.TeleportTo(new Vector3(0, game.Config.Height + .03f, id * .95f), Quaternion.Euler(0, id == 0 ? 0 : 180, 0));
-            if (id == 1 && t > 4 && !punched)
-            { punched = true; local.Motor.FacingOverride = Vector3.back; local.Push.RequestPush(); Debug.Log("SUMO_CHECK CLIENT_PUNCH"); }
-            if (id == 1 && t > 4.1 && t < 4.4) local.Push.RequestPush();
-            if (t > 7 && !staged)
+            if (scenario != "combat" && id == 1 && t > 4 && !punched)
+            { punched = true; local.Motor.FacingOverride = Vector3.back; RequestCombatPush(); Debug.Log("SUMO_CHECK CLIENT_PUNCH"); }
+            if (scenario != "combat" && id == 1 && t > 4.1 && t < 4.4) RequestCombatPush();
+            if (scenario != "combat" && t > 7 && !staged)
             {
                 if (id == 1)
                 {
@@ -110,7 +111,7 @@ namespace Igruha.Tests
                 float angle = id * Mathf.PI * 2 / game.Participants.Count;
                 local.Motor.TeleportTo(new Vector3(Mathf.Cos(angle) * 1.45f, game.Config.Height + .04f, Mathf.Sin(angle) * 1.45f), Quaternion.identity);
             }
-            if (t > 12 && !jumped) { jumped = true; local.Input.DriveJump(); Debug.Log("SUMO_CHECK JUMP"); }
+            if (scenario != "combat" && t > 12 && !jumped) { jumped = true; local.Input.DriveJump(); Debug.Log("SUMO_CHECK JUMP"); }
             if (scenario == "disconnect" && id == game.Participants.Count - 1 && t > 18)
             { Debug.Log("SUMO_CHECK DISCONNECT"); Application.Quit(); return; }
             if (t > 77 && id > 0 && !departed)
