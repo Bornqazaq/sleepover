@@ -1491,6 +1491,7 @@ namespace Igruha.EditorTools
             so.FindProperty("botObstacles").intValue =
                 (1 << LayerMask.NameToLayer("Ground")) | (1 << LayerMask.NameToLayer("Cover"));
             so.ApplyModifiedPropertiesWithoutUndo();
+            CarryItemRespawnBuilder.Ensure(game);
 
             var bootstrap = manager.GetComponent<MinigameBootstrap>();
             if (bootstrap != null)
@@ -1715,7 +1716,10 @@ namespace Igruha.EditorTools
                 config.ToMeters(topY - bottomY),
                 config.ToMeters(halfDepth * 2f));
 
-            go.AddComponent<KillZone>();
+            var zone = go.AddComponent<KillZone>();
+            var zoneSo = new SerializedObject(zone);
+            zoneSo.FindProperty("mode").enumValueIndex = (int)KillZone.ZoneMode.EventOnly;
+            zoneSo.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static void MakeStash(Transform parent, CarryItemConfig config, PickupItem brick,

@@ -474,7 +474,7 @@ namespace Igruha.Minigames.Exam
         /// </summary>
         private void OnClientDisconnected(ulong clientId)
         {
-            if (IsServer)
+            if (IsServer && NetworkManager != null && !NetworkManager.ShutdownInProgress)
             {
                 game?.ServerHandleDisconnect((int)clientId);
             }

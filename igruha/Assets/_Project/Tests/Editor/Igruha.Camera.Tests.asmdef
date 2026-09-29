@@ -3,6 +3,7 @@
     "references": [
         "Igruha.Core",
         "Igruha.Minigames",
+        "Unity.Netcode.Runtime",
         "Unity.Cinemachine",
         "Unity.InputSystem",
         "Unity.RenderPipelines.Universal.Runtime",

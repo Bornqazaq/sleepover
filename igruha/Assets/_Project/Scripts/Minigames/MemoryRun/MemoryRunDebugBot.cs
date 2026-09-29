@@ -381,16 +381,17 @@ namespace Igruha.Minigames.MemoryRun
             }
 
             float half = config.PlateSize * 0.5f;
+            float halfWidth = config.PlateWidth * 0.5f;
 
             // Полоса разгона: та же, с которой отталкиваемся, прижатая к краю
             // СВОЕЙ плиты со стороны цели. Центр соседней полосы лежит за
             // пределами плиты, и выходить на него по земле нельзя.
             float targetX = config.LaneX(plannedLane);
             float runwayX = onPlate
-                ? Mathf.Clamp(targetX, config.LaneX(lane) - half + EdgeInset, config.LaneX(lane) + half - EdgeInset)
+                ? Mathf.Clamp(targetX, config.LaneX(lane) - halfWidth + EdgeInset, config.LaneX(lane) + halfWidth - EdgeInset)
                 : targetX;
 
-            // Целимся в ЦЕНТР плиты: у центра запас 1.44 м во все стороны,
+            // Целимся в ЦЕНТР плиты: здесь запас есть во все стороны,
             // у ближнего края — ноль в одну из них. Промах болванки на
             // полметра при прицеле в край означает пропасть, при прицеле
             // в центр — просто некрасивое приземление.
@@ -414,7 +415,7 @@ namespace Igruha.Minigames.MemoryRun
             // его надо набирать ногами. Человек так и делает.
             float runStartX = onPlate
                 ? Mathf.Clamp(2f * config.LaneX(lane) - runwayX,
-                    config.LaneX(lane) - half + EdgeInset, config.LaneX(lane) + half - EdgeInset)
+                    config.LaneX(lane) - halfWidth + EdgeInset, config.LaneX(lane) + halfWidth - EdgeInset)
                 : runwayX;
 
             float runStartZ = onPlate ? config.StepZ(step) - half + EdgeInset : takeoffZ - 3f;
@@ -515,13 +516,13 @@ namespace Igruha.Minigames.MemoryRun
         /// <summary>
         /// Куда прыгать. Болванка играет по тем же правилам, что человек:
         /// знает — идёт наверняка, не знает — выбирает из того, что ещё
-        /// не подорвалось, и только среди достижимых полос.
+        /// не подорвалось. Все три полосы следующего ряда достижимы.
         /// </summary>
         private int ChooseLane(int step, int fromLane)
         {
             for (int lane = 0; lane < MemoryRunConfig.LaneCount; lane++)
             {
-                if (provedSafe[step, lane] && Reachable(fromLane, lane))
+                if (provedSafe[step, lane])
                 {
                     return lane;
                 }
@@ -530,7 +531,7 @@ namespace Igruha.Minigames.MemoryRun
             int candidates = 0;
             for (int lane = 0; lane < MemoryRunConfig.LaneCount; lane++)
             {
-                if (!provedMine[step, lane] && Reachable(fromLane, lane))
+                if (!provedMine[step, lane])
                 {
                     candidates++;
                 }
@@ -538,7 +539,7 @@ namespace Igruha.Minigames.MemoryRun
 
             if (candidates == 0)
             {
-                // Все достижимые полосы уже известны как мины — такого при
+                // Все полосы уже известны как мины — такого при
                 // корректной генерации не бывает, но упереться в тупик молча
                 // хуже, чем шагнуть наугад.
                 return Mathf.Clamp(fromLane < 0 ? MemoryRunRoute.Center : fromLane,
@@ -548,7 +549,7 @@ namespace Igruha.Minigames.MemoryRun
             int pick = Random.Range(0, candidates);
             for (int lane = 0; lane < MemoryRunConfig.LaneCount; lane++)
             {
-                if (provedMine[step, lane] || !Reachable(fromLane, lane))
+                if (provedMine[step, lane])
                 {
                     continue;
                 }
@@ -561,10 +562,6 @@ namespace Igruha.Minigames.MemoryRun
 
             return MemoryRunRoute.Center;
         }
-
-        /// <summary>Со старта достижима любая полоса, с плиты — только соседняя.</summary>
-        private static bool Reachable(int fromLane, int toLane) =>
-            fromLane < 0 || Mathf.Abs(toLane - fromLane) <= 1;
 
         /// <summary>
         /// Смотреть за идущим — единственный способ болванки учиться в сетевой

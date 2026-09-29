@@ -187,6 +187,7 @@ namespace Igruha.Networking
         [Rpc(SendTo.Server, RequireOwnership = true)]
         private void RequestPushRpc(NetworkObjectReference targetReference)
         {
+            if (inputReader != null && inputReader.Suspended) return;
             if (!targetReference.TryGet(out NetworkObject targetObject))
             {
                 return;
@@ -466,6 +467,7 @@ namespace Igruha.Networking
         [Rpc(SendTo.Server, RequireOwnership = true)]
         private void RequestFireRpc(Vector3 direction)
         {
+            if (inputReader != null && inputReader.Suspended) return;
             if (shooter == null)
             {
                 return;

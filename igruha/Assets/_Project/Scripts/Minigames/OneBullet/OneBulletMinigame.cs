@@ -74,6 +74,7 @@ namespace Igruha.Minigames.OneBullet
         }
         protected override void OnRoundStarted()
         {
+            SetStartCountdownActive(true);
             countdownFinished = false; shotPending = false; shownAlive = -1; showResultsAt = 0;
             round.Reset(ids, NetworkClock.Now + config.Countdown, config.Duration, config.FirstSpawnDelay);
             weapon.Configure(1, 0f, config.Duration + config.RespawnDelay, config.ShotRange, config.HitMask);
@@ -93,6 +94,7 @@ namespace Igruha.Minigames.OneBullet
                 if (now >= round.BeginsAt)
                 {
                     countdownFinished = true; Hud?.HideCountdown();
+                    SetStartCountdownActive(false);
                     foreach (var p in participants) if (p.Motor != null && !p.Dead) p.Motor.MovementLocked = false;
                     if (HasAuthority) Timer.StartTimer(config.Duration);
                 }

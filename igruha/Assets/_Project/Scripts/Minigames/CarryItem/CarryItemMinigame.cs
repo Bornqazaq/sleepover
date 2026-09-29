@@ -50,6 +50,13 @@ namespace Igruha.Minigames.CarryItem
             public TeamSide Team;
             public PlayerController Avatar;
             public Transform OriginalRespawn;
+            public double RespawnAt;
+            public bool Waiting;
+            public bool AwaitingRespawnPosition;
+            public bool MotorWasEnabled;
+            public RigidbodyConstraints BodyConstraints;
+            public bool WasLocked;
+            public bool HandsWereBlocked;
 
             /// <summary>
             /// Игрок вышел из матча. Строку не удаляем: место ему полагается
@@ -64,6 +71,7 @@ namespace Igruha.Minigames.CarryItem
         [SerializeField] private SpawnPointSet spawnPoints;
         [SerializeField] private BottleRamDetector ramDetector;
         [SerializeField] private TeamProgressBar progressBar;
+        [SerializeField] private CarryItemRespawnPresentation respawnPresentation;
 
         [Header("Команды")]
         [SerializeField] private TeamRig teamA = new TeamRig { SpawnRole = SpawnRole.TeamA };
@@ -169,6 +177,7 @@ namespace Igruha.Minigames.CarryItem
 
             progressBar?.ResetBars(config.TankCapacity);
             RefreshLocalTeam();
+            respawnPresentation?.Bind(Players);
         }
 
         /// <summary>
@@ -214,7 +223,8 @@ namespace Igruha.Minigames.CarryItem
                 {
                     PlayerId = entries[i].PlayerId,
                     Team = (byte)entries[i].Team,
-                    Left = entries[i].Left
+                    Left = entries[i].Left,
+                    RespawnAt = entries[i].RespawnAt
                 });
             }
 
@@ -227,12 +237,14 @@ namespace Igruha.Minigames.CarryItem
         /// </summary>
         public void ApplyNetworkRoster(IReadOnlyList<CarryItemMemberNetState> members)
         {
+            var previous = entries.ToArray();
+            bool compositionChanged = previous.Length != members.Count;
             entries.Clear();
 
             for (int i = 0; i < members.Count; i++)
             {
                 PlayerController avatar = AvatarOf(members[i].PlayerId);
-                entries.Add(new Entry
+                var entry = new Entry
                 {
                     PlayerId = members[i].PlayerId,
                     Team = (TeamSide)members[i].Team,
@@ -241,7 +253,17 @@ namespace Igruha.Minigames.CarryItem
                     OriginalRespawn = avatar != null && avatar.TryGetComponent(out PlayerRespawner respawner)
                         ? respawner.RespawnPoint
                         : null
-                });
+                };
+                for (int j = 0; j < previous.Length; j++)
+                    if (previous[j].PlayerId == entry.PlayerId && previous[j].Avatar == avatar)
+                    { entry = previous[j]; break; }
+                if (i >= previous.Length || previous[i].PlayerId != entry.PlayerId ||
+                    previous[i].Avatar != avatar || previous[i].Left != members[i].Left)
+                    compositionChanged = true;
+                entry.Left = members[i].Left;
+                entry.RespawnAt = members[i].RespawnAt;
+                SetFallWaiting(ref entry, entry.RespawnAt > 0 && !entry.Left);
+                entries.Add(entry);
             }
 
             // Число ручек у бутыли — это размер команды, и клиент обязан знать
@@ -250,12 +272,13 @@ namespace Igruha.Minigames.CarryItem
             teamB.Stack?.SetTeamSize(SizeOf(TeamSide.B));
 
             RefreshLocalTeam();
+            respawnPresentation?.Bind(Players);
 
             // Болванку автопрогона вешаем только теперь: на OnPlayersReady у
             // этой машины состава ещё не было, и вешать её было не на кого.
             // Без этого стенд простаивал бы у всех, кроме хоста, — а выглядело
             // бы это как «клиенты не играют», то есть как сетевой баг.
-            AttachBots();
+            if (compositionChanged) AttachBots();
         }
 
         /// <summary>Счёт приехал с сервера. Клиент только показывает — считать ему нечего.</summary>
@@ -468,6 +491,82 @@ namespace Igruha.Minigames.CarryItem
         /// смене значений — уровень меняется ступенями по пять, так что за
         /// ходку это единицы вызовов, а не кадровый мусор.
         /// </summary>
+        private void FixedUpdate()
+        {
+            if (!HasAuthority || !Phase.IsGameplay() || config == null) return;
+            bool changed = false;
+            for (int i = 0; i < entries.Count; i++)
+            {
+                Entry entry = entries[i];
+                if (entry.Avatar == null || entry.Left) continue;
+                // The owner applies RequestTeleport; until its transform arrives,
+                // the server still sees the old fall position. Do not start a
+                // second penalty for that same fall.
+                if (entry.AwaitingRespawnPosition)
+                {
+                    if (entry.Avatar.Position.y < voidLevel) continue;
+                    entry.AwaitingRespawnPosition = false;
+                }
+                if (entry.RespawnAt <= 0 && entry.Avatar.Position.y < voidLevel)
+                {
+                    StackOf(entry.Team)?.LiveBottle?.Carry.ReleaseFor(entry.Avatar, CarryReleaseReason.RoundEnded);
+                    if (entry.Avatar.TryGetComponent(out PlayerCarryAbility carry)) carry.Drop();
+                    entry.RespawnAt = NetworkClock.Now + config.RespawnDelaySeconds;
+                    SetFallWaiting(ref entry, true);
+                    Debug.Log($"[CarryRespawn] wait player={entry.PlayerId} duration={config.RespawnDelaySeconds:F1}");
+                    changed = true;
+                }
+                else if (entry.RespawnAt > 0 && NetworkClock.Now >= entry.RespawnAt)
+                {
+                    SetFallWaiting(ref entry, false);
+                    entry.RespawnAt = 0;
+                    entry.AwaitingRespawnPosition = true;
+                    if (entry.Avatar.TryGetComponent(out PlayerRespawner respawner)) respawner.Respawn();
+                    Debug.Log($"[CarryRespawn] return player={entry.PlayerId}");
+                    changed = true;
+                }
+                entries[i] = entry;
+            }
+            if (changed) PublishRoster();
+        }
+
+        private void OnDestroy()
+        {
+            respawnPresentation?.ResetPresentation();
+            for (int i = 0; i < entries.Count; i++)
+            {
+                var entry = entries[i];
+                SetFallWaiting(ref entry, false);
+            }
+        }
+
+        private static void SetFallWaiting(ref Entry entry, bool waiting)
+        {
+            if (entry.Avatar == null || entry.Waiting == waiting) return;
+            var avatar = entry.Avatar;
+            var body = avatar.GetComponent<Rigidbody>();
+            var carry = avatar.GetComponent<PlayerCarryAbility>();
+            if (waiting)
+            {
+                entry.MotorWasEnabled = avatar.enabled;
+                entry.WasLocked = avatar.MovementLocked;
+                entry.BodyConstraints = body != null ? body.constraints : RigidbodyConstraints.None;
+                entry.HandsWereBlocked = carry != null && carry.HandsBlocked;
+                avatar.MovementLocked = true;
+                avatar.enabled = false;
+                if (body != null) body.constraints = RigidbodyConstraints.FreezeAll;
+                if (carry != null) carry.HandsBlocked = true;
+            }
+            else
+            {
+                if (body != null) body.constraints = entry.BodyConstraints;
+                avatar.enabled = entry.MotorWasEnabled;
+                avatar.MovementLocked = entry.WasLocked;
+                if (carry != null) carry.HandsBlocked = entry.HandsWereBlocked;
+            }
+            entry.Waiting = waiting;
+        }
+
         private void Update()
         {
             if (Hud == null)
@@ -481,8 +580,16 @@ namespace Igruha.Minigames.CarryItem
                 return;
             }
 
-            TeamSide side = TeamOfPlayer(SessionScoreboard.Current?.LocalPlayer?.Id ?? -1);
+            int localId = SessionScoreboard.Current?.LocalPlayer?.Id ?? (Players.Count > 0 ? Players[0].Id : -1);
+            TeamSide side = TeamOfPlayer(localId);
             if (side == TeamSide.None)
+            {
+                ClearStatus();
+                return;
+            }
+
+            if ((respawnPresentation != null && respawnPresentation.IsWaiting) ||
+                (TryGetRespawnDeadline(localId, out double deadline) && deadline > 0))
             {
                 ClearStatus();
                 return;
@@ -563,7 +670,7 @@ namespace Igruha.Minigames.CarryItem
         /// </summary>
         private IEnumerator CountdownThenGo()
         {
-            SetInputSuspended(true);
+            SetStartCountdownActive(true);
 
             float remaining = config.CountdownSeconds;
             while (remaining > 0f)
@@ -574,7 +681,7 @@ namespace Igruha.Minigames.CarryItem
             }
 
             Hud?.HideCountdown();
-            SetInputSuspended(false);
+            SetStartCountdownActive(false);
             countdownRoutine = null;
         }
 
@@ -701,6 +808,14 @@ namespace Igruha.Minigames.CarryItem
             return -1;
         }
 
+        /// <summary>Presentation reads the replicated deadline; it never starts or ends a penalty.</summary>
+        public bool TryGetRespawnDeadline(int playerId, out double deadline)
+        {
+            int index = IndexOfPlayer(playerId);
+            deadline = index >= 0 ? entries[index].RespawnAt : 0;
+            return index >= 0 && !entries[index].Left;
+        }
+
         // ========== КОНЕЦ ==========
 
         /// <summary>
@@ -715,6 +830,7 @@ namespace Igruha.Minigames.CarryItem
         /// </summary>
         protected override void OnRoundEnded()
         {
+            respawnPresentation?.ResetPresentation();
             if (countdownRoutine != null)
             {
                 StopCoroutine(countdownRoutine);
@@ -741,13 +857,17 @@ namespace Igruha.Minigames.CarryItem
             for (int i = 0; i < entries.Count; i++)
             {
                 Entry entry = entries[i];
+                SetFallWaiting(ref entry, false);
+                entry.RespawnAt = 0;
+                entry.AwaitingRespawnPosition = false;
+                entries[i] = entry;
                 if (entry.Avatar != null && entry.Avatar.TryGetComponent(out PlayerRespawner respawner))
                 {
                     respawner.SetRespawnPoint(entry.OriginalRespawn);
                 }
             }
 
-            SetInputSuspended(false);
+            SetStartCountdownActive(false);
 
             LogFinalTable();
 
@@ -911,18 +1031,6 @@ namespace Igruha.Minigames.CarryItem
         /// <summary>Бак этой команды. Нужен болванкам соло-теста.</summary>
         public WaterTank TankOf(TeamSide side) =>
             side == TeamSide.A ? teamA.Tank : side == TeamSide.B ? teamB.Tank : null;
-
-        private void SetInputSuspended(bool suspended)
-        {
-            for (int i = 0; i < entries.Count; i++)
-            {
-                PlayerController avatar = entries[i].Avatar;
-                if (avatar != null && avatar.TryGetComponent(out PlayerInputReader reader))
-                {
-                    reader.SetSuspended(suspended);
-                }
-            }
-        }
 
         /// <summary>
         /// Повесить болванки.

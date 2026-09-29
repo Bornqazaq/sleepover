@@ -63,6 +63,11 @@ namespace Igruha.Core.Player
         private void Update()
         {
             cooldownTimer = Mathf.Max(0f, cooldownTimer - Time.deltaTime);
+            if (inputReader != null && inputReader.Suspended)
+            {
+                CancelPendingPush();
+                return;
+            }
             UpdatePendingImpact();
 
             if (inputReader == null || !inputReader.PushPressed)

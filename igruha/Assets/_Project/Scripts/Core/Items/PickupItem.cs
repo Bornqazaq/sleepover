@@ -58,6 +58,8 @@ namespace Igruha.Core.Items
         public override void OnNetworkDespawn()
         {
             holderObjectId.OnValueChanged -= OnHolderChanged;
+            holder?.OnItemLost(this);
+            holder = null;
             base.OnNetworkDespawn();
         }
 
@@ -96,6 +98,7 @@ namespace Igruha.Core.Items
             {
                 // Сети нет — состояние держим прямо здесь.
                 holder = newHolder;
+                holder.OnItemTaken(this);
                 SnapToAnchor();
                 SetPhysicsHeld(true);
                 return;
@@ -144,6 +147,12 @@ namespace Igruha.Core.Items
 
             // Полёт считает сервер, остальные видят его через NetworkTransform.
             body.AddForce(impulse, ForceMode.Impulse);
+        }
+
+        public override void OnDestroy()
+        {
+            holder?.OnItemLost(this);
+            base.OnDestroy();
         }
 
         private void OnHolderChanged(ulong previous, ulong current) => ApplyHolder(current);
@@ -229,7 +238,7 @@ namespace Igruha.Core.Items
             // ведёт NetworkTransform, поэтому своя физика им только мешает.
             body.isKinematic = held || (IsSpawned && !IsServer);
 
-            if (!held)
+            if (!held && !body.isKinematic)
             {
                 body.linearVelocity = Vector3.zero;
                 body.angularVelocity = Vector3.zero;

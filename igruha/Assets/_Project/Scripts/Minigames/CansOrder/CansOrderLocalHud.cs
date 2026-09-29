@@ -75,6 +75,7 @@ namespace Igruha.Minigames.CansOrder
             "Enter — подтвердить";
 
         private int lastSeconds = -1;
+        private int lastPuzzleSeconds = -1;
         private byte lastStage = MinigameStageState.NoStage;
         private string lastPrompt;
         private CanShelf shelf;
@@ -185,11 +186,13 @@ namespace Igruha.Minigames.CansOrder
             // а доли секунды здесь ничего не решают и только дёргают взгляд
             // от полки.
             int seconds = Mathf.CeilToInt(remaining);
-            if (label != null && (seconds != lastSeconds || stage != lastStage))
+            int puzzleSeconds = rules != null ? Mathf.CeilToInt(rules.PuzzleSecondsLeft) : 0;
+            if (label != null && (seconds != lastSeconds || stage != lastStage || puzzleSeconds != lastPuzzleSeconds))
             {
+                lastPuzzleSeconds = puzzleSeconds;
                 lastSeconds = seconds;
                 lastStage = stage;
-                label.text = StageNames[stage] + "   " + seconds;
+                label.text = StageNames[stage] + "   " + seconds + (stage == PlacementStage || stage == RevealStage || stage == 5 ? $"    ДО КОНЦА: {puzzleSeconds} с" : "");
             }
 
             if (bar == null)

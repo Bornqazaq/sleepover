@@ -76,6 +76,27 @@ namespace Igruha.Core.Minigame
 
         public bool IsPractice => practiceSession;
         public bool GameplayActive => phase.IsGameplay();
+        private bool startCountdownActive;
+        public bool StartCountdownActive => GameplayActive && startCountdownActive;
+
+        /// <summary>One input gate for every starting countdown, including bots
+        /// and server-side action validation. Role-specific locks stay independent.</summary>
+        protected void SetStartCountdownActive(bool active)
+        {
+            if (startCountdownActive == active) return;
+            startCountdownActive = active;
+            if (!active) return;
+            for (int i = 0; i < playerList.Count; i++) ClearCountdownInput(playerList[i].Avatar);
+            ClearCountdownInput(SessionScoreboard.Current?.LocalPlayer?.Avatar);
+        }
+
+        private static void ClearCountdownInput(PlayerController avatar)
+        {
+            if (avatar == null) return;
+            if (avatar.TryGetComponent(out PlayerInputReader input)) input.ClearInput();
+            if (avatar.TryGetComponent(out PlayerPushAbility push)) push.CancelPendingPush();
+            if (avatar.TryGetComponent(out PlayerEmoteAbility emote)) emote.StopEmote();
+        }
         public bool AwaitingTutorialReady => phase == MinigamePhase.Tutorial ||
             phase == MinigamePhase.Practice || phase == MinigamePhase.PracticeComplete;
 
@@ -146,6 +167,7 @@ namespace Igruha.Core.Minigame
 
         protected virtual void OnDisable()
         {
+            startCountdownActive = false;
             if (Current == this)
             {
                 Current = null;
@@ -340,6 +362,7 @@ namespace Igruha.Core.Minigame
 
             MinigamePhase previous = phase;
             phase = next;
+            if (!next.IsGameplay()) SetStartCountdownActive(false);
             practiceSession = next != MinigamePhase.Round && next != MinigamePhase.Results;
 
             if (roundTimer != null)
@@ -533,6 +556,7 @@ namespace Igruha.Core.Minigame
 
         private void EnterRound()
         {
+            SetStartCountdownActive(false);
             tutorialScreen?.Hide();
             tutorialCamera?.SetTutorialLookSuspended(false);
             SetPlayersControlEnabled(true);

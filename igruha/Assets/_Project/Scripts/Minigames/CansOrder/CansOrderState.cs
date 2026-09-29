@@ -25,6 +25,7 @@ namespace Igruha.Minigames.CansOrder
 
         /// <summary>Сколько уже собрало расстановку в этом раунде.</summary>
         public int SolvedCount;
+        public double Deadline;
     }
 
     /// <summary>

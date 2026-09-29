@@ -62,6 +62,10 @@ namespace Igruha.Minigames.CansOrder
             public string symbol;
         }
 
+        [Header("Один раунд на время (IGR-593)")]
+        [SerializeField, Min(1f)] private float roundSeconds = 120f;
+        public float RoundSeconds => Mathf.Max(1f, roundSeconds);
+
         [Header("Длительности стадий, с (8.1)")]
         [Tooltip("Брифинг раунда: табло объявляет номер раунда и число банок, клетки выживших едут наверх")]
         [SerializeField] private float briefingSeconds = 4f;

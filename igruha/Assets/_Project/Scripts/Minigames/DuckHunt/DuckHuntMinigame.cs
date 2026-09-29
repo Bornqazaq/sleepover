@@ -516,6 +516,7 @@ namespace Igruha.Minigames.DuckHunt
             }
 
             RoundLive = live;
+            SetStartCountdownActive(RoundActive && !live);
 
             for (int i = 0; i < ducks.Count; i++)
             {
@@ -523,7 +524,6 @@ namespace Igruha.Minigames.DuckHunt
                 if (avatar != null && !ducks[i].Outcome.Retired)
                 {
                     avatar.MovementLocked = !live;
-                    SuspendInput(avatar, !live);
                 }
             }
 
@@ -541,10 +541,6 @@ namespace Igruha.Minigames.DuckHunt
                 }
             }
 
-            // Охотнику ввод глушим тоже: без этого он на отсчёте толкает
-            // и взаимодействует, хоть и не стреляет.
-            SuspendInput(hunterAvatar, !live);
-
             // Лифт останавливает авторитет, и только он. Ось Охотника, играющего
             // с клиента, приезжает намерением и после свистка больше не придёт —
             // платформа уехала бы до верхней границы на глазах у всех, пока
@@ -558,22 +554,6 @@ namespace Igruha.Minigames.DuckHunt
             SetDummyBotsRunning(live);
             RefreshHunterStatus();
             RefreshCrosshair();
-        }
-
-        /// <summary>
-        /// Заморозить ввод игрока на время стартового отсчёта.
-        ///
-        /// <c>MovementLocked</c> держит только шаги, прыжок и присед — толчок,
-        /// взаимодействие и переноска живут в отдельных способностях и про блокировку
-        /// не знают. На отсчёте управления не должно быть вообще, поэтому
-        /// глушим в корне — в самом ридере.
-        /// </summary>
-        private static void SuspendInput(PlayerController avatar, bool suspended)
-        {
-            if (avatar != null && avatar.TryGetComponent(out PlayerInputReader reader))
-            {
-                reader.SetSuspended(suspended);
-            }
         }
 
         /// <summary>
