@@ -15,9 +15,9 @@ namespace Igruha.Core.UI
     {
         private const float Width=1920f, Height=1080f, EntranceSeconds=.28f;
         private const int PlayerSlots=8, StepSlots=3, HintSlots=3;
-        private static readonly Color Ink=new Color(.075f,.12f,.16f,1f);
-        private static readonly Color Paper=new Color(1f,.96f,.87f,.97f);
-        private static readonly Color Gold=new Color(1f,.77f,.23f,1f);
+        private static readonly Color Ink=MinigameUiStyle.Ink;
+        private static readonly Color Paper=MinigameUiStyle.Paper;
+        private static readonly Color Gold=MinigameUiStyle.Accent;
         private static readonly Color Coral=new Color(1f,.40f,.27f,1f);
         private static readonly Color Mint=new Color(.40f,.91f,.75f,1f);
         private static readonly Color Muted=new Color(.66f,.75f,.78f,1f);
@@ -59,25 +59,26 @@ namespace Igruha.Core.UI
             var badge=Panel("PracticeBadge",44,30,206,48,Coral,16);
             badge.rectTransform.localEulerAngles=new Vector3(0,0,2f);
             Text("PracticeLabel","РАЗМИНКА",62,37,170,38,25,Ink,true);
-            Panel("NoScorePill",264,34,590,42,Ink,18);
-            Text("NoScore","Можно ошибаться. Очки не считаются.",280,40,555,34,21,Paper);
+            Panel("NoScorePill",264,34,520,42,Ink,18);
+            Text("NoScore","Можно ошибаться. Очки не считаются.",280,40,490,34,21,Paper);
             Text("TitleShadow","",47,94,1050,82,48,Ink,true);
             title=Text("Title","",44,89,1050,82,48,Color.white,true);
             category=Text("Category","",46,150,850,38,21,Gold);
 
             brief=Group("BriefRules");
             content=brief;
-            Card("RulesCard",44,210,388,350,Paper);
-            Text("RulesHeading","Как победить",68,232,340,44,28,Ink,true);
+            Card("RulesCard",44,210,488,426,Paper);
+            Text("RulesHeading","Как победить",68,232,440,44,28,Ink,true);
             for(int i=0;i<StepSlots;i++)
             {
-                Panel("StepDot"+i,68,302+i*78,34,34,i==0?Coral:i==1?Gold:Mint,17);
-                Text("StepNumber"+i,(i+1).ToString(),68,303+i*78,34,32,20,Ink,true,TextAlignmentOptions.Center);
-                steps[i]=Text("Step"+i,"",116,294+i*78,289,71,24,Ink);
+                Panel("StepDot"+i,68,302+i*106,34,34,i==0?Coral:i==1?Gold:Mint,17);
+                Text("StepNumber"+i,(i+1).ToString(),68,303+i*106,34,32,20,Ink,true,TextAlignmentOptions.Center);
+                steps[i]=Text("Step"+i,"",116,294+i*106,389,98,24,Ink);
+                steps[i].enableAutoSizing=true; steps[i].fontSizeMin=20; steps[i].fontSizeMax=24;
             }
             content=layout;
-            Button rules=MakeButton("Rules",44,580,388,56,Ink,toggleRules);
-            rulesLabel=Text("RulesLabel","F1   Все правила",62,590,352,42,23,Paper,true,TextAlignmentOptions.Center);
+            Button rules=MakeButton("Rules",44,654,488,56,Ink,toggleRules);
+            rulesLabel=Text("RulesLabel","F1   Все правила",62,664,452,42,23,Paper,true,TextAlignmentOptions.Center);
 
             for(int i=0;i<HintSlots;i++)
             {

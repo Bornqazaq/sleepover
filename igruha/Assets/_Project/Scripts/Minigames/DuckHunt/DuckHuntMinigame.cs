@@ -1,3 +1,4 @@
+using Igruha.Core.UI;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -426,7 +427,7 @@ namespace Igruha.Minigames.DuckHunt
 
         protected override void OnRoundEnded()
         {
-            leverPrompt?.Show(false);
+            leverPrompt?.Show(null);
             liveTime = NotAnnounced;
             SetRoundLive(false);
             StopAllBots();
@@ -515,6 +516,7 @@ namespace Igruha.Minigames.DuckHunt
             }
 
             RoundLive = live;
+            SetStartCountdownActive(RoundActive && !live);
 
             for (int i = 0; i < ducks.Count; i++)
             {
@@ -522,7 +524,6 @@ namespace Igruha.Minigames.DuckHunt
                 if (avatar != null && !ducks[i].Outcome.Retired)
                 {
                     avatar.MovementLocked = !live;
-                    SuspendInput(avatar, !live);
                 }
             }
 
@@ -540,10 +541,6 @@ namespace Igruha.Minigames.DuckHunt
                 }
             }
 
-            // Охотнику ввод глушим тоже: без этого он на отсчёте толкает
-            // и взаимодействует, хоть и не стреляет.
-            SuspendInput(hunterAvatar, !live);
-
             // Лифт останавливает авторитет, и только он. Ось Охотника, играющего
             // с клиента, приезжает намерением и после свистка больше не придёт —
             // платформа уехала бы до верхней границы на глазах у всех, пока
@@ -557,22 +554,6 @@ namespace Igruha.Minigames.DuckHunt
             SetDummyBotsRunning(live);
             RefreshHunterStatus();
             RefreshCrosshair();
-        }
-
-        /// <summary>
-        /// Заморозить ввод игрока на время стартового отсчёта.
-        ///
-        /// <c>MovementLocked</c> держит только шаги, прыжок и присед — толчок,
-        /// взаимодействие и переноска живут в отдельных способностях и про блокировку
-        /// не знают. На отсчёте управления не должно быть вообще, поэтому
-        /// глушим в корне — в самом ридере.
-        /// </summary>
-        private static void SuspendInput(PlayerController avatar, bool suspended)
-        {
-            if (avatar != null && avatar.TryGetComponent(out PlayerInputReader reader))
-            {
-                reader.SetSuspended(suspended);
-            }
         }
 
         /// <summary>
@@ -1414,12 +1395,12 @@ namespace Igruha.Minigames.DuckHunt
             if (leverPrompt == null) leverPrompt = gameObject.AddComponent<DuckHuntLeverPrompt>();
             if (Hud == null || IsLocal(hunterPlayerId))
             {
-                leverPrompt.Show(false);
+                leverPrompt.Show(null);
                 return;
             }
 
             IInteractable target = RoundLive ? ResolveLocalInteractable() : null;
-            leverPrompt.Show(target is Igruha.Core.Traps.TrapActivationButton);
+            leverPrompt.Show(target is Igruha.Core.Traps.TrapActivationButton ? target.InteractionPrompt : null);
             if (ReferenceEquals(target, promptTarget))
             {
                 return;
@@ -1434,7 +1415,7 @@ namespace Igruha.Minigames.DuckHunt
             }
 
             if (target is Igruha.Core.Traps.TrapActivationButton) Hud.HideStatus();
-            else Hud.ShowStatus($"[E] {target.InteractionPrompt}");
+            else Hud.ShowStatus(target.InteractionPrompt);
         }
 
         /// <summary>
@@ -2195,6 +2176,16 @@ namespace Igruha.Minigames.DuckHunt
         /// Охотник встаёт ровно после дошедших — его место равно числу
         /// финишировавших плюс один.
         /// </summary>
+        public override string ResultMetricTitle => "РЕЗУЛЬТАТ";
+        public override RoundResultDetail GetResultDetail(int playerId)
+        {
+            if (playerId == hunterPlayerId) return new RoundResultDetail("Охотник", "ОСОБАЯ РОЛЬ");
+            foreach (var duck in ducks) if (duck.PlayerId == playerId)
+                return new RoundResultDetail(duck.Outcome.Finished ? "Финиш" : $"Этаж {duck.Outcome.Floor + 1}",
+                    duck.Left ? "Вышел из раунда" : duck.Outcome.Dead ? "Выбыл" : "УТКА");
+            return new RoundResultDetail("—", "Вышел из раунда");
+        }
+
         protected override void CollectResults(MinigameResults results)
         {
             ducks.Sort(DuckRanking);

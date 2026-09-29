@@ -40,7 +40,17 @@ namespace Igruha.Core.Player
         private readonly List<Renderer> visuals = new List<Renderer>(8);
         private Coroutine routine;
 
+        public float FlightDuration => flightDuration;
+        public float BodyHideDelay => bodyHideDelay;
+
         public bool IsEliminated { get; private set; }
+
+        /// <summary>Set presentation timing for this round without modifying the shared character prefab.</summary>
+        public void ConfigureTiming(float flightSeconds, float hideDelaySeconds)
+        {
+            flightDuration = Mathf.Max(0f, flightSeconds);
+            bodyHideDelay = Mathf.Max(0f, hideDelaySeconds);
+        }
 
         private void Awake()
         {

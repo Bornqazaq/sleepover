@@ -1,0 +1,12 @@
+{
+  "game": "OneBullet",
+  "source": "Повторное использование принятой поставки проекта, без копирования и переименования WAV. Сведение под лабиринт требует финальной проверки на слух.",
+  "output_folder": "Assets/_Project/Audio/OneBullet",
+  "slots": [
+    {"id":"ob_shot","file":"DuckHunt/SFX_DUCK_Gun_Shot_01","event":"выстрел, у всех через Shot","spatial":true,"loop":false,"volume":0.8},
+    {"id":"ob_pickup","file":"DuckHunt/SFX_DUCK_Gun_Reload_01","event":"подбор, только локальный владелец","spatial":false,"loop":false,"volume":0.45},
+    {"id":"ob_death","file":"DuckHunt/SFX_DUCK_Duck_Hit_01","event":"смерть, у всех через Died","spatial":true,"loop":false,"volume":0.8},
+    {"id":"ob_stone_hit","file":"DuckHunt/SFX_DUCK_Bullet_Impact_Concrete_01","event":"попадание в стену","spatial":true,"loop":false,"volume":0.6},
+    {"id":"ob_step","file":"CryingAngels/SFX_ANGL_Step_Stone","event":"шаг по камню, радиус 5.76 м","spatial":true,"loop":false,"volume":0.65}
+  ]
+}

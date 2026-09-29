@@ -156,7 +156,7 @@ namespace Igruha.Core.Interaction
         /// </summary>
         public void ExecuteInteraction(GameObject targetObject)
         {
-            if (targetObject == null)
+            if (targetObject == null || (inputReader != null && inputReader.Suspended))
             {
                 return;
             }

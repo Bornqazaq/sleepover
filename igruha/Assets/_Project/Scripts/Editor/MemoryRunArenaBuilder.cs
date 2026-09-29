@@ -277,7 +277,7 @@ namespace Igruha.EditorTools
                 for (int lane = 0; lane < MemoryRunConfig.LaneCount; lane++)
                 {
                     var plate = CreateBox(root.transform, $"Plate_{step:00}_{lane}",
-                        new Vector3(config.PlateSize, config.PlateThickness, config.PlateSize),
+                        new Vector3(config.PlateWidth, config.PlateThickness, config.PlateSize),
                         new Vector3(config.LaneX(lane), -config.PlateThickness * 0.5f, config.StepZ(step)),
                         MemoryRunPalette.Get(MemoryRunPalette.Tone.Plate));
                     SetLayer(plate, "Ground");

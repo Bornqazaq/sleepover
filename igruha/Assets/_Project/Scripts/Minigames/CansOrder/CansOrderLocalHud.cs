@@ -71,10 +71,11 @@ namespace Igruha.Minigames.CansOrder
         /// приходится каждые шестнадцать секунд.
         /// </summary>
         private const string ControlsHint =
-            "Мышь или стрелки ведут подсветку     ЛКМ или E — выбрать банку и поменять местами     " +
+            "Мышь или стрелки ведут подсветку     ЛКМ или зажми E — выбрать банку и поменять местами     " +
             "Enter — подтвердить";
 
         private int lastSeconds = -1;
+        private int lastPuzzleSeconds = -1;
         private byte lastStage = MinigameStageState.NoStage;
         private string lastPrompt;
         private CanShelf shelf;
@@ -185,11 +186,13 @@ namespace Igruha.Minigames.CansOrder
             // а доли секунды здесь ничего не решают и только дёргают взгляд
             // от полки.
             int seconds = Mathf.CeilToInt(remaining);
-            if (label != null && (seconds != lastSeconds || stage != lastStage))
+            int puzzleSeconds = rules != null ? Mathf.CeilToInt(rules.PuzzleSecondsLeft) : 0;
+            if (label != null && (seconds != lastSeconds || stage != lastStage || puzzleSeconds != lastPuzzleSeconds))
             {
+                lastPuzzleSeconds = puzzleSeconds;
                 lastSeconds = seconds;
                 lastStage = stage;
-                label.text = StageNames[stage] + "   " + seconds;
+                label.text = StageNames[stage] + "   " + seconds + (stage == PlacementStage || stage == RevealStage || stage == 5 ? $"    ДО КОНЦА: {puzzleSeconds} с" : "");
             }
 
             if (bar == null)
@@ -280,7 +283,7 @@ namespace Igruha.Minigames.CansOrder
             }
 
             string prompt = shelfLive
-                ? "ЛКМ — " + shelf.InteractionPrompt
+                ? shelf.InteractionPrompt
                 : (rules != null ? rules.LocalWaitHint() : string.Empty);
 
             // Строку пересобираем только когда она меняется: подсказка живёт

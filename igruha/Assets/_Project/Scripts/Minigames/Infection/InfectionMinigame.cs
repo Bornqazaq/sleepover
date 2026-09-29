@@ -131,6 +131,8 @@ namespace Igruha.Minigames.Infection
             shownCleanCount = -1;
             dummyTimer = 0f;
             scatterRemaining = config.ScatterSeconds;
+            SetStartCountdownActive(true);
+            Hud?.ShowCountdown(scatterRemaining);
 
             for (int i = 0; i < states.Count; i++)
             {
@@ -140,7 +142,7 @@ namespace Igruha.Minigames.Infection
             SubscribeSwings(true);
             network?.RefreshClientPresentation();
 
-            // Разбегание идёт до раунда по очкам: таймер держим выключенным,
+            // Подготовка идёт до раунда по очкам: таймер держим выключенным,
             // а на экране — стартовый отсчёт. Иначе шкала успела бы убежать
             // на три секунды раньше, чем появился тот, от кого бегут.
             if (HasAuthority)
@@ -160,6 +162,7 @@ namespace Igruha.Minigames.Infection
 
             for (int i = 0; i < states.Count; i++)
             {
+                if (states[i].TryGetComponent(out Igruha.Core.Items.PlayerCarryAbility carry)) carry.Drop();
                 states[i].ResetRole();
             }
 
@@ -194,6 +197,13 @@ namespace Igruha.Minigames.Infection
 
                 DriveDummies();
                 SyncNet();
+            }
+            else if (!patientZeroAssigned)
+            {
+                // Draw locally, but only the server's patient-zero state may
+                // release control. A delayed snapshot must not grant a head start.
+                scatterRemaining = Mathf.Max(0f, scatterRemaining - Time.deltaTime);
+                Hud?.ShowCountdown(Mathf.Max(float.Epsilon, scatterRemaining));
             }
 
             UpdateCleanCounter();
@@ -262,6 +272,7 @@ namespace Igruha.Minigames.Infection
 
             patientZeroId = chosen.PlayerId;
             patientZeroAssigned = true;
+            SetStartCountdownActive(false);
             chosen.MakePatientZero();
 
             // Отсчёт очков идёт с этого мига, значит и шкала раунда тоже.
@@ -600,6 +611,14 @@ namespace Igruha.Minigames.Infection
         /// (+ компенсация Нулевому). Считаем в десятых долях секунды: при
         /// целых секундах двое, разошедшиеся на полсекунды, делили бы место.
         /// </summary>
+        public override string ResultMetricTitle => "БЕЗ ВИРУСА";
+        public override RoundResultDetail GetResultDetail(int playerId)
+        {
+            foreach (var state in states) if (state != null && state.PlayerId == playerId)
+                return new RoundResultDetail($"{state.CleanSeconds:0.0} с", $"Заразил: {state.PersonalInfections}" + (state.IsPatientZero ? "  ·  Нулевой" : ""));
+            return new RoundResultDetail("—", "Вышел из раунда");
+        }
+
         protected override void CollectResults(MinigameResults results)
         {
             ranking.Clear();
@@ -683,7 +702,7 @@ namespace Igruha.Minigames.Infection
             switch ((AnnounceCode)code)
             {
                 case AnnounceCode.Scatter:
-                    announcer.Announce("Разбегайтесь. Через пару секунд кому-то станет нехорошо.", 2.6f);
+                    announcer.Announce("Приготовьтесь. После отсчёта кому-то станет нехорошо.", 2.6f);
                     break;
                 case AnnounceCode.PatientZero:
                     announcer.Announce($"Кажется, у {NameOf(playerId)} что-то зелёное на руках. Я бы отошёл.", 3.5f, 2);
@@ -754,6 +773,9 @@ namespace Igruha.Minigames.Infection
             if (patientZero)
             {
                 patientZeroId = playerId;
+                patientZeroAssigned = true;
+                SetStartCountdownActive(false);
+                Hud?.HideCountdown();
             }
 
             InfectionState state = FindState(playerId);

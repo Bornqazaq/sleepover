@@ -11,8 +11,7 @@ using Igruha.Core.Minigame;
 namespace Igruha.Core.UI
 {
     /// <summary>
-    /// Пауза по Esc. Представление необязательно: существующие сцены сохраняют
-    /// прежнее меню, хаб использует PauseMenuView с подтверждением выхода.
+    /// Пауза по Esc. Общий префаб с PauseMenuView установлен в каждой сцене.
     ///
     /// <b>«Выход» означает разное в зависимости от того, где нажали.</b>
     /// Идёт раунд мини-игры, из которого можно выйти, — выходим из раунда и
@@ -39,18 +38,17 @@ namespace Igruha.Core.UI
         [SerializeField] private GameObject panel;
         [Tooltip("Кнопка «Продолжить»")]
         [SerializeField] private Button resumeButton;
-        [Tooltip("Кнопка «Выход»: закрывает игру. Пусто — кнопки на экране нет")]
+        [Tooltip("Контекстный выход: покинуть раунд или закрыть игру после подтверждения")]
         [SerializeField] private Button exitButton;
+        [SerializeField] private Button quitButton;
         [Tooltip("Ассет управления. Не назначен — ввод на паузе останется живым, и персонаж продолжит бегать под меню")]
         [SerializeField] private InputActionAsset controls;
         [Tooltip("Карта игровых действий, которую гасит пауза. Карта интерфейса остаётся включённой — ей щёлкают по кнопке")]
         [SerializeField] private string gameplayMapName = "Player";
 
         /// <summary>
-        /// Включённые паузы. Их бывает две: своя у сцены и общая рантайм-пауза
-        /// (<see cref="PauseOverlay"/>), которая на время такой сцены
-        /// выключается. Список, а не поле, чтобы выключение одной возвращало
-        /// главной вторую, а не обнуляло обеих.
+        /// При загрузке сцен их жизненные циклы могут пересекаться.
+        /// Esc обрабатывает только последнее включённое меню.
         /// </summary>
         private static readonly List<PauseScreen> Enabled = new List<PauseScreen>(2);
 
@@ -74,15 +72,14 @@ namespace Igruha.Core.UI
         private readonly List<InputAction> suppressedActions = new List<InputAction>(8);
 
         /// <summary>
-        /// Ассет управления: свой, если назначен в сцене, иначе общий для
-        /// проекта. Пауза, поднятая в рантайме (<see cref="PauseOverlay"/>),
-        /// назначить его в инспекторе не может, а гасить ввод обязана так же:
-        /// иначе под открытым меню персонаж продолжает бегать по WASD.
+        /// Ассет управления из префаба или общий ассет проекта.
+        /// Под открытым меню игровые действия должны быть выключены.
         /// </summary>
         private InputActionAsset Controls => controls != null ? controls : InputSystem.actions;
 
         private void Awake()
         {
+            if (quitButton != null) quitButton.onClick.AddListener(RequestQuit);
             if (panel != null)
             {
                 panel.SetActive(false);
@@ -100,9 +97,7 @@ namespace Igruha.Core.UI
         }
 
         /// <summary>
-        /// Пауза сцены объявляется включением, а не рождением. Это нужно
-        /// рантайм-паузе: в хабе своё меню, и общая пауза на время хаба
-        /// выключается — иначе Esc обработали бы обе сразу.
+        /// Пауза сцены доступна только пока включён её владелец.
         /// </summary>
         private void OnEnable()
         {
@@ -126,6 +121,7 @@ namespace Igruha.Core.UI
 
         private void OnDestroy()
         {
+            if (quitButton != null) quitButton.onClick.RemoveListener(RequestQuit);
             if (resumeButton != null)
             {
                 resumeButton.onClick.RemoveListener(ContinueOrCancel);
@@ -151,6 +147,7 @@ namespace Igruha.Core.UI
 
         private void Update()
         {
+            if (Current != this) return;
             Keyboard keyboard = Keyboard.current;
             if (keyboard == null || !keyboard.escapeKey.wasPressedThisFrame)
             {
@@ -233,8 +230,9 @@ namespace Igruha.Core.UI
 
         private void RestoreCursor()
         {
-            Cursor.lockState = previousCursorLock;
-            Cursor.visible = previousCursorVisible;
+            bool results = MinigameControllerBase.Current != null && MinigameControllerBase.Current.Phase == MinigamePhase.Results;
+            Cursor.lockState = results ? CursorLockMode.None : previousCursorLock;
+            Cursor.visible = results || previousCursorVisible;
         }
 
         private void ContinueOrCancel()
@@ -246,8 +244,15 @@ namespace Igruha.Core.UI
         private void RequestExit()
         {
             if (presentation != null && !presentation.IsConfirmingExit) presentation.ConfirmExit();
+            else if (presentation != null)
+            {
+                if (presentation.WantsQuit) QuitGame();
+                else if (!LeaveRound()) Resume();
+            }
             else Exit();
         }
+
+        private void RequestQuit() => presentation?.ConfirmExit(true);
 
         /// <summary>
         /// Выход из раунда, если из него можно выйти, иначе — из игры целиком.

@@ -27,6 +27,7 @@ namespace Igruha.Minigames.CansOrder
         public byte Quota;
         public byte AliveAtStart;
         public byte SolvedCount;
+        public double Deadline;
 
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
@@ -36,6 +37,7 @@ namespace Igruha.Minigames.CansOrder
             serializer.SerializeValue(ref Quota);
             serializer.SerializeValue(ref AliveAtStart);
             serializer.SerializeValue(ref SolvedCount);
+            serializer.SerializeValue(ref Deadline);
         }
 
         public bool Equals(CansOrderRoundNetState other) =>
@@ -44,7 +46,7 @@ namespace Igruha.Minigames.CansOrder
             CanCount == other.CanCount &&
             Quota == other.Quota &&
             AliveAtStart == other.AliveAtStart &&
-            SolvedCount == other.SolvedCount;
+            SolvedCount == other.SolvedCount && Deadline == other.Deadline;
     }
 
     /// <summary>
@@ -100,6 +102,7 @@ namespace Igruha.Minigames.CansOrder
         public bool DoorsOpen;
 
         public byte Attempts;
+        public double FinishTime;
 
         /// <summary>Доля высоты клетки 0…1. Сама анимация считается локально от начала стадии.</summary>
         public float HeightFraction;
@@ -138,6 +141,7 @@ namespace Igruha.Minigames.CansOrder
             serializer.SerializeValue(ref Solved);
             serializer.SerializeValue(ref DoorsOpen);
             serializer.SerializeValue(ref Attempts);
+            serializer.SerializeValue(ref FinishTime);
             serializer.SerializeValue(ref HeightFraction);
             serializer.SerializeValue(ref Revealed);
             serializer.SerializeValue(ref Confirmed);
@@ -152,7 +156,7 @@ namespace Igruha.Minigames.CansOrder
             Alive == other.Alive &&
             Solved == other.Solved &&
             DoorsOpen == other.DoorsOpen &&
-            Attempts == other.Attempts &&
+            Attempts == other.Attempts && FinishTime == other.FinishTime &&
             Revealed == other.Revealed &&
             Confirmed == other.Confirmed &&
             SolvedThisCircle == other.SolvedThisCircle &&
@@ -361,7 +365,7 @@ namespace Igruha.Minigames.CansOrder
             }
 
             game?.ApplyNetworkRound(value.Round, value.Circle, value.CanCount,
-                value.Quota, value.AliveAtStart, value.SolvedCount);
+                value.Quota, value.AliveAtStart, value.SolvedCount, value.Deadline);
         }
 
         // ========== СТАДИЯ ==========
@@ -679,7 +683,8 @@ namespace Igruha.Minigames.CansOrder
                 CanCount = (byte)Mathf.Clamp(current.CanCount, 0, byte.MaxValue),
                 Quota = (byte)Mathf.Clamp(current.Quota, 0, byte.MaxValue),
                 AliveAtStart = (byte)Mathf.Clamp(current.AliveAtStart, 0, byte.MaxValue),
-                SolvedCount = (byte)Mathf.Clamp(current.SolvedCount, 0, byte.MaxValue)
+                SolvedCount = (byte)Mathf.Clamp(current.SolvedCount, 0, byte.MaxValue),
+                Deadline = current.Deadline
             };
 
             if (!round.Value.Equals(next))
@@ -727,7 +732,10 @@ namespace Igruha.Minigames.CansOrder
 
         private void ApplyEntries()
         {
-            if (game == null)
+            // An empty initial NetworkList is not a roster snapshot. During the
+            // practice-to-round reload it can arrive before the server has built
+            // contestants; committing it would remove every local cage forever.
+            if (game == null || entries.Count == 0 || round.Value.Round <= 0)
             {
                 return;
             }

@@ -1,3 +1,4 @@
+using Igruha.Core.UI;
 using System.Collections.Generic;
 using UnityEngine;
 using Igruha.Core.CameraSystems;
@@ -663,6 +664,13 @@ namespace Igruha.Minigames.Stopwatch
         /// </summary>
         private void Update()
         {
+            // Наблюдатель читает этот список по ссылке. Обновляем и на клиенте,
+            // до серверной отсечки медведя: живые меняются после вылета/ухода.
+            if (spectator != null && spectator.IsActive)
+            {
+                CollectAlivePlayers();
+            }
+
             if (bear == null || !HasAuthority || !Phase.IsGameplay())
             {
                 return;
@@ -808,7 +816,7 @@ namespace Igruha.Minigames.Stopwatch
             aliveBuffer.Clear();
             for (int i = 0; i < contestants.Count; i++)
             {
-                if (contestants[i].Alive)
+                if (contestants[i].Alive && contestants[i].Session.Avatar != null)
                 {
                     aliveBuffer.Add(contestants[i].Session);
                 }
@@ -1206,6 +1214,14 @@ namespace Igruha.Minigames.Stopwatch
         /// таймаут: меньше ошибок — лучше, при равенстве — меньше сумма
         /// отклонений за весь матч, при полном равенстве — одно место на всех.
         /// </summary>
+        public override string ResultMetricTitle => "ОШИБКИ";
+        public override RoundResultDetail GetResultDetail(int playerId)
+        {
+            var contestant = Find(playerId);
+            return contestant != null ? new RoundResultDetail(contestant.Errors.ToString(), contestant.Alive ? "Продержался до конца" : "Выбыл")
+                : new RoundResultDetail("—", "Вышел из раунда");
+        }
+
         protected override void CollectResults(MinigameResults results)
         {
             // Ушедшие, для которых стадия створок так и не наступила: без этого

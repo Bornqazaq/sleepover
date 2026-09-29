@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1af2e6f72346844599673fbd43d94855, type: 3}
   m_Name: CansOrderConfig
   m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.CansOrder.CansOrderConfig
+  roundSeconds: 120
   briefingSeconds: 4
   briefingRiseSeconds: 2
   placementWindowSeconds: 14

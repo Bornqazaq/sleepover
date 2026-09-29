@@ -48,6 +48,7 @@ namespace Igruha.EditorTools
             // выбор персонажа, пауза. Остальным достаётся пауза и перезапуск.
             yield return new SceneJob($"{ScenesRoot}/Hub.unity", UiSoundPass.Run, SurfaceMarkPass.Run);
 
+            yield return new SceneJob($"{ScenesRoot}/Minigames/OneBullet.unity", UiSoundPass.Run, OneBulletSfx.Build);
             yield return new SceneJob($"{ScenesRoot}/Minigames/CryingAngels.unity", UiSoundPass.Run, CryingAngelsSfx.Build);
             yield return new SceneJob($"{ScenesRoot}/Minigames/Infection.unity", UiSoundPass.Run, InfectionSfx.Build, SurfaceMarkPass.Run);
             yield return new SceneJob($"{ScenesRoot}/Minigames/Stopwatch.unity", UiSoundPass.Run, CircusSfx.RefreshClips, SurfaceMarkPass.Run);

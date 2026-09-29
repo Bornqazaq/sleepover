@@ -21,8 +21,9 @@ MonoBehaviour:
   mineImpulse: 16
   unitsPerWidth: 0.72
   plateSize: 4
+  plateWidth: 2.6
   plateThickness: 0.5
-  laneGap: 1
+  laneGap: 0.3
   stepGap: 2
   hallWidth: 50
   ceilingHeight: 26

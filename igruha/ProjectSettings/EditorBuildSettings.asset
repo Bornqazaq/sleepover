@@ -45,6 +45,12 @@ EditorBuildSettings:
     path: Assets/_Project/Scenes/Minigames/Infection.unity
     guid: c1a1fab043650ad4bb0042b895a03fa3
   - enabled: 1
+    path: Assets/_Project/Scenes/Minigames/OneBullet.unity
+    guid: 6fe74fd450ad54c5583acf9d7cefbf65
+  - enabled: 1
+    path: Assets/_Project/Scenes/Minigames/SumoRing.unity
+    guid: 57926b17115be4e129863acaa0730247
+  - enabled: 1
     path: Assets/_Project/Scenes/Minigames/Mosquitoes.unity
     guid: 38bb15a97a7b29743951499fa9ed4ea5
   m_configObjects:

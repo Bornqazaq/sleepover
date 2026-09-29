@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e5355c2cb66524c4a9d73322244a69fd, type: 3}
   m_Name: CryingAngelsConfig
   m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.CryingAngels.CryingAngelsConfig
-  arenaRadius: 21.6
+  arenaRadius: 34
   startCountdown: 3
   beamFollowsMouse: 1
   turnSpeedAtFewestRunners: 60
@@ -21,10 +21,11 @@ MonoBehaviour:
   beamPitchLimit: 12
   touchRadius: 1.08
   stepHearingRadius: 4.32
-  petrifyThreshold: 1.5
+  petrifyThreshold: 0.9
   petrifyGainMultiplier: 1
   petrifyDecayMultiplier: 0.5
-  petrifyAnimationDuration: 0.5
+  petrifyAnimationDuration: 0.3
+  sightConfirmSeconds: 0.3
   runnerSpeedMultiplier: 0.5
   freezePoseCount: 6
   freezeReleaseDelay: 0.25

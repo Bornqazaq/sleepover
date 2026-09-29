@@ -16,7 +16,7 @@ namespace Igruha.EditorTools
         {
             Scene scene = SceneManager.GetActiveScene();
             HudSkin.Build(scene);
-            PanelSkin.Apply(scene);
+            UnifiedGamePanels.Apply(scene);
         }
     }
 }

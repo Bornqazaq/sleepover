@@ -32,7 +32,7 @@ namespace Igruha.EditorTools
     public static class PanelSkin
     {
         /// <summary>Контейнеры общего интерфейса — их одевает HudSkin.</summary>
-        private static readonly string[] Skipped = { "_HudPlates", "_HudOverlay", "EmoteWheel" };
+        private static readonly string[] Skipped = { "_HudPlates", "_HudOverlay", "EmoteWheel", "_UnifiedPauseMenu", "ResultsPanel" };
 
         /// <summary>
         /// Компоненты, чьи ветки трогать нельзя: цвет там означает команду.
@@ -119,7 +119,7 @@ namespace Igruha.EditorTools
                 var canvases = root.GetComponentsInChildren<Canvas>(true);
                 for (int i = 0; i < canvases.Length; i++)
                 {
-                    if (canvases[i].renderMode == RenderMode.WorldSpace)
+                    if (canvases[i].renderMode == RenderMode.WorldSpace || canvases[i].GetComponentInParent<PauseScreen>() != null || canvases[i].GetComponentInParent<RoundResultsView>() != null)
                     {
                         continue;
                     }
@@ -154,7 +154,8 @@ namespace Igruha.EditorTools
 
         private static int Walk(Transform node)
         {
-            if (HasMeaningfulColor(node))
+            if (IsSkipped(node.name) || node.GetComponent<RoundResultsView>() != null ||
+                node.GetComponent<PauseScreen>() != null || HasMeaningfulColor(node))
             {
                 return 0;
             }
@@ -217,7 +218,7 @@ namespace Igruha.EditorTools
             var image = node.GetComponent<Image>();
             if (image != null && IsPanel(node, image))
             {
-                Skin(image, UiSpriteBaker.Card, UiSkin.Card, PanelCorner);
+                Skin(image, UiSpriteBaker.Card, MinigameUiStyle.HudSurface, PanelCorner);
                 Edge(node, UiSpriteBaker.Stroke, PanelCorner);
                 return 1;
             }
@@ -247,14 +248,14 @@ namespace Igruha.EditorTools
             var image = field.GetComponent<Image>();
             if (image != null)
             {
-                Skin(image, UiSpriteBaker.KeyCap, UiSkin.Field, FieldCorner);
+                Skin(image, UiSpriteBaker.KeyCap, MinigameUiStyle.HudSurface, FieldCorner);
                 Edge(field.transform, UiSpriteBaker.KeyCapEdge, FieldCorner);
             }
 
-            field.caretColor = UiSkin.Accent;
-            field.selectionColor = new Color(UiSkin.Accent.r, UiSkin.Accent.g, UiSkin.Accent.b, 0.35f);
-            Paint(field.textComponent, UiSkin.TextPrimary);
-            Paint(field.placeholder as TMP_Text, UiSkin.TextMuted);
+            field.caretColor = MinigameUiStyle.Accent;
+            field.selectionColor = new Color(MinigameUiStyle.Accent.r, MinigameUiStyle.Accent.g, MinigameUiStyle.Accent.b, 0.35f);
+            Paint(field.textComponent, MinigameUiStyle.OnDark);
+            Paint(field.placeholder as TMP_Text, MinigameUiStyle.MutedOnDark);
             Transition(field);
         }
 
@@ -269,7 +270,7 @@ namespace Igruha.EditorTools
         {
             if (toggle.targetGraphic is Image background)
             {
-                Skin(background, UiSpriteBaker.Chip, UiSkin.Plate);
+                Skin(background, UiSpriteBaker.Chip, MinigameUiStyle.HudSurface);
             }
 
             if (toggle.graphic is Image checkmark)
@@ -279,11 +280,11 @@ namespace Igruha.EditorTools
                 rect.anchorMax = Vector2.one;
                 rect.offsetMin = Vector2.zero;
                 rect.offsetMax = Vector2.zero;
-                Skin(checkmark, UiSpriteBaker.Stroke, UiSkin.Accent, 2f);
+                Skin(checkmark, UiSpriteBaker.Stroke, MinigameUiStyle.Accent, 2f);
             }
 
             Transition(toggle);
-            PaintChildText(toggle.transform, UiSkin.TextPrimary);
+            PaintChildText(toggle.transform, MinigameUiStyle.OnDark);
         }
 
         private static void DressButton(Button button)
@@ -291,11 +292,11 @@ namespace Igruha.EditorTools
             bool primary = IsPrimary(button.name);
             if (button.targetGraphic is Image image)
             {
-                Skin(image, UiSpriteBaker.Chip, primary ? UiSkin.Accent : UiSkin.Plate);
+                Skin(image, UiSpriteBaker.Chip, primary ? MinigameUiStyle.Accent : MinigameUiStyle.HudSurface);
             }
 
             Transition(button);
-            PaintChildText(button.transform, primary ? UiSkin.AccentInk : UiSkin.TextPrimary);
+            PaintChildText(button.transform, primary ? MinigameUiStyle.Ink : MinigameUiStyle.OnDark);
         }
 
         private static bool IsPrimary(string name)
@@ -370,7 +371,7 @@ namespace Igruha.EditorTools
 
             var image = go.GetComponent<Image>();
             image.raycastTarget = false;
-            Skin(image, sprite, UiSkin.CardEdge, corner);
+            Skin(image, sprite, MinigameUiStyle.HudEdge, corner);
         }
 
         private static void PaintChildText(Transform node, Color color)

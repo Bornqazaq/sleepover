@@ -128,6 +128,7 @@ namespace Igruha.EditorTools
                 BuildWheel(wheel, font);
             }
 
+            UnifiedHudStyle.Apply(scene);
             return true;
         }
 
@@ -261,6 +262,8 @@ namespace Igruha.EditorTools
 
             var so = new SerializedObject(hud);
             so.FindProperty("timerText").objectReferenceValue = timer;
+            so.FindProperty("timerPlate").objectReferenceValue = timerPlate;
+            so.FindProperty("statusPlate").objectReferenceValue = statusPlate;
             so.FindProperty("statusText").objectReferenceValue = status;
             so.FindProperty("countdownText").objectReferenceValue = countdownText;
             so.FindProperty("spectatorPanel").objectReferenceValue = spectatorPlate;

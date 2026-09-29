@@ -57,10 +57,10 @@ namespace Igruha.Minigames.CansOrder
     [DefaultExecutionOrder(-100)]
     public sealed class CanShelf : MonoBehaviour, IInteractable, ILocalInteraction
     {
-        private const string PromptMark = "Выбрать банку";
-        private const string PromptSwap = "Поменять местами";
-        private const string PromptUnmark = "Отменить выбор";
-        private const string PromptConfirm = "Подтвердить расстановку";
+        private const string PromptMark = InteractionPromptText.Click + "выбрать банку";
+        private const string PromptSwap = InteractionPromptText.Click + "поменять местами";
+        private const string PromptUnmark = InteractionPromptText.Click + "отменить выбор";
+        private const string PromptConfirm = InteractionPromptText.Click + "подтвердить расстановку";
 
         /// <summary>Курсор ни на чём — полка не строилась или закрыта.</summary>
         private const int NoCell = -1;

@@ -29,16 +29,18 @@ namespace Igruha.Minigames.CarryItem
         /// рук — по нему считается число ручек у бутыли.
         /// </summary>
         public bool Left;
+        public double RespawnAt;
 
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
             serializer.SerializeValue(ref PlayerId);
             serializer.SerializeValue(ref Team);
             serializer.SerializeValue(ref Left);
+            serializer.SerializeValue(ref RespawnAt);
         }
 
         public bool Equals(CarryItemMemberNetState other) =>
-            PlayerId == other.PlayerId && Team == other.Team && Left == other.Left;
+            PlayerId == other.PlayerId && Team == other.Team && Left == other.Left && RespawnAt == other.RespawnAt;
     }
 
     /// <summary>
@@ -266,7 +268,10 @@ namespace Igruha.Minigames.CarryItem
         /// </summary>
         private void OnClientDisconnected(ulong clientId)
         {
-            if (IsServer)
+            // NGO вызывает disconnect и при остановке хоста, уже после разборки RPC.
+            // Это завершение сессии, а не выход участника из продолжающегося раунда.
+            var manager = NetworkManager;
+            if (IsServer && manager != null && manager.IsListening && !manager.ShutdownInProgress)
             {
                 game?.HandlePlayerLeft((int)clientId);
             }

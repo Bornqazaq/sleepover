@@ -27,6 +27,27 @@ namespace Igruha.EditorTools
             text.fontSize = 27; text.enableAutoSizing = true; text.fontSizeMin = 21; text.fontSizeMax = 27;
             text.alignment = TextAlignmentOptions.MidlineLeft; text.textWrappingMode = TextWrappingModes.Normal;
             localSo.FindProperty("statusPanel").objectReferenceValue = panel.gameObject;
+            var config = AssetDatabase.LoadAssetAtPath<MemoryRunConfig>("Assets/_Project/Settings/Gameplay/Minigames/MemoryRunConfig.asset");
+            var arena = GameObject.Find("_Arena").transform;
+            var old = arena.Find("TurnBoard");
+            if (old != null) Object.DestroyImmediate(old.gameObject);
+            var board = new GameObject("TurnBoard").transform;
+            board.SetParent(arena, false);
+            board.localPosition = new Vector3(0, 6.3f, config.GateZ);
+            Box(board, "Frame", Vector3.zero, new Vector3(8.6f, 3.3f, .24f), "Iron");
+            var boards = localSo.FindProperty("queueBoards"); boards.arraySize = 2;
+            for (int i = 0; i < 2; i++)
+            {
+                var go = new GameObject("Queue", typeof(TextMeshPro)); go.transform.SetParent(board, false);
+                go.transform.localPosition = new Vector3(0, 0, i == 0 ? -.14f : .14f);
+                go.transform.localRotation = Quaternion.Euler(0, i * 180, 0);
+                var label = go.GetComponent<TextMeshPro>(); label.font = MemoryFoundryAssets.Font();
+                label.rectTransform.sizeDelta = new Vector2(8.1f, 2.9f);
+                label.fontSize = 4.5f; label.enableAutoSizing = true; label.fontSizeMin = 2.5f; label.fontSizeMax = 4.5f;
+                label.alignment = TextAlignmentOptions.Center; label.color = new Color(1, .86f, .52f);
+                label.textWrappingMode = TextWrappingModes.Normal; label.text = "РЕЙС НА ПАМЯТЬ\nОжидание участников";
+                boards.GetArrayElementAtIndex(i).objectReferenceValue = label;
+            }
             localSo.ApplyModifiedPropertiesWithoutUndo();
         }
 

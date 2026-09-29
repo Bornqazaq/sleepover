@@ -73,6 +73,7 @@ namespace Igruha.EditorTools
             {
                 Bubble(bubble.transform);
             }
+            UnifiedHudStyle.Apply(SceneManager.GetActiveScene());
         }
 
         // ================= Общий HUD =================

@@ -36,6 +36,13 @@ namespace Igruha.Core.Player
         /// </summary>
         public IPushButtonOverride ButtonOverride { get; set; }
 
+        /// <summary>Round-scoped cadence. Zero uses the shared character setting.</summary>
+        public float CooldownOverride { get; set; }
+        public float EffectiveCooldown => CooldownOverride > 0f ? CooldownOverride : self.Config.PushCooldown;
+
+        /// <summary>Discard a wind-up when its round or participant ends.</summary>
+        public void CancelPendingPush() => impactPending = false;
+
         private PlayerController self;
         private CapsuleCollider body;
         private Igruha.Core.Items.PlayerCarryAbility carryAbility;
@@ -56,6 +63,11 @@ namespace Igruha.Core.Player
         private void Update()
         {
             cooldownTimer = Mathf.Max(0f, cooldownTimer - Time.deltaTime);
+            if (inputReader != null && inputReader.Suspended)
+            {
+                CancelPendingPush();
+                return;
+            }
             UpdatePendingImpact();
 
             if (inputReader == null || !inputReader.PushPressed)
@@ -89,7 +101,22 @@ namespace Igruha.Core.Player
                 return;
             }
 
-            cooldownTimer = self.Config.PushCooldown;
+            BeginPush();
+        }
+
+        /// <summary>Run the existing punch from a scene-specific input action, including its network relay.</summary>
+        public void RequestPush()
+        {
+            if (!enabled || inputReader == null || !inputReader.LocallyControlled ||
+                !inputReader.enabled || inputReader.Suspended || self.MovementLocked || self.IsKnockedDown ||
+                self.Config == null || cooldownTimer > 0f) return;
+
+            BeginPush();
+        }
+
+        private void BeginPush()
+        {
+            cooldownTimer = EffectiveCooldown;
             impactTimer = self.Config.PunchImpactDelay;
             impactPending = true;
             // Ноги — в пол: замах с разбега оседает в стойку, а не скользит под клипом.

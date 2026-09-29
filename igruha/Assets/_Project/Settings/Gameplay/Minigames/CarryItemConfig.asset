@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3c77d53e708ec424f92f2fe9aaa8fce2, type: 3}
   m_Name: CarryItemConfig
   m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.CarryItem.CarryItemConfig
+  respawnDelaySeconds: 5
   unitMeters: 0.72
   arenaLength: 90
   arenaDepth: 50

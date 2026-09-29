@@ -12,11 +12,12 @@ namespace Igruha.EditorTools
         internal const string Art = "Assets/_Project/Art/CryingAngels";
         internal const string Prefabs = "Assets/_Project/Prefabs/Minigames/CryingAngels/Gallery";
         internal const string Materials = "Assets/_Project/Materials/Minigames/CryingAngels/Gallery";
-        private static readonly string[] Names = { "CA_PaleLimestone", "CA_BlueSlate", "CA_CarvedStone", "CA_Marble", "CA_AgedBrass", "CA_Crevices", "CA_MoonGlass", "CA_OxidizedIron", "CA_Cobweb" };
+        private static readonly string[] Names = { "CA_PaleLimestone", "CA_BlueSlate", "CA_CarvedStone", "CA_Marble", "CA_AgedBrass", "CA_Crevices", "CA_MoonGlass", "CA_OxidizedIron", "CA_Cobweb", "CA_PavingIvory", "CA_PavingAsh", "CA_PavingSlate", "CA_PavingInlay" };
         private static readonly Color[] Colors = {
             new Color(.66f,.70f,.73f),new Color(.15f,.22f,.29f),new Color(.40f,.48f,.54f),
             new Color(.39f,.46f,.51f),new Color(.34f,.23f,.105f),new Color(.045f,.062f,.071f),
-            new Color(.45f,.64f,1f),new Color(.052f,.075f,.09f),new Color(.33f,.43f,.47f)
+            new Color(.45f,.64f,1f),new Color(.052f,.075f,.09f),new Color(.33f,.43f,.47f),
+            new Color(.62f,.59f,.51f),new Color(.33f,.38f,.41f),new Color(.075f,.105f,.13f),new Color(.27f,.23f,.15f)
         };
 
         internal static void Import()

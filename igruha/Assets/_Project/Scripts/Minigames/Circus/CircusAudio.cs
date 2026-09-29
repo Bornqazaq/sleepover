@@ -60,6 +60,8 @@ namespace Igruha.Minigames.Circus
 
         private bool[] wasDescending;
         private float pawTimer;
+        private float nextCrowdReaction;
+        private const float CrowdReactionCooldown = 10f;
 
         private void Awake()
         {
@@ -86,16 +88,14 @@ namespace Igruha.Minigames.Circus
                 controller.ResultsReported += OnResults;
             }
 
-            // Шум шатра идёт всегда: спека 8.5 включает его с третьего
-            // подраунда, но громкостью — гул зала не появляется из тишины.
-            if (audioPlayer != null)
-            {
-                audioPlayer.StartLoop(AmbienceId);
-            }
+            // IGR-591: спокойный зал молчит; реакции остаются на событиях.
+            nextCrowdReaction = 0f;
+
         }
 
         private void OnDisable()
         {
+            CancelInvoke();
             for (int i = 0; i < CageCount; i++)
             {
                 if (cages[i] != null)
@@ -199,6 +199,8 @@ namespace Igruha.Minigames.Circus
                 return;
             }
 
+            if (Time.time < nextCrowdReaction) return;
+            nextCrowdReaction = Time.time + CrowdReactionCooldown;
             audioPlayer.Play(GaspId);
             CancelInvoke(nameof(PlayLaugh));
             Invoke(nameof(PlayLaugh), LaughDelay);

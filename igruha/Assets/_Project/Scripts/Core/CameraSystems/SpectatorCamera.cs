@@ -138,8 +138,9 @@ namespace Igruha.Core.CameraSystems
                 return;
             }
 
-            // Цель выбыла или отвалилась по сети — уходим на следующую живую сами.
-            if (!IsWatchable(Target))
+            // Сетевой объект выбывшего может оставаться активным с невидимым
+            // телом. Участие в живом списке важнее активности этого объекта.
+            if (IndexOf(Target) < 0 || !IsWatchable(Target))
             {
                 Advance(1);
                 return;

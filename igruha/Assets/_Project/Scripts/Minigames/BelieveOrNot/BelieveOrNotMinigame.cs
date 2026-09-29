@@ -340,6 +340,20 @@ namespace Igruha.Minigames.BelieveOrNot
             Debug.Log(table.ToString(), this);
         }
 
+        public override string ResultMetricTitle => "ПОБЕДЫ";
+        public override bool ResultsAreTeams => entries.Count > 0 && entries[0].Team != TeamId.None;
+        public override RoundResultDetail GetResultDetail(int playerId)
+        {
+            foreach (var entry in entries) if (entry.PlayerId == playerId)
+            {
+                if (entry.Team == TeamId.None) return new RoundResultDetail(entry.RoundsWon.ToString(), $"За столом: {entry.RoundsSeated}");
+                bool a = entry.Team == TeamId.A;
+                return new RoundResultDetail((a ? match.TeamAWins : match.TeamBWins).ToString(),
+                    a ? "КОМАНДА А" : "КОМАНДА Б", a ? new Color(.18f, .52f, .78f) : new Color(.88f, .37f, .24f));
+            }
+            return new RoundResultDetail("—", "Вышел из раунда");
+        }
+
         protected override void CollectResults(MinigameResults results)
         {
             BelieveRanking.Fill(entries, match.TeamAWins, match.TeamBWins, results);
@@ -460,7 +474,7 @@ namespace Igruha.Minigames.BelieveOrNot
                 case BelieveStage.Seating:
                     if (RoundInterrupted)
                     {
-                        GoToReveal();
+                        FinishRound();
                         break;
                     }
 
@@ -470,7 +484,7 @@ namespace Igruha.Minigames.BelieveOrNot
                 case BelieveStage.Peek:
                     if (RoundInterrupted)
                     {
-                        GoToReveal();
+                        FinishRound();
                         break;
                     }
 
@@ -479,12 +493,12 @@ namespace Igruha.Minigames.BelieveOrNot
 
                 case BelieveStage.Persuasion:
                     // Таймер истёк без решения — засчитывается «Оставить».
-                    if (match.Decision == Decision.None)
+                    if (match.Decision == Decision.None && !match.Cancelled)
                     {
                         match.Decision = Decision.Keep;
                     }
 
-                    GoToReveal();
+                    FinishRound();
                     break;
 
                 case BelieveStage.Reveal:
@@ -492,6 +506,7 @@ namespace Igruha.Minigames.BelieveOrNot
                     break;
 
                 case BelieveStage.Reaction:
+                case BelieveStage.Cancelled:
                     if (match.RoundNumber >= match.TotalRounds)
                     {
                         Debug.Log($"🎴 матч окончен: {match.TeamAWins}:{match.TeamBWins}");
@@ -514,9 +529,19 @@ namespace Igruha.Minigames.BelieveOrNot
         /// </summary>
         private bool RoundInterrupted => match.Cancelled || match.Decision != Decision.None;
 
-        /// <summary>Закрыть кон: посчитать исход и открыть крышки.</summary>
-        private void GoToReveal()
+        /// <summary>Закрыть кон: отменить без исхода либо посчитать его и открыть крышки.</summary>
+        private void FinishRound()
         {
+            if (match.Cancelled)
+            {
+                // Отдельная стадия едет тем же NetworkVariable, что остальные.
+                // Клиенту не нужно ждать флага из другого канала или получать
+                // содержимое коробок, чтобы показать отмену вместо победителя.
+                PublishMatch();
+                stageState.EnterStage(BelieveStage.Cancelled, config.ReactionSeconds);
+                return;
+            }
+
             ResolveRound();
             stageState.EnterStage(BelieveStage.Reveal, config.RevealSeconds);
         }
@@ -836,6 +861,10 @@ namespace Igruha.Minigames.BelieveOrNot
 
                 case BelieveStage.Reaction:
                     ApplyReactionStage();
+                    break;
+
+                case BelieveStage.Cancelled:
+                    ApplyCancelledStage();
                     break;
             }
 
@@ -1240,6 +1269,25 @@ namespace Igruha.Minigames.BelieveOrNot
             seatHud?.ShowTalk(NameOf(playerId), phrase, config.PhraseBubbleSeconds);
 
             PhraseShown?.Invoke(seat, playerId == match.KnowerPlayerId);
+        }
+
+        private void ApplyCancelledStage()
+        {
+            peekView?.Close();
+            decisionPanel?.Close();
+            phrasePanel?.Close();
+            seatHud?.HideAll();
+            table.HideBubbles();
+            localCard = BelieveCard.Unknown;
+
+            for (int seat = 0; seat < BelieveTable.SeatCount; seat++)
+            {
+                table.GetBox(seat)?.Prepare(BelieveCard.Unknown,
+                    seat == 0 ? BoxSlot.Seat0 : BoxSlot.Seat1,
+                    table.GetBoxPosition(seat));
+            }
+
+            seatHud?.ShowCancellation(config.ReactionSeconds);
         }
 
         private void ApplyRevealStage()

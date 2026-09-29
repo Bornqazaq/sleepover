@@ -65,6 +65,7 @@ namespace Igruha.EditorTools
             InfectionRuinedCourtyard.Build(root);
             InfectionQuarantineEffects.Build(root);
             InfectionQuarantineFeedback.Build(root);
+            InfectionLoosePropsBuilder.Build();
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene()); AssetDatabase.SaveAssets();
             Debug.Log("Infection: original quarantine art applied; gameplay components and colliders retained.");

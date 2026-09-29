@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2574025c1373412bb9b8283feb02ca7, type: 3}
+  m_Name: SfxLibrary
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.MinigameSfxLibrary
+  entries:
+  - Id: sumo_start
+    Clip: {fileID: 8300000, guid: be1f90c46c22a954c9f70a1227a506ab, type: 3}
+    Variants: []
+    Volume: 0.5
+    Loop: 0
+    Spatial: 0
+  - Id: sumo_warning
+    Clip: {fileID: 8300000, guid: c278b68c134ca694db1b7282ebe13abb, type: 3}
+    Variants: []
+    Volume: 0.5
+    Loop: 0
+    Spatial: 0
+  - Id: sumo_collapse
+    Clip: {fileID: 8300000, guid: 42adb1e8ede44f9439553905addad373, type: 3}
+    Variants: []
+    Volume: 0.7
+    Loop: 0
+    Spatial: 0
+  - Id: sumo_crowd
+    Clip: {fileID: 8300000, guid: 608ba54abe49d8c468b4e00daa127388, type: 3}
+    Variants: []
+    Volume: 0.09
+    Loop: 1
+    Spatial: 0
+  - Id: sumo_react
+    Clip: {fileID: 8300000, guid: dae0f40bd3c59004abe7ee5dd9372175, type: 3}
+    Variants:
+    - {fileID: 8300000, guid: dae0f40bd3c59004abe7ee5dd9372175, type: 3}
+    - {fileID: 8300000, guid: 2cda74061ab963a42867f00b414a69f1, type: 3}
+    - {fileID: 8300000, guid: 455e354314db09447af8f27a8b208bf8, type: 3}
+    - {fileID: 8300000, guid: 2f7f69651be75454c90e44bfe39af8e2, type: 3}
+    - {fileID: 8300000, guid: 1bb88fc0bb3b71948bc2799609050701, type: 3}
+    - {fileID: 8300000, guid: c25513a6001eb804096a0d2ce9b37321, type: 3}
+    Volume: 0.3
+    Loop: 0
+    Spatial: 1
+  - Id: sumo_final
+    Clip: {fileID: 8300000, guid: 0ef5188709c4ff74bb99460159ac34b4, type: 3}
+    Variants: []
+    Volume: 0.45
+    Loop: 0
+    Spatial: 0

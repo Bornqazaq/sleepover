@@ -103,13 +103,18 @@ namespace Igruha.Core.Audio
         /// Играет слот из точки тише или громче обычного. Нужен там, где громкость
         /// несёт смысл: шаг в приседе, мягкое приземление, удар вполсилы.
         /// </summary>
-        public void PlayAt(string id, Vector3 point, float volumeScale)
+        public void PlayAt(string id, Vector3 point, float volumeScale, float spatialRange = 0f)
         {
             if (!TryTakeVoice(id, out MinigameSfxLibrary.Entry entry, out AudioClip clip)) return;
             AudioSource source = TakeFreeSource();
             source.transform.position = point;
             Configure(source, entry, clip, entry.Spatial);
             source.volume = entry.Volume * Mathf.Clamp01(volumeScale);
+            if (spatialRange > 0f)
+            {
+                source.maxDistance = spatialRange;
+                source.minDistance = Mathf.Min(MinDistance, spatialRange * .25f);
+            }
             source.Play();
         }
 
@@ -326,6 +331,8 @@ namespace Igruha.Core.Audio
         {
             bool varied = entry.Variants != null && entry.Variants.Length > 1;
 
+            source.minDistance = MinDistance;
+            source.maxDistance = maxDistance;
             source.clip = clip;
             source.volume = entry.Volume;
             source.pitch = varied ? Random.Range(1f - PitchJitter, 1f + PitchJitter) : 1f;
