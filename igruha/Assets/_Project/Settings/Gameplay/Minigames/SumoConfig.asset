@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: SumoConfig
   m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.SumoRing.SumoConfig
   characterWidth: 0.72
-  outerDiameterWidths: 24
+  outerDiameterWidths: 19.2
   centreDiameterWidths: 6
   platformHeightWidths: 3
   sectors: 24

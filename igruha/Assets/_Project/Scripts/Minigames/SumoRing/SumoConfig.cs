@@ -6,7 +6,7 @@ namespace Igruha.Minigames.SumoRing
     public sealed class SumoConfig : ScriptableObject
     {
         [SerializeField, Min(.1f)] private float characterWidth = .72f;
-        [SerializeField, Min(1f)] private float outerDiameterWidths = 24f;
+        [SerializeField, Min(1f)] private float outerDiameterWidths = 19.2f;
         [SerializeField, Min(1f)] private float centreDiameterWidths = 6f;
         [SerializeField, Min(1f)] private float platformHeightWidths = 3f;
         [SerializeField, Range(12, 48)] private int sectors = 24;
@@ -71,6 +71,7 @@ namespace Igruha.Minigames.SumoRing
         public float QuickSlideSeconds => quickSlideSeconds;
         public float HeavySlideSeconds => heavySlideSeconds;
         public float Radius => characterWidth * outerDiameterWidths * .5f;
+        public float SpawnRadius => Radius * .625f;
         public float CentreRadius => characterWidth * centreDiameterWidths * .5f;
         public float Height => characterWidth * platformHeightWidths;
         public float RingWidth => (Radius - CentreRadius) / RingCount;
