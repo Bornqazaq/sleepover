@@ -33,7 +33,9 @@ namespace Igruha.Core.Items
         private PlayerCarryAbility holder;
 
         public bool IsHeld => IsSpawned ? holderObjectId.Value != NoHolder : holder != null;
-        public string InteractionPrompt => $"Подобрать: {itemName}";
+        [System.NonSerialized] private string cachedPrompt;
+        public string InteractionPrompt => cachedPrompt ??=
+            InteractionPromptText.Hold + $"подобрать: {itemName}";
 
         private void Awake()
         {

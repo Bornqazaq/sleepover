@@ -44129,7 +44129,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Items.ItemDispenser
   itemPrefab: {fileID: 8291783338804883824, guid: 38aa221745ba359479004b5afb0b1a98, type: 3}
   spawnPoint: {fileID: 1247421654}
-  prompt: "\u0412\u0437\u044F\u0442\u044C \u043A\u0438\u0440\u043F\u0438\u0447 (E)"
+  prompt: "\u0432\u0437\u044F\u0442\u044C \u043A\u0438\u0440\u043F\u0438\u0447"
   maxLiveItems: 24
 --- !u!23 &432745121
 MeshRenderer:
@@ -183043,7 +183043,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Items.ItemDispenser
   itemPrefab: {fileID: 8291783338804883824, guid: 38aa221745ba359479004b5afb0b1a98, type: 3}
   spawnPoint: {fileID: 44882431}
-  prompt: "\u0412\u0437\u044F\u0442\u044C \u043A\u0438\u0440\u043F\u0438\u0447 (E)"
+  prompt: "\u0432\u0437\u044F\u0442\u044C \u043A\u0438\u0440\u043F\u0438\u0447"
   maxLiveItems: 24
 --- !u!23 &1263776929
 MeshRenderer:
@@ -226380,7 +226380,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Items.ItemDispenser
   itemPrefab: {fileID: 8291783338804883824, guid: 38aa221745ba359479004b5afb0b1a98, type: 3}
   spawnPoint: {fileID: 1638363808}
-  prompt: "\u0412\u0437\u044F\u0442\u044C \u043A\u0438\u0440\u043F\u0438\u0447 (E)"
+  prompt: "\u0432\u0437\u044F\u0442\u044C \u043A\u0438\u0440\u043F\u0438\u0447"
   maxLiveItems: 24
 --- !u!23 &1519086487
 MeshRenderer:
@@ -259770,7 +259770,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Items.ItemDispenser
   itemPrefab: {fileID: 8291783338804883824, guid: 38aa221745ba359479004b5afb0b1a98, type: 3}
   spawnPoint: {fileID: 794093348}
-  prompt: "\u0412\u0437\u044F\u0442\u044C \u043A\u0438\u0440\u043F\u0438\u0447 (E)"
+  prompt: "\u0432\u0437\u044F\u0442\u044C \u043A\u0438\u0440\u043F\u0438\u0447"
   maxLiveItems: 24
 --- !u!23 &1774382462
 MeshRenderer:

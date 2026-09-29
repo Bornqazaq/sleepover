@@ -41,18 +41,18 @@ namespace Igruha.Minigames.DuckHunt
             EditorWindow.GetWindow(gameView).Focus();
             var door=FindFirstObjectByType<DoorTrap>();
             door.ClosedChanged+=OnDoor;
-            yield return TapLever("_Arena/Tower/Floor_3/Lever_Door");
-            if(doorClosures!=1)Fail("50ms E tap did not close door once: "+doorClosures);
+            yield return UseLever("_Arena/Tower/Floor_3/Lever_Door");
+            if(doorClosures!=1)Fail("Completed E hold did not close door once: "+doorClosures);
             // Keep E down across the ready transition: it must not retrigger.
             InputSystem.QueueStateEvent(keyboard,new KeyboardState(Key.E));
             yield return new WaitForSeconds(11);
             InputSystem.QueueStateEvent(keyboard,new KeyboardState());
             yield return null;
             if(doorClosures!=1)Fail("Holding E retriggered the door");
-            else Debug.Log("DH_INTERACTION PASS tap and no repeat across cooldown");
+            else Debug.Log("DH_INTERACTION PASS hold and no repeat across cooldown");
             door.ClosedChanged-=OnDoor;
-            yield return TapLever("_Arena/Tower/Floor_4/Lever_Collapse");
-            if(!FindFirstObjectByType<CollapsingFloorTrap>().IsSprung)Fail("Collapse did not open on E tap");
+            yield return UseLever("_Arena/Tower/Floor_4/Lever_Collapse");
+            if(!FindFirstObjectByType<CollapsingFloorTrap>().IsSprung)Fail("Collapse did not open on E hold");
             yield return new WaitForSeconds(4);
             if(FindFirstObjectByType<CollapsingFloorTrap>().IsSprung)Fail("Collapse did not restore");
             Debug.Log("DH_INTERACTION complete failed="+failed);
@@ -76,17 +76,24 @@ namespace Igruha.Minigames.DuckHunt
             Debug.Log("DH_INTERACTION slope "+(down?"DOWN":"UP")+" seconds="+elapsed.ToString("F3"));
         }
 
-        private IEnumerator TapLever(string path)
+        private IEnumerator UseLever(string path)
         {
             var lever=GameObject.Find(path);var pedestal=lever.transform.Find("Pedestal");var handle=lever.transform.Find("Handle");
             actor.TeleportTo(new Vector3(pedestal.position.x,pedestal.position.y-.35f,pedestal.position.z+1.0f),Quaternion.identity);
             yield return new WaitForSeconds(.8f);
-            if(GameObject.Find("Press E to use lever")==null)Fail("Proximity prompt missing "+path);
+            if(GameObject.Find("Hold E to use lever")==null)Fail("Proximity prompt missing "+path);
             else Debug.Log("DH_INTERACTION prompt visible "+path);
-            ScreenCapture.CaptureScreenshot(Application.dataPath+"/../Captures/DuckHunt/"+(path.Contains("Door")?"lever-door-gameview.png":"lever-collapse-gameview.png"));
+            string captures=Application.dataPath+"/../Captures/DuckHunt/";
+            System.IO.Directory.CreateDirectory(captures);
+            ScreenCapture.CaptureScreenshot(captures+(path.Contains("Door")?"lever-door-gameview.png":"lever-collapse-gameview.png"));
             Quaternion before=handle.localRotation;
             InputSystem.QueueStateEvent(keyboard,new KeyboardState(Key.E));
             yield return new WaitForSeconds(.05f);
+            InputSystem.QueueStateEvent(keyboard,new KeyboardState());
+            yield return new WaitForSeconds(.40f);
+            if(Quaternion.Angle(before,handle.localRotation)>1)Fail("Short tap bypassed Hold "+path);
+            InputSystem.QueueStateEvent(keyboard,new KeyboardState(Key.E));
+            yield return new WaitForSeconds(InputSystem.settings.defaultHoldTime+.2f);
             InputSystem.QueueStateEvent(keyboard,new KeyboardState());
             yield return new WaitForSeconds(.40f);
             float angle=Quaternion.Angle(before,handle.localRotation);

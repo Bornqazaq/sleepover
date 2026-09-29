@@ -141,8 +141,8 @@ namespace Igruha.Core.Items
         public const int MaxHandles = 4;
 
         [SerializeField] private MultiCarrySettings settings = MultiCarrySettings.Default;
-        [Tooltip("Подсказка над объектом. Одна на оба действия: E и берёт, и отпускает")]
-        [SerializeField] private string interactionPrompt = "Взяться за бутыль (E)";
+        [Tooltip("Действие без клавиши: её добавляет InteractionPromptText")]
+        [SerializeField] private string interactionPrompt = "взяться за бутыль";
         [Tooltip("Слои опоры. По ним объект понимает, что приземлился после броска")]
         [SerializeField] private LayerMask groundLayers = ~0;
 
@@ -322,7 +322,8 @@ namespace Igruha.Core.Items
 
         public MultiCarrySettings Settings => settings;
 
-        public string InteractionPrompt => interactionPrompt;
+        [System.NonSerialized] private string cachedPrompt;
+        public string InteractionPrompt => cachedPrompt ??= InteractionPromptText.Hold + interactionPrompt;
 
         /// <summary>
         /// Вправе ли эта машина решать судьбу объекта. Вне сетевой сессии — да,

@@ -71,6 +71,9 @@ namespace Igruha.Minigames.BelieveOrNot
 
         /// <summary>Пауза на реакцию: звук, гэг, обновление счёта.</summary>
         public const byte Reaction = 5;
+
+        /// <summary>Знающий вышел до решения: без раскрытия, победителя и эффектов исхода.</summary>
+        public const byte Cancelled = 6;
     }
 
     /// <summary>

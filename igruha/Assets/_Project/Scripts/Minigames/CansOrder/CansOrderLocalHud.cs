@@ -71,7 +71,7 @@ namespace Igruha.Minigames.CansOrder
         /// приходится каждые шестнадцать секунд.
         /// </summary>
         private const string ControlsHint =
-            "Мышь или стрелки ведут подсветку     ЛКМ или E — выбрать банку и поменять местами     " +
+            "Мышь или стрелки ведут подсветку     ЛКМ или зажми E — выбрать банку и поменять местами     " +
             "Enter — подтвердить";
 
         private int lastSeconds = -1;
@@ -283,7 +283,7 @@ namespace Igruha.Minigames.CansOrder
             }
 
             string prompt = shelfLive
-                ? "ЛКМ — " + shelf.InteractionPrompt
+                ? shelf.InteractionPrompt
                 : (rules != null ? rules.LocalWaitHint() : string.Empty);
 
             // Строку пересобираем только когда она меняется: подсказка живёт

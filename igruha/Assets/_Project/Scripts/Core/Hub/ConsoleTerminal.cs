@@ -36,18 +36,22 @@ namespace Igruha.Core.Hub
         [Tooltip("Как называется предмет в подсказке")]
         [SerializeField] private string deviceName = "Приставка";
 
+        [System.NonSerialized] private string openPrompt;
+        [System.NonSerialized] private string activePrompt;
+        [System.NonSerialized] private string hostPrompt;
+
         public string InteractionPrompt
         {
             get
             {
                 if (menu != null && menu.IsOpen)
                 {
-                    return $"{deviceName} — включена";
+                    return activePrompt ??= $"{deviceName} — включена";
                 }
 
                 return CanStartHere
-                    ? $"Зажми E — включить: {deviceName}"
-                    : $"{deviceName} — включает хост";
+                    ? openPrompt ??= InteractionPromptText.Hold + $"включить: {deviceName}"
+                    : hostPrompt ??= $"{deviceName} — включает хост";
             }
         }
 
