@@ -1,14 +1,16 @@
 param(
     [ValidateRange(2,8)][int]$Players = 4,
-    [ValidateSet('observe','sleep','timeout','all-dead','giant-leaves','mosquitoes-leave')][string]$Scenario = 'observe',
+    [ValidateSet('observe','flight-boundaries','entry-timeout','sleep','timeout','round-timeout','all-dead','giant-leaves','mosquitoes-leave')][string]$Scenario = 'observe',
     [int]$Giant = 1,
-    [int]$Port = 17773
+    [int]$Port = 17773,
+    [string]$BuildDirectory = 'igruha\Builds\Autotest'
 )
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
-$appPath = Join-Path $repoRoot 'igruha\Builds\Autotest\sleepover.exe'
+$appDirectory = if ([IO.Path]::IsPathRooted($BuildDirectory)) { $BuildDirectory } else { Join-Path $repoRoot $BuildDirectory }
+$appPath = Join-Path $appDirectory 'sleepover.exe'
 if (-not (Test-Path -LiteralPath $appPath)) { throw "Build is missing: $appPath" }
-$logDir = Join-Path $repoRoot ('igruha\Builds\Autotest\logs\mosquitoes-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + $Scenario)
+$logDir = Join-Path $appDirectory ('logs\mosquitoes-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + $Scenario)
 New-Item -ItemType Directory -Force -Path $logDir | Out-Null
 $processes = @()
 $arguments = @('--autostart','Mosquitoes','--wait-players',"$Players",'--bot','--port',"$Port",'--mosquito-giant',"$Giant",'--mosquito-check',$Scenario,'-batchmode','-nographics','-logFile',('"' + (Join-Path $logDir 'host.log') + '"'))

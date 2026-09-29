@@ -15,6 +15,12 @@ namespace Igruha.Minigames.Mosquitoes
     {
         [SerializeField] private MosquitoesConfig config;
         [SerializeField] private MosquitoBody mosquitoPrefab;
+        [SerializeField] private GameObject dragonflyVisual;
+        private readonly Dictionary<int, Vector3> entryPrevious = new Dictionary<int, Vector3>();
+        public float EntryRemaining { get; private set; }
+        public int DragonflyKills { get; private set; }
+        private float dragonflyCameraUntil, dragonflyFinishAt;
+        private bool eatenLocally;
         [SerializeField] private Transform bed, bedExit, lampCenter;
         [SerializeField] private MinigameCameraController cameraController;
         [SerializeField] private CinemachineOrbitalFollow orbit;
@@ -35,6 +41,9 @@ namespace Igruha.Minigames.Mosquitoes
         private PlayerPushAbility punch;
         private IPushButtonOverride previousPunchOverride;
         private Animator giantAnimator;
+        private MosquitoGiantRig giantRig;
+        public MosquitoGiantRig GiantRig => giantRig;
+        public int ConfirmedBiteEffects { get; private set; }
         private bool previousLock, previousRootMotion, cleaned = true, winnerGiant, spectating;
         private float previousAnimatorSpeed, radius, swatCooldown, swatImpact = -1, hudIn, botIn;
         private GiantPhase shownPhase = (GiantPhase)255;
@@ -54,8 +63,7 @@ namespace Igruha.Minigames.Mosquitoes
         public bool Automated => LaunchArguments.BotEnabled;
         public float Countdown { get; private set; }
         public IReadOnlyList<MosquitoBody> Bodies => bodies;
-        public Vector3 BiteTarget => bed != null && Sleep != null && Sleep.Phase != GiantPhase.Awake ?
-            bed.position + new Vector3(0, .34f, .2f) : giant != null ? giant.Position + Vector3.up * .9f : Vector3.zero;
+        public Vector3 BiteTarget => giantRig != null ? giantRig.BitePoint : giant != null ? giant.Position + Vector3.up : bed.position;
         public int AliveCount { get { int n = 0; foreach (var b in bodies) if (b != null && b.IsAlive && !departed.Contains(b.Id)) n++; return n; } }
 
         protected override void Awake()
@@ -72,6 +80,8 @@ namespace Igruha.Minigames.Mosquitoes
         {
             if (config == null || mosquitoPrefab == null || bed == null) { Debug.LogError("Mosquitoes: incomplete scene configuration.", this); return; }
             Sleep = new GiantSleepState(config); Countdown = config.CountdownSeconds;
+            EntryRemaining = MosquitoWindowEntry.Deadline; DragonflyKills = 0; entryPrevious.Clear();
+            dragonflyCameraUntil = dragonflyFinishAt = 0; eatenLocally = false;
             cleaned = false; winnerGiant = false; spectating = false; departed.Clear(); participated.Clear();
             presentation?.Begin();
             if (cameraController != null) { cameraRestore = cameraController.CurrentTarget; cameraModeRestore = cameraController.CurrentMode; }
@@ -80,15 +90,27 @@ namespace Igruha.Minigames.Mosquitoes
             Timer?.StopTimer();
             giantId = SessionScoreboard.Current != null ? SessionScoreboard.Current.PickSpecialRole("Giant") : roles.Pick("Giant", roster);
             if (Debug.isDebugBuild && LaunchArguments.TryGetValue("--mosquito-giant", out string role) && int.TryParse(role, out int forcedRole)) debugGiantId = forcedRole;
+            if (Debug.isDebugBuild && LaunchArguments.TryGetValue("--mosquito-check", out string probe) && probe == "round-timeout") debugDisableBots = true;
             if (Debug.isDebugBuild && debugGiantId >= 0 && FindPlayer(debugGiantId) != null) giantId = debugGiantId;
+#if UNITY_EDITOR
+            if (network == null || !network.IsSpawned)
+            {
+                int startRole = UnityEditor.SessionState.GetInt("Mosquitoes.StartRole", -1);
+                UnityEditor.SessionState.EraseInt("Mosquitoes.StartRole");
+                if (startRole == 0) giantId = localId;
+                else if (startRole == 1)
+                    foreach (SessionPlayer player in roster) if (player.Id != localId) { giantId = player.Id; break; }
+            }
+#endif
             if (FindPlayer(giantId) == null) giantId = roster[0].Id;
             BindRole();
             foreach (SessionPlayer player in roster)
             {
                 if (player.Id == giantId) continue;
-                MosquitoBody body = Instantiate(mosquitoPrefab, FlightSpawn(player.Id), Quaternion.Euler(0, 180, 0));
+                MosquitoBody body = Instantiate(mosquitoPrefab, FlightSpawn(player.Id), Quaternion.Euler(0, Random.Range(0f, 360f), 0));
+                entryPrevious[player.Id] = body.Position;
                 bool net = network != null && network.IsSpawned;
-                body.Initialize(this, player.Id, player.Id == localId, !net && player.Id != localId || Automated);
+                body.Initialize(this, player.Id, player.Id == localId, !net && player.Id != localId || Automated, CharacterSelection.Current is Igruha.Networking.CharacterSelectionManager selection ? selection.CharacterOf(player.Id) : player.CharacterIndex);
                 if (net) body.NetworkObject.SpawnWithOwnership((ulong)player.Id, true);
             }
             network?.Publish();
@@ -110,9 +132,10 @@ namespace Igruha.Minigames.Mosquitoes
             if (sharedLook != null) lookWasEnabled = sharedLook.enabled;
             foreach (SessionPlayer p in roster) if (p.Id != giantId) parked.Park(p.Avatar);
             sharedLook?.Enable();
+            giantRig = giant.gameObject.AddComponent<MosquitoGiantRig>(); giantRig.Initialize(giantAnimator);
             shownPhase = (GiantPhase)255;
             hint = localId == giantId ? "ВЕЛИКАН • E у кровати — встать / уснуть • ЛКМ — шлепок\nНакопи 60 секунд сна или поймай всех комаров" :
-                "КОМАР • WASD — полёт • Space / Ctrl — высота • Shift — тихий полёт\nЗажми ЛКМ у груди на 0,5 с. Два укуса за 4 с будят великана";
+                $"КОМАР • WASD — полёт • Space / Ctrl — высота • Shift — тихий полёт\nЗа {MosquitoWindowEntry.Deadline:0} секунд влети в окно! Обратно нельзя. Затем держи ЛКМ у груди 0,5 с";
             presentation?.SetRole(localId == giantId, hint);
             ApplyPose();
             StartCoroutine(ApplyRoleTutorial());
@@ -126,13 +149,14 @@ namespace Igruha.Minigames.Mosquitoes
             if (view != null && definition != null) view.Show(definition);
         }
         public void RegisterBody(MosquitoBody body) { if (!bodies.Contains(body)) bodies.Add(body); }
+        public void UnregisterBody(MosquitoBody body) { if (!cleaned) bodies.Remove(body); }
         public void Receive(MosquitoesSnapshot snapshot)
         {
-            if (HasAuthority || cleaned || Sleep == null) return;
+            if (HasAuthority || Sleep == null) return;
             giantId = snapshot.GiantId;
             Sleep.ApplySnapshot((GiantPhase)snapshot.Phase, snapshot.Sleep, snapshot.Transition, snapshot.Immunity, snapshot.Lamp);
-            Countdown = snapshot.Countdown;
-            if (giant == null) BindRole();
+            Countdown = snapshot.Countdown; EntryRemaining = snapshot.EntryRemaining;
+            if (!cleaned && giant == null) BindRole();
         }
         private void Update()
         {
@@ -165,21 +189,42 @@ namespace Igruha.Minigames.Mosquitoes
                 if (Countdown > 0) Hud?.ShowCountdown(Countdown); else Hud?.HideCountdown();
                 MosquitoBody own = FindBody(localId);
                 string status = localId == giantId ? (Sleep.LampOn ? "ЛАМПА ВКЛ" : "ЛАМПА ВЫКЛ") :
-                    own != null && !own.IsAlive ? "НАБЛЮДЕНИЕ • вы выбыли до конца раунда" :
+                    own != null && !own.IsAlive ? (eatenLocally ? $"СТРЕКОЗА СЪЕЛА ТЕБЯ • не успел в окно за {MosquitoWindowEntry.Deadline:0} секунд" : "НАБЛЮДЕНИЕ • вы выбыли до конца раунда") :
+                    own != null && !own.HasEntered ? $"В ОКНО! {EntryRemaining:0.0} с • снаружи охотится стрекоза" :
                     own != null && own.BiteCooldown > 0 ? $"УКУС ЧЕРЕЗ {own.BiteCooldown:0.0} с" : "УКУС ГОТОВ";
                 presentation?.SetStatus($"СОН {Sleep.Sleep:0.0} / {config.SleepTarget:0} с     КОМАРЫ {AliveCount}\n{status}");
             }
         }
         private void TickRules(float dt)
         {
+            EntryRemaining = Mathf.Max(0, EntryRemaining - dt);
             Sleep.Tick(dt); swatCooldown = Mathf.Max(0, swatCooldown - dt);
             if (swatImpact >= 0) { swatImpact -= dt; if (swatImpact <= 0) { swatImpact = -1; ResolveSwat(); } }
             foreach (MosquitoBody body in bodies)
             {
                 if (body == null || !body.IsAlive || departed.Contains(body.Id)) continue;
+                if (!body.HasEntered)
+                {
+                    Vector3 previous = entryPrevious.TryGetValue(body.Id, out var last) ? last : FlightSpawn(body.Id);
+                    if (EntryRemaining > 0 && MosquitoWindowEntry.Crossed(previous, body.Position))
+                    {
+                        body.ConfirmEntry();
+                        if (Automated) Debug.Log($"[MosquitoEntry] id={body.Id} remaining={EntryRemaining:F2}");
+                    }
+                    else if (EntryRemaining <= 0)
+                    {
+                        Vector3 caught = body.Position; body.Kill(); DragonflyKills++; dragonflyFinishAt = Time.unscaledTime + 1.1f;
+                        network?.Effect(3, caught, body.Id);
+                        if (Automated) Debug.Log($"[MosquitoDragonfly] id={body.Id} deadline={MosquitoWindowEntry.Deadline:0} alive={body.IsAlive}");
+                        continue;
+                    }
+                    entryPrevious[body.Id] = body.Position;
+                }
+                else if (body.Position.x > MosquitoWindowEntry.Plane + .015f)
+                    body.ResetPosition(MosquitoWindowEntry.ClampInside(body.Position));
                 float cooldown = Mathf.Max(0, body.BiteCooldown - dt);
                 if (Sleep.LampOn && InsideLight(body.Position)) body.Participated = true;
-                bool valid = body.Holding && cooldown <= 0 && Sleep.CanBite &&
+                bool valid = body.HasEntered && body.Holding && cooldown <= 0 && Sleep.CanBite &&
                     Vector3.Distance(body.Position, BiteTarget) <= config.BiteDistance && ClearPath(body.Position, BiteTarget);
                 if (valid)
                 {
@@ -187,14 +232,14 @@ namespace Igruha.Minigames.Mosquitoes
                     if (body.BiteProgress >= config.BiteHoldSeconds && Sleep.RegisterBite())
                     {
                         cooldown = config.BiteCooldown; body.BiteProgress = 0; valid = false; body.Participated = true;
-                        network?.Effect(0, BiteTarget);
+                        network?.Effect(0, giantRig != null ? giantRig.BiteSurfacePoint : BiteTarget, body.Id);
                     }
                 }
                 else body.BiteProgress = 0;
                 body.SetBiteState(valid, cooldown);
                 if (body.Participated) participated.Add(body.Id);
             }
-            if (Sleep.ReachedTarget || AliveCount == 0) { winnerGiant = true; EndMinigame(); }
+            if (Sleep.ReachedTarget || AliveCount == 0 && Time.unscaledTime >= dragonflyFinishAt) { winnerGiant = true; EndMinigame(); }
         }
         public bool TryBed(int sender)
         {
@@ -244,25 +289,21 @@ namespace Igruha.Minigames.Mosquitoes
             shownPhase = Sleep.Phase;
             bool sleeping = shownPhase != GiantPhase.Awake;
             giant.MovementLocked = sleeping || Countdown > 0;
-            if (giantAnimator != null)
-            {
-                giantAnimator.speed = sleeping ? 0 : previousAnimatorSpeed;
-                giantAnimator.applyRootMotion = sleeping ? false : previousRootMotion;
-                int state = Animator.StringToHash(sleeping ? "Base Layer.FlyBack" : "Base Layer.Idle");
-                if (giantAnimator.HasState(0, state)) { giantAnimator.Play(state, 0, sleeping ? .85f : 0f); giantAnimator.Update(0); }
-            }
             Transform target = sleeping ? bed : bedExit;
             if (HasAuthority || localId == giantId) giant.TeleportTo(target.position, target.rotation);
+            giantRig?.SetSleeping(sleeping);
         }
+
         private void BindCamera()
         {
             if (cameraController == null) return;
             if (localId == giantId) return;
             MosquitoBody own = FindBody(localId);
             if (own == null) return;
-            Transform target = own.IsAlive ? own.CameraTarget : giant.CameraTarget;
+            bool showCapture = !own.IsAlive && Time.unscaledTime < dragonflyCameraUntil;
+            Transform target = own.IsAlive || showCapture ? own.CameraTarget : giant.CameraTarget;
             if (cameraController.CurrentTarget != target) cameraController.Apply(CameraMode.ThirdPerson, target);
-            if (orbit != null) orbit.Radius = own.IsAlive ? config.CameraRadius : radius;
+            if (orbit != null) orbit.Radius = own.IsAlive || showCapture ? config.CameraRadius : radius;
             if (!own.IsAlive && !spectating) { spectating = true; Hud?.ShowSpectatorTarget(FindPlayer(giantId)?.DisplayName ?? "Великан"); }
         }
         public bool InsideLight(Vector3 position)
@@ -270,15 +311,39 @@ namespace Igruha.Minigames.Mosquitoes
         public bool CanSeeMosquito(Vector3 position) => localId != giantId || Sleep != null && Sleep.LampOn && InsideLight(position);
         public Vector3 FlightSpawn(int id)
         {
+            return RoomSpawn(FlightSlot(id));
+        }
+        public Vector3 FlightRecovery(int id) => MosquitoWindowEntry.Recovery(FlightSlot(id));
+        private int FlightSlot(int id)
+        {
             int slot = 0;
             foreach (SessionPlayer player in roster) { if (player.Id == giantId) continue; if (player.Id == id) break; slot++; }
-            return new Vector3(-5.5f + (slot % 7) * 1.6f, 1.5f, 2.8f);
+            return slot;
         }
-        public bool InFlightBounds(Vector3 p) => Mathf.Abs(p.x) < 7.08f && Mathf.Abs(p.z) < 5.64f && p.y >= config.BodyRadius * .5f && p.y <= config.FlightCeiling + .15f;
+        public static Vector3 RoomSpawn(int slot) => MosquitoWindowEntry.Spawn(slot);
+        public bool InFlightBounds(Vector3 p) => Mathf.Abs(p.x) < 3.48f && Mathf.Abs(p.z) < 3.08f &&
+            p.y >= config.BodyRadius * .5f && p.y <= config.FlightCeiling + .01f;
         public MosquitoBody FindBody(int id) { foreach (var body in bodies) if (body != null && body.Id == id) return body; return null; }
         public bool IsLiving(int id) => !departed.Contains(id) && FindBody(id) is MosquitoBody body && body.IsAlive;
         public void BodyDied(MosquitoBody body) { }
-        public void PlayEffect(byte kind, Vector3 position) => presentation?.Effect(kind, position, kind != 2 || CanSeeMosquito(position));
+        public void PlayEffect(byte kind, Vector3 position, int attacker = -1)
+        {
+            if (kind == 3)
+            {
+                if (attacker == localId) { eatenLocally = true; dragonflyCameraUntil = Time.unscaledTime + .85f; }
+                MosquitoDragonflyAttack.Show(dragonflyVisual, position, FindBody(attacker));
+                if (Automated) Debug.Log($"[MosquitoDragonflyEffect] local={localId} victim={attacker}");
+                return;
+            }
+            presentation?.Effect(kind, position, kind != 2 || CanSeeMosquito(position));
+            if (kind != 0) return;
+            ConfirmedBiteEffects++;
+            FindBody(attacker)?.ShowBiteSuccess();
+            giantRig?.React();
+            // A hit on the victim is visible to the victim; it never reveals a hidden attacker.
+            MosquitoBiteFeedback.Show(position);
+            if (Automated) Debug.Log($"[MosquitoBite] local={localId} attacker={attacker} confirmed={ConfirmedBiteEffects}");
+        }
         private void TickGiantBot(float dt)
         {
             botIn -= dt; if (botIn > 0) return; botIn = .7f;
@@ -296,8 +361,9 @@ namespace Igruha.Minigames.Mosquitoes
         {
             if (!HasAuthority || cleaned || !departed.Add(id)) return;
             if (id == giantId) { winnerGiant = false; EndMinigame(); return; }
+            entryPrevious.Remove(id);
             MosquitoBody body = FindBody(id);
-            if (body != null) { body.Kill(); if (body.IsSpawned) body.NetworkObject.Despawn(); else Destroy(body.gameObject); }
+            if (body != null) { body.Kill(); bodies.Remove(body); if (body.IsSpawned) body.NetworkObject.Despawn(); else Destroy(body.gameObject); }
             if (AliveCount == 0) { winnerGiant = true; EndMinigame(); }
         }
         protected override void CollectResults(MinigameResults results)
@@ -307,14 +373,19 @@ namespace Igruha.Minigames.Mosquitoes
                     departed.Contains(player.Id), config.IdleMosquitoPenalty, participated.Contains(player.Id)));
         }
         public static int PlaceFor(int id, int giantId, bool giantWon, int count, bool left, bool penalizeIdle, bool active) =>
-            !left && (id == giantId ? giantWon : !giantWon && (!penalizeIdle || active)) ? 1 : count;
-        protected override void OnRoundEnded() => Cleanup();
+            (id == giantId ? giantWon && !left : !giantWon && (left || !penalizeIdle || active)) ? 1 : count;
+        protected override void OnRoundEnded()
+        {
+            Cleanup();
+            network?.Publish();
+        }
         protected override void OnDisable() { Cleanup(); base.OnDisable(); }
         private void Cleanup()
         {
             if (cleaned) return; cleaned = true;
             if (punch != null) { punch.PunchStarted -= PunchStarted; punch.ButtonOverride = previousPunchOverride; }
             if (giant != null) giant.MovementLocked = previousLock;
+            if (giantRig != null) { giantRig.Restore(); Destroy(giantRig); giantRig = null; }
             if (giantAnimator != null) { giantAnimator.speed = previousAnimatorSpeed; giantAnimator.applyRootMotion = previousRootMotion; }
             parked.ReleaseAll();
             if (sharedLook != null && !lookWasEnabled) sharedLook.Disable();

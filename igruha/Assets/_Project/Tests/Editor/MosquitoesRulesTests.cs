@@ -37,13 +37,13 @@ namespace Igruha.Tests
             Assert.That(s.RegisterBite()); Assert.That(s.RegisterBite()); Assert.That(s.Phase, Is.EqualTo(GiantPhase.LyingDown));
             s.Tick(1); s.RegisterBite(); Assert.That(s.Phase, Is.EqualTo(GiantPhase.Sleeping));
         }
-        [TestCase(3)] [TestCase(4)] [TestCase(8)] public void TeamResultsPreserveOriginalRosterAndDisconnectPenalty(int n)
+        [TestCase(3)] [TestCase(4)] [TestCase(8)] public void TeamResultsPreserveOriginalRosterAndDisconnectedMosquitoTeamPlace(int n)
         {
             for (int i = 0; i < n; i++)
             {
                 Assert.That(MosquitoesMinigame.PlaceFor(i, 1, true, n, false, false, false), Is.EqualTo(i == 1 ? 1 : n));
                 Assert.That(MosquitoesMinigame.PlaceFor(i, 1, false, n, false, false, false), Is.EqualTo(i == 1 ? n : 1));
-                Assert.That(MosquitoesMinigame.PlaceFor(i, 1, false, n, true, false, true), Is.EqualTo(n));
+                Assert.That(MosquitoesMinigame.PlaceFor(i, 1, false, n, true, false, true), Is.EqualTo(i == 1 ? n : 1));
             }
             Assert.That(MosquitoesMinigame.PlaceFor(0, 1, false, n, false, true, false), Is.EqualTo(n));
             Assert.That(MosquitoesMinigame.PlaceFor(0, 1, false, n, false, true, true), Is.EqualTo(1));

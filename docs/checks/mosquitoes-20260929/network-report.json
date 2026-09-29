@@ -1,0 +1,813 @@
+{
+  "directory": "C:\\Users\\nyerb\\Downloads\\gamedev\\sleepover\\igruha\\Builds\\Autotest\\IGR-Network\\logs\\mosquitoes-20260929-165116-entry-timeout",
+  "participants": {
+    "client-1": {
+      "file": "igruha\\Builds\\Autotest\\IGR-Network\\logs\\mosquitoes-20260929-165116-entry-timeout\\client-1.log",
+      "events": [
+        "[MosquitoLooks] local=1 actual/selected=0:4/4 2:1/1 ",
+        "[MosquitoLooks] local=1 actual/selected=0:4/4 2:1/1 ",
+        "📊 итоги раунда Mosquitoes [3 на старте, одиночная]: 0:1:+2/0 1:3:+0/0 2:1:+2/0",
+        "[MosquitoResults] local=1 places=0:1 1:3 2:1 restored=3 bodies=0",
+        "🎮 [Girl(Clone)] управление возвращено после мини-игры"
+      ],
+      "errors": [],
+      "results": [
+        "📊 итоги раунда Mosquitoes [3 на старте, одиночная]: 0:1:+2/0 1:3:+0/0 2:1:+2/0"
+      ],
+      "samples": [
+        {
+          "local": 1,
+          "giant": 1,
+          "phase": "Practice",
+          "sleep": 0.0,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 2,
+          "bodies": 2,
+          "countdown": 3.0,
+          "elapsed": 0.0,
+          "netTime": 38.25
+        },
+        {
+          "local": 1,
+          "giant": 1,
+          "phase": "Round",
+          "sleep": 0.0,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 2,
+          "bodies": 2,
+          "countdown": 3.0,
+          "elapsed": 0.02,
+          "netTime": 39.58
+        },
+        {
+          "local": 1,
+          "giant": 1,
+          "phase": "Round",
+          "sleep": 0.0,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 2,
+          "bodies": 2,
+          "countdown": 1.08,
+          "elapsed": 2.02,
+          "netTime": 41.56
+        },
+        {
+          "local": 1,
+          "giant": 1,
+          "phase": "Round",
+          "sleep": 0.92,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 2,
+          "bodies": 2,
+          "countdown": 0.0,
+          "elapsed": 4.02,
+          "netTime": 43.54
+        },
+        {
+          "local": 1,
+          "giant": 1,
+          "phase": "Round",
+          "sleep": 2.92,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 2,
+          "bodies": 2,
+          "countdown": 0.0,
+          "elapsed": 6.02,
+          "netTime": 45.52
+        },
+        {
+          "local": 1,
+          "giant": 1,
+          "phase": "Round",
+          "sleep": 4.92,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 2,
+          "bodies": 2,
+          "countdown": 0.0,
+          "elapsed": 8.02,
+          "netTime": 47.5
+        },
+        {
+          "local": 1,
+          "giant": 1,
+          "phase": "Round",
+          "sleep": 6.92,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 2,
+          "bodies": 2,
+          "countdown": 0.0,
+          "elapsed": 10.02,
+          "netTime": 49.5
+        },
+        {
+          "local": 1,
+          "giant": 1,
+          "phase": "Round",
+          "sleep": 8.92,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 2,
+          "bodies": 2,
+          "countdown": 0.0,
+          "elapsed": 12.02,
+          "netTime": 51.52
+        },
+        {
+          "local": 1,
+          "giant": 1,
+          "phase": "Round",
+          "sleep": 10.93,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 1,
+          "bodies": 2,
+          "countdown": 0.0,
+          "elapsed": 14.02,
+          "netTime": 53.52
+        },
+        {
+          "local": 1,
+          "giant": 1,
+          "phase": "Results",
+          "sleep": 12.28,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 0,
+          "bodies": 0,
+          "countdown": 0.0,
+          "elapsed": 15.3,
+          "netTime": 55.52
+        },
+        {
+          "local": 1,
+          "giant": 1,
+          "phase": "Results",
+          "sleep": 12.28,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 0,
+          "bodies": 0,
+          "countdown": 0.0,
+          "elapsed": 15.3,
+          "netTime": 57.52
+        },
+        {
+          "local": 1,
+          "giant": 1,
+          "phase": "Results",
+          "sleep": 12.28,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 0,
+          "bodies": 0,
+          "countdown": 0.0,
+          "elapsed": 15.3,
+          "netTime": 59.52
+        },
+        {
+          "local": 1,
+          "giant": 1,
+          "phase": "Results",
+          "sleep": 12.28,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 0,
+          "bodies": 0,
+          "countdown": 0.0,
+          "elapsed": 15.3,
+          "netTime": 61.52
+        },
+        {
+          "local": 1,
+          "giant": 1,
+          "phase": "Results",
+          "sleep": 12.28,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 0,
+          "bodies": 0,
+          "countdown": 0.0,
+          "elapsed": 15.3,
+          "netTime": 63.52
+        },
+        {
+          "local": 1,
+          "giant": 1,
+          "phase": "Results",
+          "sleep": 12.28,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 0,
+          "bodies": 0,
+          "countdown": 0.0,
+          "elapsed": 15.3,
+          "netTime": 65.52
+        }
+      ],
+      "flights": [
+        "[MosquitoFlight] local=1 id=0 owner=False position=(8.00, 1.85, 6.44) speed=0,00 buzz=0,00 interpolation=None kinematic=True visible=25 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=1 id=2 owner=False position=(10.20, 4.21, -0.04) speed=0,00 buzz=0,00 interpolation=None kinematic=True visible=25 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=1 id=0 owner=False position=(8.00, 1.85, 6.44) speed=0,00 buzz=0,00 interpolation=None kinematic=True visible=25 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=1 id=2 owner=False position=(10.20, 4.21, -0.04) speed=0,00 buzz=0,00 interpolation=None kinematic=True visible=25 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=1 id=0 owner=False position=(8.00, 1.85, 6.44) speed=0,00 buzz=0,00 interpolation=None kinematic=True visible=0 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=1 id=2 owner=False position=(0.00, -0.12, 0.00) speed=0,00 buzz=0,00 interpolation=None kinematic=True visible=0 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=1 id=0 owner=False position=(4.39, 1.85, 2.42) speed=6,56 buzz=1,00 interpolation=None kinematic=True visible=0 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=1 id=2 owner=False position=(0.00, -0.12, 0.00) speed=0,00 buzz=0,00 interpolation=None kinematic=True visible=0 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=1 id=0 owner=False position=(-1.79, 1.66, -0.87) speed=0,65 buzz=0,00 interpolation=None kinematic=True visible=0 entered=True attached=True cooldown=0,00",
+        "[MosquitoFlight] local=1 id=2 owner=False position=(0.00, -0.12, 0.00) speed=0,00 buzz=0,00 interpolation=None kinematic=True visible=0 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=1 id=0 owner=False position=(1.91, 1.61, 1.06) speed=0,77 buzz=0,00 interpolation=None kinematic=True visible=0 entered=True attached=False cooldown=3,40",
+        "[MosquitoFlight] local=1 id=2 owner=False position=(0.00, -0.12, 0.00) speed=0,00 buzz=0,00 interpolation=None kinematic=True visible=0 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=1 id=0 owner=False position=(2.57, 1.60, -0.19) speed=1,14 buzz=0,00 interpolation=None kinematic=True visible=0 entered=True attached=False cooldown=1,42",
+        "[MosquitoFlight] local=1 id=2 owner=False position=(0.00, -0.12, 0.00) speed=0,00 buzz=0,00 interpolation=None kinematic=True visible=0 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=1 id=0 owner=False position=(-0.48, 1.49, -1.16) speed=12,00 buzz=0,83 interpolation=None kinematic=True visible=0 entered=True attached=False cooldown=0,00",
+        "[MosquitoFlight] local=1 id=2 owner=False position=(0.00, -0.12, 0.00) speed=0,00 buzz=0,00 interpolation=None kinematic=True visible=0 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=1 id=0 owner=False position=(-1.42, 1.66, -1.30) speed=3,17 buzz=0,00 interpolation=None kinematic=True visible=0 entered=True attached=False cooldown=4,60",
+        "[MosquitoFlight] local=1 id=2 owner=False position=(0.00, -0.12, 0.00) speed=0,00 buzz=0,00 interpolation=None kinematic=True visible=0 entered=False attached=False cooldown=0,00"
+      ]
+    },
+    "client-2": {
+      "file": "igruha\\Builds\\Autotest\\IGR-Network\\logs\\mosquitoes-20260929-165116-entry-timeout\\client-2.log",
+      "events": [
+        "[MosquitoLooks] local=2 actual/selected=0:4/4 2:1/1 ",
+        "[MosquitoLooks] local=2 actual/selected=0:4/4 2:1/1 ",
+        "📊 итоги раунда Mosquitoes [3 на старте, одиночная]: 0:1:+2/0 1:3:+0/0 2:1:+2/0",
+        "[MosquitoResults] local=2 places=0:1 1:3 2:1 restored=3 bodies=0",
+        "🎮 [Boss(Clone)] управление возвращено после мини-игры"
+      ],
+      "errors": [],
+      "results": [
+        "📊 итоги раунда Mosquitoes [3 на старте, одиночная]: 0:1:+2/0 1:3:+0/0 2:1:+2/0"
+      ],
+      "samples": [
+        {
+          "local": 2,
+          "giant": 1,
+          "phase": "Practice",
+          "sleep": 0.0,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 2,
+          "bodies": 2,
+          "countdown": 3.0,
+          "elapsed": 0.0,
+          "netTime": 38.24
+        },
+        {
+          "local": 2,
+          "giant": 1,
+          "phase": "Round",
+          "sleep": 0.0,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 2,
+          "bodies": 2,
+          "countdown": 3.0,
+          "elapsed": 0.02,
+          "netTime": 39.61
+        },
+        {
+          "local": 2,
+          "giant": 1,
+          "phase": "Round",
+          "sleep": 0.0,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 2,
+          "bodies": 2,
+          "countdown": 1.08,
+          "elapsed": 2.02,
+          "netTime": 41.59
+        },
+        {
+          "local": 2,
+          "giant": 1,
+          "phase": "Round",
+          "sleep": 0.92,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 2,
+          "bodies": 2,
+          "countdown": 0.0,
+          "elapsed": 4.02,
+          "netTime": 43.57
+        },
+        {
+          "local": 2,
+          "giant": 1,
+          "phase": "Round",
+          "sleep": 2.92,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 2,
+          "bodies": 2,
+          "countdown": 0.0,
+          "elapsed": 6.02,
+          "netTime": 45.55
+        },
+        {
+          "local": 2,
+          "giant": 1,
+          "phase": "Round",
+          "sleep": 4.92,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 2,
+          "bodies": 2,
+          "countdown": 0.0,
+          "elapsed": 8.02,
+          "netTime": 47.53
+        },
+        {
+          "local": 2,
+          "giant": 1,
+          "phase": "Round",
+          "sleep": 6.92,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 2,
+          "bodies": 2,
+          "countdown": 0.0,
+          "elapsed": 10.02,
+          "netTime": 49.51
+        },
+        {
+          "local": 2,
+          "giant": 1,
+          "phase": "Round",
+          "sleep": 8.92,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 2,
+          "bodies": 2,
+          "countdown": 0.0,
+          "elapsed": 12.02,
+          "netTime": 51.5
+        },
+        {
+          "local": 2,
+          "giant": 1,
+          "phase": "Round",
+          "sleep": 10.93,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 1,
+          "bodies": 2,
+          "countdown": 0.0,
+          "elapsed": 14.02,
+          "netTime": 53.5
+        },
+        {
+          "local": 2,
+          "giant": 1,
+          "phase": "Results",
+          "sleep": 12.28,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 0,
+          "bodies": 0,
+          "countdown": 0.0,
+          "elapsed": 15.3,
+          "netTime": 55.51
+        },
+        {
+          "local": 2,
+          "giant": 1,
+          "phase": "Results",
+          "sleep": 12.28,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 0,
+          "bodies": 0,
+          "countdown": 0.0,
+          "elapsed": 15.3,
+          "netTime": 57.5
+        },
+        {
+          "local": 2,
+          "giant": 1,
+          "phase": "Results",
+          "sleep": 12.28,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 0,
+          "bodies": 0,
+          "countdown": 0.0,
+          "elapsed": 15.3,
+          "netTime": 59.5
+        },
+        {
+          "local": 2,
+          "giant": 1,
+          "phase": "Results",
+          "sleep": 12.28,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 0,
+          "bodies": 0,
+          "countdown": 0.0,
+          "elapsed": 15.3,
+          "netTime": 61.49
+        },
+        {
+          "local": 2,
+          "giant": 1,
+          "phase": "Results",
+          "sleep": 12.28,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 0,
+          "bodies": 0,
+          "countdown": 0.0,
+          "elapsed": 15.3,
+          "netTime": 63.5
+        },
+        {
+          "local": 2,
+          "giant": 1,
+          "phase": "Results",
+          "sleep": 12.28,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 0,
+          "bodies": 0,
+          "countdown": 0.0,
+          "elapsed": 15.3,
+          "netTime": 65.5
+        }
+      ],
+      "flights": [
+        "[MosquitoFlight] local=2 id=0 owner=False position=(8.00, 1.85, 6.44) speed=0,00 buzz=1,00 interpolation=None kinematic=True visible=25 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=2 id=2 owner=True position=(10.20, 4.21, -0.04) speed=0,00 buzz=1,00 interpolation=Interpolate kinematic=False visible=25 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=2 id=0 owner=False position=(8.00, 1.85, 6.44) speed=0,00 buzz=0,00 interpolation=None kinematic=True visible=25 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=2 id=2 owner=True position=(0.00, -0.12, 0.00) speed=0,96 buzz=0,00 interpolation=Interpolate kinematic=False visible=25 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=2 id=0 owner=False position=(8.00, 1.85, 6.44) speed=0,00 buzz=0,00 interpolation=None kinematic=True visible=25 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=2 id=2 owner=True position=(0.00, -0.12, 0.00) speed=0,00 buzz=0,00 interpolation=Interpolate kinematic=False visible=25 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=2 id=0 owner=False position=(4.39, 1.85, 2.42) speed=6,55 buzz=0,93 interpolation=None kinematic=True visible=25 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=2 id=2 owner=True position=(0.00, -0.12, 0.00) speed=0,00 buzz=0,00 interpolation=Interpolate kinematic=False visible=25 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=2 id=0 owner=False position=(-1.79, 1.66, -0.87) speed=0,65 buzz=0,00 interpolation=None kinematic=True visible=25 entered=True attached=True cooldown=0,00",
+        "[MosquitoFlight] local=2 id=2 owner=True position=(0.00, -0.12, 0.00) speed=0,00 buzz=0,00 interpolation=Interpolate kinematic=False visible=25 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=2 id=0 owner=False position=(1.91, 1.61, 1.06) speed=0,77 buzz=0,00 interpolation=None kinematic=True visible=25 entered=True attached=False cooldown=3,40",
+        "[MosquitoFlight] local=2 id=2 owner=True position=(0.00, -0.12, 0.00) speed=0,00 buzz=0,00 interpolation=Interpolate kinematic=False visible=25 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=2 id=0 owner=False position=(2.57, 1.60, -0.19) speed=0,57 buzz=0,00 interpolation=None kinematic=True visible=25 entered=True attached=False cooldown=1,42",
+        "[MosquitoFlight] local=2 id=2 owner=True position=(0.00, -0.12, 0.00) speed=0,00 buzz=0,00 interpolation=Interpolate kinematic=False visible=25 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=2 id=0 owner=False position=(-0.48, 1.49, -1.16) speed=5,83 buzz=0,83 interpolation=None kinematic=True visible=25 entered=True attached=False cooldown=0,00",
+        "[MosquitoFlight] local=2 id=2 owner=True position=(0.00, -0.12, 0.00) speed=0,00 buzz=0,00 interpolation=Interpolate kinematic=False visible=25 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=2 id=0 owner=False position=(-1.42, 1.66, -1.30) speed=1,58 buzz=0,00 interpolation=None kinematic=True visible=25 entered=True attached=False cooldown=4,60",
+        "[MosquitoFlight] local=2 id=2 owner=True position=(0.00, -0.12, 0.00) speed=0,00 buzz=0,00 interpolation=Interpolate kinematic=False visible=0 entered=False attached=False cooldown=0,00"
+      ]
+    },
+    "host": {
+      "file": "igruha\\Builds\\Autotest\\IGR-Network\\logs\\mosquitoes-20260929-165116-entry-timeout\\host.log",
+      "events": [
+        "📍 [Hub] игроки расставлены по SpawnPoint (1)",
+        "[MosquitoLooks] local=0 actual/selected=0:4/4 2:1/1 ",
+        "[MosquitoLooks] local=0 actual/selected=0:4/4 2:1/1 ",
+        "[MosquitoFixture] scenario=entry-timeout",
+        "📊 итоги раунда Mosquitoes [3 на старте, одиночная]: 0:1:+2/0 1:3:+0/0 2:1:+2/0",
+        "[MosquitoResults] local=0 places=0:1 1:3 2:1 restored=3 bodies=0",
+        "🎮 [MyBoy(Clone)] управление возвращено после мини-игры",
+        "📍 [Hub] игроки расставлены по SpawnPoint (3)"
+      ],
+      "errors": [],
+      "results": [
+        "📊 итоги раунда Mosquitoes [3 на старте, одиночная]: 0:1:+2/0 1:3:+0/0 2:1:+2/0"
+      ],
+      "samples": [
+        {
+          "local": 0,
+          "giant": 1,
+          "phase": "Practice",
+          "sleep": 0.0,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 2,
+          "bodies": 2,
+          "countdown": 2.89,
+          "elapsed": 0.0,
+          "netTime": 38.03
+        },
+        {
+          "local": 0,
+          "giant": 1,
+          "phase": "Round",
+          "sleep": 0.0,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 2,
+          "bodies": 2,
+          "countdown": 2.98,
+          "elapsed": 0.02,
+          "netTime": 39.4
+        },
+        {
+          "local": 0,
+          "giant": 1,
+          "phase": "Round",
+          "sleep": 0.0,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 2,
+          "bodies": 2,
+          "countdown": 0.98,
+          "elapsed": 2.02,
+          "netTime": 41.4
+        },
+        {
+          "local": 0,
+          "giant": 1,
+          "phase": "Round",
+          "sleep": 1.02,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 2,
+          "bodies": 2,
+          "countdown": 0.0,
+          "elapsed": 4.02,
+          "netTime": 43.4
+        },
+        {
+          "local": 0,
+          "giant": 1,
+          "phase": "Round",
+          "sleep": 3.02,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 2,
+          "bodies": 2,
+          "countdown": 0.0,
+          "elapsed": 6.02,
+          "netTime": 45.4
+        },
+        {
+          "local": 0,
+          "giant": 1,
+          "phase": "Round",
+          "sleep": 5.02,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 2,
+          "bodies": 2,
+          "countdown": 0.0,
+          "elapsed": 8.02,
+          "netTime": 47.4
+        },
+        {
+          "local": 0,
+          "giant": 1,
+          "phase": "Round",
+          "sleep": 7.02,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 2,
+          "bodies": 2,
+          "countdown": 0.0,
+          "elapsed": 10.02,
+          "netTime": 49.4
+        },
+        {
+          "local": 0,
+          "giant": 1,
+          "phase": "Round",
+          "sleep": 9.02,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 2,
+          "bodies": 2,
+          "countdown": 0.0,
+          "elapsed": 12.02,
+          "netTime": 51.4
+        },
+        {
+          "local": 0,
+          "giant": 1,
+          "phase": "Round",
+          "sleep": 11.02,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 1,
+          "bodies": 2,
+          "countdown": 0.0,
+          "elapsed": 14.02,
+          "netTime": 53.4
+        },
+        {
+          "local": 0,
+          "giant": 1,
+          "phase": "Results",
+          "sleep": 12.28,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 0,
+          "bodies": 0,
+          "countdown": 0.0,
+          "elapsed": 15.28,
+          "netTime": 55.41
+        },
+        {
+          "local": 0,
+          "giant": 1,
+          "phase": "Results",
+          "sleep": 12.28,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 0,
+          "bodies": 0,
+          "countdown": 0.0,
+          "elapsed": 15.28,
+          "netTime": 57.41
+        },
+        {
+          "local": 0,
+          "giant": 1,
+          "phase": "Results",
+          "sleep": 12.28,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 0,
+          "bodies": 0,
+          "countdown": 0.0,
+          "elapsed": 15.28,
+          "netTime": 59.41
+        },
+        {
+          "local": 0,
+          "giant": 1,
+          "phase": "Results",
+          "sleep": 12.28,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 0,
+          "bodies": 0,
+          "countdown": 0.0,
+          "elapsed": 15.28,
+          "netTime": 61.41
+        },
+        {
+          "local": 0,
+          "giant": 1,
+          "phase": "Results",
+          "sleep": 12.28,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 0,
+          "bodies": 0,
+          "countdown": 0.0,
+          "elapsed": 15.28,
+          "netTime": 63.41
+        },
+        {
+          "local": 0,
+          "giant": 1,
+          "phase": "Results",
+          "sleep": 12.28,
+          "state": "Sleeping",
+          "lamp": "False",
+          "alive": 0,
+          "bodies": 0,
+          "countdown": 0.0,
+          "elapsed": 15.28,
+          "netTime": 65.41
+        }
+      ],
+      "flights": [
+        "[MosquitoFlight] local=0 id=0 owner=True position=(8.00, 1.85, 6.44) speed=0,00 buzz=0,00 interpolation=Interpolate kinematic=False visible=25 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=0 id=2 owner=False position=(10.20, 4.21, -0.04) speed=0,00 buzz=0,00 interpolation=None kinematic=True visible=25 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=0 id=0 owner=True position=(8.00, 1.85, 6.44) speed=0,00 buzz=0,00 interpolation=Interpolate kinematic=False visible=25 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=0 id=2 owner=False position=(10.20, 4.21, -0.04) speed=0,00 buzz=0,00 interpolation=None kinematic=True visible=25 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=0 id=0 owner=True position=(8.00, 1.85, 6.44) speed=0,00 buzz=0,00 interpolation=Interpolate kinematic=False visible=25 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=0 id=2 owner=False position=(0.00, -0.12, 0.00) speed=0,00 buzz=0,00 interpolation=None kinematic=True visible=25 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=0 id=0 owner=True position=(3.93, 1.85, 1.65) speed=3,60 buzz=0,22 interpolation=Interpolate kinematic=False visible=25 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=0 id=2 owner=False position=(0.00, -0.12, 0.00) speed=0,00 buzz=0,00 interpolation=None kinematic=True visible=25 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=0 id=0 owner=True position=(-1.87, 1.67, -0.90) speed=0,00 buzz=0,00 interpolation=Interpolate kinematic=False visible=25 entered=True attached=True cooldown=0,00",
+        "[MosquitoFlight] local=0 id=2 owner=False position=(0.00, -0.12, 0.00) speed=0,00 buzz=0,00 interpolation=None kinematic=True visible=25 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=0 id=0 owner=True position=(2.05, 1.61, 0.97) speed=0,89 buzz=0,00 interpolation=Interpolate kinematic=False visible=25 entered=True attached=False cooldown=3,40",
+        "[MosquitoFlight] local=0 id=2 owner=False position=(0.00, -0.12, 0.00) speed=0,00 buzz=0,00 interpolation=None kinematic=True visible=25 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=0 id=0 owner=True position=(2.54, 1.60, -0.32) speed=0,70 buzz=0,00 interpolation=Interpolate kinematic=False visible=25 entered=True attached=False cooldown=1,40",
+        "[MosquitoFlight] local=0 id=2 owner=False position=(0.00, -0.12, 0.00) speed=0,00 buzz=0,00 interpolation=None kinematic=True visible=25 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=0 id=0 owner=True position=(-1.33, 1.48, -1.14) speed=0,45 buzz=0,00 interpolation=Interpolate kinematic=False visible=25 entered=True attached=False cooldown=0,00",
+        "[MosquitoFlight] local=0 id=2 owner=False position=(0.00, -0.12, 0.00) speed=0,00 buzz=0,00 interpolation=None kinematic=True visible=25 entered=False attached=False cooldown=0,00",
+        "[MosquitoFlight] local=0 id=0 owner=True position=(-1.20, 1.63, -1.39) speed=0,65 buzz=0,00 interpolation=Interpolate kinematic=False visible=25 entered=True attached=False cooldown=4,58",
+        "[MosquitoFlight] local=0 id=2 owner=False position=(0.00, -0.12, 0.00) speed=0,00 buzz=0,00 interpolation=None kinematic=True visible=0 entered=False attached=False cooldown=0,00"
+      ]
+    }
+  },
+  "comparisons": {
+    "client-1": {
+      "pairedSamples": 8,
+      "pairs": [
+        {
+          "clientTime": 39.58,
+          "skew": 0.18,
+          "sleepDelta": 0.0,
+          "sameState": true
+        },
+        {
+          "clientTime": 41.56,
+          "skew": 0.16,
+          "sleepDelta": 0.0,
+          "sameState": true
+        },
+        {
+          "clientTime": 43.54,
+          "skew": 0.14,
+          "sleepDelta": 0.1,
+          "sameState": true
+        },
+        {
+          "clientTime": 45.52,
+          "skew": 0.12,
+          "sleepDelta": 0.1,
+          "sameState": true
+        },
+        {
+          "clientTime": 47.5,
+          "skew": 0.1,
+          "sleepDelta": 0.1,
+          "sameState": true
+        },
+        {
+          "clientTime": 49.5,
+          "skew": 0.1,
+          "sleepDelta": 0.1,
+          "sameState": true
+        },
+        {
+          "clientTime": 51.52,
+          "skew": 0.12,
+          "sleepDelta": 0.1,
+          "sameState": true
+        },
+        {
+          "clientTime": 53.52,
+          "skew": 0.12,
+          "sleepDelta": 0.09,
+          "sameState": true
+        }
+      ],
+      "maxSleepDelta": 0.1,
+      "stateMismatches": 0
+    },
+    "client-2": {
+      "pairedSamples": 8,
+      "pairs": [
+        {
+          "clientTime": 39.61,
+          "skew": 0.21,
+          "sleepDelta": 0.0,
+          "sameState": true
+        },
+        {
+          "clientTime": 41.59,
+          "skew": 0.19,
+          "sleepDelta": 0.0,
+          "sameState": true
+        },
+        {
+          "clientTime": 43.57,
+          "skew": 0.17,
+          "sleepDelta": 0.1,
+          "sameState": true
+        },
+        {
+          "clientTime": 45.55,
+          "skew": 0.15,
+          "sleepDelta": 0.1,
+          "sameState": true
+        },
+        {
+          "clientTime": 47.53,
+          "skew": 0.13,
+          "sleepDelta": 0.1,
+          "sameState": true
+        },
+        {
+          "clientTime": 49.51,
+          "skew": 0.11,
+          "sleepDelta": 0.1,
+          "sameState": true
+        },
+        {
+          "clientTime": 51.5,
+          "skew": 0.1,
+          "sleepDelta": 0.1,
+          "sameState": true
+        },
+        {
+          "clientTime": 53.5,
+          "skew": 0.1,
+          "sleepDelta": 0.09,
+          "sameState": true
+        }
+      ],
+      "maxSleepDelta": 0.1,
+      "stateMismatches": 0
+    }
+  }
+}

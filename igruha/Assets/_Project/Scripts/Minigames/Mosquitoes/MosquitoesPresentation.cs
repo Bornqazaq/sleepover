@@ -9,6 +9,7 @@ namespace Igruha.Minigames.Mosquitoes
     {
         [SerializeField] private MosquitoesConfig config;
         [SerializeField] private Light bedsideLight, windowLight, fillLight;
+        [SerializeField] private Light lampWallPool;
         [SerializeField] private ScreenVignette vignette;
         [SerializeField] private TMP_Text status, instructions;
         [SerializeField] private MosquitoesAudio audioPlayer;
@@ -16,6 +17,7 @@ namespace Igruha.Minigames.Mosquitoes
         [SerializeField] private Renderer[] lampGlow;
         private MaterialPropertyBlock lampProperties;
         private AmbientMode ambientMode;
+        private SphericalHarmonicsL2 ambientProbe;
         private Color ambient, ambientSky, ambientEquator, ambientGround;
         private float ambientIntensity, reflection, lampIntensity, windowIntensity, fillIntensity;
         private bool active, giant, warned;
@@ -23,6 +25,7 @@ namespace Igruha.Minigames.Mosquitoes
         public void Begin()
         {
             if (active) return; active = true; warned = false; lastPhase = (GiantPhase)255;
+            ambientProbe = RenderSettings.ambientProbe;
             ambientMode = RenderSettings.ambientMode; ambient = RenderSettings.ambientLight;
             ambientSky = RenderSettings.ambientSkyColor; ambientEquator = RenderSettings.ambientEquatorColor; ambientGround = RenderSettings.ambientGroundColor;
             ambientIntensity = RenderSettings.ambientIntensity; reflection = RenderSettings.reflectionIntensity;
@@ -37,11 +40,14 @@ namespace Igruha.Minigames.Mosquitoes
         {
             giant = isGiant;
             RenderSettings.ambientMode = AmbientMode.Flat;
-            RenderSettings.ambientLight = giant ? Color.black : new Color(.30f, .37f, .55f);
+            RenderSettings.ambientLight = giant ? Color.black : new Color(.10f, .13f, .20f);
             RenderSettings.ambientIntensity = giant ? 0 : 1;
+            var roleProbe = new SphericalHarmonicsL2();
+            roleProbe.AddAmbientLight(giant ? Color.black : new Color(.025f, .035f, .065f));
+            RenderSettings.ambientProbe = roleProbe;
             RenderSettings.reflectionIntensity = giant ? 0 : .4f;
-            if (windowLight != null) windowLight.intensity = giant ? config.WindowIntensity : .7f;
-            if (fillLight != null) fillLight.intensity = giant ? 0 : .2f;
+            if (windowLight != null) windowLight.intensity = giant ? config.WindowIntensity : 4f;
+            if (fillLight != null) fillLight.intensity = giant ? 0 : .12f;
             if (instructions != null) instructions.text = text;
         }
         public void Paint(GiantSleepState state, float countdown, int living, bool practice)
@@ -55,6 +61,7 @@ namespace Igruha.Minigames.Mosquitoes
                 lastPhase = state.Phase;
             }
             if (bedsideLight != null) bedsideLight.enabled = state.LampOn;
+            if (lampWallPool != null) lampWallPool.enabled = state.LampOn;
             SetLampGlow(state.LampOn);
             vignette?.SetAmount(giant && state.Phase == GiantPhase.Sleeping ? config.SleepVignette : 0);
             if (!warned && state.Sleep >= config.SleepTarget - 10) { warned = true; audioPlayer?.LastTenSeconds(); }
@@ -77,10 +84,12 @@ namespace Igruha.Minigames.Mosquitoes
         {
             if (!active) return; active = false;
             RenderSettings.ambientMode = ambientMode; RenderSettings.ambientLight = ambient;
+            RenderSettings.ambientProbe = ambientProbe;
             RenderSettings.ambientSkyColor = ambientSky; RenderSettings.ambientEquatorColor = ambientEquator; RenderSettings.ambientGroundColor = ambientGround;
             RenderSettings.ambientIntensity = ambientIntensity; RenderSettings.reflectionIntensity = reflection;
             if (bedsideLight != null) { bedsideLight.enabled = true; bedsideLight.intensity = lampIntensity; }
             SetLampGlow(true);
+            if (lampWallPool != null) lampWallPool.enabled = true;
             if (windowLight != null) windowLight.intensity = windowIntensity;
             if (fillLight != null) fillLight.intensity = fillIntensity;
             vignette?.SetImmediate(0);

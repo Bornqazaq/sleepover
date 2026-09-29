@@ -9,14 +9,14 @@ namespace Igruha.Minigames.Mosquitoes
         public int GiantId;
         public byte Phase;
         public bool Lamp;
-        public float Sleep, Transition, Immunity, Countdown;
+        public float Sleep, Transition, Immunity, Countdown, EntryRemaining;
         public void NetworkSerialize<T>(BufferSerializer<T> s) where T : IReaderWriter
         {
             s.SerializeValue(ref GiantId); s.SerializeValue(ref Phase); s.SerializeValue(ref Lamp);
-            s.SerializeValue(ref Sleep); s.SerializeValue(ref Transition); s.SerializeValue(ref Immunity); s.SerializeValue(ref Countdown);
+            s.SerializeValue(ref Sleep); s.SerializeValue(ref Transition); s.SerializeValue(ref Immunity); s.SerializeValue(ref Countdown); s.SerializeValue(ref EntryRemaining);
         }
         public bool Equals(MosquitoesSnapshot o) => GiantId == o.GiantId && Phase == o.Phase && Lamp == o.Lamp &&
-            Sleep == o.Sleep && Transition == o.Transition && Immunity == o.Immunity && Countdown == o.Countdown;
+            Sleep == o.Sleep && Transition == o.Transition && Immunity == o.Immunity && Countdown == o.Countdown && EntryRemaining == o.EntryRemaining;
     }
     public sealed class MosquitoesNetwork : NetworkBehaviour
     {
@@ -53,9 +53,9 @@ namespace Igruha.Minigames.Mosquitoes
             if (!IsSpawned || !IsServer || game.Sleep == null) return;
             state.Value = new MosquitoesSnapshot { GiantId = game.GiantId, Phase = (byte)game.Sleep.Phase,
                 Lamp = game.Sleep.LampOn, Sleep = game.Sleep.Sleep, Transition = game.Sleep.TransitionRemaining,
-                Immunity = game.Sleep.ImmunityRemaining, Countdown = game.Countdown };
+                Immunity = game.Sleep.ImmunityRemaining, Countdown = game.Countdown, EntryRemaining = game.EntryRemaining };
             for (int i = Living.Count - 1; i >= 0; i--) if (!game.IsLiving(Living[i])) Living.RemoveAt(i);
-            foreach (MosquitoBody body in game.Bodies) if (body != null && body.IsAlive && !Living.Contains(body.Id)) Living.Add(body.Id);
+            foreach (MosquitoBody body in game.Bodies) if (body != null && game.IsLiving(body.Id) && !Living.Contains(body.Id)) Living.Add(body.Id);
         }
         public void RequestBed()
         {
@@ -68,10 +68,10 @@ namespace Igruha.Minigames.Mosquitoes
         [ServerRpc(RequireOwnership = false)] private void BedServerRpc(ServerRpcParams rpc = default) => game.TryBed((int)rpc.Receive.SenderClientId);
         [ServerRpc(RequireOwnership = false)] private void SwatServerRpc(ServerRpcParams rpc = default) => game.TrySwat((int)rpc.Receive.SenderClientId);
         private void Disconnected(ulong id) => pendingDepartures.Add((int)id);
-        public void Effect(byte kind, Vector3 position)
+        public void Effect(byte kind, Vector3 position, int attacker = -1)
         {
-            if (IsSpawned && IsServer) EffectClientRpc(kind, position); else if (!IsSpawned) game.PlayEffect(kind, position);
+            if (IsSpawned && IsServer) EffectClientRpc(kind, position, attacker); else if (!IsSpawned) game.PlayEffect(kind, position, attacker);
         }
-        [ClientRpc] private void EffectClientRpc(byte kind, Vector3 position) => game.PlayEffect(kind, position);
+        [ClientRpc] private void EffectClientRpc(byte kind, Vector3 position, int attacker) => game.PlayEffect(kind, position, attacker);
     }
 }
