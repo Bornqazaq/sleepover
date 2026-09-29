@@ -66,11 +66,13 @@ namespace Igruha.Networking
             else ApplyTutorialSnapshot();
             phase.OnValueChanged += OnPhaseChanged;
             roundRemaining.OnValueChanged += OnRoundTimeChanged;
+            roundDuration.OnValueChanged += OnRoundTimeChanged;
 
             // Подключились в середине раунда — догоняем текущую фазу.
             if (!IsServer && phase.Value != MinigamePhase.Idle)
             {
                 target?.ApplyPhase(phase.Value);
+                ApplyRoundTimeSnapshot();
             }
         }
 
@@ -80,6 +82,7 @@ namespace Igruha.Networking
             if (IsServer) NetworkManager.OnClientDisconnectCallback -= OnTutorialParticipantDisconnected;
             phase.OnValueChanged -= OnPhaseChanged;
             roundRemaining.OnValueChanged -= OnRoundTimeChanged;
+            roundDuration.OnValueChanged -= OnRoundTimeChanged;
 
             base.OnNetworkDespawn();
         }
@@ -225,8 +228,14 @@ namespace Igruha.Networking
 
         private void OnRoundTimeChanged(float previous, float current)
         {
-            target?.ApplyRoundTime(current, roundDuration.Value);
+            // NGO applies these fields separately. A new remaining value may
+            // arrive before duration (still zero from practice). Reapply when
+            // either field changes, including a timer held during 3–2–1.
+            ApplyRoundTimeSnapshot();
         }
+
+        private void ApplyRoundTimeSnapshot() =>
+            target?.ApplyRoundTime(roundRemaining.Value, roundDuration.Value);
 
         /// <summary>Хост уже показал итоги локально, поэтому шлём только остальным.</summary>
         [Rpc(SendTo.NotServer)]
