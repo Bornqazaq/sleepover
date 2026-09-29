@@ -57,7 +57,9 @@ namespace Igruha.EditorTools
             float ratio = radius / ArtRadius;
             var paving = Group(gallery.transform, "MarblePaving");
             paving.position = Vector3.up * floor.GetComponent<Collider>().bounds.max.y;
-            paving.localScale = new Vector3(ratio, 1f, ratio);
+            // The new mosaic is authored at the current 34 m radius.
+            paving.localScale = new Vector3(radius / 34f, 1f, radius / 34f);
+            CryingAngelsGalleryAssets.Place("CA_FuneraryMosaic", paving, Vector3.zero, Quaternion.identity);
             for (int i = 0; i < BayCount; i++)
             {
                 float angle = i * 360f / BayCount;
@@ -84,7 +86,6 @@ namespace Igruha.EditorTools
                 var dome = CryingAngelsGalleryAssets.Place("CA_DomeSector", environment, Vector3.zero, Quaternion.Euler(0, angle, 0));
                 dome.transform.localScale = new Vector3(ratio,1f,ratio);
                 foreach (var renderer in dome.GetComponentsInChildren<Renderer>()) renderer.shadowCastingMode = ShadowCastingMode.Off;
-                CryingAngelsGalleryAssets.Place("CA_FloorSector_" + i.ToString("00"), paving, Vector3.zero, Quaternion.identity);
                 if (i % 2 == 0)
                 {
                     var web = CryingAngelsGalleryAssets.Place("CA_CornerWeb", environment, outward * (radius-.20f) + Vector3.up*.12f, Quaternion.Euler(0,90f+angle,0));

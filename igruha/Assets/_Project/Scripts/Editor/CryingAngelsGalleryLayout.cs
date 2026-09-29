@@ -45,6 +45,16 @@ namespace Igruha.EditorTools
                 var go=CryingAngelsGalleryAssets.Place("CA_StoneFragments",root.transform,new Vector3(Mathf.Sin(angle)*r,.025f,Mathf.Cos(angle)*r),Quaternion.Euler(0,(float)random.NextDouble()*360,0));
                 float scale=.55f+(float)random.NextDouble()*.65f;go.transform.localScale=new Vector3(scale,.8f,scale);
             }
+            // Small, flat remnants of offerings break up empty floor without
+            // creating extra cover or collision along the exposed crossings.
+            for(int i=0;i<14;i++)
+            {
+                float angle=(i*137.508f+19f)*Mathf.Deg2Rad;
+                float r=(i%3==0 ? 7.1f : i%3==1 ? 14.8f : 23.6f)*(radius/34f);
+                var offering=CryingAngelsGalleryAssets.Place("CA_SpentOfferings",root.transform,
+                    new Vector3(Mathf.Sin(angle)*r,.005f,Mathf.Cos(angle)*r),Quaternion.Euler(0,i*71f,0));
+                offering.transform.localScale=Vector3.one*(.75f+(float)random.NextDouble()*.4f);
+            }
             for(int i=0;i<12;i++)
             {
                 float angle=i*30f+11.25f;

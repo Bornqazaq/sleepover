@@ -52,8 +52,8 @@ PEDESTAL_RADIUS=2.16;PEDESTAL_GAP=1.3
 for i in range(8):
  x,z=polar(26.5/POSITION_SCALE,i*45)
  add(f'Cover_SpawnScreen_{i+1:02}_High',highs[i%6],x,z,i*45,(1.65,2.4,1.12),f'screen{i}')
-# The final 12.5 m are open in every direction. Crouching only helps behind
-# an actual exhibit; it cannot turn the entire approach into a hidden route.
+# Keep the original outer exhibits; three isolated inner refuges are added
+# after packing so this pass does not move the accepted gallery composition.
 # Columns to the dome, scattered rather than on a ring.
 # Tall exhibits stay outside the exposed inner floor.
 for i,(r,deg) in enumerate([(20.0,22.5),(23.0,67.5),(21.0,112.5),(24.0,157.5),(20.5,202.5),(23.5,247.5),(21.5,292.5),(24.5,337.5)]):
@@ -155,6 +155,23 @@ nearest_tall=min(math.hypot(r['position']['x'],r['position']['z'])-radius_of(r) 
 assert nearest_tall>=TALL_MIN_RADIUS-.05,nearest_tall
 nearest_cover=min(math.hypot(r['position']['x'],r['position']['z'])-radius_of(r) for r in rows)
 assert nearest_cover>=OPEN_RADIUS-.05,nearest_cover
+# Three distant pauses within the exposed floor, never a chain of low cover.
+# Native world metres here (the historic add() helper scales older coordinates).
+for i,(distance,angle,model,size,yaw) in enumerate([
+ (9.8,55,'Sarcophagus',(2.65,LOW_H,1.18),70),
+ (10.8,183,'ShatteredPillar',(1.65,2.65,1.65),12),
+ (10.2,298,'PrayingAngel',(1.65,2.6,1.3),118),
+]):
+ x,z=polar(distance,angle)
+ rows.append(dict(name=f'Cover_Refuge_{i+1:02}_'+('Low' if i==0 else 'High'),
+  model='CA_'+model,position=dict(x=x,y=size[1]/2,z=z),
+  size=dict(zip(('x','y','z'),size)),yaw=yaw,group=f'refuge{i}'))
+refuges=rows[-3:]
+refuge_spacing=min(gap_of(a,b)[0] for i,a in enumerate(refuges) for b in refuges[i+1:])
+refuge_outer_gap=min(gap_of(a,b)[0] for a in refuges for b in rows[:-3])
+assert refuge_spacing>=14,refuge_spacing
+assert refuge_outer_gap>=3.3,refuge_outer_gap
+assert all(math.hypot(r['position']['x'],r['position']['z'])-radius_of(r)>=8 for r in refuges)
 for r in rows: del r['group']
 OUT.write_text(json.dumps(dict(referenceRadius=WALL_RADIUS,covers=rows),indent=2)+'\n')
-print(json.dumps(dict(covers=len(rows),high=sum(r['name'].endswith('High') for r in rows),minimumGap=round(minimum[0],2),minimumLane=round(lane[0],2),pedestalGap=round(pedestal,2),outermost=round(outer,2),openRadius=round(nearest_cover,2))))
+print(json.dumps(dict(covers=len(rows),high=sum(r['name'].endswith('High') for r in rows),minimumGap=round(minimum[0],2),minimumLane=round(lane[0],2),pedestalGap=round(pedestal,2),outermost=round(outer,2),outerExhibitsInnerRadius=round(nearest_cover,2),refugeSpacing=round(refuge_spacing,2),refugeOuterGap=round(refuge_outer_gap,2))))

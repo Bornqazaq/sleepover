@@ -49,6 +49,8 @@ namespace Igruha.Tests
             float partialYaw = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg;
             int stage = -1;
             bool swept = false, partial = false, held = false, returned = false;
+            bool fullSight = false;
+            float fullPitch = 8f;
             bool crouched = false, crouchFrozen = false, crouchReturned = false;
             var crouchInput = typeof(PlayerInputReader).GetProperty("CrouchHeld");
             float frozenAt = -1f, respawnSeconds = -1f;
@@ -66,7 +68,9 @@ namespace Igruha.Tests
                     if (keeper && (stage == 1 || stage == 3) && stings != 0)
                         fail("angels sonar sting during " + (stage == 1 ? "sweep" : "partial cover"));
                     if (keeper && stage == 5 && stings != 1)
-                        fail("angels fully visible target must produce exactly one sting: " + stings);
+                        fail($"angels fully visible target must produce exactly one sting: {stings}, fullSight={fullSight}");
+                    if (keeper && stage == 5 && !fullSight)
+                        fail("angels full-sight test never aimed at the complete body");
                     stage = next;
                     if (keeper)
                     {
@@ -84,7 +88,8 @@ namespace Igruha.Tests
                             Vector3 point = new Vector3(-2 + i++ * 2, .1f, -4);
                             if (player.Avatar == runner)
                             {
-                                if (stage == 1 || stage == 5) point = new Vector3(0, .1f, 4);
+                                if (stage == 1) point = new Vector3(0, .1f, 4);
+                                if (stage == 5) point = new Vector3(0, .1f, 6);
                                 if (stage == 3) point = partialPoint;
                                 if (stage == 6) point = new Vector3(0, .1f, 10f);
                             }
@@ -99,7 +104,17 @@ namespace Igruha.Tests
                     // while neither endpoint actually shows the runner in the current light.
                     float yaw = stage == 1 ? (Mathf.FloorToInt((elapsed - 5f) / .35f) % 2 == 0 ? -70f : 70f) :
                         stage == 3 ? partialYaw : stage == 5 || stage == 7 ? 0f : 120f;
-                    rig.SetView(yaw, stage == 5 || stage == 7 ? 8f : 0f);
+                    // Roster characters have different eye heights. Aim at the
+                    // actual capsule so this tests full visibility, not a fixed
+                    // pitch that only clips the head for a taller keeper.
+                    if (stage == 5 && runner.Position.z < 8f && runner.Position.z > 2f)
+                    {
+                        Vector3 aim = runner.GetComponent<Collider>().bounds.center - game.KeeperLight.transform.position;
+                        fullPitch = -Mathf.Atan2(aim.y, new Vector2(aim.x, aim.z).magnitude) * Mathf.Rad2Deg;
+                    }
+                    rig.SetView(yaw, stage == 5 ? fullPitch : stage == 7 ? 8f : 0f);
+                    if (stage == 5 && state.Current == RunnerState.Phase.Frozen &&
+                        game.KeeperLight.ClearlySees(runner.GetComponent<Collider>())) fullSight = true;
                     for (int i = 0; i < voices.Length; i++)
                     {
                         var clip = voices[i].clip;

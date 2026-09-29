@@ -38,12 +38,21 @@ for i in range(8):
   assert not blocked(camera_r*math.sin(a),camera_r*math.cos(a)),('spawn camera blocked',i,back)
  u=(round(x/STEP),round(z/STEP));assert u in distances,('unreachable spawn',i)
  paths.append(round(distances[u],1))
-open_radius=12.5
+open_radius=8.0
 for deg in range(360):
  a=math.radians(deg)
  for radius in [i*STEP for i in range(8,int(open_radius/STEP)+1)]:
   assert not blocked(radius*math.sin(a),radius*math.cos(a),pad=0),('covered inner approach',deg,radius)
+refuges=[r for r in data['covers'] if 'Refuge' in r['name']]
+assert len(refuges)==3
+spacing=[]
+for i,a in enumerate(refuges):
+ for b in refuges[i+1:]:
+  gap=math.hypot(a['position']['x']-b['position']['x'],a['position']['z']-b['position']['z'])
+  gap-=sum(math.hypot(r['size']['x'],r['size']['z'])/2 for r in (a,b))
+  assert gap>=14,('refuges too close',gap)
+  spacing.append(round(gap,2))
 # Cover cannot occlude a ray to a crouched player inside a disc containing no cover.
 # The actual crouching capsule and server/client freeze are also checked in AngelsHuntCheck.
-print(json.dumps({'covers':len(boxes),'radius':R,'reachable_spawns':len(paths),'shortest_routes_m':paths,
+print(json.dumps({'covers':len(boxes),'radius':R,'refuge_gaps_m':spacing,'reachable_spawns':len(paths),'shortest_routes_m':paths,
  'unavoidably_exposed_final_approach_m':open_radius-1.08,'clear_spawn_cameras':8,'tested_body_diameter':PAD*2}))

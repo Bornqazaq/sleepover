@@ -87,6 +87,8 @@ namespace Igruha.Minigames.CryingAngels
             public float BestRadius = float.MaxValue;
             public float BestRadiusTime;
             public bool Touched;
+            public bool AwaitingSpawnPosition;
+            public Vector3 SpawnPosition;
             public float TouchTime;
             /// <summary>Номер по порядку зачёта, с 1. Именно он решает места дошедших.</summary>
             public int TouchOrder;
@@ -217,7 +219,10 @@ namespace Igruha.Minigames.CryingAngels
             roundElapsed = 0f;
             countdownRemaining = !IsPractice && config != null ? config.StartCountdown : 0f;
             SetStartCountdownActive(countdownRemaining > 0f);
-            Hud?.SetTimerPlateVisible(!IsPractice);
+            // Base initializes the full duration before this hook. Preserve that
+            // value during 3–2–1; only the authority starts spending round time.
+            if (countdownRemaining > 0f) Timer?.StopTimer();
+            Hud?.SetTimerPlateVisible(!IsPractice && countdownRemaining <= 0f);
             beamMismatchReported = false;
             ResetRunnersForRound();
             // Клиент мог уже получить включённый фонарь раньше фазы Practice.
@@ -356,12 +361,13 @@ namespace Igruha.Minigames.CryingAngels
             network?.ServerTickBeamAim(deltaTime, KeeperTurnSpeed, BeamPitchLimit);
 
             // Прогресс и исход считает только авторитет.
-            if (!HasAuthority)
+            if (!HasAuthority || countdownRemaining > 0f)
             {
                 return;
             }
 
             roundElapsed += deltaTime;
+            ObserveRunnerSpawns();
             TrackRunnerProgress();
             EvaluateBeam();
             EvaluateTouches();
@@ -387,7 +393,7 @@ namespace Igruha.Minigames.CryingAngels
             for (int i = 0; i < runners.Count && RoundActive; i++)
             {
                 RunnerRecord runner = runners[i];
-                if (runner.Touched || runner.Avatar == null)
+                if (runner.Touched || runner.Avatar == null || runner.AwaitingSpawnPosition)
                 {
                     continue;
                 }
@@ -399,7 +405,9 @@ namespace Igruha.Minigames.CryingAngels
                     continue;
                 }
 
-                if (touchZone.Contains(runner.Avatar.transform.position))
+                // Physics position is already updated by RequestTeleport;
+                // the rendered Transform can still be at the old dais this tick.
+                if (touchZone.Contains(runner.Avatar.Position))
                 {
                     RegisterRunnerTouch(runner.PlayerId);
                 }
@@ -407,7 +415,7 @@ namespace Igruha.Minigames.CryingAngels
         }
 
         /// <summary>
-        /// Отсчёт идёт только в зачётном раунде: таймер тикает, ввод заблокирован,
+        /// Отсчёт идёт только в зачётном раунде: таймер ждёт, ввод заблокирован,
         /// фонарь выключен. В разминке фонарь работает сразу, без отсчёта.
         /// </summary>
         private void TickCountdown(float deltaTime)
@@ -426,10 +434,12 @@ namespace Igruha.Minigames.CryingAngels
             countdownRemaining = 0f;
             SetStartCountdownActive(false);
             Hud?.HideCountdown();
+            Hud?.SetTimerPlateVisible(!IsPractice);
 
             // Фонарь — исход раунда: клиент дожидается сети, а не зажигает свой.
             if (HasAuthority)
             {
+                Timer?.StartTimer(RoundDuration);
                 SetBeamEnabled(true);
             }
         }
@@ -454,7 +464,7 @@ namespace Igruha.Minigames.CryingAngels
             for (int i = 0; i < runners.Count; i++)
             {
                 RunnerRecord runner = runners[i];
-                if (runner.State == null)
+                if (runner.State == null || runner.AwaitingSpawnPosition)
                 {
                     continue;
                 }
@@ -621,12 +631,12 @@ namespace Igruha.Minigames.CryingAngels
             for (int i = 0; i < runners.Count; i++)
             {
                 RunnerRecord runner = runners[i];
-                if (runner.Touched || runner.Avatar == null)
+                if (runner.Touched || runner.Avatar == null || runner.AwaitingSpawnPosition)
                 {
                     continue;
                 }
 
-                Vector3 offset = runner.Avatar.transform.position - arenaCenter;
+                Vector3 offset = runner.Avatar.Position - arenaCenter;
                 offset.y = 0f;
                 float radius = offset.magnitude;
                 if (radius >= runner.BestRadius)
@@ -640,6 +650,20 @@ namespace Igruha.Minigames.CryingAngels
         }
 
         // ========== РОЛИ ==========
+
+        private void ObserveRunnerSpawns()
+        {
+            // RequestTeleport is applied by the owner. Until its transform
+            // arrives, a new remote runner can still appear at the dais and
+            // falsely finish the free practice on the very first server tick.
+            foreach (var runner in runners)
+            {
+                if (!runner.AwaitingSpawnPosition || runner.Avatar == null) continue;
+                Vector3 delta = runner.Avatar.Position - runner.SpawnPosition;
+                delta.y = 0f;
+                if (delta.sqrMagnitude < 16f) runner.AwaitingSpawnPosition = false;
+            }
+        }
 
         private void CacheArenaCenter()
         {
@@ -723,7 +747,10 @@ namespace Igruha.Minigames.CryingAngels
             // при одном Водящем в кольце остаётся дыра размером с его слот.
             for (int i = 0; i < runners.Count; i++)
             {
-                MoveTo(runners[i].Avatar, spawnPoints?.GetSpreadPoint(SpawnRole.Default, i, runners.Count));
+                var point = spawnPoints?.GetSpreadPoint(SpawnRole.Default, i, runners.Count);
+                runners[i].AwaitingSpawnPosition = Networked && HasAuthority && point != null;
+                if (point != null) runners[i].SpawnPosition = point.transform.position;
+                MoveTo(runners[i].Avatar, point);
             }
 
             if (keeperPlayerId != SpecialRoleHistory.NoPlayer && HasAuthority)
@@ -1235,7 +1262,7 @@ namespace Igruha.Minigames.CryingAngels
                 return;
             }
 
-            if (!runnerByBody.TryGetValue(body, out RunnerRecord runner) || runner.State == null)
+            if (!runnerByBody.TryGetValue(body, out RunnerRecord runner) || runner.State == null || runner.AwaitingSpawnPosition)
             {
                 return;
             }

@@ -117,9 +117,18 @@ namespace Igruha.Tests
                 var start = avatar.Position;
                 float lockedAt = Time.time;
                 int frames = 0;
+                var countdownTimer = FindFirstObjectByType<RoundTimer>();
+                var countdownHud = FindFirstObjectByType<RoundHud>();
+                var countdownPlate = (GameObject)typeof(RoundHud).GetField("timerPlate", Private).GetValue(countdownHud);
                 while (game != null && game.Phase == phase && game.StartCountdownActive && Time.realtimeSinceStartup < deadline)
                 {
                     frames++;
+                    if (game is CryingAngelsMinigame &&
+                        (countdownPlate.activeInHierarchy ||
+                         (NetworkManager.Singleton.IsServer && countdownTimer.IsRunning) ||
+                         (Time.time - lockedAt > .25f && countdownTimer.Duration <= 0f) ||
+                         countdownTimer.Remaining < countdownTimer.Duration - .05f))
+                    { Fail($"angels spent round time during 3–2–1: {countdownTimer.Remaining:F2}/{countdownTimer.Duration:F2}"); break; }
                     input.DriveMove(Vector2.up); input.DriveJump(); input.DrivePushHold(true);
                     input.DriveInteract(); input.DriveInteractHold(true); input.DrivePose(2); push.RequestPush();
                     if (!input.Suspended || input.MoveInput != Vector2.zero || input.JumpPressed || input.PushPressed ||
@@ -163,6 +172,13 @@ namespace Igruha.Tests
                     var plate = (GameObject)typeof(RoundHud).GetField("timerPlate", Private).GetValue(hud);
                     if (!timer.IsRunning || timer.Remaining <= 0f || !plate.activeInHierarchy)
                         Fail("angels scored round timer missing");
+                    if (timer.Remaining < timer.Duration - 1f)
+                        Fail($"angels lost round time before play: {timer.Remaining:F2}/{timer.Duration:F2}");
+                    float remainingAtStart = timer.Remaining;
+                    yield return new WaitForSeconds(1f);
+                    float spent = remainingAtStart - timer.Remaining;
+                    if (spent < .6f || spent > 1.4f) Fail($"angels timer not ticking after countdown: {spent:F2}");
+                    Debug.Log($"PLAYTEST_CHECK angels timer held during countdown, started={remainingAtStart:F2}/{timer.Duration:F2}, spentAfterStart={spent:F2}");
                 }
                 if (pass == 0) game.ToggleTutorialReady();
             }
@@ -180,11 +196,19 @@ namespace Igruha.Tests
             int history = SessionScoreboard.Current.History.Count;
             float start = Time.realtimeSinceStartup;
             bool host = NetworkManager.Singleton.IsServer;
+            var keeperView = FindFirstObjectByType<FirstPersonCameraRig>();
             bool ready = false, cancelled = false, reconfirmed = false;
             float wait = host ? 8f : 10f;
             while (Time.realtimeSinceStartup - start < wait)
             {
                 float elapsed = Time.realtimeSinceStartup - start;
+                // Keep the live beam away from the movement sample. Beam freezes
+                // are covered separately by AngelsHuntCheck, not by this input gate test.
+                if (avatar == angels.Keeper && keeperView != null)
+                {
+                    keeperView.SetViewDrivenExternally(true);
+                    keeperView.SetView(20f, -55f);
+                }
                 if (game == null || game.Phase != MinigamePhase.Practice || game.StartCountdownActive ||
                     timer.IsRunning || timer.Remaining != 0f || plate.activeInHierarchy ||
                     countdown.gameObject.activeInHierarchy || input.Suspended ||
@@ -206,7 +230,7 @@ namespace Igruha.Tests
                 var reference = new GameObject("Angels practice movement reference");
                 avatar.SetCameraReference(reference.transform);
                 input.DriveMove(new Vector2(-before.x, -before.z).normalized);
-                yield return new WaitForSeconds(.3f); input.DriveMove(Vector2.zero);
+                yield return new WaitForSeconds(.6f); input.DriveMove(Vector2.zero);
                 Destroy(reference);
                 if (Vector3.Distance(before, avatar.Position) < .1f)
                     Fail($"angels practice movement blocked before={before} after={avatar.Position} locked={avatar.MovementLocked} suspended={input.Suspended} phase={game.Phase}");
