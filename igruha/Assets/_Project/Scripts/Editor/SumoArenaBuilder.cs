@@ -31,9 +31,7 @@ namespace Igruha.EditorTools
             Set(definition, "displayName", "Ринг сумо"); Set(definition, "sceneName", "SumoRing");
             Set(definition, "minPlayers", 3); Set(definition, "maxPlayers", 8); Set(definition, "roundDuration", 0f);
             Set(definition, "objective", "Вытолкни соперников с ринга. Край осыпается — последний устоявший побеждает.");
-            Strings(definition, "controlHints", new[] { "WASD — движение · мышь — камера", "ЛКМ — толчок · Space — прыжок", "Трещины предупреждают об обвале за 2 секунды.", "Упал с ринга — наблюдаешь. Одновременный вылет делит место." });
-            Strings(definition, "tutorialSteps", new[] { "Подойди к сопернику и толкни его за край.", "Следи за трещинами: внешние кольца осыпаются.", "Займи центр и останься последним на ринге." });
-            Strings(definition, "tutorialQuickHints", new[] { "ЛКМ — толчок", "Space — прыжок", "Край трещит — отойди к центру" });
+            SumoCombatBuilder.Build();
             var arena = GameObject.Find("_Arena").transform; Clear(arena);
             Clear(GameObject.Find("_Traps").transform); Clear(GameObject.Find("_Pickups").transform); Clear(GameObject.Find("_Bounds").transform);
             var grey = Material("Clay", new Color(.46f, .46f, .44f));
