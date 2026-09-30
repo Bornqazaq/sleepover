@@ -1,0 +1,14 @@
+{
+  "game": "Mosquitoes",
+  "source": "No dedicated delivered clips as of 2026-09-24. Empty slots await the sound supply; no generated substitutes.",
+  "output_folder": "Assets/_Project/Audio/Mosquitoes",
+  "slots": [
+    { "id": "buzz_loop", "file": "SFX_MSQ_Buzz_Loop", "loop": true, "spatial": true, "volume": 1.0 },
+    { "id": "bite", "file": "SFX_MSQ_Bite", "loop": false, "spatial": true, "volume": 0.9 },
+    { "id": "lamp_switch", "file": "SFX_MSQ_Lamp_Switch", "loop": false, "spatial": true, "volume": 0.8 },
+    { "id": "mosquito_death", "file": "SFX_MSQ_Death", "loop": false, "spatial": true, "volume": 0.9 },
+    { "id": "bed_creak", "file": "SFX_MSQ_Bed_Creak", "loop": false, "spatial": true, "volume": 0.6 },
+    { "id": "room_ambience", "file": "SFX_MSQ_Room_Loop", "loop": true, "spatial": false, "volume": 0.25 },
+    { "id": "sleep_final_ten", "file": "SFX_MSQ_Final_Ten", "loop": false, "spatial": false, "volume": 0.5 }
+  ]
+}
