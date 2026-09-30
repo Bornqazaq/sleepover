@@ -84,6 +84,8 @@ namespace Igruha.EditorTools
             }
             foreach (string path in Directory.GetFiles(Art + "/Models", "*.fbx"))
             {
+                // Pump uses its own CP palette, imported by CarryPumpArt.
+                if (Path.GetFileName(path).StartsWith("CS_WaterPump", StringComparison.Ordinal)) continue;
                 var importer = (ModelImporter)AssetImporter.GetAtPath(path);
                 importer.bakeAxisConversion = true;
                 importer.addCollider = false;

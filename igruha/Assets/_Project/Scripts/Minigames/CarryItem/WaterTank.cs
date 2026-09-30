@@ -10,11 +10,8 @@ namespace Igruha.Minigames.CarryItem
     /// Бак команды: он же счёт. Уровень виден снаружи и читается с игровой
     /// камеры без наведения — ради этого интерфейс не нужен вовсе.
     ///
-    /// Тележку ввезли в зону — она сама кренится назад и переливает.
-    /// Переливает <b>пока стоит в зоне</b>: выкатили на середине — перелилось
-    /// только то, что успело, остаток остался в тележке. Это не придирка, а
-    /// рабочий приём: под обстрелом у бака выгоднее слить половину и уехать,
-    /// чем стоять две секунды.
+    /// Тележку подвезли к насосу — он постепенно откачивает воду.
+    /// Отъехали на середине — остаток сохраняется в тележке.
     ///
     /// Ходка закрыта, когда тележка в зоне опустела. Тележка при этом никуда
     /// не исчезает — стоит пустая, и её надо укатить обратно к крану.
@@ -25,8 +22,11 @@ namespace Igruha.Minigames.CarryItem
         [SerializeField] private CarryItemConfig config;
         [SerializeField] private Transform waterInlet;
         public Vector3 PourPoint => waterInlet != null ? waterInlet.position : transform.position;
-        [Tooltip("Меш воды в баке. Растягивается по уровню ступенями")]
+        [SerializeField] private Transform cartDock;
+        public Vector3 DockPoint => cartDock != null ? cartDock.position : transform.position;
+        [Tooltip("Пивот воды у дна бака; WaterVolumeVisual сглаживает уровень")]
         [SerializeField] private Transform waterMesh;
+        private WaterVolumeVisual waterVisual;
         [Tooltip("Что красится в цвет команды: обод бака и прочие метки принадлежности")]
         [SerializeField] private Renderer[] teamTint;
         [Tooltip("Зона слива — триггер вокруг бака. Пусто: возьмём триггер с этого объекта")]
@@ -61,6 +61,7 @@ namespace Igruha.Minigames.CarryItem
         {
             ResolvePourZone();
             materialBlock = new MaterialPropertyBlock();
+            if (waterMesh != null) waterVisual = waterMesh.GetComponent<WaterVolumeVisual>();
         }
 
         /// <summary>
@@ -160,8 +161,8 @@ namespace Igruha.Minigames.CarryItem
 
             RefreshCartsInZone();
 
-            // Крен на слив держит только та тележка, которая в зоне и с водой.
-            // Выкатилась или опустела — крен снимается, и это состояние, а не
+            // Насос работает только пока тележка в зоне и с водой.
+            // Выкатилась или опустела — откачка прекращается, и это состояние, а не
             // событие: клиент видит его флагом тележки.
             for (int i = pouring.Count - 1; i >= 0; i--)
             {
@@ -296,7 +297,7 @@ namespace Igruha.Minigames.CarryItem
             TripFinished?.Invoke();
         }
 
-        /// <summary>Снять крен слива со всех тележек — конец раунда или сброс бака.</summary>
+        /// <summary>Остановить откачку — конец раунда или сброс бака.</summary>
         private void ReleasePouring()
         {
             for (int i = 0; i < pouring.Count; i++)
@@ -330,6 +331,12 @@ namespace Igruha.Minigames.CarryItem
 
             int totalSteps = Mathf.Max(1, config.TankCapacity / config.WaterStep);
             float fraction = Mathf.Clamp01(step / (float)totalSteps);
+
+            if (waterVisual != null)
+            {
+                waterVisual.SetLevel(fraction);
+                return;
+            }
 
             Vector3 scale = waterMesh.localScale;
             scale.y = Mathf.Max(0.001f, fraction);

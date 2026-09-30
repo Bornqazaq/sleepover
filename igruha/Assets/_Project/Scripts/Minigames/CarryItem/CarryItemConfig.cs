@@ -53,8 +53,8 @@ namespace Igruha.Minigames.CarryItem
         [SerializeField] private int waterStep = 5;
         [Tooltip("Темп наполнения под краном, единиц в секунду")]
         [SerializeField] private float fillRate = 25f;
-        [Tooltip("Темп слива в бак, единиц в секунду")]
-        [SerializeField] private float pourRate = 75f;
+        [Tooltip("Темп откачки насосом, единиц в секунду: 150 единиц за 6 секунд")]
+        [SerializeField] private float pourRate = 25f;
         [Tooltip("Через сколько секунд улетевшая в пропасть тележка появляется на стоянке у крана")]
         [SerializeField] private float cartRespawnSeconds = 5f;
 
@@ -127,8 +127,6 @@ namespace Igruha.Minigames.CarryItem
         [SerializeField] private float tiltRestoring = 9f;
         [Tooltip("Предельный крен в руках, °")]
         [SerializeField] private float maxTiltAngle = 60f;
-        [Tooltip("Крен назад при сливе в бак, °. Чистый визуал: воду переливает зона бака")]
-        [SerializeField] private float pourTiltAngle = 30f;
 
         [Header("Таран")]
         [SerializeField] private float minRamSpeed = 2f;
@@ -212,7 +210,6 @@ namespace Igruha.Minigames.CarryItem
         public float TiltDamping => tiltDamping;
         public float TiltRestoring => tiltRestoring;
         public float MaxTiltAngle => maxTiltAngle;
-        public float PourTiltAngle => pourTiltAngle;
 
         public float MinRamSpeed => minRamSpeed;
         public float RamCooldown => ramCooldown;

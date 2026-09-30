@@ -663,7 +663,7 @@ namespace Igruha.Minigames.CarryItem
 
             if (draining)
             {
-                Hud.ShowStatus($"Сливается в бак: в тележке ещё {water} из {capacity}");
+                Hud.ShowStatus($"Насос откачивает: в тележке ещё {water} из {capacity}");
                 return;
             }
 
@@ -682,7 +682,7 @@ namespace Igruha.Minigames.CarryItem
             }
 
             Hud.ShowStatus(carried
-                ? $"В тележке {water} из {capacity} — везите к своему баку · E — отпустить"
+                ? $"В тележке {water} из {capacity} — везите к насосу у своего бака · E — отпустить"
                 : $"E — взяться за тележку ({water} из {capacity})");
         }
 

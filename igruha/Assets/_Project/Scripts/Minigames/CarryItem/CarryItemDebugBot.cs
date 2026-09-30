@@ -72,7 +72,7 @@ namespace Igruha.Minigames.CarryItem
         private const float DockRange = 1.6f;
 
         /// <summary>В каком радиусе от бака тележка считается «у бака», м. Зона слива шире, запас на подъезд.</summary>
-        private const float TankRange = 3.2f;
+        private const float TankRange = 0.6f;
 
         private PlayerController motor;
         private PlayerInputReader reader;
@@ -177,7 +177,7 @@ namespace Igruha.Minigames.CarryItem
                     HoldStation(cart);
                     break;
                 case Step.ToTank:
-                    Haul(cart, tank.transform.position);
+                    Haul(cart, tank.DockPoint);
                     break;
                 case Step.ToTap:
                     Haul(cart, tap.DockPosition);
@@ -197,7 +197,7 @@ namespace Igruha.Minigames.CarryItem
             }
 
             bool atTap = Flat(cart.transform.position, tap.DockPosition) <= DockRange;
-            bool atTank = Flat(cart.transform.position, tank.transform.position) <= TankRange;
+            bool atTank = Flat(cart.transform.position, tank.DockPoint) <= TankRange;
             bool full = game.Config != null && cart.Water >= game.Config.CartCapacity;
 
             if (cart.Water <= 0)

@@ -922,6 +922,7 @@ namespace Igruha.EditorTools
             }
 
             RetireOldPrefabs();
+            CarryPumpArt.Import();
             BuildCartPrefab(config);
             BuildBrickPrefab(config);
             BuildTankPrefab(config);
@@ -1019,12 +1020,9 @@ namespace Igruha.EditorTools
 
             GameObject[] handles = BuildCartHandles(visual.transform, config);
 
-            // Струя через борт при крене — вверх, как из горлышка бутыли: крен
-            // сам укладывает её набок. Дуга слива — назад и вниз, в приёмный
-            // лоток бака. Брызги наполнения — короткий фонтанчик внутри бака.
+            // Крен расплёскивает воду, кран даёт короткие брызги внутри бака.
+            // При сдаче воду забирает закрытый шланг насоса.
             ParticleSystem leak = BuildPourJet(visual.transform, config, height, "LeakJet", Quaternion.Euler(-90f, 0f, 0f));
-            ParticleSystem pour = BuildPourJet(visual.transform, config, height, "PourJet", Quaternion.Euler(-40f, 180f, 0f));
-            pour.transform.localPosition = new Vector3(0f, height * 0.94f, -length * 0.53f);
             ParticleSystem fill = BuildPourJet(visual.transform, config, height * 0.7f, "FillSplash", Quaternion.Euler(-90f, 0f, 0f));
 
             var body = root.AddComponent<Rigidbody>();
@@ -1053,7 +1051,6 @@ namespace Igruha.EditorTools
             cartSo.FindProperty("waterMesh").objectReferenceValue = waterPivot.transform;
             cartSo.FindProperty("tiltIndicator").objectReferenceValue = water.GetComponent<Renderer>();
             cartSo.FindProperty("leakJet").objectReferenceValue = leak;
-            cartSo.FindProperty("pourJet").objectReferenceValue = pour;
             cartSo.FindProperty("fillSplash").objectReferenceValue = fill;
             var tinted = new List<Object>(trim.GetComponentsInChildren<Renderer>());
             foreach (GameObject handle in handles)
@@ -1081,6 +1078,7 @@ namespace Igruha.EditorTools
 
             AddNetworking(root);
 
+            CarryPumpArt.ApplyToCart(root);
             PrefabUtility.SaveAsPrefabAsset(root, CartPrefabPath);
             Object.DestroyImmediate(root);
         }
@@ -1356,11 +1354,6 @@ namespace Igruha.EditorTools
         {
             var root = new GameObject("Tank");
             CarrySkyscraperAssets.Place(root.transform, "TankFrame", Vector3.zero);
-            Transform hopper = CarrySkyscraperAssets.Place(root.transform, "WaterReceivingHopper", Vector3.zero);
-            var hopperCollider = hopper.gameObject.AddComponent<BoxCollider>();
-            hopperCollider.center = new Vector3(-1.96f, 0.25f, 0f);
-            hopperCollider.size = new Vector3(0.64f, 0.5f, 1f);
-            hopper.gameObject.layer = LayerMask.NameToLayer("Ground");
             var ring = CarrySkyscraperAssets.Place(root.transform, "TankRing", Vector3.zero);
             var glass = CarrySkyscraperAssets.Place(root.transform, "TankGlass", Vector3.zero);
             foreach (var r in glass.GetComponentsInChildren<Renderer>()) { r.sharedMaterial = Mat("CI_TankGlass"); r.shadowCastingMode = ShadowCastingMode.Off; }
@@ -1391,6 +1384,7 @@ namespace Igruha.EditorTools
             tinted.AddRange(flag.GetComponentsInChildren<Renderer>());
             SetArray(so.FindProperty("teamTint"), tinted.ToArray());
             so.ApplyModifiedPropertiesWithoutUndo();
+            CarryPumpArt.ApplyToTank(root);
             PrefabUtility.SaveAsPrefabAsset(root, TankPrefabPath); Object.DestroyImmediate(root);
         }
 

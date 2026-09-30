@@ -74,6 +74,9 @@ namespace Igruha.Minigames.CarryItem
         [Header("Вид")]
         [Tooltip("Меш воды в баке тележки. Растягивается по уровню ступенями")]
         [SerializeField] private Transform waterMesh;
+        private WaterVolumeVisual waterVisual;
+        public Vector3 WaterSurfacePoint => waterVisual != null ? waterVisual.SurfacePoint
+            : transform.TransformPoint(new Vector3(0f, 0.48f + 0.44f * Load, 0f));
         [Tooltip("Рендерер, который подсвечивает крен. Пусто — берётся с меша воды")]
         [SerializeField] private Renderer tiltIndicator;
         [Tooltip("Цвет спокойной тележки")]
@@ -87,8 +90,6 @@ namespace Igruha.Minigames.CarryItem
         [SerializeField] private float alarmStartFraction = 0.5f;
         [Tooltip("Струя через борт. Бьёт ровно тогда, когда вода уходит от крена")]
         [SerializeField] private ParticleSystem leakJet;
-        [Tooltip("Дуга слива в бак. Идёт, пока тележка сливается")]
-        [SerializeField] private ParticleSystem pourJet;
         [Tooltip("Брызги наполнения в баке тележки. Идут, пока тележка под краном")]
         [SerializeField] private ParticleSystem fillSplash;
         [Tooltip("Что красится в цвет команды: обод, поручни и прочие метки принадлежности")]
@@ -135,7 +136,6 @@ namespace Igruha.Minigames.CarryItem
         private int publishedWater = -1;
         private byte flags;
         private bool leakShown;
-        private bool pourShown;
         private bool fillShown;
         private TeamSide paintedTeam = (TeamSide)byte.MaxValue;
 
@@ -188,6 +188,7 @@ namespace Igruha.Minigames.CarryItem
         {
             carry = GetComponent<MultiCarryObject>();
             materialBlock = new MaterialPropertyBlock();
+            if (waterMesh != null) waterVisual = waterMesh.GetComponent<WaterVolumeVisual>();
 
             if (tiltIndicator == null && waterMesh != null)
             {
@@ -420,8 +421,8 @@ namespace Igruha.Minigames.CarryItem
         public void SetFilling(bool value) => SetFlag(WaterCartNetState.FillingFlag, value);
 
         /// <summary>
-        /// Бак говорит, сливается ли тележка. На время слива тележка держит крен
-        /// назад — это вид, воду переливает сам бак.
+        /// Насос сообщает, идёт ли откачка. Тележка остаётся на колёсах;
+        /// воду переносит авторитет бака, шланг показывает реплицируемый флаг.
         /// </summary>
         public void SetPouring(bool value)
         {
@@ -430,14 +431,7 @@ namespace Igruha.Minigames.CarryItem
                 return;
             }
 
-            if (value)
-            {
-                carry.SetLeanBack(config.PourTiltAngle);
-            }
-            else
-            {
-                carry.ClearLean();
-            }
+            carry.ClearLean();
         }
 
         private bool SetFlag(byte flag, bool value)
@@ -670,8 +664,7 @@ namespace Igruha.Minigames.CarryItem
         // ========== ВИД ==========
 
         /// <summary>
-        /// Уровень воды ступенями: симуляции жидкости нет, меш опускается и
-        /// поднимается ступенькой. Правится только при смене ступени.
+        /// Сетевой уровень квантован; визуальный компонент плавно доводит поверхность.
         /// </summary>
         private void ApplyLevelVisual()
         {
@@ -690,6 +683,12 @@ namespace Igruha.Minigames.CarryItem
 
             int totalSteps = Mathf.Max(1, config.CartCapacity / config.WaterStep);
             float fraction = Mathf.Clamp01(step / (float)totalSteps);
+
+            if (waterVisual != null)
+            {
+                waterVisual.SetLevel(fraction);
+                return;
+            }
 
             Vector3 scale = waterMesh.localScale;
             scale.y = Mathf.Max(0.001f, fraction);
@@ -727,7 +726,6 @@ namespace Igruha.Minigames.CarryItem
             SetParticles(leakJet, ref leakShown, leaking);
             SetLoop(leakLoop, leaking);
 
-            SetParticles(pourJet, ref pourShown, IsPouring);
             SetParticles(fillSplash, ref fillShown, IsFilling);
             SetLoop(fillLoop, IsFilling);
         }

@@ -16,6 +16,7 @@ namespace Igruha.Tests
         private const float Timeout = 150f;
         private CarryItemMinigame game;
         private bool failed;
+        private bool sawPartialPump;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Install()
@@ -82,6 +83,14 @@ namespace Igruha.Tests
                 int lastB = 0;
                 while (Time.realtimeSinceStartup < deadline)
                 {
+                    var pumpingCart = game.CartOf(TeamSide.A);
+                    if (pumpingCart != null && pumpingCart.IsPouring && pumpingCart.Water > 0 &&
+                        pumpingCart.Water < game.Config.CartCapacity)
+                    {
+                        sawPartialPump = true;
+                        var pump = game.TankOf(TeamSide.A).GetComponent<WaterPumpPresentation>();
+                        if (pump == null || !pump.IsPumping) Fail("client pump presentation not active");
+                    }
                     var state = game.State;
                     if (state.TeamA.Deliveries != lastA)
                     {
@@ -96,6 +105,7 @@ namespace Igruha.Tests
                     if (lastA == Deliveries && lastB == Deliveries) break;
                     yield return null;
                 }
+                if (!sawPartialPump) Fail("client never observed gradual pumping");
             }
 
             Check(TeamSide.A, Deliveries);
@@ -122,8 +132,31 @@ namespace Igruha.Tests
                 yield return null;
             if (cart.Water != game.Config.CartCapacity) { Fail("tap fill timeout " + side); yield break; }
             var tank = game.TankOf(side);
-            cart.Carry.ResetPose(tank.transform.position + new Vector3(-2.5f, 0.15f, 0f), Quaternion.identity);
+            if (number == 1)
+            {
+                // Close to storage, but not the pump: the old broad trigger accepted this side.
+                cart.Carry.ResetPose(tank.transform.position + new Vector3(0f, 0.03f, -2.5f), Quaternion.identity);
+                Physics.SyncTransforms();
+                yield return new WaitForSeconds(0.5f);
+                if (cart.Water != game.Config.CartCapacity || cart.IsPouring) Fail("pumping outside dock " + side);
+            }
+            cart.Carry.ResetPose(tank.DockPoint + Vector3.up * 0.03f, Quaternion.identity);
             Physics.SyncTransforms();
+            if (number == 1)
+            {
+                yield return new WaitForSeconds(1f);
+                if (!cart.IsPouring || cart.Water <= 0 || cart.Water >= game.Config.CartCapacity)
+                    Fail("expected partial pumping after one second " + side);
+                int remaining = cart.Water;
+                int delivered = tank.Water;
+                cart.Carry.ResetPose(tank.DockPoint + new Vector3(-3f, 0.03f, 0f), Quaternion.identity);
+                Physics.SyncTransforms();
+                yield return new WaitForSeconds(0.6f);
+                if (cart.IsPouring || cart.Water != remaining || tank.Water != delivered)
+                    Fail("leaving pump did not preserve remaining water " + side);
+                cart.Carry.ResetPose(tank.DockPoint + Vector3.up * 0.03f, Quaternion.identity);
+                Physics.SyncTransforms();
+            }
             float deadline = Time.realtimeSinceStartup + game.Config.CartCapacity / game.Config.PourRate + 3f;
             while (cart != null && cart.Water > 0 && Time.realtimeSinceStartup < deadline)
                 yield return null;

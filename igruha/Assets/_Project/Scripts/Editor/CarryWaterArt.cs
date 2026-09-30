@@ -33,12 +33,15 @@ namespace Igruha.EditorTools
             var material = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (material == null)
             {
-                material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                material = new Material(Shader.Find("Igruha/Carry Water"));
                 AssetDatabase.CreateAsset(material, path);
             }
-            material.SetColor("_BaseColor", new Color(0.10f, 0.57f, 0.72f, 1f));
-            material.SetFloat("_Smoothness", 0.94f);
-            material.SetFloat("_Metallic", 0.16f);
+            material.shader = Shader.Find("Igruha/Carry Water");
+            material.SetColor("_Tint", new Color(0.10f, 0.42f, 0.46f, 1f));
+            material.SetFloat("_Opacity", 0.52f);
+            material.SetFloat("_RippleStrength", 0.16f);
+            material.SetFloat("_Flow", 0f);
+            material.renderQueue = 2980;
             EditorUtility.SetDirty(material);
             return material;
         }
@@ -56,13 +59,6 @@ namespace Igruha.EditorTools
         {
             var so = new SerializedObject(root.AddComponent<WaterCartPresentation>());
             so.FindProperty("tub").objectReferenceValue = tub;
-            var flow = new GameObject("PourRibbon"); flow.transform.SetParent(root.transform, false);
-            var line = flow.AddComponent<LineRenderer>(); line.sharedMaterial = WaterMaterial();
-            line.positionCount = 16; line.useWorldSpace = true; line.generateLightingData = true;
-            line.startWidth = 0.17f; line.endWidth = 0.085f; line.numCapVertices = 3;
-            line.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            line.enabled = false;
-            so.FindProperty("pourStream").objectReferenceValue = line;
             var array = so.FindProperty("wheels"); array.arraySize = wheels.Length;
             for (int i = 0; i < wheels.Length; i++) array.GetArrayElementAtIndex(i).objectReferenceValue = wheels[i];
             so.ApplyModifiedPropertiesWithoutUndo();
