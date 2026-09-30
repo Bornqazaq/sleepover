@@ -56,6 +56,12 @@ MonoBehaviour:
   cartHandleFront: 0.65
   cartHandleSide: 0.45
   carrierStandoff: 0.45
+  speedByHandsEmpty: {x: 2.2, y: 2.8, z: 2.9, w: 2.9}
+  speedByHandsFull: {x: 1.6, y: 2, z: 2.2, w: 2.3}
+  accelerationByHandsEmpty: {x: 2.4, y: 4, z: 5.2, w: 6.4}
+  accelerationByHandsFull: {x: 1.2, y: 2, z: 2.6, w: 3.2}
+  rollingTetherGain: 4
+  rollingLateralGain: 8
   maxSpeedEmpty: 2.8
   maxSpeedFull: 2
   maxCarrierSpeed: 2.9
@@ -69,11 +75,20 @@ MonoBehaviour:
   tetherFreeSpeedPerMeter: 1.3
   tetherGrip: 0.85
   shoveImpulsePerCarrier: 7
+  disagreementStart: 0.15
+  disagreementFull: 0.5
+  disagreementTilt: 48
+  turnTilt: 45
+  turnReferenceDegrees: 90
+  turnReferenceSpeed: 2
+  releaseTilt: 20
+  emptyTiltFraction: 0.5
+  unattendedPushSpeed: 0.3
+  warningTilt: 30
   sloshPerDeltaSpeed: 1.3
   tiltDamping: 3.2
   tiltRestoring: 9
   maxTiltAngle: 60
-  pourTiltAngle: 30
   minRamSpeed: 2
   ramCooldown: 2
   headOnTolerance: 0.2

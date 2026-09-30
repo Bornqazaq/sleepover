@@ -1079,6 +1079,7 @@ namespace Igruha.EditorTools
             AddNetworking(root);
 
             CarryPumpArt.ApplyToCart(root);
+            CarryCartHandlingSetup.ApplyToCart(root);
             PrefabUtility.SaveAsPrefabAsset(root, CartPrefabPath);
             Object.DestroyImmediate(root);
         }
@@ -1417,6 +1418,7 @@ namespace Igruha.EditorTools
             {
                 game = manager.AddComponent<CarryItemMinigame>();
             }
+            CarryCartHandlingSetup.ApplyVoice(manager);
 
             var ram = manager.GetComponent<CartRamDetector>();
             if (ram == null)

@@ -95,6 +95,12 @@ namespace Igruha.Minigames.CarryItem
         [SerializeField] private float carrierStandoff = 0.45f;
 
         [Header("Тележка: ход")]
+        [SerializeField] private Vector4 speedByHandsEmpty = new Vector4(2.2f, 2.8f, 2.9f, 2.9f);
+        [SerializeField] private Vector4 speedByHandsFull = new Vector4(1.6f, 2f, 2.2f, 2.3f);
+        [SerializeField] private Vector4 accelerationByHandsEmpty = new Vector4(2.4f, 4f, 5.2f, 6.4f);
+        [SerializeField] private Vector4 accelerationByHandsFull = new Vector4(1.2f, 2f, 2.6f, 3.2f);
+        [SerializeField, Min(0.01f)] private float rollingTetherGain = 4f;
+        [SerializeField, Min(0.01f)] private float rollingLateralGain = 8f;
         [Tooltip("Потолок скорости пустой тележки, м/с")]
         [SerializeField] private float maxSpeedEmpty = 2.8f;
         [Tooltip("Потолок скорости полной тележки, м/с")]
@@ -121,6 +127,17 @@ namespace Igruha.Minigames.CarryItem
         [SerializeField] private float shoveImpulsePerCarrier = 7f;
 
         [Header("Тележка: крен")]
+        [SerializeField] private float disagreementStart = 0.15f;
+        [SerializeField] private float disagreementFull = 0.5f;
+        [Tooltip("Чуть выше границы утечки, чтобы устойчивый перекос не колебался ровно на 45°")]
+        [SerializeField] private float disagreementTilt = 48f;
+        [SerializeField] private float turnTilt = 45f;
+        [SerializeField] private float turnReferenceDegrees = 90f;
+        [SerializeField] private float turnReferenceSpeed = 2f;
+        [SerializeField] private float releaseTilt = 20f;
+        [SerializeField] private float emptyTiltFraction = 0.5f;
+        [SerializeField] private float unattendedPushSpeed = 0.3f;
+        [SerializeField] private float warningTilt = 30f;
         [Tooltip("Во что превращается рывок кузова — изменение его скорости — у полной тележки: крен, рад/с на м/с. Ровная тяга на колёсах крена не даёт; разгон, стена, толчок и ловушка — дают")]
         [SerializeField] private float sloshPerDeltaSpeed = 1.3f;
         [SerializeField] private float tiltDamping = 3.2f;
@@ -193,6 +210,22 @@ namespace Igruha.Minigames.CarryItem
         public float CarrierStandoff => carrierStandoff;
 
         public float MaxSpeedEmpty => maxSpeedEmpty;
+        public Vector4 SpeedByHandsEmpty => speedByHandsEmpty;
+        public Vector4 SpeedByHandsFull => speedByHandsFull;
+        public Vector4 AccelerationByHandsEmpty => accelerationByHandsEmpty;
+        public Vector4 AccelerationByHandsFull => accelerationByHandsFull;
+        public float RollingTetherGain => rollingTetherGain;
+        public float RollingLateralGain => rollingLateralGain;
+        public float DisagreementStart => disagreementStart;
+        public float DisagreementFull => disagreementFull;
+        public float DisagreementTilt => disagreementTilt;
+        public float TurnTilt => turnTilt;
+        public float TurnReferenceDegrees => turnReferenceDegrees;
+        public float TurnReferenceSpeed => turnReferenceSpeed;
+        public float ReleaseTilt => releaseTilt;
+        public float EmptyTiltFraction => emptyTiltFraction;
+        public float UnattendedPushSpeed => unattendedPushSpeed;
+        public float WarningTilt => warningTilt;
         public float MaxSpeedFull => maxSpeedFull;
         public float MaxCarrierSpeed => maxCarrierSpeed;
         public float AccelerationEmpty => accelerationEmpty;

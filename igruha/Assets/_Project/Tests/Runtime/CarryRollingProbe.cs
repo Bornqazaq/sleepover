@@ -103,6 +103,7 @@ namespace Igruha.Tests
             if (failed) { Application.Quit(1); yield break; }
             reader = local.GetComponent<PlayerInputReader>(); reader.EngageAutopilot();
             cart = game.CartOf(TeamSide.A);
+            WatchCart(cart);
             for (int pass = 0; pass < 8; pass++)
             {
                 TeamSide side = pass < 4 ? TeamSide.A : TeamSide.B;
@@ -115,6 +116,7 @@ namespace Igruha.Tests
                     team.Sort((a, b) => a.Id.CompareTo(b.Id));
                     for (int i = 0; i < team.Count; i++) if (team[i].Avatar == local) localSlot = i;
                     cart = game.CartOf(side);
+                    WatchCart(cart);
                 }
                 // Round timer is replicated, so all owners drive the same time window.
                 float start = 12f + pass * 17f;
@@ -154,6 +156,11 @@ namespace Igruha.Tests
                 CheckPose(count, "moving " + side);
                 Check(Vector3.Distance(cart.transform.position, before) > 1f, "roll count=" + count + " moved=" + Vector3.Distance(cart.transform.position, before));
                 Check(cart.Carry.CarrierCount == count, "retain count=" + count);
+                Check(cart.Water == game.Config.CartCapacity, "straight movement preserves water count=" + count + " water=" + cart.Water);
+                Debug.Log("CARRY_ROLLING_CHECK steady tilt=" + cart.Carry.TiltAngle + " cause=" + cart.Stability.State.Cause);
+                for (int s = 0; s < count; s++) Debug.Log("CARRY_ROLLING_CHECK tension id=" + team[s].Id +
+                    " owner=" + (team[s].Avatar == local) + " slot=" + s + " stretch=" + cart.Carry.TensionAt(s).ToString("F3") +
+                    " input=" + cart.Carry.CarrierIntentAt(s) + " velocity=" + cart.Carry.CarrierVelocityAt(s));
                 monitoredCount = 0;
                 // Server time trails on clients: separate observations from the next input.
                 yield return WaitElapsed(start + 7f);
@@ -189,8 +196,8 @@ namespace Igruha.Tests
                     Check(pose != null && pose.Weight == 0f, "relaxed hands " + team[i].Id);
                 }
             }
-            // Opposite WASD must hold a cart still without the stuck detector
-            // respawning carriers after three seconds and tearing off their grip.
+            // Opposed pulling now stretches both springs: it must show disagreement
+            // and eventually tear a grip, instead of being hidden by rigid station-follow.
             yield return WaitElapsed(151f);
             if (manager.IsServer)
             {
@@ -208,13 +215,13 @@ namespace Igruha.Tests
             rawForward = false;
             driveDirection = localSlot == 0 ? Vector3.right : Vector3.left;
             driving = holding;
+            yield return WaitElapsed(155.2f);
+            Check(cart.Stability.State.Cause == CartTiltCause.Disagreement, "opposed tension warning replicated");
             yield return WaitElapsed(159f);
             driving = false;
-            Check(cart.Carry.CarrierCount == 2, "five seconds opposite input retain");
-            Check(Vector3.Distance(cart.transform.position, parked) < 0.5f, "opposite inputs cancel");
-            CheckPose(2, "opposite inputs");
+            Check(cart.Carry.CarrierCount < 2, "sustained opposed pull breaks grip");
             yield return WaitElapsed(160f);
-            if (holding) yield return Tap();
+            if (holding && cart.Carry.IsCarriedBy(local)) yield return Tap();
             yield return WaitElapsed(161f);
             Check(cart.Carry.CarrierCount == 0, "opposite input release");
             CheckCarrierCollisions(2, false);
@@ -229,6 +236,12 @@ namespace Igruha.Tests
             reader.DriveInteractHold(true);
             yield return new WaitForSeconds(0.08f);
             reader.DriveInteractHold(false);
+        }
+
+        private void WatchCart(WaterCart value)
+        {
+            value.Carry.HandleReleased += (slot, player, reason) =>
+                Debug.Log("CARRY_ROLLING_CHECK released slot=" + slot + " reason=" + reason);
         }
 
         private void CheckCarrierCollisions(int count, bool attached)

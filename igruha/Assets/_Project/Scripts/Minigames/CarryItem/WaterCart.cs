@@ -35,6 +35,7 @@ namespace Igruha.Minigames.CarryItem
 
         /// <summary>Наполняется / сливается / улетела в пропасть.</summary>
         public byte Flags;
+        public CartStabilityState Stability;
 
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
@@ -42,10 +43,12 @@ namespace Igruha.Minigames.CarryItem
             serializer.SerializeValue(ref Handles);
             serializer.SerializeValue(ref Water);
             serializer.SerializeValue(ref Flags);
+            serializer.SerializeValue(ref Stability);
         }
 
         public bool Equals(WaterCartNetState other) =>
-            Team == other.Team && Handles == other.Handles && Water == other.Water && Flags == other.Flags;
+            Team == other.Team && Handles == other.Handles && Water == other.Water && Flags == other.Flags &&
+            Stability.Equals(other.Stability);
     }
 
     /// <summary>
@@ -66,7 +69,7 @@ namespace Igruha.Minigames.CarryItem
     /// и слив непрерывны, и запись состояния на каждую единицу дала бы десятки
     /// пакетов в секунду.
     /// </summary>
-    [RequireComponent(typeof(MultiCarryObject))]
+    [RequireComponent(typeof(MultiCarryObject), typeof(WaterCartStability))]
     public sealed class WaterCart : NetworkBehaviour, ITrapImpactTarget
     {
         [SerializeField] private CarryItemConfig config;
@@ -85,9 +88,6 @@ namespace Igruha.Minigames.CarryItem
         [SerializeField] private Color alarmColor = new Color(0.95f, 0.75f, 0.15f);
         [Tooltip("Цвет, когда вода уже льётся через борт")]
         [SerializeField] private Color pouringColor = new Color(0.95f, 0.2f, 0.15f);
-        [Tooltip("С какой доли порога крена начинается тревога. 0.5 — с половины")]
-        [Range(0f, 1f)]
-        [SerializeField] private float alarmStartFraction = 0.5f;
         [Tooltip("Струя через борт. Бьёт ровно тогда, когда вода уходит от крена")]
         [SerializeField] private ParticleSystem leakJet;
         [Tooltip("Брызги наполнения в баке тележки. Идут, пока тележка под краном")]
@@ -150,6 +150,9 @@ namespace Igruha.Minigames.CarryItem
 
         /// <summary>Механика переноски этой тележки.</summary>
         public MultiCarryObject Carry => carry;
+        public WaterCartStability Stability { get; private set; }
+        public bool IsAuthority => HasAuthority;
+        public void PublishStability() => PublishState(true);
 
         /// <summary>Набирает воду под краном прямо сейчас.</summary>
         public bool IsFilling => (flags & WaterCartNetState.FillingFlag) != 0;
@@ -187,6 +190,7 @@ namespace Igruha.Minigames.CarryItem
         private void Awake()
         {
             carry = GetComponent<MultiCarryObject>();
+            Stability = GetComponent<WaterCartStability>();
             materialBlock = new MaterialPropertyBlock();
             if (waterMesh != null) waterVisual = waterMesh.GetComponent<WaterVolumeVisual>();
 
@@ -282,6 +286,8 @@ namespace Igruha.Minigames.CarryItem
             returnAt = 0d;
 
             carry.Configure(BuildCarrySettings(config));
+            Stability.Configure(this, config);
+            Stability.ResetTrip();
             carry.SetHandleCount(handleCount);
             carry.SetLoad(Load);
             carry.GrabLocked = false;
@@ -304,6 +310,7 @@ namespace Igruha.Minigames.CarryItem
             homeRotation = homeFacing;
 
             carry.Configure(BuildCarrySettings(config));
+            Stability.Configure(this, config);
             carry.SetHandleCount(netState.Value.Handles);
             carry.SetLoad(Load);
 
@@ -317,6 +324,13 @@ namespace Igruha.Minigames.CarryItem
             MultiCarrySettings settings = MultiCarrySettings.Default;
             settings.motion = MultiCarryMotion.Rolling;
             settings.handleLayout = MultiCarryHandleLayout.Cart;
+            settings.rollingTensionDrive = true;
+            settings.speedByHandsEmpty = config.SpeedByHandsEmpty;
+            settings.speedByHandsFull = config.SpeedByHandsFull;
+            settings.accelerationByHandsEmpty = config.AccelerationByHandsEmpty;
+            settings.accelerationByHandsFull = config.AccelerationByHandsFull;
+            settings.rollingTetherGain = config.RollingTetherGain;
+            settings.rollingLateralGain = config.RollingLateralGain;
             settings.handleHeight = config.HandleHeight;
             settings.cartHandleBack = config.CartHandleBack;
             settings.cartHandleFront = config.CartHandleFront;
@@ -377,6 +391,8 @@ namespace Igruha.Minigames.CarryItem
             }
 
             carry.SetLoad(Load);
+            if (before == 0 && applied > 0) Stability.ResetTrip();
+            if (reason == WaterLossReason.Tilt && applied < 0) Stability.RecordSpill();
             PublishState(false);
             ApplyLevelVisual();
             WaterChanged?.Invoke(Mathf.Abs(applied), reason);
@@ -483,7 +499,8 @@ namespace Igruha.Minigames.CarryItem
                 Team = (byte)Team,
                 Handles = (byte)Mathf.Clamp(carry.HandleCount, 1, MultiCarryObject.MaxHandles),
                 Water = (short)Mathf.Clamp(Water, 0, short.MaxValue),
-                Flags = flags
+                Flags = flags,
+                Stability = Stability != null ? Stability.State : default
             };
         }
 
@@ -503,6 +520,7 @@ namespace Igruha.Minigames.CarryItem
             Team = (TeamSide)state.Team;
             Water = state.Water;
             flags = state.Flags;
+            Stability.ApplyState(state.Stability);
             carry.GrabLocked = IsLost;
             carry.SetLoad(Load);
             if (carry.HandleCount != state.Handles && state.Handles > 0)
@@ -703,7 +721,7 @@ namespace Igruha.Minigames.CarryItem
         private void UpdateIndication()
         {
             float threshold = config.TiltAngleThreshold;
-            float alarmStart = threshold * alarmStartFraction;
+            float alarmStart = config.WarningTilt;
             float tilt = carry.TiltAngle;
 
             Color color;
@@ -713,21 +731,35 @@ namespace Igruha.Minigames.CarryItem
             }
             else
             {
-                float t = threshold > alarmStart
-                    ? Mathf.Clamp01((tilt - alarmStart) / (threshold - alarmStart))
-                    : 0f;
-                color = Color.Lerp(calmColor, alarmColor, t);
+                color = tilt >= alarmStart ? alarmColor : calmColor;
             }
 
             ApplyIndicatorColor(color);
             UpdateSloshSound(Mathf.Clamp01(tilt / Mathf.Max(threshold, 0.01f)));
 
             bool leaking = carry.BeyondTiltThreshold && Water > 0 && !IsLost;
+            if (leaking && leakJet != null) PositionLeakAtLowRim();
             SetParticles(leakJet, ref leakShown, leaking);
             SetLoop(leakLoop, leaking);
 
             SetParticles(fillSplash, ref fillShown, IsFilling);
             SetLoop(fillLoop, IsFilling);
+        }
+
+        private void PositionLeakAtLowRim()
+        {
+            if (waterMesh == null) return;
+            Transform tub = waterMesh.parent;
+            Vector3 low = tub.TransformPoint(new Vector3(0f, 0.94f, 0f));
+            float best = float.PositiveInfinity;
+            for (int i = 0; i < 4; i++)
+            {
+                Vector3 point = tub.TransformPoint(new Vector3((i & 1) == 0 ? -0.38f : 0.38f,
+                    0.94f, (i & 2) == 0 ? -0.51f : 0.51f));
+                if (point.y < best) { best = point.y; low = point; }
+            }
+            Vector3 outward = Vector3.ProjectOnPlane(low - tub.position, Vector3.up).normalized;
+            leakJet.transform.SetPositionAndRotation(low, Quaternion.LookRotation(outward + Vector3.down * 0.6f));
         }
 
         private void ApplyIndicatorColor(Color color)

@@ -12,8 +12,10 @@ namespace Igruha.Minigames.CarryItem
         private float target;
         private float level;
         private bool initialized;
+        private HorizontalCartWater horizontal;
 
-        public Vector3 SurfacePoint => transform.TransformPoint(Vector3.up * filledHeight);
+        public Vector3 SurfacePoint => horizontal != null ? horizontal.SurfacePoint :
+            transform.TransformPoint(Vector3.up * filledHeight);
 
         public void SetLevel(float fraction)
         {
@@ -21,6 +23,7 @@ namespace Igruha.Minigames.CarryItem
             if (initialized) return;
             initialized = true;
             surfaces = GetComponentsInChildren<Renderer>();
+            horizontal = GetComponent<HorizontalCartWater>();
             level = target;
             Apply();
         }
@@ -35,8 +38,9 @@ namespace Igruha.Minigames.CarryItem
         private void Apply()
         {
             Vector3 scale = transform.localScale;
-            scale.y = Mathf.Max(EmptyLevel, level);
+            scale.y = horizontal != null ? 1f : Mathf.Max(EmptyLevel, level);
             transform.localScale = scale;
+            if (horizontal != null) horizontal.SetLevel(level);
             foreach (var surface in surfaces) surface.enabled = level > EmptyLevel;
         }
     }

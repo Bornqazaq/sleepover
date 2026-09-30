@@ -117,5 +117,15 @@
       "spatial": false,
       "volume": 0.9
     }
-  ]
+  ],
+  "temporary_voice": {
+    "ticket": "IGR-690",
+    "authorized": "Пользователь явно запросил временную синтезированную озвучку 2026-09-30",
+    "folder": "Assets/_Project/Audio/Minigames/CarryItem/TemporaryVoice",
+    "generator": "tools/audio/generate_carry_voice.py",
+    "voice": "macOS Milena, 185 words/min, mono PCM 24 kHz",
+    "binding": "CarryCartVoice: первое списание воды от крена за ходку, из реплицированного CartStabilityState; wheel_strain — локальная петля WaterCartPresentation из нагрузки/занятых рук",
+    "names": "Boss/Аза — имя, остальные — номер в составе. Точное имя всегда в плашке.",
+    "replacement": "Заменить временный голос и синтетический скрип записи поставкой."
+  }
 }

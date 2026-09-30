@@ -16,7 +16,7 @@ MonoBehaviour:
   category: 1
   sceneName: CarryItem
   roundDuration: 200
-  minPlayers: 4
+  minPlayers: 2
   maxPlayers: 8
   cameraMode: 0
   tutorialFont: {fileID: 11400000, guid: 87b63952b34fc45079bca7750c2ef239, type: 2}

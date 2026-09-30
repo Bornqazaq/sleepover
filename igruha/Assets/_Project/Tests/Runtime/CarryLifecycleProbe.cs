@@ -75,6 +75,9 @@ namespace Igruha.Tests
                 bottle = game.CartOf(side);
                 Check(bottle != null, "cart spawned");
                 if (bottle == null) { Finish(); yield break; }
+                // Test a loss away from the continuously running faucet: automatic refill
+                // is valid gameplay, but must not race the loss assertion.
+                bottle.Carry.ResetPose(new Vector3(-20f, 0.03f, 1f), Quaternion.identity);
                 // Fill at the server directly and keep the fixture upright so incidental
                 // slosh from the teleport/impact cannot mask the loss being tested.
                 bottle.ChangeWater(game.Config.CartCapacity, WaterLossReason.Filled);
@@ -140,17 +143,18 @@ namespace Igruha.Tests
             if (server && scenario == "void")
                 bottle.Carry.ResetPose(bottle.transform.position + Vector3.down * 40f, Quaternion.identity);
 
-            int expectedLoss = scenario == "void"
+            int expectedLoss = scenario == "client-exit" ? 0 : scenario == "void"
                 ? game.Config.CartCapacity
                 : Mathf.FloorToInt(game.Config.CartCapacity * game.Config.ShoveLossFraction);
             float lossDeadline = Time.realtimeSinceStartup + 8;
             while (Time.realtimeSinceStartup < lossDeadline &&
-                   (lossEvents == 0 || bottle.Water != game.Config.CartCapacity - expectedLoss))
+                   (expectedLoss > 0 && lossEvents == 0 || bottle.Water != game.Config.CartCapacity - expectedLoss))
                 yield return null;
             yield return new WaitForSeconds(1);
             Check(bottle.Water == game.Config.CartCapacity - expectedLoss, "replicated water");
-            Check(lossEvents == 1 && lostWater == expectedLoss, "one replicated loss event");
-            Check(lossReason == (scenario == "void" ? WaterLossReason.Void : WaterLossReason.Shove), "loss reason");
+            Check(lossEvents == (expectedLoss > 0 ? 1 : 0) && lostWater == expectedLoss, "replicated loss count");
+            if (expectedLoss > 0)
+                Check(lossReason == (scenario == "void" ? WaterLossReason.Void : WaterLossReason.Shove), "loss reason");
             Check(bottle.Carry.CarrierCount == 0, "handle released");
             if (scenario == "void")
             {

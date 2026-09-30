@@ -98,6 +98,10 @@ namespace Igruha.Minigames.CarryItem
         private bool shownDraining;
         private bool shownLost;
         private bool statusShown;
+        private CartTiltCause shownCause;
+        private int shownResponsible = -1;
+        private bool shownNeedsHands;
+        private bool shownLocalHolding;
 
         private readonly List<Entry> entries = new List<Entry>(8);
         private readonly List<TeamRanking.Entry> rankingBuffer = new List<TeamRanking.Entry>(8);
@@ -464,6 +468,7 @@ namespace Igruha.Minigames.CarryItem
             rig.Cart = cart;
             rig.Tap?.AttachCart(cart);
             cart.Carry.SetOwnerFilter(player => TeamOfAvatar(player) == side);
+            cart.Stability.FirstSpill += AnnounceSpill;
 
             // Разрез потерь ведёт тот, кто их считает. У клиента ChangeWater
             // молчит, и подписка здесь дала бы вечные нули в отчёте.
@@ -628,9 +633,15 @@ namespace Igruha.Minigames.CarryItem
             bool filling = cart != null && cart.IsFilling;
             bool draining = cart != null && cart.IsPouring;
             bool lost = cart != null && cart.IsLost;
+            CartTiltCause cause = cart != null ? cart.Stability.State.Cause : CartTiltCause.None;
+            int responsible = cart != null ? cart.Stability.State.Responsible : -1;
+            bool needsHands = cart != null && cart.Stability.NeedsHands;
+            bool localHolding = cart != null && cart.Carry.IsCarriedBy(AvatarOf(localId));
 
             if (statusShown && water == shownWater && leaking == shownLeaking && carried == shownCarried &&
-                filling == shownFilling && draining == shownDraining && lost == shownLost)
+                filling == shownFilling && draining == shownDraining && lost == shownLost &&
+                cause == shownCause && responsible == shownResponsible && needsHands == shownNeedsHands &&
+                localHolding == shownLocalHolding)
             {
                 return;
             }
@@ -642,6 +653,10 @@ namespace Igruha.Minigames.CarryItem
             shownDraining = draining;
             shownLost = lost;
             statusShown = true;
+            shownCause = cause;
+            shownResponsible = responsible;
+            shownNeedsHands = needsHands;
+            shownLocalHolding = localHolding;
 
             if (cart == null)
             {
@@ -652,6 +667,20 @@ namespace Igruha.Minigames.CarryItem
             if (lost)
             {
                 Hud.ShowStatus("Тележка в пропасти — через несколько секунд вернётся к крану");
+                return;
+            }
+
+            if (localHolding && cause == CartTiltCause.Disagreement)
+            {
+                string warning = responsible == localId ? "Ты отстаёшь!" :
+                    $"Отстаёт: {WaterCartStability.PlayerName(responsible)}";
+                Hud.ShowStatus($"{warning} {(leaking ? "Вода льётся!" : "Выровняйте тягу")} · {water} из {capacity}");
+                return;
+            }
+
+            if (localHolding && cause == CartTiltCause.Turn)
+            {
+                Hud.ShowStatus($"Слишком резко! Сбавьте перед поворотом · {water} из {capacity}");
                 return;
             }
 
@@ -681,9 +710,29 @@ namespace Igruha.Minigames.CarryItem
                 return;
             }
 
+            if (localHolding && needsHands)
+            {
+                Hud.ShowStatus($"Нужны руки — полную тележку тяжело везти одному · {water} из {capacity}");
+                return;
+            }
+
             Hud.ShowStatus(carried
                 ? $"В тележке {water} из {capacity} — везите к насосу у своего бака · E — отпустить"
                 : $"E — взяться за тележку ({water} из {capacity})");
+        }
+
+        private void AnnounceSpill(CartTiltCause cause, int responsible)
+        {
+            string name = WaterCartStability.PlayerName(responsible);
+            string text = cause switch
+            {
+                CartTiltCause.Disagreement => $"Перекос! Отстаёт {name}",
+                CartTiltCause.Turn => "Занесло на повороте!",
+                CartTiltCause.Release => $"{name} бросил поручень!",
+                _ => "Удар! Вода за бортом!"
+            };
+            announcer?.Announce(text, 3f);
+            GetComponent<CarryCartVoice>()?.Announce(cause, responsible);
         }
 
         private void ClearStatus()

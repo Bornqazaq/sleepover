@@ -6,7 +6,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP="$ROOT/igruha/Builds/Autotest/sleepover.app/Contents/MacOS/sleepover"
 PLAYERS="${1:-4}"
 PORT="${CARRY_TEST_PORT:-17592}"
-[[ "$PLAYERS" =~ ^[4-8]$ ]] || { echo "Expected 4-8 players" >&2; exit 1; }
+[[ "$PLAYERS" =~ ^[2-8]$ ]] || { echo "Expected 2-8 players" >&2; exit 1; }
 [[ -x "$APP" ]] || { echo "Missing development build: $APP" >&2; exit 1; }
 LOGS="$ROOT/igruha/Builds/Autotest/logs/carry-delivery-$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$LOGS"

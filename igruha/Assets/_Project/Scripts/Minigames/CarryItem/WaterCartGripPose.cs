@@ -18,6 +18,7 @@ namespace Igruha.Minigames.CarryItem
         private const float MaxStanceAdjustment = 0.3f;
         private const float ElbowOutward = 0.25f;
         private const float MaxStationVisualOffset = 0.08f;
+        private const float MaxRemoteInterpolationOffset = 0.8f;
         private const float ReachMargin = 0.001f;
         private const float Epsilon = 0.00001f;
         private sealed class Arm
@@ -44,6 +45,8 @@ namespace Igruha.Minigames.CarryItem
         private Vector3 sampledModelPosition;
         private Quaternion modelRestRotation;
         private Vector3 stanceOffset;
+        private Vector3 renderedTension;
+        private bool hasRenderedTension;
         private float blend;
         private Dictionary<Transform, Quaternion> bindRotations;
         private Vector3 anchor, inward;
@@ -127,6 +130,7 @@ namespace Igruha.Minigames.CarryItem
 
         public void Hold(MultiCarryObject owner)
         {
+            if (cart != owner) hasRenderedTension = false;
             cart = owner;
             if (animator == null || forceAnimation) return;
             previousCulling = animator.cullingMode;
@@ -150,7 +154,7 @@ namespace Igruha.Minigames.CarryItem
             if (slot >= 0)
             {
                 anchor = cart.HandleAnchor(slot) + Vector3.up * GripHeight;
-                inward = cart.HandleAnchor(slot) - cart.StationOf(slot);
+                inward = cart.HandleAnchor(slot) - cart.VisualStationOf(slot);
                 inward.y = 0f; inward.Normalize();
             }
             blend = Mathf.MoveTowards(blend, slot >= 0 && !player.IsKnockedDown ? 1f : 0f, Time.deltaTime / BlendSeconds);
@@ -165,42 +169,62 @@ namespace Igruha.Minigames.CarryItem
             written = true;
             // The physical body follows the cart. Only compensate a small interpolation gap;
             // large model offsets would detach the visible player from the camera/capsule.
-            animator.transform.rotation = Quaternion.Slerp(animator.transform.rotation,
-                Quaternion.LookRotation(inward, Vector3.up) * modelRestRotation, blend);
-            Vector3 right = Vector3.Cross(Vector3.up, inward).normalized;
-            if (spine != null) spine.rotation = Quaternion.AngleAxis(BodyLean * blend, right) * spine.rotation;
+            bool remote = networkObject != null && networkObject.IsSpawned && !networkObject.IsOwner;
             if (slot >= 0)
             {
-                stanceOffset = cart.StationOf(slot) - transform.position;
+                stanceOffset = cart.VisualStationOf(slot) - transform.position;
                 stanceOffset.y = 0f;
-                // Remote avatars and the server-owned cart arrive through different
-                // interpolation buffers. Render their grip in the cart's frame.
-                // The local camera follows the physical body, so its correction stays small.
-                bool remote = networkObject != null && networkObject.IsSpawned && !networkObject.IsOwner;
+                // Preserve the spring extension while bringing two interpolation buffers
+                // to the same rendered cart frame. The local camera target never shifts.
+                if (remote)
+                {
+                    Vector3 tension = cart.TensionAt(slot);
+                    renderedTension = hasRenderedTension ? Vector3.Lerp(renderedTension, tension,
+                        1f - Mathf.Exp(-Time.deltaTime * 20f)) : tension;
+                    hasRenderedTension = true;
+                    stanceOffset += renderedTension;
+                }
                 stanceOffset = Vector3.ClampMagnitude(stanceOffset,
-                    remote ? cart.Settings.breakDistance : MaxStationVisualOffset);
+                    remote ? MaxRemoteInterpolationOffset : MaxStationVisualOffset);
             }
+            Vector3 visualRoot = transform.position + stanceOffset;
+            Vector3 toGrip = Vector3.ProjectOnPlane(anchor - visualRoot, Vector3.up).normalized;
+            float torsoYaw = Mathf.Clamp(Vector3.SignedAngle(inward, toGrip, Vector3.up), -35f, 35f);
+            Vector3 facing = Quaternion.AngleAxis(torsoYaw, Vector3.up) * inward;
+            animator.transform.rotation = Quaternion.Slerp(animator.transform.rotation,
+                Quaternion.LookRotation(facing, Vector3.up) * modelRestRotation, blend);
+            Vector3 right = Vector3.Cross(Vector3.up, inward).normalized;
+            float gripDistance = Vector3.ProjectOnPlane(anchor - visualRoot, Vector3.up).magnitude;
+            float lean = Mathf.Lerp(BodyLean, 24f, Mathf.InverseLerp(0.5f, 0.95f, gripDistance));
+            if (spine != null) spine.rotation = Quaternion.AngleAxis(lean * blend,
+                Vector3.Cross(Vector3.up, facing)) * spine.rotation;
             animator.transform.position += stanceOffset * blend;
             // Leave room to bend the elbows. This signed correction also keeps tall carriers
             // from standing too close. It is recomputed from the sampled pose, never accumulated.
-            float adjustment = 0f, lateralAdjustment = 0f;
-            for (int i = 0; i < arms.Length; i++)
+            Vector3 bodyAdjustment = SolveStance(right, remote);
+            animator.transform.position += bodyAdjustment * blend;
+            if (spine != null)
             {
-                Arm arm = arms[i];
-                Vector3 grip = anchor + right * ((i == 0 ? -1f : 1f) * HandSpacing);
-                Quaternion rotation = Quaternion.LookRotation(inward, Vector3.up) * Quaternion.Inverse(arm.PalmBasis);
-                Vector3 offset = grip - rotation * Vector3.Scale(arm.PalmOffset, arm.Hand.lossyScale) - arm.Upper.position;
-                float reach = (Vector3.Distance(arm.Upper.position, arm.Lower.position) +
-                    Vector3.Distance(arm.Lower.position, arm.Hand.position)) * ComfortableReach;
-                float forward = Vector3.Dot(offset, inward);
-                float transverse = Mathf.Max(0f, offset.sqrMagnitude - forward * forward);
-                adjustment += forward - Mathf.Sqrt(Mathf.Max(0f, reach * reach - transverse));
-                lateralAdjustment += Vector3.Dot(offset, right);
+                float shortfall = 0f;
+                for (int i = 0; i < arms.Length; i++)
+                {
+                    Arm arm = arms[i];
+                    Vector3 grip = anchor + right * ((i == 0 ? -1f : 1f) * HandSpacing);
+                    Quaternion rotation = Quaternion.LookRotation(inward, Vector3.up) * Quaternion.Inverse(arm.PalmBasis);
+                    Vector3 wrist = grip - rotation * Vector3.Scale(arm.PalmOffset, arm.Hand.lossyScale);
+                    float length = Vector3.Distance(arm.Upper.position, arm.Lower.position) +
+                        Vector3.Distance(arm.Lower.position, arm.Hand.position);
+                    shortfall = Mathf.Max(shortfall, Vector3.Distance(wrist, arm.Upper.position) - length * 0.9f);
+                }
+                float extraLean = Mathf.Min(40f - lean, shortfall * 100f);
+                spine.rotation = Quaternion.AngleAxis(Mathf.Max(0f, extraLean) * blend,
+                    Vector3.Cross(Vector3.up, facing)) * spine.rotation;
+                // Lean changes the reachable region. Refit both arms, including their
+                // minimum radius: several characters have a much longer forearm.
+                animator.transform.position -= bodyAdjustment * blend;
+                bodyAdjustment = SolveStance(right, remote);
+                animator.transform.position += bodyAdjustment * blend;
             }
-            // A turning handle can briefly be beside the physical body. Center the
-            // shoulders as well as setting reach; stretching an arm sideways is not a stance.
-            Vector3 bodyAdjustment = (inward * adjustment + right * lateralAdjustment) / arms.Length;
-            animator.transform.position += Vector3.ClampMagnitude(bodyAdjustment, MaxStanceAdjustment) * blend;
             BodyOffset = Vector3.Distance(animator.transform.localPosition, sampledModelPosition);
             MaxPalmError = 0f;
             for (int i = 0; i < arms.Length; i++)
@@ -229,6 +253,35 @@ namespace Igruha.Minigames.CarryItem
                     }
                 MaxPalmError = Mathf.Max(MaxPalmError, Vector3.Distance(arm.Hand.TransformPoint(arm.PalmOffset), grip));
             }
+        }
+
+        private Vector3 SolveStance(Vector3 right, bool remote)
+        {
+            Vector3 adjustment = Vector3.zero;
+            Vector3 limitOrigin = remote ? Vector3.zero : stanceOffset;
+            float limit = remote ? MaxStanceAdjustment : MaxStanceAdjustment + MaxStationVisualOffset;
+            for (int pass = 0; pass < 8; pass++)
+                for (int i = 0; i < arms.Length; i++)
+                {
+                    Arm arm = arms[i];
+                    float upper = Vector3.Distance(arm.Upper.position, arm.Lower.position);
+                    float lower = Vector3.Distance(arm.Lower.position, arm.Hand.position);
+                    float min = Mathf.Abs(upper - lower) + 0.02f;
+                    float max = Mathf.Max(min, (upper + lower) * ComfortableReach);
+                    Vector3 grip = anchor + right * ((i == 0 ? -1f : 1f) * HandSpacing);
+                    Quaternion rotation = Quaternion.LookRotation(inward, Vector3.up) * Quaternion.Inverse(arm.PalmBasis);
+                    Vector3 offset = grip - rotation * Vector3.Scale(arm.PalmOffset, arm.Hand.lossyScale) -
+                        arm.Upper.position - adjustment;
+                    float distance = offset.magnitude;
+                    float target = Mathf.Clamp(distance, min, max);
+                    if (Mathf.Abs(target - distance) < 0.0001f) continue;
+                    Vector3 flat = Vector3.ProjectOnPlane(offset, Vector3.up);
+                    Vector3 direction = flat.sqrMagnitude > Epsilon ? flat.normalized : inward;
+                    float flatTarget = Mathf.Sqrt(Mathf.Max(0f, target * target - offset.y * offset.y));
+                    adjustment += direction * (flat.magnitude - flatTarget);
+                    adjustment = Vector3.ClampMagnitude(adjustment + limitOrigin, limit) - limitOrigin;
+                }
+            return adjustment;
         }
 
         private static void Solve(Arm arm, Vector3 target, Vector3 hint)
