@@ -210,6 +210,7 @@ namespace Igruha.Core.Items
             public CapsuleCollider CarrierCollider;
             public PlayerCarryAbility CarrierCarry;
             public PlayerPushAbility CarrierPush;
+            public PlayerInteractor CarrierInteractor;
             public NetworkObject CarrierNetwork;
             public Action<KnockdownType> KnockdownHandler;
 
@@ -452,7 +453,7 @@ namespace Igruha.Core.Items
         }
 
         [System.NonSerialized] private string cachedPrompt;
-        public string InteractionPrompt => cachedPrompt ??= InteractionPromptText.Hold + interactionPrompt;
+        public string InteractionPrompt => cachedPrompt ??= "E — " + interactionPrompt;
 
         /// <summary>
         /// Вправе ли эта машина решать судьбу объекта. Вне сетевой сессии — да,
@@ -660,39 +661,29 @@ namespace Igruha.Core.Items
             TryGrab(player);
         }
 
-        /// <summary>Hold E owns one handle; releasing E is idempotent and never grabs again.</summary>
+        // Listen to the physical E edge, bypassing the shared InputAction's Hold delay.
+        // Releasing the key does nothing; the next press toggles the attachment.
         public void HoldChanged(PlayerController player, bool held)
         {
-            if (player == null) return;
+            if (!held || player == null) return;
             if (HasAuthority)
             {
-                ApplyHold(player, held);
+                if (player.TryGetComponent<PlayerInteractor>(out var interactor))
+                    interactor.ExecuteInteraction(gameObject);
                 return;
             }
             var actor = player.GetComponent<NetworkObject>();
             if (IsSpawned && actor != null && actor.IsSpawned && actor.IsOwner)
-                RequestHoldRpc(actor.NetworkObjectId, held);
+                RequestToggleRpc(actor.NetworkObjectId);
         }
 
         [Rpc(SendTo.Server, RequireOwnership = false)]
-        private void RequestHoldRpc(ulong actorId, bool held, RpcParams rpcParams = default)
+        private void RequestToggleRpc(ulong actorId, RpcParams rpcParams = default)
         {
             if (!NetworkManager.SpawnManager.SpawnedObjects.TryGetValue(actorId, out var actor) ||
                 actor.OwnerClientId != rpcParams.Receive.SenderClientId ||
-                !actor.TryGetComponent<PlayerController>(out var player)) return;
-            ApplyHold(player, held);
-        }
-
-        private void ApplyHold(PlayerController player, bool held)
-        {
-            if (!held)
-            {
-                ReleaseFor(player, CarryReleaseReason.LetGo);
-                return;
-            }
-            // Reuse the authoritative interaction gate: reach, suspension and owner filter.
-            if (!IsCarriedBy(player) && player.TryGetComponent<PlayerInteractor>(out var interactor))
-                interactor.ExecuteInteraction(gameObject);
+                !actor.TryGetComponent<PlayerInteractor>(out var interactor)) return;
+            interactor.ExecuteInteraction(gameObject);
         }
 
         /// <summary>
@@ -1107,6 +1098,7 @@ namespace Igruha.Core.Items
             handle.CarrierCollider = player.GetComponent<CapsuleCollider>();
             handle.CarrierCarry = player.GetComponent<PlayerCarryAbility>();
             handle.CarrierPush = player.GetComponent<PlayerPushAbility>();
+            handle.CarrierInteractor = player.GetComponent<PlayerInteractor>();
             handle.CarrierNetwork = player.GetComponent<NetworkObject>();
 
             // Сбитый несущий роняет ручку. Подписка на слот своя, чтобы снять
@@ -1128,6 +1120,8 @@ namespace Igruha.Core.Items
             {
                 handle.CarrierPush.ButtonOverride = this;
             }
+
+            if (handle.CarrierInteractor != null) handle.CarrierInteractor.ButtonOverride = this;
 
             player.ApplySpeedCap(this, settings.carrierSpeedCap);
             SetCollisionsWithCarrier(handle, true);
@@ -1178,12 +1172,16 @@ namespace Igruha.Core.Items
                 handle.CarrierPush.ButtonOverride = null;
             }
 
+            if (handle.CarrierInteractor != null && ReferenceEquals(handle.CarrierInteractor.ButtonOverride, this))
+                handle.CarrierInteractor.ButtonOverride = null;
+
             handle.Taken = false;
             handle.Carrier = null;
             handle.CarrierBody = null;
             handle.CarrierCollider = null;
             handle.CarrierCarry = null;
             handle.CarrierPush = null;
+            handle.CarrierInteractor = null;
             handle.CarrierNetwork = null;
             handle.HasLastPosition = false;
             handle.TrackedVelocity = Vector3.zero;
