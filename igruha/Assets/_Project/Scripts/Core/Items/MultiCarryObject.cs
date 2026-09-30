@@ -145,6 +145,7 @@ namespace Igruha.Core.Items
     ///   совпадает с этой ручкой, смещения нет вовсе.
     ///
     /// <b>Катящийся груз</b> (тележка «Переноски» v2) в пунктах 3 и 4 отличается:
+    /// направление задаёт средний ввод несущих, их тела следуют за ручками;
     /// скорость набирается и теряется с инерцией, а опора у него — колёса, а
     /// не руки. Ровная тяга и незанятые поручни такой объект не кренят вовсе;
     /// кренит его <b>рывок кузова</b> — изменение скорости за шаг: разгон,
@@ -164,7 +165,7 @@ namespace Igruha.Core.Items
     /// машина владельца несущего (см. <c>RidePlatform</c>): чужого игрока
     /// сервер двигать не вправе, это IGR-297.
     /// </summary>
-    [RequireComponent(typeof(Rigidbody))]
+    [RequireComponent(typeof(Rigidbody)), DefaultExecutionOrder(10)]
     public sealed class MultiCarryObject : NetworkBehaviour, IHoldInteractable, IPushButtonOverride
     {
         /// <summary>Больше четырёх рук не бывает: столько человек в самой большой команде проекта.</summary>
@@ -211,6 +212,8 @@ namespace Igruha.Core.Items
             public PlayerCarryAbility CarrierCarry;
             public PlayerPushAbility CarrierPush;
             public PlayerInteractor CarrierInteractor;
+            public StuckDetector CarrierStuckDetector;
+            public bool StuckDetectorWasEnabled;
             public NetworkObject CarrierNetwork;
             public Action<KnockdownType> KnockdownHandler;
 
@@ -233,6 +236,8 @@ namespace Igruha.Core.Items
 
             public Vector3 LastPosition;
             public bool HasLastPosition;
+            public bool HasLastStation;
+            public Vector3 LastStation;
 
             /// <summary>Сколько секунд несущий держится выше своего потолка скорости, прося при этом бежать.</summary>
             public float OverspeedTimer;
@@ -569,14 +574,14 @@ namespace Igruha.Core.Items
 
         /// <summary>Несущий на этом слоте. Null — слот свободен.</summary>
         public PlayerController CarrierAt(int slot) =>
-            slot >= 0 && slot < handles.Length ? handles[slot].Carrier : null;
+            slot >= 0 && slot < handles.Length ? handles[slot]?.Carrier : null;
 
         /// <summary>
         /// Тело несущего на этом слоте. Кэшировано в момент захвата: тем, кто
         /// читает скорости несущих каждый такт физики, звать GetComponent нельзя.
         /// </summary>
         public Rigidbody CarrierBodyAt(int slot) =>
-            slot >= 0 && slot < handles.Length ? handles[slot].CarrierBody : null;
+            slot >= 0 && slot < handles.Length ? handles[slot]?.CarrierBody : null;
 
         /// <summary>
         /// Где должен стоять несущий на этом слоте — точка, к которой его тянет
@@ -1092,6 +1097,7 @@ namespace Igruha.Core.Items
             handle.OverspeedTimer = 0f;
             handle.Intent = Vector2.zero;
             handle.HasLastPosition = false;
+            handle.HasLastStation = false;
             handle.TrackedVelocity = Vector3.zero;
             handle.Carrier = player;
             handle.CarrierBody = player.GetComponent<Rigidbody>();
@@ -1100,6 +1106,14 @@ namespace Igruha.Core.Items
             handle.CarrierPush = player.GetComponent<PlayerPushAbility>();
             handle.CarrierInteractor = player.GetComponent<PlayerInteractor>();
             handle.CarrierNetwork = player.GetComponent<NetworkObject>();
+            handle.CarrierStuckDetector = IsRolling ? player.GetComponent<StuckDetector>() : null;
+            if (handle.CarrierStuckDetector != null)
+            {
+                // Opposing inputs or a parked cart are intentional constraints,
+                // not a stuck player who should be teleported away from the handle.
+                handle.StuckDetectorWasEnabled = handle.CarrierStuckDetector.enabled;
+                handle.CarrierStuckDetector.enabled = false;
+            }
 
             // Сбитый несущий роняет ручку. Подписка на слот своя, чтобы снять
             // её потом ровно той же ссылкой.
@@ -1125,6 +1139,7 @@ namespace Igruha.Core.Items
 
             player.ApplySpeedCap(this, settings.carrierSpeedCap);
             SetCollisionsWithCarrier(handle, true);
+            SetCollisionsBetweenCarriers(handle, true);
 
             CarrierCount++;
             hadCarriers = true;
@@ -1160,7 +1175,11 @@ namespace Igruha.Core.Items
             }
 
             handle.KnockdownHandler = null;
+            if (handle.CarrierStuckDetector != null)
+                handle.CarrierStuckDetector.enabled = handle.StuckDetectorWasEnabled;
+            handle.CarrierStuckDetector = null;
             SetCollisionsWithCarrier(handle, false);
+            SetCollisionsBetweenCarriers(handle, false);
 
             if (handle.CarrierCarry != null)
             {
@@ -1184,6 +1203,7 @@ namespace Igruha.Core.Items
             handle.CarrierInteractor = null;
             handle.CarrierNetwork = null;
             handle.HasLastPosition = false;
+            handle.HasLastStation = false;
             handle.TrackedVelocity = Vector3.zero;
             handle.Intent = Vector2.zero;
             handle.OverspeedTimer = 0f;
@@ -1370,6 +1390,12 @@ namespace Igruha.Core.Items
                     continue;
                 }
 
+                if (IsRolling)
+                {
+                    FollowRollingStation(handle, StationOf(i));
+                    continue;
+                }
+
                 Vector3 stretch = handle.Carrier.transform.position - StationOf(i);
                 stretch.y = 0f;
 
@@ -1383,6 +1409,29 @@ namespace Igruha.Core.Items
             }
         }
 
+        private const float StationFollowGain = 12f;
+        private const float StationCatchupSpeed = 4f;
+
+        // Run after the player motor. Input still reaches MoveIntent, but a cart carrier
+        // walks with the handle instead of stretching a spring until it breaks.
+        // Only the owner writes its body; collisions and vertical motion remain physical.
+        private void FollowRollingStation(Handle handle, Vector3 station)
+        {
+            float dt = Time.fixedDeltaTime;
+            Vector3 stationVelocity = handle.HasLastStation ? (station - handle.LastStation) / dt : Vector3.zero;
+            handle.LastStation = station;
+            handle.HasLastStation = true;
+            stationVelocity.y = 0f;
+            float turnSpeed = settings.turnRate * Mathf.Deg2Rad * Vector3.Distance(station, BasePosition);
+            stationVelocity = Vector3.ClampMagnitude(stationVelocity, settings.maxSpeedEmpty + turnSpeed);
+            Vector3 error = station - handle.CarrierBody.position;
+            error.y = 0f;
+            Vector3 correction = Vector3.ClampMagnitude(error * StationFollowGain, StationCatchupSpeed);
+            Vector3 velocity = stationVelocity + correction;
+            velocity.y = handle.CarrierBody.linearVelocity.y;
+            handle.CarrierBody.linearVelocity = velocity;
+        }
+
         // ========== ВВОД НЕСУЩЕГО ==========
 
         /// <summary>
@@ -1390,11 +1439,9 @@ namespace Igruha.Core.Items
         /// кадр. Прецедент тот же, что у лифта Охотника: ось едет событием,
         /// а не потоком.
         ///
-        /// Серверу он нужен ровно для одного — <b>отличить рывок от полёта</b>.
-        /// Скорость несущего сервер и так видит по позиции, но позиция не
-        /// говорит, бежит человек сам или его несёт ловушка. Двигать бутыль по
-        /// присланному вектору сервер не станет: тянет её натяжение связи, и
-        /// числа приёмки каркаса выведены именно из него.
+        /// Тележка едет по среднему вводу несущих. Для подвешенного предмета
+        /// этот же вектор отличает намеренный бег от внешнего толчка;
+        /// его по-прежнему двигает натяжение связи.
         /// </summary>
         private void ReportOwnIntent()
         {
@@ -1568,10 +1615,10 @@ namespace Igruha.Core.Items
                     continue;
                 }
 
-                // Потолок скорости несущего стоит в его моторе, а мотор живёт
-                // у клиента. Проверяет его сервер — и снимает ручку тому, кто
-                // потолок обошёл.
-                if (!HoldsSpeedCap(handle, i, dt))
+                // У подвешенного груза сервер проверяет потолок мотора клиента.
+                // Несущего тележки ведёт ручка: её скорость на повороте может
+                // законно превышать скорость ходьбы самого персонажа.
+                if (!IsRolling && !HoldsSpeedCap(handle, i, dt))
                 {
                     continue;
                 }
@@ -1579,6 +1626,13 @@ namespace Igruha.Core.Items
                 footSum += carrierPosition.y;
                 occupied++;
                 supportSum += SupportPointWorld(i);
+
+                if (IsRolling)
+                {
+                    Vector2 intent = IntentOf(handle);
+                    pullSum += new Vector3(intent.x, 0f, intent.y);
+                    continue;
+                }
 
                 if (distance > settings.tensionDeadzone)
                 {
@@ -1604,7 +1658,7 @@ namespace Igruha.Core.Items
 
             if (IsRolling)
             {
-                StepRollingVelocity(pullSum, dt);
+                StepRollingVelocity(pullSum / occupied, dt);
             }
             else
             {
@@ -1772,15 +1826,14 @@ namespace Igruha.Core.Items
         private const float ReverseAngle = 100f;
 
         /// <summary>
-        /// Шаг качения в руках: целевая скорость — те же натяжения, но
-        /// объект тянется к ней с разгоном, а не берёт её сразу. Потолок и
-        /// разгон зависят от нагрузки: полная тележка отстаёт от рванувших
-        /// несущих сильнее пустой — и поручни у неё срываются чаще.
+        /// Шаг качения: средний ввод команды задаёт целевую скорость,
+        /// а масса воды — потолок и разгон. Несущие следуют за ручками;
+        /// обычный WASD не должен рвать хват из-за отставания тяжёлой тележки.
         /// </summary>
-        private void StepRollingVelocity(Vector3 pullSum, float dt)
+        private void StepRollingVelocity(Vector3 intent, float dt)
         {
             float cap = Mathf.Lerp(settings.maxSpeedEmpty, settings.maxSpeedFull, load);
-            Vector3 target = Vector3.ClampMagnitude(pullSum * settings.pullToSpeed, cap);
+            Vector3 target = Vector3.ClampMagnitude(intent, 1f) * cap;
             float acceleration = Mathf.Lerp(settings.accelerationEmpty, settings.accelerationFull, load);
             ApplyRollingVelocity(target, acceleration, dt);
         }
@@ -2154,11 +2207,17 @@ namespace Igruha.Core.Items
             return -1;
         }
 
-        /// <summary>
-        /// Свой несущий объекту не помеха: без этого команда бульдозерит саму
-        /// себя собственной тарой, и на месте стоянки несущего оказывается
-        /// коллайдер того, что он несёт.
-        /// </summary>
+        // Carriers occupy fixed stations. A delayed teammate capsule must not block
+        // the local owner from following its station around a corner.
+        private void SetCollisionsBetweenCarriers(Handle handle, bool ignore)
+        {
+            if (!IsRolling || handle.CarrierCollider == null) return;
+            foreach (Handle other in handles)
+                if (other != null && other != handle && other.Alive && other.CarrierCollider != null)
+                    Physics.IgnoreCollision(handle.CarrierCollider, other.CarrierCollider, ignore);
+        }
+
+        /// <summary>Свой несущий не сталкивается с тем, что несёт.</summary>
         private void SetCollisionsWithCarrier(Handle handle, bool ignore)
         {
             if (handle.CarrierCollider == null || ownColliders == null)
