@@ -18,6 +18,9 @@ namespace Igruha.Tests
         private PlayerInputReader reader;
         private readonly List<SessionPlayer> team = new List<SessionPlayer>();
         private bool driving, holding, failed;
+        private Vector3 driveDirection = Vector3.right;
+        private int monitoredCount, contactSamples;
+        private float worstContact;
         private int localSlot = -1;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -32,7 +35,22 @@ namespace Igruha.Tests
         {
             if (reader == null) return;
             reader.DriveInteractHold(holding);
-            reader.DriveMove(driving ? local.WorldToMoveInput(Vector3.right) : Vector2.zero);
+            reader.DriveMove(driving ? local.WorldToMoveInput(driveDirection) : Vector2.zero);
+        }
+
+        private void LateUpdate()
+        {
+            for (int i = 0; i < monitoredCount; i++)
+            {
+                var pose = team[i].Avatar.GetComponent<WaterCartGripPose>();
+                // A sharp reversal may legitimately break the gameplay tether. Only judge
+                // contact while attached; the release/fade assertions cover detached players.
+                if (!cart.Carry.IsCarriedBy(team[i].Avatar)) continue;
+                if (pose == null) { worstContact = float.PositiveInfinity; continue; }
+                if (pose.Weight < 0.99f) continue;
+                worstContact = Mathf.Max(worstContact, pose.MaxPalmError);
+                contactSamples++;
+            }
         }
 
         private IEnumerator Start()
@@ -88,7 +106,7 @@ namespace Igruha.Tests
                     cart = game.CartOf(side);
                 }
                 // Round timer is replicated, so all owners drive the same time window.
-                float start = 12f + pass * 10f;
+                float start = 12f + pass * 15f;
                 yield return WaitElapsed(start);
                 holding = driving = false;
                 if (manager.IsServer)
@@ -105,15 +123,25 @@ namespace Igruha.Tests
                 Check(cart.Carry.CarrierCount == count, "E grab count=" + count + " actual=" + cart.Carry.CarrierCount);
                 CheckPose(count, "stationary " + side);
                 Vector3 before = cart.transform.position;
+                driveDirection = Vector3.right;
+                worstContact = 0f; contactSamples = 0; monitoredCount = count;
                 driving = holding;
                 yield return WaitElapsed(start + 5.5f);
                 driving = false;
                 CheckPose(count, "moving " + side);
                 Check(cart.transform.position.x - before.x > 1f, "roll count=" + count + " moved=" + (cart.transform.position.x - before.x));
                 Check(cart.Carry.CarrierCount == count, "retain count=" + count);
-                yield return WaitElapsed(start + 6.3f);
+                driveDirection = Vector3.forward; driving = holding;
+                yield return WaitElapsed(start + 6.5f);
+                driveDirection = Vector3.left;
+                yield return WaitElapsed(start + 7.5f);
+                driving = false;
+                yield return WaitElapsed(start + 8.5f);
+                monitoredCount = 0;
+                Check(contactSamples > 30 && worstContact < 0.06f,
+                    "continuous grip " + side + " count=" + count + " samples=" + contactSamples + " worst=" + worstContact);
                 holding = false;
-                yield return WaitElapsed(start + 8f);
+                yield return WaitElapsed(start + 11f);
                 Check(cart.Carry.CarrierCount == 0, "release count=" + count);
                 for (int i = 0; i < count; i++)
                 {
@@ -131,7 +159,7 @@ namespace Igruha.Tests
             for (int i = 0; i < count; i++)
             {
                 var pose = team[i].Avatar.GetComponent<WaterCartGripPose>();
-                Check(pose != null && pose.Weight > 0.99f && pose.MaxPalmError < 0.12f,
+                Check(pose != null && pose.Weight > 0.99f && pose.MaxPalmError < 0.06f,
                     "grip " + phase + " player=" + team[i].Id + " error=" + (pose != null ? pose.MaxPalmError : -1f));
             }
         }

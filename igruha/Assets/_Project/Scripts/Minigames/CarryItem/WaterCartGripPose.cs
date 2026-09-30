@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Igruha.Core.Items;
 using Igruha.Core.Player;
 using UnityEngine;
@@ -11,16 +12,18 @@ namespace Igruha.Minigames.CarryItem
         private const float BlendSeconds = 0.18f;
         private const float HandSpacing = 0.115f;
         private const float GripHeight = 0.04f;
-        private const float BodyLean = 16f;
-        private const float TurnRate = 540f;
-        private const float MaxReachAssist = 0.35f;
-        private const float ReachResponse = 18f;
+        private const float BodyLean = 8f;
+        private const float ComfortableReach = 0.85f;
+        private const float MaxStanceAdjustment = 0.3f;
+        private const float ElbowOutward = 0.25f;
         private const float ReachMargin = 0.001f;
         private const float Epsilon = 0.00001f;
         private sealed class Arm
         {
             public Transform Upper, Lower, Hand;
             public Quaternion PalmBasis;
+            public Quaternion UpperRest, LowerRest;
+            public readonly Quaternion[] FingerRest = new Quaternion[12];
             public Vector3 PalmOffset;
             public readonly Transform[] Fingers = new Transform[12];
         }
@@ -36,8 +39,10 @@ namespace Igruha.Minigames.CarryItem
         private bool forceAnimation, written;
         private Quaternion sampledModelRotation;
         private Vector3 sampledModelPosition;
-        private float reachAssist;
-        private float blend, yaw;
+        private Quaternion modelRestRotation;
+        private Vector3 stanceOffset;
+        private float blend;
+        private Dictionary<Transform, Quaternion> bindRotations;
         private Vector3 anchor, inward;
         public float Weight => blend;
         public float MaxPalmError { get; private set; }
@@ -47,11 +52,37 @@ namespace Igruha.Minigames.CarryItem
             player = GetComponent<PlayerController>();
             animator = GetComponentInChildren<Animator>();
             if (animator == null || !animator.isHuman) return;
+            modelRestRotation = Quaternion.Inverse(transform.rotation) * animator.transform.rotation;
+            bindRotations = ReadBindRotations();
             spine = animator.GetBoneTransform(HumanBodyBones.Spine);
             Track(spine);
             arms[0] = BindArm(true);
             arms[1] = BindArm(false);
+            bindRotations = null;
         }
+
+        // Use imported skin bind poses, never the current walk-frame's arm twist.
+        private Dictionary<Transform, Quaternion> ReadBindRotations()
+        {
+            var result = new Dictionary<Transform, Quaternion>();
+            foreach (var skin in animator.GetComponentsInChildren<SkinnedMeshRenderer>())
+            {
+                if (skin.sharedMesh == null) continue;
+                var bones = skin.bones;
+                var poses = skin.sharedMesh.bindposes;
+                var indices = new Dictionary<Transform, int>();
+                for (int i = 0; i < bones.Length; i++)
+                    if (bones[i] != null) indices[bones[i]] = i;
+                for (int i = 0; i < bones.Length && i < poses.Length; i++)
+                    if (bones[i] != null && bones[i].parent != null &&
+                        indices.TryGetValue(bones[i].parent, out int parent) && parent < poses.Length)
+                        result[bones[i]] = (poses[parent] * poses[i].inverse).rotation;
+            }
+            return result;
+        }
+
+        private Quaternion RestOf(Transform bone) =>
+            bindRotations.TryGetValue(bone, out var rotation) ? rotation : bone.localRotation;
 
         private void Track(Transform bone)
         {
@@ -68,6 +99,8 @@ namespace Igruha.Minigames.CarryItem
             };
             if (arm.Upper == null || arm.Lower == null || arm.Hand == null) return null;
             Track(arm.Upper); Track(arm.Lower); Track(arm.Hand);
+            arm.UpperRest = RestOf(arm.Upper);
+            arm.LowerRest = RestOf(arm.Lower);
             var middle = animator.GetBoneTransform(left ? HumanBodyBones.LeftMiddleProximal : HumanBodyBones.RightMiddleProximal);
             var index = animator.GetBoneTransform(left ? HumanBodyBones.LeftIndexProximal : HumanBodyBones.RightIndexProximal);
             var little = animator.GetBoneTransform(left ? HumanBodyBones.LeftLittleProximal : HumanBodyBones.RightLittleProximal);
@@ -82,6 +115,7 @@ namespace Igruha.Minigames.CarryItem
             {
                 arm.Fingers[i] = animator.GetBoneTransform(first + i);
                 Track(arm.Fingers[i]);
+                if (arm.Fingers[i] != null) arm.FingerRest[i] = RestOf(arm.Fingers[i]);
             }
             return arm;
         }
@@ -117,36 +151,42 @@ namespace Igruha.Minigames.CarryItem
             blend = Mathf.MoveTowards(blend, slot >= 0 && !player.IsKnockedDown ? 1f : 0f, Time.deltaTime / BlendSeconds);
             if (blend <= 0f)
             {
-                RestoreCulling(); yaw = 0f; reachAssist = 0f; MaxPalmError = 0f;
+                RestoreCulling(); stanceOffset = Vector3.zero; MaxPalmError = 0f;
                 return;
             }
             sampledModelRotation = animator.transform.localRotation;
             sampledModelPosition = animator.transform.localPosition;
             for (int i = 0; i < changedCount; i++) sampledRotations[i] = changedBones[i].localRotation;
             written = true;
-            // Front carriers face the cart while walking backwards; physics and camera keep their heading.
-            float desiredYaw = Vector3.SignedAngle(transform.forward, inward, Vector3.up);
-            yaw = Mathf.MoveTowardsAngle(yaw, desiredYaw, TurnRate * Time.deltaTime);
-            animator.transform.rotation = Quaternion.AngleAxis(yaw * blend, Vector3.up) * animator.transform.rotation;
+            // The cart is the reference for the visible body, including turns and strafing.
+            // A spring between gameplay roots is not an arm: do not show its stretch on the rig.
+            animator.transform.rotation = Quaternion.Slerp(animator.transform.rotation,
+                Quaternion.LookRotation(inward, Vector3.up) * modelRestRotation, blend);
             Vector3 right = Vector3.Cross(Vector3.up, inward).normalized;
             if (spine != null) spine.rotation = Quaternion.AngleAxis(BodyLean * blend, right) * spine.rotation;
-            // The owner's body can lead the interpolated cart. Shift only the sampled model
-            // within its capsule instead of stretching arm bones or moving gameplay/camera roots.
-            float needed = 0f;
+            if (slot >= 0)
+            {
+                stanceOffset = cart.StationOf(slot) - transform.position;
+                stanceOffset.y = 0f;
+            }
+            animator.transform.position += stanceOffset * blend;
+            // Leave room to bend the elbows. This signed correction also keeps tall carriers
+            // from standing too close. It is recomputed from the sampled pose, never accumulated.
+            float adjustment = 0f;
             for (int i = 0; i < arms.Length; i++)
             {
                 Arm arm = arms[i];
                 Vector3 grip = anchor + right * ((i == 0 ? -1f : 1f) * HandSpacing);
                 Quaternion rotation = Quaternion.LookRotation(inward, Vector3.up) * Quaternion.Inverse(arm.PalmBasis);
                 Vector3 offset = grip - rotation * Vector3.Scale(arm.PalmOffset, arm.Hand.lossyScale) - arm.Upper.position;
-                float reach = Vector3.Distance(arm.Upper.position, arm.Lower.position) +
-                    Vector3.Distance(arm.Lower.position, arm.Hand.position) - ReachMargin;
+                float reach = (Vector3.Distance(arm.Upper.position, arm.Lower.position) +
+                    Vector3.Distance(arm.Lower.position, arm.Hand.position)) * ComfortableReach;
                 float forward = Vector3.Dot(offset, inward);
                 float transverse = Mathf.Max(0f, offset.sqrMagnitude - forward * forward);
-                needed = Mathf.Max(needed, forward - Mathf.Sqrt(Mathf.Max(0f, reach * reach - transverse)));
+                adjustment += forward - Mathf.Sqrt(Mathf.Max(0f, reach * reach - transverse));
             }
-            reachAssist = Mathf.Lerp(reachAssist, Mathf.Clamp(needed, 0f, MaxReachAssist), 1f - Mathf.Exp(-ReachResponse * Time.deltaTime));
-            animator.transform.position += inward * (reachAssist * blend);
+            animator.transform.position += inward * (Mathf.Clamp(adjustment / arms.Length,
+                -MaxStanceAdjustment, MaxStanceAdjustment) * blend);
             MaxPalmError = 0f;
             for (int i = 0; i < arms.Length; i++)
             {
@@ -155,13 +195,23 @@ namespace Igruha.Minigames.CarryItem
                 Vector3 grip = anchor + right * (side * HandSpacing);
                 Quaternion handRotation = Quaternion.LookRotation(inward, Vector3.up) * Quaternion.Inverse(arm.PalmBasis);
                 Vector3 wrist = grip - handRotation * Vector3.Scale(arm.PalmOffset, arm.Hand.lossyScale);
-                Solve(arm, Vector3.Lerp(arm.Hand.position, wrist, blend), right * side - Vector3.up * 0.6f);
+                Quaternion rawUpper = arm.Upper.localRotation, rawLower = arm.Lower.localRotation;
+                arm.Upper.localRotation = arm.UpperRest;
+                arm.Lower.localRotation = arm.LowerRest;
+                Solve(arm, wrist, right * (side * ElbowOutward) - Vector3.up);
+                arm.Upper.localRotation = Quaternion.Slerp(rawUpper, arm.Upper.localRotation, blend);
+                arm.Lower.localRotation = Quaternion.Slerp(rawLower, arm.Lower.localRotation, blend);
                 arm.Hand.rotation = Quaternion.Slerp(arm.Hand.rotation, handRotation, blend);
                 // Curl fingers around the horizontal rubber bar after aligning the palm.
                 Vector3 curlAxis = Vector3.Cross(inward, Vector3.down);
                 for (int j = 0; j < arm.Fingers.Length; j++)
                     if (arm.Fingers[j] != null)
-                        arm.Fingers[j].rotation = Quaternion.AngleAxis((j % 3 == 1 ? 65f : 40f) * blend, curlAxis) * arm.Fingers[j].rotation;
+                    {
+                        Quaternion raw = arm.Fingers[j].localRotation;
+                        arm.Fingers[j].localRotation = arm.FingerRest[j];
+                        arm.Fingers[j].rotation = Quaternion.AngleAxis(j % 3 == 1 ? 65f : 40f, curlAxis) * arm.Fingers[j].rotation;
+                        arm.Fingers[j].localRotation = Quaternion.Slerp(raw, arm.Fingers[j].localRotation, blend);
+                    }
                 MaxPalmError = Mathf.Max(MaxPalmError, Vector3.Distance(arm.Hand.TransformPoint(arm.PalmOffset), grip));
             }
         }
