@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# IGR-673/674: real hold-E input and rolling on the arena floor with 1–4 carriers.
+# IGR-687: short E taps, retained grip and rolling with 1–4 carriers.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

@@ -34,7 +34,6 @@ namespace Igruha.Tests
         private void Update()
         {
             if (reader == null) return;
-            reader.DriveInteractHold(holding);
             reader.DriveMove(driving ? local.WorldToMoveInput(driveDirection) : Vector2.zero);
         }
 
@@ -119,6 +118,7 @@ namespace Igruha.Tests
                 }
                 yield return WaitElapsed(start + 1.5f);
                 holding = localSlot >= 0 && localSlot < count;
+                if (holding) yield return Tap();
                 yield return WaitElapsed(start + 3f);
                 Check(cart.Carry.CarrierCount == count, "E grab count=" + count + " actual=" + cart.Carry.CarrierCount);
                 CheckPose(count, "stationary " + side);
@@ -131,17 +131,31 @@ namespace Igruha.Tests
                 CheckPose(count, "moving " + side);
                 Check(cart.transform.position.x - before.x > 1f, "roll count=" + count + " moved=" + (cart.transform.position.x - before.x));
                 Check(cart.Carry.CarrierCount == count, "retain count=" + count);
-                driveDirection = Vector3.forward; driving = holding;
-                yield return WaitElapsed(start + 6.5f);
-                driveDirection = Vector3.left;
-                yield return WaitElapsed(start + 7.5f);
-                driving = false;
+                monitoredCount = 0;
+                // Server time trails on clients: separate observations from the next input.
+                yield return WaitElapsed(start + 6f);
+                if (holding) yield return Tap();
+                yield return WaitElapsed(start + 6.7f);
+                Check(cart.Carry.CarrierCount == 0, "second E releases count=" + count);
+                yield return WaitElapsed(start + 7.2f);
+                if (holding) yield return Tap();
+                yield return WaitElapsed(start + 8f);
+                Check(cart.Carry.CarrierCount == count, "third E regrabs count=" + count);
+                monitoredCount = count;
                 yield return WaitElapsed(start + 8.5f);
+                driveDirection = Vector3.forward; driving = holding;
+                yield return WaitElapsed(start + 9.5f);
+                driveDirection = Vector3.left;
+                yield return WaitElapsed(start + 10.5f);
+                driving = false;
+                yield return WaitElapsed(start + 11f);
                 monitoredCount = 0;
                 Check(contactSamples > 30 && worstContact < 0.06f,
                     "continuous grip " + side + " count=" + count + " samples=" + contactSamples + " worst=" + worstContact);
+                yield return WaitElapsed(start + 11.5f);
+                if (holding && cart.Carry.IsCarriedBy(local)) yield return Tap();
                 holding = false;
-                yield return WaitElapsed(start + 11f);
+                yield return WaitElapsed(start + 13f);
                 Check(cart.Carry.CarrierCount == 0, "release count=" + count);
                 for (int i = 0; i < count; i++)
                 {
@@ -152,6 +166,14 @@ namespace Igruha.Tests
             if (!failed) Debug.Log("CARRY_ROLLING_CHECK PASS id=" + manager.LocalClientId);
             yield return new WaitForSeconds(2f);
             Application.Quit(failed ? 1 : 0);
+        }
+
+        private IEnumerator Tap()
+        {
+            // Shorter than the shared InputAction's Hold threshold: the actual raw E path.
+            reader.DriveInteractHold(true);
+            yield return new WaitForSeconds(0.08f);
+            reader.DriveInteractHold(false);
         }
 
         private void CheckPose(int count, string phase)

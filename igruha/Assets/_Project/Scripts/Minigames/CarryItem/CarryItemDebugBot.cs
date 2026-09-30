@@ -129,6 +129,9 @@ namespace Igruha.Minigames.CarryItem
                 return;
             }
 
+            // A one-frame key pulse; the cart keeps its grip after release.
+            reader.DriveInteractHold(false);
+
             // Управление на обучалке отнимают только у живых игроков: у
             // болванки ридер и так не «локально управляемый».
             if (!game.Phase.IsGameplay())
@@ -231,12 +234,6 @@ namespace Igruha.Minigames.CarryItem
 
             walker.Stop();
 
-            if (reader.InteractHeld)
-            {
-                reader.DriveInteractHold(false);
-                grabCooldown = GrabRetryDelay;
-                return;
-            }
             if (grabCooldown > 0f)
             {
                 return;

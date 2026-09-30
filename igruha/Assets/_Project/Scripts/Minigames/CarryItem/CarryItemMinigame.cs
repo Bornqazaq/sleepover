@@ -676,14 +676,14 @@ namespace Igruha.Minigames.CarryItem
             if (water == 0)
             {
                 Hud.ShowStatus(carried
-                    ? "Тележка пуста — катите её к своему крану"
-                    : InteractionPromptText.Hold + "взяться за пустую тележку и катить к крану");
+                    ? "Тележка пуста — катите её к своему крану · E — отпустить"
+                    : "E — взяться за пустую тележку и катить к крану");
                 return;
             }
 
             Hud.ShowStatus(carried
-                ? $"В тележке {water} из {capacity} — везите к своему баку"
-                : InteractionPromptText.Hold + $"взяться за тележку ({water} из {capacity})");
+                ? $"В тележке {water} из {capacity} — везите к своему баку · E — отпустить"
+                : $"E — взяться за тележку ({water} из {capacity})");
         }
 
         private void ClearStatus()
