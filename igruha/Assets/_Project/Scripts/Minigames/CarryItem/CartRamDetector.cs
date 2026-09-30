@@ -7,27 +7,27 @@ namespace Igruha.Minigames.CarryItem
 {
     /// <summary>
     /// Таран корпусом между несущими двух команд — единственный способ навредить
-    /// сопернику, не бросая ручку.
+    /// сопернику, не бросая поручень.
     ///
     /// <b>Пропорция потерь 20 / 10 — самый важный параметр всей игры.</b>
-    /// Поровну — таранить не будут; бесплатно — бросят носить и будут только
+    /// Поровну — таранить не будут; бесплатно — бросят возить и будут только
     /// таранить. Оба числа лежат в конфиге и крутятся на плейтесте.
     ///
-    /// Живёт одним объектом на сцене, а не по одному на бутыль: кулдаун здесь
-    /// общий <b>на пару команд</b>, а две копии на двух бутылях считали бы его
-    /// каждая по-своему и списывали бы вдвое.
+    /// Живёт одним объектом на сцене, а не по одному на тележку: кулдаун здесь
+    /// общий <b>на пару команд</b>, а две копии считали бы его каждая по-своему
+    /// и списывали бы вдвое.
     ///
-    /// Столкновение ищется перебором пар несущих, а не коллизиями: у бутыли
+    /// Столкновение ищется перебором пар несущих, а не коллизиями: у тележки
     /// в руках коллайдеры с несущими развязаны (иначе команда бульдозерит саму
     /// себя), а капсулы игроков сталкиваются постоянно и по любому поводу.
     /// Пар не больше шестнадцати, перебор дешевле, чем разбор чужих коллизий.
     /// </summary>
-    public sealed class BottleRamDetector : MonoBehaviour
+    public sealed class CartRamDetector : MonoBehaviour
     {
         [SerializeField] private CarryItemConfig config;
 
-        private WaterBottle bottleA;
-        private WaterBottle bottleB;
+        private WaterCart cartA;
+        private WaterCart cartB;
         private float cooldownTimer;
 
         /// <summary>Подключить числа. Зовут правила раунда на старте.</summary>
@@ -37,11 +37,11 @@ namespace Igruha.Minigames.CarryItem
             cooldownTimer = 0f;
         }
 
-        /// <summary>Какие бутыли сейчас в игре. Меняется каждую ходку — тару выдают заново.</summary>
-        public void SetBottles(WaterBottle a, WaterBottle b)
+        /// <summary>Тележки команд. Постоянны на весь раунд, но приезжают с сервера не в тот же кадр, что и старт.</summary>
+        public void SetCarts(WaterCart a, WaterCart b)
         {
-            bottleA = a;
-            bottleB = b;
+            cartA = a;
+            cartB = b;
         }
 
         private void FixedUpdate()
@@ -60,16 +60,16 @@ namespace Igruha.Minigames.CarryItem
                 return;
             }
 
-            if (bottleA == null || bottleB == null || bottleA.IsGone || bottleB.IsGone)
+            if (cartA == null || cartB == null || cartA.IsLost || cartB.IsLost)
             {
                 return;
             }
 
-            MultiCarryObject carryA = bottleA.Carry;
-            MultiCarryObject carryB = bottleB.Carry;
+            MultiCarryObject carryA = cartA.Carry;
+            MultiCarryObject carryB = cartB.Carry;
 
-            // Таранить некого: если у соперника тару никто не держит, отнимать
-            // у него нечего, а свою воду за наезд на пустое место не берут.
+            // Таранить некого: если у соперника тележку никто не держит,
+            // отнимать у него нечего, а свою воду за наезд на пустое место не берут.
             if (carryA.CarrierCount == 0 || carryB.CarrierCount == 0)
             {
                 return;
@@ -140,17 +140,17 @@ namespace Igruha.Minigames.CarryItem
             if (headOn)
             {
                 // Лобовое: атакующего нет, обе команды платят одинаково.
-                bottleA.SpendWater(config.RamVictimLoss, WaterLossReason.RamVictim);
-                bottleB.SpendWater(config.RamVictimLoss, WaterLossReason.RamVictim);
+                cartA.ChangeWater(-config.RamVictimLoss, WaterLossReason.RamVictim);
+                cartB.ChangeWater(-config.RamVictimLoss, WaterLossReason.RamVictim);
                 return true;
             }
 
             bool leftAttacks = leftClosing > rightClosing;
-            WaterBottle attackerBottle = leftAttacks ? bottleA : bottleB;
-            WaterBottle victimBottle = leftAttacks ? bottleB : bottleA;
+            WaterCart attackerCart = leftAttacks ? cartA : cartB;
+            WaterCart victimCart = leftAttacks ? cartB : cartA;
 
-            victimBottle.SpendWater(config.RamVictimLoss, WaterLossReason.RamVictim);
-            attackerBottle.SpendWater(config.RamAttackerLoss, WaterLossReason.RamAttacker);
+            victimCart.ChangeWater(-config.RamVictimLoss, WaterLossReason.RamVictim);
+            attackerCart.ChangeWater(-config.RamAttackerLoss, WaterLossReason.RamAttacker);
             return true;
         }
     }

@@ -10,15 +10,21 @@ namespace Igruha.Minigames.CarryItem
     /// Бак команды: он же счёт. Уровень виден снаружи и читается с игровой
     /// камеры без наведения — ради этого интерфейс не нужен вовсе.
     ///
-    /// Бутыль внесли в зону — остаток перетекает сам. Перетекает <b>пока она в
-    /// зоне</b>: выдернули на середине — перелилось только то, что успело, и
-    /// остаток остался в бутыли. Это не придирка, а рабочий приём: под обстрелом
-    /// у бака выгоднее слить половину и убежать, чем стоять полтора такта.
+    /// Тележку ввезли в зону — она сама кренится назад и переливает.
+    /// Переливает <b>пока стоит в зоне</b>: выкатили на середине — перелилось
+    /// только то, что успело, остаток остался в тележке. Это не придирка, а
+    /// рабочий приём: под обстрелом у бака выгоднее слить половину и уехать,
+    /// чем стоять две секунды.
+    ///
+    /// Ходка закрыта, когда тележка в зоне опустела. Тележка при этом никуда
+    /// не исчезает — стоит пустая, и её надо укатить обратно к крану.
     /// </summary>
     [RequireComponent(typeof(Collider))]
     public sealed class WaterTank : MonoBehaviour
     {
         [SerializeField] private CarryItemConfig config;
+        [SerializeField] private Transform waterInlet;
+        public Vector3 PourPoint => waterInlet != null ? waterInlet.position : transform.position;
         [Tooltip("Меш воды в баке. Растягивается по уровню ступенями")]
         [SerializeField] private Transform waterMesh;
         [Tooltip("Что красится в цвет команды: обод бака и прочие метки принадлежности")]
@@ -29,13 +35,12 @@ namespace Igruha.Minigames.CarryItem
         /// <summary>Команда долила порцию: сколько единиц и в какой момент общих часов.</summary>
         public event Action<int, double> Delivered;
 
-        /// <summary>Бутыль слита целиком и убрана — ходка закрыта.</summary>
-        public event Action BottleFinished;
+        /// <summary>Тележка слита до дна — ходка закрыта.</summary>
+        public event Action TripFinished;
 
-        /// <summary>
-        /// Бутыли, фактически пересекающие зону на текущем шаге физики.
-        /// </summary>
-        private readonly List<WaterBottle> insideZone = new List<WaterBottle>(4);
+        /// <summary>Тележки, фактически пересекающие зону на текущем шаге физики.</summary>
+        private readonly List<WaterCart> insideZone = new List<WaterCart>(2);
+        private readonly List<WaterCart> pouring = new List<WaterCart>(2);
         private Collider[] overlaps = new Collider[32];
 
         private TeamSide team = TeamSide.None;
@@ -66,12 +71,8 @@ namespace Igruha.Minigames.CarryItem
         /// два: сплошное тело, об которое игрок останавливается, и широкая
         /// зона слива вокруг него. Первым лежит тело — и код каждый запуск
         /// превращал его в триггер. Отсюда сразу три жалобы с прогона:
-        /// сквозь бак можно пройти насквозь, донесённая бутыль его не
+        /// сквозь бак можно пройти насквозь, донесённая тара его не
         /// наполняет и шкала воды не растёт.
-        ///
-        /// Последние два — потому, что триггеров становилось два, а
-        /// обработчик выхода выкидывал бутыль из зоны по выходу из
-        /// <b>любого</b> из них: бутыль стоит в баке, а бак её уже не видит.
         ///
         /// Берём явную ссылку, иначе — тот коллайдер, который уже размечен
         /// триггером. Триггера нет вовсе (старые сцены с одним коллайдером) —
@@ -115,6 +116,7 @@ namespace Igruha.Minigames.CarryItem
             water = 0;
             pourAccumulator = 0f;
             shownStep = -1;
+            ReleasePouring();
             insideZone.Clear();
             ApplyLevelVisual();
             ApplyTeamTint();
@@ -123,7 +125,7 @@ namespace Igruha.Minigames.CarryItem
         /// <summary>
         /// Цвет команды на ободе. Баков на арене два, стоят они симметрично, и
         /// без цвета «свой» от «чужого» отличается только памятью игрока —
-        /// а бежать к чужому баку с полной бутылью очень обидно.
+        /// а везти к чужому баку полную тележку очень обидно.
         /// </summary>
         private void ApplyTeamTint()
         {
@@ -156,18 +158,44 @@ namespace Igruha.Minigames.CarryItem
                 return;
             }
 
-            RefreshBottlesInZone();
+            RefreshCartsInZone();
+
+            // Крен на слив держит только та тележка, которая в зоне и с водой.
+            // Выкатилась или опустела — крен снимается, и это состояние, а не
+            // событие: клиент видит его флагом тележки.
+            for (int i = pouring.Count - 1; i >= 0; i--)
+            {
+                WaterCart cart = pouring[i];
+                if (cart == null || !insideZone.Contains(cart) || cart.Water <= 0)
+                {
+                    if (cart != null)
+                    {
+                        cart.SetPouring(false);
+                    }
+
+                    pouring.RemoveAt(i);
+                }
+            }
+
             for (int i = insideZone.Count - 1; i >= 0; i--)
             {
-                WaterBottle bottle = insideZone[i];
-                if (bottle != null && !bottle.IsGone && bottle.Team == team)
+                WaterCart cart = insideZone[i];
+                if (cart == null || cart.IsLost || cart.Team != team || cart.Water <= 0)
                 {
-                    Pour(bottle, Time.fixedDeltaTime);
+                    continue;
                 }
+
+                if (!pouring.Contains(cart))
+                {
+                    pouring.Add(cart);
+                    cart.SetPouring(true);
+                }
+
+                Pour(cart, Time.fixedDeltaTime);
             }
         }
 
-        private void RefreshBottlesInZone()
+        private void RefreshCartsInZone()
         {
             insideZone.Clear();
             if (pourZone == null || !pourZone.enabled || !pourZone.gameObject.activeInHierarchy)
@@ -176,8 +204,8 @@ namespace Igruha.Minigames.CarryItem
                 return;
             }
 
-            // Enter/Exit can be lost on reset, disable or despawn. Query the
-            // actual shape, including sleeping bottles, on the authority.
+            // Enter/Exit теряются на сбросе, выключении и телепорте. Спрашиваем
+            // настоящую форму, включая спящие тела, у авторитета.
             Bounds bounds = pourZone.bounds;
             int count;
             while (true)
@@ -192,15 +220,15 @@ namespace Igruha.Minigames.CarryItem
             {
                 Collider other = overlaps[i];
                 overlaps[i] = null;
-                WaterBottle bottle = other.GetComponentInParent<WaterBottle>();
-                if (bottle == null || bottle.IsGone || bottle.Team != team || insideZone.Contains(bottle))
+                WaterCart cart = other.GetComponentInParent<WaterCart>();
+                if (cart == null || cart.IsLost || cart.Team != team || insideZone.Contains(cart))
                     continue;
 
-                // Bounds are only the broad phase: rotated zones must not
-                // accept bottles in the empty corners of their world AABB.
+                // Границы — только грубый отбор: повёрнутая зона не должна
+                // принимать тележку в пустых углах своего мирового AABB.
                 if (Physics.ComputePenetration(pourZone, pourZone.transform.position, pourZone.transform.rotation,
                     other, other.transform.position, other.transform.rotation, out _, out _))
-                    insideZone.Add(bottle);
+                    insideZone.Add(cart);
             }
 
             if (insideZone.Count == 0) pourAccumulator = 0f;
@@ -223,21 +251,12 @@ namespace Igruha.Minigames.CarryItem
         }
 
         /// <summary>
-        /// Один шаг слива. Скорость постоянна: полная бутыль уходит за время из
-        /// конфига, полупустая — вдвое быстрее.
+        /// Один шаг слива. Темп постоянный: полная тележка уходит за
+        /// <c>cartCapacity / pourRate</c> секунд, полупустая — вдвое быстрее.
         /// </summary>
-        private void Pour(WaterBottle bottle, float delta)
+        private void Pour(WaterCart cart, float delta)
         {
-            // Донесли пустую — засчитывается ноль, но бутыль всё равно исчезает:
-            // ходка закрыта, штабель выдаёт новую.
-            if (bottle.Water <= 0)
-            {
-                FinishBottle(bottle);
-                return;
-            }
-
-            float rate = config.BottleCapacity / Mathf.Max(0.01f, config.PourSeconds);
-            pourAccumulator += rate * delta;
+            pourAccumulator += config.PourRate * delta;
 
             int whole = Mathf.FloorToInt(pourAccumulator);
             if (whole <= 0)
@@ -247,7 +266,7 @@ namespace Igruha.Minigames.CarryItem
 
             pourAccumulator -= whole;
 
-            int taken = bottle.SpendWater(whole, WaterLossReason.Poured);
+            int taken = -cart.ChangeWater(-whole, WaterLossReason.Poured);
             if (taken <= 0)
             {
                 return;
@@ -262,26 +281,38 @@ namespace Igruha.Minigames.CarryItem
                 Delivered?.Invoke(water - before, Igruha.Core.Minigame.NetworkClock.Now);
             }
 
-            if (bottle.Water <= 0)
+            if (cart.Water <= 0)
             {
-                FinishBottle(bottle);
+                FinishTrip(cart);
             }
         }
 
-        private void FinishBottle(WaterBottle bottle)
+        /// <summary>Тележка слита до дна — ходка закрыта. Тележка остаётся стоять пустой.</summary>
+        private void FinishTrip(WaterCart cart)
         {
-            int index = insideZone.IndexOf(bottle);
-            if (index >= 0)
-            {
-                insideZone.RemoveAt(index);
-            }
-
             pourAccumulator = 0f;
-            BottleFinished?.Invoke();
-            bottle.Vanish();
+            cart.SetPouring(false);
+            pouring.Remove(cart);
+            TripFinished?.Invoke();
         }
 
-        /// <summary>Уровень ступенями по пять единиц — как в бутыли, тем же шагом.</summary>
+        /// <summary>Снять крен слива со всех тележек — конец раунда или сброс бака.</summary>
+        private void ReleasePouring()
+        {
+            for (int i = 0; i < pouring.Count; i++)
+            {
+                if (pouring[i] != null)
+                {
+                    pouring[i].SetPouring(false);
+                }
+            }
+
+            pouring.Clear();
+        }
+
+        private void OnDisable() => ReleasePouring();
+
+        /// <summary>Уровень ступенями по пять единиц — как в тележке, тем же шагом.</summary>
         private void ApplyLevelVisual()
         {
             if (waterMesh == null || config == null)

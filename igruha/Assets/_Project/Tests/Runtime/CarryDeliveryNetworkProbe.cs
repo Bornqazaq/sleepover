@@ -8,10 +8,11 @@ using UnityEngine;
 
 namespace Igruha.Tests
 {
-    // Development-only, opt-in end-to-end check of real scene prefabs and NGO state.
+    // Development-only, opt-in end-to-end check of real scene prefabs and NGO state:
+    // one permanent cart per team fills at the tap, empties at the tank, four trips each.
     public sealed class CarryDeliveryNetworkProbe : MonoBehaviour
     {
-        private const int Deliveries = 5;
+        private const int Deliveries = 4;
         private const float Timeout = 150f;
         private CarryItemMinigame game;
         private bool failed;
@@ -58,7 +59,7 @@ namespace Igruha.Tests
             }
 
             // --bot can re-enable autopilot when a delayed roster arrives. It races
-            // this probe for the next bottle, so this runner must own all deliveries.
+            // this probe for the cart, so this runner must own all deliveries.
             if (LaunchArguments.BotEnabled)
             {
                 Fail("run without --bot");
@@ -109,33 +110,35 @@ namespace Igruha.Tests
 
         private IEnumerator Deliver(TeamSide side, int number)
         {
-            var bottle = game.StackOf(side).Dispense(null);
-            if (bottle == null)
+            var cart = game.CartOf(side);
+            if (cart == null)
             {
-                var live = game.StackOf(side).LiveBottle;
-                Fail($"dispense {side} live={live} carriers={live?.Carry.CarrierCount}");
+                Fail($"no cart {side}");
                 yield break;
             }
-            bottle.Carry.enabled = false;
-            bottle.enabled = false;
-            var body = bottle.GetComponent<Rigidbody>();
-            body.useGravity = false;
-            body.constraints = RigidbodyConstraints.FreezeAll;
-            body.linearVelocity = Vector3.zero;
-            body.position = game.TankOf(side).transform.position + new Vector3(-2.5f, 0.15f, 0f);
-            Physics.SyncTransforms();
-            float deadline = Time.realtimeSinceStartup + game.Config.PourSeconds + 3f;
-            while (bottle != null && !bottle.IsGone && Time.realtimeSinceStartup < deadline)
+            cart.Carry.ResetPose(cart.HomePosition, cart.HomeRotation);
+            float fillDeadline = Time.realtimeSinceStartup + game.Config.CartCapacity / game.Config.FillRate + 3f;
+            while (cart.Water < game.Config.CartCapacity && Time.realtimeSinceStartup < fillDeadline)
                 yield return null;
-            if (bottle != null && !bottle.IsGone) Fail("delivery timeout " + side);
+            if (cart.Water != game.Config.CartCapacity) { Fail("tap fill timeout " + side); yield break; }
+            var tank = game.TankOf(side);
+            cart.Carry.ResetPose(tank.transform.position + new Vector3(-2.5f, 0.15f, 0f), Quaternion.identity);
+            Physics.SyncTransforms();
+            float deadline = Time.realtimeSinceStartup + game.Config.CartCapacity / game.Config.PourRate + 3f;
+            while (cart != null && cart.Water > 0 && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            if (cart != null && cart.Water > 0) Fail("delivery timeout " + side);
+            yield return new WaitForSeconds(0.5f);
             Check(side, number);
+            // Back to the tap dock for the next trip, as a team would push it.
+            cart.Carry.ResetPose(cart.HomePosition, cart.HomeRotation);
             yield return new WaitForSeconds(1f);
         }
 
         private void Check(TeamSide side, int number)
         {
             var state = game.State.Of(side);
-            int expected = Mathf.Min(game.Config.TankCapacity, number * game.Config.BottleCapacity);
+            int expected = Mathf.Min(game.Config.TankCapacity, number * game.Config.CartCapacity);
             if (state.Deliveries != number || state.Water != expected || game.TankOf(side).Water != expected)
                 Fail($"{side} expected={expected}/{number} actual={state.Water}/{state.Deliveries} tank={game.TankOf(side).Water}");
             else

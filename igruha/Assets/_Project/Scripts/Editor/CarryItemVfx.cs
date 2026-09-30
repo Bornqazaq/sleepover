@@ -16,7 +16,7 @@ namespace Igruha.EditorTools
         private static readonly Vector3 Parking = new Vector3(0f, -50f, 0f);
 
         internal static void Build(Transform arena, CarryItemConfig config, GameObject manager,
-            BottleStack[] stacks, TrapBase cart, Transform pipe, Transform beam)
+            WaterTap[] taps, TrapBase barrow, Transform pipe, Transform beam)
         {
             Transform group = ResetGroup(arena, "Effects");
 
@@ -26,10 +26,10 @@ namespace Igruha.EditorTools
             ParticleSystem[] dusts = Pool(group, "Dust");
             ParticleSystem[] swooshes = Pool(group, "Swoosh");
 
-            ParticleSystem cartBurst = Spawn(group, "CartBurst");
-            if (cartBurst != null && cart != null)
+            ParticleSystem barrowBurst = Spawn(group, "BarrowBurst");
+            if (barrowBurst != null && barrow != null)
             {
-                cartBurst.transform.position = cart.transform.position;
+                barrowBurst.transform.position = barrow.transform.position;
             }
 
             BuildPipeJet(group, config, pipe);
@@ -39,7 +39,7 @@ namespace Igruha.EditorTools
             BuildSparks(group);
             BuildSmoke(group);
 
-            Wire(manager, stacks, cart, splashes, sprays, dusts, swooshes, cartBurst);
+            Wire(manager, taps, barrow, splashes, sprays, dusts, swooshes, barrowBurst);
         }
 
         /// <summary>
@@ -298,9 +298,9 @@ namespace Igruha.EditorTools
             return mat;
         }
 
-        private static void Wire(GameObject manager, BottleStack[] stacks, TrapBase cart,
+        private static void Wire(GameObject manager, WaterTap[] taps, TrapBase barrow,
             ParticleSystem[] splashes, ParticleSystem[] sprays, ParticleSystem[] dusts,
-            ParticleSystem[] swooshes, ParticleSystem cartBurst)
+            ParticleSystem[] swooshes, ParticleSystem barrowBurst)
         {
             if (manager == null)
             {
@@ -314,13 +314,13 @@ namespace Igruha.EditorTools
             }
 
             var so = new SerializedObject(effects);
-            FillArray(so.FindProperty("stacks"), stacks);
+            FillArray(so.FindProperty("taps"), taps);
             FillArray(so.FindProperty("splashes"), splashes);
             FillArray(so.FindProperty("sprays"), sprays);
             FillArray(so.FindProperty("dusts"), dusts);
             FillArray(so.FindProperty("swooshes"), swooshes);
-            FillArray(so.FindProperty("traps"), cart != null ? new Object[] { cart } : new Object[0]);
-            so.FindProperty("cartBurst").objectReferenceValue = cartBurst;
+            FillArray(so.FindProperty("traps"), barrow != null ? new Object[] { barrow } : new Object[0]);
+            so.FindProperty("barrowBurst").objectReferenceValue = barrowBurst;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 

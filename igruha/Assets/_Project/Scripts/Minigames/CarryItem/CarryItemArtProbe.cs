@@ -15,8 +15,8 @@ namespace Igruha.Minigames.CarryItem
     public sealed class CarryItemArtProbe : MonoBehaviour
     {
         private CarryItemMinigame game;
-        private BottleStack[] stacks;
-        private readonly WaterBottle[] watched=new WaterBottle[2];
+        private WaterTap[] taps;
+        private readonly WaterCart[] watched=new WaterCart[2];
         private PlayerController[] players;
         private PlayerController local;
         private ParticleSystem[] particles;
@@ -42,7 +42,7 @@ namespace Igruha.Minigames.CarryItem
             var net=NetworkManager.Singleton;
             role=net!=null && net.IsListening?(net.IsHost?"host":"client-"+net.LocalClientId):"editor";
             game=FindFirstObjectByType<CarryItemMinigame>();
-            stacks=FindObjectsByType<BottleStack>(FindObjectsSortMode.None);
+            taps=FindObjectsByType<WaterTap>(FindObjectsSortMode.None);
             particles=FindObjectsByType<ParticleSystem>(FindObjectsSortMode.None);
             File.WriteAllText(Path.Combine(folder,role+"-probe.txt"),"CarryItem original skyscraper observation\n");
         }
@@ -60,13 +60,13 @@ namespace Igruha.Minigames.CarryItem
                 if(local==null && players.Length>0)local=players[0];
                 Write("ROSTER="+game.RosterCount+" duration="+game.Definition.RoundDuration+" local="+(local==null?"none":local.name));
             }
-            for(int i=0;i<stacks.Length && i<2;i++)
+            for(int i=0;i<taps.Length && i<2;i++)
             {
-                var b=stacks[i].LiveBottle;
+                var b=taps[i].Cart;
                 if(watched[i]==b)continue;
-                if(watched[i]!=null)watched[i].WaterSpent-=OnWater;
+                if(watched[i]!=null)watched[i].WaterChanged-=OnWater;
                 watched[i]=b;
-                if(b!=null){b.WaterSpent+=OnWater;Write("BOTTLE team="+b.Team+" handles="+b.Carry.HandleCount+" water="+b.Water);}
+                if(b!=null){b.WaterChanged+=OnWater;Write("CART team="+b.Team+" handles="+b.Carry.HandleCount+" water="+b.Water);}
             }
             if(phase!=(int)game.Phase){phase=(int)game.Phase;Snapshot("PHASE "+game.Phase);}
             if(game.Phase==MinigamePhase.Round)
@@ -101,7 +101,7 @@ namespace Igruha.Minigames.CarryItem
                 .Append(" deliveries=").Append(game.State.TeamA.Deliveries).Append('/').Append(game.State.TeamB.Deliveries);
             if(local!=null)s.Append(" local=").Append(local.transform.position.ToString("F2"));
             int live=0;foreach(var ps in particles)if(ps!=null)live+=ps.particleCount;s.Append(" particles=").Append(live);
-            foreach(var b in watched)if(b!=null)s.Append(" bottle=").Append(b.Team).Append(':').Append(b.Water).Append('@').Append(b.transform.position.ToString("F2"));
+            foreach(var b in watched)if(b!=null)s.Append(" cart=").Append(b.Team).Append(':').Append(b.Water).Append('@').Append(b.transform.position.ToString("F2"));
             Write(s.ToString());
         }
         private void Write(string line){File.AppendAllText(Path.Combine(folder,role+"-probe.txt"),line+"\n");}
@@ -112,7 +112,7 @@ namespace Igruha.Minigames.CarryItem
         }
         private void OnDestroy()
         {
-            foreach(var b in watched)if(b!=null)b.WaterSpent-=OnWater;
+            foreach(var b in watched)if(b!=null)b.WaterChanged-=OnWater;
             if(folder!=null)Write("END scene unloaded");
         }
     }

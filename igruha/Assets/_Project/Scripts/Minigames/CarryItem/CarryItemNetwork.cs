@@ -26,7 +26,7 @@ namespace Igruha.Minigames.CarryItem
         /// <summary>
         /// Игрок вышел из матча. Строка остаётся: место ему полагается наравне
         /// с остальными (спека 10.1), а из состава он выбывает только как пара
-        /// рук — по нему считается число ручек у бутыли.
+        /// рук — по нему считается число поручней у тележки.
         /// </summary>
         public bool Left;
         public double RespawnAt;
@@ -58,10 +58,11 @@ namespace Igruha.Minigames.CarryItem
     /// — <b>счёт</b> — оба бака одной структурой <see cref="CarryItemState"/>.
     ///
     /// Всё остальное состояние живёт там, где ему место, и сюда не стягивается:
-    /// уровень в бутыли — на самой бутыли, занятые ручки — на
-    /// <c>MultiCarryObject</c>, фаза ловушек — на общих часах вообще без
-    /// трафика. Стягивать это в один компонент означало бы гонять по сети то,
-    /// что и так у всех одинаково.
+    /// уровень в тележке — на самой тележке (<see cref="WaterCart"/>), занятые
+    /// поручни — на <c>MultiCarryObject</c>, фаза ловушек — на общих часах
+    /// вообще без трафика. Стягивать это в один компонент означало бы гонять
+    /// по сети то, что и так у всех одинаково. Намерений от клиента здесь нет:
+    /// кран наполняет тележку сам, пока она стоит в зоне.
     /// </summary>
     public sealed class CarryItemNetwork : NetworkBehaviour
     {
@@ -176,41 +177,6 @@ namespace Igruha.Minigames.CarryItem
             }
 
             state.Value = value;
-        }
-
-        // ========== НАМЕРЕНИЕ: УДЕРЖАНИЕ У ШТАБЕЛЯ ==========
-
-        /// <summary>
-        /// Клиент держит E у штабеля своей команды. Отсчёт полутора секунд
-        /// ведёт сервер: тара — это ходка, а ходка — счёт.
-        ///
-        /// Общего механизма для удержания в Core пока нет — <c>PlayerInteractor</c>
-        /// разбирает удержание локально, а серверу его пересылает каждая игра
-        /// сама (прецедент — <c>CageButton</c> «Секундомера»). Обобщить это в
-        /// Core стоит отдельной задачей: сейчас таких игр уже две.
-        ///
-        /// <c>true</c> — намерение ушло, этой машине решать нечего.
-        /// </summary>
-        public bool SubmitStackHold(TeamSide team, bool held)
-        {
-            if (!IsSpawned || IsServer)
-            {
-                return false;
-            }
-
-            StackHoldRpc((byte)team, held);
-            return true;
-        }
-
-        /// <summary>
-        /// Отправителя берём из <c>RpcParams</c>, а не из аргумента: иначе одним
-        /// сообщением можно было бы взять тару за чужого. Свой ли это штабель и
-        /// дотягивается ли игрок — проверяет сам штабель в <c>CanInteract</c>.
-        /// </summary>
-        [Rpc(SendTo.Server, RequireOwnership = false)]
-        private void StackHoldRpc(byte team, bool held, RpcParams rpcParams = default)
-        {
-            game?.ApplyStackHold((int)rpcParams.Receive.SenderClientId, (TeamSide)team, held);
         }
 
         // ========== ПРИЁМ НА КЛИЕНТЕ ==========

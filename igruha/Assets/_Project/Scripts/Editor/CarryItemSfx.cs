@@ -32,7 +32,7 @@ namespace Igruha.EditorTools
         private const float FalloffUnits = 22f;
 
         internal static void Build(Transform arena, CarryItemConfig config, GameObject manager,
-            BottleStack[] stacks, WaterTank[] tanks, TrapBase cart, Transform pipe, Transform beam)
+            WaterTap[] taps, WaterTank[] tanks, TrapBase barrow, Transform pipe, Transform beam)
         {
             if (manager == null)
             {
@@ -65,9 +65,9 @@ namespace Igruha.EditorTools
             }
 
             var so = new SerializedObject(audio);
-            FillArray(so.FindProperty("stacks"), stacks);
+            FillArray(so.FindProperty("taps"), taps);
             FillArray(so.FindProperty("tanks"), tanks);
-            FillArray(so.FindProperty("traps"), cart != null ? new Object[] { cart } : new Object[0]);
+            FillArray(so.FindProperty("traps"), barrow != null ? new Object[] { barrow } : new Object[0]);
             so.FindProperty("player").objectReferenceValue = player;
             so.FindProperty("roundTimer").objectReferenceValue = manager.GetComponent<RoundTimer>();
             so.FindProperty("pipe").objectReferenceValue = pipe;

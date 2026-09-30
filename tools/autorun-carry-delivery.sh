@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# IGR-592: five deliveries per team, using real prefabs and replicated state.
+# IGR-682 (v2): four cart trips per team — fill at the tap, pour at the tank — using real prefabs and replicated state.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

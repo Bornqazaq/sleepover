@@ -53,9 +53,7 @@ namespace Igruha.EditorTools
                 "состав команд: готовым списком, а не правилом деления — у клиента свой порядок ростера",
             ["CarryItemNetwork.roster.PlayerId"] = "кто именно, номер участника сессии",
             ["CarryItemNetwork.roster.Team"] = "за какую команду играет",
-            ["CarryItemNetwork.roster.Left"] = "вышел ли из матча: по этому числу раздаются ручки бутыли",
-            ["CarryItemNetwork.StackHoldRpc(team)"] = "у чьего штабеля держат E; отправителя берём из RpcParams",
-            ["CarryItemNetwork.StackHoldRpc(held)"] = "начали держать или отпустили",
+            ["CarryItemNetwork.roster.Left"] = "вышел ли из матча: по этому числу раздаются поручни тележки",
 
             // ---- Ручки и полёт: MultiCarryObject ----
             ["MultiCarryObject.netState"] =
@@ -65,22 +63,25 @@ namespace Igruha.EditorTools
             ["MultiCarryObject.netState.Handle2"] = "кто держит ручку 2",
             ["MultiCarryObject.netState.Handle3"] = "кто держит ручку 3",
             ["MultiCarryObject.netState.InFlight"] =
-                "объект брошен и ещё не приземлился: на свистке такой не засчитывается, и взяться за него нельзя",
+                "несомый объект брошен и ещё не приземлился; у катящейся тележки не используется",
             ["MultiCarryObject.netState.LastRelease"] =
                 "причина последнего срыва, байт — под звук и эффекты; отдельного канала под неё не заводим",
+            ["MultiCarryObject.netTilt"] =
+                "крен катящегося объекта, два байта — по градусу на горизонтальную ось; тело физики вертикально, из NetworkTransform крен не прочитать",
             ["MultiCarryObject.CarrierIntentRpc(intent)"] =
                 "вектор ввода несущего: сервер отличает им рывок от полёта, движение считает не по нему",
             ["MultiCarryObject.RequestThrowRpc()"] = "намерение бросить; отправителя берём из RpcParams",
             ["MultiCarryObject.RequestReleaseRpc(reason)"] =
                 "сбитый несущий сообщает, что уронил ручку: нокдаун считает его мотор, у сервера чужой выключен",
 
-            // ---- Бутыль: WaterBottle ----
-            ["WaterBottle.netState"] = "чья бутыль, сколько ручек, сколько воды — одной структурой",
-            ["WaterBottle.netState.Team"] = "чья бутыль: чужой за её ручку не возьмётся",
-            ["WaterBottle.netState.Handles"] = "сколько у неё ручек — размер команды на момент выдачи",
-            ["WaterBottle.netState.Water"] = "остаток воды: это счёт, и клиент его только показывает",
-            ["WaterBottle.AnnounceLossRpc(amount)"] = "сколько воды ушло — под эффект, сам уровень едет состоянием",
-            ["WaterBottle.AnnounceLossRpc(reason)"] = "почему ушло: по уровню не видно, брызги это или струя",
+            // ---- Тележка: WaterCart ----
+            ["WaterCart.netState"] = "чья тележка, сколько поручней, сколько воды, что с ней — одной структурой",
+            ["WaterCart.netState.Team"] = "чья тележка: чужой за её поручень не возьмётся",
+            ["WaterCart.netState.Handles"] = "сколько у неё поручней — размер команды сейчас",
+            ["WaterCart.netState.Water"] = "уровень воды ступенями по пять: это счёт, и клиент его только показывает",
+            ["WaterCart.netState.Flags"] = "наполняется / сливается / в пропасти — состояние, а не событие, под струи и HUD",
+            ["WaterCart.AnnounceLossRpc(amount)"] = "сколько воды ушло дискретной потерей — под эффект, сам уровень едет состоянием",
+            ["WaterCart.AnnounceLossRpc(reason)"] = "почему ушло: по уровню не видно, брызги это или струя",
 
             // ---- Общий мост фаз, он же у всех мини-игр ----
             ["NetworkMinigameBridge.phase"] = "фаза мини-игры, общий механизм проекта",

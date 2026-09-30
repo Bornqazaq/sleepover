@@ -7,13 +7,13 @@ using UnityEngine;
 
 namespace Igruha.Tests
 {
-    // Opt-in development build check: real scene, bottle, carriers and NGO teardown.
+    // Opt-in development build check: real scene, permanent cart, carriers and NGO teardown.
     public sealed class CarryLifecycleProbe : MonoBehaviour
     {
         private const float Timeout = 100f;
         private string scenario;
         private CarryItemMinigame game;
-        private WaterBottle bottle;
+        private WaterCart bottle;
         private int localId, lossEvents, lostWater;
         private WaterLossReason lossReason;
         private bool server, failed, closing;
@@ -72,15 +72,17 @@ namespace Igruha.Tests
 
             if (server)
             {
-                bottle = game.StackOf(side).Dispense(null);
-                Check(bottle != null, "dispense");
+                bottle = game.CartOf(side);
+                Check(bottle != null, "cart spawned");
                 if (bottle == null) { Finish(); yield break; }
-                // Keep this fixture upright so incidental tilt/impact cannot mask the loss being tested.
+                // Fill at the server directly and keep the fixture upright so incidental
+                // slosh from the teleport/impact cannot mask the loss being tested.
+                bottle.ChangeWater(game.Config.CartCapacity, WaterLossReason.Filled);
                 var settings = bottle.Carry.Settings;
-                settings.tiltFromSupportLoss = 0;
-                settings.tiltFromTorque = 0;
+                settings.sloshPerDeltaSpeed = 0;
                 bottle.Carry.Configure(settings);
-                bottle.GetComponent<Rigidbody>().constraints = RigidbodyConstraints.FreezeAll;
+                if (scenario != "void")
+                    bottle.GetComponent<Rigidbody>().constraints = RigidbodyConstraints.FreezeAll;
                 var carrier = SessionScoreboard.Current.FindPlayer(carrierId).Avatar;
                 carrier.RequestTeleport(bottle.Carry.StationOf(0), Quaternion.identity);
                 yield return new WaitForSeconds(1);
@@ -89,14 +91,14 @@ namespace Igruha.Tests
             float carrierDeadline = Time.realtimeSinceStartup + 10;
             while (Time.realtimeSinceStartup < carrierDeadline)
             {
-                bottle = game.StackOf(side).LiveBottle;
-                if (bottle != null && bottle.Carry.CarrierCount == 1) break;
+                bottle = game.CartOf(side);
+                if (bottle != null && bottle.Carry.CarrierCount == 1 && bottle.Water == game.Config.CartCapacity) break;
                 yield return null;
             }
             Check(bottle != null && bottle.Carry.CarrierCount == 1, "replicated carrier");
             if (failed) { Finish(); yield break; }
-            bottle.WaterSpent += OnWaterSpent;
-            Check(bottle.Water == game.Config.BottleCapacity, "initial water");
+            bottle.WaterChanged += OnWaterSpent;
+            Check(bottle.Water == game.Config.CartCapacity, "initial water");
             Debug.Log($"CARRY_LIFECYCLE READY scenario={scenario} id={localId} carrier={carrierId}");
             yield return new WaitForSeconds(3);
 
@@ -130,23 +132,33 @@ namespace Igruha.Tests
                 yield break;
             }
 
-            if (server && scenario == "drop")
-                bottle.Carry.Interact(SessionScoreboard.Current.FindPlayer(carrierId).Avatar);
-            if (localId == carrierId && scenario == "throw")
+            // shove: the carrier pushes the cart off and a quarter splashes out.
+            // void: the server drops the cart below the pit floor; everything is lost
+            // and the cart returns to its tap dock after the respawn delay.
+            if (localId == carrierId && scenario == "shove")
                 bottle.Carry.HandlePushButton(SessionScoreboard.Current.FindPlayer(carrierId).Avatar);
+            if (server && scenario == "void")
+                bottle.Carry.ResetPose(bottle.transform.position + Vector3.down * 40f, Quaternion.identity);
 
-            int expectedLoss = scenario == "throw"
-                ? Mathf.FloorToInt(game.Config.BottleCapacity * game.Config.ThrowLossFraction)
-                : game.Config.DropLoss;
+            int expectedLoss = scenario == "void"
+                ? game.Config.CartCapacity
+                : Mathf.FloorToInt(game.Config.CartCapacity * game.Config.ShoveLossFraction);
             float lossDeadline = Time.realtimeSinceStartup + 8;
             while (Time.realtimeSinceStartup < lossDeadline &&
-                   (lossEvents == 0 || bottle.Water != game.Config.BottleCapacity - expectedLoss))
+                   (lossEvents == 0 || bottle.Water != game.Config.CartCapacity - expectedLoss))
                 yield return null;
             yield return new WaitForSeconds(1);
-            Check(bottle.Water == game.Config.BottleCapacity - expectedLoss, "replicated water");
+            Check(bottle.Water == game.Config.CartCapacity - expectedLoss, "replicated water");
             Check(lossEvents == 1 && lostWater == expectedLoss, "one replicated loss event");
-            Check(lossReason == (scenario == "throw" ? WaterLossReason.Throw : WaterLossReason.Drop), "loss reason");
+            Check(lossReason == (scenario == "void" ? WaterLossReason.Void : WaterLossReason.Shove), "loss reason");
             Check(bottle.Carry.CarrierCount == 0, "handle released");
+            if (scenario == "void")
+            {
+                float returnDeadline = Time.realtimeSinceStartup + game.Config.CartRespawnSeconds + 4;
+                while (Time.realtimeSinceStartup < returnDeadline && bottle.IsLost) yield return null;
+                Check(!bottle.IsLost, "cart returned");
+                Check(Vector3.Distance(bottle.transform.position, bottle.HomePosition) < 1.5f, "cart at dock");
+            }
             Check(manager.IsListening && game.Phase == MinigamePhase.Round, "round continues");
             if (scenario == "client-exit" && server)
                 Check(manager.ConnectedClientsIds.Count == 3, "other clients remain");
