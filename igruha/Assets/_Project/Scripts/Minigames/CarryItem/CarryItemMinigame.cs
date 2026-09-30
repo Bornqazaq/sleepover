@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 using Igruha.Core.Interaction;
 using Igruha.Core.Items;
@@ -33,8 +34,11 @@ namespace Igruha.Minigames.CarryItem
         [System.Serializable]
         private sealed class TeamRig
         {
-            [Tooltip("Штабель тары в стартовой зоне")]
-            public BottleStack Stack;
+            [Tooltip("Кран команды в стартовой зоне: зона наполнения и стоянка тележки")]
+            public WaterTap Tap;
+
+            /// <summary>Тележка команды на этот раунд. Спавнит сервер, у клиента приезжает и усыновляется по команде.</summary>
+            [System.NonSerialized] public WaterCart Cart;
             [Tooltip("Бак команды — он же её счёт")]
             public WaterTank Tank;
             [Tooltip("Роль точек спавна этой команды")]
@@ -69,7 +73,11 @@ namespace Igruha.Minigames.CarryItem
         [Header("Переноска предмета")]
         [SerializeField] private CarryItemConfig config;
         [SerializeField] private SpawnPointSet spawnPoints;
-        [SerializeField] private BottleRamDetector ramDetector;
+        [SerializeField] private CartRamDetector ramDetector;
+        [Tooltip("Префаб тележки. Спавнит сервер на стоянке крана, по одной на команду, на весь раунд")]
+        [SerializeField] private WaterCart cartPrefab;
+        [Tooltip("Плашка диктора: объявляет закрытые ходки. Пусто — молча")]
+        [SerializeField] private AnnouncerBanner announcer;
         [SerializeField] private TeamProgressBar progressBar;
         [SerializeField] private CarryItemRespawnPresentation respawnPresentation;
 
@@ -84,9 +92,16 @@ namespace Igruha.Minigames.CarryItem
         [SerializeField] private LayerMask botObstacles;
 
         private int shownWater = int.MinValue;
-        private bool shownPouring;
+        private bool shownLeaking;
         private bool shownCarried;
+        private bool shownFilling;
+        private bool shownDraining;
+        private bool shownLost;
         private bool statusShown;
+        private CartTiltCause shownCause;
+        private int shownResponsible = -1;
+        private bool shownNeedsHands;
+        private bool shownLocalHolding;
 
         private readonly List<Entry> entries = new List<Entry>(8);
         private readonly List<TeamRanking.Entry> rankingBuffer = new List<TeamRanking.Entry>(8);
@@ -124,7 +139,7 @@ namespace Igruha.Minigames.CarryItem
         /// <summary>Числа игры. Нужны болванкам и предметам арены.</summary>
         public CarryItemConfig Config => config;
 
-        /// <summary>Отметка пропасти. Нужна бутыли, приехавшей из сети: в трафик её не гоняем.</summary>
+        /// <summary>Отметка пропасти. Нужна тележке, приехавшей из сети: в трафик её не гоняем.</summary>
         public float VoidLevel => voidLevel;
 
         /// <summary>Счёт раунда одной структурой. У клиента — то, что приехало от сервера.</summary>
@@ -173,6 +188,12 @@ namespace Igruha.Minigames.CarryItem
             }
 
             ConfigureRigs();
+
+            if (HasAuthority)
+            {
+                SpawnCarts();
+            }
+
             AttachBots();
 
             progressBar?.ResetBars(config.TankCapacity);
@@ -266,11 +287,8 @@ namespace Igruha.Minigames.CarryItem
                 entries.Add(entry);
             }
 
-            // Число ручек у бутыли — это размер команды, и клиент обязан знать
-            // его для подсказки над свободной ручкой.
-            teamA.Stack?.SetTeamSize(SizeOf(TeamSide.A));
-            teamB.Stack?.SetTeamSize(SizeOf(TeamSide.B));
-
+            // Число поручней у тележки клиенту не считать: оно приезжает
+            // состоянием самой тележки вместе с уровнем воды.
             RefreshLocalTeam();
             respawnPresentation?.Bind(Players);
 
@@ -284,7 +302,9 @@ namespace Igruha.Minigames.CarryItem
         /// <summary>Счёт приехал с сервера. Клиент только показывает — считать ему нечего.</summary>
         public void ApplyNetworkState(in CarryItemState value)
         {
+            CarryItemState previous = state;
             state = value;
+            AnnounceTrips(previous, state);
 
             teamA.Tank?.ApplyNetworkLevel(state.TeamA.Water);
             teamB.Tank?.ApplyNetworkLevel(state.TeamB.Water);
@@ -389,87 +409,97 @@ namespace Igruha.Minigames.CarryItem
             {
                 rig.Tank.Configure(config, side);
                 rig.Tank.Delivered += (amount, time) => OnDelivered(side, amount, time);
-                rig.Tank.BottleFinished += () => OnBottleFinished(side);
+                rig.Tank.TripFinished += () => OnTripFinished(side);
             }
 
-            if (rig.Stack == null)
+            if (rig.Tap == null)
             {
-                Debug.LogError($"{name}: у команды {side} нет штабеля — брать тару неоткуда", this);
+                Debug.LogError($"{name}: у команды {side} нет крана — набирать воду неоткуда", this);
                 return;
             }
 
-            rig.Stack.Configure(config, side, teamSize, voidLevel);
-            rig.Stack.TeamFilter = player => TeamOfAvatar(player) == side;
-            rig.Stack.BottleTaken += bottle => OnBottleTaken(side, bottle);
+            rig.Tap.Configure(config, side);
+        }
 
-            // Полторы секунды у штабеля отсчитывает сервер: тара — это ходка,
-            // а ходка — счёт. С машины несущего уходит только «держу».
-            rig.Stack.HoldRelay = (stackTeam, held) => net?.SubmitStackHold(stackTeam, held);
+        // ========== ТЕЛЕЖКИ ==========
+
+        /// <summary>
+        /// Тележки спавнит сервер на стоянках кранов — по одной на команду и на
+        /// весь раунд. Тара больше не выдаётся и не исчезает: слилась — стоит
+        /// пустая, упала в пропасть — вернётся на стоянку сама.
+        /// </summary>
+        private void SpawnCarts()
+        {
+            SpawnCart(teamA, TeamSide.A);
+            SpawnCart(teamB, TeamSide.B);
+            ramDetector?.SetCarts(teamA.Cart, teamB.Cart);
+        }
+
+        private void SpawnCart(TeamRig rig, TeamSide side)
+        {
+            if (rig.Tap == null || rig.Cart != null)
+            {
+                return;
+            }
+
+            if (cartPrefab == null)
+            {
+                Debug.LogError($"{name}: не назначен префаб тележки — команде {side} возить нечего", this);
+                return;
+            }
+
+            WaterCart cart = Instantiate(cartPrefab, rig.Tap.DockPosition, rig.Tap.DockRotation);
+            cart.name = $"Cart_{side}";
+            cart.Initialize(config, side, Mathf.Max(1, SizeOf(side)), voidLevel, rig.Tap.DockPosition, rig.Tap.DockRotation);
+            AttachCart(rig, side, cart);
+
+            if (WorldAuthority.IsNetworkSession && cart.TryGetComponent(out NetworkObject netObject))
+            {
+                netObject.Spawn();
+            }
         }
 
         /// <summary>
-        /// Намерение «держу E у штабеля» доехало до сервера. Кто отправитель,
-        /// сетевая половина взяла из сообщения; своя ли команда и дотягивается
-        /// ли игрок — решает сам штабель.
+        /// Записать тележку за командой: фильтр своих, кран, разрез потерь.
+        /// Зовёт и сервер при спавне, и клиент — за тележку, приехавшую из сети.
         /// </summary>
-        public void ApplyStackHold(int playerId, TeamSide side, bool held)
+        private void AttachCart(TeamRig rig, TeamSide side, WaterCart cart)
         {
-            if (!HasAuthority)
-            {
-                return;
-            }
+            rig.Cart = cart;
+            rig.Tap?.AttachCart(cart);
+            cart.Carry.SetOwnerFilter(player => TeamOfAvatar(player) == side);
+            cart.Stability.FirstSpill += AnnounceSpill;
 
-            PlayerController avatar = AvatarOf(playerId);
-            if (avatar == null)
-            {
-                return;
-            }
-
-            StackOf(side)?.HoldChanged(avatar, held);
-        }
-
-        /// <summary>
-        /// Новая тара у команды: настроить фильтр своих и пересобрать пару для
-        /// детектора тарана. Тару выдают шесть раз за раунд, поэтому связи
-        /// пересобираются здесь, а не один раз на старте.
-        /// </summary>
-        private void OnBottleTaken(TeamSide side, WaterBottle bottle)
-        {
-            bottle.Carry.SetOwnerFilter(player => TeamOfAvatar(player) == side);
-
-            // Разрез потерь ведёт тот, кто их считает. У клиента SpendWater
+            // Разрез потерь ведёт тот, кто их считает. У клиента ChangeWater
             // молчит, и подписка здесь дала бы вечные нули в отчёте.
             if (HasAuthority)
             {
-                bottle.WaterSpent += (amount, reason) => spentByReason[(int)side, (int)reason] += amount;
+                cart.WaterChanged += (amount, reason) => spentByReason[(int)side, (int)reason] += amount;
             }
-
-            ramDetector?.SetBottles(teamA.Stack != null ? teamA.Stack.LiveBottle : null,
-                teamB.Stack != null ? teamB.Stack.LiveBottle : null);
         }
 
         /// <summary>
-        /// Бутыль приехала из сети: сервер выдал её со штабеля, а этой машине
-        /// осталось прицепить к ней числа игры и записать в свой штабель, чтобы
-        /// правило одной бутыли читалось и здесь.
+        /// Тележка приехала из сети: сервер заспавнил её на старте, а этой
+        /// машине осталось прицепить к ней числа игры, стоянку и записать за
+        /// краном своей команды.
         /// </summary>
-        public void AdoptNetworkBottle(WaterBottle bottle)
+        public void AdoptNetworkCart(WaterCart cart)
         {
-            if (bottle == null || config == null)
+            if (cart == null || config == null)
             {
                 return;
             }
 
-            TeamSide side = bottle.Team;
-            bottle.ApplyNetworkSetup(config, voidLevel);
-
-            BottleStack stack = StackOf(side);
-            if (stack == null)
+            TeamSide side = cart.Team;
+            TeamRig rig = RigOf(side);
+            if (rig == null || rig.Tap == null)
             {
                 return;
             }
 
-            stack.AdoptBottle(bottle);
+            cart.ApplyNetworkSetup(config, voidLevel, rig.Tap.DockPosition, rig.Tap.DockRotation);
+            AttachCart(rig, side, cart);
+            ramDetector?.SetCarts(teamA.Cart, teamB.Cart);
         }
 
         /// <summary>Сколько воды команда потеряла по этой причине за раунд, единиц.</summary>
@@ -509,7 +539,7 @@ namespace Igruha.Minigames.CarryItem
                 }
                 if (entry.RespawnAt <= 0 && entry.Avatar.Position.y < voidLevel)
                 {
-                    StackOf(entry.Team)?.LiveBottle?.Carry.ReleaseFor(entry.Avatar, CarryReleaseReason.RoundEnded);
+                    CartOf(entry.Team)?.Carry.ReleaseFor(entry.Avatar, CarryReleaseReason.RoundEnded);
                     if (entry.Avatar.TryGetComponent(out PlayerCarryAbility carry)) carry.Drop();
                     entry.RespawnAt = NetworkClock.Now + config.RespawnDelaySeconds;
                     SetFallWaiting(ref entry, true);
@@ -595,46 +625,114 @@ namespace Igruha.Minigames.CarryItem
                 return;
             }
 
-            WaterBottle bottle = StackOf(side)?.LiveBottle;
-            int water = bottle != null ? bottle.Water : -1;
-            bool pouring = bottle != null && water > 0 && bottle.Carry.BeyondTiltThreshold;
-            bool carried = bottle != null && bottle.Carry.IsCarried;
+            WaterCart cart = CartOf(side);
+            int capacity = config.CartCapacity;
+            int water = cart != null ? cart.Water : -1;
+            bool leaking = cart != null && water > 0 && cart.Carry.BeyondTiltThreshold;
+            bool carried = cart != null && cart.Carry.IsCarried;
+            bool filling = cart != null && cart.IsFilling;
+            bool draining = cart != null && cart.IsPouring;
+            bool lost = cart != null && cart.IsLost;
+            CartTiltCause cause = cart != null ? cart.Stability.State.Cause : CartTiltCause.None;
+            int responsible = cart != null ? cart.Stability.State.Responsible : -1;
+            bool needsHands = cart != null && cart.Stability.NeedsHands;
+            bool localHolding = cart != null && cart.Carry.IsCarriedBy(AvatarOf(localId));
 
-            if (statusShown && water == shownWater && pouring == shownPouring && carried == shownCarried)
+            if (statusShown && water == shownWater && leaking == shownLeaking && carried == shownCarried &&
+                filling == shownFilling && draining == shownDraining && lost == shownLost &&
+                cause == shownCause && responsible == shownResponsible && needsHands == shownNeedsHands &&
+                localHolding == shownLocalHolding)
             {
                 return;
             }
 
             shownWater = water;
-            shownPouring = pouring;
+            shownLeaking = leaking;
             shownCarried = carried;
+            shownFilling = filling;
+            shownDraining = draining;
+            shownLost = lost;
             statusShown = true;
+            shownCause = cause;
+            shownResponsible = responsible;
+            shownNeedsHands = needsHands;
+            shownLocalHolding = localHolding;
 
-            if (bottle == null)
+            if (cart == null)
             {
-                Hud.ShowStatus(InteractionPromptText.Hold + "взять бутыль у своего штабеля");
+                Hud.ShowStatus("Тележка команды выезжает к крану…");
                 return;
             }
 
-            if (pouring)
+            if (lost)
             {
-                Hud.ShowStatus($"ПЕРЕКОС, ЛЬЁТСЯ! Осталось {water} из {config.BottleCapacity} — выровняйте бутыль");
+                Hud.ShowStatus("Тележка в пропасти — через несколько секунд вернётся к крану");
                 return;
             }
 
-            // Пустую нести некуда: в баке она засчитается нулём. Её бросают, и
-            // через отсчёт штабель выдаёт новую (спека 5.1).
+            if (localHolding && cause == CartTiltCause.Disagreement)
+            {
+                string warning = responsible == localId ? "Ты отстаёшь!" :
+                    $"Отстаёт: {WaterCartStability.PlayerName(responsible)}";
+                Hud.ShowStatus($"{warning} {(leaking ? "Вода льётся!" : "Выровняйте тягу")} · {water} из {capacity}");
+                return;
+            }
+
+            if (localHolding && cause == CartTiltCause.Turn)
+            {
+                Hud.ShowStatus($"Слишком резко! Сбавьте перед поворотом · {water} из {capacity}");
+                return;
+            }
+
+            if (leaking)
+            {
+                Hud.ShowStatus($"ПЕРЕКОС, ЛЬЁТСЯ! В тележке {water} из {capacity} — выровняйте её");
+                return;
+            }
+
+            if (draining)
+            {
+                Hud.ShowStatus($"Насос откачивает: в тележке ещё {water} из {capacity}");
+                return;
+            }
+
+            if (filling)
+            {
+                Hud.ShowStatus($"Набирается: {water} из {capacity} — уезжайте, когда хватит");
+                return;
+            }
+
             if (water == 0)
             {
                 Hud.ShowStatus(carried
-                    ? InteractionPromptText.Hold + "отпустить пустую бутыль, штабель выдаст новую"
-                    : "Бутыль пуста — отойдите, штабель выдаст новую");
+                    ? "Тележка пуста — катите её к своему крану · E — отпустить"
+                    : "E — взяться за пустую тележку и катить к крану");
+                return;
+            }
+
+            if (localHolding && needsHands)
+            {
+                Hud.ShowStatus($"Нужны руки — полную тележку тяжело везти одному · {water} из {capacity}");
                 return;
             }
 
             Hud.ShowStatus(carried
-                ? $"В бутыли {water} из {config.BottleCapacity} — несите к своему баку"
-                : InteractionPromptText.Hold + $"взяться за бутыль ({water} из {config.BottleCapacity})");
+                ? $"В тележке {water} из {capacity} — везите к насосу у своего бака · E — отпустить"
+                : $"E — взяться за тележку ({water} из {capacity})");
+        }
+
+        private void AnnounceSpill(CartTiltCause cause, int responsible)
+        {
+            string name = WaterCartStability.PlayerName(responsible);
+            string text = cause switch
+            {
+                CartTiltCause.Disagreement => $"Перекос! Отстаёт {name}",
+                CartTiltCause.Turn => "Занесло на повороте!",
+                CartTiltCause.Release => $"{name} бросил поручень!",
+                _ => "Удар! Вода за бортом!"
+            };
+            announcer?.Announce(text, 3f);
+            GetComponent<CarryCartVoice>()?.Announce(cause, responsible);
         }
 
         private void ClearStatus()
@@ -646,6 +744,11 @@ namespace Igruha.Minigames.CarryItem
 
             statusShown = false;
             shownWater = int.MinValue;
+            shownLeaking = false;
+            shownCarried = false;
+            shownFilling = false;
+            shownDraining = false;
+            shownLost = false;
             Hud.HideStatus();
         }
 
@@ -697,18 +800,43 @@ namespace Igruha.Minigames.CarryItem
             net?.PublishState(state);
         }
 
-        private void OnBottleFinished(TeamSide side)
+        private void OnTripFinished(TeamSide side)
         {
             if (!HasAuthority)
             {
                 return;
             }
 
+            CarryItemState previous = state;
             state.Deliver(side, 0, config.TankCapacity, 0d, true);
             net?.PublishState(state);
+            AnnounceTrips(previous, state);
 
             Debug.Log($"🫙 [Переноска] команда {side} закрыла ходку №{state.Of(side).Deliveries}, " +
                       $"в баке {state.Of(side).Water} из {config.TankCapacity}");
+        }
+
+        /// <summary>
+        /// Диктор объявляет закрытую ходку на каждой машине: число ходок едет
+        /// счётом, и по его росту клиент говорит то же, что и хост, — без
+        /// отдельного сообщения.
+        /// </summary>
+        private void AnnounceTrips(in CarryItemState previous, in CarryItemState current)
+        {
+            if (announcer == null)
+            {
+                return;
+            }
+
+            if (current.TeamA.Deliveries > previous.TeamA.Deliveries)
+            {
+                announcer.Announce($"Команда А: ходка {current.TeamA.Deliveries}, в баке {current.TeamA.Water}", 2.6f);
+            }
+
+            if (current.TeamB.Deliveries > previous.TeamB.Deliveries)
+            {
+                announcer.Announce($"Команда Б: ходка {current.TeamB.Deliveries}, в баке {current.TeamB.Water}", 2.6f);
+            }
         }
 
         // ========== УХОД ИГРОКА ==========
@@ -743,20 +871,22 @@ namespace Igruha.Minigames.CarryItem
 
             Entry entry = entries[index];
 
-            // Ручку снимаем сами, не дожидаясь страховки: она сработает в
-            // ближайший такт физики, но состав уже объявлен, и число ручек
-            // должно сойтись с ним в тот же миг.
-            WaterBottle bottle = StackOf(entry.Team)?.LiveBottle;
-            if (bottle != null && entry.Avatar != null)
+            // Поручень снимаем сами, не дожидаясь страховки: она сработает в
+            // ближайший такт физики, но состав уже объявлен, и число поручней
+            // должно сойтись с ним в тот же миг. Сначала снять ушедшего, потом
+            // ужать число поручней — живые несущие при этом переезжают на
+            // младшие слоты, а не срываются.
+            WaterCart cart = CartOf(entry.Team);
+            if (cart != null && entry.Avatar != null)
             {
-                bottle.Carry.ReleaseFor(entry.Avatar, CarryReleaseReason.RoundEnded);
+                cart.Carry.ReleaseFor(entry.Avatar, CarryReleaseReason.RoundEnded);
             }
 
             entry.Left = true;
             entry.Avatar = null;
             entries[index] = entry;
 
-            StackOf(entry.Team)?.SetTeamSize(SizeOf(entry.Team));
+            cart?.SetHandleCount(Mathf.Max(1, SizeOf(entry.Team)));
             PublishRoster();
 
             Debug.Log($"🫙 [Переноска] {playerId} вышел из матча, в команде {entry.Team} осталось " +
@@ -923,23 +1053,50 @@ namespace Igruha.Minigames.CarryItem
 
         /// <summary>Разрез потерь одной строкой. Числа приёмки и плейтеста.</summary>
         private string LossReport(TeamSide side) =>
+            $"набрано {SpentBy(side, WaterLossReason.Filled)}, " +
             $"перекос {SpentBy(side, WaterLossReason.Tilt)}, " +
             $"удары {SpentBy(side, WaterLossReason.Hit)}, " +
-            $"падения {SpentBy(side, WaterLossReason.Drop)}, " +
-            $"броски {SpentBy(side, WaterLossReason.Throw)}, " +
+            $"толчки {SpentBy(side, WaterLossReason.Shove)}, " +
             $"таран {SpentBy(side, WaterLossReason.RamVictim) + SpentBy(side, WaterLossReason.RamAttacker)}, " +
             $"пропасть {SpentBy(side, WaterLossReason.Void)}, " +
             $"донесено {SpentBy(side, WaterLossReason.Poured)}";
 
+        /// <summary>
+        /// Снять всё с тележки команды и убрать её. Поручни отпускаются на
+        /// <b>каждой</b> машине — потолок скорости и занятые руки живут в моторе
+        /// владельца; саму тележку убирает авторитет, остальные узнают из despawn.
+        /// </summary>
         private void ReleaseTeam(TeamRig rig)
         {
-            WaterBottle bottle = rig.Stack != null ? rig.Stack.LiveBottle : null;
-            if (bottle != null)
+            WaterCart cart = rig.Cart;
+            rig.Tap?.DetachCart();
+            rig.Cart = null;
+
+            if (cart == null)
             {
-                bottle.Carry.ReleaseAll(CarryReleaseReason.RoundEnded);
+                return;
             }
 
-            rig.Stack?.ClearLiveBottle();
+            cart.Carry.ReleaseAll(CarryReleaseReason.RoundEnded);
+
+            if (!HasAuthority)
+            {
+                return;
+            }
+
+            NetworkManager manager = NetworkManager.Singleton;
+            if (manager != null && manager.ShutdownInProgress)
+            {
+                return;
+            }
+
+            if (WorldAuthority.IsNetworkSession && cart.TryGetComponent(out NetworkObject netObject) && netObject.IsSpawned)
+            {
+                netObject.Despawn(true);
+                return;
+            }
+
+            Destroy(cart.gameObject);
         }
 
         /// <summary>
@@ -1024,9 +1181,14 @@ namespace Igruha.Minigames.CarryItem
             return route.NextPoint(from, to, out isFinal);
         }
 
-        /// <summary>Штабель этой команды. Нужен болванкам соло-теста и разбору сетевой бутыли.</summary>
-        public BottleStack StackOf(TeamSide side) =>
-            side == TeamSide.A ? teamA.Stack : side == TeamSide.B ? teamB.Stack : null;
+        private TeamRig RigOf(TeamSide side) =>
+            side == TeamSide.A ? teamA : side == TeamSide.B ? teamB : null;
+
+        /// <summary>Кран этой команды. Нужен болванкам соло-теста и разбору сетевой тележки.</summary>
+        public WaterTap TapOf(TeamSide side) => RigOf(side)?.Tap;
+
+        /// <summary>Тележка этой команды. Пусто — ещё не приехала или раунд кончился.</summary>
+        public WaterCart CartOf(TeamSide side) => RigOf(side)?.Cart;
 
         /// <summary>Бак этой команды. Нужен болванкам соло-теста.</summary>
         public WaterTank TankOf(TeamSide side) =>

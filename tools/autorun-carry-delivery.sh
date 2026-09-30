@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# IGR-592: five deliveries per team, using real prefabs and replicated state.
+# IGR-682 (v2): four cart trips per team — fill at the tap, pour at the tank — using real prefabs and replicated state.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP="$ROOT/igruha/Builds/Autotest/sleepover.app/Contents/MacOS/sleepover"
 PLAYERS="${1:-4}"
 PORT="${CARRY_TEST_PORT:-17592}"
-[[ "$PLAYERS" =~ ^[4-8]$ ]] || { echo "Expected 4-8 players" >&2; exit 1; }
+[[ "$PLAYERS" =~ ^[2-8]$ ]] || { echo "Expected 2-8 players" >&2; exit 1; }
 [[ -x "$APP" ]] || { echo "Missing development build: $APP" >&2; exit 1; }
 LOGS="$ROOT/igruha/Builds/Autotest/logs/carry-delivery-$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$LOGS"

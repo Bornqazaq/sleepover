@@ -6,13 +6,14 @@ using Igruha.Core.Session;
 namespace Igruha.Minigames.CarryItem
 {
     /// <summary>
-    /// Болванка соло-прогона: берёт тару со штабеля своей команды, тащит её к
-    /// своему баку и идёт за следующей.
+    /// Болванка соло-прогона: берётся за поручень тележки своей команды,
+    /// ждёт под краном, пока та наберётся, везёт к своему баку, ждёт, пока
+    /// сольётся, и катит пустую обратно к крану.
     ///
     /// Без неё фазу каркаса не принять вовсе. Вся механика игры — про
     /// <b>рассогласование между несущими</b>, а несущий в одиночном прогоне
-    /// ровно один: ни крена от рывка партнёра, ни срыва ручки, ни тарана между
-    /// командами проверить нечем. Одному человеку двумя персонажами не
+    /// ровно один: ни крена от рывка партнёра, ни срыва поручня, ни тарана
+    /// между командами проверить нечем. Одному человеку двумя персонажами не
     /// поуправлять, а сети на фазе каркаса ещё нет.
     ///
     /// Путь только человеческий: <c>DriveMove</c> у ходьбы и
@@ -20,7 +21,7 @@ namespace Igruha.Minigames.CarryItem
     /// иначе проверка перестала бы проверять то, что делает живой игрок.
     ///
     /// Это отладочный стенд, а не ИИ: болванка не саботирует, не выбирает
-    /// момент и не бережёт воду. В сетевой катке не ставится вовсе.
+    /// момент и всегда набирает полную. В сетевой катке не ставится вовсе.
     /// </summary>
     [RequireComponent(typeof(PlayerController))]
     public sealed class CarryItemDebugBot : MonoBehaviour
@@ -28,24 +29,22 @@ namespace Igruha.Minigames.CarryItem
         /// <summary>Что болванка делает прямо сейчас.</summary>
         private enum Step
         {
-            /// <summary>Идёт к штабелю и держит там E.</summary>
-            ToStack,
-            /// <summary>Идёт к выданной таре и берётся за ручку.</summary>
-            ToBottle,
-            /// <summary>Тащит тару к своему баку.</summary>
-            ToTank
+            /// <summary>Идёт к тележке и берётся за свободный поручень.</summary>
+            ToCart,
+            /// <summary>Стоит у поручня под краном и ждёт, пока тележка наберётся.</summary>
+            Filling,
+            /// <summary>Везёт тележку к своему баку.</summary>
+            ToTank,
+            /// <summary>Стоит у бака и ждёт, пока тележка сольётся.</summary>
+            Pouring,
+            /// <summary>Катит пустую тележку обратно к крану.</summary>
+            ToTap
         }
 
         /// <summary>
-        /// С какого зазора <b>до коллайдера</b> цели болванка жмёт E, м.
-        ///
-        /// Меряется до поверхности, а не до корня объекта: у ящика штабеля
-        /// сторона 1.8 м, и мерка от центра означала бы, что болванка,
-        /// упёршаяся в него лбом, до цели «не дотягивается».
-        ///
+        /// С какого зазора <b>до коллайдера</b> тележки болванка жмёт E, м.
         /// Меньше радиуса поиска <c>PlayerInteractor</c> (1.8) с запасом:
-        /// нажатие на самой границе отбивается проверкой дистанции, и болванка
-        /// залипала бы у цели, жмя кнопку впустую.
+        /// нажатие на самой границе отбивается проверкой дистанции.
         /// </summary>
         private const float InteractRange = 1.2f;
 
@@ -54,25 +53,26 @@ namespace Igruha.Minigames.CarryItem
 
         /// <summary>
         /// На сколько метров болванка забегает вперёд своей стоянки в сторону
-        /// бака. Ровно на стоянке она стояла бы на месте: связь не натянута —
-        /// тара не едет, — а это и есть «несу».
+        /// цели. Ровно на стоянке она стояла бы на месте: связь не натянута —
+        /// тележка не едет.
         ///
-        /// Не меньше щупа обхода (1.8 м) с запасом. Короткая цель отключает
-        /// обход препятствий целиком: <c>DebugPlayerBot</c> щупает не дальше
-        /// цели, и с целью в полуметре болванка упирается в завал и стоит там
-        /// до конца раунда — замерено на первом же прогоне.
-        ///
-        /// Уводить болванку от стоянки это не даёт: связь всё равно ограничивает
-        /// её уход наружу, и натяжение садится на своё равновесие.
+        /// Не меньше щупа обхода (1.8 м) с запасом: с целью в полуметре
+        /// <c>DebugPlayerBot</c> упирается в завал и стоит там до конца раунда.
         /// </summary>
-        private const float TankLead = 3f;
+        private const float Lead = 3f;
 
         /// <summary>
         /// Какую долю предела связи болванка считает комфортным натяжением.
-        /// Дальше она перестаёт тянуть и ждёт тару: связь у нас упругая, и
+        /// Дальше она перестаёт тянуть и ждёт тележку: связь упругая, и
         /// натянутая до предела означает крен, а не скорость.
         /// </summary>
         private const float ComfortFraction = 0.2f;
+
+        /// <summary>В каком радиусе от стоянки крана тележка считается «под краном», м.</summary>
+        private const float DockRange = 1.6f;
+
+        /// <summary>В каком радиусе от бака тележка считается «у бака», м. Зона слива шире, запас на подъезд.</summary>
+        private const float TankRange = 0.6f;
 
         private PlayerController motor;
         private PlayerInputReader reader;
@@ -80,13 +80,11 @@ namespace Igruha.Minigames.CarryItem
         private CarryItemMinigame game;
         private TeamSide team = TeamSide.None;
 
-        private Step step = Step.ToStack;
+        private Step step = Step.ToCart;
         private float grabCooldown;
 
-        /// <summary>Коллайдеры целей. Кэшируются при смене цели: искать их каждый кадр незачем.</summary>
-        private Collider stackCollider;
-        private Collider bottleCollider;
-        private WaterBottle knownBottle;
+        private Collider cartCollider;
+        private WaterCart knownCart;
 
         private void Awake()
         {
@@ -96,8 +94,7 @@ namespace Igruha.Minigames.CarryItem
 
         private void OnDisable()
         {
-            // Снятая болванка обязана бросить и ход, и кнопку: иначе она уходит
-            // из-под управления с зажатым E и держит штабель до конца раунда.
+            // Снятая болванка обязана бросить и ход, и кнопку.
             reader?.DriveMove(Vector2.zero);
             reader?.DriveInteractHold(false);
 
@@ -113,7 +110,7 @@ namespace Igruha.Minigames.CarryItem
         {
             game = minigame;
             team = side;
-            step = Step.ToStack;
+            step = Step.ToCart;
             grabCooldown = 0f;
 
             if (walker == null && !TryGetComponent(out walker))
@@ -132,86 +129,138 @@ namespace Igruha.Minigames.CarryItem
                 return;
             }
 
+            // A one-frame key pulse; the cart keeps its grip after release.
+            reader.DriveInteractHold(false);
+
             // Управление на обучалке отнимают только у живых игроков: у
-            // болванки ридер и так не «локально управляемый», и без этой
-            // проверки она уходит в ходку, пока остальные читают правила.
+            // болванки ридер и так не «локально управляемый».
             if (!game.Phase.IsGameplay())
             {
-                reader.DriveInteractHold(false);
                 walker.Stop();
                 return;
             }
 
             grabCooldown = Mathf.Max(0f, grabCooldown - Time.deltaTime);
 
-            BottleStack stack = game.StackOf(team);
+            WaterCart cart = game.CartOf(team);
             WaterTank tank = game.TankOf(team);
-            if (stack == null || tank == null)
+            WaterTap tap = game.TapOf(team);
+            if (cart == null || tank == null || tap == null)
             {
+                walker.Stop();
                 return;
             }
 
-            if (stackCollider == null)
+            if (cart != knownCart)
             {
-                stackCollider = stack.GetComponentInChildren<Collider>();
-            }
-
-            WaterBottle bottle = stack.LiveBottle;
-            if (bottle != knownBottle)
-            {
-                knownBottle = bottle;
-                bottleCollider = bottle != null ? bottle.GetComponentInChildren<Collider>() : null;
+                knownCart = cart;
+                cartCollider = cart.GetComponentInChildren<Collider>();
             }
 
             // Нокдаун и заморозка болванку не касаются: она просто перестаёт
-            // жать. Держать E под ними нельзя — штабель отсчитает выдачу
-            // лежачему.
-            if (motor.IsKnockedDown || motor.MovementLocked || reader.Suspended)
+            // жать и ждёт.
+            if (motor.IsKnockedDown || motor.MovementLocked || reader.Suspended || cart.IsLost)
             {
-                reader.DriveInteractHold(false);
                 walker.Stop();
                 return;
             }
 
-            step = ChooseStep(bottle);
+            step = ChooseStep(cart, tank, tap);
 
             switch (step)
             {
-                case Step.ToStack:
-                    RunToStack(stack);
+                case Step.ToCart:
+                    RunToCart(cart);
                     break;
-                case Step.ToBottle:
-                    RunToBottle(bottle);
+                case Step.Filling:
+                case Step.Pouring:
+                    HoldStation(cart);
                     break;
                 case Step.ToTank:
-                    RunToTank(tank);
+                    Haul(cart, tank.DockPoint);
+                    break;
+                case Step.ToTap:
+                    Haul(cart, tap.DockPosition);
                     break;
             }
         }
 
-        private Step ChooseStep(WaterBottle bottle)
+        /// <summary>
+        /// Полный цикл: набрать полную, отвезти, слить, вернуть. Болванка не
+        /// выбирает между полной и полупустой — этот выбор проверяется на людях.
+        /// </summary>
+        private Step ChooseStep(WaterCart cart, WaterTank tank, WaterTap tap)
         {
-            if (bottle == null || bottle.IsGone)
+            if (!cart.Carry.IsCarriedBy(motor))
             {
-                return Step.ToStack;
+                return Step.ToCart;
             }
 
-            return bottle.Carry.IsCarriedBy(motor) ? Step.ToTank : Step.ToBottle;
+            bool atTap = Flat(cart.transform.position, tap.DockPosition) <= DockRange;
+            bool atTank = Flat(cart.transform.position, tank.DockPoint) <= TankRange;
+            bool full = game.Config != null && cart.Water >= game.Config.CartCapacity;
+
+            if (cart.Water <= 0)
+            {
+                return atTap ? Step.Filling : Step.ToTap;
+            }
+
+            if (atTank)
+            {
+                return Step.Pouring;
+            }
+
+            if (atTap && !full)
+            {
+                return Step.Filling;
+            }
+
+            return Step.ToTank;
         }
 
-        /// <summary>У штабеля держим E: взятие — удержание, а не нажатие.</summary>
-        private void RunToStack(BottleStack stack)
+        /// <summary>
+        /// К тележке подходим не вплотную, а на расстояние своей стоянки: встав
+        /// внутрь кузова, болванка упёрлась бы в его коллайдер.
+        /// </summary>
+        private void RunToCart(WaterCart cart)
         {
-            bool close = IsNear(stackCollider, stack.transform.position, InteractRange);
-            reader.DriveInteractHold(close);
+            Vector3 station = NearestFreeStation(cart);
 
-            if (close)
+            if (!IsNear(cartCollider, cart.transform.position, InteractRange))
+            {
+                Steer(station);
+                return;
+            }
+
+            walker.Stop();
+
+            if (grabCooldown > 0f)
+            {
+                return;
+            }
+
+            grabCooldown = GrabRetryDelay;
+            reader.DriveInteractHold(true);
+        }
+
+        /// <summary>Под краном и у бака болванка просто стоит на своей стоянке: тележку двигать не нужно.</summary>
+        private void HoldStation(WaterCart cart)
+        {
+            int slot = SlotOf(cart);
+            if (slot < 0)
             {
                 walker.Stop();
                 return;
             }
 
-            Steer(stack.transform.position);
+            Vector3 station = cart.Carry.StationOf(slot);
+            if (Flat(transform.position, station) < 0.35f)
+            {
+                walker.Stop();
+                return;
+            }
+
+            walker.SetTarget(station, true);
         }
 
         /// <summary>
@@ -226,99 +275,59 @@ namespace Igruha.Minigames.CarryItem
         }
 
         /// <summary>
-        /// К таре подходим не вплотную, а на расстояние своей стоянки: встав
-        /// внутрь бутыли, болванка упёрлась бы в её коллайдер и сработал бы
-        /// детектор застревания.
-        /// </summary>
-        private void RunToBottle(WaterBottle bottle)
-        {
-            reader.DriveInteractHold(false);
-
-            Vector3 bottlePosition = bottle.transform.position;
-            Vector3 station = NearestFreeStation(bottle);
-
-            if (!IsNear(bottleCollider, bottlePosition, InteractRange))
-            {
-                Steer(station);
-                return;
-            }
-
-            walker.Stop();
-
-            if (grabCooldown > 0f)
-            {
-                return;
-            }
-
-            grabCooldown = GrabRetryDelay;
-            reader.DriveInteract();
-        }
-
-        /// <summary>
-        /// С тарой в руках болванка идёт не в бак напрямую, а держит свою
-        /// стоянку, сдвинутую в сторону бака.
+        /// С тележкой в руках болванка идёт не в цель напрямую, а держит свою
+        /// стоянку, сдвинутую в сторону цели.
         ///
-        /// Разница принципиальная. Идя прямо в бак, оба несущих обгоняют свои
-        /// стоянки — тара едет медленнее их, — натяжения складываются в одну
-        /// сторону, и бутыль клюёт вперёд весь путь. Держась стоянки, болванка
-        /// тянет ровно столько, сколько нужно, чтобы тара ехала.
+        /// Разница принципиальная. Идя прямо в цель, несущие обгоняют свои
+        /// стоянки — тележка едет медленнее их, — натяжения складываются в одну
+        /// сторону, и тележка кренится весь путь. Держась стоянки, болванка
+        /// тянет ровно столько, сколько нужно, чтобы тележка ехала.
         /// </summary>
-        private void RunToTank(WaterTank tank)
+        private void Haul(WaterCart cart, Vector3 destination)
         {
-            reader.DriveInteractHold(false);
-
-            int slot = SlotOf(knownBottle);
+            int slot = SlotOf(cart);
             if (slot < 0)
             {
-                Steer(tank.transform.position);
+                Steer(destination);
                 return;
             }
 
-            // Ведём тару к следующей точке маршрута, а не прямо в бак: сначала
-            // доска, потом горлышко, потом вторая доска.
-            Vector3 goal = game.NextWaypoint(team, knownBottle.transform.position, tank.transform.position, out _);
+            // Ведём тележку к следующей точке маршрута, а не прямо в цель:
+            // сначала доска, потом горлышко, потом вторая доска — в обе стороны.
+            Vector3 goal = game.NextWaypoint(team, cart.transform.position, destination, out _);
 
-            Vector3 station = knownBottle.Carry.StationOf(slot);
-            Vector3 toGoal = goal - knownBottle.transform.position;
+            Vector3 station = cart.Carry.StationOf(slot);
+            Vector3 toGoal = goal - cart.transform.position;
             toGoal.y = 0f;
 
             // Забегаем вперёд, только пока связь не натянута. Натянулась —
-            // возвращаемся на стоянку и даём таре себя догнать.
-            //
-            // Без этого болванка тянет всё время, связь садится на свой предел,
-            // и на четырёх ручках бутыль едет с креном 75° весь путь: четыре
-            // натяжения по полтора метра в одну сторону. Живой игрок ведёт
-            // себя так же, если не отпускает «вперёд», — и наказывается тем же
-            // креном. Разница в том, что он видит бутыль, а болванка нет.
-            float comfort = knownBottle.Carry.Settings.breakDistance * ComfortFraction;
-            bool slack = knownBottle.Carry.StretchOf(slot) < comfort;
+            // возвращаемся на стоянку и даём тележке себя догнать: у полной
+            // разгон вдвое меньше, и она отстаёт заметно.
+            float comfort = cart.Carry.Settings.breakDistance * ComfortFraction;
+            bool slack = cart.Carry.StretchOf(slot) < comfort;
 
             if (slack && toGoal.sqrMagnitude > 0.0001f)
             {
-                station += toGoal.normalized * TankLead;
+                station += toGoal.normalized * Lead;
             }
 
             walker.SetTarget(station, false);
         }
 
-        /// <summary>
-        /// Стоянка ближайшей свободной ручки. Идти к самой таре нельзя: болванка
-        /// встанет в её коллайдер и упрётся, а взявшись, окажется на стоянке
-        /// с другой стороны — связь сразу за пределом.
-        /// </summary>
-        private Vector3 NearestFreeStation(WaterBottle bottle)
+        /// <summary>Стоянка ближайшего свободного поручня.</summary>
+        private Vector3 NearestFreeStation(WaterCart cart)
         {
-            Vector3 best = bottle.transform.position;
+            Vector3 best = cart.transform.position;
             float bestSqr = float.MaxValue;
 
-            for (int i = 0; i < bottle.Carry.HandleCount; i++)
+            for (int i = 0; i < cart.Carry.HandleCount; i++)
             {
-                if (bottle.Carry.CarrierAt(i) != null)
+                if (cart.Carry.CarrierAt(i) != null)
                 {
                     continue;
                 }
 
-                Vector3 station = bottle.Carry.StationOf(i);
+                Vector3 station = cart.Carry.StationOf(i);
                 float sqr = (station - transform.position).sqrMagnitude;
                 if (sqr < bestSqr)
                 {
@@ -330,16 +339,16 @@ namespace Igruha.Minigames.CarryItem
             return best;
         }
 
-        private int SlotOf(WaterBottle bottle)
+        private int SlotOf(WaterCart cart)
         {
-            if (bottle == null)
+            if (cart == null)
             {
                 return -1;
             }
 
-            for (int i = 0; i < bottle.Carry.HandleCount; i++)
+            for (int i = 0; i < cart.Carry.HandleCount; i++)
             {
-                if (bottle.Carry.CarrierAt(i) == motor)
+                if (cart.Carry.CarrierAt(i) == motor)
                 {
                     return i;
                 }
@@ -348,10 +357,14 @@ namespace Igruha.Minigames.CarryItem
             return -1;
         }
 
-        /// <summary>
-        /// Зазор до поверхности цели не больше <paramref name="range"/>.
-        /// Без коллайдера меряем до корня — запасной путь, а не рабочий.
-        /// </summary>
+        private static float Flat(Vector3 a, Vector3 b)
+        {
+            a.y = 0f;
+            b.y = 0f;
+            return Vector3.Distance(a, b);
+        }
+
+        /// <summary>Зазор до поверхности цели не больше <paramref name="range"/>. Без коллайдера меряем до корня.</summary>
         private bool IsNear(Collider target, Vector3 fallback, float range)
         {
             Vector3 origin = transform.position;

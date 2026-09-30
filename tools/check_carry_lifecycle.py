@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""IGR-664: real Host + 3 clients, bottle loss/replication and network teardown.
+"""IGR-682 (v2): real Host + 3 clients, cart water loss/replication and network teardown.
 Requires a development player built with Unity MCP in Builds/Autotest.
 """
 import argparse
@@ -12,7 +12,7 @@ import time
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--scenario', choices=[
-        'host-exit', 'host-quit', 'host-held-quit', 'client-exit', 'drop', 'throw'],
+        'host-exit', 'host-quit', 'host-held-quit', 'client-exit', 'shove', 'void'],
         default='host-exit')
     parser.add_argument('--port', type=int, default=17594)
     args = parser.parse_args()

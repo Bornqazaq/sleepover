@@ -30,7 +30,7 @@ namespace Igruha.EditorTools
         /// <summary>Допуск на «стоит на полу» и «сидит в коробке», м: два сантиметра не видно.</summary>
         private const float Tolerance = 0.02f;
 
-        private const string BottlePrefabPath = "Assets/_Project/Prefabs/Minigames/CarryItem/Bottle.prefab";
+        private const string CartPrefabPath = "Assets/_Project/Prefabs/Minigames/CarryItem/WaterCart.prefab";
         private const string BrickPrefabPath = "Assets/_Project/Prefabs/Minigames/CarryItem/Brick.prefab";
 
         [MenuItem("Igruha/Переноска предмета/Замеры арта")]
@@ -180,7 +180,7 @@ namespace Igruha.EditorTools
                 .Append("\n  solid props without collision: ").Append(missingSolids).Append(Mark(missingSolids==0))
                 .Append("\n  bridge support failures / 372 probes: ").Append(floorMisses).Append(Mark(floorMisses==0));
             var dependencies=new HashSet<string>(AssetDatabase.GetDependencies("Assets/_Project/Scenes/Minigames/CarryItem.unity",true));
-            foreach(var path in new[]{BottlePrefabPath,BrickPrefabPath,"Assets/_Project/Prefabs/Minigames/CarryItem/Tank.prefab","Assets/_Project/Prefabs/Minigames/CarryItem/BottleStack.prefab"})
+            foreach(var path in new[]{CartPrefabPath,BrickPrefabPath,"Assets/_Project/Prefabs/Minigames/CarryItem/Tank.prefab","Assets/_Project/Prefabs/Minigames/CarryItem/WaterTap.prefab"})
                 foreach(var d in AssetDatabase.GetDependencies(path,true))dependencies.Add(d);
             int oldArt=0;
             foreach(var d in dependencies)if(d.StartsWith("Assets/Synty/") || d.Contains("Art/CarryItem/Polygon"))oldArt++;
@@ -194,7 +194,7 @@ namespace Igruha.EditorTools
                 // The cross-over leg from the last plank to the opposite tank has no gate of its own.
                 string side=route.name.EndsWith("_A")?"A":"B";
                 var tank=GameObject.Find("Tank_"+side)?.transform;
-                var spawn=GameObject.Find("Stack_"+side)?.transform.Find("BottleSpawn");
+                var spawn=GameObject.Find("Tap_"+side)?.transform.Find("Dock");
                 var points=new List<Vector3>();
                 if(spawn!=null)points.Add(spawn.position);
                 foreach(Transform child in route.transform)points.Add(child.position);
@@ -222,13 +222,14 @@ namespace Igruha.EditorTools
             foreach(var name in blockers)report.Append("\n    blocker: ").Append(name);
             var config=AssetDatabase.LoadAssetAtPath<CarryItemConfig>("Assets/_Project/Settings/Gameplay/Minigames/CarryItemConfig.asset");
             int pickupBlocked=0,cameraBlocked=0;
-            foreach(var stack in Object.FindObjectsByType<BottleStack>(FindObjectsSortMode.None))
+            foreach(var tap in Object.FindObjectsByType<WaterTap>(FindObjectsSortMode.None))
             {
-                Vector3 p=stack.transform.Find("BottleSpawn").position;
+                Vector3 p=tap.DockPosition;
+                float reach=config.CartHandleBack+config.CarrierStandoff;
                 for(int i=0;i<32;i++)
                 {
                     float angle=i*Mathf.PI/16;
-                    Vector3 station=p+new Vector3(Mathf.Cos(angle),0,Mathf.Sin(angle))*(config.HandleRadius+config.CarrierStandoff);
+                    Vector3 station=p+new Vector3(Mathf.Cos(angle),0,Mathf.Sin(angle))*reach;
                     pickupBlocked+=Physics.OverlapCapsule(station+Vector3.up*.4f,station+Vector3.up*1.45f,.36f,mask,QueryTriggerInteraction.Ignore).Length;
                 }
                 if(Physics.SphereCast(p+Vector3.up*1.5f,.35f,Vector3.left,out var hit,4.5f,mask,QueryTriggerInteraction.Ignore))cameraBlocked++;
@@ -451,36 +452,37 @@ namespace Igruha.EditorTools
         {
             report.Append("\n\n— Читаемость и сеть (префабы) —");
 
-            var bottle = AssetDatabase.LoadAssetAtPath<GameObject>(BottlePrefabPath);
-            if (bottle == null)
+            var cart = AssetDatabase.LoadAssetAtPath<GameObject>(CartPrefabPath);
+            if (cart == null)
             {
-                report.Append("\n  бутыль: префаб не найден ✘");
+                report.Append("\n  тележка: префаб не найден ✘");
             }
             else
             {
-                var water = bottle.GetComponent<WaterBottle>();
-                var markers = bottle.GetComponent<MultiCarryHandleMarkers>();
-                Transform cap = bottle.transform.Find("Cap");
-                Transform pivot = bottle.transform.Find("WaterPivot");
-                Transform jet = bottle.transform.Find("PourJet");
-                Transform handles = bottle.transform.Find("Handles");
-
-                var shell=bottle.transform.Find("Body").GetComponentInChildren<Renderer>().sharedMaterial;
-                var waterSo=new SerializedObject(water);
-                report.Append("\n  transparent shell: ").Append(Mark(shell.GetFloat("_Surface")==1 && shell.GetColor("_BaseColor").a<.3f));
-                report.Append("\n  team shoulders/neck/cap: ").Append(Mark(waterSo.FindProperty("teamTint").arraySize==4));
-                report.Append("\n  бутыль: столбик воды      ").Append(Mark(pivot != null));
-                report.Append("\n          крышка (цвет команды) ").Append(Mark(cap != null));
-                report.Append("\n          струя из горлышка ").Append(Mark(jet != null));
-                report.Append("\n          держалок          ")
+                var water = cart.GetComponent<WaterCart>();
+                var markers = cart.GetComponent<MultiCarryHandleMarkers>();
+                // Всё видимое — под узлом крена Body: тело физики вертикально.
+                Transform pivot = cart.transform.Find("Body/WaterPivot");
+                Transform leak = cart.transform.Find("Body/LeakJet");
+                Transform pour = cart.transform.Find("Body/PourJet");
+                Transform handles = cart.transform.Find("Body/Handles");
+                Transform wheels = cart.transform.Find("Body/Wheels");
+                var waterSo = water != null ? new SerializedObject(water) : null;
+                report.Append("\n  тележка: столбик воды      ").Append(Mark(pivot != null));
+                report.Append("\n           струя через борт  ").Append(Mark(leak != null));
+                report.Append("\n           дуга слива        ").Append(Mark(pour != null));
+                report.Append("\n           колёс             ")
+                    .Append(wheels != null ? wheels.childCount : 0).Append(Mark(wheels != null && wheels.childCount == 4));
+                report.Append("\n           поручней          ")
                     .Append(handles != null ? handles.childCount : 0)
                     .Append(Mark(handles != null && handles.childCount == MultiCarryObject.MaxHandles));
-                report.Append("\n          показ занятости   ").Append(Mark(markers != null));
-                report.Append("\n          WaterBottle       ").Append(Mark(water != null));
-                report.Append("\n          NetworkObject     ")
-                    .Append(Mark(bottle.GetComponent<Unity.Netcode.NetworkObject>() != null));
-                report.Append("\n          NetworkTransform  ")
-                    .Append(Mark(bottle.GetComponent<Unity.Netcode.Components.NetworkTransform>() != null));
+                report.Append("\n           показ занятости   ").Append(Mark(markers != null));
+                report.Append("\n           WaterCart         ").Append(Mark(water != null));
+                report.Append("\n           метки команды     ").Append(Mark(waterSo != null && waterSo.FindProperty("teamTint").arraySize > 0));
+                report.Append("\n           NetworkObject     ")
+                    .Append(Mark(cart.GetComponent<Unity.Netcode.NetworkObject>() != null));
+                report.Append("\n           NetworkTransform  ")
+                    .Append(Mark(cart.GetComponent<Unity.Netcode.Components.NetworkTransform>() != null));
             }
 
             var brick = AssetDatabase.LoadAssetAtPath<GameObject>(BrickPrefabPath);

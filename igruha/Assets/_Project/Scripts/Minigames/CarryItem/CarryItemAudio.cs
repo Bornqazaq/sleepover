@@ -16,7 +16,7 @@ namespace Igruha.Minigames.CarryItem
     /// горлышка позади. Плеск говорит «сейчас начнёт», струя — «уже теряешь»,
     /// и это два разных звука, потому что означают они разное.
     ///
-    /// Подписка идёт на то же <see cref="WaterBottle.WaterSpent"/>, что и у
+    /// Подписка идёт на то же <see cref="WaterCart.WaterChanged"/>, что и у
     /// эффектов, и по той же причине: оно поднимается на каждой машине, а
     /// наклон и срыв ручки считает только сервер. Звук, слышный одному хосту,
     /// означает неверную привязку, а не проблему звука.
@@ -24,13 +24,13 @@ namespace Igruha.Minigames.CarryItem
     public sealed class CarryItemAudio : MonoBehaviour
     {
         [Header("Кого слушаем")]
-        [Tooltip("Штабели команд: LiveBottle у них выставляется на каждой машине")]
-        [SerializeField] private BottleStack[] stacks = System.Array.Empty<BottleStack>();
+        [Tooltip("Краны команд: Cart у них выставляется на каждой машине")]
+        [SerializeField] private WaterTap[] taps = System.Array.Empty<WaterTap>();
 
         [Tooltip("Баки команд: по ним слышно слив")]
         [SerializeField] private WaterTank[] tanks = System.Array.Empty<WaterTank>();
 
-        [Tooltip("Ловушки с событием срабатывания: тачка")]
+        [Tooltip("Ловушки с событием срабатывания: тачка-ловушка")]
         [SerializeField] private TrapBase[] traps = System.Array.Empty<TrapBase>();
 
         [Header("Чем играем")]
@@ -51,15 +51,18 @@ namespace Igruha.Minigames.CarryItem
 
         /// <summary>Идентификаторы слотов. Строка в коде — это опечатка, которая молчит.</summary>
         private const string RoundStart = "round_start";
-        private const string BottleTake = "bottle_take";
+        private const string CartGrab = "cart_grab";
         private const string SloshLoop = "slosh_loop";
         private const string LeakLoop = "leak_loop";
         private const string HandleBreak = "handle_break";
-        private const string BottleDrop = "bottle_drop";
+        private const string CartSplash = "cart_splash";
         private const string PourLoop = "pour_loop";
         private const string PourDone = "pour_done";
         private const string BeamWarn = "beam_warn";
-        private const string CartTip = "cart_tip";
+        private const string BarrowTip = "barrow_tip";
+        private const string FillLoop = "fill_loop";
+        private const string TapLoop = "tap_loop";
+        private const string RollLoop = "roll_loop";
         private const string PipeLoop = "pipe_loop";
         private const string BrickHit = "brick_hit";
         private const string LastSeconds = "last_15s";
@@ -71,7 +74,9 @@ namespace Igruha.Minigames.CarryItem
         /// <summary>Сколько секунд утечка звучит после последней потери от крена.</summary>
         private const float LeakTail = 1.4f;
 
-        private readonly WaterBottle[] watched = new WaterBottle[2];
+        private readonly WaterCart[] watched = new WaterCart[2];
+        private readonly bool[] fillPlaying = new bool[2];
+        private readonly bool[] rollPlaying = new bool[2];
 
         private float pourUntil;
         private float leakUntil;
@@ -95,7 +100,7 @@ namespace Igruha.Minigames.CarryItem
             {
                 if (tanks[i] != null)
                 {
-                    tanks[i].BottleFinished += OnBottleFinished;
+                    tanks[i].TripFinished += OnTripFinished;
                 }
             }
 
@@ -121,7 +126,7 @@ namespace Igruha.Minigames.CarryItem
             {
                 if (tanks[i] != null)
                 {
-                    tanks[i].BottleFinished -= OnBottleFinished;
+                    tanks[i].TripFinished -= OnTripFinished;
                 }
             }
 
@@ -168,14 +173,25 @@ namespace Igruha.Minigames.CarryItem
             {
                 player.StartLoop(BeamWarn, beam.position);
             }
+
+            // Краны журчат весь раунд: это и ориентир «где мой кран», и
+            // телеграф соперника, вернувшегося за водой.
+            for (int i = 0; i < taps.Length; i++)
+            {
+                if (taps[i] != null)
+                {
+                    player.StartLoop(TapLoop, taps[i].transform.position);
+                }
+            }
         }
 
         private void Update()
         {
-            WatchBottles();
+            WatchCarts();
             WatchRound();
             FollowBeam();
             UpdateSlosh();
+            UpdateCartLoops();
             UpdateTails();
         }
 
@@ -218,15 +234,15 @@ namespace Igruha.Minigames.CarryItem
         }
 
         /// <summary>
-        /// Следим за живой тарой опросом: <c>BottleTaken</c> поднимает только
-        /// сервер, а <c>LiveBottle</c> выставляется на каждой машине.
+        /// Следим за тележками опросом: спавнит их сервер, а <c>Cart</c> у
+        /// крана выставляется на каждой машине.
         /// </summary>
-        private void WatchBottles()
+        private void WatchCarts()
         {
-            int count = Mathf.Min(stacks.Length, watched.Length);
+            int count = Mathf.Min(taps.Length, watched.Length);
             for (int i = 0; i < count; i++)
             {
-                WaterBottle live = stacks[i] != null ? stacks[i].LiveBottle : null;
+                WaterCart live = taps[i] != null ? taps[i].Cart : null;
                 if (live == watched[i])
                 {
                     continue;
@@ -240,12 +256,84 @@ namespace Igruha.Minigames.CarryItem
                 }
 
                 watched[i] = live;
-                live.WaterSpent += OnWaterSpent;
+                live.WaterChanged += OnWaterChanged;
+                live.Carry.HandleTaken += OnHandleTaken;
+            }
+        }
 
-                if (player != null)
+        /// <summary>Взялись за поручень: короткий скрип. Событие поднимается на каждой машине из состояния ручек.</summary>
+        private void OnHandleTaken(int slot, Igruha.Core.Player.PlayerController carrier)
+        {
+            if (player != null && carrier != null)
+            {
+                player.PlayAt(CartGrab, carrier.transform.position);
+            }
+        }
+
+        /// <summary>
+        /// Наполнение и качение — петли по состоянию тележки: флаг наполнения
+        /// и скорость едут по сети сами, отдельных сообщений под звук нет.
+        /// </summary>
+        private void UpdateCartLoops()
+        {
+            if (player == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < watched.Length; i++)
+            {
+                WaterCart cart = watched[i];
+                if (cart == null)
                 {
-                    player.PlayAt(BottleTake, live.transform.position);
+                    StopCartLoops(i);
+                    continue;
                 }
+
+                Vector3 point = cart.transform.position;
+                bool filling = cart.IsFilling;
+                if (filling != fillPlaying[i])
+                {
+                    fillPlaying[i] = filling;
+                    if (filling) player.StartLoop(FillLoop, point); else player.StopLoop(FillLoop);
+                }
+
+                if (filling)
+                {
+                    player.MoveLoop(FillLoop, point);
+                }
+
+                bool rolling = cart.Carry.IsCarried && !cart.IsLost;
+                if (rolling != rollPlaying[i])
+                {
+                    rollPlaying[i] = rolling;
+                    if (rolling) player.StartLoop(RollLoop, point); else player.StopLoop(RollLoop);
+                }
+
+                if (rolling)
+                {
+                    player.MoveLoop(RollLoop, point);
+                }
+            }
+        }
+
+        private void StopCartLoops(int index)
+        {
+            if (player == null)
+            {
+                return;
+            }
+
+            if (fillPlaying[index])
+            {
+                fillPlaying[index] = false;
+                player.StopLoop(FillLoop);
+            }
+
+            if (rollPlaying[index])
+            {
+                rollPlaying[index] = false;
+                player.StopLoop(RollLoop);
             }
         }
 
@@ -259,9 +347,9 @@ namespace Igruha.Minigames.CarryItem
         }
 
         /// <summary>
-        /// Плеск ведётся за креном той бутыли, что сейчас жива: чем ближе к
-        /// порогу, тем громче и выше. Это единственное предупреждение, которое
-        /// несущий получает <b>до</b> того, как вода пошла.
+        /// Плеск ведётся за креном тележки: чем ближе к порогу, тем громче и
+        /// выше. Это единственное предупреждение, которое несущий получает
+        /// <b>до</b> того, как вода пошла через борт.
         /// </summary>
         private void UpdateSlosh()
         {
@@ -270,8 +358,8 @@ namespace Igruha.Minigames.CarryItem
                 return;
             }
 
-            WaterBottle bottle = FirstAlive();
-            if (bottle == null || bottle.Carry == null || !bottle.Carry.IsCarried)
+            WaterCart bottle = FirstAlive();
+            if (bottle == null || bottle.Carry == null || !bottle.Carry.IsCarried || bottle.Water <= 0)
             {
                 if (sloshPlaying)
                 {
@@ -320,9 +408,9 @@ namespace Igruha.Minigames.CarryItem
             }
         }
 
-        private void OnWaterSpent(int amount, WaterLossReason reason)
+        private void OnWaterChanged(int amount, WaterLossReason reason)
         {
-            WaterBottle bottle = FirstAlive();
+            WaterCart bottle = FirstAlive();
             Vector3 point = bottle != null ? bottle.transform.position : transform.position;
             if (player == null)
             {
@@ -353,28 +441,31 @@ namespace Igruha.Minigames.CarryItem
                     player.MoveLoop(LeakLoop, point);
                     break;
 
-                // Удар по бутыли: игрок, кирпич или ловушка. Разделить их по
-                // звуку нечем — причина у всех трёх одна, — и это честнее, чем
+                // Удар по тележке: кирпич или ловушка. Разделить их по звуку
+                // нечем — причина у обоих одна, — и это честнее, чем
                 // угадывать: удар звучит ударом.
                 case WaterLossReason.Hit:
                     player.PlayAt(BrickHit, point);
                     break;
 
-                case WaterLossReason.Drop:
                 case WaterLossReason.Void:
                 case WaterLossReason.RamVictim:
                 case WaterLossReason.RamAttacker:
-                    player.PlayAt(BottleDrop, point);
+                    player.PlayAt(CartSplash, point);
                     break;
 
-                case WaterLossReason.Throw:
+                case WaterLossReason.Shove:
                     player.PlayAt(HandleBreak, point);
+                    break;
+
+                // Наполнение — петля по флагу, не по единицам.
+                case WaterLossReason.Filled:
                     break;
             }
         }
 
-        /// <summary>Ходка закрыта: бак отпустил бутыль, значит слив кончился наградой.</summary>
-        private void OnBottleFinished()
+        /// <summary>Ходка закрыта: тележка слита до дна, слив кончился наградой.</summary>
+        private void OnTripFinished()
         {
             if (player == null)
             {
@@ -391,7 +482,7 @@ namespace Igruha.Minigames.CarryItem
                 return;
             }
 
-            player.Play(CartTip);
+            player.Play(BarrowTip);
         }
 
         /// <summary>
@@ -412,10 +503,16 @@ namespace Igruha.Minigames.CarryItem
             sloshPlaying = false;
             rushPlaying = false;
             roundRunning = false;
+            for (int i = 0; i < fillPlaying.Length; i++)
+            {
+                fillPlaying[i] = false;
+                rollPlaying[i] = false;
+            }
+
             player.Play(RoundEnd);
         }
 
-        private WaterBottle FirstAlive()
+        private WaterCart FirstAlive()
         {
             for (int i = 0; i < watched.Length; i++)
             {
@@ -435,7 +532,9 @@ namespace Igruha.Minigames.CarryItem
                 return;
             }
 
-            watched[index].WaterSpent -= OnWaterSpent;
+            watched[index].WaterChanged -= OnWaterChanged;
+            watched[index].Carry.HandleTaken -= OnHandleTaken;
+            StopCartLoops(index);
             watched[index] = null;
         }
     }

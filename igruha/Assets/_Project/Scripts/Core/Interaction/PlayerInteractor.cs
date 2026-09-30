@@ -41,6 +41,9 @@ namespace Igruha.Core.Interaction
         private IInteractionRelay relay;
         private readonly Collider[] overlapResults = new Collider[MaxCandidates];
 
+        /// <summary>Active attachment gets E before nearby pickups; execution still uses the server gate.</summary>
+        public IInteractable ButtonOverride { get; set; }
+
         public IInteractable CurrentInteractable { get; private set; }
 
         /// <summary>Кого сейчас держим. Null — ничего не держим.</summary>
@@ -226,6 +229,9 @@ namespace Igruha.Core.Interaction
 
         private IInteractable FindNearest()
         {
+            if (ButtonOverride is Component owner && owner != null && ButtonOverride.CanInteract(self))
+                return ButtonOverride;
+
             int count = Physics.OverlapSphereNonAlloc(transform.position, interactRadius, overlapResults);
             IInteractable nearest = null;
             float nearestSqr = float.MaxValue;

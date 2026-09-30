@@ -12,7 +12,7 @@ namespace Igruha.Networking
     /// а сервер остаётся источником истины для игровых исходов (счёт, попадания).
     /// </summary>
     [DisallowMultipleComponent]
-    public class ClientNetworkTransform : NetworkTransform
+    public class ClientNetworkTransform : ObservedNetworkTransform
     {
         protected override bool OnIsServerAuthoritative() => false;
     }

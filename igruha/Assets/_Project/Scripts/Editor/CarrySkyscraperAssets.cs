@@ -84,14 +84,25 @@ namespace Igruha.EditorTools
             }
             foreach (string path in Directory.GetFiles(Art + "/Models", "*.fbx"))
             {
+                // Pump uses its own CP palette, imported by CarryPumpArt.
+                if (Path.GetFileName(path).StartsWith("CS_WaterPump", StringComparison.Ordinal)) continue;
                 var importer = (ModelImporter)AssetImporter.GetAtPath(path);
                 importer.bakeAxisConversion = true;
                 importer.addCollider = false;
                 importer.importCameras = false; importer.importLights = false;
                 importer.importAnimation = false; importer.animationType = ModelImporterAnimationType.None;
                 importer.isReadable = false;
+                string file = Path.GetFileName(path);
+                bool waterKit = file.StartsWith("CS_WaterCart", StringComparison.Ordinal) ||
+                    file.StartsWith("CS_WaterTap", StringComparison.Ordinal) ||
+                    file.StartsWith("CS_WaterReceiving", StringComparison.Ordinal);
+                // Cart-only materials must not add unused dependencies to every city module.
+                foreach (var remap in importer.GetExternalObjectMap())
+                    if (remap.Key.name.StartsWith("CW_", StringComparison.Ordinal) != waterKit)
+                        importer.RemoveRemap(remap.Key);
                 foreach (var e in map)
-                    importer.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), e.Key), e.Value);
+                    if (e.Key.StartsWith("CW_", StringComparison.Ordinal) == waterKit)
+                        importer.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), e.Key), e.Value);
                 importer.SaveAndReimport();
             }
             AssetDatabase.SaveAssets();

@@ -1,0 +1,103 @@
+{
+  "materials": [
+    {
+      "name": "CP_Frame",
+      "color": [
+        0.047,
+        0.07,
+        0.075,
+        1
+      ],
+      "roughness": 0.48,
+      "metallic": 0.65
+    },
+    {
+      "name": "CP_Enamel",
+      "color": [
+        0.94,
+        0.48,
+        0.065,
+        1
+      ],
+      "roughness": 0.3,
+      "metallic": 0.35
+    },
+    {
+      "name": "CP_Steel",
+      "color": [
+        0.6,
+        0.7,
+        0.72,
+        1
+      ],
+      "roughness": 0.23,
+      "metallic": 0.8
+    },
+    {
+      "name": "CP_Housing",
+      "color": [
+        0.055,
+        0.23,
+        0.25,
+        1
+      ],
+      "roughness": 0.32,
+      "metallic": 0.55
+    },
+    {
+      "name": "CP_Hose",
+      "color": [
+        0.022,
+        0.033,
+        0.035,
+        1
+      ],
+      "roughness": 0.72,
+      "metallic": 0
+    },
+    {
+      "name": "CP_Brass",
+      "color": [
+        0.64,
+        0.4,
+        0.12,
+        1
+      ],
+      "roughness": 0.25,
+      "metallic": 0.72
+    },
+    {
+      "name": "CP_Dial",
+      "color": [
+        0.89,
+        0.88,
+        0.73,
+        1
+      ],
+      "roughness": 0.52,
+      "metallic": 0
+    },
+    {
+      "name": "CP_Red",
+      "color": [
+        0.6,
+        0.055,
+        0.025,
+        1
+      ],
+      "roughness": 0.35,
+      "metallic": 0.15
+    },
+    {
+      "name": "CP_Green",
+      "color": [
+        0.09,
+        0.7,
+        0.34,
+        1
+      ],
+      "roughness": 0.25,
+      "metallic": 0
+    }
+  ]
+}

@@ -4,25 +4,30 @@ using Igruha.Core.Session;
 
 namespace Igruha.Minigames.CarryItem
 {
-    /// <summary>Почему из бутыли ушла вода. Нужна звуку, VFX и отладке — сама потеря от причины не зависит.</summary>
+    /// <summary>
+    /// Почему изменился уровень воды в тележке. Нужна звуку, VFX и отладке —
+    /// само изменение от причины не зависит. Единственная причина со знаком
+    /// «плюс» — <see cref="Filled"/>; единственная «потеря», идущая в счёт, —
+    /// <see cref="Poured"/>.
+    /// </summary>
     public enum WaterLossReason
     {
-        /// <summary>Удар: игрок, брошенный предмет, ловушка.</summary>
+        /// <summary>Удар: брошенный предмет или ловушка.</summary>
         Hit,
-        /// <summary>Наклон за порогом дольше задержки.</summary>
+        /// <summary>Крен за порогом дольше задержки — плещет через борт.</summary>
         Tilt,
-        /// <summary>Отпустили все — бутыль упала на землю.</summary>
-        Drop,
-        /// <summary>Совместный бросок: половина остатка.</summary>
-        Throw,
+        /// <summary>Толчок с разгона: доля остатка расплёскивается.</summary>
+        Shove,
         /// <summary>Таран: досталось жертве.</summary>
         RamVictim,
         /// <summary>Таран: досталось атакующему.</summary>
         RamAttacker,
-        /// <summary>Перелито в бак — единственная «потеря», которая идёт в счёт.</summary>
+        /// <summary>Перелито в бак — идёт в счёт.</summary>
         Poured,
         /// <summary>Улетела в пропасть: весь остаток.</summary>
-        Void
+        Void,
+        /// <summary>Набрано под краном. Единственная причина, при которой воды становится больше.</summary>
+        Filled
     }
 
     /// <summary>
@@ -41,7 +46,7 @@ namespace Igruha.Minigames.CarryItem
         /// </summary>
         public double LastDeliveryTime;
 
-        /// <summary>Сколько ходок команда закрыла. Нужно на приёмке: за раунд их должно выходить шесть.</summary>
+        /// <summary>Сколько ходок команда закрыла. Нужно на приёмке: за раунд у команды выходит три-четыре.</summary>
         public int Deliveries;
 
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
@@ -75,22 +80,22 @@ namespace Igruha.Minigames.CarryItem
             side == TeamSide.A ? TeamA : TeamB;
 
         /// <summary>Долить команде воды и отметить момент. Одна точка записи счёта.</summary>
-        public void Deliver(TeamSide side, int amount, int capacity, double time, bool finishedBottle)
+        public void Deliver(TeamSide side, int amount, int capacity, double time, bool finishedTrip)
         {
             if (side == TeamSide.A)
             {
-                Apply(ref TeamA, amount, capacity, time, finishedBottle);
+                Apply(ref TeamA, amount, capacity, time, finishedTrip);
                 return;
             }
 
             if (side == TeamSide.B)
             {
-                Apply(ref TeamB, amount, capacity, time, finishedBottle);
+                Apply(ref TeamB, amount, capacity, time, finishedTrip);
             }
         }
 
         private static void Apply(ref CarryItemTeamState team, int amount, int capacity, double time,
-            bool finishedBottle)
+            bool finishedTrip)
         {
             if (amount > 0)
             {
@@ -100,7 +105,7 @@ namespace Igruha.Minigames.CarryItem
                 team.LastDeliveryTime = time;
             }
 
-            if (finishedBottle)
+            if (finishedTrip)
             {
                 team.Deliveries++;
             }

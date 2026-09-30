@@ -11,54 +11,54 @@ namespace Igruha.Minigames.CarryItem
     /// про очки, ни про раунд, ни про сеть. Убери его — игра не изменится ни на
     /// правило.
     ///
-    /// <b>Почему всё держится на одном событии.</b> Единственная точка расхода
-    /// воды — <see cref="WaterBottle.WaterSpent"/>, и она поднимается <b>на
-    /// каждой машине</b>: у авторитета в <c>SpendWater</c>, у остальных
-    /// сообщением о потере. Остальные события переноски — наклон, бросок,
-    /// приземление, срыв ручки — считает только сервер (STATE 3.24.3), и эффект
-    /// на них был бы виден одному хосту. Тот же класс дыр отдал «Рейсу на
-    /// память» целую катку одному хосту, и повторять его незачем: причина
-    /// потери приезжает вместе с самой потерей и покрывает все восемь случаев.
+    /// <b>Почему всё держится на одном событии.</b> Единственная точка
+    /// изменения воды — <see cref="WaterCart.WaterChanged"/>, и дискретные
+    /// потери с неё поднимаются <b>на каждой машине</b>: у авторитета в
+    /// <c>ChangeWater</c>, у остальных сообщением о потере. Наполнение и слив
+    /// длятся секундами и событиями не ходят — их струи живут на самой
+    /// тележке и включаются по её флагам. Остальные события переноски — крен,
+    /// толчок, срыв поручня — считает только сервер, и эффект на них был бы
+    /// виден одному хосту.
     ///
-    /// <b>Эффекты живут в сцене, а не на бутыли.</b> Бутыль исчезает в тот же
-    /// кадр, в который сливается, — вложенный в неё всплеск погас бы ровно в
-    /// тот момент, ради которого его ставили. Пул лежит на арене, эффект
-    /// переносится в точку события и играется там.
+    /// <b>Пулы живут в сцене, а не на тележке.</b> Тележка постоянна, но
+    /// падает в пропасть и возвращается телепортом — вложенный в неё всплеск
+    /// улетел бы вместе с ней. Пул лежит на арене, эффект переносится в точку
+    /// события и играется там.
     /// </summary>
     public sealed class CarryItemEffects : MonoBehaviour
     {
-        [Header("За чьими бутылями следим")]
-        [Tooltip("Штабели команд. LiveBottle у них выставляется на каждой машине, и это единственный способ найти живую тару")]
-        [SerializeField] private BottleStack[] stacks = System.Array.Empty<BottleStack>();
+        [Header("За чьими тележками следим")]
+        [Tooltip("Краны команд. Cart у них выставляется на каждой машине, и это единственный способ найти тележку")]
+        [SerializeField] private WaterTap[] taps = System.Array.Empty<WaterTap>();
 
         [Header("Пулы эффектов")]
-        [Tooltip("Всплеск воды: слив, падение, таран, пропасть")]
+        [Tooltip("Всплеск воды: таран, пропасть, утечка")]
         [SerializeField] private ParticleSystem[] splashes = System.Array.Empty<ParticleSystem>();
 
-        [Tooltip("Брызги вбок: удар по бутыли")]
+        [Tooltip("Брызги вбок: удар по тележке")]
         [SerializeField] private ParticleSystem[] sprays = System.Array.Empty<ParticleSystem>();
 
         [Tooltip("Пыль удара о бетон")]
         [SerializeField] private ParticleSystem[] dusts = System.Array.Empty<ParticleSystem>();
 
-        [Tooltip("Свуш броска")]
+        [Tooltip("Свуш толчка с разгона")]
         [SerializeField] private ParticleSystem[] swooshes = System.Array.Empty<ParticleSystem>();
 
         [Header("Ловушки")]
         [Tooltip("Ловушки с событием срабатывания: тачка. Балка события не имеет и телеграфирует шлейфом")]
         [SerializeField] private TrapBase[] traps = System.Array.Empty<TrapBase>();
 
-        [Tooltip("Облако пыли, которое играет тачка")]
-        [SerializeField] private ParticleSystem cartBurst;
+        [Tooltip("Облако пыли, которое играет тачка-ловушка")]
+        [SerializeField] private ParticleSystem barrowBurst;
 
         [Header("Пороги")]
-        [Tooltip("Насколько выше точки бутыли играется эффект, м. Ноль — под самое дно")]
+        [Tooltip("Насколько выше точки тележки играется эффект, м. Ноль — под самое дно")]
         [SerializeField] private float effectLift = 0.35f;
 
         [Tooltip("Как часто утечка от крена даёт всплеск под ногами, сек")]
         [SerializeField] private float leakSplashInterval = 0.9f;
 
-        private readonly WaterBottle[] watched = new WaterBottle[2];
+        private readonly WaterCart[] watched = new WaterCart[2];
 
         private int splashIndex;
         private int sprayIndex;
@@ -94,17 +94,16 @@ namespace Igruha.Minigames.CarryItem
         }
 
         /// <summary>
-        /// Следим за живой тарой каждого штабеля. Опросом, а не событием:
-        /// <c>BottleTaken</c> поднимает только тот, кто выдал бутыль, то есть
-        /// сервер, а <c>LiveBottle</c> выставляется на каждой машине — клиент
-        /// узнаёт о таре, когда та приезжает и разбирается по штабелю.
+        /// Следим за тележкой каждого крана. Опросом, а не событием: тележку
+        /// спавнит сервер, а <c>Cart</c> у крана выставляется на каждой машине
+        /// — клиент узнаёт о ней, когда та приезжает и разбирается по крану.
         /// </summary>
         private void Update()
         {
-            int count = Mathf.Min(stacks.Length, watched.Length);
+            int count = Mathf.Min(taps.Length, watched.Length);
             for (int i = 0; i < count; i++)
             {
-                WaterBottle live = stacks[i] != null ? stacks[i].LiveBottle : null;
+                WaterCart live = taps[i] != null ? taps[i].Cart : null;
                 if (live == watched[i])
                 {
                     continue;
@@ -115,7 +114,7 @@ namespace Igruha.Minigames.CarryItem
                 if (live != null)
                 {
                     watched[i] = live;
-                    live.WaterSpent += OnWaterSpent;
+                    live.WaterChanged += OnWaterChanged;
                 }
             }
         }
@@ -127,16 +126,16 @@ namespace Igruha.Minigames.CarryItem
                 return;
             }
 
-            watched[index].WaterSpent -= OnWaterSpent;
+            watched[index].WaterChanged -= OnWaterChanged;
             watched[index] = null;
         }
 
         /// <summary>
-        /// Вода ушла — показать, куда именно. Точку берём у той бутыли, которая
-        /// сейчас жива: событие приходит без неё, а обеих сразу не бывает —
-        /// у каждой команды своя тара, и своя же подписка.
+        /// Вода ушла — показать, куда именно. Точку берём у тележки, которая
+        /// это событие подняла: у каждой команды своя тележка и своя подписка,
+        /// а событие приходит без ссылки — берём первую живую из двух.
         /// </summary>
-        private void OnWaterSpent(int amount, WaterLossReason reason)
+        private void OnWaterChanged(int amount, WaterLossReason reason)
         {
             if (!TryFindSource(out Vector3 point))
             {
@@ -145,32 +144,31 @@ namespace Igruha.Minigames.CarryItem
 
             switch (reason)
             {
-                // Слив в бак — единственная «потеря», которая идёт в счёт, и
-                // единственная, которую игрок хочет видеть как награду.
+                // Слив и наполнение длятся секундами: их струи живут на самой
+                // тележке и включаются по флагам. Здесь им делать нечего.
                 case WaterLossReason.Poured:
-                    Play(splashes, ref splashIndex, point);
+                case WaterLossReason.Filled:
                     break;
 
-                // Удар: брызги вбок и пыль от того, что по бутыли прилетело.
+                // Удар: брызги вбок и пыль от того, что по тележке прилетело.
                 case WaterLossReason.Hit:
                     Play(sprays, ref sprayIndex, point);
                     Play(dusts, ref dustIndex, point);
                     break;
 
-                case WaterLossReason.Drop:
                 case WaterLossReason.RamVictim:
                 case WaterLossReason.RamAttacker:
                     Play(splashes, ref splashIndex, point);
                     Play(dusts, ref dustIndex, point);
                     break;
 
-                // Пропасть: всплеск играется там, где бутыль в этот момент, то
+                // Пропасть: всплеск играется там, где тележка в этот момент, то
                 // есть уже внизу. Смотрящий сверху видит, чем кончилось.
                 case WaterLossReason.Void:
                     Play(splashes, ref splashIndex, point);
                     break;
 
-                case WaterLossReason.Throw:
+                case WaterLossReason.Shove:
                     Play(swooshes, ref swooshIndex, point);
                     break;
 
@@ -190,16 +188,16 @@ namespace Igruha.Minigames.CarryItem
 
         private void OnTrapFired()
         {
-            if (cartBurst == null)
+            if (barrowBurst == null)
             {
                 return;
             }
 
-            cartBurst.Stop(true, ParticleSystemStopBehavior.StopEmitting);
-            cartBurst.Play(true);
+            barrowBurst.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+            barrowBurst.Play(true);
         }
 
-        /// <summary>Точка живой бутыли, приподнятая от дна: у тары начало координат в основании.</summary>
+        /// <summary>Точка тележки, приподнятая от дна: у неё начало координат в основании между колёс.</summary>
         private bool TryFindSource(out Vector3 point)
         {
             for (int i = 0; i < watched.Length; i++)
@@ -215,7 +213,7 @@ namespace Igruha.Minigames.CarryItem
             return false;
         }
 
-        /// <summary>Пол под точкой: всплеск от утечки бьёт по бетону, а не по горлышку.</summary>
+        /// <summary>Пол под точкой: всплеск от утечки бьёт по бетону, а не по борту.</summary>
         private static Vector3 GroundUnder(Vector3 point)
         {
             return new Vector3(point.x, 0.05f, point.z);

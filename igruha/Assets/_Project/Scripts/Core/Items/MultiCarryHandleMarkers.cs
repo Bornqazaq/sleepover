@@ -97,7 +97,8 @@ namespace Igruha.Core.Items
                 // объекта. Без него держалка с креплением смотрела бы в стену
                 // на трёх слотах из четырёх: направления ручек считаются от
                 // числа несущих и на модели не закреплены.
-                Vector3 outward = carry.StationOf(i) - marker.position;
+                Vector3 outward = (carry.IsRolling && carry.Settings.rollingTensionDrive
+                    ? carry.VisualStationOf(i) : carry.StationOf(i)) - marker.position;
                 outward.y = 0f;
                 if (outward.sqrMagnitude > 0.0001f)
                 {
