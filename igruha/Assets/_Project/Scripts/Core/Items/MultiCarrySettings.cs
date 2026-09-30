@@ -87,6 +87,29 @@ namespace Igruha.Core.Items
         [Tooltip("Качение: скорость доворота кузова к направлению хода, °/с")]
         public float turnRate;
 
+        [Tooltip("Качение от среднего растяжения связей вместо среднего ввода")]
+        public bool rollingTensionDrive;
+        [Tooltip("Потолок пустого/полного объекта по числу занятых ручек: 1, 2, 3, 4")]
+        public Vector4 speedByHandsEmpty;
+        public Vector4 speedByHandsFull;
+        [Tooltip("Разгон пустого/полного объекта по числу занятых ручек: 1, 2, 3, 4")]
+        public Vector4 accelerationByHandsEmpty;
+        public Vector4 accelerationByHandsFull;
+        [Tooltip("Мягкость связи с несущим, 1/с. Оставляет возможность отстать от стоянки")]
+        public float rollingTetherGain;
+        [Tooltip("Боковая устойчивость шага у поручня, 1/с; продольное отставание остаётся свободным")]
+        public float rollingLateralGain;
+
+        public float RollingSpeed(int hands, float fill) => rollingTensionDrive
+            ? Mathf.Lerp(speedByHandsEmpty[Mathf.Clamp(hands - 1, 0, 3)],
+                speedByHandsFull[Mathf.Clamp(hands - 1, 0, 3)], Mathf.Clamp01(fill))
+            : Mathf.Lerp(maxSpeedEmpty, maxSpeedFull, Mathf.Clamp01(fill));
+
+        public float RollingAcceleration(int hands, float fill) => rollingTensionDrive
+            ? Mathf.Lerp(accelerationByHandsEmpty[Mathf.Clamp(hands - 1, 0, 3)],
+                accelerationByHandsFull[Mathf.Clamp(hands - 1, 0, 3)], Mathf.Clamp01(fill))
+            : Mathf.Lerp(accelerationEmpty, accelerationFull, Mathf.Clamp01(fill));
+
         [Tooltip("Растяжение связи, за которым ручку срывает, м")]
         public float breakDistance;
         [Tooltip("Сколько метров в секунду несущий волен уходить наружу на каждый метр оставшегося запаса связи")]

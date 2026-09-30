@@ -1,5 +1,6 @@
 using System;
 using Unity.Netcode;
+using Unity.Netcode.Components;
 using UnityEngine;
 using Igruha.Core.Interaction;
 using Igruha.Core.Player;
@@ -144,12 +145,11 @@ namespace Igruha.Core.Items
     /// — <b>одиночка несёт ровно:</b> у объекта с одной ручкой центр опоры
     ///   совпадает с этой ручкой, смещения нет вовсе.
     ///
-    /// <b>Катящийся груз</b> (тележка «Переноски» v2) в пунктах 3 и 4 отличается:
-    /// направление задаёт средний ввод несущих, их тела следуют за ручками;
-    /// скорость набирается и теряется с инерцией, а опора у него — колёса, а
-    /// не руки. Ровная тяга и незанятые поручни такой объект не кренят вовсе;
-    /// кренит его <b>рывок кузова</b> — изменение скорости за шаг: разгон,
-    /// стена, толчок, ловушка, резкий поворот (<see cref="StepRollingTilt"/>).
+    /// <b>Катящийся груз</b> опирается на колёса. В режиме rollingTensionDrive
+    /// движение задаёт среднее натяжение; занятые руки и нагрузка определяют
+    /// скорость и разгон. Обычный прямой разгон крена не даёт: игра задаёт
+    /// крен через SetTiltTarget/AddTiltKick, а внешние удары — через StepRollingTilt.
+    /// Старый режим качения по среднему вводу сохраняется при выключенном флаге.
     /// Тело физики при этом стоит вертикально, а крен показывает узел
     /// <c>tiltPivot</c>: наклонённый коллайдер зарывался углом в пол, и
     /// физика гасила ход трением — тележка вставала намертво.
@@ -215,6 +215,7 @@ namespace Igruha.Core.Items
             public StuckDetector CarrierStuckDetector;
             public bool StuckDetectorWasEnabled;
             public NetworkObject CarrierNetwork;
+            public IReplicatedPose CarrierPose;
             public Action<KnockdownType> KnockdownHandler;
 
             /// <summary>Сколько секунд ручку ещё нельзя сорвать перерастяжением. См. <see cref="GrabGraceSeconds"/>.</summary>
@@ -238,6 +239,10 @@ namespace Igruha.Core.Items
             public bool HasLastPosition;
             public bool HasLastStation;
             public Vector3 LastStation;
+            public Vector3 DriveVelocity;
+            public Vector3 LastStationOffset;
+            public bool HasStationOffset;
+            public float JoinTimer;
 
             /// <summary>Сколько секунд несущий держится выше своего потолка скорости, прося при этом бежать.</summary>
             public float OverspeedTimer;
@@ -305,6 +310,7 @@ namespace Igruha.Core.Items
         private const float IntentEpsilon = 0.1f;
 
         private readonly Handle[] handles = new Handle[MaxHandles];
+        private IReplicatedPose cartPose;
 
         /// <summary>Занятые ручки и полёт. Пишет сервер, читают все.</summary>
         private readonly NetworkVariable<MultiCarryNetState> netState =
@@ -315,6 +321,28 @@ namespace Igruha.Core.Items
             new NetworkVariable<MultiCarryTiltNetState>();
 
         private Rigidbody body;
+        private readonly ReplicatedPoseHistory poseHistory = new ReplicatedPoseHistory();
+        private Vector3 sampledPosition;
+        private Quaternion sampledRotation;
+        private bool hasSampledPose;
+        private Transform presentationFrame;
+
+        public void SetPresentationFrame(Transform frame) => presentationFrame = frame;
+
+        /// <summary>Render a locally held cart on the owner's physics timeline, before NGO's extra observer delay.</summary>
+        public bool TryGetOwnedPresentationPose(out Vector3 position, out Quaternion rotation)
+        {
+            position = transform.position;
+            rotation = transform.rotation;
+            if (!settings.rollingTensionDrive || !IsSpawned || HasAuthority) return false;
+            for (int i = 0; i < handleCount; i++)
+                if (handles[i].Alive && handles[i].LocallyOwned)
+                    return poseHistory.TrySample(NetworkManager.ServerTime.Time - Time.fixedDeltaTime,
+                        out position, out rotation);
+            return false;
+        }
+
+        private Transform PresentationFrame => presentationFrame != null ? presentationFrame : transform;
         private Collider[] ownColliders;
         private Predicate<PlayerController> ownerFilter;
 
@@ -392,6 +420,45 @@ namespace Igruha.Core.Items
 
         /// <summary>Нагрузка 0…1. Читают показ и болванки.</summary>
         public float Load => load;
+        public float RollingSpeed => settings.RollingSpeed(CarrierCount, load);
+        public float RollingAcceleration => settings.RollingAcceleration(CarrierCount, load);
+        public Vector3 FlatVelocity => body == null ? Vector3.zero :
+            Vector3.ProjectOnPlane(body.linearVelocity, Vector3.up);
+
+        /// <summary>Actual flat extension, in world metres; includes the dead zone.</summary>
+        public Vector3 TensionAt(int slot)
+        {
+            if (CarrierAt(slot) == null) return Vector3.zero;
+            Handle handle = handles[slot];
+            Vector3 station = StationOf(slot);
+            // An owner packet describes an earlier server tick. Compare it with the
+            // cart at that tick, not with today's cart or an extrapolated player.
+            if (settings.rollingTensionDrive && !handle.LocallyOwned && handle.CarrierPose != null &&
+                handle.CarrierPose.HasRemoteSample && poseHistory.TrySample(handle.CarrierPose.ReceivedTime,
+                    out Vector3 position, out Quaternion rotation))
+                station = StationAt(slot, position, rotation);
+            return Vector3.ProjectOnPlane(CarrierPosition(handle) - station, Vector3.up);
+        }
+
+        public Vector3 CarrierIntentAt(int slot)
+        {
+            if (CarrierAt(slot) == null) return Vector3.zero;
+            Vector2 intent = IntentOf(handles[slot]);
+            return new Vector3(intent.x, 0f, intent.y);
+        }
+
+        /// <summary>World-space rotation vector in degrees; the body stays upright.</summary>
+        public void SetTiltTarget(Vector3 degrees)
+        {
+            if (HasAuthority) tiltTarget = Vector3.ClampMagnitude(degrees, settings.maxTiltAngle) * Mathf.Deg2Rad;
+        }
+
+        public void AddTiltKick(Vector3 degrees)
+        {
+            if (!HasAuthority) return;
+            tiltRotation = Vector3.ClampMagnitude(tiltRotation + degrees * Mathf.Deg2Rad,
+                settings.maxTiltAngle * Mathf.Deg2Rad);
+        }
 
         /// <summary>
         /// Захват запрещён: объект вне игры — например, упал в пропасть и ждёт
@@ -444,6 +511,8 @@ namespace Igruha.Core.Items
             body.position = position;
             body.rotation = Quaternion.Euler(0f, yawDegrees, 0f);
             transform.SetPositionAndRotation(position, body.rotation);
+            poseHistory.Clear();
+            hasSampledPose = false;
 
             if (tiltPivot != null)
             {
@@ -474,6 +543,7 @@ namespace Igruha.Core.Items
         private void Awake()
         {
             body = GetComponent<Rigidbody>();
+            cartPose = GetComponent<IReplicatedPose>();
             ownColliders = GetComponentsInChildren<Collider>();
 
             // Поворот считает модель наклона, а не физика: иначе объект
@@ -554,6 +624,19 @@ namespace Igruha.Core.Items
 
             bool grew = clamped > handleCount;
             handleCount = clamped;
+            if (IsRolling && settings.rollingTensionDrive)
+            {
+                // A roster change moves the stations. Let existing owners step to the
+                // new layout without treating that relocation as a deliberate pull.
+                for (int i = 0; i < handleCount; i++)
+                {
+                    if (!handles[i].Alive) continue;
+                    handles[i].GraceTimer = GrabGraceSeconds;
+                    handles[i].JoinTimer = 0f;
+                    handles[i].HasLastStation = false;
+                    handles[i].HasStationOffset = false;
+                }
+            }
 
             // Ручек стало больше — разбираем состояние заново: занятый слот мог
             // не влезать в прежний предел и ждать ровно этого.
@@ -593,7 +676,11 @@ namespace Igruha.Core.Items
         /// </summary>
         public Vector3 StationOf(int slot)
         {
-            Vector3 origin = BasePosition;
+            return StationAt(slot, BasePosition, Heading);
+        }
+
+        private Vector3 StationAt(int slot, Vector3 origin, Quaternion rotation)
+        {
             if (slot < 0 || slot >= handleCount)
             {
                 return origin;
@@ -601,7 +688,14 @@ namespace Igruha.Core.Items
 
             Vector3 grip = HandleLocal(slot);
             grip.y = 0f;
-            return origin + Heading * (grip + OutwardLocal(slot) * settings.carrierStandoff);
+            return origin + YawOf(rotation, baseRotation) * (grip + OutwardLocal(slot) * settings.carrierStandoff);
+        }
+
+        public Vector3 VisualStationOf(int slot)
+        {
+            Vector3 grip = HandleLocal(slot); grip.y = 0f;
+            return PresentationFrame.position + YawOf(PresentationFrame.rotation, Heading) *
+                (grip + OutwardLocal(slot) * settings.carrierStandoff);
         }
 
         /// <summary>
@@ -614,6 +708,8 @@ namespace Igruha.Core.Items
         /// </summary>
         public Vector3 HandleAnchor(int slot)
         {
+            if (IsRolling && settings.rollingTensionDrive && slot >= 0 && slot < handleCount)
+                return PresentationFrame.position + YawOf(PresentationFrame.rotation, Heading) * HandleLocal(slot);
             Vector3 origin = BasePosition;
             return slot >= 0 && slot < handleCount ? origin + HandleOffsetWorld(slot) : origin;
         }
@@ -1094,6 +1190,10 @@ namespace Igruha.Core.Items
 
             handle.Taken = true;
             handle.GraceTimer = GrabGraceSeconds;
+            handle.CarrierPose = player.GetComponent<IReplicatedPose>();
+            handle.DriveVelocity = FlatVelocity;
+            handle.HasStationOffset = false;
+            handle.JoinTimer = 0f;
             handle.OverspeedTimer = 0f;
             handle.Intent = Vector2.zero;
             handle.HasLastPosition = false;
@@ -1251,8 +1351,27 @@ namespace Igruha.Core.Items
         /// <c>NetworkTransform</c>, а <c>Rigidbody.position</c> догоняет
         /// трансформ только к ближайшему шагу физики.
         /// </summary>
-        private Vector3 BasePosition =>
-            HasAuthority && body != null ? body.position : transform.position;
+        private Vector3 BasePosition => HasAuthority && body != null ? body.position :
+            settings.rollingTensionDrive && hasSampledPose ? sampledPosition : transform.position;
+
+        private Vector3 CarrierPosition(Handle handle)
+        {
+            if (!settings.rollingTensionDrive) return handle.Carrier.transform.position;
+            if (!handle.LocallyOwned && handle.CarrierPose != null && handle.CarrierPose.HasRemoteSample)
+                return handle.CarrierPose.ReceivedPosition;
+            return handle.CarrierBody != null ? handle.CarrierBody.position : handle.Carrier.transform.position;
+        }
+
+        private void RecordSimulationPose()
+        {
+            if (!settings.rollingTensionDrive) return;
+            double now = IsSpawned ? NetworkManager.ServerTime.Time : Time.fixedTimeAsDouble;
+            if (HasAuthority)
+                poseHistory.Record(now, body.position, Quaternion.Euler(0f, yawDegrees, 0f));
+            else if (cartPose != null && cartPose.HasRemoteSample)
+                poseHistory.Record(cartPose.ReceivedTime, cartPose.ReceivedPosition, cartPose.ReceivedRotation);
+            hasSampledPose = poseHistory.TrySample(now, out sampledPosition, out sampledRotation);
+        }
 
         /// <summary>
         /// Шаг переноски разложен на три части, и разложен не по вкусу, а по
@@ -1270,6 +1389,7 @@ namespace Igruha.Core.Items
         private void FixedUpdate()
         {
             float dt = Time.fixedDeltaTime;
+            RecordSimulationPose();
 
             DropGoneCarriers();
             TrackCarrierMotion(dt);
@@ -1375,6 +1495,9 @@ namespace Igruha.Core.Items
         public Vector3 CarrierVelocityAt(int slot) =>
             slot >= 0 && slot < handles.Length ? handles[slot].TrackedVelocity : Vector3.zero;
 
+        public bool IsSettlingAt(int slot) => slot >= 0 && slot < handles.Length && handles[slot].Alive &&
+            handles[slot].GraceTimer > GrabGraceSeconds - 0.5f;
+
         /// <summary>
         /// Упругая тяга к своей стоянке — только за своих несущих. Стоянка
         /// берётся от реплицированной позиции объекта, поэтому у владельца она
@@ -1392,7 +1515,8 @@ namespace Igruha.Core.Items
 
                 if (IsRolling)
                 {
-                    FollowRollingStation(handle, StationOf(i));
+                    if (settings.rollingTensionDrive) DriveRollingCarrier(handle, StationOf(i));
+                    else FollowRollingStation(handle, StationOf(i));
                     continue;
                 }
 
@@ -1411,6 +1535,51 @@ namespace Igruha.Core.Items
 
         private const float StationFollowGain = 12f;
         private const float StationCatchupSpeed = 4f;
+        private const float RollingStanceCatchupSpeed = 0.6f;
+        private const float PassiveRollingTetherGain = 0.6f;
+
+        // Match the cart's acceleration, but never copy its translation into the player.
+        // A passive hand therefore lags and brakes the mean. Rotation of the station is
+        // compensated separately, so turning does not tear an otherwise coordinated grip.
+        private void DriveRollingCarrier(Handle handle, Vector3 station)
+        {
+            float dt = Time.fixedDeltaTime;
+            Vector3 offset = station - BasePosition;
+            Vector3 rotationVelocity = handle.HasStationOffset
+                ? (offset - handle.LastStationOffset) / dt : Vector3.zero;
+            handle.LastStationOffset = offset;
+            handle.HasStationOffset = true;
+            handle.JoinTimer += dt;
+            Vector3 stretch = Vector3.ProjectOnPlane(handle.CarrierBody.position - station, Vector3.up);
+            if (handle.JoinTimer < 0.5f && stretch.sqrMagnitude > 0.04f)
+            {
+                FollowRollingStation(handle, station);
+                handle.DriveVelocity = FlatVelocity;
+                return;
+            }
+
+            Vector2 input = IntentOf(handle);
+            Vector3 intent = new Vector3(input.x, 0f, input.y);
+            float cap = RollingSpeed;
+            handle.DriveVelocity = Vector3.MoveTowards(handle.DriveVelocity, intent * cap,
+                RollingAcceleration * dt);
+            float lead = settings.tensionDeadzone + cap / Mathf.Max(0.01f, settings.pullToSpeed);
+            bool pulling = intent.sqrMagnitude > 0.01f;
+            // Small stance errors settle quickly; sustained pulling can still outrun
+            // this bounded correction and break the spring. Passive hands are not carried.
+            Vector3 correction = pulling
+                ? Vector3.ClampMagnitude((intent * lead - stretch) * settings.rollingTetherGain, RollingStanceCatchupSpeed)
+                : -stretch * PassiveRollingTetherGain;
+            if (pulling)
+            {
+                Vector3 sideways = stretch - Vector3.Project(stretch, intent);
+                correction -= Vector3.ClampMagnitude(sideways *
+                    Mathf.Max(0f, settings.rollingLateralGain - settings.rollingTetherGain), 2.5f);
+            }
+            Vector3 velocity = handle.DriveVelocity + correction + rotationVelocity;
+            velocity.y = handle.CarrierBody.linearVelocity.y;
+            handle.CarrierBody.linearVelocity = velocity;
+        }
 
         // Run after the player motor. Input still reaches MoveIntent, but a cart carrier
         // walks with the handle instead of stretching a spring until it breaks.
@@ -1598,9 +1767,10 @@ namespace Igruha.Core.Items
                 }
 
                 Vector3 station = StationOf(i);
-                Vector3 carrierPosition = handle.Carrier.transform.position;
+                Vector3 carrierPosition = CarrierPosition(handle);
 
-                Vector3 stretch = carrierPosition - station;
+                Vector3 stretch = IsRolling && settings.rollingTensionDrive
+                    ? TensionAt(i) : carrierPosition - station;
                 stretch.y = 0f;
                 float distance = stretch.magnitude;
 
@@ -1627,7 +1797,7 @@ namespace Igruha.Core.Items
                 occupied++;
                 supportSum += SupportPointWorld(i);
 
-                if (IsRolling)
+                if (IsRolling && !settings.rollingTensionDrive)
                 {
                     Vector2 intent = IntentOf(handle);
                     pullSum += new Vector3(intent.x, 0f, intent.y);
@@ -1636,6 +1806,8 @@ namespace Igruha.Core.Items
 
                 if (distance > settings.tensionDeadzone)
                 {
+                    if (IsRolling && settings.rollingTensionDrive && IsSettlingAt(i) && distance > 0.25f)
+                        continue;
                     Vector3 direction = stretch / distance;
                     Vector3 tension = direction * (distance - settings.tensionDeadzone);
 
@@ -1832,10 +2004,10 @@ namespace Igruha.Core.Items
         /// </summary>
         private void StepRollingVelocity(Vector3 intent, float dt)
         {
-            float cap = Mathf.Lerp(settings.maxSpeedEmpty, settings.maxSpeedFull, load);
-            Vector3 target = Vector3.ClampMagnitude(intent, 1f) * cap;
-            float acceleration = Mathf.Lerp(settings.accelerationEmpty, settings.accelerationFull, load);
-            ApplyRollingVelocity(target, acceleration, dt);
+            Vector3 target = settings.rollingTensionDrive
+                ? Vector3.ClampMagnitude(intent * settings.pullToSpeed, RollingSpeed)
+                : Vector3.ClampMagnitude(intent, 1f) * RollingSpeed;
+            ApplyRollingVelocity(target, RollingAcceleration, dt);
         }
 
         /// <summary>Без рук катящийся объект докатывается и встаёт — так отпущенная на разгоне тележка уезжает сама.</summary>
@@ -1855,9 +2027,11 @@ namespace Igruha.Core.Items
             Vector3 flat = new Vector3(current.x, 0f, current.z);
             Vector3 next = Vector3.MoveTowards(flat, target, rate * dt);
             body.linearVelocity = new Vector3(next.x, current.y, next.z);
-            StepRollingTilt(next - lastRollingVelocity);
+            // Straight, deliberate acceleration does not spill a tension-driven cart.
+            // Preserve impulses introduced by collisions between physics ticks.
+            StepRollingTilt((settings.rollingTensionDrive ? flat : next) - lastRollingVelocity);
             lastRollingVelocity = next;
-            TurnTowardsMotion(next, dt);
+            TurnTowardsMotion(settings.rollingTensionDrive && CarrierCount > 0 ? target : next, dt);
         }
 
         /// <summary>Доля крена от рывка у пустого объекта: плескаться нечему, но кузов всё же качает.</summary>
@@ -1913,7 +2087,10 @@ namespace Igruha.Core.Items
                 }
 
                 Quaternion own = Quaternion.Euler(0f, yawDegrees, 0f);
-                return HasAuthority ? own : YawOf(transform.rotation, own);
+                if (HasAuthority) return own;
+                if (settings.rollingTensionDrive && hasSampledPose)
+                    return YawOf(sampledRotation, own);
+                return YawOf(transform.rotation, own);
             }
         }
 
@@ -2100,6 +2277,9 @@ namespace Igruha.Core.Items
         /// <summary>Плечо ручки от основания объекта: смещение по курсу плюс высота, повёрнутые вместе с наклоном.</summary>
         private Vector3 HandleOffsetWorld(int slot)
         {
+            // On a rolling cart the grips belong to the upright chassis. Only the tub
+            // sloshes: tilting a metre-high grip by 60° would put it out of human reach.
+            if (IsRolling && settings.rollingTensionDrive) return Heading * HandleLocal(slot);
             return Quaternion.AngleAxis(TiltDegrees(), TiltAxis()) * (Heading * HandleLocal(slot));
         }
 
