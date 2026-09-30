@@ -92,6 +92,27 @@ namespace Igruha.Core.Items
     }
 
     /// <summary>
+    /// Крен катящегося объекта для остальных машин: вектор «ось × угол» в
+    /// градусах, по байту на горизонтальную ось. Тело физики у такого объекта
+    /// стоит вертикально — крен показывает отдельный узел, — поэтому из
+    /// поворота <c>NetworkTransform</c> его не прочитать, и он едет своим
+    /// каналом: два байта, и только когда меняется целый градус.
+    /// </summary>
+    public struct MultiCarryTiltNetState : INetworkSerializable, IEquatable<MultiCarryTiltNetState>
+    {
+        public sbyte X;
+        public sbyte Z;
+
+        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+        {
+            serializer.SerializeValue(ref X);
+            serializer.SerializeValue(ref Z);
+        }
+
+        public bool Equals(MultiCarryTiltNetState other) => X == other.X && Z == other.Z;
+    }
+
+    /// <summary>
     /// Объект, за который держатся несколько человек и который едет туда, куда
     /// его тянут все вместе. Про воду, баки и команды не знает ничего — этим
     /// занимается тот, кто его настраивает.
@@ -123,6 +144,15 @@ namespace Igruha.Core.Items
     /// — <b>одиночка несёт ровно:</b> у объекта с одной ручкой центр опоры
     ///   совпадает с этой ручкой, смещения нет вовсе.
     ///
+    /// <b>Катящийся груз</b> (тележка «Переноски» v2) в пунктах 3 и 4 отличается:
+    /// скорость набирается и теряется с инерцией, а опора у него — колёса, а
+    /// не руки. Ровная тяга и незанятые поручни такой объект не кренят вовсе;
+    /// кренит его <b>рывок кузова</b> — изменение скорости за шаг: разгон,
+    /// стена, толчок, ловушка, резкий поворот (<see cref="StepRollingTilt"/>).
+    /// Тело физики при этом стоит вертикально, а крен показывает узел
+    /// <c>tiltPivot</c>: наклонённый коллайдер зарывался углом в пол, и
+    /// физика гасила ход трением — тележка вставала намертво.
+    ///
     /// <b>Сеть.</b> Решения принимает сервер: кто взялся, кто сорвался, куда
     /// поехал объект и как он накренился. Позиция и поворот уезжают
     /// <c>NetworkTransform</c>, занятые ручки — <see cref="MultiCarryNetState"/>.
@@ -135,7 +165,7 @@ namespace Igruha.Core.Items
     /// сервер двигать не вправе, это IGR-297.
     /// </summary>
     [RequireComponent(typeof(Rigidbody))]
-    public sealed class MultiCarryObject : NetworkBehaviour, IInteractable, IPushButtonOverride
+    public sealed class MultiCarryObject : NetworkBehaviour, IHoldInteractable, IPushButtonOverride
     {
         /// <summary>Больше четырёх рук не бывает: столько человек в самой большой команде проекта.</summary>
         public const int MaxHandles = 4;
@@ -145,6 +175,8 @@ namespace Igruha.Core.Items
         [SerializeField] private string interactionPrompt = "взяться за бутыль";
         [Tooltip("Слои опоры. По ним объект понимает, что приземлился после броска")]
         [SerializeField] private LayerMask groundLayers = ~0;
+        [Tooltip("Что кренится у катящегося объекта. Тело физики остаётся вертикальным — коллайдер не зарывается углом в пол, — а крен показывает этот узел. Пусто — кренится всё тело, как у несомого груза")]
+        [SerializeField] private Transform tiltPivot;
 
         /// <summary>Ручку заняли: номер слота и кто занял.</summary>
         public event Action<int, PlayerController> HandleTaken;
@@ -272,6 +304,10 @@ namespace Igruha.Core.Items
         private readonly NetworkVariable<MultiCarryNetState> netState =
             new NetworkVariable<MultiCarryNetState>();
 
+        /// <summary>Крен объекта с отдельным узлом крена. Пишет сервер, читают все.</summary>
+        private readonly NetworkVariable<MultiCarryTiltNetState> netTilt =
+            new NetworkVariable<MultiCarryTiltNetState>();
+
         private Rigidbody body;
         private Collider[] ownColliders;
         private Predicate<PlayerController> ownerFilter;
@@ -283,6 +319,27 @@ namespace Igruha.Core.Items
         private Vector3 tiltAngularVelocity;
 
         private Quaternion baseRotation = Quaternion.identity;
+
+        /// <summary>
+        /// Курс кузова у авторитета в раскладке тележки, °. Остальные машины
+        /// берут курс из реплицированного поворота — так стоянки у сервера и у
+        /// владельца считаются от одного и того же числа.
+        /// </summary>
+        private float yawDegrees;
+
+        /// <summary>Нагрузка 0…1, пустой → полный. Ставит игра; в режиме качения от неё зависят потолок и разгон.</summary>
+        private float load;
+
+        /// <summary>Крен, который держит игра, — «ось × угол» в радианах. Слив назад в бак; ноль — вертикаль.</summary>
+        private Vector3 tiltTarget;
+
+        /// <summary>
+        /// Горизонтальная скорость, выставленная качению на прошлом шаге.
+        /// Разница с текущей — то, что сделали с кузовом стены, толчки и
+        /// ловушки между шагами: для крена это такой же рывок, как разгон.
+        /// </summary>
+        private Vector3 lastRollingVelocity;
+
         private bool beyondThreshold;
         private bool hadCarriers;
         private bool inFlight;
@@ -308,9 +365,11 @@ namespace Igruha.Core.Items
         /// У авторитета — из самой модели. У остальных считается по
         /// реплицированному повороту: наклон и так приезжает
         /// <c>NetworkTransform</c>, и отдельный канал под то же число был бы
-        /// вторым источником правды.
+        /// вторым источником правды. Исключение — объект с узлом крена: его
+        /// тело вертикально, и крен у остальных догоняет свой канал
+        /// (<see cref="FollowReplicatedTilt"/>) в том же <c>tiltRotation</c>.
         /// </summary>
-        public float TiltAngle => HasAuthority
+        public float TiltAngle => HasAuthority || tiltPivot != null
             ? tiltRotation.magnitude * Mathf.Rad2Deg
             : Vector3.Angle(transform.up, Vector3.up);
 
@@ -321,6 +380,76 @@ namespace Igruha.Core.Items
         public bool InFlight => inFlight;
 
         public MultiCarrySettings Settings => settings;
+
+        /// <summary>Катящийся объект: гравитация не выключается, скорость набирается и теряется с инерцией.</summary>
+        public bool IsRolling => settings.motion == MultiCarryMotion.Rolling;
+
+        /// <summary>Нагрузка 0…1. Читают показ и болванки.</summary>
+        public float Load => load;
+
+        /// <summary>
+        /// Захват запрещён: объект вне игры — например, упал в пропасть и ждёт
+        /// возврата. Ставит игра, снимает она же.
+        /// </summary>
+        public bool GrabLocked { get; set; }
+
+        /// <summary>Сколько в объекте груза, 0…1. В режиме качения полный разгоняется и едет медленнее пустого.</summary>
+        public void SetLoad(float value) => load = Mathf.Clamp01(value);
+
+        /// <summary>
+        /// Держать крен назад на столько градусов: перед поднимается, зад
+        /// опускается — так тележка сливается в бак. Крен идёт через ту же
+        /// модель наклона, что и рассинхрон несущих, поэтому он мягкий и
+        /// не переворачивает тело физикой. Считает только авторитет.
+        /// </summary>
+        public void SetLeanBack(float degrees)
+        {
+            Vector3 axis = Heading * Vector3.right;
+            tiltTarget = axis * (-degrees * Mathf.Deg2Rad);
+        }
+
+        /// <summary>Отпустить крен: объект возвращается к вертикали.</summary>
+        public void ClearLean() => tiltTarget = Vector3.zero;
+
+        /// <summary>
+        /// Поставить объект заново: позиция, курс, ни скорости, ни крена.
+        /// Возврат тележки из пропасти. Решает авторитет; клиентам положение
+        /// довозит <c>NetworkTransform</c> телепортом, без интерполяции через
+        /// всю арену.
+        /// </summary>
+        public void ResetPose(Vector3 position, Quaternion rotation)
+        {
+            if (!HasAuthority || body == null)
+            {
+                return;
+            }
+
+            ReleaseAll(CarryReleaseReason.RoundEnded);
+
+            tiltRotation = Vector3.zero;
+            tiltAngularVelocity = Vector3.zero;
+            tiltTarget = Vector3.zero;
+            lastRollingVelocity = Vector3.zero;
+            yawDegrees = rotation.eulerAngles.y;
+            baseRotation = Quaternion.Euler(0f, yawDegrees, 0f);
+
+            body.linearVelocity = Vector3.zero;
+            body.angularVelocity = Vector3.zero;
+            body.position = position;
+            body.rotation = Quaternion.Euler(0f, yawDegrees, 0f);
+            transform.SetPositionAndRotation(position, body.rotation);
+
+            if (tiltPivot != null)
+            {
+                tiltPivot.localRotation = Quaternion.identity;
+                PublishTilt();
+            }
+
+            if (IsSpawned && TryGetComponent(out Unity.Netcode.Components.NetworkTransform networkTransform))
+            {
+                networkTransform.Teleport(position, body.rotation, transform.localScale);
+            }
+        }
 
         [System.NonSerialized] private string cachedPrompt;
         public string InteractionPrompt => cachedPrompt ??= InteractionPromptText.Hold + interactionPrompt;
@@ -349,6 +478,7 @@ namespace Igruha.Core.Items
             body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
 
             baseRotation = Quaternion.Euler(0f, transform.eulerAngles.y, 0f);
+            yawDegrees = transform.eulerAngles.y;
 
             for (int i = 0; i < handles.Length; i++)
             {
@@ -406,15 +536,14 @@ namespace Igruha.Core.Items
                 return;
             }
 
-            // Ручек стало меньше — держащих исчезнувшие надо отцепить: у
-            // авторитета решением, у остальных на месте. ReleaseHandle
-            // откажется на клиенте, поэтому там отцепляем напрямую.
-            for (int i = clamped; i < handles.Length; i++)
+            // Ручек стало меньше — живые несущие со слотов, которых больше нет,
+            // переезжают на свободные младшие слоты, а не срываются. Раньше
+            // слоты освобождались с конца, и уход одного игрока сбрасывал ручку
+            // другому: на одноразовой бутыли это терпели, у постоянной тележки
+            // это читалось бы как «меня скинуло, когда вышел сосед».
+            if (clamped < handleCount)
             {
-                if (!ReleaseHandle(i, CarryReleaseReason.RoundEnded))
-                {
-                    DetachHandle(i, CarryReleaseReason.RoundEnded);
-                }
+                CompactHandles(clamped);
             }
 
             bool grew = clamped > handleCount;
@@ -464,7 +593,9 @@ namespace Igruha.Core.Items
                 return origin;
             }
 
-            return origin + HandleDirection(slot) * (settings.handleRadius + settings.carrierStandoff);
+            Vector3 grip = HandleLocal(slot);
+            grip.y = 0f;
+            return origin + Heading * (grip + OutwardLocal(slot) * settings.carrierStandoff);
         }
 
         /// <summary>
@@ -499,7 +630,7 @@ namespace Igruha.Core.Items
 
         public bool CanInteract(PlayerController player)
         {
-            if (player == null || InFlight)
+            if (player == null || InFlight || GrabLocked)
             {
                 return false;
             }
@@ -529,6 +660,41 @@ namespace Igruha.Core.Items
             TryGrab(player);
         }
 
+        /// <summary>Hold E owns one handle; releasing E is idempotent and never grabs again.</summary>
+        public void HoldChanged(PlayerController player, bool held)
+        {
+            if (player == null) return;
+            if (HasAuthority)
+            {
+                ApplyHold(player, held);
+                return;
+            }
+            var actor = player.GetComponent<NetworkObject>();
+            if (IsSpawned && actor != null && actor.IsSpawned && actor.IsOwner)
+                RequestHoldRpc(actor.NetworkObjectId, held);
+        }
+
+        [Rpc(SendTo.Server, RequireOwnership = false)]
+        private void RequestHoldRpc(ulong actorId, bool held, RpcParams rpcParams = default)
+        {
+            if (!NetworkManager.SpawnManager.SpawnedObjects.TryGetValue(actorId, out var actor) ||
+                actor.OwnerClientId != rpcParams.Receive.SenderClientId ||
+                !actor.TryGetComponent<PlayerController>(out var player)) return;
+            ApplyHold(player, held);
+        }
+
+        private void ApplyHold(PlayerController player, bool held)
+        {
+            if (!held)
+            {
+                ReleaseFor(player, CarryReleaseReason.LetGo);
+                return;
+            }
+            // Reuse the authoritative interaction gate: reach, suspension and owner filter.
+            if (!IsCarriedBy(player) && player.TryGetComponent<PlayerInteractor>(out var interactor))
+                interactor.ExecuteInteraction(gameObject);
+        }
+
         /// <summary>
         /// Занять свободную ручку. <b>Единственная точка входа на захват</b>, и
         /// решает её только авторитет: иначе двое возьмутся за одну ручку.
@@ -538,7 +704,7 @@ namespace Igruha.Core.Items
         /// </summary>
         public bool TryGrab(PlayerController player)
         {
-            if (!HasAuthority || player == null || InFlight)
+            if (!HasAuthority || player == null || InFlight || GrabLocked)
             {
                 return false;
             }
@@ -785,6 +951,17 @@ namespace Igruha.Core.Items
 
             ReleaseAll(CarryReleaseReason.Thrown);
 
+            if (IsRolling)
+            {
+                // Тележку не швыряют, а толкают с разгона: импульс вдоль пола
+                // поверх текущей скорости, полёта нет — она остаётся катящимся
+                // объектом, и взяться за неё можно сразу, если догнал.
+                body.useGravity = true;
+                body.AddForce(aim * (settings.throwImpulsePerCarrier * throwers), ForceMode.Impulse);
+                Thrown?.Invoke(throwers);
+                return;
+            }
+
             PublishInFlight(true);
             body.useGravity = true;
             body.linearVelocity = Vector3.zero;
@@ -809,6 +986,8 @@ namespace Igruha.Core.Items
         {
             handlesPending = false;
             CarryReleaseReason reason = (CarryReleaseReason)state.LastRelease;
+
+            RelocateMovedHandles(state);
 
             for (int slot = 0; slot < handles.Length; slot++)
             {
@@ -932,7 +1111,9 @@ namespace Igruha.Core.Items
 
             // Сбитый несущий роняет ручку. Подписка на слот своя, чтобы снять
             // её потом ровно той же ссылкой.
-            handle.KnockdownHandler = _ => OnCarrierKnockedDown(slot);
+            // Замыкание держит саму ручку, а не номер слота: при уходе соседа
+            // ручка может переехать на другой слот, и номер устарел бы.
+            handle.KnockdownHandler = _ => OnCarrierKnockedDown(handle);
             player.KnockdownStarted += handle.KnockdownHandler;
 
             // Руки заняты: ни ударить, ни подобрать, ни бросить предмет.
@@ -954,9 +1135,10 @@ namespace Igruha.Core.Items
             CarrierCount++;
             hadCarriers = true;
 
-            // Объект в руках держит модель, а не гравитация: иначе он волочится
+            // Несомый объект держит модель, а не гравитация: иначе он волочится
             // по полу, а на доске над пропастью проваливается между несущими.
-            body.useGravity = false;
+            // Катящийся стоит на колёсах и с гравитацией не расстаётся.
+            body.useGravity = IsRolling;
             ApplyInFlight(false);
 
             HandleTaken?.Invoke(slot, player);
@@ -1023,15 +1205,21 @@ namespace Igruha.Core.Items
         /// мотор выключен: поэтому у авторитета здесь решение, а у владельца —
         /// намерение.
         /// </summary>
-        private void OnCarrierKnockedDown(int slot)
+        private void OnCarrierKnockedDown(Handle handle)
         {
+            int slot = System.Array.IndexOf(handles, handle);
+            if (slot < 0)
+            {
+                return;
+            }
+
             if (HasAuthority)
             {
                 ReleaseHandle(slot, CarryReleaseReason.Knockdown);
                 return;
             }
 
-            if (IsSpawned && handles[slot].LocallyOwned)
+            if (IsSpawned && handle.LocallyOwned)
             {
                 RequestReleaseRpc((byte)CarryReleaseReason.Knockdown);
             }
@@ -1074,9 +1262,19 @@ namespace Igruha.Core.Items
                 {
                     StepCarried(dt);
                 }
+                else if (IsRolling)
+                {
+                    StepFreeRolling(dt);
+                }
 
                 StepTiltRelaxation(dt);
                 ApplyRotation();
+                PublishTilt();
+            }
+            else if (tiltPivot != null)
+            {
+                FollowReplicatedTilt(dt);
+                ApplyPivotTilt();
             }
 
             StepOwnedTethers();
@@ -1346,8 +1544,6 @@ namespace Igruha.Core.Items
             float footSum = 0f;
             int occupied = 0;
 
-            Vector3 basePoint = body.position;
-
             for (int i = 0; i < handleCount; i++)
             {
                 Handle handle = handles[i];
@@ -1356,8 +1552,7 @@ namespace Igruha.Core.Items
                     continue;
                 }
 
-                Vector3 handleDir = HandleDirection(i);
-                Vector3 station = basePoint + handleDir * (settings.handleRadius + settings.carrierStandoff);
+                Vector3 station = StationOf(i);
                 Vector3 carrierPosition = handle.Carrier.transform.position;
 
                 Vector3 stretch = carrierPosition - station;
@@ -1385,7 +1580,7 @@ namespace Igruha.Core.Items
 
                 footSum += carrierPosition.y;
                 occupied++;
-                supportSum += handleDir * settings.handleRadius;
+                supportSum += SupportPointWorld(i);
 
                 if (distance > settings.tensionDeadzone)
                 {
@@ -1396,7 +1591,11 @@ namespace Igruha.Core.Items
 
                     // Плечо — от основания объекта до его ручки, вместе с высотой:
                     // именно высота ручки и превращает горизонтальную тягу в крен.
-                    torqueSum += Vector3.Cross(HandleOffsetWorld(i), tension);
+                    // Катящийся объект тяга не кренит: его держат колёса.
+                    if (!IsRolling)
+                    {
+                        torqueSum += Vector3.Cross(HandleOffsetWorld(i), tension);
+                    }
                 }
             }
 
@@ -1405,17 +1604,31 @@ namespace Igruha.Core.Items
                 return;
             }
 
-            // Скорость: сумма натяжений с общим потолком. Тянущие вразнобой
-            // гасят друг друга здесь же, векторно, — отдельного условия нет.
-            Vector3 velocity = Vector3.ClampMagnitude(pullSum * settings.pullToSpeed, settings.maxObjectSpeed);
+            if (IsRolling)
+            {
+                StepRollingVelocity(pullSum, dt);
+            }
+            else
+            {
+                // Скорость: сумма натяжений с общим потолком. Тянущие вразнобой
+                // гасят друг друга здесь же, векторно, — отдельного условия нет.
+                Vector3 velocity = Vector3.ClampMagnitude(pullSum * settings.pullToSpeed, settings.maxObjectSpeed);
 
-            // Высота: основание идёт над ступнями несущих. Так объект сам
-            // поднимается на доску и не проваливается сквозь неё.
-            float targetY = footSum / occupied + settings.carryClearance;
-            float verticalRate = (targetY - body.position.y) / Mathf.Max(dt, Mathf.Epsilon);
-            velocity.y = Mathf.Clamp(verticalRate, -settings.maxObjectSpeed * 2f, settings.maxObjectSpeed * 2f);
+                // Высота: основание идёт над ступнями несущих. Так объект сам
+                // поднимается на доску и не проваливается сквозь неё.
+                float targetY = footSum / occupied + settings.carryClearance;
+                float verticalRate = (targetY - body.position.y) / Mathf.Max(dt, Mathf.Epsilon);
+                velocity.y = Mathf.Clamp(verticalRate, -settings.maxObjectSpeed * 2f, settings.maxObjectSpeed * 2f);
 
-            body.linearVelocity = velocity;
+                body.linearVelocity = velocity;
+            }
+
+            if (IsRolling)
+            {
+                // Опора катящегося объекта — колёса, а не руки: незанятые
+                // поручни его не валят. Крен качения считает StepRollingTilt.
+                return;
+            }
 
             // Момент опоры: занята не вся окружность — центр опоры уезжает к
             // оставшимся рукам, и вес валит объект в пустую сторону.
@@ -1467,7 +1680,7 @@ namespace Igruha.Core.Items
         private void StepTiltRelaxation(float dt)
         {
             tiltAngularVelocity -= (tiltAngularVelocity * settings.tiltDamping +
-                                    tiltRotation * settings.tiltRestoring) * dt;
+                                    (tiltRotation - tiltTarget) * settings.tiltRestoring) * dt;
             tiltRotation += tiltAngularVelocity * dt;
 
             float maxRadians = settings.maxTiltAngle * Mathf.Deg2Rad;
@@ -1489,7 +1702,340 @@ namespace Igruha.Core.Items
 
         private void ApplyRotation()
         {
-            body.MoveRotation(Quaternion.AngleAxis(TiltDegrees(), TiltAxis()) * baseRotation);
+            if (tiltPivot == null)
+            {
+                body.MoveRotation(Quaternion.AngleAxis(TiltDegrees(), TiltAxis()) * Heading);
+                return;
+            }
+
+            // Тело стоит вертикально: наклонённый коллайдер зарывался бы углом
+            // в пол, и физика гасила бы ход трением. Крен — на узле показа.
+            body.MoveRotation(Heading);
+            ApplyPivotTilt();
+        }
+
+        /// <summary>
+        /// Крен на узле показа — в системе курса: узел дочерний, а курс телу
+        /// выставляет физика на своём шаге, и мировой поворот узла отстал бы
+        /// от него на шаг.
+        /// </summary>
+        private void ApplyPivotTilt()
+        {
+            Quaternion heading = Heading;
+            tiltPivot.localRotation = Quaternion.Inverse(heading) * Quaternion.AngleAxis(TiltDegrees(), TiltAxis()) * heading;
+        }
+
+        /// <summary>
+        /// Крен для остальных машин, целыми градусами по горизонтальным осям.
+        /// Целыми — иначе канал шумел бы каждый шаг физики, пока кузов качается.
+        /// </summary>
+        private void PublishTilt()
+        {
+            if (tiltPivot == null || !IsSpawned || !IsServer)
+            {
+                return;
+            }
+
+            Vector3 degrees = tiltRotation * Mathf.Rad2Deg;
+            var next = new MultiCarryTiltNetState
+            {
+                X = (sbyte)Mathf.Clamp(Mathf.RoundToInt(degrees.x), sbyte.MinValue, sbyte.MaxValue),
+                Z = (sbyte)Mathf.Clamp(Mathf.RoundToInt(degrees.z), sbyte.MinValue, sbyte.MaxValue)
+            };
+
+            if (!next.Equals(netTilt.Value))
+            {
+                netTilt.Value = next;
+            }
+        }
+
+        /// <summary>С какой скоростью показ у неавторитета догоняет реплицированный крен, рад/с. Быстрее, чем крен меняется, иначе показ отстаёт; медленнее шага физики, иначе целые градусы читаются ступеньками.</summary>
+        private const float ReplicatedTiltRate = 6f;
+
+        /// <summary>У неавторитета крен не считается, а догоняет реплицированный — в том же <c>tiltRotation</c>, чтобы <see cref="TiltAngle"/> читался одинаково на всех машинах.</summary>
+        private void FollowReplicatedTilt(float dt)
+        {
+            MultiCarryTiltNetState state = netTilt.Value;
+            Vector3 target = new Vector3(state.X, 0f, state.Z) * Mathf.Deg2Rad;
+            tiltRotation = Vector3.MoveTowards(tiltRotation, target, ReplicatedTiltRate * dt);
+        }
+
+        // ========== КАЧЕНИЕ ==========
+
+        /// <summary>Ниже этой скорости кузов не доворачивается: стоящую тележку не крутит от дрожи натяжений.</summary>
+        private const float MinTurnSpeed = 0.25f;
+
+        /// <summary>
+        /// За этим углом между курсом и ходом тележку считают едущей задом:
+        /// кузов не разворачивается на 180°, а катится назад. Иначе команда,
+        /// сдавшая на метр назад, получала бы поручни с другой стороны и срыв
+        /// всех ручек разом.
+        /// </summary>
+        private const float ReverseAngle = 100f;
+
+        /// <summary>
+        /// Шаг качения в руках: целевая скорость — те же натяжения, но
+        /// объект тянется к ней с разгоном, а не берёт её сразу. Потолок и
+        /// разгон зависят от нагрузки: полная тележка отстаёт от рванувших
+        /// несущих сильнее пустой — и поручни у неё срываются чаще.
+        /// </summary>
+        private void StepRollingVelocity(Vector3 pullSum, float dt)
+        {
+            float cap = Mathf.Lerp(settings.maxSpeedEmpty, settings.maxSpeedFull, load);
+            Vector3 target = Vector3.ClampMagnitude(pullSum * settings.pullToSpeed, cap);
+            float acceleration = Mathf.Lerp(settings.accelerationEmpty, settings.accelerationFull, load);
+            ApplyRollingVelocity(target, acceleration, dt);
+        }
+
+        /// <summary>Без рук катящийся объект докатывается и встаёт — так отпущенная на разгоне тележка уезжает сама.</summary>
+        private void StepFreeRolling(float dt)
+        {
+            ApplyRollingVelocity(Vector3.zero, settings.rollingDeceleration, dt);
+        }
+
+        /// <summary>
+        /// Горизонтальную скорость ведём сами, вертикаль оставляем гравитации:
+        /// тележка стоит на колёсах, спускается с доски и падает в пропасть
+        /// физикой, а не моделью.
+        /// </summary>
+        private void ApplyRollingVelocity(Vector3 target, float rate, float dt)
+        {
+            Vector3 current = body.linearVelocity;
+            Vector3 flat = new Vector3(current.x, 0f, current.z);
+            Vector3 next = Vector3.MoveTowards(flat, target, rate * dt);
+            body.linearVelocity = new Vector3(next.x, current.y, next.z);
+            StepRollingTilt(next - lastRollingVelocity);
+            lastRollingVelocity = next;
+            TurnTowardsMotion(next, dt);
+        }
+
+        /// <summary>Доля крена от рывка у пустого объекта: плескаться нечему, но кузов всё же качает.</summary>
+        private const float EmptySloshFraction = 0.5f;
+
+        /// <summary>
+        /// Крен качения — от рывка кузова, а не от натяжений: ровная тяга
+        /// полного кузова на колёсах его не валит, а разгон, торможение о
+        /// стену, толчок с разгона, ловушка и резкий поворот — валят, и тем
+        /// сильнее, чем он полнее. Разница берётся с прошлым выставленным
+        /// значением, поэтому сюда попадает и то, что сделала с кузовом физика
+        /// между шагами: удар о стену — тоже рывок. Знак — как у воды: разгон
+        /// вперёд кладёт кузов назад, поворот — наружу.
+        /// </summary>
+        private void StepRollingTilt(Vector3 deltaVelocity)
+        {
+            float slosh = settings.sloshPerDeltaSpeed * Mathf.Lerp(EmptySloshFraction, 1f, load);
+            tiltAngularVelocity += Vector3.Cross(deltaVelocity, Vector3.up) * slosh;
+        }
+
+        /// <summary>Кузов доворачивается к ходу; ход назад — задним ходом, без разворота.</summary>
+        private void TurnTowardsMotion(Vector3 horizontalVelocity, float dt)
+        {
+            if (settings.handleLayout != MultiCarryHandleLayout.Cart ||
+                horizontalVelocity.sqrMagnitude < MinTurnSpeed * MinTurnSpeed)
+            {
+                return;
+            }
+
+            float targetYaw = Mathf.Atan2(horizontalVelocity.x, horizontalVelocity.z) * Mathf.Rad2Deg;
+            if (Mathf.Abs(Mathf.DeltaAngle(yawDegrees, targetYaw)) > ReverseAngle)
+            {
+                targetYaw += 180f;
+            }
+
+            yawDegrees = Mathf.MoveTowardsAngle(yawDegrees, targetYaw, settings.turnRate * dt);
+        }
+
+        /// <summary>
+        /// Курс объекта — система координат ручек. Кольцо стоит на курсе,
+        /// зафиксированном в <c>Awake</c>: рыскание у бутыли не меняется, и
+        /// стоянки геометрически устойчивы. Тележка крутится: у авторитета курс
+        /// ведёт модель, у остальных он читается из реплицированного поворота —
+        /// один источник правды на всех, как <see cref="BasePosition"/>.
+        /// </summary>
+        private Quaternion Heading
+        {
+            get
+            {
+                if (settings.handleLayout == MultiCarryHandleLayout.Ring)
+                {
+                    return baseRotation;
+                }
+
+                Quaternion own = Quaternion.Euler(0f, yawDegrees, 0f);
+                return HasAuthority ? own : YawOf(transform.rotation, own);
+            }
+        }
+
+        /// <summary>Рыскание из полного поворота: горизонтальная проекция взгляда. Крен до 60° её не съедает.</summary>
+        private static Quaternion YawOf(Quaternion rotation, Quaternion fallback)
+        {
+            Vector3 forward = rotation * Vector3.forward;
+            forward.y = 0f;
+            return forward.sqrMagnitude > 0.0001f
+                ? Quaternion.LookRotation(forward.normalized, Vector3.up)
+                : fallback;
+        }
+
+        /// <summary>
+        /// Ручка в системе курса: горизонтальное смещение плюс высота.
+        /// Кольцо — равномерно по окружности; тележка — по таблице
+        /// <see cref="CartHandleLocal"/>.
+        /// </summary>
+        private Vector3 HandleLocal(int slot)
+        {
+            if (settings.handleLayout == MultiCarryHandleLayout.Ring)
+            {
+                float angle = Mathf.PI * 2f * slot / handleCount;
+                return new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * settings.handleRadius +
+                       Vector3.up * settings.handleHeight;
+            }
+
+            return CartHandleLocal(slot) + Vector3.up * settings.handleHeight;
+        }
+
+        /// <summary>Куда от ручки «наружу», в системе курса: туда становится несущий.</summary>
+        private Vector3 OutwardLocal(int slot)
+        {
+            if (settings.handleLayout == MultiCarryHandleLayout.Ring)
+            {
+                float angle = Mathf.PI * 2f * slot / handleCount;
+                return new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
+            }
+
+            return CartHandleLocal(slot).z < 0f ? Vector3.back : Vector3.forward;
+        }
+
+        /// <summary>
+        /// Поручни тележки по числу рук. Один толкает сзади по центру; двое —
+        /// сзади слева и справа; трое — двое сзади, один тянет спереди;
+        /// четверо — двое сзади и двое спереди. Спереди тянут, сзади толкают:
+        /// связь у обоих одна и та же, разница только в том, где стоянка.
+        /// </summary>
+        private Vector3 CartHandleLocal(int slot)
+        {
+            float side = settings.cartHandleSide;
+            float back = -settings.cartHandleBack;
+            float front = settings.cartHandleFront;
+
+            switch (handleCount)
+            {
+                case 1:
+                    return new Vector3(0f, 0f, back);
+                case 2:
+                    return new Vector3(slot == 0 ? -side : side, 0f, back);
+                case 3:
+                    return slot < 2
+                        ? new Vector3(slot == 0 ? -side : side, 0f, back)
+                        : new Vector3(0f, 0f, front);
+                default:
+                    return new Vector3(slot % 2 == 0 ? -side : side, 0f, slot < 2 ? back : front);
+            }
+        }
+
+        /// <summary>Точка опоры ручки в мире, по горизонтали: по ней считается центр опоры и момент нехватки рук.</summary>
+        private Vector3 SupportPointWorld(int slot)
+        {
+            Vector3 grip = HandleLocal(slot);
+            grip.y = 0f;
+            return Heading * grip;
+        }
+
+        /// <summary>
+        /// Уместить занятые ручки в первые <paramref name="limit"/> слотов.
+        /// Несущий со слота, которого больше нет, переезжает на свободный
+        /// младший; кому места не хватило — тот срывается. У авторитета переезд
+        /// уходит состоянием, и остальные повторяют его в
+        /// <see cref="RelocateMovedHandles"/>, не отцепляя человека.
+        /// </summary>
+        private void CompactHandles(int limit)
+        {
+            MultiCarryNetState next = netState.Value;
+            bool changed = false;
+
+            for (int i = limit; i < handles.Length; i++)
+            {
+                if (!handles[i].Occupied)
+                {
+                    continue;
+                }
+
+                int free = -1;
+                for (int j = 0; j < limit; j++)
+                {
+                    if (!handles[j].Occupied)
+                    {
+                        free = j;
+                        break;
+                    }
+                }
+
+                if (free < 0)
+                {
+                    if (!ReleaseHandle(i, CarryReleaseReason.RoundEnded))
+                    {
+                        DetachHandle(i, CarryReleaseReason.RoundEnded);
+                    }
+
+                    continue;
+                }
+
+                Handle moved = handles[i];
+                handles[i] = handles[free];
+                handles[free] = moved;
+
+                if (IsSpawned && IsServer)
+                {
+                    next.Set(free, next.Of(i));
+                    next.Set(i, MultiCarryNetState.NoCarrier);
+                    changed = true;
+                }
+            }
+
+            if (changed)
+            {
+                netState.Value = next;
+            }
+        }
+
+        /// <summary>
+        /// Несущий числится на другом слоте, чем приехало, — переставить ручку,
+        /// а не отцеплять и цеплять заново: иначе на переезд соседа отвечал бы
+        /// срыв с потерей потолка скорости и событием «уронили».
+        /// </summary>
+        private void RelocateMovedHandles(in MultiCarryNetState state)
+        {
+            for (int slot = 0; slot < handles.Length; slot++)
+            {
+                ulong wanted = state.Of(slot);
+                if (wanted == MultiCarryNetState.NoCarrier || handles[slot].Occupied)
+                {
+                    continue;
+                }
+
+                int from = FindSlotByCarrierId(wanted);
+                if (from < 0 || from == slot)
+                {
+                    continue;
+                }
+
+                Handle moved = handles[from];
+                handles[from] = handles[slot];
+                handles[slot] = moved;
+            }
+        }
+
+        private int FindSlotByCarrierId(ulong carrierObjectId)
+        {
+            for (int i = 0; i < handles.Length; i++)
+            {
+                NetworkObject carrier = handles[i].CarrierNetwork;
+                if (handles[i].Occupied && carrier != null && carrier.NetworkObjectId == carrierObjectId)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
         }
 
         private float TiltDegrees() => tiltRotation.magnitude * Mathf.Rad2Deg;
@@ -1500,22 +2046,14 @@ namespace Igruha.Core.Items
             return angle > Mathf.Epsilon ? tiltRotation / angle : Vector3.up;
         }
 
-        /// <summary>Горизонтальное направление ручки в мире. Рыскание объекта не меняется, поэтому стоянки геометрически устойчивы.</summary>
-        private Vector3 HandleDirection(int slot)
-        {
-            float angle = Mathf.PI * 2f * slot / handleCount;
-            return baseRotation * new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
-        }
-
-        /// <summary>Плечо ручки от основания объекта: радиус вбок плюс высота вверх, повёрнутые вместе с наклоном.</summary>
+        /// <summary>Плечо ручки от основания объекта: смещение по курсу плюс высота, повёрнутые вместе с наклоном.</summary>
         private Vector3 HandleOffsetWorld(int slot)
         {
-            Vector3 local = HandleDirection(slot) * settings.handleRadius + Vector3.up * settings.handleHeight;
-            return Quaternion.AngleAxis(TiltDegrees(), TiltAxis()) * local;
+            return Quaternion.AngleAxis(TiltDegrees(), TiltAxis()) * (Heading * HandleLocal(slot));
         }
 
         /// <summary>
-        /// Центр опоры при полностью занятой окружности. У объекта с одной
+        /// Центр опоры при полностью занятых ручках. У объекта с одной
         /// ручкой он совпадает с ней самой — поэтому одиночка и несёт ровно,
         /// а не валит объект набок.
         /// </summary>
@@ -1524,7 +2062,7 @@ namespace Igruha.Core.Items
             Vector3 sum = Vector3.zero;
             for (int i = 0; i < handleCount; i++)
             {
-                sum += HandleDirection(i) * settings.handleRadius;
+                sum += SupportPointWorld(i);
             }
 
             return sum / handleCount;
@@ -1586,8 +2124,7 @@ namespace Igruha.Core.Items
                     continue;
                 }
 
-                Vector3 station = BasePosition +
-                                  HandleDirection(i) * (settings.handleRadius + settings.carrierStandoff);
+                Vector3 station = StationOf(i);
                 station.y = position.y;
 
                 float sqr = (station - position).sqrMagnitude;
