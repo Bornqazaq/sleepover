@@ -74,15 +74,26 @@ namespace Igruha.Tests
             if (failed) { Application.Quit(1); yield break; }
             reader = local.GetComponent<PlayerInputReader>(); reader.EngageAutopilot();
             cart = game.CartOf(TeamSide.A);
-            for (int count = 1; count <= 4; count++)
+            for (int pass = 0; pass < 8; pass++)
             {
+                TeamSide side = pass < 4 ? TeamSide.A : TeamSide.B;
+                int count = pass % 4 + 1;
+                if (pass == 4)
+                {
+                    team.Clear(); localSlot = -1;
+                    foreach (var entry in SessionScoreboard.Current.Players)
+                        if (game.TeamOfPlayer(entry.Id) == side) team.Add(entry);
+                    team.Sort((a, b) => a.Id.CompareTo(b.Id));
+                    for (int i = 0; i < team.Count; i++) if (team[i].Avatar == local) localSlot = i;
+                    cart = game.CartOf(side);
+                }
                 // Round timer is replicated, so all owners drive the same time window.
-                float start = 12f + (count - 1) * 10f;
+                float start = 12f + pass * 10f;
                 yield return WaitElapsed(start);
                 holding = driving = false;
                 if (manager.IsServer)
                 {
-                    cart.Carry.ResetPose(new Vector3(-20f, 0.03f, 4f), Quaternion.Euler(0f, 90f, 0f));
+                    cart.Carry.ResetPose(new Vector3(-20f, 0.03f, side == TeamSide.A ? 4f : -4f), Quaternion.Euler(0f, 90f, 0f));
                     cart.SetHandleCount(count);
                     cart.ChangeWater(game.Config.CartCapacity, WaterLossReason.Filled);
                     for (int i = 0; i < team.Count; i++)
@@ -92,20 +103,37 @@ namespace Igruha.Tests
                 holding = localSlot >= 0 && localSlot < count;
                 yield return WaitElapsed(start + 3f);
                 Check(cart.Carry.CarrierCount == count, "E grab count=" + count + " actual=" + cart.Carry.CarrierCount);
+                CheckPose(count, "stationary " + side);
                 Vector3 before = cart.transform.position;
                 driving = holding;
                 yield return WaitElapsed(start + 5.5f);
                 driving = false;
+                CheckPose(count, "moving " + side);
                 Check(cart.transform.position.x - before.x > 1f, "roll count=" + count + " moved=" + (cart.transform.position.x - before.x));
                 Check(cart.Carry.CarrierCount == count, "retain count=" + count);
                 yield return WaitElapsed(start + 6.3f);
                 holding = false;
                 yield return WaitElapsed(start + 8f);
                 Check(cart.Carry.CarrierCount == 0, "release count=" + count);
+                for (int i = 0; i < count; i++)
+                {
+                    var pose = team[i].Avatar.GetComponent<WaterCartGripPose>();
+                    Check(pose != null && pose.Weight == 0f, "relaxed hands " + team[i].Id);
+                }
             }
             if (!failed) Debug.Log("CARRY_ROLLING_CHECK PASS id=" + manager.LocalClientId);
             yield return new WaitForSeconds(2f);
             Application.Quit(failed ? 1 : 0);
+        }
+
+        private void CheckPose(int count, string phase)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                var pose = team[i].Avatar.GetComponent<WaterCartGripPose>();
+                Check(pose != null && pose.Weight > 0.99f && pose.MaxPalmError < 0.12f,
+                    "grip " + phase + " player=" + team[i].Id + " error=" + (pose != null ? pose.MaxPalmError : -1f));
+            }
         }
 
         private IEnumerator WaitElapsed(float target)

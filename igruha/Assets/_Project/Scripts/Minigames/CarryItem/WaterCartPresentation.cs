@@ -1,4 +1,6 @@
 using UnityEngine;
+using Igruha.Core.Items;
+using Igruha.Core.Player;
 
 namespace Igruha.Minigames.CarryItem
 {
@@ -16,6 +18,8 @@ namespace Igruha.Minigames.CarryItem
         private static readonly Vector3 PourLip = new Vector3(0f, 0.94f, -0.64f);
         private WaterTank receiver;
         private WaterCart cart;
+        private MultiCarryObject carry;
+        private readonly WaterCartGripPose[] poses = new WaterCartGripPose[MultiCarryObject.MaxHandles];
         private Vector3 previousPosition;
         private Vector3 tubRest;
         private float angle;
@@ -23,8 +27,39 @@ namespace Igruha.Minigames.CarryItem
         private void Awake()
         {
             cart = GetComponent<WaterCart>();
+            carry = GetComponent<MultiCarryObject>();
             previousPosition = transform.position;
             if (tub != null) tubRest = tub.localPosition;
+        }
+
+        private void OnEnable()
+        {
+            carry.HandleTaken += OnTaken;
+            carry.HandleReleased += OnReleased;
+            for (int i = 0; i < carry.HandleCount; i++)
+                if (carry.CarrierAt(i) != null) OnTaken(i, carry.CarrierAt(i));
+        }
+
+        private void OnTaken(int slot, PlayerController player)
+        {
+            if (!player.TryGetComponent<WaterCartGripPose>(out var pose))
+                pose = player.gameObject.AddComponent<WaterCartGripPose>();
+            poses[slot] = pose;
+            pose.Hold(carry);
+        }
+
+        private void OnReleased(int slot, PlayerController player, CarryReleaseReason reason)
+        {
+            if (player != null && player.TryGetComponent<WaterCartGripPose>(out var pose)) pose.Release(carry);
+            poses[slot] = null;
+        }
+
+        private void OnDisable()
+        {
+            carry.HandleTaken -= OnTaken;
+            carry.HandleReleased -= OnReleased;
+            for (int i = 0; i < poses.Length; i++)
+                if (poses[i] != null) { poses[i].Release(carry); poses[i] = null; }
         }
 
         private void LateUpdate()

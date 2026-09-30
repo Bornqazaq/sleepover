@@ -1109,6 +1109,7 @@ namespace Igruha.EditorTools
             {
                 var handle = CarrySkyscraperAssets.Place(group.transform, "WaterCartGrip", offsets[i]).gameObject;
                 handle.name = $"Handle{i}";
+                handle.transform.localScale = new Vector3(2.1f, 1f, 1f);
                 handles[i] = handle;
             }
 
