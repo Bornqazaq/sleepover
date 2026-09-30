@@ -18,9 +18,11 @@ namespace Igruha.Tests
         private PlayerInputReader reader;
         private readonly List<SessionPlayer> team = new List<SessionPlayer>();
         private bool driving, holding, failed;
+        private bool rawForward;
         private Vector3 driveDirection = Vector3.right;
         private int monitoredCount, contactSamples;
         private float worstContact;
+        private float worstBodyOffset;
         private int localSlot = -1;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -34,7 +36,7 @@ namespace Igruha.Tests
         private void Update()
         {
             if (reader == null) return;
-            reader.DriveMove(driving ? local.WorldToMoveInput(driveDirection) : Vector2.zero);
+            reader.DriveMove(driving ? (rawForward ? Vector2.up : local.WorldToMoveInput(driveDirection)) : Vector2.zero);
         }
 
         private void LateUpdate()
@@ -42,12 +44,22 @@ namespace Igruha.Tests
             for (int i = 0; i < monitoredCount; i++)
             {
                 var pose = team[i].Avatar.GetComponent<WaterCartGripPose>();
-                // A sharp reversal may legitimately break the gameplay tether. Only judge
-                // contact while attached; the release/fade assertions cover detached players.
-                if (!cart.Carry.IsCarriedBy(team[i].Avatar)) continue;
+                // Ordinary movement and turns must keep the attachment.
+                if (!cart.Carry.IsCarriedBy(team[i].Avatar)) { worstContact = float.PositiveInfinity; continue; }
                 if (pose == null) { worstContact = float.PositiveInfinity; continue; }
                 if (pose.Weight < 0.99f) continue;
+                if (pose.MaxPalmError > Mathf.Max(0.06f, worstContact * 1.5f))
+                {
+                    game.TryGetRoundTime(out float remaining, out float duration);
+                    int slot = -1;
+                    for (int s = 0; s < cart.Carry.HandleCount; s++) if (cart.Carry.CarrierAt(s) == team[i].Avatar) slot = s;
+                    Debug.Log("CARRY_ROLLING_CHECK contact peak t=" + (duration - remaining) +
+                        " player=" + team[i].Id + " gap=" + pose.MaxPalmError + " stretch=" + cart.Carry.StretchOf(slot) +
+                        " root=" + team[i].Avatar.transform.position + " cart=" + cart.transform.position +
+                        " station=" + cart.Carry.StationOf(slot));
+                }
                 worstContact = Mathf.Max(worstContact, pose.MaxPalmError);
+                if (team[i].Avatar == local) worstBodyOffset = Mathf.Max(worstBodyOffset, pose.BodyOffset);
                 contactSamples++;
             }
         }
@@ -105,57 +117,71 @@ namespace Igruha.Tests
                     cart = game.CartOf(side);
                 }
                 // Round timer is replicated, so all owners drive the same time window.
-                float start = 12f + pass * 15f;
+                float start = 12f + pass * 17f;
                 yield return WaitElapsed(start);
                 holding = driving = false;
                 if (manager.IsServer)
                 {
-                    cart.Carry.ResetPose(new Vector3(-20f, 0.03f, side == TeamSide.A ? 4f : -4f), Quaternion.Euler(0f, 90f, 0f));
+                    // The preceding team's cart and released players otherwise remain
+                    // in this turn's path. Their collisions test obstruction, not free rolling.
+                    TeamSide otherSide = side == TeamSide.A ? TeamSide.B : TeamSide.A;
+                    game.CartOf(otherSide).Carry.ResetPose(new Vector3(-24f, 0.03f, -12f), Quaternion.identity);
+                    int parkedIndex = 0;
+                    foreach (var entry in SessionScoreboard.Current.Players)
+                        if (game.TeamOfPlayer(entry.Id) != side)
+                            entry.Avatar.RequestTeleport(new Vector3(-24f + parkedIndex++ * 1.1f, 0f, -10f), Quaternion.identity);
+                    // Keep this movement/pose test clear of the cabin and wheelbarrow at x=-25.
+                    cart.Carry.ResetPose(new Vector3(count == 1 ? -17.5f : -21f, 0.03f, 1f), Quaternion.Euler(0f, 90f, 0f));
                     cart.SetHandleCount(count);
                     cart.ChangeWater(game.Config.CartCapacity, WaterLossReason.Filled);
                     for (int i = 0; i < team.Count; i++)
-                        team[i].Avatar.RequestTeleport(i < count ? cart.Carry.StationOf(i) : new Vector3(-24f, 0f, 2f + i), Quaternion.Euler(0f, 90f, 0f));
+                        team[i].Avatar.RequestTeleport(i < count ? cart.Carry.StationOf(i) : new Vector3(-25f, 0f, 8f + i), Quaternion.Euler(0f, 90f, 0f));
                 }
                 yield return WaitElapsed(start + 1.5f);
                 holding = localSlot >= 0 && localSlot < count;
                 if (holding) yield return Tap();
                 yield return WaitElapsed(start + 3f);
                 Check(cart.Carry.CarrierCount == count, "E grab count=" + count + " actual=" + cart.Carry.CarrierCount);
+                CheckCarrierCollisions(count, true);
                 CheckPose(count, "stationary " + side);
                 Vector3 before = cart.transform.position;
                 driveDirection = Vector3.right;
-                worstContact = 0f; contactSamples = 0; monitoredCount = count;
+                rawForward = count == 1;
+                worstContact = 0f; worstBodyOffset = 0f; contactSamples = 0; monitoredCount = count;
                 driving = holding;
                 yield return WaitElapsed(start + 5.5f);
                 driving = false;
                 CheckPose(count, "moving " + side);
-                Check(cart.transform.position.x - before.x > 1f, "roll count=" + count + " moved=" + (cart.transform.position.x - before.x));
+                Check(Vector3.Distance(cart.transform.position, before) > 1f, "roll count=" + count + " moved=" + Vector3.Distance(cart.transform.position, before));
                 Check(cart.Carry.CarrierCount == count, "retain count=" + count);
                 monitoredCount = 0;
                 // Server time trails on clients: separate observations from the next input.
-                yield return WaitElapsed(start + 6f);
+                yield return WaitElapsed(start + 7f);
                 if (holding) yield return Tap();
-                yield return WaitElapsed(start + 6.7f);
+                yield return WaitElapsed(start + 7.7f);
                 Check(cart.Carry.CarrierCount == 0, "second E releases count=" + count);
-                yield return WaitElapsed(start + 7.2f);
+                CheckCarrierCollisions(count, false);
+                yield return WaitElapsed(start + 8.2f);
                 if (holding) yield return Tap();
-                yield return WaitElapsed(start + 8f);
+                yield return WaitElapsed(start + 9f);
                 Check(cart.Carry.CarrierCount == count, "third E regrabs count=" + count);
                 monitoredCount = count;
-                yield return WaitElapsed(start + 8.5f);
-                driveDirection = Vector3.forward; driving = holding;
                 yield return WaitElapsed(start + 9.5f);
-                driveDirection = Vector3.left;
+                rawForward = false;
+                driveDirection = Vector3.forward; driving = holding;
                 yield return WaitElapsed(start + 10.5f);
+                driveDirection = Vector3.left;
+                yield return WaitElapsed(start + 11.5f);
                 driving = false;
-                yield return WaitElapsed(start + 11f);
+                yield return WaitElapsed(start + 12f);
                 monitoredCount = 0;
                 Check(contactSamples > 30 && worstContact < 0.06f,
                     "continuous grip " + side + " count=" + count + " samples=" + contactSamples + " worst=" + worstContact);
-                yield return WaitElapsed(start + 11.5f);
+                Check(worstBodyOffset < 0.39f, "body stays at camera target " + side + " offset=" + worstBodyOffset);
+                yield return WaitElapsed(start + 12.5f);
                 if (holding && cart.Carry.IsCarriedBy(local)) yield return Tap();
                 holding = false;
-                yield return WaitElapsed(start + 13f);
+                yield return WaitElapsed(start + 14f);
                 Check(cart.Carry.CarrierCount == 0, "release count=" + count);
                 for (int i = 0; i < count; i++)
                 {
@@ -163,6 +189,35 @@ namespace Igruha.Tests
                     Check(pose != null && pose.Weight == 0f, "relaxed hands " + team[i].Id);
                 }
             }
+            // Opposite WASD must hold a cart still without the stuck detector
+            // respawning carriers after three seconds and tearing off their grip.
+            yield return WaitElapsed(151f);
+            if (manager.IsServer)
+            {
+                cart.Carry.ResetPose(new Vector3(-20f, 0.03f, 1f), Quaternion.Euler(0f, 90f, 0f));
+                cart.SetHandleCount(2);
+                for (int i = 0; i < team.Count; i++)
+                    team[i].Avatar.RequestTeleport(i < 2 ? cart.Carry.StationOf(i) : new Vector3(-25f, 0f, 8f + i), Quaternion.identity);
+            }
+            yield return WaitElapsed(152.5f);
+            holding = localSlot >= 0 && localSlot < 2;
+            if (holding) yield return Tap();
+            yield return WaitElapsed(154f);
+            Check(cart.Carry.CarrierCount == 2, "opposite input grab");
+            Vector3 parked = cart.transform.position;
+            rawForward = false;
+            driveDirection = localSlot == 0 ? Vector3.right : Vector3.left;
+            driving = holding;
+            yield return WaitElapsed(159f);
+            driving = false;
+            Check(cart.Carry.CarrierCount == 2, "five seconds opposite input retain");
+            Check(Vector3.Distance(cart.transform.position, parked) < 0.5f, "opposite inputs cancel");
+            CheckPose(2, "opposite inputs");
+            yield return WaitElapsed(160f);
+            if (holding) yield return Tap();
+            yield return WaitElapsed(161f);
+            Check(cart.Carry.CarrierCount == 0, "opposite input release");
+            CheckCarrierCollisions(2, false);
             if (!failed) Debug.Log("CARRY_ROLLING_CHECK PASS id=" + manager.LocalClientId);
             yield return new WaitForSeconds(2f);
             Application.Quit(failed ? 1 : 0);
@@ -174,6 +229,21 @@ namespace Igruha.Tests
             reader.DriveInteractHold(true);
             yield return new WaitForSeconds(0.08f);
             reader.DriveInteractHold(false);
+        }
+
+        private void CheckCarrierCollisions(int count, bool attached)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                var detector = team[i].Avatar.GetComponent<StuckDetector>();
+                Check(detector != null && detector.enabled != attached,
+                    "stuck detector " + i + " attached=" + attached);
+            }
+            for (int i = 0; i < count; i++)
+                for (int j = i + 1; j < count; j++)
+                    Check(Physics.GetIgnoreCollision(team[i].Avatar.GetComponent<CapsuleCollider>(),
+                        team[j].Avatar.GetComponent<CapsuleCollider>()) == attached,
+                        "carrier collisions " + i + "/" + j + " attached=" + attached);
         }
 
         private void CheckPose(int count, string phase)

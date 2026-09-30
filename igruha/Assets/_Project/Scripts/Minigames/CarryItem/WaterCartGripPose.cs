@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Igruha.Core.Items;
 using Igruha.Core.Player;
+using Unity.Netcode;
 using UnityEngine;
 
 namespace Igruha.Minigames.CarryItem
@@ -16,6 +17,7 @@ namespace Igruha.Minigames.CarryItem
         private const float ComfortableReach = 0.85f;
         private const float MaxStanceAdjustment = 0.3f;
         private const float ElbowOutward = 0.25f;
+        private const float MaxStationVisualOffset = 0.08f;
         private const float ReachMargin = 0.001f;
         private const float Epsilon = 0.00001f;
         private sealed class Arm
@@ -32,6 +34,7 @@ namespace Igruha.Minigames.CarryItem
         private readonly Quaternion[] sampledRotations = new Quaternion[32];
         private int changedCount;
         private PlayerController player;
+        private NetworkObject networkObject;
         private Animator animator;
         private Transform spine;
         private MultiCarryObject cart;
@@ -46,10 +49,12 @@ namespace Igruha.Minigames.CarryItem
         private Vector3 anchor, inward;
         public float Weight => blend;
         public float MaxPalmError { get; private set; }
+        public float BodyOffset { get; private set; }
 
         private void Awake()
         {
             player = GetComponent<PlayerController>();
+            networkObject = GetComponent<NetworkObject>();
             animator = GetComponentInChildren<Animator>();
             if (animator == null || !animator.isHuman) return;
             modelRestRotation = Quaternion.Inverse(transform.rotation) * animator.transform.rotation;
@@ -151,15 +156,15 @@ namespace Igruha.Minigames.CarryItem
             blend = Mathf.MoveTowards(blend, slot >= 0 && !player.IsKnockedDown ? 1f : 0f, Time.deltaTime / BlendSeconds);
             if (blend <= 0f)
             {
-                RestoreCulling(); stanceOffset = Vector3.zero; MaxPalmError = 0f;
+                RestoreCulling(); stanceOffset = Vector3.zero; MaxPalmError = 0f; BodyOffset = 0f;
                 return;
             }
             sampledModelRotation = animator.transform.localRotation;
             sampledModelPosition = animator.transform.localPosition;
             for (int i = 0; i < changedCount; i++) sampledRotations[i] = changedBones[i].localRotation;
             written = true;
-            // The cart is the reference for the visible body, including turns and strafing.
-            // A spring between gameplay roots is not an arm: do not show its stretch on the rig.
+            // The physical body follows the cart. Only compensate a small interpolation gap;
+            // large model offsets would detach the visible player from the camera/capsule.
             animator.transform.rotation = Quaternion.Slerp(animator.transform.rotation,
                 Quaternion.LookRotation(inward, Vector3.up) * modelRestRotation, blend);
             Vector3 right = Vector3.Cross(Vector3.up, inward).normalized;
@@ -168,11 +173,17 @@ namespace Igruha.Minigames.CarryItem
             {
                 stanceOffset = cart.StationOf(slot) - transform.position;
                 stanceOffset.y = 0f;
+                // Remote avatars and the server-owned cart arrive through different
+                // interpolation buffers. Render their grip in the cart's frame.
+                // The local camera follows the physical body, so its correction stays small.
+                bool remote = networkObject != null && networkObject.IsSpawned && !networkObject.IsOwner;
+                stanceOffset = Vector3.ClampMagnitude(stanceOffset,
+                    remote ? cart.Settings.breakDistance : MaxStationVisualOffset);
             }
             animator.transform.position += stanceOffset * blend;
             // Leave room to bend the elbows. This signed correction also keeps tall carriers
             // from standing too close. It is recomputed from the sampled pose, never accumulated.
-            float adjustment = 0f;
+            float adjustment = 0f, lateralAdjustment = 0f;
             for (int i = 0; i < arms.Length; i++)
             {
                 Arm arm = arms[i];
@@ -184,9 +195,13 @@ namespace Igruha.Minigames.CarryItem
                 float forward = Vector3.Dot(offset, inward);
                 float transverse = Mathf.Max(0f, offset.sqrMagnitude - forward * forward);
                 adjustment += forward - Mathf.Sqrt(Mathf.Max(0f, reach * reach - transverse));
+                lateralAdjustment += Vector3.Dot(offset, right);
             }
-            animator.transform.position += inward * (Mathf.Clamp(adjustment / arms.Length,
-                -MaxStanceAdjustment, MaxStanceAdjustment) * blend);
+            // A turning handle can briefly be beside the physical body. Center the
+            // shoulders as well as setting reach; stretching an arm sideways is not a stance.
+            Vector3 bodyAdjustment = (inward * adjustment + right * lateralAdjustment) / arms.Length;
+            animator.transform.position += Vector3.ClampMagnitude(bodyAdjustment, MaxStanceAdjustment) * blend;
+            BodyOffset = Vector3.Distance(animator.transform.localPosition, sampledModelPosition);
             MaxPalmError = 0f;
             for (int i = 0; i < arms.Length; i++)
             {

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# IGR-687: short E taps, retained grip and rolling with 1–4 carriers.
+# IGR-687/688: E toggle, WASD, turns, camera offset and opposing input with 1–4 carriers.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -30,7 +30,7 @@ for ((i = 1; i < PLAYERS; i++)); do
 done
 echo "Logs: $LOGS"
 
-deadline=$((SECONDS + 180))
+deadline=$((SECONDS + 210))
 while ((SECONDS < deadline)); do
     running=0
     for pid in "${pids[@]}"; do
