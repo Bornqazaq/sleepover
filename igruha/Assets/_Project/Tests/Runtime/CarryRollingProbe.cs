@@ -204,12 +204,14 @@ namespace Igruha.Tests
                     Check(pose != null && pose.Weight == 0f, "relaxed hands " + team[i].Id);
                 }
             }
-            // Opposed commands cancel: people remain attached and no invisible penalty appears.
+            // Opposed commands cancel translation but excite the suspended tank and its water.
             yield return WaitElapsed(151f);
             if (manager.IsServer)
             {
                 cart.Carry.ResetPose(new Vector3(-20f, 0.03f, 1f), Quaternion.Euler(0f, 90f, 0f));
                 cart.SetHandleCount(2);
+                cart.ChangeWater(game.Config.CartCapacity, WaterLossReason.Filled);
+                cart.Stability.ResetTrip();
                 for (int i = 0; i < team.Count; i++)
                     team[i].Avatar.RequestTeleport(i < 2 ? cart.Carry.StationOf(i) : new Vector3(-25f, 0f, 8f + i), Quaternion.identity);
             }
@@ -219,16 +221,30 @@ namespace Igruha.Tests
             yield return WaitElapsed(154f);
             Check(cart.Carry.CarrierCount == 2, "opposite input grab");
             Vector3 parked = cart.transform.position;
+            int beforeDisagreement = cart.Water;
             rawForward = false;
             driveDirection = localSlot == 0 ? Vector3.right : Vector3.left;
             driving = holding;
             yield return WaitElapsed(155.2f);
             CheckInputHud(2, true, true);
-            Check(cart.Stability.State.Outflow == 0f, "opposed commands do not spill");
+            bool sawRock = false, sawDisagreementFlow = false, sawDisagreementSheet = false;
+            float untilRock = Time.time + 2.8f;
+            while (Time.time < untilRock)
+            {
+                var state = cart.Stability.State;
+                sawRock |= state.BodySlope.magnitude > 0.04f;
+                sawDisagreementFlow |= state.Outflow > 0 && state.Cause == CartTiltCause.Disagreement;
+                var sheet = cart.GetComponent<CartOverflowVisual>();
+                sawDisagreementSheet |= sheet != null && sheet.HasFallingWater;
+                yield return null;
+            }
+            Check(sawRock && sawDisagreementFlow && sawDisagreementSheet, "replicated disagreement rocking, overflow and falling water");
+            Check(cart.Water < beforeDisagreement && cart.Water > beforeDisagreement - 80, "gradual disagreement loss water=" + cart.Water);
             yield return WaitElapsed(159f);
             driving = false;
             Check(cart.Carry.CarrierCount == 2, "opposed commands keep both grips");
             Check(Vector3.Distance(cart.transform.position, parked) < 0.4f, "opposed commands stop the cart");
+            CheckPose(2, "rocking keeps hands on fixed grips");
             yield return WaitElapsed(160f);
             if (holding && cart.Carry.IsCarriedBy(local)) yield return Tap();
             yield return WaitElapsed(161f);

@@ -107155,7 +107155,6 @@ GameObject:
   - component: {fileID: 756139786}
   - component: {fileID: 756139785}
   - component: {fileID: 756139787}
-  - component: {fileID: 756139788}
   m_Layer: 0
   m_Name: MinigameManager
   m_TagString: Untagged
@@ -107418,34 +107417,6 @@ MonoBehaviour:
   arenaView: {fileID: 1214625669}
   panel: {fileID: 954013581}
   secondsText: {fileID: 1191489612}
---- !u!114 &756139788
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 756139773}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2d18c8028a27c46ec997ff3e75d1a9bc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.CarryItem.CarryCartVoice
-  disagreement: {fileID: 8300000, guid: 014e2372549284a76bd57270bf50d7e7, type: 3}
-  turn: {fileID: 8300000, guid: 84acd8d800b7f435fae1b1ab4c8bda1a, type: 3}
-  release: {fileID: 8300000, guid: b49d10a8dd0414dd78f5aa7e10aa83a6, type: 3}
-  impact: {fileID: 8300000, guid: 4275179a1a8c44ef7a6f7a056e92b0df, type: 3}
-  brake: {fileID: 8300000, guid: 9ed393bc0455e40cbaa4470fad27acd6, type: 3}
-  boss: {fileID: 8300000, guid: 31991ebe6d5de47e9823e52d9a13eb90, type: 3}
-  aza: {fileID: 8300000, guid: a32d25a68afa445c5b1d39640734c65a, type: 3}
-  numberedPlayers:
-  - {fileID: 8300000, guid: cdfbf57d8f21142c7af92513d2277835, type: 3}
-  - {fileID: 8300000, guid: 3df842ead4574479f820df524481ab10, type: 3}
-  - {fileID: 8300000, guid: 69b6f31b15a0a4d26a25ca55a56a3ff5, type: 3}
-  - {fileID: 8300000, guid: b47f593dc026d46639bcf52d59a1b844, type: 3}
-  - {fileID: 8300000, guid: 16f959d2abdf04908a430197f02322fd, type: 3}
-  - {fileID: 8300000, guid: a4b5e0c6d13db4df1a6971d6a205594c, type: 3}
-  - {fileID: 8300000, guid: d284bd34aff6948c8a56f89ecc85a342, type: 3}
-  - {fileID: 8300000, guid: 51373115b0b8c4af5b2d5c78b2373ccf, type: 3}
 --- !u!1 &756275180
 GameObject:
   m_ObjectHideFlags: 0

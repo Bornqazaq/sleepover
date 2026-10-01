@@ -707,13 +707,14 @@ namespace Igruha.Minigames.CarryItem
         /// </summary>
         private void UpdateIndication()
         {
-            UpdateSloshSound(Mathf.Clamp01(Stability.State.Risk));
+            // Requested silent feedback: the rim, wave and HUD explain danger.
+            SetLoop(sloshLoop, false);
             bool leaking = Stability.IsSpilling;
             // OverflowSheet owns the geometry; particle droplets and sound share its state.
             if (leaking && leakJet != null && overflowVisual != null)
                 overflowVisual.PositionDroplets(leakJet);
             SetParticles(leakJet, ref leakShown, leaking);
-            SetLoop(leakLoop, leaking);
+            SetLoop(leakLoop, false);
 
             SetParticles(fillSplash, ref fillShown, IsFilling);
             SetLoop(fillLoop, IsFilling);
@@ -782,31 +783,5 @@ namespace Igruha.Minigames.CarryItem
             }
         }
 
-        private void UpdateSloshSound(float intensity)
-        {
-            if (sloshLoop == null)
-            {
-                return;
-            }
-
-            bool audible = carry.IsCarried && Water > 0 && intensity > 0.01f;
-            if (sloshLoop.isPlaying != audible)
-            {
-                if (audible)
-                {
-                    sloshLoop.Play();
-                }
-                else
-                {
-                    sloshLoop.Stop();
-                }
-            }
-
-            if (audible)
-            {
-                sloshLoop.volume = intensity;
-                sloshLoop.pitch = Mathf.Lerp(0.9f, 1.35f, intensity);
-            }
-        }
     }
 }

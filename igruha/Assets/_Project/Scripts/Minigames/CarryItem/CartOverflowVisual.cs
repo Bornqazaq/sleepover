@@ -6,18 +6,34 @@ namespace Igruha.Minigames.CarryItem
     [RequireComponent(typeof(WaterCart)), DefaultExecutionOrder(30)]
     public sealed class CartOverflowVisual : MonoBehaviour
     {
-        private const int Segments = 18;
+        private const int Slices = 48;
+        private const float SampleInterval = 0.016f;
+        private const float Gravity = 4.905f;
+        private struct Slice
+        {
+            public Vector3 Source, Tangent, Velocity;
+            public float Born, Lifetime, Width, FloorY;
+            public bool Connected, Landed;
+        }
         private WaterCart cart;
         private HorizontalCartWater water;
         private Mesh mesh;
         private MeshRenderer sheet;
         private Material material;
         private ParticleSystem splash;
-        private readonly Vector3[] vertices = new Vector3[(Segments + 1) * 2];
-        private readonly Color[] colors = new Color[(Segments + 1) * 2];
+        private readonly Slice[] slices = new Slice[Slices];
+        private readonly Vector3[] vertices = new Vector3[Slices * 2];
+        private readonly Color[] colors = new Color[Slices * 2];
+        private readonly int[] triangles = new int[(Slices - 1) * 6];
         private int floorMask;
         private Vector3 source, outward, tangent;
-        private float width, landingTime;
+        private float width, landingTime, floorHeight;
+        private int head, count;
+        private byte lastSide;
+        private float emittedAt = float.NegativeInfinity;
+        private Vector3 lastSource;
+        private bool wasEmitting;
+        public bool HasFallingWater => sheet != null && sheet.enabled;
 
         private void Awake()
         {
@@ -30,10 +46,6 @@ namespace Igruha.Minigames.CarryItem
             go.transform.SetParent(transform, false);
             sheet = go.GetComponent<MeshRenderer>(); sheet.sharedMaterial = material; sheet.enabled = false;
             mesh = new Mesh { name = "Falling water sheet" }; mesh.MarkDynamic();
-            var triangles = new int[Segments * 6];
-            for (int i = 0; i < Segments; i++)
-            { int a = i * 2, t = i * 6; triangles[t] = a; triangles[t+1] = a+2; triangles[t+2] = a+1;
-              triangles[t+3] = a+1; triangles[t+4] = a+2; triangles[t+5] = a+3; }
             mesh.vertices = vertices; mesh.triangles = triangles; go.GetComponent<MeshFilter>().sharedMesh = mesh;
             floorMask = LayerMask.GetMask("Ground", "Cover");
             var splashObject = new GameObject("OverflowFloorSplash"); splashObject.transform.SetParent(transform, false);
@@ -44,10 +56,11 @@ namespace Igruha.Minigames.CarryItem
             main.simulationSpace = ParticleSystemSimulationSpace.World; main.maxParticles = 150;
             main.startColor = new Color(0.72f, 0.87f, 0.88f, 0.65f);
             var shape = splash.shape; shape.shapeType = ParticleSystemShapeType.Cone; shape.angle = 70f; shape.radius = 0.08f;
-            var emission = splash.emission; emission.rateOverTime = 55f;
+            var emission = splash.emission; emission.rateOverTime = 0f;
             var template = GetComponentInChildren<ParticleSystemRenderer>();
             if (template != null) splash.GetComponent<ParticleSystemRenderer>().sharedMaterial = template.sharedMaterial;
             splash.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            splash.Play();
         }
         public void PositionDroplets(ParticleSystem droplets)
         {
@@ -69,32 +82,78 @@ namespace Igruha.Minigames.CarryItem
             if (Physics.Raycast(source + outward * 0.28f, Vector3.down, out RaycastHit hit, 6f, floorMask, QueryTriggerInteraction.Ignore))
                 floorY = hit.point.y + 0.015f;
             landingTime = Mathf.Sqrt(Mathf.Max(0.02f, source.y - floorY) / 4.905f);
+            floorHeight = floorY;
         }
         private void LateUpdate()
         {
             if (sheet == null) return;
             bool active = cart.Stability.IsSpilling;
-            sheet.enabled = active;
-            if (!active) { if (splash.isEmitting) splash.Stop(true, ParticleSystemStopBehavior.StopEmitting); return; }
-            UpdateSource();
-            float speed = Mathf.Lerp(0.18f, 0.62f, cart.Stability.State.Outflow / 35f);
-            for (int i = 0; i <= Segments; i++)
+            float now = Time.time;
+            if (active && now - emittedAt >= SampleInterval)
             {
-                float f = Mathf.Max(0f, (i - 1f) / (Segments - 1)), t = f * landingTime;
-                // First span crosses the rolled metal lip; falling starts at its outside edge.
-                float lip = i == 0 ? 0f : CartWaterSurface.LipWidth;
-                Vector3 point = source + outward * (lip + speed * t) + Vector3.down * (4.905f * t * t);
-                float spread = width * Mathf.Lerp(1f, 0.65f, f);
-                float flutter = Mathf.Sin(Time.time * 17f - f * 15f) * 0.009f * f;
-                vertices[i*2] = sheet.transform.InverseTransformPoint(point - tangent * spread * 0.5f + outward * flutter);
-                vertices[i*2+1] = sheet.transform.InverseTransformPoint(point + tangent * spread * 0.5f + outward * flutter);
-                colors[i*2] = colors[i*2+1] = new Color(1f, 1f, 1f, Mathf.Lerp(0.9f, 0.15f, f * f));
+                UpdateSource();
+                float speed = Mathf.Lerp(0.18f, 0.62f, cart.Stability.State.Outflow / 35f);
+                // Emitted water inherits cart speed, then falls independently of the next swing.
+                Vector3 velocity = outward * speed + cart.Carry.FlatVelocity;
+                slices[head] = new Slice
+                {
+                    Source = source, Tangent = tangent, Velocity = velocity,
+                    Born = now, Lifetime = Mathf.Min(landingTime, SampleInterval * (Slices - 2)), Width = width,
+                    FloorY = floorHeight,
+                    Connected = wasEmitting && cart.Stability.State.SpillSide == lastSide &&
+                        now - emittedAt < 0.1f && (source - lastSource).sqrMagnitude < 0.36f
+                };
+                head = (head + 1) % Slices; count = Mathf.Min(count + 1, Slices);
+                lastSource = source; lastSide = cart.Stability.State.SpillSide; emittedAt = now;
             }
-            mesh.vertices = vertices; mesh.colors = colors; mesh.RecalculateNormals(); mesh.RecalculateBounds();
-            splash.transform.SetPositionAndRotation(source + outward * (CartWaterSurface.LipWidth + speed * landingTime) + Vector3.down * 4.905f * landingTime * landingTime,
-                Quaternion.LookRotation(Vector3.up));
-            var emission = splash.emission; emission.rateOverTime = 12f + cart.Stability.State.Outflow * 3f;
-            if (!splash.isEmitting) splash.Play();
+            wasEmitting = active;
+            BuildFallingSheet(now);
+        }
+
+        private void BuildFallingSheet(float now)
+        {
+            System.Array.Clear(triangles, 0, triangles.Length);
+            int valid = 0, previous = -1, triangle = 0;
+            for (int i = 0; i < count; i++)
+            {
+                int slot = (head - count + i + Slices) % Slices;
+                Slice slice = slices[slot];
+                float age = now - slice.Born;
+                if (age > slice.Lifetime)
+                {
+                    if (!slice.Landed)
+                    {
+                        Vector3 landing = slice.Source + slice.Velocity * slice.Lifetime;
+                        landing.y = slice.FloorY;
+                        splash.transform.SetPositionAndRotation(landing, Quaternion.LookRotation(Vector3.up));
+                        var shape = splash.shape; shape.radius = slice.Width * 0.35f;
+                        splash.Emit(3);
+                        slice.Landed = true; slices[slot] = slice;
+                    }
+                    previous = -1; continue;
+                }
+                float f = age / Mathf.Max(0.01f, slice.Lifetime);
+                Vector3 lip = Vector3.Cross(slice.Tangent, Vector3.up) * CartWaterSurface.LipWidth;
+                // Cross the rounded lip during the first few centimetres; the tail is ballistic.
+                Vector3 point = slice.Source + lip * Mathf.Clamp01(age / 0.045f) +
+                    slice.Velocity * age + Vector3.down * Gravity * age * age;
+                float spread = slice.Width * Mathf.Lerp(1f, 0.65f, f);
+                int v = valid++ * 2;
+                vertices[v] = sheet.transform.InverseTransformPoint(point - slice.Tangent * spread * 0.5f);
+                vertices[v + 1] = sheet.transform.InverseTransformPoint(point + slice.Tangent * spread * 0.5f);
+                colors[v] = colors[v + 1] = new Color(1f, 1f, 1f, Mathf.Lerp(0.9f, 0.2f, f * f));
+                if (previous >= 0 && slice.Connected)
+                {
+                    triangles[triangle++] = previous; triangles[triangle++] = v; triangles[triangle++] = previous + 1;
+                    triangles[triangle++] = previous + 1; triangles[triangle++] = v; triangles[triangle++] = v + 1;
+                }
+                previous = v;
+            }
+            sheet.enabled = triangle > 0;
+            // Unused vertices must not leave enormous stale bounds after a respawn.
+            for (int i = valid * 2; i < vertices.Length; i++) vertices[i] = Vector3.zero;
+            mesh.vertices = vertices; mesh.colors = colors; mesh.triangles = triangles;
+            mesh.RecalculateNormals(); mesh.RecalculateBounds();
         }
         private void OnDestroy() { if (mesh != null) Destroy(mesh); if (material != null) Destroy(material); }
     }

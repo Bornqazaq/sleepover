@@ -23,7 +23,7 @@ namespace Igruha.EditorTools
             definitionSo.FindProperty("minPlayers").intValue = 2;
             var steps = definitionSo.FindProperty("tutorialSteps");
             string[] instructions = { "E — взяться. WASD — катить и плавно поворачивать.",
-                "Перед поворотом отпустите движение. Назад — тормозить; резкий манёвр поднимает волну.",
+                "Разные стрелки раскачивают бак. Направляйте их вместе, чтобы не пролить воду.",
                 "Вода теряется, когда волна пересекает борт. Подкатите к насосу для откачки." };
             steps.arraySize = instructions.Length;
             for (int i = 0; i < instructions.Length; i++) steps.GetArrayElementAtIndex(i).stringValue = instructions[i];
@@ -51,7 +51,6 @@ namespace Igruha.EditorTools
 
             var game = Object.FindFirstObjectByType<CarryItemMinigame>();
             if (game == null) throw new System.InvalidOperationException("Open CarryItem before applying the handling setup.");
-            ApplyVoice(game.gameObject);
             EditorSceneManager.MarkSceneDirty(game.gameObject.scene);
             EditorSceneManager.SaveScene(game.gameObject.scene);
             AssetDatabase.SaveAssets();
@@ -154,18 +153,6 @@ namespace Igruha.EditorTools
             presentation.FindProperty("wheelDust").objectReferenceValue = dust.GetComponent<ParticleSystem>();
             presentation.FindProperty("strainLoop").objectReferenceValue = strain;
             presentation.ApplyModifiedPropertiesWithoutUndo();
-        }
-
-        internal static void ApplyVoice(GameObject root)
-        {
-            var voice = root.GetComponent<CarryCartVoice>();
-            if (voice == null) voice = root.AddComponent<CarryCartVoice>();
-            var so = new SerializedObject(voice);
-            foreach (var name in new[] { "disagreement", "turn", "release", "impact", "brake", "boss", "aza" })
-                so.FindProperty(name).objectReferenceValue = Clip(name);
-            var names = so.FindProperty("numberedPlayers"); names.arraySize = 8;
-            for (int i = 0; i < 8; i++) names.GetArrayElementAtIndex(i).objectReferenceValue = Clip("player" + (i + 1));
-            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static AudioClip Clip(string name) => AssetDatabase.LoadAssetAtPath<AudioClip>(VoicePath + name + ".wav");
