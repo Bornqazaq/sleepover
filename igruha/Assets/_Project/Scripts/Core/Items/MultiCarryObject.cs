@@ -44,6 +44,25 @@ namespace Igruha.Core.Items
         public ulong Handle2;
         public ulong Handle3;
 
+        // Inputs travel atomically with occupant IDs: a reused handle must never show its previous owner.
+        public CarryInputSample Input0, Input1, Input2, Input3;
+
+        public readonly CarryInputSample InputOf(int slot) => slot switch
+        {
+            0 => Input0, 1 => Input1, 2 => Input2, 3 => Input3, _ => default
+        };
+
+        public void SetInput(int slot, CarryInputSample input)
+        {
+            switch (slot)
+            {
+                case 0: Input0 = input; break;
+                case 1: Input1 = input; break;
+                case 2: Input2 = input; break;
+                case 3: Input3 = input; break;
+            }
+        }
+
         /// <summary>Объект брошен и ещё не коснулся земли.</summary>
         public bool InFlight;
 
@@ -64,6 +83,7 @@ namespace Igruha.Core.Items
 
         public void Set(int slot, ulong carrierId)
         {
+            if (Of(slot) != carrierId) SetInput(slot, default);
             switch (slot)
             {
                 case 0: Handle0 = carrierId; break;
@@ -79,6 +99,10 @@ namespace Igruha.Core.Items
             serializer.SerializeValue(ref Handle1);
             serializer.SerializeValue(ref Handle2);
             serializer.SerializeValue(ref Handle3);
+            serializer.SerializeValue(ref Input0);
+            serializer.SerializeValue(ref Input1);
+            serializer.SerializeValue(ref Input2);
+            serializer.SerializeValue(ref Input3);
             serializer.SerializeValue(ref InFlight);
             serializer.SerializeValue(ref LastRelease);
         }
@@ -88,6 +112,8 @@ namespace Igruha.Core.Items
             Handle1 == other.Handle1 &&
             Handle2 == other.Handle2 &&
             Handle3 == other.Handle3 &&
+            Input0.Equals(other.Input0) && Input1.Equals(other.Input1) &&
+            Input2.Equals(other.Input2) && Input3.Equals(other.Input3) &&
             InFlight == other.InFlight &&
             LastRelease == other.LastRelease;
     }
@@ -207,6 +233,7 @@ namespace Igruha.Core.Items
         private sealed class Handle
         {
             public PlayerController Carrier;
+            public PlayerInputReader InputReader;
             public Rigidbody CarrierBody;
             public CapsuleCollider CarrierCollider;
             public PlayerCarryAbility CarrierCarry;
@@ -226,6 +253,7 @@ namespace Igruha.Core.Items
             /// прямо из мотора, у чужого приезжает <c>CarrierIntentRpc</c>.
             /// </summary>
             public Vector2 Intent;
+            public Vector2 MoveInput;
 
             /// <summary>
             /// Горизонтальная скорость несущего, посчитанная по его позиции, а
@@ -387,6 +415,9 @@ namespace Igruha.Core.Items
 
         /// <summary>Последний отправленный серверу вектор ввода и был ли он вообще отправлен.</summary>
         private Vector2 sentIntent;
+        private Vector2 sentMoveInput;
+        private float nextInputSnapshot;
+        private const float InputSnapshotInterval = 0.05f;
         private bool intentSent;
 
         public int HandleCount => handleCount;
@@ -445,6 +476,27 @@ namespace Igruha.Core.Items
             if (CarrierAt(slot) == null) return Vector3.zero;
             Vector2 intent = IntentOf(handles[slot]);
             return new Vector3(intent.x, 0f, intent.y);
+        }
+
+        /// <summary>Actual controls for HUDs. Remote samples are server validated; owners read immediately.</summary>
+        public CarryInputSample CarrierInputAt(int slot)
+        {
+            if (CarrierAt(slot) == null) return default;
+            Handle handle = handles[slot];
+            if (IsSpawned && !IsServer && !handle.LocallyOwned) return netState.Value.InputOf(slot);
+            return new CarryInputSample(IntentOf(handle), MoveInputOf(handle));
+        }
+
+        private static Vector2 MoveInputOf(Handle handle) => handle.LocallyOwned
+            ? (handle.InputReader != null ? handle.InputReader.MoveInput : Vector2.zero) : handle.MoveInput;
+
+        private void PublishInputs()
+        {
+            if (!IsSpawned || !IsServer || !settings.rollingDirectControl || Time.unscaledTime < nextInputSnapshot) return;
+            nextInputSnapshot = Time.unscaledTime + InputSnapshotInterval;
+            MultiCarryNetState state = netState.Value;
+            for (int i = 0; i < handles.Length; i++) state.SetInput(i, CarrierInputAt(i));
+            if (!state.Equals(netState.Value)) netState.Value = state;
         }
 
         /// <summary>World-space rotation vector in degrees; the body stays upright.</summary>
@@ -1196,6 +1248,8 @@ namespace Igruha.Core.Items
             handle.JoinTimer = 0f;
             handle.OverspeedTimer = 0f;
             handle.Intent = Vector2.zero;
+            handle.MoveInput = Vector2.zero;
+            handle.InputReader = player.GetComponent<PlayerInputReader>();
             handle.HasLastPosition = false;
             handle.HasLastStation = false;
             handle.TrackedVelocity = Vector3.zero;
@@ -1298,6 +1352,7 @@ namespace Igruha.Core.Items
             handle.Carrier = null;
             handle.CarrierBody = null;
             handle.CarrierCollider = null;
+            handle.InputReader = null;
             handle.CarrierCarry = null;
             handle.CarrierPush = null;
             handle.CarrierInteractor = null;
@@ -1306,6 +1361,7 @@ namespace Igruha.Core.Items
             handle.HasLastStation = false;
             handle.TrackedVelocity = Vector3.zero;
             handle.Intent = Vector2.zero;
+            handle.MoveInput = Vector2.zero;
             handle.OverspeedTimer = 0f;
 
             CarrierCount--;
@@ -1417,6 +1473,7 @@ namespace Igruha.Core.Items
 
             StepOwnedTethers();
             ReportOwnIntent();
+            PublishInputs();
         }
 
         /// <summary>
@@ -1626,20 +1683,24 @@ namespace Igruha.Core.Items
             {
                 intentSent = false;
                 sentIntent = Vector2.zero;
+                sentMoveInput = Vector2.zero;
                 return;
             }
 
             Vector3 intent = handles[slot].Carrier.MoveIntent;
             Vector2 flat = new Vector2(intent.x, intent.z);
+            Vector2 move = MoveInputOf(handles[slot]);
 
-            if (intentSent && (flat - sentIntent).sqrMagnitude < IntentEpsilon * IntentEpsilon)
+            if (intentSent && (flat - sentIntent).sqrMagnitude < IntentEpsilon * IntentEpsilon &&
+                (move - sentMoveInput).sqrMagnitude < IntentEpsilon * IntentEpsilon)
             {
                 return;
             }
 
             sentIntent = flat;
+            sentMoveInput = move;
             intentSent = true;
-            CarrierIntentRpc(flat);
+            CarrierIntentRpc(flat, move);
         }
 
         /// <summary>
@@ -1666,7 +1727,7 @@ namespace Igruha.Core.Items
         /// быстрее» нельзя, а прислать за чужого — некуда.
         /// </summary>
         [Rpc(SendTo.Server, RequireOwnership = false)]
-        private void CarrierIntentRpc(Vector2 intent, RpcParams rpcParams = default)
+        private void CarrierIntentRpc(Vector2 intent, Vector2 move, RpcParams rpcParams = default)
         {
             int slot = SlotOfSender(rpcParams.Receive.SenderClientId);
             if (slot < 0)
@@ -1674,7 +1735,8 @@ namespace Igruha.Core.Items
                 return;
             }
 
-            handles[slot].Intent = Vector2.ClampMagnitude(intent, 1f);
+            handles[slot].Intent = CarryInputSample.Sanitize(intent);
+            handles[slot].MoveInput = CarryInputSample.Sanitize(move);
         }
 
         /// <summary>Куда просится несущий: у своего — прямо из мотора, у чужого — из присланного.</summary>
