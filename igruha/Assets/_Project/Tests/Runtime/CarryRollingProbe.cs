@@ -143,15 +143,21 @@ namespace Igruha.Tests
                 yield return WaitElapsed(start + 1.5f);
                 holding = localSlot >= 0 && localSlot < count;
                 if (holding) yield return Tap();
-                yield return WaitElapsed(start + 3f);
+                yield return WaitElapsed(start + 2.6f);
                 Check(cart.Carry.CarrierCount == count, "E grab count=" + count + " actual=" + cart.Carry.CarrierCount);
                 CheckCarrierCollisions(count, true);
                 CheckPose(count, "stationary " + side);
+                CheckInputHud(count, false, false);
+                // Peers observe server time with a small offset. Finish the idle check
+                // everywhere before the first owner begins moving.
+                yield return WaitElapsed(start + 3f);
                 Vector3 before = cart.transform.position;
                 driveDirection = Vector3.right;
                 rawForward = count == 1;
                 worstContact = 0f; worstBodyOffset = 0f; contactSamples = 0; monitoredCount = count;
                 driving = holding;
+                yield return WaitElapsed(start + 5f);
+                CheckInputHud(count, true, false);
                 yield return WaitElapsed(start + 5.5f);
                 driving = false;
                 CheckPose(count, "moving " + side);
@@ -168,6 +174,7 @@ namespace Igruha.Tests
                 if (holding) yield return Tap();
                 yield return WaitElapsed(start + 7.7f);
                 Check(cart.Carry.CarrierCount == 0, "second E releases count=" + count);
+                CheckInputHud(0, false, false);
                 CheckCarrierCollisions(count, false);
                 yield return WaitElapsed(start + 8.2f);
                 if (holding) yield return Tap();
@@ -216,6 +223,7 @@ namespace Igruha.Tests
             driveDirection = localSlot == 0 ? Vector3.right : Vector3.left;
             driving = holding;
             yield return WaitElapsed(155.2f);
+            CheckInputHud(2, true, true);
             Check(cart.Stability.State.Outflow == 0f, "opposed commands do not spill");
             yield return WaitElapsed(159f);
             driving = false;
@@ -225,6 +233,7 @@ namespace Igruha.Tests
             if (holding && cart.Carry.IsCarriedBy(local)) yield return Tap();
             yield return WaitElapsed(161f);
             Check(cart.Carry.CarrierCount == 0, "opposite input release");
+            CheckInputHud(0, false, false);
             CheckCarrierCollisions(2, false);
             if (manager.IsServer)
             {
@@ -266,6 +275,35 @@ namespace Igruha.Tests
         {
             value.Carry.HandleReleased += (slot, player, reason) =>
                 Debug.Log("CARRY_ROLLING_CHECK released slot=" + slot + " reason=" + reason);
+        }
+
+        private void CheckInputHud(int count, bool moving, bool opposed)
+        {
+            var hud = game.CoordinationHud;
+            bool carrying = cart.Carry.IsCarriedBy(local);
+            Check(hud != null && hud.Visible == carrying, "input HUD visibility count=" + count);
+            for (int slot = 0; slot < count; slot++)
+            {
+                var input = cart.Carry.CarrierInputAt(slot);
+                Check(moving ? input.World.magnitude > 0.9f && input.Move.magnitude > 0.9f :
+                    input.World.magnitude < 0.1f && input.Move.magnitude < 0.1f, "replicated controls slot=" + slot + " moving=" + moving);
+                if (opposed)
+                    Check(Vector3.Dot(input.World, slot == 0 ? Vector3.right : Vector3.left) > 0.9f,
+                        "opposing world direction slot=" + slot);
+            }
+            if (!carrying || hud == null) return;
+            Check(hud.MemberCount == count, "HUD members count=" + count);
+            Check(opposed ? hud.MeanDirection.magnitude < 0.12f : !moving || hud.MeanDirection.magnitude > 0.9f,
+                "HUD mean direction matches commands");
+            int localMembers = 0;
+            for (int i = 0; i < hud.MemberCount; i++)
+            {
+                var member = hud.MemberAt(i);
+                if (member.IsLocal) { localMembers++; Check(member.Player == local, "HUD YOU is the local owner"); }
+                Check(member.Relation == (opposed ? CartInputRelation.Opposing : moving ? CartInputRelation.Together : CartInputRelation.Idle),
+                    "HUD direction relation member=" + i + " relation=" + member.Relation);
+            }
+            Check(localMembers == 1, "one local carrier on HUD");
         }
 
         private void CheckCarrierCollisions(int count, bool attached)

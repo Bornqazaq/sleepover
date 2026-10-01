@@ -102,6 +102,7 @@ namespace Igruha.Minigames.CarryItem
         private int shownResponsible = -1;
         private bool shownNeedsHands;
         private bool shownLocalHolding;
+        public CartCoordinationHud CoordinationHud { get; private set; }
 
         private readonly List<Entry> entries = new List<Entry>(8);
         private readonly List<TeamRanking.Entry> rankingBuffer = new List<TeamRanking.Entry>(8);
@@ -199,6 +200,14 @@ namespace Igruha.Minigames.CarryItem
             progressBar?.ResetBars(config.TankCapacity);
             RefreshLocalTeam();
             respawnPresentation?.Bind(Players);
+            if (CoordinationHud == null)
+            {
+                var root = new GameObject("Cart coordination", typeof(RectTransform));
+                root.transform.SetParent(transform, false);
+                CoordinationHud = root.AddComponent<CartCoordinationHud>();
+                var label = Hud != null ? Hud.GetComponentInChildren<TMPro.TMP_Text>(true) : null;
+                CoordinationHud.Bind(this, label != null ? label.font : null, announcer);
+            }
         }
 
         /// <summary>
