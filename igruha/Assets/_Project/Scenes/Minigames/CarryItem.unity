@@ -107434,6 +107434,7 @@ MonoBehaviour:
   turn: {fileID: 8300000, guid: 84acd8d800b7f435fae1b1ab4c8bda1a, type: 3}
   release: {fileID: 8300000, guid: b49d10a8dd0414dd78f5aa7e10aa83a6, type: 3}
   impact: {fileID: 8300000, guid: 4275179a1a8c44ef7a6f7a056e92b0df, type: 3}
+  brake: {fileID: 8300000, guid: 9ed393bc0455e40cbaa4470fad27acd6, type: 3}
   boss: {fileID: 8300000, guid: 31991ebe6d5de47e9823e52d9a13eb90, type: 3}
   aza: {fileID: 8300000, guid: a32d25a68afa445c5b1d39640734c65a, type: 3}
   numberedPlayers:

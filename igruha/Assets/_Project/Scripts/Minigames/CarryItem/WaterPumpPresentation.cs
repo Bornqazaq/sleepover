@@ -30,6 +30,11 @@ namespace Igruha.Minigames.CarryItem
         private Vector3[] normals;
         private Vector3 end;
         private float deployment;
+        private HorizontalCartWater surface;
+        private LineRenderer waterInHose, whirl;
+        private Material flowMaterial, hoseMaterial;
+        private readonly Vector3[] flowPoints = new Vector3[Rings];
+        private readonly Vector3[] spiralPoints = new Vector3[48];
 
         public bool IsPumping => cart != null && cart.IsPouring;
 
@@ -59,7 +64,10 @@ namespace Igruha.Minigames.CarryItem
         private void LateUpdate()
         {
             if (cart == null && MinigameControllerBase.Current is CarryItemMinigame game)
+            {
                 cart = game.CartOf(tank.Team);
+                if (cart != null) BindWater();
+            }
             bool active = IsPumping;
             deployment = Mathf.MoveTowards(deployment, active ? 1f : 0f, Time.deltaTime * DeploySpeed);
             Vector3 target = active ? cart.WaterSurfacePoint + Vector3.up * NozzleWaterOffset : parkedNozzle.position;
@@ -67,6 +75,47 @@ namespace Igruha.Minigames.CarryItem
             nozzle.position = end;
             if (active) rotor.Rotate(0f, 0f, RotorDegreesPerSecond * Time.deltaTime, Space.Self);
             DrawHose();
+            DrawSuction(active);
+        }
+
+        private void BindWater()
+        {
+            surface = cart.GetComponentInChildren<HorizontalCartWater>();
+            if (surface == null) return;
+            var source = surface.GetComponentInChildren<Renderer>().sharedMaterial;
+            flowMaterial = new Material(source) { name = "Pump water inside hose" };
+            flowMaterial.SetFloat("_Flow", 1f); flowMaterial.SetFloat("_Opacity", 0.7f);
+            hoseMaterial = new Material(source) { name = "Transparent reinforced suction hose" };
+            hoseMaterial.SetColor("_Tint", new Color(0.11f, 0.16f, 0.17f)); hoseMaterial.SetFloat("_Opacity", 0.18f);
+            hose.GetComponent<Renderer>().sharedMaterial = hoseMaterial;
+            waterInHose = NewLine("Moving water in hose", Rings, 0.052f);
+            whirl = NewLine("Suction spiral", spiralPoints.Length, 0.006f);
+        }
+        private LineRenderer NewLine(string name, int count, float width)
+        {
+            var go = new GameObject(name); go.transform.SetParent(transform, false);
+            var line = go.AddComponent<LineRenderer>(); line.useWorldSpace = true;
+            line.sharedMaterial = flowMaterial; line.positionCount = count;
+            line.widthMultiplier = width; line.enabled = false;
+            return line;
+        }
+        private void DrawSuction(bool active)
+        {
+            if (surface == null) return;
+            bool submerged = active && Vector3.Distance(end, cart.WaterSurfacePoint) < 0.16f;
+            surface.SetSuction(end, submerged ? 1f : 0f);
+            waterInHose.enabled = whirl.enabled = submerged;
+            if (!submerged) return;
+            waterInHose.SetPositions(flowPoints);
+            for (int i = 0; i < spiralPoints.Length; i++)
+            {
+                float f = i / (float)(spiralPoints.Length - 1);
+                float angle = f * Mathf.PI * 4f - Time.time * 5f;
+                float radius = Mathf.Lerp(0.16f, 0.018f, f);
+                spiralPoints[i] = cart.WaterSurfacePoint + new Vector3(Mathf.Cos(angle) * radius,
+                    0.004f - f * f * 0.03f, Mathf.Sin(angle) * radius);
+            }
+            whirl.SetPositions(spiralPoints);
         }
 
         private void DrawHose()
@@ -78,6 +127,7 @@ namespace Igruha.Minigames.CarryItem
             {
                 float t = r / (float)(Rings - 1), u = 1f - t;
                 Vector3 point = u * u * u * a + 3f * u * u * t * b + 3f * u * t * t * c + t * t * t * end;
+                flowPoints[r] = point;
                 Vector3 tangent = (3f * u * u * (b - a) + 6f * u * t * (c - b) + 3f * t * t * (end - c)).normalized;
                 Vector3 side = Vector3.Cross(tangent, transform.right).normalized;
                 Vector3 up = Vector3.Cross(tangent, side).normalized;
@@ -99,6 +149,9 @@ namespace Igruha.Minigames.CarryItem
         private void OnDestroy()
         {
             if (mesh != null) Destroy(mesh);
+            if (flowMaterial != null) Destroy(flowMaterial);
+            if (hoseMaterial != null) Destroy(hoseMaterial);
+            if (surface != null) surface.SetSuction(Vector3.zero, 0f);
         }
     }
 }

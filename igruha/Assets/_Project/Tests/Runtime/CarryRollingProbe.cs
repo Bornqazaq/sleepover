@@ -132,8 +132,9 @@ namespace Igruha.Tests
                     foreach (var entry in SessionScoreboard.Current.Players)
                         if (game.TeamOfPlayer(entry.Id) != side)
                             entry.Avatar.RequestTeleport(new Vector3(-24f + parkedIndex++ * 1.1f, 0f, -10f), Quaternion.identity);
-                    // Keep this movement/pose test clear of the cabin and wheelbarrow at x=-25.
-                    cart.Carry.ResetPose(new Vector3(count == 1 ? -17.5f : -21f, 0.03f, 1f), Quaternion.Euler(0f, 90f, 0f));
+                    // Leave room for direct-control acceleration, coasting and the front holders
+                    // before the pit. The cabin at x=-25 remains outside the rear stations.
+                    cart.Carry.ResetPose(new Vector3(count == 1 ? -17.5f : -23f, 0.03f, 2f), Quaternion.Euler(0f, 90f, 0f));
                     cart.SetHandleCount(count);
                     cart.ChangeWater(game.Config.CartCapacity, WaterLossReason.Filled);
                     for (int i = 0; i < team.Count; i++)
@@ -196,8 +197,7 @@ namespace Igruha.Tests
                     Check(pose != null && pose.Weight == 0f, "relaxed hands " + team[i].Id);
                 }
             }
-            // Opposed pulling now stretches both springs: it must show disagreement
-            // and eventually tear a grip, instead of being hidden by rigid station-follow.
+            // Opposed commands cancel: people remain attached and no invisible penalty appears.
             yield return WaitElapsed(151f);
             if (manager.IsServer)
             {
@@ -216,15 +216,39 @@ namespace Igruha.Tests
             driveDirection = localSlot == 0 ? Vector3.right : Vector3.left;
             driving = holding;
             yield return WaitElapsed(155.2f);
-            Check(cart.Stability.State.Cause == CartTiltCause.Disagreement, "opposed tension warning replicated");
+            Check(cart.Stability.State.Outflow == 0f, "opposed commands do not spill");
             yield return WaitElapsed(159f);
             driving = false;
-            Check(cart.Carry.CarrierCount < 2, "sustained opposed pull breaks grip");
+            Check(cart.Carry.CarrierCount == 2, "opposed commands keep both grips");
+            Check(Vector3.Distance(cart.transform.position, parked) < 0.4f, "opposed commands stop the cart");
             yield return WaitElapsed(160f);
             if (holding && cart.Carry.IsCarriedBy(local)) yield return Tap();
             yield return WaitElapsed(161f);
             Check(cart.Carry.CarrierCount == 0, "opposite input release");
             CheckCarrierCollisions(2, false);
+            if (manager.IsServer)
+            {
+                cart.ChangeWater(game.Config.CartCapacity, WaterLossReason.Filled);
+                cart.Stability.ResetTrip();
+            }
+            yield return WaitElapsed(162f);
+            int beforeImpact = cart.Water;
+            if (manager.IsServer) cart.Stability.Impact(cart.transform.right);
+            bool sawWave = false, sawFlow = false, sawSheet = false;
+            float until = Time.time + 3f;
+            while (Time.time < until)
+            {
+                var state = cart.Stability.State;
+                sawWave |= state.Wave.sqrMagnitude > 0.01f;
+                sawFlow |= state.Outflow > 0f;
+                var sheet = cart.transform.Find("OverflowSheet");
+                sawSheet |= sheet != null && sheet.GetComponent<Renderer>().enabled;
+                yield return null;
+            }
+            Check(sawWave && sawFlow && sawSheet, "replicated wave, rim flow and visible sheet");
+            Check(cart.Water < beforeImpact && cart.Water > beforeImpact - 35, "impact loses visible overflow water=" + cart.Water);
+            yield return WaitElapsed(168f);
+            Check(cart.Stability.State.Outflow == 0f, "overflow settles on every peer");
             if (!failed) Debug.Log("CARRY_ROLLING_CHECK PASS id=" + manager.LocalClientId);
             yield return new WaitForSeconds(2f);
             Application.Quit(failed ? 1 : 0);

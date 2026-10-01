@@ -10,7 +10,7 @@ namespace Igruha.EditorTools
     {
         private const string VoicePath = "Assets/_Project/Audio/Minigames/CarryItem/TemporaryVoice/";
 
-        [MenuItem("Tools/Minigames/CarryItem/Apply tension handling")]
+        [MenuItem("Tools/Minigames/CarryItem/Apply cart handling")]
         public static void Apply()
         {
             const string path = "Assets/_Project/Prefabs/Minigames/CarryItem/WaterCart.prefab";
@@ -21,14 +21,33 @@ namespace Igruha.EditorTools
             var definition = AssetDatabase.LoadAssetAtPath<Object>("Assets/_Project/Settings/Gameplay/Minigames/CarryItem.asset");
             var definitionSo = new SerializedObject(definition);
             definitionSo.FindProperty("minPlayers").intValue = 2;
+            var steps = definitionSo.FindProperty("tutorialSteps");
+            string[] instructions = { "E — взяться. WASD — катить и плавно поворачивать.",
+                "Перед поворотом отпустите движение. Назад — тормозить; резкий манёвр поднимает волну.",
+                "Вода теряется, когда волна пересекает борт. Подкатите к насосу для откачки." };
+            steps.arraySize = instructions.Length;
+            for (int i = 0; i < instructions.Length; i++) steps.GetArrayElementAtIndex(i).stringValue = instructions[i];
+            var hints = definitionSo.FindProperty("tutorialQuickHints"); hints.arraySize = 3;
+            hints.GetArrayElementAtIndex(0).stringValue = "WASD — катить · назад — тормозить";
+            hints.GetArrayElementAtIndex(1).stringValue = "E — взяться / отпустить";
+            hints.GetArrayElementAtIndex(2).stringValue = "ЛКМ — толкнуть тележку / удар";
             definitionSo.ApplyModifiedPropertiesWithoutUndo();
             var config = AssetDatabase.LoadAssetAtPath<CarryItemConfig>("Assets/_Project/Settings/Gameplay/Minigames/CarryItemConfig.asset");
             var configSo = new SerializedObject(config);
             configSo.FindProperty("carrierStandoff").floatValue = 0.45f;
             configSo.FindProperty("rollingTetherGain").floatValue = 4f;
             configSo.FindProperty("rollingLateralGain").floatValue = 8f;
+            configSo.FindProperty("brakeWaveGain").floatValue = 0.18f;
             configSo.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(config); // Save newly added tuning fields.
+
+            var droplets = AssetDatabase.LoadAssetAtPath<Material>(
+                "Assets/_Project/Materials/Minigames/CarryItem/CI_PourWater.mat");
+            var softParticle = AssetDatabase.LoadAssetAtPath<Material>(
+                "Assets/_Project/Materials/Minigames/CarryItem/Original/CS_Particle.mat");
+            droplets.SetTexture("_BaseMap", softParticle.GetTexture("_BaseMap"));
+            droplets.SetColor("_BaseColor", new Color(0.78f, 0.88f, 0.9f, 0.72f));
+            EditorUtility.SetDirty(droplets);
 
             var game = Object.FindFirstObjectByType<CarryItemMinigame>();
             if (game == null) throw new System.InvalidOperationException("Open CarryItem before applying the handling setup.");
@@ -52,8 +71,27 @@ namespace Igruha.EditorTools
                 for (int i = 0; i < fields.Length; i++) if (!fields[i].IsInitOnly) fields[i].SetValue(observed, values[i]);
             }
             if (!root.TryGetComponent<WaterCartStability>(out _)) root.AddComponent<WaterCartStability>();
+            if (!root.TryGetComponent<CartOverflowVisual>(out _)) root.AddComponent<CartOverflowVisual>();
             var water = root.transform.Find("Body/WaterPivot");
             if (water != null && !water.TryGetComponent<HorizontalCartWater>(out _)) water.gameObject.AddComponent<HorizontalCartWater>();
+            if (water != null)
+            {
+                var renderer = water.GetComponentInChildren<Renderer>();
+                var mat = renderer.sharedMaterial;
+                mat.SetColor("_Tint", new Color(0.07f, 0.24f, 0.28f));
+                mat.SetFloat("_Opacity", 0.55f); mat.SetFloat("_RippleStrength", 0.06f);
+                EditorUtility.SetDirty(mat);
+            }
+            var leak = root.transform.Find("Body/LeakJet")?.GetComponent<ParticleSystem>();
+            if (leak != null)
+            {
+                var main = leak.main;
+                main.startColor = new Color(0.69f, 0.85f, 0.86f, 0.55f);
+                main.startSize = new ParticleSystem.MinMaxCurve(0.012f, 0.026f);
+                main.startLifetime = 0.55f; main.startSpeed = 0.4f; main.gravityModifier = 1f;
+                var shape = leak.shape; shape.shapeType = ParticleSystemShapeType.Box;
+                shape.scale = new Vector3(0.3f, 0.02f, 0.01f);
+            }
             var supports = new Transform[8];
             var handles = root.transform.Find("Body/Handles");
             if (handles != null)
@@ -123,7 +161,7 @@ namespace Igruha.EditorTools
             var voice = root.GetComponent<CarryCartVoice>();
             if (voice == null) voice = root.AddComponent<CarryCartVoice>();
             var so = new SerializedObject(voice);
-            foreach (var name in new[] { "disagreement", "turn", "release", "impact", "boss", "aza" })
+            foreach (var name in new[] { "disagreement", "turn", "release", "impact", "brake", "boss", "aza" })
                 so.FindProperty(name).objectReferenceValue = Clip(name);
             var names = so.FindProperty("numberedPlayers"); names.arraySize = 8;
             for (int i = 0; i < 8; i++) names.GetArrayElementAtIndex(i).objectReferenceValue = Clip("player" + (i + 1));

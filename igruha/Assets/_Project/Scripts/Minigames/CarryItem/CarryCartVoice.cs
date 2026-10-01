@@ -12,6 +12,7 @@ namespace Igruha.Minigames.CarryItem
         [SerializeField] private AudioClip turn;
         [SerializeField] private AudioClip release;
         [SerializeField] private AudioClip impact;
+        [SerializeField] private AudioClip brake;
         [SerializeField] private AudioClip boss;
         [SerializeField] private AudioClip aza;
         [SerializeField] private AudioClip[] numberedPlayers;
@@ -34,6 +35,7 @@ namespace Igruha.Minigames.CarryItem
             {
                 case CartTiltCause.Disagreement: Enqueue(disagreement); Enqueue(NameClip(responsible)); break;
                 case CartTiltCause.Turn: Enqueue(turn); break;
+                case CartTiltCause.Brake: Enqueue(brake); break;
                 case CartTiltCause.Release: Enqueue(NameClip(responsible)); Enqueue(release); break;
                 default: Enqueue(impact); break;
             }

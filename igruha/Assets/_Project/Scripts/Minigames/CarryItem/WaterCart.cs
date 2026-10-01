@@ -78,6 +78,7 @@ namespace Igruha.Minigames.CarryItem
         [Tooltip("Меш воды в баке тележки. Растягивается по уровню ступенями")]
         [SerializeField] private Transform waterMesh;
         private WaterVolumeVisual waterVisual;
+        private CartOverflowVisual overflowVisual;
         public Vector3 WaterSurfacePoint => waterVisual != null ? waterVisual.SurfacePoint
             : transform.TransformPoint(new Vector3(0f, 0.48f + 0.44f * Load, 0f));
         [Tooltip("Рендерер, который подсвечивает крен. Пусто — берётся с меша воды")]
@@ -126,7 +127,6 @@ namespace Igruha.Minigames.CarryItem
         private static readonly int ColorId = Shader.PropertyToID("_Color");
 
         private float hitCooldownTimer;
-        private float tiltHoldTimer;
         private float leakAccumulator;
         private double returnAt;
         private float voidLevel = float.NegativeInfinity;
@@ -191,6 +191,7 @@ namespace Igruha.Minigames.CarryItem
         {
             carry = GetComponent<MultiCarryObject>();
             Stability = GetComponent<WaterCartStability>();
+            overflowVisual = GetComponent<CartOverflowVisual>();
             materialBlock = new MaterialPropertyBlock();
             if (waterMesh != null) waterVisual = waterMesh.GetComponent<WaterVolumeVisual>();
 
@@ -280,7 +281,6 @@ namespace Igruha.Minigames.CarryItem
             flags = 0;
             shownStep = -1;
             publishedWater = -1;
-            tiltHoldTimer = 0f;
             leakAccumulator = 0f;
             hitCooldownTimer = 0f;
             returnAt = 0d;
@@ -325,6 +325,8 @@ namespace Igruha.Minigames.CarryItem
             settings.motion = MultiCarryMotion.Rolling;
             settings.handleLayout = MultiCarryHandleLayout.Cart;
             settings.rollingTensionDrive = true;
+            settings.rollingDirectControl = true;
+            settings.rollingBrakeAcceleration = config.BrakeAcceleration;
             settings.speedByHandsEmpty = config.SpeedByHandsEmpty;
             settings.speedByHandsFull = config.SpeedByHandsFull;
             settings.accelerationByHandsEmpty = config.AccelerationByHandsEmpty;
@@ -342,15 +344,15 @@ namespace Igruha.Minigames.CarryItem
             settings.accelerationEmpty = config.AccelerationEmpty;
             settings.accelerationFull = config.AccelerationFull;
             settings.rollingDeceleration = config.RollingDeceleration;
-            settings.turnRate = config.TurnRate;
+            settings.turnRate = config.SteeringRate;
             settings.pullToSpeed = config.PullToSpeed;
             settings.tensionDeadzone = config.TensionDeadzone;
             settings.breakDistance = config.BreakDistance;
             settings.tetherFreeSpeedPerMeter = config.TetherFreeSpeedPerMeter;
             settings.tetherGrip = config.TetherGrip;
             settings.tiltThreshold = config.TiltAngleThreshold;
-            settings.maxTiltAngle = config.MaxTiltAngle;
-            settings.sloshPerDeltaSpeed = config.SloshPerDeltaSpeed;
+            settings.maxTiltAngle = 3f;
+            settings.sloshPerDeltaSpeed = 0f;
             settings.tiltDamping = config.TiltDamping;
             settings.tiltRestoring = config.TiltRestoring;
             settings.throwImpulsePerCarrier = config.ShoveImpulsePerCarrier;
@@ -391,7 +393,7 @@ namespace Igruha.Minigames.CarryItem
             }
 
             carry.SetLoad(Load);
-            if (before == 0 && applied > 0) Stability.ResetTrip();
+            if (before == 0 && applied > 0) { leakAccumulator = 0f; Stability.ResetTrip(); }
             if (reason == WaterLossReason.Tilt && applied < 0) Stability.RecordSpill();
             PublishState(false);
             ApplyLevelVisual();
@@ -409,16 +411,18 @@ namespace Igruha.Minigames.CarryItem
         }
 
         private static bool AnnouncesReason(WaterLossReason reason) =>
-            reason == WaterLossReason.Hit || reason == WaterLossReason.Tilt || reason == WaterLossReason.Shove ||
+            reason == WaterLossReason.Hit || reason == WaterLossReason.Shove ||
             reason == WaterLossReason.RamVictim || reason == WaterLossReason.RamAttacker ||
             reason == WaterLossReason.Void;
 
         /// <summary>
-        /// Удар по тележке: брошенный предмет или ловушка. Все — 20 единиц с
-        /// <b>общим</b> кулдауном: одно событие даёт один штраф, даже если по
-        /// тележке попало сразу два кирпича. Кулдаун тикает у авторитета.
+        /// Удар поднимает волну. Вода уходит только через настоящий перелив;
+        /// общий кулдаун не даёт одному контакту многократно возбуждать волну.
         /// </summary>
         public bool TakeHit(WaterLossReason reason)
+            => ApplyImpact(transform.forward);
+
+        private bool ApplyImpact(Vector3 direction)
         {
             if (!HasAuthority || IsLost || hitCooldownTimer > 0f)
             {
@@ -426,12 +430,13 @@ namespace Igruha.Minigames.CarryItem
             }
 
             hitCooldownTimer = config.HitCooldown;
-            ChangeWater(-config.HitLoss, reason);
+            Stability.Impact(direction);
             return true;
         }
 
-        /// <summary>Ловушка ударила. Направление и импульс тележки безразличны — цена удара одна.</summary>
-        public void TakeTrapImpact(Vector3 direction, float force) => TakeHit(WaterLossReason.Hit);
+        /// <summary>Ловушка возбуждает одну волну в направлении удара.</summary>
+        public void TakeTrapImpact(Vector3 direction, float force)
+            => ApplyImpact(direction);
 
         /// <summary>Кран говорит, набирается ли вода. Решает авторитет; флаг едет состоянием.</summary>
         public void SetFilling(bool value) => SetFlag(WaterCartNetState.FillingFlag, value);
@@ -545,7 +550,7 @@ namespace Igruha.Minigames.CarryItem
         /// <summary>Толкнули с разгона — доля остатка расплёскивается, округляя вниз до целой единицы.</summary>
         private void OnShoved(int shovers)
         {
-            ChangeWater(-Mathf.FloorToInt(Water * config.ShoveLossFraction), WaterLossReason.Shove);
+            if (HasAuthority) Stability.Impact(-transform.forward, 0.9f);
         }
 
         private void Update()
@@ -573,7 +578,6 @@ namespace Igruha.Minigames.CarryItem
                 return;
             }
 
-            UpdateTiltLeak(delta);
             CheckVoid();
         }
 
@@ -582,28 +586,13 @@ namespace Igruha.Minigames.CarryItem
         /// за порог и обратно не стоил ничего; темп растёт с заполнением:
         /// полная плещет через борт вдвое сильнее полупустой.
         /// </summary>
-        private void UpdateTiltLeak(float delta)
+        public void DrainOverflow(float rate, float delta)
         {
-            if (!carry.BeyondTiltThreshold || Water <= 0)
-            {
-                tiltHoldTimer = 0f;
-                leakAccumulator = 0f;
-                return;
-            }
-
-            tiltHoldTimer += delta;
-            if (tiltHoldTimer < config.TiltGraceSeconds)
-            {
-                return;
-            }
-
-            leakAccumulator += config.TiltLossPerSecond * (config.TiltLossLoadFloor + Load) * delta;
+            if (!HasAuthority || IsLost || Water <= 0) { leakAccumulator = 0f; return; }
+            // Keep the fractional remainder between waves; short visible spills count too.
+            leakAccumulator += Mathf.Max(0f, rate) * delta;
             int whole = Mathf.FloorToInt(leakAccumulator);
-            if (whole <= 0)
-            {
-                return;
-            }
-
+            if (whole == 0) return;
             leakAccumulator -= whole;
             ChangeWater(-whole, WaterLossReason.Tilt);
         }
@@ -682,7 +671,7 @@ namespace Igruha.Minigames.CarryItem
         // ========== ВИД ==========
 
         /// <summary>
-        /// Сетевой уровень квантован; визуальный компонент плавно доводит поверхность.
+        /// Обновить объём; саму волну HorizontalCartWater обновляет каждый кадр.
         /// </summary>
         private void ApplyLevelVisual()
         {
@@ -691,7 +680,7 @@ namespace Igruha.Minigames.CarryItem
                 return;
             }
 
-            int step = Mathf.CeilToInt(Water / (float)config.WaterStep);
+            int step = Water;
             if (step == shownStep)
             {
                 return;
@@ -699,7 +688,7 @@ namespace Igruha.Minigames.CarryItem
 
             shownStep = step;
 
-            int totalSteps = Mathf.Max(1, config.CartCapacity / config.WaterStep);
+            int totalSteps = Mathf.Max(1, config.CartCapacity);
             float fraction = Mathf.Clamp01(step / (float)totalSteps);
 
             if (waterVisual != null)
@@ -714,67 +703,20 @@ namespace Igruha.Minigames.CarryItem
         }
 
         /// <summary>
-        /// Индикация крена: чем ближе к порогу, тем тревожнее тележка. Читается
-        /// <b>всеми</b>, а не только тем, кто рванул: виноват один, платят все.
-        /// Струи и плеск — по крену и флагам, которые у всех одинаковые.
+        /// Звук и капли следуют тому же сетевому переливу, что и поверхность.
         /// </summary>
         private void UpdateIndication()
         {
-            float threshold = config.TiltAngleThreshold;
-            float alarmStart = config.WarningTilt;
-            float tilt = carry.TiltAngle;
-
-            Color color;
-            if (carry.BeyondTiltThreshold)
-            {
-                color = pouringColor;
-            }
-            else
-            {
-                color = tilt >= alarmStart ? alarmColor : calmColor;
-            }
-
-            ApplyIndicatorColor(color);
-            UpdateSloshSound(Mathf.Clamp01(tilt / Mathf.Max(threshold, 0.01f)));
-
-            bool leaking = carry.BeyondTiltThreshold && Water > 0 && !IsLost;
-            if (leaking && leakJet != null) PositionLeakAtLowRim();
+            UpdateSloshSound(Mathf.Clamp01(Stability.State.Risk));
+            bool leaking = Stability.IsSpilling;
+            // OverflowSheet owns the geometry; particle droplets and sound share its state.
+            if (leaking && leakJet != null && overflowVisual != null)
+                overflowVisual.PositionDroplets(leakJet);
             SetParticles(leakJet, ref leakShown, leaking);
             SetLoop(leakLoop, leaking);
 
             SetParticles(fillSplash, ref fillShown, IsFilling);
             SetLoop(fillLoop, IsFilling);
-        }
-
-        private void PositionLeakAtLowRim()
-        {
-            if (waterMesh == null) return;
-            Transform tub = waterMesh.parent;
-            Vector3 low = tub.TransformPoint(new Vector3(0f, 0.94f, 0f));
-            float best = float.PositiveInfinity;
-            for (int i = 0; i < 4; i++)
-            {
-                Vector3 point = tub.TransformPoint(new Vector3((i & 1) == 0 ? -0.38f : 0.38f,
-                    0.94f, (i & 2) == 0 ? -0.51f : 0.51f));
-                if (point.y < best) { best = point.y; low = point; }
-            }
-            Vector3 outward = Vector3.ProjectOnPlane(low - tub.position, Vector3.up).normalized;
-            leakJet.transform.SetPositionAndRotation(low, Quaternion.LookRotation(outward + Vector3.down * 0.6f));
-        }
-
-        private void ApplyIndicatorColor(Color color)
-        {
-            if (tiltIndicator == null)
-            {
-                return;
-            }
-
-            // Через PropertyBlock, а не через material: обращение к material
-            // создаёт копию на каждую тележку.
-            tiltIndicator.GetPropertyBlock(materialBlock);
-            materialBlock.SetColor(BaseColorId, color);
-            materialBlock.SetColor(ColorId, color);
-            tiltIndicator.SetPropertyBlock(materialBlock);
         }
 
         private static void SetParticles(ParticleSystem system, ref bool shown, bool playing)

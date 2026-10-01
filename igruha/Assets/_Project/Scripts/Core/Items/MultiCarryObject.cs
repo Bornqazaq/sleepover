@@ -1515,7 +1515,7 @@ namespace Igruha.Core.Items
 
                 if (IsRolling)
                 {
-                    if (settings.rollingTensionDrive) DriveRollingCarrier(handle, StationOf(i));
+                    if (settings.rollingTensionDrive && !settings.rollingDirectControl) DriveRollingCarrier(handle, StationOf(i));
                     else FollowRollingStation(handle, StationOf(i));
                     continue;
                 }
@@ -1797,7 +1797,7 @@ namespace Igruha.Core.Items
                 occupied++;
                 supportSum += SupportPointWorld(i);
 
-                if (IsRolling && !settings.rollingTensionDrive)
+                if (IsRolling && (!settings.rollingTensionDrive || settings.rollingDirectControl))
                 {
                     Vector2 intent = IntentOf(handle);
                     pullSum += new Vector3(intent.x, 0f, intent.y);
@@ -2004,10 +2004,51 @@ namespace Igruha.Core.Items
         /// </summary>
         private void StepRollingVelocity(Vector3 intent, float dt)
         {
+            if (settings.rollingDirectControl)
+            {
+                StepSteeredRolling(intent, dt);
+                return;
+            }
             Vector3 target = settings.rollingTensionDrive
                 ? Vector3.ClampMagnitude(intent * settings.pullToSpeed, RollingSpeed)
                 : Vector3.ClampMagnitude(intent, 1f) * RollingSpeed;
             ApplyRollingVelocity(target, RollingAcceleration, dt);
+        }
+
+        private const float DirectInputDeadZone = 0.05f;
+        private const float ReverseSteeringAngle = 120f;
+        private const float BrakeSpeedProductThreshold = 0.05f;
+        private const float TyreSideGrip = 2f;
+
+        // A wheeled cart follows its heading. Direction changes steer an arc rather
+        // than sliding the chassis sideways while its handles spin underneath people.
+        private void StepSteeredRolling(Vector3 intent, float dt)
+        {
+            Vector3 current = body.linearVelocity;
+            Vector3 flat = new Vector3(current.x, 0f, current.z);
+            float strength = Mathf.Clamp01(intent.magnitude);
+            Vector3 forward = Quaternion.Euler(0f, yawDegrees, 0f) * Vector3.forward;
+            float sign = 1f;
+            if (strength > DirectInputDeadZone)
+            {
+                float targetYaw = Mathf.Atan2(intent.x, intent.z) * Mathf.Rad2Deg;
+                if (Mathf.Abs(Mathf.DeltaAngle(yawDegrees, targetYaw)) > ReverseSteeringAngle)
+                { sign = -1f; targetYaw += 180f; }
+                yawDegrees = Mathf.MoveTowardsAngle(yawDegrees, targetYaw, settings.turnRate * dt);
+                forward = Quaternion.Euler(0f, yawDegrees, 0f) * Vector3.forward;
+            }
+            float speed = Vector3.Dot(flat, forward);
+            float alignment = strength > DirectInputDeadZone ? Mathf.Clamp01(Mathf.Abs(Vector3.Dot(forward, intent / strength))) : 0f;
+            float targetSpeed = sign * strength * RollingSpeed * alignment;
+            bool reversing = speed * targetSpeed < -BrakeSpeedProductThreshold;
+            float rate = reversing ? settings.rollingBrakeAcceleration :
+                strength < DirectInputDeadZone ? settings.rollingDeceleration : RollingAcceleration;
+            float nextSpeed = Mathf.MoveTowards(speed, targetSpeed, rate * dt);
+            // Preserve a short collision response, but tyres remove lateral sliding.
+            Vector3 side = flat - forward * speed;
+            Vector3 next = forward * nextSpeed + Vector3.MoveTowards(side, Vector3.zero, rate * TyreSideGrip * dt);
+            body.linearVelocity = new Vector3(next.x, current.y, next.z);
+            lastRollingVelocity = next;
         }
 
         /// <summary>Без рук катящийся объект докатывается и встаёт — так отпущенная на разгоне тележка уезжает сама.</summary>
@@ -2029,7 +2070,8 @@ namespace Igruha.Core.Items
             body.linearVelocity = new Vector3(next.x, current.y, next.z);
             // Straight, deliberate acceleration does not spill a tension-driven cart.
             // Preserve impulses introduced by collisions between physics ticks.
-            StepRollingTilt((settings.rollingTensionDrive ? flat : next) - lastRollingVelocity);
+            if (!settings.rollingDirectControl)
+                StepRollingTilt((settings.rollingTensionDrive ? flat : next) - lastRollingVelocity);
             lastRollingVelocity = next;
             TurnTowardsMotion(settings.rollingTensionDrive && CarrierCount > 0 ? target : next, dt);
         }
