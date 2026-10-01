@@ -89,6 +89,9 @@ namespace Igruha.Core.Items
 
         [Tooltip("Качение от среднего растяжения связей вместо среднего ввода")]
         public bool rollingTensionDrive;
+        [Tooltip("Прямое управление курсом и скоростью; несущие идут у поручней")]
+        public bool rollingDirectControl;
+        public float rollingBrakeAcceleration;
         [Tooltip("Потолок пустого/полного объекта по числу занятых ручек: 1, 2, 3, 4")]
         public Vector4 speedByHandsEmpty;
         public Vector4 speedByHandsFull;
