@@ -41,7 +41,7 @@ namespace Igruha.Minigames.CarryItem
             if (water == null) return;
             var surface = water.GetComponentInChildren<Renderer>();
             material = new Material(surface.sharedMaterial) { name = "Overflow water sheet" };
-            material.SetFloat("_Flow", 1f); material.SetFloat("_Opacity", 0.64f); material.SetFloat("_Cull", 0f);
+            material.SetFloat("_Flow", 1f); material.SetFloat("_Opacity", 0.76f); material.SetFloat("_Cull", 0f);
             var go = new GameObject("OverflowSheet", typeof(MeshFilter), typeof(MeshRenderer));
             go.transform.SetParent(transform, false);
             sheet = go.GetComponent<MeshRenderer>(); sheet.sharedMaterial = material; sheet.enabled = false;
@@ -68,7 +68,7 @@ namespace Igruha.Minigames.CarryItem
             UpdateSource();
             droplets.transform.SetPositionAndRotation(source + outward * CartWaterSurface.LipWidth,
                 Quaternion.LookRotation(outward + Vector3.down * 0.35f));
-            var emission = droplets.emission; emission.rateOverTime = Mathf.Lerp(15f, 85f, cart.Stability.State.Outflow / 35f);
+            var emission = droplets.emission; emission.rateOverTime = Mathf.Lerp(15f, 85f, cart.Stability.State.Outflow / CartWaterSurface.MaxOverflowRate);
             var shape = droplets.shape; shape.scale = new Vector3(width, 0.02f, 0.01f);
         }
         private void UpdateSource()
@@ -92,7 +92,7 @@ namespace Igruha.Minigames.CarryItem
             if (active && now - emittedAt >= SampleInterval)
             {
                 UpdateSource();
-                float speed = Mathf.Lerp(0.18f, 0.62f, cart.Stability.State.Outflow / 35f);
+                float speed = Mathf.Lerp(0.18f, 0.62f, cart.Stability.State.Outflow / CartWaterSurface.MaxOverflowRate);
                 // Emitted water inherits cart speed, then falls independently of the next swing.
                 Vector3 velocity = outward * speed + cart.Carry.FlatVelocity;
                 slices[head] = new Slice

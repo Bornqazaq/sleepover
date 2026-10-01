@@ -135,7 +135,7 @@ namespace Igruha.Minigames.CarryItem
         [SerializeField] private float brakeWaveGain = 0.18f;
         [SerializeField] private float gentleBrakeLimit = 2f;
         [SerializeField] private float impactWaveImpulse = 2.8f;
-        [SerializeField] private float overflowRate = 300f;
+        [SerializeField] private float overflowRate = 420f;
         public float SteeringRate => steeringRate;
         public float BrakeAcceleration => brakeAcceleration;
         public float WaveResponse => waveResponse;
