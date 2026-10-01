@@ -126,6 +126,26 @@ namespace Igruha.Minigames.CarryItem
         [Tooltip("Импульс толчка с разгона на одного толкающего")]
         [SerializeField] private float shoveImpulsePerCarrier = 7f;
 
+        [Header("Волна и понятное управление")]
+        [SerializeField] private float steeringRate = 90f;
+        [SerializeField] private float brakeAcceleration = 5f;
+        [SerializeField] private float waveResponse = 24f;
+        [SerializeField] private float waveDamping = 5f;
+        [SerializeField] private float turnWaveGain = 0.11f;
+        [SerializeField] private float brakeWaveGain = 0.18f;
+        [SerializeField] private float gentleBrakeLimit = 2f;
+        [SerializeField] private float impactWaveImpulse = 2.8f;
+        [SerializeField] private float overflowRate = 300f;
+        public float SteeringRate => steeringRate;
+        public float BrakeAcceleration => brakeAcceleration;
+        public float WaveResponse => waveResponse;
+        public float WaveDamping => waveDamping;
+        public float TurnWaveGain => turnWaveGain;
+        public float BrakeWaveGain => brakeWaveGain;
+        public float GentleBrakeLimit => gentleBrakeLimit;
+        public float ImpactWaveImpulse => impactWaveImpulse;
+        public float OverflowRate => overflowRate;
+
         [Header("Тележка: крен")]
         [SerializeField] private float disagreementStart = 0.15f;
         [SerializeField] private float disagreementFull = 0.5f;

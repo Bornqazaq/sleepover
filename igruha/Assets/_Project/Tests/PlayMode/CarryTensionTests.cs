@@ -97,15 +97,15 @@ namespace Igruha.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator PassiveHandBrakesAndCausesDisagreement()
+        public IEnumerator PassiveHandSlowsWithoutInventedSpill()
         {
             cart.SetHandleCount(2);
             Carrier(0, Vector3.forward); Carrier(1, Vector3.zero);
             yield return new WaitForSeconds(1.5f);
             Assert.That(cart.Carry.CarrierCount, Is.EqualTo(2));
             Assert.That(cart.Carry.FlatVelocity.magnitude, Is.LessThan(1.5f));
-            Assert.That(cart.Stability.State.Cause, Is.EqualTo(CartTiltCause.Disagreement));
-            Assert.That(cart.Carry.TiltAngle, Is.GreaterThan(20f));
+            Assert.That(cart.Stability.State.Cause, Is.EqualTo(CartTiltCause.None));
+            Assert.That(cart.Water, Is.EqualTo(150));
         }
 
         [UnityTest]
@@ -117,7 +117,7 @@ namespace Igruha.Tests.PlayMode
             cart.Carry.ReleaseHandle(0, CarryReleaseReason.LetGo);
             // Once released, the former carrier must not physically bump the cart in this coasting test.
             player.GetComponent<Collider>().enabled = false;
-            Assert.That(cart.Carry.TiltAngle, Is.EqualTo(30f).Within(0.5f));
+            Assert.That(cart.Carry.TiltAngle, Is.LessThan(1f));
             Assert.That(cart.Water, Is.EqualTo(150));
             yield return new WaitForSeconds(0.2f);
             Assert.That(cart.Carry.FlatVelocity.magnitude, Is.EqualTo(before - 0.3f).Within(0.08f));
@@ -131,7 +131,7 @@ namespace Igruha.Tests.PlayMode
             yield return new WaitForSeconds(2f);
             cart.Carry.ReleaseHandle(1, CarryReleaseReason.Knockdown);
             Assert.That(cart.Carry.RollingSpeed, Is.EqualTo(1.6f));
-            Assert.That(cart.Carry.TiltAngle, Is.GreaterThan(29f));
+            Assert.That(cart.Carry.TiltAngle, Is.LessThan(1f));
             Assert.That(cart.Carry.CarrierCount, Is.EqualTo(1));
             Assert.That(cart.IsLost, Is.False);
         }
@@ -148,12 +148,18 @@ namespace Igruha.Tests.PlayMode
         }
 
         [Test]
-        public void TurnCalibrationAndEmptyDamping()
+        public void OnlyWaterAbovePhysicalRimCanOverflow()
         {
-            Assert.That(WaterCartStability.TurnDegrees(90, 2, 1, config), Is.EqualTo(45));
-            Assert.That(WaterCartStability.TurnDegrees(90, 2, 0, config), Is.EqualTo(22.5f));
-            Assert.That(WaterCartStability.DisagreementDegrees(0.15f, 1, config), Is.Zero);
-            Assert.That(WaterCartStability.DisagreementDegrees(0.5f, 0, config), Is.EqualTo(24).Within(0.01f));
+            Assert.That(CartWaterSurface.Overflow(1f, new Vector2(0f, 0.1f), 300f,
+                out _, out _, out _, out _), Is.Zero);
+            float rate = CartWaterSurface.Overflow(1f, new Vector2(0f, 0.3f), 300f,
+                out byte edge, out float along, out float width, out float risk);
+            Assert.That(rate, Is.GreaterThan(0f)); Assert.That(edge, Is.EqualTo(2));
+            Assert.That(CartWaterSurface.Height(1f, new Vector2(0f, 0.3f), along, CartWaterSurface.Length / 2f),
+                Is.GreaterThan(CartWaterSurface.Depth));
+            Assert.That(width, Is.GreaterThan(0.5f)); Assert.That(risk, Is.GreaterThan(1f));
+            Assert.That(CartWaterSurface.Overflow(0.4f, new Vector2(0f, 0.3f), 300f,
+                out _, out _, out _, out _), Is.Zero);
         }
 
         [UnityTest]
@@ -175,31 +181,17 @@ namespace Igruha.Tests.PlayMode
         }
 
         [Test]
-        public void WaterSurfaceStaysHorizontalInsideTiltedTub()
+        public void CalmMeshHasFreeboardAndMatchesAuthoritativeSurface()
         {
-            var pivot = new GameObject("Tilted water"); spawned.Add(pivot);
-            pivot.transform.rotation = Quaternion.Euler(21f, 30f, 35f);
+            var pivot = new GameObject("Water"); spawned.Add(pivot);
             var child = new GameObject("Water mesh"); child.transform.SetParent(pivot.transform, false);
-            var filter = child.AddComponent<MeshFilter>();
-            var water = pivot.AddComponent<HorizontalCartWater>();
-            water.SetLevel(0.8f);
-            var vertices = filter.sharedMesh.vertices;
-            var indices = filter.sharedMesh.triangles;
-            int horizontalFaces = 0;
-            for (int i = 0; i < indices.Length; i += 3)
-            {
-                Vector3 a = child.transform.TransformPoint(vertices[indices[i]]);
-                Vector3 b = child.transform.TransformPoint(vertices[indices[i + 1]]);
-                Vector3 c = child.transform.TransformPoint(vertices[indices[i + 2]]);
-                Assert.That(a.y, Is.LessThanOrEqualTo(water.SurfacePoint.y + 0.0001f));
-                if (Mathf.Abs(a.y - water.SurfacePoint.y) < 0.0001f &&
-                    Mathf.Abs(b.y - a.y) < 0.0001f && Mathf.Abs(c.y - a.y) < 0.0001f)
-                {
-                    Assert.That(Vector3.Dot(Vector3.Cross(b - a, c - a).normalized, Vector3.up), Is.GreaterThan(0.999f));
-                    horizontalFaces++;
-                }
-            }
-            Assert.That(horizontalFaces, Is.GreaterThan(0));
+            var filter = child.AddComponent<MeshFilter>(); child.AddComponent<MeshRenderer>();
+            var water = pivot.AddComponent<HorizontalCartWater>(); water.SetLevel(1f);
+            float highest = float.NegativeInfinity;
+            foreach (var vertex in filter.sharedMesh.vertices)
+                highest = Mathf.Max(highest, child.transform.TransformPoint(vertex).y);
+            Assert.That(highest, Is.EqualTo(CartWaterSurface.FullHeight).Within(0.0001f));
+            Assert.That(highest, Is.LessThan(CartWaterSurface.Depth));
         }
 
         [Test]
@@ -217,15 +209,78 @@ namespace Igruha.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator SpillWaitsOneSecondAndUsesLoadRate()
+        public IEnumerator SurfaceMovesBeforeAnyWaterIsLost()
         {
-            cart.Stability.enabled = false;
-            cart.Carry.AddTiltKick(Vector3.forward * 55f);
-            cart.Carry.SetTiltTarget(Vector3.forward * 55f);
-            yield return new WaitForSeconds(0.8f);
+            var pivot = new GameObject("Water"); pivot.transform.SetParent(cart.transform, false);
+            var child = new GameObject("Water mesh"); child.transform.SetParent(pivot.transform, false);
+            var filter = child.AddComponent<MeshFilter>(); child.AddComponent<MeshRenderer>();
+            pivot.AddComponent<HorizontalCartWater>();
+            yield return null;
+            float before = filter.sharedMesh.vertices[16].y;
+            cart.Stability.Impact(Vector3.right);
+            yield return new WaitForFixedUpdate();
+            yield return null;
             Assert.That(cart.Water, Is.EqualTo(150));
+            Assert.That(filter.sharedMesh.vertices[16].y, Is.GreaterThan(before + 0.002f),
+                "The warning wave must render without waiting for a water-count change");
+        }
+
+        [UnityTest]
+        public IEnumerator ImpactLosesOnlyIntegratedVisibleFlowAndSettles()
+        {
+            cart.Stability.Impact(Vector3.right);
+            Assert.That(cart.Water, Is.EqualTo(150), "No invisible instant penalty");
+            float integral = 0f; bool sawWaveBeforeFlow = false, sawFlow = false;
+            for (int i = 0; i < 250; i++)
+            {
+                yield return new WaitForFixedUpdate();
+                var state = cart.Stability.State;
+                integral += state.Outflow * Time.fixedDeltaTime;
+                if (state.Wave.magnitude > 0.01f && state.Outflow == 0f && !sawFlow) sawWaveBeforeFlow = true;
+                sawFlow |= state.Outflow > 0f;
+            }
+            Assert.That(sawWaveBeforeFlow && sawFlow, Is.True);
+            Assert.That(150 - cart.Water, Is.EqualTo(Mathf.FloorToInt(integral)).Within(1));
+            Assert.That(cart.Water, Is.InRange(115, 149));
+            Assert.That(cart.Stability.State.Outflow, Is.Zero);
+        }
+
+        [UnityTest]
+        public IEnumerator OppositeInputStaysAttachedAndCalm()
+        {
+            cart.SetHandleCount(2); Carrier(0, Vector3.forward); Carrier(1, Vector3.back);
+            yield return new WaitForSeconds(4f);
+            Assert.That(cart.Carry.CarrierCount, Is.EqualTo(2));
+            Assert.That(cart.Carry.FlatVelocity.magnitude, Is.LessThan(0.05f));
+            Assert.That(cart.Water, Is.EqualTo(150));
+        }
+
+        [UnityTest]
+        public IEnumerator FastTurnMakesWaveAndSlowTurnPreservesWater()
+        {
+            cart.SetHandleCount(1); var player = Carrier(0, Vector3.forward);
+            yield return new WaitForSeconds(3f);
+            Intent.SetValue(player, Vector3.right);
+            float peak = 0f;
+            for (int i = 0; i < 75; i++) { yield return new WaitForFixedUpdate(); peak = Mathf.Max(peak, cart.Stability.State.Risk); }
+            Assert.That(peak, Is.GreaterThan(1f)); Assert.That(cart.Water, Is.LessThan(150));
+            Intent.SetValue(player, Vector3.zero); yield return new WaitForSeconds(3f);
+            cart.ChangeWater(150, WaterLossReason.Filled); cart.Stability.ResetTrip();
+            Intent.SetValue(player, Vector3.right * 0.2f); yield return new WaitForSeconds(2f);
+            Intent.SetValue(player, Vector3.forward * 0.2f); yield return new WaitForSeconds(2f);
+            Assert.That(cart.Water, Is.EqualTo(150));
+        }
+
+        [UnityTest]
+        public IEnumerator ReverseInputBrakesBeforeBackingUpAndRaisesWave()
+        {
+            cart.SetHandleCount(1); var player = Carrier(0, Vector3.forward);
+            yield return new WaitForSeconds(3f); Intent.SetValue(player, Vector3.back);
+            yield return new WaitForFixedUpdate();
+            Assert.That(cart.Carry.FlatVelocity.z, Is.GreaterThan(0f));
             yield return new WaitForSeconds(1.2f);
-            Assert.That(cart.Water, Is.InRange(142, 144));
+            Assert.That(cart.Carry.FlatVelocity.z, Is.LessThan(0f));
+            Assert.That(cart.Water, Is.LessThan(150));
         }
     }
 }

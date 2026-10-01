@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Igruha.Minigames.CarryItem
 {
-    public enum CartTiltCause : byte { None, Disagreement, Turn, Release, Impact }
+    public enum CartTiltCause : byte { None, Disagreement, Turn, Release, Impact, Brake }
 
     public struct CartStabilityState : INetworkSerializable, IEquatable<CartStabilityState>
     {
@@ -16,178 +16,122 @@ namespace Igruha.Minigames.CarryItem
         public ushort SpillSequence;
         public CartTiltCause SpillCause;
         public int SpillResponsible;
+        public Vector2 Wave;
+        public float Outflow, Risk, SpillAlong, SpillWidth;
+        public byte SpillSide;
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
-            serializer.SerializeValue(ref Cause);
-            serializer.SerializeValue(ref Responsible);
-            serializer.SerializeValue(ref SpillSequence);
-            serializer.SerializeValue(ref SpillCause);
-            serializer.SerializeValue(ref SpillResponsible);
+            serializer.SerializeValue(ref Cause); serializer.SerializeValue(ref Responsible);
+            serializer.SerializeValue(ref SpillSequence); serializer.SerializeValue(ref SpillCause);
+            serializer.SerializeValue(ref SpillResponsible); serializer.SerializeValue(ref Wave);
+            serializer.SerializeValue(ref Outflow); serializer.SerializeValue(ref Risk);
+            serializer.SerializeValue(ref SpillAlong); serializer.SerializeValue(ref SpillWidth);
+            serializer.SerializeValue(ref SpillSide);
         }
-        public bool Equals(CartStabilityState other) => Cause == other.Cause && Responsible == other.Responsible &&
-            SpillSequence == other.SpillSequence && SpillCause == other.SpillCause && SpillResponsible == other.SpillResponsible;
+        public bool Equals(CartStabilityState o) => Cause == o.Cause && Responsible == o.Responsible &&
+            SpillSequence == o.SpillSequence && SpillCause == o.SpillCause && SpillResponsible == o.SpillResponsible &&
+            Wave == o.Wave && Outflow == o.Outflow && Risk == o.Risk && SpillSide == o.SpillSide &&
+            SpillAlong == o.SpillAlong && SpillWidth == o.SpillWidth;
     }
 
-    /// <summary>Server computes tilt and blame; WaterCart replicates the resulting state.</summary>
+    /// <summary>One authoritative wave drives the visible surface, overflow and volume loss.</summary>
     [DefaultExecutionOrder(20), RequireComponent(typeof(MultiCarryObject))]
     public sealed class WaterCartStability : MonoBehaviour
     {
         private MultiCarryObject carry;
         private WaterCart cart;
         private CarryItemConfig config;
-        private float lastYaw;
-        private float releaseHold;
-        private int releasedPlayer = -1;
-        private bool spilledThisTrip;
-        private float controlledSpeed;
         private Rigidbody body;
-        private readonly Vector3[] tensions = new Vector3[MultiCarryObject.MaxHandles];
-        private readonly PlayerController[] sampledCarriers = new PlayerController[MultiCarryObject.MaxHandles];
+        private Vector3 lastVelocity, filteredAcceleration, lastPosition;
+        private CartTiltCause lastCause;
+        private Vector2 wave, waveVelocity;
+        private float publishTimer, impactHold, controlledSpeed;
+        private bool spilledThisTrip;
         public CartStabilityState State { get; private set; }
         public event Action<CartTiltCause, int> FirstSpill;
-        public bool NeedsHands => cart != null && cart.Load >= 0.8f &&
-            carry.CarrierCount < carry.HandleCount * 0.5f;
-        public bool IsStraining => cart != null && cart.Load >= 0.8f && carry.CarrierCount == 1;
+        public bool NeedsHands => cart != null && cart.Load >= 0.8f && carry.CarrierCount == 1 && carry.HandleCount > 1;
+        public bool IsStraining => NeedsHands && carry.FlatVelocity.sqrMagnitude > 0.04f;
+        public bool IsSpilling => State.Outflow > 0f && cart != null && cart.Water > 0 && !cart.IsLost;
 
         private void Awake() { carry = GetComponent<MultiCarryObject>(); body = GetComponent<Rigidbody>(); }
-        private void OnEnable() { carry.HandleReleased += OnReleased; }
-        private void OnDisable() { carry.HandleReleased -= OnReleased; }
-
         public void Configure(WaterCart owner, CarryItemConfig settings)
-        {
-            cart = owner;
-            config = settings;
-            lastYaw = transform.eulerAngles.y;
-        }
+        { cart = owner; config = settings; lastVelocity = carry.FlatVelocity; lastPosition = transform.position; }
 
         public void ResetTrip()
         {
-            spilledThisTrip = false;
-            releaseHold = 0f;
-            lastYaw = transform.eulerAngles.y;
-            SetCause(CartTiltCause.None, -1);
+            spilledThisTrip = false; wave = waveVelocity = Vector2.zero;
+            filteredAcceleration = Vector3.zero; lastVelocity = carry.FlatVelocity; lastPosition = transform.position; impactHold = 0f; lastCause = CartTiltCause.None;
+            var next = State; next.Wave = Vector2.zero; next.Outflow = next.Risk = 0f;
+            next.Cause = CartTiltCause.None; next.Responsible = -1; ApplyState(next);
+            cart?.PublishStability();
         }
-
         public void ApplyState(CartStabilityState value)
         {
             bool announce = value.SpillSequence != State.SpillSequence;
             State = value;
             if (announce) FirstSpill?.Invoke(value.SpillCause, value.SpillResponsible);
         }
-
         public void RecordSpill()
         {
             if (spilledThisTrip || cart == null || !cart.IsAuthority) return;
             spilledThisTrip = true;
-            var next = State;
-            next.SpillSequence++;
-            next.SpillCause = next.Cause == CartTiltCause.None ? CartTiltCause.Impact : next.Cause;
-            next.SpillResponsible = next.Responsible;
-            ApplyState(next);
-            cart.PublishStability();
+            var next = State; next.SpillSequence++; next.SpillCause = next.Cause;
+            next.SpillResponsible = -1; ApplyState(next); cart.PublishStability();
         }
-
-        private void SetCause(CartTiltCause cause, int responsible)
+        public void Impact(Vector3 toward, float strength = 1f)
         {
-            if (State.Cause == cause && State.Responsible == responsible) return;
-            var next = State;
-            next.Cause = cause;
-            next.Responsible = responsible;
-            State = next;
-            cart?.PublishStability();
+            if (config == null || cart == null || !cart.IsAuthority || cart.IsLost) return;
+            toward = Vector3.ProjectOnPlane(toward, Vector3.up).normalized;
+            if (toward.sqrMagnitude < 0.01f) toward = transform.forward;
+            waveVelocity += new Vector2(toward.x, toward.z) * config.ImpactWaveImpulse * Mathf.Clamp(strength, 0.2f, 2f);
+            waveVelocity = Vector2.ClampMagnitude(waveVelocity, config.ImpactWaveImpulse * 2f);
+            impactHold = 1.2f;
         }
-
         private void FixedUpdate()
         {
             if (config == null || cart == null || !cart.IsAuthority || cart.IsLost) return;
             float dt = Time.fixedDeltaTime;
-            controlledSpeed = carry.FlatVelocity.magnitude;
-            float yaw = transform.eulerAngles.y;
-            float yawRate = Mathf.DeltaAngle(lastYaw, yaw) / dt;
-            lastYaw = yaw;
-            Vector3 lean = Vector3.zero;
-            CartTiltCause cause = CartTiltCause.None;
-            int responsible = -1;
-            float difference = Disagreement(out int lagger, out Vector3 lagDirection);
-            float mismatchTilt = DisagreementDegrees(difference, cart.Load, config);
-            if (mismatchTilt > 0f)
+            Vector3 velocity = carry.FlatVelocity;
+            controlledSpeed = velocity.magnitude;
+            if ((transform.position - lastPosition).sqrMagnitude > 2.25f)
+            { wave = waveVelocity = Vector2.zero; filteredAcceleration = Vector3.zero; lastVelocity = velocity; }
+            lastPosition = transform.position;
+            Vector3 acceleration = Vector3.ClampMagnitude((velocity - lastVelocity) / dt, 18f);
+            Vector3 direction = lastVelocity.sqrMagnitude > 0.04f ? lastVelocity.normalized : transform.forward;
+            lastVelocity = velocity;
+            filteredAcceleration = Vector3.Lerp(filteredAcceleration, acceleration, 1f - Mathf.Exp(-dt * 10f));
+            float longitudinal = Vector3.Dot(filteredAcceleration, direction);
+            Vector3 lateral = filteredAcceleration - direction * longitudinal;
+            float braking = Mathf.Max(0f, -longitudinal - config.GentleBrakeLimit);
+            Vector3 forcing = -lateral * config.TurnWaveGain + direction * braking * config.BrakeWaveGain;
+            // A gentle start moves the water slightly, leaving plenty of freeboard.
+            forcing -= direction * Mathf.Max(0f, longitudinal) * 0.01f;
+            impactHold = acceleration.magnitude > 8f ? 1.2f : Mathf.Max(0f, impactHold - dt);
+            CartTiltCause cause = impactHold > 0f ? CartTiltCause.Impact :
+                braking > 0.35f ? CartTiltCause.Brake : lateral.magnitude > 0.6f ? CartTiltCause.Turn : lastCause;
+            lastCause = cause;
+            if (cart.Water == 0) { wave = waveVelocity = Vector2.zero; }
+            else
             {
-                lean = Vector3.Cross(Vector3.up, lagDirection) * mismatchTilt;
-                cause = CartTiltCause.Disagreement;
-                responsible = PlayerId(carry.CarrierAt(lagger));
+                Vector2 target = Vector2.ClampMagnitude(new Vector2(forcing.x, forcing.z), CartWaterSurface.MaxSlope);
+                waveVelocity += ((target - wave) * config.WaveResponse - waveVelocity * config.WaveDamping) * dt;
+                wave = Vector2.ClampMagnitude(wave + waveVelocity * dt, CartWaterSurface.MaxSlope);
             }
-
-            float turn = TurnDegrees(yawRate, carry.FlatVelocity.magnitude, cart.Load, config);
-            if (turn > 0.1f)
-            {
-                Vector3 outward = -transform.right * Mathf.Sign(yawRate);
-                lean += Vector3.Cross(Vector3.up, outward) * turn;
-                if (turn > mismatchTilt && turn >= config.WarningTilt) { cause = CartTiltCause.Turn; responsible = -1; }
-            }
-            carry.SetTiltTarget(lean);
-            releaseHold = Mathf.Max(0f, releaseHold - dt);
-            if (releaseHold > 0f && mismatchTilt < config.ReleaseTilt && turn < config.ReleaseTilt)
-            { cause = CartTiltCause.Release; responsible = releasedPlayer; }
-            // Keep the last cause while its physical lean is still relaxing above the warning angle.
-            if (cause == CartTiltCause.None && carry.TiltAngle >= config.WarningTilt) return;
-            SetCause(cause, responsible);
-        }
-
-        public static float DisagreementDegrees(float difference, float load, CarryItemConfig settings) =>
-            Mathf.Max(0f, (difference - settings.DisagreementStart) /
-                Mathf.Max(0.01f, settings.DisagreementFull - settings.DisagreementStart)) *
-            settings.DisagreementTilt * Mathf.Lerp(settings.EmptyTiltFraction, 1f, load);
-
-        public static float TurnDegrees(float yawRate, float speed, float load, CarryItemConfig settings) =>
-            Mathf.Abs(yawRate) / settings.TurnReferenceDegrees * speed / settings.TurnReferenceSpeed *
-            settings.TurnTilt * Mathf.Lerp(settings.EmptyTiltFraction, 1f, load);
-
-        private float Disagreement(out int lagger, out Vector3 lagDirection)
-        {
-            lagger = -1;
-            lagDirection = Vector3.zero;
-            if (carry.CarrierCount < 2) return 0f;
-            for (int i = 0; i < carry.HandleCount; i++)
-                if (carry.IsSettlingAt(i)) return 0f;
-            Vector3 mean = Vector3.zero, support = Vector3.zero;
-            float largest = 0f;
-            for (int i = 0; i < carry.HandleCount; i++)
-            {
-                if (carry.CarrierAt(i) == null) continue;
-                Vector3 sample = carry.TensionAt(i);
-                // A short physical response filters packet cadence without concealing a lasting lag.
-                tensions[i] = sampledCarriers[i] != carry.CarrierAt(i) ? sample :
-                    Vector3.Lerp(tensions[i], sample, 1f - Mathf.Exp(-Time.fixedDeltaTime * 12f));
-                sampledCarriers[i] = carry.CarrierAt(i);
-                mean += tensions[i];
-                support += carry.StationOf(i);
-                for (int j = 0; j < i; j++)
-                    if (carry.CarrierAt(j) != null)
-                        largest = Mathf.Max(largest, Vector3.Distance(tensions[i], tensions[j]));
-            }
-            Vector3 direction = mean.sqrMagnitude > 0.001f ? mean.normalized : transform.forward;
-            float least = float.PositiveInfinity;
-            for (int i = 0; i < carry.HandleCount; i++)
-            {
-                if (carry.CarrierAt(i) == null) continue;
-                float progress = Vector3.Dot(tensions[i], direction);
-                if (progress < least) { least = progress; lagger = i; }
-            }
-            lagDirection = Vector3.ProjectOnPlane(carry.StationOf(lagger) - support / carry.CarrierCount,
-                Vector3.up).normalized;
-            return largest;
-        }
-
-        private void OnReleased(int slot, PlayerController player, CarryReleaseReason reason)
-        {
-            if (config == null || cart == null || !cart.IsAuthority || cart.IsLost ||
-                reason == CarryReleaseReason.Thrown || reason == CarryReleaseReason.RoundEnded ||
-                carry.FlatVelocity.sqrMagnitude < 0.0225f) return;
-            Vector3 side = Vector3.ProjectOnPlane(carry.StationOf(slot) - transform.position, Vector3.up).normalized;
-            carry.AddTiltKick(Vector3.Cross(Vector3.up, side) * config.ReleaseTilt * (0.5f + cart.Load));
-            releasedPlayer = PlayerId(player);
-            releaseHold = 2f;
-            SetCause(CartTiltCause.Release, releasedPlayer);
+            Vector3 local = transform.InverseTransformDirection(new Vector3(wave.x, 0f, wave.y));
+            float rate = CartWaterSurface.Overflow(cart.Load, new Vector2(local.x, local.z), config.OverflowRate,
+                out byte side, out float along, out float width, out float risk);
+            if (risk < 0.45f && impactHold == 0f) cause = CartTiltCause.None;
+            var next = State;
+            next.Wave = wave; next.Outflow = rate; next.Risk = risk;
+            next.SpillSide = side; next.SpillAlong = along; next.SpillWidth = width;
+            next.Cause = cause; next.Responsible = -1;
+            bool edge = (State.Outflow > 0f) != (rate > 0f);
+            ApplyState(next);
+            // Chassis stays on its wheels. Water motion explains danger by itself.
+            carry.SetTiltTarget(Vector3.zero);
+            cart.DrainOverflow(rate, dt);
+            publishTimer -= dt;
+            if (publishTimer <= 0f || edge) { publishTimer = 0.05f; cart.PublishStability(); }
         }
 
         public static int PlayerId(PlayerController avatar)

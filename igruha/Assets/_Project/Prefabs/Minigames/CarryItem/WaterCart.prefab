@@ -206,7 +206,7 @@ ParticleSystem:
     startLifetime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 1.3
+      scalar: 0.55
       minScalar: 5
       maxCurve:
         serializedVersion: 2
@@ -259,7 +259,7 @@ ParticleSystem:
     startSpeed:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 2.6
+      scalar: 0.4
       minScalar: 5
       maxCurve:
         serializedVersion: 2
@@ -313,7 +313,7 @@ ParticleSystem:
       serializedVersion: 2
       minMaxState: 0
       minColor: {r: 1, g: 1, b: 1, a: 1}
-      maxColor: {r: 1, g: 1, b: 1, a: 1}
+      maxColor: {r: 0.69, g: 0.85, b: 0.86, a: 0.55}
       maxGradient:
         serializedVersion: 2
         key0: {r: 1, g: 1, b: 1, a: 1}
@@ -376,9 +376,9 @@ ParticleSystem:
         m_NumAlphaKeys: 2
     startSize:
       serializedVersion: 2
-      minMaxState: 0
-      scalar: 0.035
-      minScalar: 1
+      minMaxState: 3
+      scalar: 0.026
+      minScalar: 0.012
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -701,7 +701,7 @@ ParticleSystem:
     gravityModifier:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 1.35
+      scalar: 1
       minScalar: 0
       maxCurve:
         serializedVersion: 2
@@ -754,7 +754,7 @@ ParticleSystem:
   ShapeModule:
     serializedVersion: 6
     enabled: 1
-    type: 4
+    type: 5
     angle: 4
     length: 5
     boxThickness: {x: 0, y: 0, z: 0}
@@ -762,7 +762,7 @@ ParticleSystem:
     donutRadius: 0.2
     m_Position: {x: 0, y: 0, z: 0}
     m_Rotation: {x: 0, y: 0, z: 0}
-    m_Scale: {x: 1, y: 1, z: 1}
+    m_Scale: {x: 0.3, y: 0.02, z: 0.01}
     placementMode: 0
     m_MeshMaterialIndex: 0
     m_MeshNormalOffset: 0
@@ -15336,7 +15336,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 92830d021e2e14979874451bddc0ce67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.CarryItem.HorizontalCartWater
-  size: {x: 0.76, y: 0.44, z: 1.02}
 --- !u!1 &6310655249272752062
 GameObject:
   m_ObjectHideFlags: 0
@@ -15515,6 +15514,7 @@ GameObject:
   - component: {fileID: 7737810343257559435}
   - component: {fileID: 8611171222261393541}
   - component: {fileID: 101874412661438126}
+  - component: {fileID: 2137857676860700600}
   m_Layer: 0
   m_Name: WaterCart
   m_TagString: Untagged
@@ -15633,6 +15633,8 @@ MonoBehaviour:
     rollingDeceleration: 1.5
     turnRate: 180
     rollingTensionDrive: 0
+    rollingDirectControl: 0
+    rollingBrakeAcceleration: 0
     speedByHandsEmpty: {x: 0, y: 0, z: 0, w: 0}
     speedByHandsFull: {x: 0, y: 0, z: 0, w: 0}
     accelerationByHandsEmpty: {x: 0, y: 0, z: 0, w: 0}
@@ -15799,6 +15801,18 @@ MonoBehaviour:
   InLocalSpace: 0
   Interpolate: 1
   SlerpPosition: 0
+--- !u!114 &2137857676860700600
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7233307270582071236}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 193b22ac2d65f4c62ac80ac6185cf89c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.CarryItem.CartOverflowVisual
 --- !u!1 &7949716374861780266
 GameObject:
   m_ObjectHideFlags: 0

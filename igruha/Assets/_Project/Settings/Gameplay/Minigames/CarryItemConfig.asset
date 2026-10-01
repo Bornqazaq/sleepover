@@ -75,6 +75,15 @@ MonoBehaviour:
   tetherFreeSpeedPerMeter: 1.3
   tetherGrip: 0.85
   shoveImpulsePerCarrier: 7
+  steeringRate: 90
+  brakeAcceleration: 5
+  waveResponse: 24
+  waveDamping: 5
+  turnWaveGain: 0.11
+  brakeWaveGain: 0.18
+  gentleBrakeLimit: 2
+  impactWaveImpulse: 2.8
+  overflowRate: 300
   disagreementStart: 0.15
   disagreementFull: 0.5
   disagreementTilt: 48

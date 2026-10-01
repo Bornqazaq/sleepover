@@ -9,9 +9,8 @@ namespace Igruha.Minigames.CarryItem
     /// Таран корпусом между несущими двух команд — единственный способ навредить
     /// сопернику, не бросая поручень.
     ///
-    /// <b>Пропорция потерь 20 / 10 — самый важный параметр всей игры.</b>
-    /// Поровну — таранить не будут; бесплатно — бросят возить и будут только
-    /// таранить. Оба числа лежат в конфиге и крутятся на плейтесте.
+    /// У жертвы полный импульс волны, у атакующего половинный.
+    /// Потери считает перелив, фиксированного списания за таран нет.
     ///
     /// Живёт одним объектом на сцене, а не по одному на тележку: кулдаун здесь
     /// общий <b>на пару команд</b>, а две копии считали бы его каждая по-своему
@@ -140,8 +139,8 @@ namespace Igruha.Minigames.CarryItem
             if (headOn)
             {
                 // Лобовое: атакующего нет, обе команды платят одинаково.
-                cartA.ChangeWater(-config.RamVictimLoss, WaterLossReason.RamVictim);
-                cartB.ChangeWater(-config.RamVictimLoss, WaterLossReason.RamVictim);
+                cartA.Stability.Impact(-axis);
+                cartB.Stability.Impact(axis);
                 return true;
             }
 
@@ -149,8 +148,8 @@ namespace Igruha.Minigames.CarryItem
             WaterCart attackerCart = leftAttacks ? cartA : cartB;
             WaterCart victimCart = leftAttacks ? cartB : cartA;
 
-            victimCart.ChangeWater(-config.RamVictimLoss, WaterLossReason.RamVictim);
-            attackerCart.ChangeWater(-config.RamAttackerLoss, WaterLossReason.RamAttacker);
+            victimCart.Stability.Impact(leftAttacks ? axis : -axis);
+            attackerCart.Stability.Impact(leftAttacks ? -axis : axis, 0.5f);
             return true;
         }
     }
