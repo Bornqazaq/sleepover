@@ -83,7 +83,16 @@ MonoBehaviour:
   brakeWaveGain: 0.18
   gentleBrakeLimit: 2
   impactWaveImpulse: 2.8
-  overflowRate: 300
+  overflowRate: 420
+  teamRockBuild: 0.85
+  teamRockRelease: 1.5
+  teamRockFrequency: 0.8
+  teamRockSlope: 0.23
+  teamRockLimit: 0.28
+  teamRockResponse: 32
+  teamRockDamping: 6
+  teamRockAxisResponse: 6
+  teamRockWaveGain: 0.32
   disagreementStart: 0.15
   disagreementFull: 0.5
   disagreementTilt: 48

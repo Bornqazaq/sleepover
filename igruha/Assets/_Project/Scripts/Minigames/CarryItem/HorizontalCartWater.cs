@@ -82,7 +82,11 @@ namespace Igruha.Minigames.CarryItem
                 float edgeDistance = Mathf.Min(CartWaterSurface.Width * 0.5f - Mathf.Abs(px),
                     CartWaterSurface.Length * 0.5f - Mathf.Abs(pz));
                 foam *= 1f - Mathf.Clamp01(edgeDistance / 0.045f);
-                colors[i] = new Color(foam, 1f, 1f, 1f); colors[i + Layer] = new Color(0f, 1f, 1f, 1f);
+                // R: wet-rim foam. G: depth below surface. B: full column depth.
+                // The shader absorbs more light through a deep column, without a camera depth texture.
+                float depth = Mathf.Clamp01(height / CartWaterSurface.FullHeight);
+                colors[i] = new Color(foam, 0f, depth, 1f);
+                colors[i + Layer] = new Color(0f, depth, depth, 1f);
                 vertices[i] = filter.transform.InverseTransformPoint(transform.TransformPoint(
                     new Vector3(px, Mathf.Clamp(height, 0.001f, CartWaterSurface.Depth), pz)));
                 vertices[i + Layer] = filter.transform.InverseTransformPoint(transform.TransformPoint(new Vector3(px, 0f, pz)));

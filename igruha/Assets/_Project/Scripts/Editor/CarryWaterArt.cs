@@ -36,14 +36,22 @@ namespace Igruha.EditorTools
                 material = new Material(Shader.Find("Igruha/Carry Water"));
                 AssetDatabase.CreateAsset(material, path);
             }
-            material.shader = Shader.Find("Igruha/Carry Water");
-            material.SetColor("_Tint", new Color(0.10f, 0.42f, 0.46f, 1f));
-            material.SetFloat("_Opacity", 0.52f);
-            material.SetFloat("_RippleStrength", 0.16f);
-            material.SetFloat("_Flow", 0f);
-            material.renderQueue = 2980;
-            EditorUtility.SetDirty(material);
+            ConfigureWaterMaterial(material);
             return material;
+        }
+
+        internal static void ConfigureWaterMaterial(Material material)
+        {
+            material.shader = Shader.Find("Igruha/Carry Water");
+            material.SetColor("_Tint", new Color(0.075f, 0.29f, 0.34f, 1f));
+            material.SetColor("_DepthTint", new Color(0.035f, 0.16f, 0.21f, 1f));
+            material.SetFloat("_Opacity", 0.78f);
+            material.SetFloat("_Density", 2.2f);
+            material.SetFloat("_RippleStrength", 0.08f);
+            material.SetFloat("_Flow", 0f);
+            // Rear glass faces otherwise paint over the water and wash out its depth.
+            material.renderQueue = 3010;
+            EditorUtility.SetDirty(material);
         }
 
         internal static Transform[] Wheels(Transform parent)

@@ -38,6 +38,7 @@ namespace Igruha.EditorTools
             configSo.FindProperty("rollingTetherGain").floatValue = 4f;
             configSo.FindProperty("rollingLateralGain").floatValue = 8f;
             configSo.FindProperty("brakeWaveGain").floatValue = 0.18f;
+            configSo.FindProperty("overflowRate").floatValue = 420f;
             configSo.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(config); // Save newly added tuning fields.
 
@@ -77,9 +78,7 @@ namespace Igruha.EditorTools
             {
                 var renderer = water.GetComponentInChildren<Renderer>();
                 var mat = renderer.sharedMaterial;
-                mat.SetColor("_Tint", new Color(0.07f, 0.24f, 0.28f));
-                mat.SetFloat("_Opacity", 0.55f); mat.SetFloat("_RippleStrength", 0.06f);
-                EditorUtility.SetDirty(mat);
+                CarryWaterArt.ConfigureWaterMaterial(mat);
             }
             var leak = root.transform.Find("Body/LeakJet")?.GetComponent<ParticleSystem>();
             if (leak != null)

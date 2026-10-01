@@ -13,6 +13,7 @@ namespace Igruha.Minigames.CarryItem
         public const float FullHeight = 0.435f;
         public const float LipWidth = 0.05f;
         public const float MaxSlope = 0.85f;
+        public const float MaxOverflowRate = 49f;
         private const int EdgeSamples = 17;
         public static Vector2 InHeading(Vector2 world, Quaternion heading)
         {
@@ -69,7 +70,7 @@ namespace Igruha.Minigames.CarryItem
                 best = area; side = edge; along = (firstWet + lastWet) * 0.5f; width = wet;
             }
             risk = maxRise / Mathf.Max(0.01f, Depth - load * FullHeight);
-            return Mathf.Min(35f, best * rate);
+            return Mathf.Min(MaxOverflowRate, best * rate);
         }
     }
 }
