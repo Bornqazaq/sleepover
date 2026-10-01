@@ -127,14 +127,14 @@ namespace Igruha.Tests
                     // The preceding team's cart and released players otherwise remain
                     // in this turn's path. Their collisions test obstruction, not free rolling.
                     TeamSide otherSide = side == TeamSide.A ? TeamSide.B : TeamSide.A;
-                    game.CartOf(otherSide).Carry.ResetPose(new Vector3(-24f, 0.03f, -12f), Quaternion.identity);
+                    game.CartOf(otherSide).Carry.ResetPose(new Vector3(-24f, 0.03f, -6f), Quaternion.identity);
                     int parkedIndex = 0;
                     foreach (var entry in SessionScoreboard.Current.Players)
                         if (game.TeamOfPlayer(entry.Id) != side)
                             entry.Avatar.RequestTeleport(new Vector3(-24f + parkedIndex++ * 1.1f, 0f, -10f), Quaternion.identity);
                     // Leave room for direct-control acceleration, coasting and the front holders
                     // before the pit. The cabin at x=-25 remains outside the rear stations.
-                    cart.Carry.ResetPose(new Vector3(count == 1 ? -17.5f : -23f, 0.03f, 2f), Quaternion.Euler(0f, 90f, 0f));
+                    cart.Carry.ResetPose(new Vector3(count == 1 ? -17.5f : -23f, 0.03f, 4.8f), Quaternion.Euler(0f, 90f, 0f));
                     cart.SetHandleCount(count);
                     cart.ChangeWater(game.Config.CartCapacity, WaterLossReason.Filled);
                     for (int i = 0; i < team.Count; i++)
@@ -208,7 +208,7 @@ namespace Igruha.Tests
             yield return WaitElapsed(151f);
             if (manager.IsServer)
             {
-                cart.Carry.ResetPose(new Vector3(-20f, 0.03f, 1f), Quaternion.Euler(0f, 90f, 0f));
+                cart.Carry.ResetPose(new Vector3(-20f, 0.03f, 4.8f), Quaternion.Euler(0f, 90f, 0f));
                 cart.SetHandleCount(2);
                 cart.ChangeWater(game.Config.CartCapacity, WaterLossReason.Filled);
                 cart.Stability.ResetTrip();

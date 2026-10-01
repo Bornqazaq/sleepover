@@ -1,0 +1,88 @@
+{
+  "issue": "IGR-696",
+  "date": "2026-10-01",
+  "base_commit": "ccfc058d",
+  "playmode": [
+    {
+      "job": "ba8aaa05341b4d21ba9bc9bf2eec45fe",
+      "passed": 55,
+      "failed": 0
+    },
+    {
+      "job": "a5ba5a9e85e04c2186a60c39d56ece0b",
+      "passed": 17,
+      "failed": 0,
+      "scope": "claims and delivery, including one hose queue and capacity conservation"
+    }
+  ],
+  "build": {
+    "platform": "macOS Development",
+    "result": "Succeeded",
+    "errors": 0,
+    "warnings": 2,
+    "warning_source": "MCP websocket heartbeat reconnect during build; not player code"
+  },
+  "geometry": {
+    "four_player_footprints": 971,
+    "problems": 0,
+    "road_joints": 22,
+    "repeat_transforms": [
+      345,
+      345
+    ],
+    "scene_mesh_renderers": [
+      1628,
+      1778
+    ],
+    "new_layer_renderers": 176,
+    "new_layer_triangles": 101572,
+    "flyover_width": 4.4,
+    "flyover_height": 4.5,
+    "ramp_degrees": 16.9,
+    "landing_length": 5.36,
+    "continuous_flyover_collider": true
+  },
+  "network": {
+    "heist": {
+      "logs": "carry-heist-20261001-190214",
+      "passed": 8,
+      "failed": 0,
+      "covers": [
+        "real owner E capture, occupied-cart rejection and reclaim",
+        "WASD on stolen cart and local HUD",
+        "gradual stolen water delivery only to controlling team",
+        "hose follows delivered cart",
+        "four owners ascend and descend both ramps",
+        "one carrier disconnects; three retain grip",
+        "crane contact, knockdown and authoritative grip release"
+      ],
+      "earlier_pass_after_surface_fix": "carry-heist-20261001-185033"
+    },
+    "rolling": {
+      "logs": "carry-rolling-20261001-183412",
+      "passed": 8,
+      "failed": 0,
+      "water_after_fast_road": 99,
+      "capacity": 150
+    }
+  },
+  "diagnostics": [
+    "Existing Addressables ProfileValueReference empty-id diagnostic when building",
+    "Metal memoryless-depth messages from positioned screenshot capture",
+    "Initial heist assertions separated from next server action to avoid client observation races",
+    "Intermittent reversal snag fixed by replacing panel collider faces with one continuous runway",
+    "Roster gate now waits for eight live avatars instead of sampling once"
+  ],
+  "preserved": {
+    "original_local_files": 11,
+    "synty_prefabs_present": 8198,
+    "frozen_assets_changed": false
+  },
+  "not_verified": [
+    "human balance and visual acceptance",
+    "different physical PCs",
+    "Windows runtime",
+    "GPU profiling"
+  ],
+  "scene_sha256": "547e758ac24efe969115b02ecd81a6e3cf52b45bc228f7d631e44699d9186b26"
+}

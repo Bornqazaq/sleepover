@@ -27,6 +27,13 @@ namespace Igruha.EditorTools
                 Sweep(new[]{new Vector3(-12.4f,.288f,sign*5.04f),new Vector3(-6.2f,.288f,sign*5.04f)},"bridge1",settings,cover,ground,problems,ref samples);
                 Sweep(new[]{new Vector3(10.7f,.288f,sign*5.04f),new Vector3(15.2f,.288f,sign*5.04f)},"bridge2",settings,cover,ground,problems,ref samples);
             }
+            Sweep(new[]{new Vector3(-22,0,0),new Vector3(-7.2f,4.5f,0),new Vector3(7.2f,4.5f,0),new Vector3(22,0,0)},"upper",settings,cover,ground,problems,ref samples);
+            foreach(int sign in new[]{-1,1})
+            {
+                Sweep(new[]{new Vector3(-14,.04f,sign*11.25f),new Vector3(-4.7f,.04f,sign*11.25f)},"outer1",settings,cover,ground,problems,ref samples);
+                Sweep(new[]{new Vector3(9,.04f,sign*11.25f),new Vector3(16.9f,.04f,sign*11.25f)},"outer2",settings,cover,ground,problems,ref samples);
+                Sweep(new[]{new Vector3(19.6f,0,sign*5.04f),new Vector3(19.6f,0,sign*11f)},"pump bay",settings,cover,ground,problems,ref samples);
+            }
             var joints=Object.FindObjectsByType<CartRoadJoint>(FindObjectsSortMode.None);
             foreach(var j in joints)
             {
@@ -43,7 +50,7 @@ namespace Igruha.EditorTools
             }
             report.Append("Carry road audit: ").Append(samples).Append(" footprints, joints=").Append(joints.Length).Append(", problems=").Append(problems.Count);
             foreach(var p in problems)report.Append('\n').Append(p);
-            if(joints.Length!=14)report.Append("\nExpected 14 authored joints");
+            if(joints.Length!=22)report.Append("\nExpected 22 authored joints");
             Debug.Log(report.ToString());return report.ToString();
         }
         private static void Sweep(Vector3[] points,string name,MultiCarrySettings settings,int cover,int ground,HashSet<string> problems,ref int samples)

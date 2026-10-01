@@ -42,6 +42,7 @@ namespace Igruha.Minigames.CarryItem
         private static readonly int ColorId = Shader.PropertyToID("_Color");
         private float fillAccumulator;
         private bool filling;
+        private WaterCart fillingCart;
 
         /// <summary>Чей кран.</summary>
         public TeamSide Team => team;
@@ -54,7 +55,7 @@ namespace Igruha.Minigames.CarryItem
         public Quaternion DockRotation => (dock != null ? dock : transform).rotation;
 
         /// <summary>Набирает ли тележка воду прямо сейчас. На авторитете — из расчёта, у остальных — из состояния тележки.</summary>
-        public bool IsFilling => Cart != null && Cart.IsFilling;
+        public bool IsFilling => fillingCart != null ? fillingCart.IsFilling : Cart != null && Cart.IsFilling;
 
         private void Awake()
         {
@@ -107,9 +108,10 @@ namespace Igruha.Minigames.CarryItem
                 return;
             }
 
-            Cart = cart;
-            fillAccumulator = 0f;
             SetFilling(false);
+            Cart = cart;
+            fillingCart = null;
+            fillAccumulator = 0f;
         }
 
         /// <summary>Отвязать тележку — конец раунда.</summary>
@@ -117,6 +119,7 @@ namespace Igruha.Minigames.CarryItem
         {
             SetFilling(false);
             Cart = null;
+            fillingCart = null;
         }
 
         /// <summary>Тележка в зоне наполнения. Считается формой, а не триггером, поэтому верно и после телепорта.</summary>
@@ -157,16 +160,21 @@ namespace Igruha.Minigames.CarryItem
                 return;
             }
 
-            // Кран наливает только своей команде: чужая тележка под изливом
-            // стоит сухой, даже если её сюда записали по ошибке.
-            bool inZone = Cart.Team == team && !Cart.IsLost && Cart.Water < config.CartCapacity && Contains(Cart);
-            SetFilling(inZone);
-
-            if (!inZone)
+            // Either vessel can refill here after a capture. The physical stream chooses
+            // the vessel; original spawn ownership never prevents water entering it.
+            WaterCart target = Contains(Cart) ? Cart : null;
+            if (Igruha.Core.Minigame.MinigameControllerBase.Current is CarryItemMinigame game)
             {
-                fillAccumulator = 0f;
-                return;
+                WaterCart other = game.CartOf(team == TeamSide.A ? TeamSide.B : TeamSide.A);
+                if (target == null && Contains(other)) target = other;
             }
+            if (fillingCart != target)
+            {
+                SetFilling(false); fillingCart = target; fillAccumulator = 0f;
+            }
+            bool inZone = target != null && !target.IsLost && target.Water < config.CartCapacity;
+            SetFilling(inZone);
+            if (!inZone) { fillAccumulator = 0f; return; }
 
             fillAccumulator += config.FillRate * Time.fixedDeltaTime;
             int whole = Mathf.FloorToInt(fillAccumulator);
@@ -176,7 +184,7 @@ namespace Igruha.Minigames.CarryItem
             }
 
             fillAccumulator -= whole;
-            Cart.ChangeWater(whole, WaterLossReason.Filled);
+            fillingCart.ChangeWater(whole, WaterLossReason.Filled);
         }
 
         /// <summary>
@@ -185,9 +193,9 @@ namespace Igruha.Minigames.CarryItem
         /// </summary>
         private void SetFilling(bool value)
         {
-            if (Cart != null && WorldAuthority.HasAuthority)
+            if (fillingCart != null && WorldAuthority.HasAuthority)
             {
-                Cart.SetFilling(value);
+                fillingCart.SetFilling(value);
             }
 
             if (filling == value)

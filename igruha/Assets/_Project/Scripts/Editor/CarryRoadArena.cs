@@ -35,8 +35,9 @@ namespace Igruha.EditorTools
             var definition = AssetDatabase.LoadAssetAtPath<Igruha.Core.Minigame.MinigameDefinition>("Assets/_Project/Settings/Gameplay/Minigames/CarryItem.asset");
             var definitionSo = new SerializedObject(definition);
             definitionSo.FindProperty("tutorialSteps").GetArrayElementAtIndex(2).stringValue =
-                "На жёлтых стыках сбавляйте ход. Бирюзовый обход ровнее. Доставьте воду к насосу.";
+                "На стыках сбавляйте ход; сверху берегитесь балки. Чужую свободную тележку можно украсть по E и слить у своего насоса.";
             definitionSo.ApplyModifiedPropertiesWithoutUndo();AssetDatabase.SaveAssetIfDirty(definition);
+            CarryHeistArena.Apply();
             Physics.SyncTransforms();
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             Debug.Log("Carry roads: 6 central seams, 8 gentle bridge transitions; 4.5 m outer lanes; 10 original models.");
@@ -184,13 +185,13 @@ namespace Igruha.EditorTools
                     Chevron(root,new Vector3(x,.025f,s*5.04f),90,CarrySkyscraperAssets.Material(sign>0?"TeamA":"TeamB"),.40f);
             }
         }
-        private static void Joint(Transform root, Vector3 p, float width, float yaw, float severity)
+        internal static void Joint(Transform root, Vector3 p, float width, float yaw, float severity)
         {
             var t = Place(root, "Joint", p, yaw, false);
             t.GetChild(0).localScale = Vector3.Scale(t.GetChild(0).localScale, new Vector3(1,1,width/5.4f));
             t.gameObject.AddComponent<CartRoadJoint>().Configure(width,severity);
         }
-        private static Transform Place(Transform root, string name, Vector3 p, float yaw, bool solid)
+        internal static Transform Place(Transform root, string name, Vector3 p, float yaw, bool solid)
         {
             var t=Group(root,"RW_"+name); t.localPosition=p; t.localRotation=Quaternion.Euler(0,yaw,0);
             PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(Art+"/Models/RW_"+name+".fbx"),t);
@@ -204,7 +205,7 @@ namespace Igruha.EditorTools
             }
             return t;
         }
-        private static void Outline(Transform root,Vector3 center,Vector2 size,Material mat)
+        internal static void Outline(Transform root,Vector3 center,Vector2 size,Material mat)
         {
             for(int s=-1;s<=1;s+=2)
             {
@@ -212,7 +213,7 @@ namespace Igruha.EditorTools
                 Strip(root,center+new Vector3(s*size.x*.5f,.018f,0),new Vector3(.07f,.012f,size.y),mat);
             }
         }
-        private static void Polyline(Transform root,Vector3[] points,Material mat,float width)
+        internal static void Polyline(Transform root,Vector3[] points,Material mat,float width)
         {
             for(int i=1;i<points.Length;i++)
             {
@@ -220,7 +221,7 @@ namespace Igruha.EditorTools
                 t.rotation=Quaternion.LookRotation(d);
             }
         }
-        private static void Chevron(Transform root,Vector3 p,float yaw,Material mat,float size)
+        internal static void Chevron(Transform root,Vector3 p,float yaw,Material mat,float size)
         {
             var q=Quaternion.Euler(0,yaw,0);
             Polyline(root,new[]{p+q*new Vector3(-size,0,-size*.55f),p+q*Vector3.forward*size*.3f,p+q*new Vector3(size,0,-size*.55f)},mat,.11f);

@@ -59,7 +59,7 @@ namespace Igruha.Minigames.CarryItem
                 return;
             }
 
-            if (cartA == null || cartB == null || cartA.IsLost || cartB.IsLost)
+            if (cartA == null || cartB == null || cartA.IsLost || cartB.IsLost || cartA.ControlTeam == cartB.ControlTeam)
             {
                 return;
             }
