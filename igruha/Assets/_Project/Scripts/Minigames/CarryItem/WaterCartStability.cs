@@ -203,7 +203,7 @@ namespace Igruha.Minigames.CarryItem
             var player = collision.gameObject.GetComponentInParent<PlayerController>();
             if (player == null) return;
             var game = Igruha.Core.Minigame.MinigameControllerBase.Current as CarryItemMinigame;
-            if (game == null || game.TeamOfAvatar(player) == cart.Team) return;
+            if (game == null || game.TeamOfAvatar(player) == cart.ControlTeam) return;
             Vector3 away = Vector3.ProjectOnPlane(transform.position - player.transform.position, Vector3.up).normalized;
             float approach = Vector3.Dot(player.MoveIntent, away);
             // Remote MoveIntent is owner-only; contact with its moving capsule also counts.

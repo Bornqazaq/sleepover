@@ -99,7 +99,7 @@ namespace Igruha.Minigames.CarryItem
         {
             var scoreboard = SessionScoreboard.Current;
             var local = scoreboard?.LocalPlayer;
-            WaterCart cart = local != null ? game.CartOf(game.TeamOfPlayer(local.Id)) : null;
+            WaterCart cart = local != null ? game.CartForPlayer(local.Id) : null;
             bool visible = game.GameplayActive && !game.StartCountdownActive && local?.Avatar != null &&
                 cart != null && !cart.IsLost && cart.Carry.IsCarriedBy(local.Avatar);
             canvas.enabled = visible;

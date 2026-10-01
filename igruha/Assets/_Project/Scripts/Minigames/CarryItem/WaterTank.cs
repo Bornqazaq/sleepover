@@ -167,7 +167,7 @@ namespace Igruha.Minigames.CarryItem
             for (int i = pouring.Count - 1; i >= 0; i--)
             {
                 WaterCart cart = pouring[i];
-                if (cart == null || !insideZone.Contains(cart) || cart.Water <= 0)
+                if (cart == null || !insideZone.Contains(cart) || cart.Water <= 0 || water >= config.TankCapacity)
                 {
                     if (cart != null)
                     {
@@ -181,11 +181,13 @@ namespace Igruha.Minigames.CarryItem
             for (int i = insideZone.Count - 1; i >= 0; i--)
             {
                 WaterCart cart = insideZone[i];
-                if (cart == null || cart.IsLost || cart.Team != team || cart.Water <= 0)
+                if (cart == null || cart.IsLost || cart.ControlTeam != team || cart.Water <= 0 || water >= config.TankCapacity)
                 {
                     continue;
                 }
 
+                // One hose, one vessel: retain the connected vessel until empty or gone.
+                if (pouring.Count > 0 && !pouring.Contains(cart)) continue;
                 if (!pouring.Contains(cart))
                 {
                     pouring.Add(cart);
@@ -193,8 +195,13 @@ namespace Igruha.Minigames.CarryItem
                 }
 
                 Pour(cart, Time.fixedDeltaTime);
+                break;
             }
         }
+
+        // Spatial eligibility is decided by the authoritative collider query below.
+        // Presentation follows IsPouring, including a vessel only partly inside the zone.
+        public bool CanReceive(WaterCart cart) => cart != null && !cart.IsLost && cart.ControlTeam == team;
 
         private void RefreshCartsInZone()
         {
@@ -222,7 +229,7 @@ namespace Igruha.Minigames.CarryItem
                 Collider other = overlaps[i];
                 overlaps[i] = null;
                 WaterCart cart = other.GetComponentInParent<WaterCart>();
-                if (cart == null || cart.IsLost || cart.Team != team || insideZone.Contains(cart))
+                if (cart == null || cart.IsLost || cart.ControlTeam != team || insideZone.Contains(cart))
                     continue;
 
                 // Границы — только грубый отбор: повёрнутая зона не должна
@@ -267,7 +274,7 @@ namespace Igruha.Minigames.CarryItem
 
             pourAccumulator -= whole;
 
-            int taken = -cart.ChangeWater(-whole, WaterLossReason.Poured);
+            int taken = -cart.ChangeWater(-Mathf.Min(whole, config.TankCapacity - water), WaterLossReason.Poured);
             if (taken <= 0)
             {
                 return;

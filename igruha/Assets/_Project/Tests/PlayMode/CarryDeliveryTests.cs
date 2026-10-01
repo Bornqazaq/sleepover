@@ -126,6 +126,22 @@ namespace Igruha.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator OneHoseDrainsOneVesselAndDoesNotWasteWaterAtCapacity()
+        {
+            var first=CartAtTank();var second=CartAtTank();
+            yield return new WaitForSeconds(.3f);
+            Assert.That(first.IsPouring ^ second.IsPouring,Is.True,"one visible hose, one source");
+            Assert.That(tank.Water,Is.InRange(1,12),"single pump rate rather than two simultaneous pumps");
+            Assert.That(first.Water+second.Water+tank.Water,Is.EqualTo(300));
+            typeof(WaterTank).GetField("water",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance).SetValue(tank,config.TankCapacity-2);
+            int before=first.Water+second.Water;
+            yield return new WaitForSeconds(.3f);
+            Assert.That(tank.Water,Is.EqualTo(config.TankCapacity));
+            Assert.That(first.Water+second.Water,Is.EqualTo(before-2));
+            Assert.That(first.IsPouring||second.IsPouring,Is.False);
+        }
+
+        [UnityTest]
         public IEnumerator OpponentCartDoesNotScore()
         {
             var cart = CartAtTank(TeamSide.B);
@@ -229,13 +245,13 @@ namespace Igruha.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator TapDoesNotFillOpponentCartAndStopsAtCapacity()
+        public IEnumerator TapFillsCapturedVesselsAndStopsAtCapacity()
         {
             var tap = Tap(TeamSide.A);
             var foreign = Cart(tap.transform.position, TeamSide.B, full: false);
             tap.AttachCart(foreign);
             yield return new WaitForSeconds(0.3f);
-            Assert.That(foreign.Water, Is.Zero, "team filter");
+            Assert.That(foreign.Water, Is.GreaterThan(0), "physical stream fills any captured vessel");
             tap.DetachCart();
             var own = Cart(tap.transform.position, TeamSide.A, full: true);
             tap.AttachCart(own);

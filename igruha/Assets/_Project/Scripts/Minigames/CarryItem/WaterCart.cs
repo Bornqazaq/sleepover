@@ -26,6 +26,7 @@ namespace Igruha.Minigames.CarryItem
 
         /// <summary>Чья тележка, <see cref="TeamSide"/> байтом.</summary>
         public byte Team;
+        public byte ControlTeam;
 
         /// <summary>Сколько у тележки поручней — размер команды сейчас.</summary>
         public byte Handles;
@@ -40,6 +41,7 @@ namespace Igruha.Minigames.CarryItem
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
             serializer.SerializeValue(ref Team);
+            serializer.SerializeValue(ref ControlTeam);
             serializer.SerializeValue(ref Handles);
             serializer.SerializeValue(ref Water);
             serializer.SerializeValue(ref Flags);
@@ -47,7 +49,7 @@ namespace Igruha.Minigames.CarryItem
         }
 
         public bool Equals(WaterCartNetState other) =>
-            Team == other.Team && Handles == other.Handles && Water == other.Water && Flags == other.Flags &&
+            Team == other.Team && ControlTeam == other.ControlTeam && Handles == other.Handles && Water == other.Water && Flags == other.Flags &&
             Stability.Equals(other.Stability);
     }
 
@@ -145,8 +147,47 @@ namespace Igruha.Minigames.CarryItem
         /// <summary>Сколько воды в тележке, единиц.</summary>
         public int Water { get; private set; }
 
-        /// <summary>Чья это тележка. Чужой за её поручень не возьмётся.</summary>
+        /// <summary>Исходная команда: её стоянка используется при возврате из пропасти.</summary>
         public TeamSide Team { get; private set; } = TeamSide.None;
+
+        /// <summary>Команда последнего захвата. Сохраняется после отпускания; определяет цвет и насос.</summary>
+        public TeamSide ControlTeam { get; private set; } = TeamSide.None;
+        private Func<Igruha.Core.Player.PlayerController, TeamSide> teamOf;
+        private Func<TeamSide, int> crewSize;
+        private Predicate<Igruha.Core.Player.PlayerController> handsFree;
+        private bool refreshCrew;
+
+        public void ConfigureClaims(Func<Igruha.Core.Player.PlayerController, TeamSide> resolveTeam,
+            Func<TeamSide, int> resolveSize, Predicate<Igruha.Core.Player.PlayerController> available)
+        {
+            teamOf = resolveTeam; crewSize = resolveSize; handsFree = available;
+            carry.SetOwnerFilter(CanClaim);
+        }
+
+        private bool CanClaim(Igruha.Core.Player.PlayerController player)
+        {
+            TeamSide side = teamOf != null ? teamOf(player) : TeamSide.None;
+            return side != TeamSide.None && !player.IsKnockedDown && !player.MovementLocked &&
+                (handsFree == null || handsFree(player)) &&
+                (carry.CarrierCount == 0 || side == ControlTeam);
+        }
+
+        private void OnHandleTaken(int slot, Igruha.Core.Player.PlayerController player)
+        {
+            if (!HasAuthority || teamOf == null) return;
+            TeamSide side = teamOf(player);
+            if (side == TeamSide.None || side == ControlTeam) return;
+            ControlTeam = side;
+            refreshCrew = true; // Re-layout after MultiCarryObject finishes applying its carrier packet.
+            SetFilling(false); SetPouring(false);
+            ApplyTeamTint(); PublishState(true);
+        }
+
+        private void RestoreClaim()
+        {
+            ControlTeam = Team; refreshCrew = true; ApplyTeamTint(); PublishState(true);
+        }
+
 
         /// <summary>Механика переноски этой тележки.</summary>
         public MultiCarryObject Carry => carry;
@@ -204,11 +245,13 @@ namespace Igruha.Minigames.CarryItem
         private void OnEnable()
         {
             carry.Thrown += OnShoved;
+            carry.HandleTaken += OnHandleTaken;
         }
 
         private void OnDisable()
         {
             carry.Thrown -= OnShoved;
+            carry.HandleTaken -= OnHandleTaken;
         }
 
         public override void OnNetworkSpawn()
@@ -273,6 +316,7 @@ namespace Igruha.Minigames.CarryItem
         {
             config = gameConfig;
             Team = team;
+            ControlTeam = team;
             voidLevel = voidY;
             homePosition = home;
             homeRotation = homeFacing;
@@ -502,6 +546,7 @@ namespace Igruha.Minigames.CarryItem
             netState.Value = new WaterCartNetState
             {
                 Team = (byte)Team,
+                ControlTeam = (byte)ControlTeam,
                 Handles = (byte)Mathf.Clamp(carry.HandleCount, 1, MultiCarryObject.MaxHandles),
                 Water = (short)Mathf.Clamp(Water, 0, short.MaxValue),
                 Flags = flags,
@@ -523,6 +568,7 @@ namespace Igruha.Minigames.CarryItem
         private void ApplyNetState(in WaterCartNetState state)
         {
             Team = (TeamSide)state.Team;
+            ControlTeam = (TeamSide)state.ControlTeam;
             Water = state.Water;
             flags = state.Flags;
             Stability.ApplyState(state.Stability);
@@ -569,6 +615,11 @@ namespace Igruha.Minigames.CarryItem
                 return;
             }
 
+            if (refreshCrew)
+            {
+                refreshCrew = false;
+                if (crewSize != null) SetHandleCount(Mathf.Max(1, crewSize(ControlTeam)));
+            }
             float delta = Time.deltaTime;
             hitCooldownTimer = Mathf.Max(0f, hitCooldownTimer - delta);
 
@@ -627,6 +678,7 @@ namespace Igruha.Minigames.CarryItem
             }
 
             carry.ResetPose(homePosition, homeRotation);
+            RestoreClaim();
             carry.GrabLocked = false;
             SetFlag(WaterCartNetState.LostFlag, false);
             Returned?.Invoke(this);
@@ -641,6 +693,7 @@ namespace Igruha.Minigames.CarryItem
             }
 
             carry.ResetPose(homePosition, homeRotation);
+            RestoreClaim();
             carry.GrabLocked = false;
             flags = 0;
             carry.ClearLean();
@@ -760,13 +813,13 @@ namespace Igruha.Minigames.CarryItem
         /// <summary>Цвет команды на ободе и поручнях. Своя тележка от чужой иначе не отличается: обе синие от воды.</summary>
         private void ApplyTeamTint()
         {
-            if (teamTint == null || teamTint.Length == 0 || paintedTeam == Team)
+            if (teamTint == null || teamTint.Length == 0 || paintedTeam == ControlTeam)
             {
                 return;
             }
 
-            paintedTeam = Team;
-            Color color = TeamPalette.ColorOf(Team);
+            paintedTeam = ControlTeam;
+            Color color = TeamPalette.ColorOf(ControlTeam);
 
             for (int i = 0; i < teamTint.Length; i++)
             {

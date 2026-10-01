@@ -63,10 +63,16 @@ namespace Igruha.Minigames.CarryItem
 
         private void LateUpdate()
         {
-            if (cart == null && MinigameControllerBase.Current is CarryItemMinigame game)
+            if (MinigameControllerBase.Current is CarryItemMinigame game)
             {
-                cart = game.CartOf(tank.Team);
-                if (cart != null) BindWater();
+                WaterCart next = game.PumpCart(tank.Team);
+                if (next != cart)
+                {
+                    if (surface != null) surface.SetSuction(Vector3.zero, 0f);
+                    cart = next;
+                    surface = cart != null ? cart.GetComponentInChildren<HorizontalCartWater>() : null;
+                    if (surface != null && flowMaterial == null) BindWater();
+                }
             }
             bool active = IsPumping;
             deployment = Mathf.MoveTowards(deployment, active ? 1f : 0f, Time.deltaTime * DeploySpeed);
@@ -101,7 +107,11 @@ namespace Igruha.Minigames.CarryItem
         }
         private void DrawSuction(bool active)
         {
-            if (surface == null) return;
+            if (surface == null)
+            {
+                if (waterInHose != null) waterInHose.enabled = whirl.enabled = false;
+                return;
+            }
             bool submerged = active && Vector3.Distance(end, cart.WaterSurfacePoint) < 0.16f;
             surface.SetSuction(end, submerged ? 1f : 0f);
             waterInHose.enabled = whirl.enabled = submerged;

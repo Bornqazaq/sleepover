@@ -97,6 +97,7 @@ namespace Igruha.Minigames.CarryItem
         private bool shownFilling;
         private bool shownDraining;
         private bool shownLost;
+        private TeamSide shownCartControl = TeamSide.None;
         private bool statusShown;
         private CartTiltCause shownCause;
         private int shownResponsible = -1;
@@ -476,7 +477,7 @@ namespace Igruha.Minigames.CarryItem
         {
             rig.Cart = cart;
             rig.Tap?.AttachCart(cart);
-            cart.Carry.SetOwnerFilter(player => TeamOfAvatar(player) == side);
+            cart.ConfigureClaims(TeamOfAvatar, SizeOf, player => CartCarriedBy(player) == null);
             cart.Stability.FirstSpill += AnnounceSpill;
 
             // Разрез потерь ведёт тот, кто их считает. У клиента ChangeWater
@@ -548,7 +549,7 @@ namespace Igruha.Minigames.CarryItem
                 }
                 if (entry.RespawnAt <= 0 && entry.Avatar.Position.y < voidLevel)
                 {
-                    CartOf(entry.Team)?.Carry.ReleaseFor(entry.Avatar, CarryReleaseReason.RoundEnded);
+                    CartCarriedBy(entry.Avatar)?.Carry.ReleaseFor(entry.Avatar, CarryReleaseReason.RoundEnded);
                     if (entry.Avatar.TryGetComponent(out PlayerCarryAbility carry)) carry.Drop();
                     entry.RespawnAt = NetworkClock.Now + config.RespawnDelaySeconds;
                     SetFallWaiting(ref entry, true);
@@ -634,7 +635,7 @@ namespace Igruha.Minigames.CarryItem
                 return;
             }
 
-            WaterCart cart = CartOf(side);
+            WaterCart cart = CartForPlayer(localId);
             int capacity = config.CartCapacity;
             int water = cart != null ? cart.Water : -1;
             bool leaking = cart != null && water > 0 && cart.Stability.IsSpilling;
@@ -647,7 +648,7 @@ namespace Igruha.Minigames.CarryItem
             bool needsHands = cart != null && cart.Stability.NeedsHands;
             bool localHolding = cart != null && cart.Carry.IsCarriedBy(AvatarOf(localId));
 
-            if (statusShown && water == shownWater && leaking == shownLeaking && carried == shownCarried &&
+            if (statusShown && cart != null && cart.ControlTeam == shownCartControl && water == shownWater && leaking == shownLeaking && carried == shownCarried &&
                 filling == shownFilling && draining == shownDraining && lost == shownLost &&
                 cause == shownCause && responsible == shownResponsible && needsHands == shownNeedsHands &&
                 localHolding == shownLocalHolding)
@@ -655,6 +656,7 @@ namespace Igruha.Minigames.CarryItem
                 return;
             }
 
+            shownCartControl = cart != null ? cart.ControlTeam : TeamSide.None;
             shownWater = water;
             shownLeaking = leaking;
             shownCarried = carried;
@@ -676,6 +678,12 @@ namespace Igruha.Minigames.CarryItem
             if (lost)
             {
                 Hud.ShowStatus("Тележка в пропасти — через несколько секунд вернётся к крану");
+                return;
+            }
+
+            if (!localHolding && cart.ControlTeam != side)
+            {
+                Hud.ShowStatus($"ТЕЛЕЖКУ УВЕЛИ · {water} / {capacity} · Сбейте хват соперника и заберите её по E");
                 return;
             }
 
@@ -884,7 +892,7 @@ namespace Igruha.Minigames.CarryItem
             // должно сойтись с ним в тот же миг. Сначала снять ушедшего, потом
             // ужать число поручней — живые несущие при этом переезжают на
             // младшие слоты, а не срываются.
-            WaterCart cart = CartOf(entry.Team);
+            WaterCart cart = CartCarriedBy(entry.Avatar);
             if (cart != null && entry.Avatar != null)
             {
                 cart.Carry.ReleaseFor(entry.Avatar, CarryReleaseReason.RoundEnded);
@@ -894,7 +902,8 @@ namespace Igruha.Minigames.CarryItem
             entry.Avatar = null;
             entries[index] = entry;
 
-            cart?.SetHandleCount(Mathf.Max(1, SizeOf(entry.Team)));
+            foreach (WaterCart owned in new[] { teamA.Cart, teamB.Cart })
+                if (owned != null && owned.ControlTeam == entry.Team) owned.SetHandleCount(Mathf.Max(1, SizeOf(entry.Team)));
             PublishRoster();
 
             Debug.Log($"🫙 [Переноска] {playerId} вышел из матча, в команде {entry.Team} осталось " +
@@ -1197,6 +1206,25 @@ namespace Igruha.Minigames.CarryItem
 
         /// <summary>Тележка этой команды. Пусто — ещё не приехала или раунд кончился.</summary>
         public WaterCart CartOf(TeamSide side) => RigOf(side)?.Cart;
+
+        public WaterCart CartCarriedBy(PlayerController player)
+        {
+            if (player == null) return null;
+            if (teamA.Cart != null && teamA.Cart.Carry.IsCarriedBy(player)) return teamA.Cart;
+            if (teamB.Cart != null && teamB.Cart.Carry.IsCarriedBy(player)) return teamB.Cart;
+            return null;
+        }
+        public WaterCart CartForPlayer(int id) => CartCarriedBy(AvatarOf(id)) ?? CartOf(TeamOfPlayer(id));
+
+        public WaterCart PumpCart(TeamSide side)
+        {
+            WaterTank tank = TankOf(side);
+            if (tank == null) return null;
+            if (tank.CanReceive(teamA.Cart) && teamA.Cart.IsPouring) return teamA.Cart;
+            if (tank.CanReceive(teamB.Cart) && teamB.Cart.IsPouring) return teamB.Cart;
+            return null;
+        }
+
 
         /// <summary>Бак этой команды. Нужен болванкам соло-теста.</summary>
         public WaterTank TankOf(TeamSide side) =>
