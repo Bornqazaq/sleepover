@@ -25,7 +25,7 @@ namespace Igruha.Minigames.CarryItem
         {
             new Vector2(0, -30), new Vector2(-25, -56), new Vector2(0, -56), new Vector2(25, -56)
         };
-        private static readonly string[] ResultLabels = { "СТОИМ", "КАТИМ ВМЕСТЕ", "РАСХОДИМСЯ", "НАВСТРЕЧУ" };
+        private static readonly string[] ResultLabels = { "СТОИМ", "КАТИМ ВМЕСТЕ", "РАСХОДИМСЯ", "НАВСТРЕЧУ", "КАЧАЕТ", "ВОДА УХОДИТ" };
 
         public sealed class Member
         {
@@ -53,6 +53,9 @@ namespace Igruha.Minigames.CarryItem
         public int MemberCount { get; private set; }
         public Vector2 MeanDirection { get; private set; }
         public Vector2 CartDirection { get; private set; }
+        public float SpillRisk { get; private set; }
+        public bool Spilling { get; private set; }
+        public Vector2 SpillDirection { get; private set; }
         public bool Visible => canvas != null && canvas.enabled;
         public Member MemberAt(int index) => members[index];
         public float PanelWidth => CardWidth * MemberCount + ResultWidth + 24f;
@@ -133,6 +136,10 @@ namespace Igruha.Minigames.CarryItem
             }
             MeanDirection = CartCoordinationMath.OnScreen(sum / Mathf.Max(1, MemberCount), cameraForward, cameraRight);
             CartDirection = CartCoordinationMath.OnScreen(cart.transform.forward, cameraForward, cameraRight);
+            SpillRisk = cart.Stability.State.Risk;
+            Spilling = cart.Stability.IsSpilling;
+            SpillDirection = CartCoordinationMath.OnScreen(cart.transform.TransformDirection(
+                CartWaterSurface.Outward(cart.Stability.State.SpillSide)), cameraForward, cameraRight);
             bool opposing = false, diverging = false;
             for (int i = 0; i < MemberCount; i++)
             {
@@ -144,7 +151,10 @@ namespace Igruha.Minigames.CarryItem
                     m.Keys[k].color = KeyActive(m.Input.Move, k) ? MinigameUiStyle.Ink : MinigameUiStyle.MutedOnDark;
             }
             int state = opposing ? 3 : diverging ? 2 : MeanDirection.sqrMagnitude > 0.01f ? 1 : 0;
+            if (SpillRisk > 0.65f) state = 4;
+            if (Spilling) state = 5;
             if (state != shownResult) { shownResult = state; resultLabel.text = ResultLabels[state]; }
+            resultLabel.color = Spilling ? MinigameUiStyle.Urgent : SpillRisk > 0.65f ? MinigameUiStyle.Accent : MinigameUiStyle.MutedOnDark;
             bool practice = game.Phase == MinigamePhase.Practice;
             if (announcement != null)
                 announcement.anchoredPosition = new Vector2(originalAnnouncementPosition.x,

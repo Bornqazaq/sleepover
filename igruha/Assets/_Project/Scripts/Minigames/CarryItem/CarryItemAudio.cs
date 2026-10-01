@@ -11,10 +11,7 @@ namespace Igruha.Minigames.CarryItem
     /// 4.4: он висит на событиях, которые игра уже поднимает, и ничего не
     /// решает. Убери его — игра не изменится ни на правило.
     ///
-    /// <b>Половина обратной связи этой игры — на слух.</b> Воду теряешь за
-    /// спиной: бутыль несут вчетвером, смотришь ты вперёд, а льётся она из
-    /// горлышка позади. Плеск говорит «сейчас начнёт», струя — «уже теряешь»,
-    /// и это два разных звука, потому что означают они разное.
+    /// Раскачка, утечка и предупреждения показываются без звука.
     ///
     /// Подписка идёт на то же <see cref="WaterCart.WaterChanged"/>, что и у
     /// эффектов, и по той же причине: оно поднимается на каждой машине, а
@@ -52,8 +49,6 @@ namespace Igruha.Minigames.CarryItem
         /// <summary>Идентификаторы слотов. Строка в коде — это опечатка, которая молчит.</summary>
         private const string RoundStart = "round_start";
         private const string CartGrab = "cart_grab";
-        private const string SloshLoop = "slosh_loop";
-        private const string LeakLoop = "leak_loop";
         private const string HandleBreak = "handle_break";
         private const string CartSplash = "cart_splash";
         private const string PourLoop = "pour_loop";
@@ -71,18 +66,12 @@ namespace Igruha.Minigames.CarryItem
         /// <summary>Сколько секунд слив звучит после последней порции, прежде чем оборваться.</summary>
         private const float PourTail = 0.4f;
 
-        /// <summary>Сколько секунд утечка звучит после последней потери от крена.</summary>
-        private const float LeakTail = 1.4f;
-
         private readonly WaterCart[] watched = new WaterCart[2];
         private readonly bool[] fillPlaying = new bool[2];
         private readonly bool[] rollPlaying = new bool[2];
 
         private float pourUntil;
-        private float leakUntil;
         private bool pourPlaying;
-        private bool leakPlaying;
-        private bool sloshPlaying;
         private bool roundRunning;
         private bool rushPlaying;
 
@@ -146,8 +135,6 @@ namespace Igruha.Minigames.CarryItem
             }
 
             pourPlaying = false;
-            leakPlaying = false;
-            sloshPlaying = false;
             rushPlaying = false;
             roundRunning = false;
         }
@@ -190,7 +177,6 @@ namespace Igruha.Minigames.CarryItem
             WatchCarts();
             WatchRound();
             FollowBeam();
-            UpdateSlosh();
             UpdateCartLoops();
             UpdateTails();
         }
@@ -347,43 +333,6 @@ namespace Igruha.Minigames.CarryItem
         }
 
         /// <summary>
-        /// Плеск ведётся за креном тележки: чем ближе к порогу, тем громче и
-        /// выше. Это единственное предупреждение, которое несущий получает
-        /// <b>до</b> того, как вода пошла через борт.
-        /// </summary>
-        private void UpdateSlosh()
-        {
-            if (player == null)
-            {
-                return;
-            }
-
-            WaterCart bottle = FirstAlive();
-            if (bottle == null || bottle.Carry == null || !bottle.Carry.IsCarried || bottle.Water <= 0)
-            {
-                if (sloshPlaying)
-                {
-                    player.StopLoop(SloshLoop);
-                    sloshPlaying = false;
-                }
-
-                return;
-            }
-
-            float threshold = Mathf.Max(1f, bottle.Carry.Settings.tiltThreshold);
-            float intensity = Mathf.Clamp01(bottle.Carry.TiltAngle / threshold);
-
-            if (!sloshPlaying)
-            {
-                player.StartLoop(SloshLoop, bottle.transform.position);
-                sloshPlaying = true;
-            }
-
-            player.MoveLoop(SloshLoop, bottle.transform.position);
-            player.SetLoopLevel(SloshLoop, intensity, Mathf.Lerp(0.9f, 1.3f, intensity));
-        }
-
-        /// <summary>
         /// Слив и утечка приходят порциями раз в секунду, а звучать обязаны
         /// сплошняком. Луп держится хвостом после последней порции: иначе он
         /// дёргался бы вместе с расходом.
@@ -401,11 +350,7 @@ namespace Igruha.Minigames.CarryItem
                 pourPlaying = false;
             }
 
-            if (leakPlaying && Time.time > leakUntil)
-            {
-                player.StopLoop(LeakLoop);
-                leakPlaying = false;
-            }
+
         }
 
         private void OnWaterChanged(int amount, WaterLossReason reason)
@@ -431,14 +376,7 @@ namespace Igruha.Minigames.CarryItem
                     break;
 
                 case WaterLossReason.Tilt:
-                    leakUntil = Time.time + LeakTail;
-                    if (!leakPlaying)
-                    {
-                        player.StartLoop(LeakLoop, point);
-                        leakPlaying = true;
-                    }
-
-                    player.MoveLoop(LeakLoop, point);
+                    // Wave/overflow warnings are visual only (IGR-693).
                     break;
 
                 // Удар по тележке: кирпич или ловушка. Разделить их по звуку
@@ -499,8 +437,6 @@ namespace Igruha.Minigames.CarryItem
 
             player.StopAll();
             pourPlaying = false;
-            leakPlaying = false;
-            sloshPlaying = false;
             rushPlaying = false;
             roundRunning = false;
             for (int i = 0; i < fillPlaying.Length; i++)

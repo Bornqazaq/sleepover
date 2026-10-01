@@ -682,13 +682,17 @@ namespace Igruha.Minigames.CarryItem
             if (leaking)
             {
                 string why = cause == CartTiltCause.Brake ? "Резкое торможение" :
+                    cause == CartTiltCause.Disagreement ? "Тянете в разные стороны" :
                     cause == CartTiltCause.Turn ? "Быстрый поворот" : "Удар / волна";
-                Hud.ShowStatus($"ВОДА ЧЕРЕЗ КРАЙ — {why} · {water} / {capacity} · Двигайтесь плавнее");
+                string advice = cause == CartTiltCause.Disagreement ? "Совместите стрелки" : "Двигайтесь плавнее";
+                Hud.ShowStatus($"ВОДА ЧЕРЕЗ КРАЙ — {why} · {water} / {capacity} · {advice}");
                 return;
             }
             if (localHolding && cause != CartTiltCause.None)
             {
-                Hud.ShowStatus($"ВОЛНА ПОДНИМАЕТСЯ · Плавнее на поворотах · {water} / {capacity}");
+                Hud.ShowStatus(cause == CartTiltCause.Disagreement
+                    ? $"ТЕЛЕЖКУ КАЧАЕТ · Совместите направления стрелок · {water} / {capacity}"
+                    : $"ВОЛНА ПОДНИМАЕТСЯ · Плавнее на поворотах · {water} / {capacity}");
                 return;
             }
 
@@ -727,12 +731,12 @@ namespace Igruha.Minigames.CarryItem
         {
             string text = cause switch
             {
+                CartTiltCause.Disagreement => "Тянете вразнобой — вода через край!",
                 CartTiltCause.Brake => "Резко затормозили — вода через край!",
                 CartTiltCause.Turn => "Занесло на повороте!",
                 _ => "Удар! Вода за бортом!"
             };
             announcer?.Announce(text, 3f);
-            GetComponent<CarryCartVoice>()?.Announce(cause, responsible);
         }
 
         private void ClearStatus()

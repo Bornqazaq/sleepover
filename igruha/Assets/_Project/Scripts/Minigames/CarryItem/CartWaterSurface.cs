@@ -14,10 +14,22 @@ namespace Igruha.Minigames.CarryItem
         public const float LipWidth = 0.05f;
         public const float MaxSlope = 0.85f;
         private const int EdgeSamples = 17;
-        public static float Height(float load, Vector2 slope, float x, float z) =>
+        public static Vector2 InHeading(Vector2 world, Quaternion heading)
+        {
+            Vector3 local = Quaternion.Inverse(heading) * new Vector3(world.x, 0f, world.y);
+            return new Vector2(local.x, local.z);
+        }
+
+        public static Quaternion BodyRotation(Vector2 worldSlope, Quaternion heading)
+        {
+            Vector2 local = InHeading(worldSlope, heading);
+            return Quaternion.FromToRotation(Vector3.up, new Vector3(-local.x, 1f, -local.y).normalized);
+        }
+
+        public static float Height(float load, Vector2 slope, float x, float z, Vector2 bodySlope = default) =>
             Mathf.Clamp01(load) * FullHeight +
             slope.x * Width * 0.5f * Mathf.Sin(x / Width * Mathf.PI) +
-            slope.y * Length * 0.5f * Mathf.Sin(z / Length * Mathf.PI);
+            slope.y * Length * 0.5f * Mathf.Sin(z / Length * Mathf.PI) - bodySlope.x * x - bodySlope.y * z;
 
         // 0/1 are the right/left rim, 2/3 the front/back. Along is metres.
         public static Vector3 RimPoint(byte side, float along) => side < 2
@@ -28,7 +40,7 @@ namespace Igruha.Minigames.CarryItem
             : (side == 2 ? Vector3.forward : Vector3.back);
 
         public static float Overflow(float load, Vector2 slope, float rate,
-            out byte side, out float along, out float width, out float risk)
+            out byte side, out float along, out float width, out float risk, Vector2 bodySlope = default)
         {
             side = 0; along = width = risk = 0f;
             if (load <= 0f) return 0f;
@@ -41,9 +53,9 @@ namespace Igruha.Minigames.CarryItem
                 {
                     float at = ((i + 0.5f) / EdgeSamples - 0.5f) * length;
                     Vector3 p = RimPoint(edge, at);
-                    float rise = Height(load, slope, p.x, p.z) - load * FullHeight;
+                    float rise = Height(load, slope, p.x, p.z, bodySlope) - load * FullHeight;
                     maxRise = Mathf.Max(maxRise, rise);
-                    float depth = Mathf.Max(0f, Height(load, slope, p.x, p.z) - Depth);
+                    float depth = Mathf.Max(0f, Height(load, slope, p.x, p.z, bodySlope) - Depth);
                     sum += depth;
                     if (depth > 0f)
                     {

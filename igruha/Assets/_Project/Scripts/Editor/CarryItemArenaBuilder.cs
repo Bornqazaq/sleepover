@@ -1418,7 +1418,6 @@ namespace Igruha.EditorTools
             {
                 game = manager.AddComponent<CarryItemMinigame>();
             }
-            CarryCartHandlingSetup.ApplyVoice(manager);
 
             var ram = manager.GetComponent<CartRamDetector>();
             if (ram == null)

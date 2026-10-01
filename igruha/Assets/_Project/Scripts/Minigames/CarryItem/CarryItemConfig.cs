@@ -146,6 +146,26 @@ namespace Igruha.Minigames.CarryItem
         public float ImpactWaveImpulse => impactWaveImpulse;
         public float OverflowRate => overflowRate;
 
+        [Header("Раскачка от разнобоя направлений")]
+        [SerializeField, Min(0f)] private float teamRockBuild = 0.85f;
+        [SerializeField, Min(0f)] private float teamRockRelease = 1.5f;
+        [SerializeField, Min(0.1f)] private float teamRockFrequency = 0.8f;
+        [SerializeField, Min(0f)] private float teamRockSlope = 0.23f;
+        [SerializeField, Min(0f)] private float teamRockLimit = 0.28f;
+        [SerializeField, Min(0f)] private float teamRockResponse = 32f;
+        [SerializeField, Min(0f)] private float teamRockDamping = 6f;
+        [SerializeField, Min(0f)] private float teamRockAxisResponse = 6f;
+        [SerializeField, Min(0f)] private float teamRockWaveGain = 0.32f;
+        public float TeamRockBuild => teamRockBuild;
+        public float TeamRockRelease => teamRockRelease;
+        public float TeamRockFrequency => teamRockFrequency;
+        public float TeamRockSlope => teamRockSlope;
+        public float TeamRockLimit => teamRockLimit;
+        public float TeamRockResponse => teamRockResponse;
+        public float TeamRockDamping => teamRockDamping;
+        public float TeamRockAxisResponse => teamRockAxisResponse;
+        public float TeamRockWaveGain => teamRockWaveGain;
+
         [Header("Тележка: крен")]
         [SerializeField] private float disagreementStart = 0.15f;
         [SerializeField] private float disagreementFull = 0.5f;

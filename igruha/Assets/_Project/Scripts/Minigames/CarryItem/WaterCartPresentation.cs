@@ -22,6 +22,7 @@ namespace Igruha.Minigames.CarryItem
         private Vector3 tubRest;
         private float angle;
         private Transform visualFrame;
+        public Quaternion Heading => visualFrame != null ? visualFrame.rotation : transform.rotation;
 
         private void Awake()
         {
@@ -39,6 +40,14 @@ namespace Igruha.Minigames.CarryItem
                 if (child != visualFrame) child.SetParent(visualFrame, true);
             }
             carry.SetPresentationFrame(visualFrame);
+            // Fixed handles belong to the wheeled chassis, not to the suspended tank.
+            // Tilting their meshes would leave the players holding empty air.
+            if (tub != null)
+            {
+                Transform handles = tub.Find("Handles");
+                if (handles != null) handles.SetParent(visualFrame, true);
+            }
+            if (strainLoop != null) { strainLoop.Stop(); strainLoop.enabled = false; }
         }
 
         private void OnEnable()
@@ -93,15 +102,11 @@ namespace Igruha.Minigames.CarryItem
                 if (straining) wheelDust.Play();
                 else wheelDust.Stop(true, ParticleSystemStopBehavior.StopEmitting);
             }
-            if (strainLoop != null && strainLoop.isPlaying != straining)
-            {
-                if (straining) strainLoop.Play();
-                else strainLoop.Stop();
-            }
             for (int i = 0; i < wheels.Length; i++)
                 if (wheels[i] != null) wheels[i].localRotation = Quaternion.Euler(angle, 0f, 0f);
             if (tub != null)
             {
+                tub.localRotation = CartWaterSurface.BodyRotation(cart.Stability.State.BodySlope, Heading);
                 Vector3 pivot = Vector3.up * 0.44f;
                 tub.localPosition = tubRest + pivot - tub.localRotation * pivot - Vector3.up * (loadedSag * cart.Load);
             }

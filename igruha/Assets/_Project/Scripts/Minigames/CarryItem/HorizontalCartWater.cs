@@ -11,6 +11,7 @@ namespace Igruha.Minigames.CarryItem
         private Mesh mesh;
         private MeshFilter filter;
         private WaterCart cart;
+        private WaterCartPresentation presentation;
         private readonly Vector3[] vertices = new Vector3[Layer * 2];
         private readonly Color[] colors = new Color[Layer * 2];
         private Vector3 suction;
@@ -23,6 +24,7 @@ namespace Igruha.Minigames.CarryItem
         {
             filter = GetComponentInChildren<MeshFilter>();
             cart = GetComponentInParent<WaterCart>();
+            presentation = GetComponentInParent<WaterCartPresentation>();
             mesh = new Mesh { name = "Cart water: rolling wave and closed volume" };
             mesh.MarkDynamic();
             var triangles = new int[Columns * Rows * 12 + (Columns + Rows) * 12];
@@ -63,15 +65,16 @@ namespace Igruha.Minigames.CarryItem
             displayedLevel = level;
             if (filter == null) return;
             Vector2 wave = cart != null ? cart.Stability.State.Wave : Vector2.zero;
-            Vector3 local = transform.InverseTransformDirection(new Vector3(wave.x, 0f, wave.y));
-            Vector2 slope = new Vector2(local.x, local.z);
+            Quaternion heading = presentation != null ? presentation.Heading : cart != null ? cart.transform.rotation : Quaternion.identity;
+            Vector2 slope = CartWaterSurface.InHeading(wave, heading);
+            Vector2 bodySlope = cart != null ? CartWaterSurface.InHeading(cart.Stability.State.BodySlope, heading) : Vector2.zero;
             Vector3 inlet = transform.InverseTransformPoint(suction);
             SurfacePoint = transform.TransformPoint(Vector3.up * CartWaterSurface.Height(level, slope, 0f, 0f));
             for (int z = 0; z <= Rows; z++) for (int x = 0; x <= Columns; x++)
             {
                 float px = (x / (float)Columns - 0.5f) * CartWaterSurface.Width;
                 float pz = (z / (float)Rows - 0.5f) * CartWaterSurface.Length;
-                float height = CartWaterSurface.Height(level, slope, px, pz);
+                float height = CartWaterSurface.Height(level, slope, px, pz, bodySlope);
                 float distance = (px - inlet.x) * (px - inlet.x) + (pz - inlet.z) * (pz - inlet.z);
                 height -= suctionStrength * 0.035f * Mathf.Exp(-distance * 90f);
                 int i = z * (Columns + 1) + x;

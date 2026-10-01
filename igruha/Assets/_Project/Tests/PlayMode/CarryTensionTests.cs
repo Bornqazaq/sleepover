@@ -246,13 +246,96 @@ namespace Igruha.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator OppositeInputStaysAttachedAndCalm()
+        public IEnumerator OppositeInputRocksThenSpillsThroughTheVisibleLowRim()
         {
             cart.SetHandleCount(2); Carrier(0, Vector3.forward); Carrier(1, Vector3.back);
-            yield return new WaitForSeconds(4f);
+            float integral = 0f, positive = 0f, negative = 0f;
+            bool warningBeforeFlow = false, flow = false;
+            for (int i = 0; i < 220; i++)
+            {
+                yield return new WaitForFixedUpdate();
+                var s = cart.Stability.State;
+                positive = Mathf.Max(positive, s.BodySlope.y); negative = Mathf.Min(negative, s.BodySlope.y);
+                if (!flow && s.Risk > 0.45f && s.Outflow == 0) warningBeforeFlow = true;
+                flow |= s.Outflow > 0; integral += s.Outflow * Time.fixedDeltaTime;
+                if (i < 10) Assert.That(cart.Water, Is.EqualTo(150), "No instant input penalty");
+                if (s.Outflow > 0)
+                {
+                    Vector2 wave = CartWaterSurface.InHeading(s.Wave, cart.transform.rotation);
+                    Vector2 lean = CartWaterSurface.InHeading(s.BodySlope, cart.transform.rotation);
+                    Vector3 p = CartWaterSurface.RimPoint(s.SpillSide, s.SpillAlong);
+                    // The count may have dropped one unit after sampling this surface.
+                    Assert.That(CartWaterSurface.Height((cart.Water + 1f) / 150f, wave, p.x, p.z, lean),
+                        Is.GreaterThan(CartWaterSurface.Depth));
+                }
+            }
             Assert.That(cart.Carry.CarrierCount, Is.EqualTo(2));
             Assert.That(cart.Carry.FlatVelocity.magnitude, Is.LessThan(0.05f));
+            Assert.That(positive, Is.GreaterThan(0.04f)); Assert.That(negative, Is.LessThan(-0.04f));
+            Assert.IsTrue(warningBeforeFlow && flow);
+            Assert.That(150 - cart.Water, Is.EqualTo(Mathf.FloorToInt(integral)).Within(1));
+            Assert.That(cart.Water, Is.InRange(75, 149));
+        }
+
+        [UnityTest]
+        public IEnumerator PerpendicularInputRocksWhileTheCartKeepsMoving()
+        {
+            cart.SetHandleCount(2);
+            Carrier(0, Vector3.forward); Carrier(1, Vector3.right);
+            Vector3 start = cart.transform.position;
+            bool sawRock = false, sawFlow = false;
+            for (int i = 0; i < 250; i++)
+            {
+                yield return new WaitForFixedUpdate();
+                var state = cart.Stability.State;
+                sawRock |= state.BodySlope.magnitude > 0.04f;
+                sawFlow |= state.Outflow > 0f && state.Cause == CartTiltCause.Disagreement;
+            }
+            Assert.That(sawRock && sawFlow, Is.True, "Forward versus sideways must also punish disagreement.");
+            Assert.That(Vector3.Distance(cart.transform.position, start), Is.GreaterThan(2f));
+            Assert.That(cart.Carry.CarrierCount, Is.EqualTo(2));
+            Assert.That(cart.Water, Is.InRange(110, 149), "Partial disagreement spills gradually.");
+        }
+
+        [UnityTest]
+        public IEnumerator BriefWrongDirectionIsForgiven()
+        {
+            cart.SetHandleCount(2); Carrier(0, Vector3.forward); var other = Carrier(1, Vector3.back);
+            yield return new WaitForSeconds(0.12f);
+            Intent.SetValue(other, Vector3.forward);
+            yield return new WaitForSeconds(2.5f);
             Assert.That(cart.Water, Is.EqualTo(150));
+        }
+
+        [UnityTest]
+        public IEnumerator MatchingDirectionsLetsTheSuspensionSettleWithoutSnapping()
+        {
+            cart.SetHandleCount(2); Carrier(0, Vector3.forward); var other = Carrier(1, Vector3.back);
+            yield return new WaitForSeconds(3.3f);
+            Intent.SetValue(other, Vector3.forward);
+            Vector2 before = cart.Stability.State.BodySlope;
+            yield return new WaitForFixedUpdate();
+            Assert.That(Vector2.Distance(before, cart.Stability.State.BodySlope), Is.LessThan(0.04f));
+            yield return new WaitForSeconds(4f);
+            Assert.That(cart.Stability.State.BodySlope.magnitude, Is.LessThan(0.005f));
+            Assert.That(cart.Stability.State.Outflow, Is.Zero);
+            int water = cart.Water;
+            yield return new WaitForSeconds(1f);
+            Assert.That(cart.Water, Is.EqualTo(water));
+        }
+
+        [Test]
+        public void LeanedTubKeepsCalmWaterHorizontalAndOverflowsFromTheLowSide()
+        {
+            var lean = new Vector2(0.28f, 0f);
+            Quaternion rotation = CartWaterSurface.BodyRotation(lean, Quaternion.identity);
+            float left = CartWaterSurface.Height(0.5f, Vector2.zero, -0.3f, 0, lean);
+            float right = CartWaterSurface.Height(0.5f, Vector2.zero, 0.3f, 0, lean);
+            Assert.That((rotation * new Vector3(-0.3f, left, 0)).y,
+                Is.EqualTo((rotation * new Vector3(0.3f, right, 0)).y).Within(0.0001f));
+            float rate = CartWaterSurface.Overflow(1, Vector2.zero, config.OverflowRate,
+                out byte side, out _, out _, out _, lean);
+            Assert.That(rate, Is.GreaterThan(0)); Assert.That(side, Is.EqualTo(1));
         }
 
         [UnityTest]

@@ -11,6 +11,14 @@ namespace Igruha.Minigames.CarryItem
         private const float ParallelDot = 0.7071f;
         private const float OpposingDot = -0.25f;
 
+        public static float Disagreement(Vector3 first, Vector3 second)
+        {
+            float strength = Mathf.Min(first.magnitude, second.magnitude);
+            if (strength < DeadZone) return 0f;
+            float dot = Vector3.Dot(first.normalized, second.normalized);
+            return Mathf.InverseLerp(ParallelDot, -1f, dot) * Mathf.Clamp01(strength);
+        }
+
         public static CartInputRelation Relation(Vector3 input, Vector3 others)
         {
             if (input.sqrMagnitude < DeadZone * DeadZone) return CartInputRelation.Idle;

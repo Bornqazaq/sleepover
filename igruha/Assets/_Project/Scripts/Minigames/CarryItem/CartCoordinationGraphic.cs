@@ -43,6 +43,12 @@ namespace Igruha.Minigames.CarryItem
                 DrawKey(vh, origin + new Vector2(25, -56), CartCoordinationHud.KeyActive(m.Input.Move, 3), accent);
             }
             DrawResult(vh);
+            if (hud.SpillRisk > 0.45f)
+            {
+                float danger = Mathf.Clamp01(hud.SpillRisk);
+                Color warning = hud.Spilling ? Opposing : Diverging;
+                Box(vh, new Vector2(0, -82), new Vector2((width - 28) * danger, 3), warning, 1);
+            }
         }
 
         private void DrawResult(VertexHelper vh)
@@ -87,6 +93,17 @@ namespace Igruha.Minigames.CarryItem
             for (int i = 0; i < 10; i++)
                 Box(vh, new Vector2(hud.ResultX - 49.5f + i * 11, -43), new Vector2(8, 4),
                     power > (i + 0.5f) / 10 ? (conflict ? Diverging : Together) : Line, 1);
+            if (hud.Spilling)
+            {
+                float side = hud.SpillDirection.x < 0f ? -1f : 1f;
+                for (int i = 0; i < 3; i++)
+                {
+                    float fall = Mathf.Repeat(Time.time * 1.7f + i / 3f, 1f);
+                    var drop = centre + new Vector2(side * (59 + fall * 4), 25 - fall * 52);
+                    Triangle(vh, drop + Vector2.up * 6, drop + new Vector2(-3, -2), drop + new Vector2(3, -2), Local);
+                    Box(vh, drop + Vector2.down * 2, new Vector2(6, 5), Local, 2);
+                }
+            }
         }
 
         private static Color ColorOf(CartInputRelation relation) => relation switch
