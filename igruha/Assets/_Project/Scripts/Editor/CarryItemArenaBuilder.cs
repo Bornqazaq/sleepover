@@ -85,27 +85,15 @@ namespace Igruha.EditorTools
         /// <summary>Начало завала по X, ШИ. Завал стоит в середине общей площадки.</summary>
         private const float RubbleMinX = 0f;
 
-        /// <summary>Ширина обхода по краю, ШИ. Уже 4 ШИ бутыль в него не пройдёт.</summary>
-        private const float BypassWidth = 4f;
+        /// <summary>Ширина ровного обхода, ШИ: пять метров для тележки и четырёх несущих.</summary>
+        private const float BypassWidth = 6.944444f; // IGR-695: 5 m between core and boundary.
 
         /// <summary>Насколько кучка метательного отнесена от линии маршрута, ШИ.</summary>
         private const float StashOffsetZ = 6f;
 
-        /// <summary>
-        /// По какой полосе горлышка идёт команда, ШИ от осевой. Свободная
-        /// полоса лежит между размахом балки (2 ШИ) и стеной завала (4 ШИ),
-        /// поэтому полоса — ровно её середина, 3 ШИ.
-        ///
-        /// Было 2.5, и это стоило клиентам матча. При 2.5 внутренний край
-        /// персонажа (радиус 0.5 ШИ) попадал точно на кончик балки: зазор
-        /// нулевой. У хоста позиция точная, и он проходил; позицию клиента
-        /// сервер видит через интерполяцию, ошибка в считанные сантиметры —
-        /// и клиента сшибало. На стенде 1 на 1 это давало 5 нокдаунов у
-        /// клиента против нуля у хоста, а нокдаун несущего-одиночки — это
-        /// сразу уроненная бутыль. При 3 ШИ с каждой стороны остаётся
-        /// по 0.5 ШИ запаса, и интерполяция перестаёт решать исход.
-        /// </summary>
-        private const float NeckLaneZ = 3f;
+        /// <summary>Линия короткого пути в ШИ: 1.35 м от оси, чтобы четыре
+        /// несущих не задевали рабочее ядро. Центральные ловушки убраны в IGR-695.</summary>
+        private const float NeckLaneZ = 1.875f; // IGR-695: 1.35 m from centre, four-hand clearance.
 
         /// <summary>
         /// Отступ бака от дальнего края его зоны, ШИ. Бак стоит у дальнего
@@ -231,7 +219,8 @@ namespace Igruha.EditorTools
             BuildTapsAndTanks(arena.transform, config);
             BuildSpawns(spawns.transform, config);
             BuildBounds(bounds.transform, config);
-            BuildTraps(traps.transform, config, ground);
+            builtBeam = null; builtPipe = null; builtBarrow = null;
+            ResetGroup(traps.transform, "CarryItemTraps"); // Replaced by visible road joints.
             BuildPickups(pickups.transform, config);
             CarryItemEnvironment.Build(arena.transform, config, dressRandom);
             BuildProgressBar(config);
@@ -266,6 +255,7 @@ namespace Igruha.EditorTools
             // Оформление интерфейса — тем же прогоном: иначе пересборка арены
             // вернула бы серые прямоугольники шаблона.
             UiSkinPass.Apply();
+            CarryRoadArena.Apply();
 
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
         }

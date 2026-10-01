@@ -274,10 +274,43 @@ namespace Igruha.Tests
             Check(cart.Water < beforeImpact && cart.Water > beforeImpact - 35, "impact loses visible overflow water=" + cart.Water);
             yield return WaitElapsed(168f);
             Check(cart.Stability.State.Outflow == 0f, "overflow settles on every peer");
+            // Drive all four actual owners over the authored central shortcut.
+            yield return WaitElapsed(172f);
+            if (manager.IsServer)
+            {
+                cart.Carry.ResetPose(new Vector3(-3.2f,.03f,.4f),Quaternion.Euler(0,90,0));
+                cart.SetHandleCount(4);cart.ChangeWater(game.Config.CartCapacity,WaterLossReason.Filled);cart.Stability.ResetTrip();
+                for(int i=0;i<team.Count;i++)team[i].Avatar.RequestTeleport(cart.Carry.StationOf(i),Quaternion.Euler(0,90,0));
+            }
+            yield return WaitElapsed(174f);
+            holding=localSlot>=0;rawForward=false;driveDirection=Vector3.right;
+            if(holding)yield return Tap();
+            yield return WaitElapsed(176f);
+            Check(cart.Carry.CarrierCount==4,"road four owners attached");
+            monitoredCount=4;worstContact=0;worstBodyOffset=0;driving=holding;
+            bool roadHop=false,roadSlope=false,roadFlow=false,roadSheet=false;
+            while(RoundElapsed()<181f)
+            {
+                var state=cart.Stability.State;
+                roadHop|=state.RoadHop>.006f;roadSlope|=state.BodySlope.magnitude>.025f;
+                roadFlow|=state.Cause==CartTiltCause.Road&&state.Outflow>0;
+                roadSheet|=cart.GetComponent<CartOverflowVisual>().HasFallingWater;
+                yield return null;
+            }
+            driving=false;monitoredCount=0;
+            Check(cart.transform.position.x>5.8f,"road shortcut crossed x="+cart.transform.position.x);
+            Check(roadHop&&roadSlope&&roadFlow&&roadSheet,"replicated road suspension, cause and falling water");
+            Check(cart.Water<145&&cart.Water>70,"road gradual loss water="+cart.Water);
+            Check(cart.Carry.CarrierCount==4&&worstContact<.06f,"road grips stable gap="+worstContact);
+            yield return WaitElapsed(187f);
+            Check(cart.Stability.State.Outflow==0f&&cart.Stability.State.BodySlope.magnitude<.01f,"road settles after shortcut");
             if (!failed) Debug.Log("CARRY_ROLLING_CHECK PASS id=" + manager.LocalClientId);
             yield return new WaitForSeconds(2f);
             Application.Quit(failed ? 1 : 0);
         }
+
+        private float RoundElapsed()
+        { game.TryGetRoundTime(out float remaining,out float duration);return duration-remaining; }
 
         private IEnumerator Tap()
         {

@@ -108,7 +108,7 @@ namespace Igruha.Minigames.CarryItem
             {
                 tub.localRotation = CartWaterSurface.BodyRotation(cart.Stability.State.BodySlope, Heading);
                 Vector3 pivot = Vector3.up * 0.44f;
-                tub.localPosition = tubRest + pivot - tub.localRotation * pivot - Vector3.up * (loadedSag * cart.Load);
+                tub.localPosition = tubRest + pivot - tub.localRotation * pivot - Vector3.up * (loadedSag * cart.Load - cart.Stability.State.RoadHop);
             }
             if (handleSupports == null) return;
             for (int i = 0; i < handleSupports.Length; i++)

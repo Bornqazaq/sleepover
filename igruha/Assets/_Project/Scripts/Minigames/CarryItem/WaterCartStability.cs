@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Igruha.Minigames.CarryItem
 {
-    public enum CartTiltCause : byte { None, Disagreement, Turn, Release, Impact, Brake }
+    public enum CartTiltCause : byte { None, Disagreement, Turn, Release, Impact, Brake, Road }
 
     public struct CartStabilityState : INetworkSerializable, IEquatable<CartStabilityState>
     {
@@ -20,6 +20,7 @@ namespace Igruha.Minigames.CarryItem
         // World-space slope of the suspended tub; positive X raises its right edge.
         public Vector2 BodySlope;
         public float Disagreement;
+        public float RoadHop;
         public float Outflow, Risk, SpillAlong, SpillWidth;
         public byte SpillSide;
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
@@ -27,14 +28,14 @@ namespace Igruha.Minigames.CarryItem
             serializer.SerializeValue(ref Cause); serializer.SerializeValue(ref Responsible);
             serializer.SerializeValue(ref SpillSequence); serializer.SerializeValue(ref SpillCause);
             serializer.SerializeValue(ref SpillResponsible); serializer.SerializeValue(ref Wave);
-            serializer.SerializeValue(ref BodySlope); serializer.SerializeValue(ref Disagreement);
+            serializer.SerializeValue(ref RoadHop); serializer.SerializeValue(ref BodySlope); serializer.SerializeValue(ref Disagreement);
             serializer.SerializeValue(ref Outflow); serializer.SerializeValue(ref Risk);
             serializer.SerializeValue(ref SpillAlong); serializer.SerializeValue(ref SpillWidth);
             serializer.SerializeValue(ref SpillSide);
         }
         public bool Equals(CartStabilityState o) => Cause == o.Cause && Responsible == o.Responsible &&
             SpillSequence == o.SpillSequence && SpillCause == o.SpillCause && SpillResponsible == o.SpillResponsible &&
-            Wave == o.Wave && BodySlope == o.BodySlope && Disagreement == o.Disagreement &&
+            RoadHop == o.RoadHop && Wave == o.Wave && BodySlope == o.BodySlope && Disagreement == o.Disagreement &&
             Outflow == o.Outflow && Risk == o.Risk && SpillSide == o.SpillSide &&
             SpillAlong == o.SpillAlong && SpillWidth == o.SpillWidth;
     }
@@ -53,6 +54,11 @@ namespace Igruha.Minigames.CarryItem
         private float publishTimer, impactHold, controlledSpeed;
         private bool spilledThisTrip;
         private readonly CartTeamRocking rocking = new CartTeamRocking();
+        private const float WheelHalfTrack=.48f, WheelHalfBase=.4f, CombinedSlopeLimit=.38f;
+        private readonly CartRoadResponse road = new CartRoadResponse();
+        private Quaternion lastRotation;
+        private readonly Vector3[] wheelOffsets = { new Vector3(-WheelHalfTrack, 0, WheelHalfBase), new Vector3(WheelHalfTrack, 0, WheelHalfBase),
+            new Vector3(-WheelHalfTrack, 0, -WheelHalfBase), new Vector3(WheelHalfTrack, 0, -WheelHalfBase) };
         public CartStabilityState State { get; private set; }
         public event Action<CartTiltCause, int> FirstSpill;
         public bool NeedsHands => cart != null && cart.Load >= 0.8f && carry.CarrierCount == 1 && carry.HandleCount > 1;
@@ -61,15 +67,15 @@ namespace Igruha.Minigames.CarryItem
 
         private void Awake() { carry = GetComponent<MultiCarryObject>(); body = GetComponent<Rigidbody>(); }
         public void Configure(WaterCart owner, CarryItemConfig settings)
-        { cart = owner; config = settings; lastVelocity = carry.FlatVelocity; lastPosition = transform.position; }
+        { cart = owner; config = settings; lastVelocity = carry.FlatVelocity; lastPosition = transform.position; lastRotation = transform.rotation; }
 
         public void ResetTrip()
         {
             spilledThisTrip = false; wave = waveVelocity = Vector2.zero;
-            rocking.Reset();
+            rocking.Reset(); road.Reset(); lastRotation = transform.rotation;
             filteredAcceleration = Vector3.zero; lastVelocity = carry.FlatVelocity; lastPosition = transform.position; impactHold = 0f; lastCause = CartTiltCause.None;
             var next = State; next.Wave = Vector2.zero; next.Outflow = next.Risk = 0f;
-            next.BodySlope = Vector2.zero; next.Disagreement = 0f;
+            next.BodySlope = Vector2.zero; next.Disagreement = next.RoadHop = 0f;
             next.Cause = CartTiltCause.None; next.Responsible = -1; ApplyState(next);
             cart?.PublishStability();
         }
@@ -102,8 +108,10 @@ namespace Igruha.Minigames.CarryItem
             Vector3 velocity = carry.FlatVelocity;
             controlledSpeed = velocity.magnitude;
             if ((transform.position - lastPosition).sqrMagnitude > 2.25f)
-            { wave = waveVelocity = Vector2.zero; rocking.Reset(); filteredAcceleration = Vector3.zero; lastVelocity = velocity; }
-            lastPosition = transform.position;
+            { wave = waveVelocity = Vector2.zero; rocking.Reset(); road.Reset(); lastRotation = transform.rotation; filteredAcceleration = Vector3.zero; lastVelocity = velocity; }
+            else SampleRoad(velocity);
+            lastPosition = transform.position; lastRotation = transform.rotation;
+            road.Step(dt);
             Vector3 acceleration = Vector3.ClampMagnitude((velocity - lastVelocity) / dt, 18f);
             Vector3 direction = lastVelocity.sqrMagnitude > 0.04f ? lastVelocity.normalized : transform.forward;
             lastVelocity = velocity;
@@ -133,13 +141,15 @@ namespace Igruha.Minigames.CarryItem
                 wave = Vector2.ClampMagnitude(wave + waveVelocity * dt, CartWaterSurface.MaxSlope);
             }
             Vector2 localWave = CartWaterSurface.InHeading(wave, transform.rotation);
-            Vector2 localBody = CartWaterSurface.InHeading(rocking.Slope, transform.rotation);
+            Vector2 bodySlope = Vector2.ClampMagnitude(rocking.Slope + road.Slope, CombinedSlopeLimit);
+            Vector2 localBody = CartWaterSurface.InHeading(bodySlope, transform.rotation);
+            if (road.Hold > 0f && cause != CartTiltCause.Disagreement) cause = CartTiltCause.Road;
             float rate = CartWaterSurface.Overflow(cart.Load, localWave, config.OverflowRate,
                 out byte side, out float along, out float width, out float risk, localBody);
             if (risk < 0.45f && impactHold == 0f) cause = CartTiltCause.None;
             var next = State;
             next.Wave = wave; next.Outflow = rate; next.Risk = risk;
-            next.BodySlope = rocking.Slope; next.Disagreement = rocking.Strain;
+            next.BodySlope = bodySlope; next.RoadHop = road.Hop; next.Disagreement = rocking.Strain;
             next.SpillSide = side; next.SpillAlong = along; next.SpillWidth = width;
             next.Cause = cause; next.Responsible = -1;
             bool edge = (State.Outflow > 0f) != (rate > 0f);
@@ -149,6 +159,27 @@ namespace Igruha.Minigames.CarryItem
             cart.DrainOverflow(rate, dt);
             publishTimer -= dt;
             if (publishTimer <= 0f || edge) { publishTimer = 0.05f; cart.PublishStability(); }
+        }
+
+        private void SampleRoad(Vector3 velocity)
+        {
+            var joints = CartRoadJoint.Active;
+            // A frozen, airborne, respawning or merely turning cart cannot farm bumps.
+            if (velocity.sqrMagnitude < .01f || carry.InFlight) return;
+            for (int w = 0; w < wheelOffsets.Length; w++)
+            {
+                Vector3 from = lastPosition + lastRotation * wheelOffsets[w];
+                Vector3 to = transform.position + transform.rotation * wheelOffsets[w];
+                for (int j = 0; j < joints.Count; j++)
+                {
+                    if (!joints[j].Crossed(from, to, out float approach)) continue;
+                    Vector3 offset = transform.rotation * wheelOffsets[w];
+                    Vector2 impulse = road.Strike(new Vector2(offset.x, offset.z),
+                        new Vector2(velocity.x, velocity.z), velocity.magnitude * approach,
+                        joints[j].Severity, cart.Load);
+                    waveVelocity = Vector2.ClampMagnitude(waveVelocity + impulse, config.ImpactWaveImpulse * 2f);
+                }
+            }
         }
 
         public static int PlayerId(PlayerController avatar)

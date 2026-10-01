@@ -25,7 +25,7 @@ namespace Igruha.Minigames.CarryItem
         {
             new Vector2(0, -30), new Vector2(-25, -56), new Vector2(0, -56), new Vector2(25, -56)
         };
-        private static readonly string[] ResultLabels = { "СТОИМ", "КАТИМ ВМЕСТЕ", "РАСХОДИМСЯ", "НАВСТРЕЧУ", "КАЧАЕТ", "ВОДА УХОДИТ" };
+        private static readonly string[] ResultLabels = { "СТОИМ", "КАТИМ ВМЕСТЕ", "РАСХОДИМСЯ", "НАВСТРЕЧУ", "КАЧАЕТ", "ВОДА УХОДИТ", "СТЫКИ • ТИШЕ" };
 
         public sealed class Member
         {
@@ -152,6 +152,7 @@ namespace Igruha.Minigames.CarryItem
             }
             int state = opposing ? 3 : diverging ? 2 : MeanDirection.sqrMagnitude > 0.01f ? 1 : 0;
             if (SpillRisk > 0.65f) state = 4;
+            if (cart.Stability.State.Cause == CartTiltCause.Road && SpillRisk > .45f) state = 6;
             if (Spilling) state = 5;
             if (state != shownResult) { shownResult = state; resultLabel.text = ResultLabels[state]; }
             resultLabel.color = Spilling ? MinigameUiStyle.Urgent : SpillRisk > 0.65f ? MinigameUiStyle.Accent : MinigameUiStyle.MutedOnDark;
