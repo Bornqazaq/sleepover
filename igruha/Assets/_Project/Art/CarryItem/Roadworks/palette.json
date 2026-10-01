@@ -1,0 +1,114 @@
+{
+  "materials": [
+    {
+      "name": "RW_Steel",
+      "color": [
+        0.2,
+        0.26,
+        0.27,
+        1
+      ],
+      "roughness": 0.48,
+      "metallic": 0.6
+    },
+    {
+      "name": "RW_Edges",
+      "color": [
+        0.4,
+        0.45,
+        0.44,
+        1
+      ],
+      "roughness": 0.35,
+      "metallic": 0.65
+    },
+    {
+      "name": "RW_Ochre",
+      "color": [
+        0.94,
+        0.56,
+        0.13,
+        1
+      ],
+      "roughness": 0.65,
+      "metallic": 0
+    },
+    {
+      "name": "RW_Charcoal",
+      "color": [
+        0.045,
+        0.066,
+        0.072,
+        1
+      ],
+      "roughness": 0.8,
+      "metallic": 0
+    },
+    {
+      "name": "RW_Ivory",
+      "color": [
+        0.8,
+        0.81,
+        0.7,
+        1
+      ],
+      "roughness": 0.8,
+      "metallic": 0
+    },
+    {
+      "name": "RW_Timber",
+      "color": [
+        0.34,
+        0.19,
+        0.08,
+        1
+      ],
+      "roughness": 0.83,
+      "metallic": 0
+    },
+    {
+      "name": "RW_Brick",
+      "color": [
+        0.55,
+        0.24,
+        0.115,
+        1
+      ],
+      "roughness": 0.91,
+      "metallic": 0
+    },
+    {
+      "name": "RW_Teal",
+      "color": [
+        0.075,
+        0.36,
+        0.34,
+        1
+      ],
+      "roughness": 0.55,
+      "metallic": 0.2
+    },
+    {
+      "name": "RW_Concrete",
+      "color": [
+        0.44,
+        0.43,
+        0.38,
+        1
+      ],
+      "roughness": 0.95,
+      "metallic": 0
+    },
+    {
+      "name": "RW_Rust",
+      "color": [
+        0.32,
+        0.12,
+        0.058,
+        1
+      ],
+      "roughness": 0.94,
+      "metallic": 0
+    }
+  ]
+}

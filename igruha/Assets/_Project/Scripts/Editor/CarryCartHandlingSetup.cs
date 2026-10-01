@@ -24,7 +24,7 @@ namespace Igruha.EditorTools
             var steps = definitionSo.FindProperty("tutorialSteps");
             string[] instructions = { "E — взяться. WASD — катить и плавно поворачивать.",
                 "Разные стрелки раскачивают бак. Направляйте их вместе, чтобы не пролить воду.",
-                "Вода теряется, когда волна пересекает борт. Подкатите к насосу для откачки." };
+                "На жёлтых стыках сбавляйте ход. Бирюзовый обход ровнее. Доставьте воду к насосу." };
             steps.arraySize = instructions.Length;
             for (int i = 0; i < instructions.Length; i++) steps.GetArrayElementAtIndex(i).stringValue = instructions[i];
             var hints = definitionSo.FindProperty("tutorialQuickHints"); hints.arraySize = 3;

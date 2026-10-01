@@ -683,8 +683,10 @@ namespace Igruha.Minigames.CarryItem
             {
                 string why = cause == CartTiltCause.Brake ? "Резкое торможение" :
                     cause == CartTiltCause.Disagreement ? "Тянете в разные стороны" :
+                    cause == CartTiltCause.Road ? "Тряский настил" :
                     cause == CartTiltCause.Turn ? "Быстрый поворот" : "Удар / волна";
-                string advice = cause == CartTiltCause.Disagreement ? "Совместите стрелки" : "Двигайтесь плавнее";
+                string advice = cause == CartTiltCause.Disagreement ? "Совместите стрелки" :
+                    cause == CartTiltCause.Road ? "Сбавьте ход или выберите ровный обход" : "Двигайтесь плавнее";
                 Hud.ShowStatus($"ВОДА ЧЕРЕЗ КРАЙ — {why} · {water} / {capacity} · {advice}");
                 return;
             }
@@ -692,6 +694,7 @@ namespace Igruha.Minigames.CarryItem
             {
                 Hud.ShowStatus(cause == CartTiltCause.Disagreement
                     ? $"ТЕЛЕЖКУ КАЧАЕТ · Совместите направления стрелок · {water} / {capacity}"
+                    : cause == CartTiltCause.Road ? $"СТЫКИ · Сбавьте ход или выберите ровный обход · {water} / {capacity}"
                     : $"ВОЛНА ПОДНИМАЕТСЯ · Плавнее на поворотах · {water} / {capacity}");
                 return;
             }
@@ -734,6 +737,7 @@ namespace Igruha.Minigames.CarryItem
                 CartTiltCause.Disagreement => "Тянете вразнобой — вода через край!",
                 CartTiltCause.Brake => "Резко затормозили — вода через край!",
                 CartTiltCause.Turn => "Занесло на повороте!",
+                CartTiltCause.Road => "Тряский настил — вода через край!",
                 _ => "Удар! Вода за бортом!"
             };
             announcer?.Announce(text, 3f);

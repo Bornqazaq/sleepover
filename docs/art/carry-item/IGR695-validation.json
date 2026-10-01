@@ -1,0 +1,109 @@
+{
+  "issue": "IGR-695",
+  "build": "development macOS, Unity 6000.3.11f1",
+  "networkRun": "carry-rolling-20261001-173604",
+  "scope": "localhost host + 7; both teams 1–4 holders, E/WASD, disagreement, impacts and 4-person rough shortcut",
+  "playModePassed": 50,
+  "roadRetestPassed": 6,
+  "arenaFootprints": 484,
+  "arenaIssues": 0,
+  "authoredJoints": 14,
+  "peers": [
+    {
+      "peer": "client-1",
+      "pass": true,
+      "failures": [],
+      "exceptions": 0,
+      "roadWater": [
+        "99"
+      ],
+      "gripGap": [
+        "1.250278E-06"
+      ]
+    },
+    {
+      "peer": "client-2",
+      "pass": true,
+      "failures": [],
+      "exceptions": 0,
+      "roadWater": [
+        "99"
+      ],
+      "gripGap": [
+        "1.195441E-06"
+      ]
+    },
+    {
+      "peer": "client-3",
+      "pass": true,
+      "failures": [],
+      "exceptions": 0,
+      "roadWater": [
+        "99"
+      ],
+      "gripGap": [
+        "1.350016E-06"
+      ]
+    },
+    {
+      "peer": "client-4",
+      "pass": true,
+      "failures": [],
+      "exceptions": 0,
+      "roadWater": [
+        "99"
+      ],
+      "gripGap": [
+        "1.238859E-06"
+      ]
+    },
+    {
+      "peer": "client-5",
+      "pass": true,
+      "failures": [],
+      "exceptions": 0,
+      "roadWater": [
+        "99"
+      ],
+      "gripGap": [
+        "1.283923E-06"
+      ]
+    },
+    {
+      "peer": "client-6",
+      "pass": true,
+      "failures": [],
+      "exceptions": 0,
+      "roadWater": [
+        "99"
+      ],
+      "gripGap": [
+        "1.250278E-06"
+      ]
+    },
+    {
+      "peer": "client-7",
+      "pass": true,
+      "failures": [],
+      "exceptions": 0,
+      "roadWater": [
+        "99"
+      ],
+      "gripGap": [
+        "1.353957E-06"
+      ]
+    },
+    {
+      "peer": "host",
+      "pass": true,
+      "failures": [],
+      "exceptions": 0,
+      "roadWater": [
+        "99"
+      ],
+      "gripGap": [
+        "1.137575E-06"
+      ]
+    }
+  ]
+}
