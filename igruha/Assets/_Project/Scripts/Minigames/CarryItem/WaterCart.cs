@@ -30,6 +30,7 @@ namespace Igruha.Minigames.CarryItem
 
         /// <summary>Сколько у тележки поручней — размер команды сейчас.</summary>
         public byte Handles;
+        public byte RemainingCarts;
 
         /// <summary>Воды, единиц. Вместимость 150, в short помещается с запасом.</summary>
         public short Water;
@@ -43,13 +44,14 @@ namespace Igruha.Minigames.CarryItem
             serializer.SerializeValue(ref Team);
             serializer.SerializeValue(ref ControlTeam);
             serializer.SerializeValue(ref Handles);
+            serializer.SerializeValue(ref RemainingCarts);
             serializer.SerializeValue(ref Water);
             serializer.SerializeValue(ref Flags);
             serializer.SerializeValue(ref Stability);
         }
 
         public bool Equals(WaterCartNetState other) =>
-            Team == other.Team && ControlTeam == other.ControlTeam && Handles == other.Handles && Water == other.Water && Flags == other.Flags &&
+            Team == other.Team && ControlTeam == other.ControlTeam && Handles == other.Handles && RemainingCarts == other.RemainingCarts && Water == other.Water && Flags == other.Flags &&
             Stability.Equals(other.Stability);
     }
 
@@ -65,9 +67,9 @@ namespace Igruha.Minigames.CarryItem
     /// удар, крен, толчок, таран, слив в бак, пропасть. Считает её только
     /// авторитет: уровень воды — это счёт, и клиенту его не доверяют ни на кадр.
     ///
-    /// <b>Тележка постоянна.</b> Она не выдаётся и не исчезает: слилась — стоит
-    /// пустая, упала в пропасть — теряет воду и через отсчёт возвращается на
-    /// стоянку к крану. Отсюда и публикация уровня <b>ступенями</b>: наполнение
+    /// На раунд выданы тележка и одна замена. Первое падение теряет воду и
+    /// возвращает замену к исходному крану, второе исчерпывает запас команды.
+    /// Сетевая оболочка сохраняется для поздних клиентов. Уровень публикуется <b>ступенями</b>: наполнение
     /// и слив непрерывны, и запись состояния на каждую единицу дала бы десятки
     /// пакетов в секунду.
     /// </summary>
@@ -113,7 +115,7 @@ namespace Igruha.Minigames.CarryItem
         /// </summary>
         public event Action<int, WaterLossReason> WaterChanged;
 
-        /// <summary>Тележка улетела в пропасть и ждёт возврата.</summary>
+        /// <summary>Тележка улетела в пропасть: ждёт замену либо запас исчерпан.</summary>
         public event Action<WaterCart> Lost;
 
         /// <summary>Тележка вернулась на стоянку у крана.</summary>
@@ -158,6 +160,15 @@ namespace Igruha.Minigames.CarryItem
         private Func<TeamSide, int> crewSize;
         private Predicate<Igruha.Core.Player.PlayerController> handsFree;
         private bool refreshCrew;
+        private Renderer[] cartRenderers;
+        private Collider[] cartColliders;
+        private bool[] colliderEnabled;
+        private RigidbodyConstraints availableConstraints;
+        private bool availabilityHidden;
+
+        /// <summary>Original team's remaining vessels, including the one in play. Theft never replenishes stock.</summary>
+        public int RemainingCarts { get; private set; } = CarryItemConfig.CartsPerTeam;
+        public bool IsDepleted => IsLost && RemainingCarts == 0;
 
         public void ConfigureClaims(Func<Igruha.Core.Player.PlayerController, TeamSide> resolveTeam,
             Func<TeamSide, int> resolveSize, Predicate<Igruha.Core.Player.PlayerController> available)
@@ -169,7 +180,7 @@ namespace Igruha.Minigames.CarryItem
         private bool CanClaim(Igruha.Core.Player.PlayerController player)
         {
             TeamSide side = teamOf != null ? teamOf(player) : TeamSide.None;
-            return side != TeamSide.None && !player.IsKnockedDown && !player.MovementLocked &&
+            return !IsLost && side != TeamSide.None && !player.IsKnockedDown && !player.MovementLocked &&
                 (handsFree == null || handsFree(player)) &&
                 (carry.CarrierCount == 0 || side == ControlTeam);
         }
@@ -326,6 +337,7 @@ namespace Igruha.Minigames.CarryItem
             homeRotation = homeFacing;
 
             Water = 0;
+            RemainingCarts = CarryItemConfig.CartsPerTeam;
             flags = 0;
             shownStep = -1;
             publishedWater = -1;
@@ -339,6 +351,7 @@ namespace Igruha.Minigames.CarryItem
             carry.SetHandleCount(handleCount);
             carry.SetLoad(Load);
             carry.GrabLocked = false;
+            ApplyAvailability();
 
             PublishState(true);
             ApplyLevelVisual();
@@ -552,6 +565,7 @@ namespace Igruha.Minigames.CarryItem
                 Team = (byte)Team,
                 ControlTeam = (byte)ControlTeam,
                 Handles = (byte)Mathf.Clamp(carry.HandleCount, 1, MultiCarryObject.MaxHandles),
+                RemainingCarts = (byte)RemainingCarts,
                 Water = (short)Mathf.Clamp(Water, 0, short.MaxValue),
                 Flags = flags,
                 Stability = Stability != null ? Stability.State : default
@@ -574,6 +588,7 @@ namespace Igruha.Minigames.CarryItem
             Team = (TeamSide)state.Team;
             ControlTeam = (TeamSide)state.ControlTeam;
             Water = state.Water;
+            RemainingCarts = state.RemainingCarts;
             flags = state.Flags;
             Stability.ApplyState(state.Stability);
             carry.GrabLocked = IsLost;
@@ -585,6 +600,7 @@ namespace Igruha.Minigames.CarryItem
 
             ApplyTeamTint();
             ApplyLevelVisual();
+            ApplyAvailability();
         }
 
         /// <summary>
@@ -674,9 +690,7 @@ namespace Igruha.Minigames.CarryItem
         }
 
         /// <summary>
-        /// Улетела в пропасть — теряется весь остаток, а сама тележка через
-        /// отсчёт вернётся на стоянку. Оставить её на дне значило бы оставить
-        /// команду без тары до конца раунда (спека v2, 5.1).
+        /// A fall consumes one vessel of the original team. Only the first fall has a replacement.
         /// </summary>
         private void CheckVoid()
         {
@@ -688,16 +702,19 @@ namespace Igruha.Minigames.CarryItem
             ChangeWater(-Water, WaterLossReason.Void);
             carry.ReleaseAll(CarryReleaseReason.RoundEnded);
             carry.GrabLocked = true;
+            RemainingCarts = Mathf.Max(0, RemainingCarts - 1);
             SetFlag(WaterCartNetState.FillingFlag, false);
             SetPouring(false);
             SetFlag(WaterCartNetState.LostFlag, true);
+            Stability.ResetTrip();
             returnAt = NetworkClock.Now + config.CartRespawnSeconds;
+            ApplyAvailability();
             Lost?.Invoke(this);
         }
 
         private void UpdateReturn()
         {
-            if (NetworkClock.Now < returnAt)
+            if (IsDepleted || NetworkClock.Now < returnAt)
             {
                 return;
             }
@@ -706,10 +723,12 @@ namespace Igruha.Minigames.CarryItem
             RestoreClaim();
             carry.GrabLocked = false;
             SetFlag(WaterCartNetState.LostFlag, false);
+            Stability.ResetTrip();
+            ApplyAvailability();
             Returned?.Invoke(this);
         }
 
-        /// <summary>Вернуть тележку на стоянку немедленно — конец раунда, сброс.</summary>
+        /// <summary>Reset for a new round. Normal falls must go through the finite replacement path.</summary>
         public void ReturnHome()
         {
             if (!HasAuthority)
@@ -721,8 +740,36 @@ namespace Igruha.Minigames.CarryItem
             RestoreClaim();
             carry.GrabLocked = false;
             flags = 0;
+            RemainingCarts = CarryItemConfig.CartsPerTeam;
             carry.ClearLean();
+            Stability.ResetTrip();
+            ApplyAvailability();
             PublishState(true);
+        }
+
+        private void ApplyAvailability()
+        {
+            // Retain the network object so late joiners receive the empty fleet state.
+            // Freeze and hide its physical shell instead of leaving a falling rigidbody forever.
+            if (cartRenderers == null)
+            {
+                cartRenderers = GetComponentsInChildren<Renderer>(true);
+                cartColliders = GetComponentsInChildren<Collider>(true);
+                colliderEnabled = new bool[cartColliders.Length];
+                for (int i = 0; i < cartColliders.Length; i++) colliderEnabled[i] = cartColliders[i].enabled;
+                availableConstraints = body.constraints;
+            }
+            bool hidden = IsLost;
+            if (availabilityHidden == hidden) return;
+            availabilityHidden = hidden;
+            foreach (var renderer in cartRenderers) renderer.forceRenderingOff = hidden;
+            for (int i = 0; i < cartColliders.Length; i++) cartColliders[i].enabled = !hidden && colliderEnabled[i];
+            carry.enabled = !hidden;
+            if (HasAuthority)
+            {
+                if (!body.isKinematic) { body.linearVelocity = Vector3.zero; body.angularVelocity = Vector3.zero; }
+                body.constraints = hidden ? RigidbodyConstraints.FreezeAll : availableConstraints;
+            }
         }
 
         private void OnCollisionEnter(Collision collision)

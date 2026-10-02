@@ -25,6 +25,7 @@ namespace Igruha.Tests
         private readonly bool[] lostGrip=new bool[2];
         private bool driving,failed,slowSecond;
         private float began, nextTelemetry;
+        private float driveStrength;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Install()
         {
@@ -50,12 +51,14 @@ namespace Igruha.Tests
                 if(finished||arrived[side]>0)continue;
                 float strength=slowSecond&&side==1?.30f:1;
                 if(next[side]==paths[side].Length-1)strength=Mathf.Min(strength,Mathf.Clamp(delta.magnitude/2,.18f,1));
-                if(!slowSecond&&next[side]<paths[side].Length-1&&delta.magnitude<1.7f)
+                if(!slowSecond&&next[side]<paths[side].Length-1&&delta.magnitude<3.8f)
                 {
                     Vector3 following=paths[side][next[side]+1]-target;following.y=0;
-                    if(Vector3.Angle(delta,following)>25)strength=.55f;
+                    if(Vector3.Angle(delta,following)>25)strength=Mathf.Lerp(.30f,1f,Mathf.InverseLerp(1.8f,3.8f,delta.magnitude));
                 }
-                input=local.WorldToMoveInput(delta)*strength;
+                if(!slowSecond&&cart.Carry.FlatVelocity.sqrMagnitude>.04f&&Vector3.Angle(cart.Carry.FlatVelocity,delta)>12)strength=Mathf.Min(strength,.30f);
+                driveStrength=Mathf.MoveTowards(driveStrength,strength,Time.deltaTime*.75f);
+                input=local.WorldToMoveInput(delta)*driveStrength;
             }
             reader.DriveMove(input);
             if(driving&&net.IsServer&&Elapsed()>=nextTelemetry)
@@ -107,6 +110,7 @@ namespace Igruha.Tests
             // Equal geometry/load, only speed differs: crawling is a real alternative to accepting loss.
             paths[0]=new[]{new Vector3(-3.2f,0,1.35f),new Vector3(7.2f,0,1.35f)};
             paths[1]=new[]{new Vector3(-3.2f,0,-1.35f),new Vector3(7.2f,0,-1.35f)};
+            yield return At(70);yield return Tap();
             yield return At(72);if(net.IsServer)Setup();
             yield return At(75);yield return Tap();
             yield return At(77);slowSecond=true;Begin();
@@ -122,6 +126,7 @@ namespace Igruha.Tests
             for(int side=0;side<2;side++)
             {
                 var cart=game.CartOf(side==0?TeamSide.A:TeamSide.B);var crew=side==0?a:b;
+                if(cart.GetComponent<CarryRouteContactProbe>()==null)cart.gameObject.AddComponent<CarryRouteContactProbe>();
                 cart.Carry.ReleaseAll(CarryReleaseReason.RoundEnded);Vector3 d=paths[side][1]-paths[side][0];d.y=0;
                 cart.Carry.ResetPose(paths[side][0]+Vector3.up*.03f,Quaternion.LookRotation(d));
                 cart.ChangeWater(-cart.Water,WaterLossReason.Poured);cart.ChangeWater(150,WaterLossReason.Filled);cart.SetHandleCount(4);cart.Stability.ResetTrip();
@@ -136,5 +141,20 @@ namespace Igruha.Tests
         private IEnumerator Tap(){reader.DriveInteractHold(true);yield return new WaitForSeconds(.08f);reader.DriveInteractHold(false);}
         private IEnumerator At(float time){float deadline=Time.realtimeSinceStartup+65;while(Elapsed()<time&&Time.realtimeSinceStartup<deadline)yield return null;Check(Elapsed()>=time,"phase "+time);}
         private void Check(bool pass,string message){if(pass)Debug.Log("CARRY_ROUTE_CHECK "+message);else{failed=true;Debug.LogError("CARRY_ROUTE_CHECK FAIL "+message);}}
+    }
+    public sealed class CarryRouteContactProbe : MonoBehaviour
+    {
+        private float nextReport;
+        private void OnCollisionStay(Collision collision)
+        {
+            if(Time.time<nextReport||GetComponent<MultiCarryObject>().FlatVelocity.sqrMagnitude>.01f)return;
+            for(int i=0;i<collision.contactCount;i++)
+            {
+                var point=collision.GetContact(i);
+                if(Mathf.Abs(point.normal.y)>.8f)continue;
+                Debug.Log("CARRY_ROUTE_CHECK side contact "+name+" "+collision.collider.name+" "+point.point+" normal="+point.normal);
+                nextReport=Time.time+5;break;
+            }
+        }
     }
 }

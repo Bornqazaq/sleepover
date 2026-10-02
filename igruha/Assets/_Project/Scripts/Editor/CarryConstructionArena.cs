@@ -25,6 +25,7 @@ namespace Igruha.EditorTools
             var root=arena.Find("HeistRoutes");
             BuildWayfinding(root);
             CarryArenaCollision.Apply(arena);
+            CarrySiteFinish.Apply(arena);
         }
         internal static void BuildGalleries(Transform root)
         {

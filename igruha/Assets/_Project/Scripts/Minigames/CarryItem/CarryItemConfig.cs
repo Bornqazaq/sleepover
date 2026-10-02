@@ -57,6 +57,7 @@ namespace Igruha.Minigames.CarryItem
         [SerializeField] private float pourRate = 25f;
         [Tooltip("Через сколько секунд улетевшая в пропасть тележка появляется на стоянке у крана")]
         [SerializeField] private float cartRespawnSeconds = 5f;
+        public const int CartsPerTeam = 2;
 
         [Header("Потери воды")]
         [SerializeField] private int hitLoss = 20;
@@ -130,12 +131,12 @@ namespace Igruha.Minigames.CarryItem
         [SerializeField] private float steeringRate = 90f;
         [SerializeField] private float brakeAcceleration = 5f;
         [SerializeField] private float waveResponse = 24f;
-        [SerializeField] private float waveDamping = 5f;
-        [SerializeField] private float turnWaveGain = 0.11f;
+        [SerializeField] private float waveDamping = 3.8f;
+        [SerializeField] private float turnWaveGain = 0.23f;
         [SerializeField] private float brakeWaveGain = 0.18f;
         [SerializeField] private float gentleBrakeLimit = 2f;
         [SerializeField] private float impactWaveImpulse = 2.8f;
-        [SerializeField] private float overflowRate = 420f;
+        [SerializeField] private float overflowRate = 700f;
         public float SteeringRate => steeringRate;
         public float BrakeAcceleration => brakeAcceleration;
         public float WaveResponse => waveResponse;

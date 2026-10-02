@@ -38,7 +38,9 @@ namespace Igruha.EditorTools
             configSo.FindProperty("rollingTetherGain").floatValue = 4f;
             configSo.FindProperty("rollingLateralGain").floatValue = 8f;
             configSo.FindProperty("brakeWaveGain").floatValue = 0.18f;
-            configSo.FindProperty("overflowRate").floatValue = 420f;
+            configSo.FindProperty("overflowRate").floatValue = 700f;
+            configSo.FindProperty("waveDamping").floatValue = 3.8f;
+            configSo.FindProperty("turnWaveGain").floatValue = .23f;
             configSo.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(config); // Save newly added tuning fields.
 
