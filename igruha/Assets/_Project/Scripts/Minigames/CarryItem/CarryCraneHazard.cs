@@ -7,8 +7,12 @@ namespace Igruha.Minigames.CarryItem
     [RequireComponent(typeof(Collider))]
     public sealed class CarryCraneHazard : MonoBehaviour
     {
-        private Collider contact;
-        private void Awake() => contact = GetComponent<Collider>();
-        private void Update() => contact.enabled = MinigameControllerBase.Current is CarryItemMinigame game && game.Phase == MinigamePhase.Round && !game.StartCountdownActive;
+        private Collider[] contacts;
+        private void Awake() => contacts = GetComponentsInChildren<Collider>();
+        private void FixedUpdate()
+        {
+            bool active=MinigameControllerBase.Current is CarryItemMinigame game && game.Phase == MinigamePhase.Round && !game.StartCountdownActive;
+            foreach(var contact in contacts)contact.enabled=active;
+        }
     }
 }

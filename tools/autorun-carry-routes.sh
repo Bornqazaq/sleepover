@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# IGR-697: actual theft, receiving bays, full solo/four-owner slopes and crane contacts.
+# IGR-697: two actual four-owner crews compare road choices and water.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP="$ROOT/igruha/Builds/Autotest/sleepover.app/Contents/MacOS/sleepover"
 PLAYERS="${1:-8}"
-PORT="${CARRY_TEST_PORT:-17596}"
-[[ "$PLAYERS" == 8 ]] || { echo "Expected 8 players (two four-owner crews)" >&2; exit 1; }
+PORT="${CARRY_TEST_PORT:-17597}"
+[[ "$PLAYERS" == 8 ]] || { echo "Expected 8 players (two full crews)" >&2; exit 1; }
 [[ -x "$APP" ]] || { echo "Missing development build: $APP" >&2; exit 1; }
-LOGS="$ROOT/igruha/Builds/Autotest/logs/carry-heist-$(date +%Y%m%d-%H%M%S)"
+LOGS="$ROOT/igruha/Builds/Autotest/logs/carry-route-$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$LOGS"
 pids=()
 cleanup() {
@@ -18,19 +18,19 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 130' INT TERM
 
-"$APP" --autostart CarryItem --wait-players "$PLAYERS" --port "$PORT" --carry-heist-check true \
+"$APP" --autostart CarryItem --wait-players "$PLAYERS" --port "$PORT" --carry-route-check true \
     -batchmode -nographics -logFile "$LOGS/host.log" >/dev/null 2>&1 &
 pids+=("$!")
 sleep 6
 for ((i = 1; i < PLAYERS; i++)); do
-    "$APP" --client --host 127.0.0.1 --port "$PORT" --carry-heist-check true \
+    "$APP" --client --host 127.0.0.1 --port "$PORT" --carry-route-check true \
         -batchmode -nographics -logFile "$LOGS/client-$i.log" >/dev/null 2>&1 &
     pids+=("$!")
     sleep 1
 done
 echo "Logs: $LOGS"
 
-deadline=$((SECONDS + 185))
+deadline=$((SECONDS + 140))
 while ((SECONDS < deadline)); do
     running=0
     for pid in "${pids[@]}"; do
@@ -42,11 +42,11 @@ done
 
 result=0
 for log in "$LOGS"/*.log; do
-    if ! grep -q 'CARRY_HEIST_CHECK PASS' "$log" ||
-        grep -Eq 'CARRY_HEIST_CHECK FAIL|Exception:|NetworkConfig mismatch' "$log"; then
+    if ! grep -q 'CARRY_ROUTE_CHECK PASS' "$log" ||
+        grep -Eq 'CARRY_ROUTE_CHECK FAIL|Exception:|NetworkConfig mismatch' "$log"; then
         echo "FAIL: $log"
         result=1
     fi
-    grep 'CARRY_HEIST_CHECK' "$log" || true
+    grep 'CARRY_ROUTE_CHECK' "$log" || true
 done
 exit "$result"
