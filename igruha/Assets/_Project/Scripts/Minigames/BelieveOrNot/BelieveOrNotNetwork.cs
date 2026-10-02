@@ -168,6 +168,10 @@ namespace Igruha.Minigames.BelieveOrNot
 
         private readonly NetworkList<BelieveEntryNetState> entries = new NetworkList<BelieveEntryNetState>();
 
+        private readonly NetworkVariable<BelievePredictionResults> predictionResults =
+            new NetworkVariable<BelievePredictionResults>();
+        private bool predictionsDirty;
+
         private BelieveOrNotMinigame game;
         private MinigameStageState stageState;
 
@@ -209,6 +213,8 @@ namespace Igruha.Minigames.BelieveOrNot
             match.OnValueChanged += OnMatchChanged;
             stage.OnValueChanged += OnStageChanged;
             entries.OnListChanged += OnEntriesChanged;
+            predictionResults.OnValueChanged += OnPredictionsChanged;
+            predictionsDirty = true;
 
             if (IsServer)
             {
@@ -236,6 +242,7 @@ namespace Igruha.Minigames.BelieveOrNot
             match.OnValueChanged -= OnMatchChanged;
             stage.OnValueChanged -= OnStageChanged;
             entries.OnListChanged -= OnEntriesChanged;
+            predictionResults.OnValueChanged -= OnPredictionsChanged;
 
             if (IsServer)
             {
@@ -440,9 +447,41 @@ namespace Igruha.Minigames.BelieveOrNot
         private void SubmitPhraseRpc(int phraseIndex, RpcParams rpcParams = default) =>
             game?.HandlePhrase((int)rpcParams.Receive.SenderClientId, phraseIndex);
 
+        // Скрытые выборы хранятся только у сервера. Ответ на нажатие адресован
+        // отправителю; общая NetworkVariable заполняется лишь при открытии коробок.
+        public void SubmitPrediction(int round, int winnerId)
+        {
+            if (IsSpawned) SubmitPredictionServerRpc(round, winnerId);
+        }
+
+        [Rpc(SendTo.Server, RequireOwnership = false)]
+        private void SubmitPredictionServerRpc(int round, int winnerId, RpcParams rpcParams = default)
+        {
+            if (!IsServer || game == null) return;
+            ulong sender = rpcParams.Receive.SenderClientId;
+            game.HandlePrediction((int)sender, round, winnerId);
+            PredictionReceiptClientRpc(round, game.PredictionOf((int)sender), RpcTarget.Single(sender, RpcTargetUse.Temp));
+        }
+
+        [Rpc(SendTo.SpecifiedInParams)]
+        private void PredictionReceiptClientRpc(int round, int winnerId, RpcParams rpcParams = default) =>
+            game?.ApplyPredictionReceipt(round, winnerId);
+
+        public void PublishPredictions(in BelievePredictionResults value)
+        {
+            if (IsSpawned && IsServer) predictionResults.Value = value;
+        }
+
+        private void OnPredictionsChanged(BelievePredictionResults previous, BelievePredictionResults current) =>
+            predictionsDirty = true;
+
         // ========== ПРИЁМ НА КЛИЕНТЕ ==========
 
-        private void OnMatchChanged(BelieveMatchNetState previous, BelieveMatchNetState current) => matchDirty = true;
+        private void OnMatchChanged(BelieveMatchNetState previous, BelieveMatchNetState current)
+        {
+            matchDirty = true;
+            predictionsDirty = true;
+        }
 
         private void OnStageChanged(BelieveStageNetState previous, BelieveStageNetState current) => stageDirty = true;
 
@@ -464,6 +503,7 @@ namespace Igruha.Minigames.BelieveOrNot
                 matchDirty = true;
                 stageDirty = true;
                 entriesDirty = true;
+                predictionsDirty = true;
             }
 
             // Порядок обязателен: стадия рисует картинку по местам за столом,
@@ -494,6 +534,12 @@ namespace Igruha.Minigames.BelieveOrNot
                 }
 
                 game.ApplyNetworkEntriesEnd();
+            }
+
+            if (predictionsDirty)
+            {
+                predictionsDirty = false;
+                game.ApplyPredictionResults(predictionResults.Value);
             }
         }
 

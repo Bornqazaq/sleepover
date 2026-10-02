@@ -25,6 +25,9 @@ namespace Igruha.Tests
         private float started, nextChoice, quitAt = -1;
         private int handledRound, observedRound, reveals, decisions;
         private byte observedStage;
+        private int predictionRound, predictionResultRound, expectedWinner;
+        private float persuasionStarted;
+        private bool PredictionScenario => scenario == "predictions" || scenario == "cancel-persuasion";
         private bool ready, cancelled, departing, finished, failed, returned;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -68,7 +71,11 @@ namespace Igruha.Tests
                 game = current;
                 stage = game.GetComponent<MinigameStageState>();
                 ready = false; handledRound = observedRound = reveals = 0; observedStage = 0;
-                game.RevealStarted += (decision, won) => { reveals++; };
+                game.RevealStarted += (decision, won) =>
+                {
+                    reveals++;
+                    expectedWinner = won ? game.DeciderPlayerId : game.KnowerPlayerId;
+                };
             }
             if (game != null)
             {
@@ -82,13 +89,16 @@ namespace Igruha.Tests
                     if (stage.Stage != observedStage)
                     {
                         observedStage = stage.Stage;
+                        if (observedStage == BelieveStage.Persuasion) persuasionStarted = Time.realtimeSinceStartup;
                         if (observedStage == BelieveStage.Cancelled)
                         { cancelled = true; StartCoroutine(CheckCancellation()); }
                     }
+                    if (PredictionScenario) CheckPredictions();
                     byte leaveStage = scenario == "cancel-seating" ? BelieveStage.Seating :
                         scenario == "cancel-peek" ? BelieveStage.Peek : BelieveStage.Persuasion;
                     bool cancelThisRound = scenario.StartsWith("cancel-") && !cancelled && game.KnowerPlayerId != 0;
-                    if (cancelThisRound && stage.Stage == leaveStage && game.KnowerPlayerId == LocalId && !departing)
+                    if (cancelThisRound && stage.Stage == leaveStage && game.KnowerPlayerId == LocalId && !departing &&
+                        (scenario != "cancel-persuasion" || Time.realtimeSinceStartup - persuasionStarted > 2f))
                     {
                         departing = true;
                         Debug.Log("BELIEVE_CHECK DISCONNECT round=" + stage.Subround + " stage=" + stage.Stage);
@@ -117,8 +127,83 @@ namespace Igruha.Tests
             { Check(false, "timeout"); Application.Quit(2); }
         }
 
+        private void CheckPredictions()
+        {
+            if (stage.Stage == BelieveStage.Persuasion)
+            {
+                Check(game.PredictionResults.Round == 0, "other predictions remain private before reveal");
+                if (predictionRound != stage.Subround)
+                {
+                    predictionRound = stage.Subround;
+                    StartCoroutine(PickPrediction());
+                }
+            }
+            if (stage.Stage == BelieveStage.Reaction && predictionResultRound != stage.Subround)
+            {
+                predictionResultRound = stage.Subround;
+                var result = game.PredictionResults;
+                var match = Get<BelieveMatchState>(game, "match");
+                Check(result.Round == stage.Subround && result.WinnerId == expectedWinner, "prediction winner matches opened boxes");
+                int spectators = 0;
+                foreach (var entry in Get<List<BelieveEntry>>(game, "entries"))
+                    if (entry.Present && entry.PlayerId != match.Seat0PlayerId && entry.PlayerId != match.Seat1PlayerId) spectators++;
+                Check(result.Picks.Length == spectators, "one prediction per present spectator");
+                var snapshot = new List<string>();
+                for (int i = 0; i < result.Picks.Length; i++)
+                {
+                    var pick = result.Picks[i];
+                    Check(pick.PlayerId != match.Seat0PlayerId && pick.PlayerId != match.Seat1PlayerId, "seated RPC rejected");
+                    int expected = pick.PlayerId % 2 == 0 ? match.Seat0PlayerId : match.Seat1PlayerId;
+                    Check(pick.WinnerId == expected, "repeat RPC cannot change accepted prediction");
+                    snapshot.Add(pick.PlayerId + ":" + pick.WinnerId);
+                }
+                snapshot.Sort();
+                var panel = Get<BelievePredictionPanel>(game, "predictionPanel");
+                Check(panel.IsVisible && !panel.CanPick, "revealed predictions visible to both roles");
+                Debug.Log("BELIEVE_CHECK PREDICTIONS round=" + result.Round + " winner=" + result.WinnerId +
+                    " picks=" + string.Join(",", snapshot));
+                game.GetComponent<BelieveOrNotNetwork>().SubmitPrediction(stage.Subround, match.Seat0PlayerId);
+            }
+        }
+
+        private IEnumerator PickPrediction()
+        {
+            yield return new WaitForSeconds(.2f);
+            var match = Get<BelieveMatchState>(game, "match");
+            var network = game.GetComponent<BelieveOrNotNetwork>();
+            var panel = Get<BelievePredictionPanel>(game, "predictionPanel");
+            if (LocalId == match.Seat0PlayerId || LocalId == match.Seat1PlayerId)
+            {
+                Check(!panel.IsVisible, "seated player has no prediction controls");
+                network.SubmitPrediction(stage.Subround, match.Seat0PlayerId);
+                yield break;
+            }
+            Check(panel.IsVisible && panel.CanPick, "spectator prediction controls visible");
+            int target = LocalId % 2 == 0 ? match.Seat0PlayerId : match.Seat1PlayerId;
+            int other = target == match.Seat0PlayerId ? match.Seat1PlayerId : match.Seat0PlayerId;
+            var avatar = SessionScoreboard.Current.LocalPlayer.Avatar;
+            Check(!avatar.MovementLocked, "spectator remains free to move");
+            var cursor = Cursor.lockState;
+            var pause = PauseScreen.Current;
+            Call(pause, "Pause");
+            panel.Choose(target);
+            Check(panel.CanPick, "pause blocks prediction choice");
+            pause.Resume();
+            network.SubmitPrediction(stage.Subround - 1, target);
+            panel.Choose(target);
+            network.SubmitPrediction(stage.Subround, -7);
+            panel.Choose(other);
+            network.SubmitPrediction(stage.Subround, other);
+            yield return new WaitForSeconds(.5f);
+            Check(Get<int>(game, "localPrediction") == target, "private receipt confirms original choice");
+            Check(!panel.CanPick && !avatar.MovementLocked && Cursor.lockState == cursor, "choice preserves movement and cursor");
+            Check(game.PredictionResults.Round == 0, "accepted prediction not in public state");
+            Debug.Log("BELIEVE_CHECK PRIVATE_PASS id=" + LocalId + " round=" + stage.Subround);
+        }
+
         private IEnumerator CheckDecision()
         {
+            if (PredictionScenario) yield return new WaitForSeconds(3f);
             var panel = Get<BelieveDecisionPanel>(game, "decisionPanel");
             var pause = PauseScreen.Current;
             var keyboard = InputSystem.AddDevice<Keyboard>();
@@ -168,6 +253,8 @@ namespace Igruha.Tests
             Check(!Get<BelievePeekView>(game, "peekView").IsOpen &&
                 !Get<BelieveDecisionPanel>(game, "decisionPanel").IsOpen &&
                 !Get<QuickPhrasePanel>(game, "phrasePanel").IsOpen, "cancel closes controls");
+            Check(game.PredictionResults.Round == 0 && !Get<BelievePredictionPanel>(game, "predictionPanel").IsVisible,
+                "cancel clears predictions and closes panel");
             Debug.Log("BELIEVE_CHECK CANCEL_PASS id=" + LocalId + " round=" + stage.Subround);
         }
 
@@ -175,7 +262,8 @@ namespace Igruha.Tests
         {
             yield return new WaitForSeconds(.25f);
             if (scenario.StartsWith("cancel-")) Check(cancelled, "cancellation scenario happened");
-            else Check(decisions > 0, "local decision controls exercised");
+            else if (!PredictionScenario) Check(decisions > 0, "local decision controls exercised");
+            if (scenario == "predictions") Check(predictionResultRound > 0, "prediction reveal observed");
             var entries = Get<List<BelieveEntry>>(game, "entries");
             Debug.Log("BELIEVE_CHECK FINAL " + string.Join("|", entries.ConvertAll(e =>
                 e.PlayerId + ":" + e.RoundsWon + ":" + e.DeciderWins + ":" + e.RoundsSeated)));

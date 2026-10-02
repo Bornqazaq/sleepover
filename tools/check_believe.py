@@ -12,9 +12,10 @@ import time
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--scenario', choices=['normal', 'cancel-seating', 'cancel-peek', 'cancel-persuasion'], default='normal')
+    parser.add_argument('--scenario', choices=['normal', 'cancel-seating', 'cancel-peek', 'cancel-persuasion', 'predictions'], default='normal')
+    parser.add_argument('--players', type=int, choices=range(2, 9))
     args = parser.parse_args()
-    players = 2 if args.scenario == 'normal' else 4
+    players = args.players or (2 if args.scenario == 'normal' else 4)
     root = pathlib.Path(__file__).resolve().parents[1]
     app = root / 'igruha/Builds/Autotest/sleepover.app/Contents/MacOS/sleepover'
     if not app.is_file():
@@ -38,7 +39,7 @@ def main():
         while any(p.poll() is None for p in processes) and time.monotonic() < deadline:
             time.sleep(1)
         ok = all(p.poll() == 0 for p in processes)
-        snapshots, disconnects = [], 0
+        snapshots, disconnects, predictions = [], 0, {}
         for log in sorted(logs.glob('*.log')):
             contents = log.read_text(errors='replace')
             lines = [line for line in contents.splitlines() if line.startswith('BELIEVE_CHECK')]
@@ -49,14 +50,22 @@ def main():
                 passed &= any(' RETURN passed=True' in line for line in lines)
                 if args.scenario.startswith('cancel-'):
                     passed &= any(' CANCEL_PASS ' in line for line in lines)
-                else:
+                elif args.scenario != 'predictions':
                     passed &= any(' PAUSE_PASS ' in line for line in lines)
                 snapshots += [line for line in lines if ' FINAL ' in line]
+                for line in lines:
+                    if ' PREDICTIONS ' in line:
+                        round_id = line.split('round=')[1].split()[0]
+                        predictions.setdefault(round_id, []).append(line)
+                if args.scenario == 'predictions':
+                    passed &= any(' PREDICTIONS ' in line for line in lines)
             ok &= passed
             print(log.name, 'PASS' if passed else 'FAIL', '\n' + '\n'.join(lines[-8:]), flush=True)
-        expected_disconnects = 0 if args.scenario == 'normal' else 1
+        expected_disconnects = 1 if args.scenario.startswith('cancel-') else 0
         ok &= disconnects == expected_disconnects
         ok &= len(snapshots) == players - expected_disconnects and len(set(snapshots)) == 1
+        if args.scenario == 'predictions':
+            ok &= bool(predictions) and all(len(v) == players and len(set(v)) == 1 for v in predictions.values())
         print('BELIEVE LOCALHOST CHECK:', 'PASS' if ok else 'FAIL', flush=True)
         return 0 if ok else 1
     finally:

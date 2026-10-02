@@ -103,6 +103,18 @@ namespace Igruha.Minigames.BelieveOrNot
                 return;
             }
 
+            IReadOnlyList<SessionPlayer> players = SessionScoreboard.Current?.Players;
+            if (players != null)
+            {
+                for (int i = 0; i < players.Count; i++)
+                {
+                    int id = players[i].Id;
+                    if (!IsBot(id) || id == game.KnowerPlayerId || id == game.DeciderPlayerId) continue;
+                    game.HandlePrediction(id, game.PredictionRound,
+                        Random.value < .5f ? game.KnowerPlayerId : game.DeciderPlayerId);
+                }
+            }
+
             decisionSent = false;
             float window = game.Config.PersuasionSeconds * maxDecisionFraction;
             decisionAt = Time.time + Random.Range(Mathf.Min(minDecisionDelay, window), window);

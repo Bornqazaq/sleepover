@@ -26,7 +26,7 @@ namespace Igruha.Minigames.BelieveOrNot
     /// авторитета, и клиентские намерения приходят в них же — через
     /// <see cref="BelieveOrNotNetwork"/>, с теми же проверками.
     /// </summary>
-    public sealed class BelieveOrNotMinigame : MinigameControllerBase
+    public sealed partial class BelieveOrNotMinigame : MinigameControllerBase
     {
         /// <summary>Ключи истории ролей. У команд истории раздельные: составы не пересекаются.</summary>
         private const string SeatRoleKeyTeamA = "believe-seat-a";
@@ -165,6 +165,7 @@ namespace Igruha.Minigames.BelieveOrNot
             base.Awake();
 
             network = GetComponent<BelieveOrNotNetwork>();
+            InitializePredictions();
 
             if (decisionPanel != null)
             {
@@ -185,6 +186,7 @@ namespace Igruha.Minigames.BelieveOrNot
 
         private void OnDestroy()
         {
+            if (predictionPanel != null) predictionPanel.Picked -= SubmitPrediction;
             if (decisionPanel != null)
             {
                 decisionPanel.DecisionPicked -= SubmitDecision;
@@ -243,6 +245,7 @@ namespace Igruha.Minigames.BelieveOrNot
             match.KnowerPlayerId = SpecialRoleHistory.NoPlayer;
             match.DeciderPlayerId = SpecialRoleHistory.NoPlayer;
 
+            ResetPredictions();
             resolvedRound = 0;
             ready = true;
 
@@ -279,6 +282,7 @@ namespace Igruha.Minigames.BelieveOrNot
                 revealRoutine = null;
             }
 
+            predictionPanel?.Close();
             LogFinalTable();
             peekView?.Close();
             decisionPanel?.Close();
@@ -394,6 +398,7 @@ namespace Igruha.Minigames.BelieveOrNot
                 return;
             }
 
+            ResetPredictions();
             winningSeat = Random.Range(0, BelieveTable.SeatCount);
             nextPhraseAt[0] = 0d;
             nextPhraseAt[1] = 0d;
@@ -745,6 +750,7 @@ namespace Igruha.Minigames.BelieveOrNot
                 entries[index] = entry;
             }
 
+            if (!match.Resolved) predictions.Remove(playerId);
             roles.Forget(playerId);
             RemovePlayer(playerId);
             teamA.RemoveAll(p => p.Id == playerId);
@@ -1099,6 +1105,7 @@ namespace Igruha.Minigames.BelieveOrNot
             peekView?.Close();
             ScheduleAutoplay();
             ShowLocalRole();
+            OpenPredictions();
 
             int localSeat = SeatOf(LocalPlayerId);
             if (localSeat < 0)
@@ -1216,6 +1223,10 @@ namespace Igruha.Minigames.BelieveOrNot
             }
 
             double now = NetworkClock.Now;
+            if (SeatOf(LocalPlayerId) < 0 && predictionSentRound != match.RoundNumber)
+            {
+                SubmitPrediction(match.RoundNumber, Random.value < 0.5f ? match.Seat0PlayerId : match.Seat1PlayerId);
+            }
 
             bool phraseDue = autoplayPhraseAt > 0d
                              && now >= autoplayPhraseAt
@@ -1273,6 +1284,7 @@ namespace Igruha.Minigames.BelieveOrNot
 
         private void ApplyCancelledStage()
         {
+            ResetPredictions();
             peekView?.Close();
             decisionPanel?.Close();
             phrasePanel?.Close();
@@ -1292,6 +1304,7 @@ namespace Igruha.Minigames.BelieveOrNot
 
         private void ApplyRevealStage()
         {
+            predictionPanel?.Lock();
             decisionPanel?.Close();
             phrasePanel?.Close();
 
@@ -1364,6 +1377,7 @@ namespace Igruha.Minigames.BelieveOrNot
             atSeat0?.Reveal(seat0Card, config.LidOpenSeconds);
             atSeat1?.Reveal(seat1Card, config.LidOpenSeconds);
 
+            PredictionBoxesOpened(SeatedId(WinnerSeat(decision, seat0Card)));
             AnnounceOutcome(decision, seat0Card);
 
             revealRoutine = null;
@@ -1567,6 +1581,7 @@ namespace Igruha.Minigames.BelieveOrNot
                 return;
             }
 
+            bool newPredictionRound = match.RoundNumber != state.RoundNumber;
             match.RoundNumber = state.RoundNumber;
             match.TotalRounds = state.TotalRounds;
             match.Seat0PlayerId = state.Seat0PlayerId;
@@ -1577,6 +1592,7 @@ namespace Igruha.Minigames.BelieveOrNot
             match.TeamBWins = state.TeamBWins;
             match.Resolved = state.Resolved;
             match.Cancelled = state.Cancelled;
+            if (newPredictionRound) ResetPredictions();
 
             UpdateHud();
         }
