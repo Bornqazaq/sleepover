@@ -33,6 +33,7 @@ namespace Igruha.Minigames.BelieveOrNot
         public int TeamBWins;
         public bool Resolved;
         public bool Cancelled;
+        public bool IsRematch;
 
         /// <summary>
         /// Матч ещё не начался. Места именно <c>NoPlayer</c>, а не нули:
@@ -59,6 +60,7 @@ namespace Igruha.Minigames.BelieveOrNot
             serializer.SerializeValue(ref TeamBWins);
             serializer.SerializeValue(ref Resolved);
             serializer.SerializeValue(ref Cancelled);
+            serializer.SerializeValue(ref IsRematch);
         }
 
         public bool Equals(BelieveMatchNetState other) =>
@@ -71,7 +73,8 @@ namespace Igruha.Minigames.BelieveOrNot
             TeamAWins == other.TeamAWins &&
             TeamBWins == other.TeamBWins &&
             Resolved == other.Resolved &&
-            Cancelled == other.Cancelled;
+            Cancelled == other.Cancelled &&
+            IsRematch == other.IsRematch;
     }
 
     /// <summary>
@@ -288,7 +291,8 @@ namespace Igruha.Minigames.BelieveOrNot
                 TeamAWins = state.TeamAWins,
                 TeamBWins = state.TeamBWins,
                 Resolved = state.Resolved,
-                Cancelled = state.Cancelled
+                Cancelled = state.Cancelled,
+                IsRematch = state.IsRematch
             };
         }
 

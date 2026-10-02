@@ -75,7 +75,7 @@ namespace Igruha.Minigames.BelieveOrNot
             return text;
         }
 
-        public void Open(int roundNumber, int first, string firstName, int second, string secondName)
+        public void Open(int roundNumber, int first, string firstName, int second, string secondName, bool isRematch = false)
         {
             if (IsVisible && round == roundNumber) return;
             round = roundNumber;
@@ -83,7 +83,7 @@ namespace Igruha.Minigames.BelieveOrNot
             secondId = second;
             canPick = true;
             Resize(ChoiceHeight, 95f);
-            title.text = "КТО ВЫИГРАЕТ КОН?";
+            title.text = isRematch ? "КТО ВЫИГРАЕТ РЕВАНШ?" : "КТО ВЫИГРАЕТ КОН?";
             body.text = "1  " + firstName + "\n2  " + secondName;
             footer.text = "1 / 2 · выбор окончательный и скрытый";
             root.SetActive(true);

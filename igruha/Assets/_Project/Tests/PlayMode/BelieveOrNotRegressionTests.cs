@@ -139,6 +139,7 @@ namespace Igruha.Tests.PlayMode
             stage.EndStageNow();
             Assert.That(stage.Subround, Is.EqualTo(2));
             Assert.That(stage.Stage, Is.EqualTo(BelieveStage.Seating));
+            Assert.That(Get<BelieveMatchState>(game, "match").IsRematch, Is.False, "cancelled hand has no rematch");
             stage.EnterStage(BelieveStage.Persuasion, 40f);
             game.HandleDecision(game.DeciderPlayerId, Decision.Keep);
             match = Get<BelieveMatchState>(game, "match");

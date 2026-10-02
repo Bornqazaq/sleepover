@@ -18,7 +18,7 @@ namespace Igruha.Tests
     public sealed class BelieveNetworkProbe : MonoBehaviour
     {
         private const BindingFlags Private = BindingFlags.Instance | BindingFlags.NonPublic;
-        private const float Timeout = 180f;
+        private const float Timeout = 240f;
         private BelieveOrNotMinigame game;
         private MinigameStageState stage;
         private string scenario;
@@ -27,6 +27,8 @@ namespace Igruha.Tests
         private byte observedStage;
         private int predictionRound, predictionResultRound, expectedWinner;
         private float persuasionStarted;
+        private int checkedPairRound, completedRound;
+        private BelieveMatchState previousPair;
         private bool PredictionScenario => scenario == "predictions" || scenario == "cancel-persuasion";
         private bool ready, cancelled, departing, finished, failed, returned;
 
@@ -94,6 +96,7 @@ namespace Igruha.Tests
                         { cancelled = true; StartCoroutine(CheckCancellation()); }
                     }
                     if (PredictionScenario) CheckPredictions();
+                    CheckRematch();
                     byte leaveStage = scenario == "cancel-seating" ? BelieveStage.Seating :
                         scenario == "cancel-peek" ? BelieveStage.Peek : BelieveStage.Persuasion;
                     bool cancelThisRound = scenario.StartsWith("cancel-") && !cancelled && game.KnowerPlayerId != 0;
@@ -125,6 +128,35 @@ namespace Igruha.Tests
             if (quitAt > 0 && Time.realtimeSinceStartup >= quitAt) Application.Quit(failed ? 2 : 0);
             if (Time.realtimeSinceStartup - started > Timeout)
             { Check(false, "timeout"); Application.Quit(2); }
+        }
+
+        private void CheckRematch()
+        {
+            if (stage.Stage == BelieveStage.Reaction) completedRound = stage.Subround;
+            if (stage.Stage != BelieveStage.Peek || checkedPairRound == stage.Subround) return;
+            var match = Get<BelieveMatchState>(game, "match");
+            // Match and stage arrive independently; inspect only a matching snapshot.
+            if (match.RoundNumber != stage.Subround) return;
+            checkedPairRound = stage.Subround;
+            bool pairPresent = true;
+            foreach (var entry in Get<List<BelieveEntry>>(game, "entries"))
+                if ((entry.PlayerId == previousPair.Seat0PlayerId || entry.PlayerId == previousPair.Seat1PlayerId) &&
+                    !entry.Present) pairPresent = false;
+            bool expectedRematch = match.RoundNumber % 2 == 0 && completedRound == match.RoundNumber - 1 && pairPresent;
+            Check(match.IsRematch == expectedRematch, "rematch only follows a completed hand with both players present");
+            if (expectedRematch)
+            {
+                Check(match.Seat0PlayerId == previousPair.Seat0PlayerId && match.Seat1PlayerId == previousPair.Seat1PlayerId,
+                    "rematch keeps both seats");
+                Check(match.KnowerPlayerId == previousPair.DeciderPlayerId && match.DeciderPlayerId == previousPair.KnowerPlayerId,
+                    "rematch swaps both roles");
+            }
+            Check(!match.Resolved && !match.Cancelled && game.PredictionResults.Round == 0,
+                "new hand clears outcome and predictions");
+            Debug.Log("BELIEVE_CHECK PAIR round=" + match.RoundNumber + " rematch=" + match.IsRematch +
+                " seats=" + match.Seat0PlayerId + "," + match.Seat1PlayerId +
+                " knower=" + match.KnowerPlayerId + " decider=" + match.DeciderPlayerId);
+            previousPair = match;
         }
 
         private void CheckPredictions()

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.BelieveOrNot.BelieveOrNotConfig
   seatingSeconds: 3
   peekSeconds: 3
-  persuasionSeconds: 40
+  persuasionSeconds: 20
   revealSeconds: 4
   reactionSeconds: 3
   boxSwapSeconds: 1.2
@@ -23,7 +23,7 @@ MonoBehaviour:
   boxSwapArcHeight: 0.35
   phraseCooldown: 1.5
   phraseBubbleSeconds: 3
-  roundsByPlayerCount: 04000000030000000200000003000000030000000400000004000000
+  roundsByPlayerCount: 04000000060000000400000006000000060000000800000008000000
   matchTimeoutSeconds: 360
   unitsPerWidth: 0.72
   hallWidth: 23

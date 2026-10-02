@@ -46,7 +46,7 @@ namespace Igruha.Minigames.BelieveOrNot
         {
             if (SeatOf(LocalPlayerId) >= 0 || IndexOf(LocalPlayerId) < 0) return;
             predictionPanel?.Open(match.RoundNumber, match.Seat0PlayerId, ShortPredictionName(match.Seat0PlayerId),
-                match.Seat1PlayerId, ShortPredictionName(match.Seat1PlayerId));
+                match.Seat1PlayerId, ShortPredictionName(match.Seat1PlayerId), match.IsRematch);
             if (localPrediction >= 0) predictionPanel?.Confirm(ShortPredictionName(localPrediction));
         }
 
