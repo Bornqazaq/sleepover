@@ -124,6 +124,8 @@ namespace Igruha.Minigames.CarryItem
             new NetworkVariable<WaterCartNetState>();
 
         private MultiCarryObject carry;
+        private Rigidbody body;
+        private int groundMask;
         private MaterialPropertyBlock materialBlock;
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private static readonly int ColorId = Shader.PropertyToID("_Color");
@@ -231,6 +233,8 @@ namespace Igruha.Minigames.CarryItem
         private void Awake()
         {
             carry = GetComponent<MultiCarryObject>();
+            body = GetComponent<Rigidbody>();
+            groundMask = LayerMask.GetMask("Ground");
             Stability = GetComponent<WaterCartStability>();
             overflowVisual = GetComponent<CartOverflowVisual>();
             materialBlock = new MaterialPropertyBlock();
@@ -597,6 +601,27 @@ namespace Igruha.Minigames.CarryItem
         private void OnShoved(int shovers)
         {
             if (HasAuthority) Stability.Impact(-transform.forward, 0.9f);
+        }
+
+        private void FixedUpdate()
+        {
+            if (!HasAuthority || IsLost || carry.CarrierCount == 0 || body == null || body.isKinematic) return;
+
+            // Hands support the cart's weight on a ramp. Otherwise gravity along the
+            // slope exceeds a full solo cart's acceleration and even W rolls it back.
+            // Sample the wheelbase: a flat chassis first touches a ramp at its front.
+            // Keep normal gravity, collisions and unheld/airborne motion unchanged.
+            Vector3 normal = Vector3.up;
+            float nearest = 1.01f;
+            for (int wheel = -1; wheel <= 1; wheel++)
+            {
+                Vector3 origin = body.position + transform.forward * (wheel * .45f) + Vector3.up * .7f;
+                if (!Physics.Raycast(origin, Vector3.down, out RaycastHit hit, nearest, groundMask, QueryTriggerInteraction.Ignore)) continue;
+                if (hit.normal.y < .65f) continue;
+                nearest = hit.distance;
+                normal = hit.normal;
+            }
+            body.AddForce(-Vector3.ProjectOnPlane(Physics.gravity, normal), ForceMode.Acceleration);
         }
 
         private void Update()

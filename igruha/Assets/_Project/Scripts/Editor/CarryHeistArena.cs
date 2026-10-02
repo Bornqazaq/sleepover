@@ -14,7 +14,7 @@ namespace Igruha.EditorTools
     {
         private const string Art = "Assets/_Project/Art/CarryItem/HeistRoutes/Models";
         private const string Road = "Assets/_Project/Art/CarryItem/Roadworks";
-        internal const float UpperHeight = 4.5f;
+        internal const float UpperHeight = CarryRouteLayout.UpperHeight;
         [MenuItem("Igruha/Minigames/Polish Carry Item Heist Routes")]
         internal static void Apply()
         {
@@ -30,6 +30,7 @@ namespace Igruha.EditorTools
             BuildBays(Group(root,"PumpBays"));
             BuildCrane(Group(root,"CraneHazard"));
             BuildDetails(Group(root,"WorkIslands"));
+            CarryConstructionArena.Apply();
             Physics.SyncTransforms();
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
         }
@@ -62,30 +63,28 @@ namespace Igruha.EditorTools
         }
         private static void BuildFlyover(Transform root)
         {
-            // 16.9 degree ramps, continuous collision. Four holders have 4.4 m deck width.
-            DeckRun(root,new Vector3(-22,0,0),new Vector3(-7.2f,UpperHeight,0),4.4f,true,false);
-            DeckRun(root,new Vector3(-7.2f,UpperHeight,0),new Vector3(7.2f,UpperHeight,0),4.4f,false,false);
-            DeckRun(root,new Vector3(7.2f,UpperHeight,0),new Vector3(22,0,0),4.4f,true,false);
+            var profile=CarryRouteLayout.Upper;
+            for(int i=1;i<profile.Length;i++)DeckRun(root,profile[i-1],profile[i],4.4f,i!=2,false);
             BuildFlyoverCollider(root);
             foreach(int side in new[]{-1,1})
             {
-                GuardrailRun(root,-7.2f,-1.2f,side*2.16f);
-                GuardrailRun(root,5.6f,7.2f,side*2.16f);
+                GuardrailRun(root,-CarryRouteLayout.UpperFlat,-3.2f,side*2.16f);
+                GuardrailRun(root,3.2f,CarryRouteLayout.UpperFlat,side*2.16f);
             }
-            foreach(float x in new[]{-3.8f,5.8f})
+            foreach(float x in new[]{.6f,3.8f})
             {
-                var t=Place(root,"Trestle",new Vector3(x,0,0));
+                var t=Place(root,"Trestle",new Vector3(x,0,0));t.localScale=new Vector3(1,(UpperHeight-.3f)/4.2f,1.12f);
                 foreach(int s in new[]{-1,1}) Box(t,"Leg",new Vector3(0,2.1f,s*2.7f),new Vector3(.24f,4.2f,.24f),true);
             }
-            foreach(float x in new[]{-6f,-3f,6f})
+            foreach(float x in new[]{-4.5f,4.5f})
                 CarryRoadArena.Chevron(root,new Vector3(x,UpperHeight+.025f,0),90,Mat("Ochre"),.65f);
             // Open waiting strips precede the swept area; painted circle matches actual beam reach.
             const int segments=40;const float radius=3.05f;
             for(int i=0;i<segments;i++)
             {
                 float a=i*Mathf.PI*2/segments,b=(i+1)*Mathf.PI*2/segments;
-                Vector3 p=new Vector3(2.2f+Mathf.Cos(a)*radius,UpperHeight+.027f,Mathf.Sin(a)*radius);
-                Vector3 q=new Vector3(2.2f+Mathf.Cos(b)*radius,UpperHeight+.027f,Mathf.Sin(b)*radius);
+                Vector3 p=new Vector3(Mathf.Cos(a)*radius,UpperHeight+.027f,Mathf.Sin(a)*radius);
+                Vector3 q=new Vector3(Mathf.Cos(b)*radius,UpperHeight+.027f,Mathf.Sin(b)*radius);
                 if(Mathf.Abs(p.z)<2.1f && Mathf.Abs(q.z)<2.1f) Line(root,p,q,.09f,Mat("Ochre"));
             }
         }
@@ -100,7 +99,7 @@ namespace Igruha.EditorTools
             }
             for(int i=0;i<n;i++)
             {
-                float part=length/n;var t=Place(root,width>3?"Deck":"SideDeck",Vector3.Lerp(a,b,(i+.5f)/n));
+                float part=length/n;var t=Place(root,width>3?"PrecastDeck":"SideDeck",Vector3.Lerp(a,b,(i+.5f)/n));
                 t.rotation=rotation;t.localScale=new Vector3(part/4f,1,1);
 
                 if(railing && !(t.position.x>-1 && t.position.x<6 && t.position.y>4))
@@ -128,7 +127,7 @@ namespace Igruha.EditorTools
             const string path="Assets/_Project/Art/CarryItem/HeistRoutes/FlyoverCollision.asset";
             var mesh=AssetDatabase.LoadAssetAtPath<Mesh>(path);
             bool created=mesh==null;if(created)mesh=new Mesh{name="Continuous flyover"};else mesh.Clear();
-            var profile=new[]{new Vector2(-22,0),new Vector2(-7.2f,UpperHeight),new Vector2(7.2f,UpperHeight),new Vector2(22,0)};
+            var profile=CarryRouteLayout.Upper;
             var vertices=new Vector3[16];var triangles=new System.Collections.Generic.List<int>();
             for(int i=0;i<4;i++)
             {
@@ -147,21 +146,9 @@ namespace Igruha.EditorTools
         }
         private static void BuildLowerRoutes(Transform root)
         {
-            foreach(int s in new[]{-1,1})
-            {
-                // Alternative crossings meet the existing broad outer bypasses.
-                DeckRun(root,new Vector3(-14.1f,.04f,s*11.25f),new Vector3(-4.6f,.04f,s*11.25f),2.6f,true);
-                DeckRun(root,new Vector3(8.9f,.04f,s*11.25f),new Vector3(17,.04f,s*11.25f),2.6f,true);
-                foreach(float x in new[]{-12f,-8f,10.5f,14.5f})
-                    CarryRoadArena.Joint(root,new Vector3(x,.052f,s*11.25f),2.3f,0,.5f);
-                // Foot stairs let saboteurs get up to the existing material platforms.
-                for(int i=0;i<9;i++)
-                {
-                    float height=(i+1)*.24f;
-                    var step=Cube(root,"Access step",new Vector3(-3.5f+i*.42f,height*.5f,s*6.2f),new Vector3(.43f,height,1.5f),Mat("Concrete"),false);
-                    Cube(root,"Step edge",new Vector3(-3.5f+i*.42f,height+.005f,s*6.2f),new Vector3(.06f,.01f,1.42f),Mat("Ochre"),null);
-                }
-            }
+            // The former four near-straight side bridges made the safe route shortest.
+            // Continuous outer galleries now replace them; no staircases in cart lanes.
+            CarryConstructionArena.BuildGalleries(root);
         }
         private static void BuildBays(Transform root)
         {
@@ -191,22 +178,25 @@ namespace Igruha.EditorTools
         }
         private static void BuildCrane(Transform root)
         {
-            Place(root,"Crane",new Vector3(2.2f,0,3.7f)); // Existing core supports its foot.
-            var beam=Place(root,"SuspendedBeam",new Vector3(2.2f,UpperHeight+.9f,0));
-            var trigger=beam.gameObject.AddComponent<BoxCollider>();trigger.size=new Vector3(5.8f,.58f,.40f);trigger.isTrigger=true;
+            Place(root,"Crane",new Vector3(0,0,3.7f)).localScale=new Vector3(1,(UpperHeight+1.5f)/6f,1); // Existing core supports its foot.
+            var beam=Place(root,"SuspendedBeam",new Vector3(0,UpperHeight+.9f,0));
+            var trigger=beam.gameObject.AddComponent<BoxCollider>();trigger.size=new Vector3(6.04f,.82f,.64f);trigger.isTrigger=true;
             var trap=beam.gameObject.AddComponent<SwingingBeamTrap>();trap.Radius=0;trap.Period=8;
+            Box(beam,"Solid suspended load",Vector3.zero,new Vector3(5.8f,.58f,.40f),true);
             beam.gameObject.AddComponent<CarryCraneHazard>();
         }
         private static void BuildDetails(Transform root)
         {
             foreach(int s in new[]{-1,1})
             {
-                SolidBounds(Place(root,"CableReel",new Vector3(-17.2f,0,s*8.6f)));
+                SolidBounds(Place(root,"CableReel",new Vector3(-24.6f,0,s*7.1f)));
                 SolidBounds(Place(root,"Generator",new Vector3(-24.4f,0,s*11.5f)));
                 SolidBounds(Place(root,"CableReel",new Vector3(25.3f,0,s*6.5f)));
                 CarryRoadArena.Place(root,"ToolBench",new Vector3(24.5f,0,s*8.3f),90,true);
-                CarryRoadArena.Place(root,"BrickPallet",new Vector3(-16.8f,0,s*2.8f),s*12,true);
-                Place(root,"Generator",new Vector3(3.4f,2.16f,s*8.3f));
+                CarryRoadArena.Place(root,"BrickPallet",new Vector3(-24f,0,s*2.8f),s*12,true);
+                SolidBounds(Place(root,"Formwork",new Vector3(3.2f,2.16f,s*7.7f)));
+                SolidBounds(Place(root,"PrecastStack",new Vector3(-24.2f,0,s*4.3f)));
+                SolidBounds(Place(root,"RebarBundle",new Vector3(3.3f,2.16f,s*4.7f)));
                 for(int i=0;i<3;i++)CarryRoadArena.Place(root,"Debris",new Vector3(-25+i*3,.005f,s*13.5f),i*29,false);
             }
         }

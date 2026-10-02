@@ -1,0 +1,112 @@
+{
+  "issue": "IGR-697",
+  "date": "2026-10-02",
+  "base_commit": "a9c952ce",
+  "playmode": {
+    "passed": 23,
+    "failed": 0,
+    "job": "94c658039f9b48f0bc1898027bdaaba2",
+    "scope": [
+      "CartRoadTests",
+      "CartClaimTests",
+      "CarryDeliveryTests"
+    ],
+    "duration_seconds": 39.3891735
+  },
+  "build": {
+    "platform": "macOS Development",
+    "result": "Succeeded",
+    "errors": 0,
+    "warnings": 0
+  },
+  "geometry": {
+    "four_carrier_footprints": 4280,
+    "problems": 0,
+    "tangible_prop_bodies": 193,
+    "missing_bodies": 0,
+    "road_joints": 14,
+    "repeat_transforms": [
+      549,
+      549
+    ],
+    "scene_mesh_renderers": [
+      1778,
+      1886
+    ],
+    "new_layer_renderers": 358,
+    "new_layer_triangles": 122660,
+    "route_lengths_m": [
+      52.7,
+      61.4,
+      66.8
+    ],
+    "upper_height_m": 3.8,
+    "upper_slope_degrees": 16.8,
+    "gallery_width_m": 4.2,
+    "continuous_collision": true,
+    "stairs_removed": true
+  },
+  "network": {
+    "routes": {
+      "logs": "carry-route-20261002-143120",
+      "passed": 8,
+      "failed": 0,
+      "capacity": 150,
+      "shortcut": {
+        "seconds": 25.13603,
+        "water": 97
+      },
+      "safe": {
+        "seconds": 30.68874,
+        "water": 140
+      },
+      "same_seams_fast": {
+        "seconds": 4.734306,
+        "water": 100
+      },
+      "same_seams_slow": {
+        "seconds": 14.7506,
+        "water": 150
+      },
+      "all_peers_agree_on_water": true,
+      "grips": 4
+    },
+    "heist": {
+      "logs": "carry-heist-20261002-150146",
+      "passed": 8,
+      "failed": 0,
+      "covers": [
+        "actual owner E capture, occupied rejection and reclaim",
+        "stolen water credited only to correct pump, gradual drain and visible hose",
+        "four owners: full ascent, descent and opposite ascent in reverse",
+        "carrier disconnect retains other three",
+        "crane contact knocks down and releases grip",
+        "one owner climbs with 150/150 water"
+      ],
+      "earlier_pass": "carry-heist-20261002-145737"
+    }
+  },
+  "diagnostics": [
+    "Existing Addressables ProfileValueReference empty-id message during build; BuildReport succeeded with zero errors/warnings",
+    "Metal memoryless-depth diagnostics from positioned editor screenshots",
+    "Raised/coplanar road overlay collider edges snagged the cart; backing moved 0.04m below continuous slab",
+    "Network fixture releases with E before repositioning, preventing stale remote tethers from shoving a newly positioned cart; actual travel and knockdown run with the crane enabled."
+  ],
+  "preserved": {
+    "original_local_files": 11,
+    "synty_prefabs_present": 8198,
+    "frozen_assets_changed": false
+  },
+  "not_verified": [
+    "human balance and visual acceptance",
+    "different physical PCs",
+    "Windows runtime",
+    "GPU profiling"
+  ],
+  "scene_sha256": "1398b3060e23d86cf0467cb016f5a08ebdda74bb410a72ac83cd27091b1ee85d",
+  "captures": {
+    "overview": "IGR697-routes.png",
+    "construction": "IGR697-construction.png",
+    "actual_game_view": "IGR697-game-upper.png"
+  }
+}

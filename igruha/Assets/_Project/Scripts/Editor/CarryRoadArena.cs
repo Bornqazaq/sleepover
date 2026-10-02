@@ -35,7 +35,7 @@ namespace Igruha.EditorTools
             var definition = AssetDatabase.LoadAssetAtPath<Igruha.Core.Minigame.MinigameDefinition>("Assets/_Project/Settings/Gameplay/Minigames/CarryItem.asset");
             var definitionSo = new SerializedObject(definition);
             definitionSo.FindProperty("tutorialSteps").GetArrayElementAtIndex(2).stringValue =
-                "На стыках сбавляйте ход; сверху берегитесь балки. Чужую свободную тележку можно украсть по E и слить у своего насоса.";
+                "Короткий настил трясёт воду. Снаружи — длинный ровный обход; сверху — балка, дождитесь окна. Чужую свободную тележку можно украсть по E.";
             definitionSo.ApplyModifiedPropertiesWithoutUndo();AssetDatabase.SaveAssetIfDirty(definition);
             CarryHeistArena.Apply();
             Physics.SyncTransforms();
@@ -137,7 +137,7 @@ namespace Igruha.EditorTools
             // First/last boards introduce the interaction softly before the central choice.
             foreach (float z in new[] { -5.04f, 5.04f })
             foreach (float x in new[] { -12.9f, -5.8f, 10.15f, 15.75f })
-                Joint(road, new Vector3(x, .296f, z), 2.5f, 0, .32f);
+                Joint(road, new Vector3(x, .008f, z), 3.24f, 0, .72f);
             foreach (int sign in new[] { -1, 1 })
             {
                 float s = sign;
@@ -168,12 +168,12 @@ namespace Igruha.EditorTools
             foreach (int sign in new[] { -1, 1 })
             {
                 float s = sign;
-                Place(root, "BrickPallet", new Vector3(-18.8f,0,s*12.4f), sign*8, true);
-                Place(root, "PipeCradle", new Vector3(-20.7f,0,s*11.55f), 90, true);
+                Place(root, "BrickPallet", new Vector3(-25.1f,0,s*10.3f), sign*8, true);
+                Place(root, "PipeCradle", new Vector3(-24.5f,0,s*11.7f), 90, true);
                 Place(root, "ToolBench", new Vector3(22.6f,0,s*8.8f), 90, true);
                 Place(root, "Debris", new Vector3(-16.2f,.003f,s*12.6f), sign*15, false);
                 Place(root, "Debris", new Vector3(18.4f,.003f,s*12.5f), -sign*20, false);
-                Place(root, "Curb", new Vector3(-18.3f,0,s*13.6f), 0, true);
+                Place(root, "Curb", new Vector3(-23.5f,0,s*13.6f), 0, true);
                 // Loading and pumping have their own outlined floor bays, with room for hands.
                 Outline(root, new Vector3(-20.88f,0,s*7.2f), new Vector2(3.6f,3.4f),
                     CarrySkyscraperAssets.Material(sign>0?"TeamA":"TeamB"));
