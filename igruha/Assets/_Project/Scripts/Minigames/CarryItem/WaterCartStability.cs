@@ -56,6 +56,7 @@ namespace Igruha.Minigames.CarryItem
         private readonly CartTeamRocking rocking = new CartTeamRocking();
         private const float WheelHalfTrack=.48f, WheelHalfBase=.4f, CombinedSlopeLimit=.38f;
         private readonly CartRoadResponse road = new CartRoadResponse();
+        private readonly CartTurnResponse turning = new CartTurnResponse();
         private Quaternion lastRotation;
         private readonly Vector3[] wheelOffsets = { new Vector3(-WheelHalfTrack, 0, WheelHalfBase), new Vector3(WheelHalfTrack, 0, WheelHalfBase),
             new Vector3(-WheelHalfTrack, 0, -WheelHalfBase), new Vector3(WheelHalfTrack, 0, -WheelHalfBase) };
@@ -72,7 +73,7 @@ namespace Igruha.Minigames.CarryItem
         public void ResetTrip()
         {
             spilledThisTrip = false; wave = waveVelocity = Vector2.zero;
-            rocking.Reset(); road.Reset(); lastRotation = transform.rotation;
+            rocking.Reset(); road.Reset(); turning.Reset(); lastRotation = transform.rotation;
             filteredAcceleration = Vector3.zero; lastVelocity = carry.FlatVelocity; lastPosition = transform.position; impactHold = 0f; lastCause = CartTiltCause.None;
             var next = State; next.Wave = Vector2.zero; next.Outflow = next.Risk = 0f;
             next.BodySlope = Vector2.zero; next.Disagreement = next.RoadHop = 0f;
@@ -108,7 +109,7 @@ namespace Igruha.Minigames.CarryItem
             Vector3 velocity = carry.FlatVelocity;
             controlledSpeed = velocity.magnitude;
             if ((transform.position - lastPosition).sqrMagnitude > 2.25f)
-            { wave = waveVelocity = Vector2.zero; rocking.Reset(); road.Reset(); lastRotation = transform.rotation; filteredAcceleration = Vector3.zero; lastVelocity = velocity; }
+            { wave = waveVelocity = Vector2.zero; rocking.Reset(); road.Reset(); turning.Reset(); lastRotation = transform.rotation; filteredAcceleration = Vector3.zero; lastVelocity = velocity; }
             else SampleRoad(velocity);
             lastPosition = transform.position; lastRotation = transform.rotation;
             road.Step(dt);
@@ -119,7 +120,8 @@ namespace Igruha.Minigames.CarryItem
             float longitudinal = Vector3.Dot(filteredAcceleration, direction);
             Vector3 lateral = filteredAcceleration - direction * longitudinal;
             float braking = Mathf.Max(0f, -longitudinal - config.GentleBrakeLimit);
-            Vector3 forcing = -lateral * config.TurnWaveGain + direction * braking * config.BrakeWaveGain;
+            turning.Step(lateral, controlledSpeed, dt);
+            Vector3 forcing = -turning.Acceleration * config.TurnWaveGain * turning.WaveGain + direction * braking * config.BrakeWaveGain;
             // A gentle start moves the water slightly, leaving plenty of freeboard.
             forcing -= direction * Mathf.Max(0f, longitudinal) * 0.01f;
             impactHold = acceleration.magnitude > 8f ? 1.2f : Mathf.Max(0f, impactHold - dt);
@@ -141,7 +143,7 @@ namespace Igruha.Minigames.CarryItem
                 wave = Vector2.ClampMagnitude(wave + waveVelocity * dt, CartWaterSurface.MaxSlope);
             }
             Vector2 localWave = CartWaterSurface.InHeading(wave, transform.rotation);
-            Vector2 bodySlope = Vector2.ClampMagnitude(rocking.Slope + road.Slope, CombinedSlopeLimit);
+            Vector2 bodySlope = Vector2.ClampMagnitude(rocking.Slope + road.Slope + turning.Slope, CombinedSlopeLimit);
             Vector2 localBody = CartWaterSurface.InHeading(bodySlope, transform.rotation);
             if (road.Hold > 0f && cause != CartTiltCause.Disagreement) cause = CartTiltCause.Road;
             float rate = CartWaterSurface.Overflow(cart.Load, localWave, config.OverflowRate,
@@ -177,6 +179,15 @@ namespace Igruha.Minigames.CarryItem
                     Vector2 impulse = road.Strike(new Vector2(offset.x, offset.z),
                         new Vector2(velocity.x, velocity.z), velocity.magnitude * approach,
                         joints[j].Severity, cart.Load);
+                    waveVelocity = Vector2.ClampMagnitude(waveVelocity + impulse, config.ImpactWaveImpulse * 2f);
+                }
+                var patches = CartRoughSurface.Active;
+                for (int p = 0; p < patches.Count; p++)
+                {
+                    if (!patches[p].Crossed(from, to, out float approach, out float severity)) continue;
+                    Vector3 offset = transform.rotation * wheelOffsets[w];
+                    Vector2 impulse = road.Strike(new Vector2(offset.x, offset.z), new Vector2(velocity.x, velocity.z),
+                        velocity.magnitude * approach, severity, cart.Load);
                     waveVelocity = Vector2.ClampMagnitude(waveVelocity + impulse, config.ImpactWaveImpulse * 2f);
                 }
             }

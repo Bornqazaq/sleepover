@@ -97,6 +97,7 @@ namespace Igruha.Minigames.CarryItem
         private bool shownFilling;
         private bool shownDraining;
         private bool shownLost;
+        private int shownStock = -1;
         private TeamSide shownCartControl = TeamSide.None;
         private bool statusShown;
         private CartTiltCause shownCause;
@@ -208,6 +209,12 @@ namespace Igruha.Minigames.CarryItem
                 CoordinationHud = root.AddComponent<CartCoordinationHud>();
                 var label = Hud != null ? Hud.GetComponentInChildren<TMPro.TMP_Text>(true) : null;
                 CoordinationHud.Bind(this, label != null ? label.font : null, announcer);
+            }
+            if (GetComponentInChildren<CartFleetHud>() == null)
+            {
+                var fleet = new GameObject("Cart fleet", typeof(RectTransform));
+                fleet.transform.SetParent(transform, false);
+                fleet.AddComponent<CartFleetHud>().Bind(this);
             }
         }
 
@@ -534,6 +541,11 @@ namespace Igruha.Minigames.CarryItem
         private void FixedUpdate()
         {
             if (!HasAuthority || !Phase.IsGameplay() || config == null) return;
+            if (!StartCountdownActive && FleetExhausted)
+            {
+                EndMinigame();
+                return;
+            }
             bool changed = false;
             for (int i = 0; i < entries.Count; i++)
             {
@@ -643,13 +655,14 @@ namespace Igruha.Minigames.CarryItem
             bool filling = cart != null && cart.IsFilling;
             bool draining = cart != null && cart.IsPouring;
             bool lost = cart != null && cart.IsLost;
+            int stock = cart != null ? cart.RemainingCarts : -1;
             CartTiltCause cause = cart != null && cart.Stability.State.Risk > 0.65f ? cart.Stability.State.Cause : CartTiltCause.None;
             int responsible = cart != null ? cart.Stability.State.Responsible : -1;
             bool needsHands = cart != null && cart.Stability.NeedsHands;
             bool localHolding = cart != null && cart.Carry.IsCarriedBy(AvatarOf(localId));
 
             if (statusShown && cart != null && cart.ControlTeam == shownCartControl && water == shownWater && leaking == shownLeaking && carried == shownCarried &&
-                filling == shownFilling && draining == shownDraining && lost == shownLost &&
+                filling == shownFilling && draining == shownDraining && lost == shownLost && stock == shownStock &&
                 cause == shownCause && responsible == shownResponsible && needsHands == shownNeedsHands &&
                 localHolding == shownLocalHolding)
             {
@@ -663,6 +676,7 @@ namespace Igruha.Minigames.CarryItem
             shownFilling = filling;
             shownDraining = draining;
             shownLost = lost;
+            shownStock = stock;
             statusShown = true;
             shownCause = cause;
             shownResponsible = responsible;
@@ -677,7 +691,9 @@ namespace Igruha.Minigames.CarryItem
 
             if (lost)
             {
-                Hud.ShowStatus("Тележка в пропасти — через несколько секунд вернётся к крану");
+                Hud.ShowStatus(cart.IsDepleted
+                    ? "СВОИХ ТЕЛЕЖЕК НЕТ · Украдите свободную чужую по E и везите к своему насосу"
+                    : "ТЕЛЕЖКА ПОТЕРЯНА · Последняя замена появится у крана через 5 секунд");
                 return;
             }
 
@@ -1206,6 +1222,7 @@ namespace Igruha.Minigames.CarryItem
 
         /// <summary>Тележка этой команды. Пусто — ещё не приехала или раунд кончился.</summary>
         public WaterCart CartOf(TeamSide side) => RigOf(side)?.Cart;
+        public bool FleetExhausted => teamA.Cart != null && teamB.Cart != null && teamA.Cart.IsDepleted && teamB.Cart.IsDepleted;
 
         public WaterCart CartCarriedBy(PlayerController player)
         {
@@ -1214,7 +1231,18 @@ namespace Igruha.Minigames.CarryItem
             if (teamB.Cart != null && teamB.Cart.Carry.IsCarriedBy(player)) return teamB.Cart;
             return null;
         }
-        public WaterCart CartForPlayer(int id) => CartCarriedBy(AvatarOf(id)) ?? CartOf(TeamOfPlayer(id));
+        public WaterCart CartForPlayer(int id)
+        {
+            WaterCart held = CartCarriedBy(AvatarOf(id));
+            if (held != null) return held;
+            TeamSide side = TeamOfPlayer(id);
+            if (side == TeamSide.None) return null;
+            WaterCart own = CartOf(side);
+            if (own != null && !own.IsLost && own.ControlTeam == side) return own;
+            WaterCart captured = CartOf(side == TeamSide.A ? TeamSide.B : TeamSide.A);
+            if (captured != null && !captured.IsLost && captured.ControlTeam == side) return captured;
+            return own;
+        }
 
         public WaterCart PumpCart(TeamSide side)
         {

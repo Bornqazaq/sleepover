@@ -78,12 +78,12 @@ MonoBehaviour:
   steeringRate: 90
   brakeAcceleration: 5
   waveResponse: 24
-  waveDamping: 5
-  turnWaveGain: 0.11
+  waveDamping: 3.8
+  turnWaveGain: 0.23
   brakeWaveGain: 0.18
   gentleBrakeLimit: 2
   impactWaveImpulse: 2.8
-  overflowRate: 420
+  overflowRate: 700
   teamRockBuild: 0.85
   teamRockRelease: 1.5
   teamRockFrequency: 0.8

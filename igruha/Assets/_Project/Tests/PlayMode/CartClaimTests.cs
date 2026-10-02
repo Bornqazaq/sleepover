@@ -87,5 +87,27 @@ namespace Igruha.Tests.PlayMode
             int before=tank.Water;yield return new WaitForSeconds(.2f);Assert.That(tank.Water,Is.EqualTo(before));
             Assert.That(cart.IsPouring,Is.False);
         }
+        [UnityTest] public IEnumerator TwoVesselsOnlyAndStolenFallUsesOriginalStock()
+        {
+            typeof(CarryItemConfig).GetField("cartRespawnSeconds",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(config,.5f);
+            var thief=Player(TeamSide.B);
+            Assert.That(cart.Carry.TryGrab(thief),Is.True);yield return null;
+            var body=cart.GetComponent<Rigidbody>();var home=cart.HomePosition;
+            cart.transform.position=body.position=new Vector3(0,-101,0);Physics.SyncTransforms();yield return null;yield return null;
+            Assert.That(cart.IsLost,Is.True);Assert.That(cart.RemainingCarts,Is.EqualTo(1));
+            Assert.That(cart.Carry.CarrierCount,Is.Zero);Assert.That(cart.Water,Is.Zero);
+            Assert.That(cart.GetComponent<Collider>().enabled,Is.False);
+            yield return new WaitForSeconds(.6f);
+            Assert.That(cart.IsLost,Is.False);Assert.That(cart.ControlTeam,Is.EqualTo(TeamSide.A));
+            Assert.That(Vector3.Distance(cart.transform.position,home),Is.LessThan(.05f));
+            Assert.That(cart.GetComponent<Collider>().enabled,Is.True);
+            cart.transform.position=body.position=new Vector3(0,-101,0);Physics.SyncTransforms();yield return null;yield return null;
+            Assert.That(cart.IsDepleted,Is.True);Assert.That(cart.RemainingCarts,Is.Zero);
+            yield return new WaitForSeconds(.65f);
+            Assert.That(cart.IsDepleted,Is.True);Assert.That(cart.Carry.TryGrab(thief),Is.False);
+            Assert.That(cart.ChangeWater(150,WaterLossReason.Filled),Is.Zero);
+            cart.ReturnHome();yield return null;
+            Assert.That(cart.RemainingCarts,Is.EqualTo(2));Assert.That(cart.IsLost,Is.False);
+        }
     }
 }

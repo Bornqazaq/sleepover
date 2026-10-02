@@ -64,6 +64,38 @@ namespace Igruha.Tests.PlayMode
             for(int i=0;i<350;i++){body.linearVelocity=Vector3.right*.7f;yield return new WaitForFixedUpdate();}
             Debug.Log("ROAD slow full remaining="+cart.Water);Assert.That(cart.Water,Is.EqualTo(150));
         }
+        [UnityTest] public IEnumerator SoloHoldingForwardPaysForSixRoughJoints()
+        {
+            for(int i=0;i<6;i++)Joint(i*1.55f);
+            for(int i=0;i<390;i++){body.linearVelocity=Vector3.right*1.6f;yield return new WaitForFixedUpdate();}
+            Debug.Log("ROAD solo full remaining="+cart.Water);
+            Assert.That(cart.Water,Is.LessThanOrEqualTo(115),"Solo speed must not bypass the road risk");
+            Assert.That(cart.Water,Is.GreaterThan(40),"A mistake must still leave a useful delivery");
+        }
+        [UnityTest] public IEnumerator RepeatedCountersteeringSpillsAndStraightTravelSettles()
+        {
+            for(int i=0;i<500;i++)
+            {
+                float angle=Mathf.Sin(i*Time.fixedDeltaTime*2f)*.8f;
+                body.linearVelocity=new Vector3(Mathf.Cos(angle),0,Mathf.Sin(angle))*1.6f;
+                yield return new WaitForFixedUpdate();
+            }
+            Debug.Log("TURN solo remaining="+cart.Water);
+            Assert.That(cart.Water,Is.LessThanOrEqualTo(115));
+            for(int i=0;i<250;i++){body.linearVelocity=Vector3.right*1.6f;yield return new WaitForFixedUpdate();}
+            Assert.That(cart.Stability.State.Outflow,Is.Zero);
+            Assert.That(cart.Stability.State.BodySlope.magnitude,Is.LessThan(.005f));
+        }
+        [UnityTest] public IEnumerator BroadContinuousCurvePreservesFullCart()
+        {
+            for(int i=0;i<300;i++)
+            {
+                float angle=i*Time.fixedDeltaTime*.32f;
+                body.linearVelocity=new Vector3(Mathf.Cos(angle),0,Mathf.Sin(angle))*1.6f;
+                yield return new WaitForFixedUpdate();
+            }
+            Assert.That(cart.Water,Is.EqualTo(150),"Normal gentle steering must remain useful on a smooth route");
+        }
         [UnityTest] public IEnumerator HalfCartHasMoreFreeboardOnFastSeries()
         {
             cart.ChangeWater(-75,WaterLossReason.Tilt);
@@ -88,6 +120,17 @@ namespace Igruha.Tests.PlayMode
             Assert.That(second,Is.GreaterThan(first));
             for(int i=0;i<300;i++)r.Step(.02f);
             Assert.That(r.Energy,Is.Zero);Assert.That(r.Slope.magnitude,Is.LessThan(.002f));Assert.That(Mathf.Abs(r.Hop),Is.LessThan(.001f));
+        }
+        [UnityTest] public IEnumerator BrokenConcreteHasRealWheelResponseInsideItsVisibleFootprint()
+        {
+            var root=new GameObject("Broken concrete");objects.Add(root);root.transform.position=new Vector3(0,1000,0);
+            var patch=root.AddComponent<CartRoughSurface>();float approach,severity;
+            Assert.That(patch.Crossed(new Vector3(-.2f,1000,0),new Vector3(.1f,1000,0),out approach,out severity),Is.True);
+            Assert.That(patch.Crossed(new Vector3(-.2f,1000,2),new Vector3(.1f,1000,2),out approach,out severity),Is.False);
+            Assert.That(patch.Crossed(new Vector3(-.2f,1001,0),new Vector3(.1f,1001,0),out approach,out severity),Is.False);
+            float hop=0;
+            for(int i=0;i<160;i++){body.linearVelocity=Vector3.right*1.6f;yield return new WaitForFixedUpdate();hop=Mathf.Max(hop,cart.Stability.State.RoadHop);}
+            Assert.That(hop,Is.GreaterThan(.005f));Assert.That(cart.Water,Is.LessThan(145));
         }
     }
 }

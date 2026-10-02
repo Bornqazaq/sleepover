@@ -35,7 +35,7 @@ namespace Igruha.EditorTools
             var definition = AssetDatabase.LoadAssetAtPath<Igruha.Core.Minigame.MinigameDefinition>("Assets/_Project/Settings/Gameplay/Minigames/CarryItem.asset");
             var definitionSo = new SerializedObject(definition);
             definitionSo.FindProperty("tutorialSteps").GetArrayElementAtIndex(2).stringValue =
-                "Короткий настил трясёт воду. Снаружи — длинный ровный обход; сверху — балка, дождитесь окна. Чужую свободную тележку можно украсть по E.";
+                "На стыках и разбитом бетоне сбавляйте ход. У команды две тележки на весь раунд: после второй потери остаётся кража чужой по E.";
             definitionSo.ApplyModifiedPropertiesWithoutUndo();AssetDatabase.SaveAssetIfDirty(definition);
             CarryHeistArena.Apply();
             Physics.SyncTransforms();

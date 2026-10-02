@@ -32,6 +32,19 @@ namespace Igruha.EditorTools
                 if(Mathf.Abs(j.transform.position.z)>7)problems.Add("Rough joint on safe route "+j.transform.position);
             }
             if(joints.Length!=14)problems.Add("Expected 14 visible rough-route joints, found "+joints.Length);
+            var patches=Object.FindObjectsByType<CartRoughSurface>(FindObjectsSortMode.None);
+            if(patches.Length!=8)problems.Add("Expected 8 broken concrete patches, found "+patches.Length);
+            foreach(var patch in patches)
+            {
+                if(patch.GetComponent<Renderer>()==null||patch.GetComponent<Collider>()==null)problems.Add("Invisible or unsupported rough patch");
+                if(Mathf.Abs(patch.transform.position.z)>7)problems.Add("Rough concrete on safe route");
+            }
+            foreach(var mesh in GameObject.Find("_Arena/SiteFinish").GetComponentsInChildren<MeshFilter>())
+            {
+                if(mesh.name.Contains("Paint")||mesh.name=="Concrete cracks"||mesh.name=="Aggregate flecks")continue;
+                if(mesh.GetComponent<Collider>()==null)problems.Add("Missing site collision: "+mesh.name);
+            }
+            report.Append("Rough concrete patches=").Append(patches.Length).Append('\n');
             report.Append("Carry road audit: ").Append(samples).Append(" footprints, joints=").Append(joints.Length).Append(", problems=").Append(problems.Count);
             foreach(var p in problems)report.Append('\n').Append(p);
             report.Append('\n').Append(CarryArenaCollision.Audit(GameObject.Find("_Arena").transform));
