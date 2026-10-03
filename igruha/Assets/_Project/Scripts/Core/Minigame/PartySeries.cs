@@ -27,6 +27,8 @@ namespace Igruha.Core.Minigame
         public static void Reset()
         {
             remaining.Clear(); Active = false; Completed = false; Total = Round = 0; Summary = string.Empty;
+            // A cancelled scene load must not skip practice in the next session.
+            MinigameControllerBase.ResetPreparedRound();
         }
 
         public static List<MinigameDefinition> BuildQueue(MinigameCatalog catalog, int count, System.Random random,

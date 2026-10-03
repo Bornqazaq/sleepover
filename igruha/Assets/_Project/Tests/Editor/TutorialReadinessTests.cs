@@ -6,6 +6,19 @@ namespace Igruha.Tests
     public sealed class TutorialReadinessTests
     {
         [Test]
+        public void CancelledSessionCannotReusePreparedArena()
+        {
+            const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic;
+            var round = typeof(MinigameControllerBase).GetField("preparedRoundScene", flags);
+            var practice = typeof(MinigameControllerBase).GetField("preparedPracticeScene", flags);
+            round.SetValue(null, "Interrupted arena");
+            practice.SetValue(null, "Interrupted retry");
+            PartySeries.Reset();
+            Assert.That(round.GetValue(null), Is.Null);
+            Assert.That(practice.GetValue(null), Is.Null);
+        }
+
+        [Test]
         public void HostCannotStartForAnotherPlayer()
         {
             var state = new TutorialReadiness();

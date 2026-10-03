@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
@@ -25,6 +26,7 @@ namespace Igruha.Networking
         [SerializeField] private SpawnRole defaultRole = SpawnRole.Default;
 
         private NetworkManager networkManager;
+        private Coroutine placementRoutine;
 
         private void Start()
         {
@@ -71,17 +73,64 @@ namespace Igruha.Networking
         /// </summary>
         private void OnLoadCompleted(string sceneName, LoadSceneMode mode, List<ulong> completed, List<ulong> timedOut)
         {
-            if (networkManager != null && networkManager.IsServer)
-            {
-                EnsureBodiesForRound(sceneName);
-                PlaceAllPlayers(sceneName);
-            }
+            if (networkManager == null || !networkManager.IsServer || networkManager.ShutdownInProgress) return;
+            // NGO reports timeouts; it does not make those clients ready.
+            foreach (ulong id in timedOut)
+                if (id != networkManager.LocalClientId && networkManager.ConnectedClients.ContainsKey(id))
+                    networkManager.DisconnectClient(id, "Загрузка сцены заняла слишком много времени. Подключитесь заново.");
+            if (placementRoutine != null) StopCoroutine(placementRoutine);
+            placementRoutine = StartCoroutine(PrepareScene(sceneName, new HashSet<ulong>(completed)));
+        }
 
-            ScenePlacementGate.Open();
+        private IEnumerator PrepareScene(string sceneName, HashSet<ulong> completed)
+        {
+            var game = MinigameControllerBase.Current;
+            var bridge = game != null ? game.GetComponent<NetworkMinigameBridge>() : null;
+            if (bridge == null)
+            {
+                PlaceAllPlayers(sceneName);
+                ScenePlacementGate.Open();
+                yield break;
+            }
+            if (bridge.PlacementComplete) yield break;
+            EnsureBodiesForRound(sceneName);
+            float deadline = Time.realtimeSinceStartup + 10f;
+            var participants = new List<int>(8);
+            while (bridge != null && Time.realtimeSinceStartup < deadline)
+            {
+                if (!networkManager.IsListening || networkManager.ShutdownInProgress) yield break;
+                bool ready = bridge.IsSpawned && SessionScoreboard.Current != null;
+                participants.Clear();
+                if (ready)
+                {
+                    foreach (var player in SessionScoreboard.Current.Players)
+                    {
+                        ulong id = (ulong)player.Id;
+                        if (!completed.Contains(id) || !networkManager.ConnectedClients.ContainsKey(id)) continue;
+                        participants.Add(player.Id);
+                        if (player.Avatar == null || networkManager.SpawnManager.GetPlayerNetworkObject(id) == null)
+                            ready = false;
+                    }
+                    foreach (ulong id in completed)
+                        if (networkManager.ConnectedClients.ContainsKey(id) && !participants.Contains((int)id)) ready = false;
+                }
+                if (ready)
+                {
+                    for (int i = 0; i < participants.Count; i++) PlaceAt((ulong)participants[i], i, participants.Count);
+                    Debug.Log($"📍 [{sceneName}] игроки расставлены по SpawnPoint ({participants.Count})");
+                    bridge.CompletePlacement(participants);
+                    yield break;
+                }
+                yield return null;
+            }
+            if (bridge != null) bridge.AbortPreparation("Не удалось создать персонажей после загрузки сцены.");
         }
 
         private void OnClientConnected(ulong clientId)
         {
+            // A mid-round join is a spectator until the next arena. Never run
+            // general placement over the positions already assigned by a game.
+            if (MinigameControllerBase.Current != null) return;
             // Опоздавший клиент не попадает в OnLoadEventCompleted — сцена уже загружена.
             PlacePlayer(clientId);
         }

@@ -143,6 +143,8 @@ namespace Igruha.Minigames.MemoryRun
         private readonly List<int> orderBuffer = new List<int>(8);
 
         private MemoryRunMinigame game;
+        private readonly HashSet<ulong> pendingDisconnects = new HashSet<ulong>();
+        private bool quitting;
 
         private bool turnDirty;
         private bool orderDirty;
@@ -190,14 +192,13 @@ namespace Igruha.Minigames.MemoryRun
 
         public override void OnNetworkDespawn()
         {
+            pendingDisconnects.Clear();
             turn.OnValueChanged -= OnTurnChanged;
             turnOrder.OnListChanged -= OnOrderChanged;
             progress.OnListChanged -= OnProgressChanged;
 
-            if (IsServer && NetworkManager != null)
-            {
+            if (NetworkManager != null)
                 NetworkManager.OnClientDisconnectCallback -= OnClientDisconnected;
-            }
 
             base.OnNetworkDespawn();
         }
@@ -364,6 +365,16 @@ namespace Igruha.Minigames.MemoryRun
 
         private void LateUpdate()
         {
+            if (IsSpawned && IsServer && game != null && !quitting && NetworkManager != null &&
+                NetworkManager.IsListening && !NetworkManager.ShutdownInProgress && pendingDisconnects.Count > 0)
+            {
+                var disconnected = new List<ulong>(pendingDisconnects);
+                pendingDisconnects.Clear();
+                foreach (ulong id in disconnected)
+                    if (!NetworkManager.ConnectedClients.ContainsKey(id) && game.Phase != MinigamePhase.Idle &&
+                        game.Phase != MinigamePhase.PreparingRound)
+                        game.HandlePlayerLeft((int)id);
+            }
             if (!IsSpawned || IsServer || game == null)
             {
                 return;
@@ -420,10 +431,13 @@ namespace Igruha.Minigames.MemoryRun
         /// </summary>
         private void OnClientDisconnected(ulong clientId)
         {
-            if (IsServer)
-            {
-                game?.HandlePlayerLeft((int)clientId);
-            }
+            if (IsServer) pendingDisconnects.Add(clientId);
+        }
+
+        private void OnApplicationQuit()
+        {
+            quitting = true;
+            pendingDisconnects.Clear();
         }
     }
 }

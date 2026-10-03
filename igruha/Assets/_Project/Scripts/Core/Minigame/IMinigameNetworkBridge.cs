@@ -1,5 +1,15 @@
 namespace Igruha.Core.Minigame
 {
+    /// <summary>Подтверждение расстановки и готовности ростера на каждой машине текущей сцены.</summary>
+    public interface IMinigameSceneReadiness
+    {
+        bool PlacementComplete { get; }
+        bool CanStart { get; }
+        System.Collections.Generic.IReadOnlyList<int> ParticipantIds { get; }
+        void ReportLocalReady();
+        void AbortPreparation(string reason);
+    }
+
     /// <summary>
     /// Шов между правилами мини-игры и сетью. Реализация живёт в
     /// Igruha.Networking (NetworkBehaviour на том же объекте, что контроллер),
