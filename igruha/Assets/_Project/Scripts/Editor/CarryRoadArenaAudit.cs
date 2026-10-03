@@ -55,8 +55,7 @@ namespace Igruha.EditorTools
                 if(mesh.GetComponent<Collider>()==null)problems.Add("Missing site collision: "+mesh.name);
             }
             report.Append("Rough concrete patches=").Append(patches.Length).Append('\n');
-            foreach(var rail in GameObject.Find("_Arena/HeistRoutes/LowerRoutes").GetComponentsInChildren<Renderer>())
-                if(rail.name=="HR_Rail"&&rail.bounds.size.y<1f)problems.Add("Undersized gallery railing "+rail.transform.position);
+            report.Append("Open gallery exits=").Append(CheckGalleryExits(problems)).Append('\n');
             int seated=0;
             foreach(Transform prop in GameObject.Find("_Arena/Environment/Horizon").transform)
             {
@@ -73,6 +72,35 @@ namespace Igruha.EditorTools
             foreach(var p in problems)report.Append('\n').Append(p);
             report.Append('\n').Append(CarryArenaCollision.Audit(GameObject.Find("_Arena").transform));
             Debug.Log(report.ToString());return report.ToString();
+        }
+        private static int CheckGalleryExits(HashSet<string> problems)
+        {
+            int count=0,mask=LayerMask.GetMask("Ground","Cover","PlayerBarrier");
+            foreach(int side in new[]{-1,1})
+            {
+                var points=CarryRouteLayout.Gallery(side);
+                for(int i=1;i<points.Length;i++)
+                {
+                    Vector3 delta=points[i]-points[i-1];int steps=Mathf.Max(1,Mathf.CeilToInt(delta.magnitude));
+                    for(int j=0;j<steps;j++)
+                    {
+                        Vector3 p=Vector3.Lerp(points[i-1],points[i],(j+.5f)/steps);
+                        if(Mathf.Abs(p.z)<16f)continue; // Entrances join the main slab.
+                        foreach(int edge in new[]{-1,1})
+                        {
+                            count++;Vector3 normal=Vector3.Cross(Vector3.up,delta.normalized)*edge;
+                            float distance=CarryRouteLayout.GalleryWidth*.5f+PlayerRadius*2;
+                            if(Physics.CapsuleCast(p+Vector3.up*(PlayerRadius+.05f),
+                                p+Vector3.up*(PlayerHeight-PlayerRadius+.05f),PlayerRadius,normal,
+                                out var hit,distance,mask,QueryTriggerInteraction.Ignore))
+                                problems.Add("Gallery exit blocked by "+hit.collider.name+" near "+p.ToString("F1"));
+                            if(Physics.Raycast(p+normal*distance+Vector3.up*.1f,Vector3.down,1f,mask,QueryTriggerInteraction.Ignore))
+                                problems.Add("Gallery exit has a catching ledge near "+p.ToString("F1"));
+                        }
+                    }
+                }
+            }
+            return count;
         }
         private static void Sweep(Vector3[] points,string name,MultiCarrySettings settings,HashSet<string> problems,ref int samples)
         {

@@ -20,19 +20,20 @@ namespace Igruha.Tests
         private TeamSide localTeam;
         private readonly List<SessionPlayer> a=new List<SessionPlayer>(),b=new List<SessionPlayer>();
         private bool driving,failed;
+        private Vector3 galleryWalk;
         private readonly bool[] gripLost=new bool[2];
         private readonly float[] flow=new float[2];
         private bool Driver => local==(localTeam==TeamSide.A?a[0]:b[0]).Avatar;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Install()
         {
-            if(!LaunchArguments.TryGetValue("--carry-risk-check",out _))return;
+            if(!LaunchArguments.TryGetValue("--carry-risk-check",out _)&&!LaunchArguments.TryGetValue("--carry-gallery-check",out _))return;
             var root=new GameObject(nameof(CarryRiskStockProbe));DontDestroyOnLoad(root);root.AddComponent<CarryRiskStockProbe>();
         }
         private void Update()
         {
             if(reader==null||game==null)return;
-            Vector2 input=Vector2.zero;
+            Vector2 input=local.WorldToMoveInput(galleryWalk);
             if(driving)
             {
                 for(int i=0;i<2;i++)
@@ -74,6 +75,10 @@ namespace Igruha.Tests
             Check(a.Count>0&&b.Count>0&&local!=null,"network crews ready");if(failed){Application.Quit(1);yield break;}
             a.Sort((x,y)=>x.Id.CompareTo(y.Id));b.Sort((x,y)=>x.Id.CompareTo(y.Id));
             reader=local.GetComponent<PlayerInputReader>();reader.EngageAutopilot();
+            if(LaunchArguments.TryGetValue("--carry-gallery-check",out _))
+            {
+                yield return GalleryFalls();yield return new WaitForSeconds(2);Application.Quit(failed?1:0);yield break;
+            }
             yield return At(8);if(net.IsServer)
             {
                 Park();SetCart(game.CartOf(TeamSide.A),new Vector3(-3.2f,.03f,1.35f),150);
@@ -115,6 +120,43 @@ namespace Igruha.Tests
             Check(game.Phase!=MinigamePhase.Round&&game.State.TeamB.Water==150&&game.State.TeamA.Water==0,"no vessels ends round with delivered score");
             if(!failed)Debug.Log("CARRY_RISK_CHECK PASS id="+net.LocalClientId+" players="+(a.Count+b.Count));
             yield return new WaitForSeconds(2);Application.Quit(failed?1:0);
+        }
+        private IEnumerator GalleryFalls()
+        {
+            // Real owner movement crosses each edge, on straight concrete and both curved ends.
+            // Teleports only establish the start pose; falling and respawn use normal gameplay.
+            for(int test=0;test<4;test++)
+            {
+                float start=8+test*15;
+                yield return At(start);
+                if(net.IsServer)foreach(var crew in new[]{a,b})
+                {
+                    var points=CarryRouteLayout.Gallery(crew==a?1:-1);
+                    Vector3 p=test<2?(points[9]+points[10])*.5f:points[test==2?5:14];
+                    crew[0].Avatar.RequestTeleport(p+Vector3.up*.03f,Quaternion.identity);
+                }
+                yield return At(start+2);
+                var path=CarryRouteLayout.Gallery(localTeam==TeamSide.A?1:-1);
+                Vector3 tangent=test<2?path[10]-path[9]:path[test==2?6:15]-path[test==2?4:13];
+                galleryWalk=Driver?Vector3.Cross(Vector3.up,tangent.normalized)*(test%2==0?1:-1):Vector3.zero;
+                var fell=new bool[2];var penalty=new bool[2];var returned=new bool[2];
+                while(Elapsed()<start+13)
+                {
+                    for(int team=0;team<2;team++)
+                    {
+                        var member=(team==0?a:b)[0];float y=member.Avatar.Position.y;
+                        fell[team]|=y < -1;
+                        penalty[team]|=game.TryGetRespawnDeadline(member.Id,out double deadline)&&deadline>0;
+                        returned[team]|=penalty[team]&&y>-.2f&&Mathf.Abs(member.Avatar.Position.z)<15;
+                    }
+                    if(local.Position.y<-.8f)galleryWalk=Vector3.zero;
+                    yield return null;
+                }
+                galleryWalk=Vector3.zero;
+                for(int team=0;team<2;team++)Check(fell[team]&&penalty[team]&&returned[team],
+                    "gallery fall "+test+" team="+team+" fallen="+fell[team]+" penalty="+penalty[team]+" respawn="+returned[team]);
+            }
+            if(!failed)Debug.Log("CARRY_GALLERY_CHECK PASS id="+net.LocalClientId+" exits=8");
         }
         private void Park()
         {

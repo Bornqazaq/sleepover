@@ -53,7 +53,6 @@ namespace Igruha.EditorTools
                 gallery.gameObject.layer=LayerMask.NameToLayer("Ground");
                 for(int i=1;i<points.Length;i++)
                 {
-                    Rail(gallery,left[i-1],left[i]);Rail(gallery,right[i-1],right[i]);
                     Vector3 inward=(right[i-1]-left[i-1]).normalized*.18f;
                     Beam(gallery,left[i-1]+inward+Vector3.up*.014f,left[i]+inward+Vector3.up*.014f,.085f,.012f,Paint("Safety yellow",new Color(1f,.66f,.08f)),false);
                     Beam(gallery,right[i-1]-inward+Vector3.up*.014f,right[i]-inward+Vector3.up*.014f,.085f,.012f,Paint("Safety yellow",new Color(1f,.66f,.08f)),false);
@@ -73,12 +72,18 @@ namespace Igruha.EditorTools
                         }
                     }
                 }
+                CarryGalleryDecor.Build(gallery,left,right,Metal(),
+                    Paint("Equipment blue",new Color(.035f,.42f,.72f)),
+                    Paint("Safety yellow",new Color(1f,.66f,.08f)),
+                    Paint("Edge graphite",new Color(.055f,.075f,.095f)));
                 // Outriggers extend to the lower structural storey; the deck has visible support.
                 foreach(float x in new[]{-15.3f,-7.5f,0,8,16.2f})
                 {
                     var top=new Vector3(x,-.25f,side*CarryRouteLayout.GalleryOutside);
-                    Beam(gallery,top+new Vector3(0,-5.15f,-side*(CarryRouteLayout.GalleryOutside-14.4f)),top,.24f,.24f,Metal());
-                    Beam(gallery,top+new Vector3(0,-.22f,-side*(CarryRouteLayout.GalleryOutside-14.4f)),top,.24f,.24f,Metal());
+                    var support=top-Vector3.up*1.5f;
+                    Beam(gallery,support,top,.24f,.24f,Metal());
+                    Beam(gallery,top+new Vector3(0,-5.15f,-side*(CarryRouteLayout.GalleryOutside-14.4f)),support,.24f,.24f,Metal());
+                    Beam(gallery,support+new Vector3(0,0,-side*(CarryRouteLayout.GalleryOutside-14.4f)),support,.24f,.24f,Metal());
                 }
             }
         }

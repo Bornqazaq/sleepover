@@ -1,0 +1,61 @@
+{
+  "date": "2026-10-03",
+  "issue": "IGR-702",
+  "scope": "Open both sides of the two outside galleries; fascia decoration instead of railings",
+  "audit": {
+    "footprints": 4816,
+    "open_edge_capsule_exits": 220,
+    "missing_collisions": 0,
+    "issues": 0,
+    "props_on_supports": 40,
+    "gallery_railings": 0
+  },
+  "rebuild_transforms": [
+    3556,
+    3556
+  ],
+  "network": {
+    "gallery": {
+      "logs": "igruha/Builds/Autotest/logs/carry-gallery-20261003-134932",
+      "processes": 2,
+      "passed": 2,
+      "falls": 8,
+      "input": "Real owner movement from server-established start positions",
+      "verified": "Both witnesses observe fall, 5-second penalty and respawn"
+    },
+    "routes": {
+      "logs": "igruha/Builds/Autotest/logs/carry-route-20261003-134932",
+      "processes": 8,
+      "passed": 8,
+      "rough_seconds": 31.53069,
+      "smooth_seconds": 46.10469,
+      "rough_water": 37,
+      "smooth_water": 150
+    }
+  },
+  "build": {
+    "platform": "macOS Development",
+    "seconds": 20.632427,
+    "errors": 0,
+    "warnings": 0
+  },
+  "geometry": {
+    "before_active_arena_renderers": 1740,
+    "after_active_arena_renderers": 1657,
+    "before_triangles": 1639244,
+    "after_triangles": 1641356,
+    "note": "Editor geometric count; no new comparative frame-time or Windows GPU measurement."
+  },
+  "console": {
+    "compilation_errors": 0,
+    "known_capture_diagnostics": [
+      "Ignoring depth surface load action as it is memoryless",
+      "Ignoring depth surface store action as it is memoryless"
+    ]
+  },
+  "screenshots": {
+    "game": "IGR702-game.png",
+    "staged_overview": "IGR702-overview.png",
+    "staged_detail": "IGR702-detail.png"
+  }
+}
