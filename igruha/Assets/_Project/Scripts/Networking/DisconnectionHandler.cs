@@ -164,12 +164,19 @@ namespace Igruha.Networking
         /// <summary>
         /// Внутренний: вернуться в главное меню с сообщением.
         /// </summary>
-        private void ReturnToMainMenu(string reason)
+        private bool quitting;
+        private bool returningToMenu;
+
+        private void OnApplicationQuit() => quitting = true;
+
+        public void ReturnToMainMenu(string reason)
         {
-            if (!Application.isPlaying)
+            if (!Application.isPlaying || quitting || returningToMenu)
             {
                 return;
             }
+
+            returningToMenu = true;
 
             Debug.Log($"🔄 Returning to hub: {reason}");
 

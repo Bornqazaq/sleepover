@@ -12,7 +12,7 @@ namespace Igruha.Networking
     /// через RPC (это событие, а не состояние). Правила игры остаются обычным
     /// MonoBehaviour и работают без моста, когда сцену открывают напрямую.
     /// </summary>
-    public sealed class NetworkMinigameBridge : NetworkBehaviour, IMinigameNetworkBridge, ITutorialNetworkBridge
+    public sealed partial class NetworkMinigameBridge : NetworkBehaviour, IMinigameNetworkBridge, ITutorialNetworkBridge, IMinigameSceneReadiness
     {
         [Tooltip("Сколько раз в секунду сервер рассылает время раунда")]
         [Range(1f, 30f)]
@@ -47,6 +47,7 @@ namespace Igruha.Networking
             target = GetComponent<IMinigameNetworkTarget>();
             tutorialTarget = GetComponent<ITutorialNetworkTarget>();
             tutorialParticipants = new NetworkList<TutorialParticipant>();
+            sceneParticipants = new NetworkList<int>();
             if (target == null)
             {
                 Debug.LogError($"{name}: NetworkMinigameBridge не нашёл контроллер мини-игры на своём объекте", this);
@@ -56,6 +57,8 @@ namespace Igruha.Networking
         public override void OnNetworkSpawn()
         {
             base.OnNetworkSpawn();
+            RefreshSceneParticipants();
+            sceneParticipants.OnListChanged += OnSceneParticipantsChanged;
 
             tutorialParticipants.OnListChanged += OnTutorialChanged;
             if (IsServer)
@@ -78,8 +81,11 @@ namespace Igruha.Networking
 
         public override void OnNetworkDespawn()
         {
+            sceneParticipants.OnListChanged -= OnSceneParticipantsChanged;
+            pendingDisconnects.Clear();
+            readyClients.Clear();
             tutorialParticipants.OnListChanged -= OnTutorialChanged;
-            if (IsServer) NetworkManager.OnClientDisconnectCallback -= OnTutorialParticipantDisconnected;
+            if (NetworkManager != null) NetworkManager.OnClientDisconnectCallback -= OnTutorialParticipantDisconnected;
             phase.OnValueChanged -= OnPhaseChanged;
             roundRemaining.OnValueChanged -= OnRoundTimeChanged;
             roundDuration.OnValueChanged -= OnRoundTimeChanged;
@@ -89,10 +95,14 @@ namespace Igruha.Networking
 
         private void Update()
         {
-            if (!IsSpawned || !IsServer || target == null)
+            if (!IsSpawned || !IsServer || target == null || quitting ||
+                NetworkManager == null || !NetworkManager.IsListening || NetworkManager.ShutdownInProgress)
             {
                 return;
             }
+
+            UpdateSceneReadiness();
+            if (!IsSpawned || NetworkManager.ShutdownInProgress) return;
 
             // Время шлём с фиксированной частотой: каждый кадр — это трафик
             // впустую, HUD всё равно показывает целые секунды.
@@ -148,7 +158,7 @@ namespace Igruha.Networking
         }
 
         private void OnTutorialParticipantDisconnected(ulong clientId) =>
-            tutorialTarget?.RemoveTutorialParticipant((int)clientId);
+            pendingDisconnects.Add(clientId);
 
         private void OnTutorialChanged(NetworkListEvent<TutorialParticipant> change)
         {
