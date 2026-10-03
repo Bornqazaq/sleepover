@@ -3,6 +3,7 @@
     "references": [
         "Igruha.Core",
         "Igruha.Minigames",
+        "Igruha.Networking",
         "Unity.Netcode.Runtime",
         "Unity.InputSystem",
         "Unity.TextMeshPro"

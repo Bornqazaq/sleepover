@@ -26,6 +26,7 @@ namespace Igruha.Networking
         [SerializeField] private SpawnRole defaultRole = SpawnRole.Default;
 
         private NetworkManager networkManager;
+        private NetworkSceneManager subscribedSceneManager;
         private Coroutine placementRoutine;
 
         private void Start()
@@ -36,32 +37,50 @@ namespace Igruha.Networking
                 return;
             }
 
-            // SceneManager существует только у поднятой сети. Если хост не
-            // стартовал — занят порт, отказал транспорт, — здесь лежал
-            // NullReferenceException поверх и без того непонятного экрана.
-            if (networkManager.SceneManager == null)
-            {
-                networkManager = null;
-                Debug.LogWarning("⚠️ NetworkScenePlayerPlacer: сеть не поднята — расставлять игроков нечем");
-                return;
-            }
-
-            networkManager.SceneManager.OnLoadEventCompleted += OnLoadCompleted;
+            // The connection screen starts NGO after Start has already run.
+            // Keep the lifecycle subscriptions while waiting for that choice;
+            // also bind immediately for CLI/editor sessions already listening.
+            networkManager.OnServerStarted += BindSceneManager;
+            networkManager.OnClientStarted += BindSceneManager;
+            networkManager.OnServerStopped += OnNetworkStopped;
+            networkManager.OnClientStopped += OnNetworkStopped;
             networkManager.OnClientConnectedCallback += OnClientConnected;
+            BindSceneManager();
+        }
+
+        private void BindSceneManager()
+        {
+            var scenes = networkManager != null ? networkManager.SceneManager : null;
+            if (scenes == null || ReferenceEquals(scenes, subscribedSceneManager)) return;
+            UnbindSceneManager();
+            subscribedSceneManager = scenes;
+            subscribedSceneManager.OnLoadEventCompleted += OnLoadCompleted;
+            Debug.Log("[SceneReady] Scene loader subscribed after network initialization");
+        }
+
+        private void OnNetworkStopped(bool wasHost) => UnbindSceneManager();
+
+        private void UnbindSceneManager()
+        {
+            if (subscribedSceneManager != null)
+                subscribedSceneManager.OnLoadEventCompleted -= OnLoadCompleted;
+            subscribedSceneManager = null;
+            if (placementRoutine != null) StopCoroutine(placementRoutine);
+            placementRoutine = null;
         }
 
         private void OnDestroy()
         {
+            UnbindSceneManager();
             if (networkManager == null)
             {
                 return;
             }
 
-            if (networkManager.SceneManager != null)
-            {
-                networkManager.SceneManager.OnLoadEventCompleted -= OnLoadCompleted;
-            }
-
+            networkManager.OnServerStarted -= BindSceneManager;
+            networkManager.OnClientStarted -= BindSceneManager;
+            networkManager.OnServerStopped -= OnNetworkStopped;
+            networkManager.OnClientStopped -= OnNetworkStopped;
             networkManager.OnClientConnectedCallback -= OnClientConnected;
         }
 
