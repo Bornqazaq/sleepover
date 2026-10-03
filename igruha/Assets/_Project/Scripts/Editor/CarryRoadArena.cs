@@ -188,7 +188,11 @@ namespace Igruha.EditorTools
         internal static void Joint(Transform root, Vector3 p, float width, float yaw, float severity)
         {
             var t = Place(root, "Joint", p, yaw, false);
-            t.GetChild(0).localScale = Vector3.Scale(t.GetChild(0).localScale, new Vector3(1,1,width/5.4f));
+            var model=t.GetChild(0);
+            var visual=Group(t,"Joint visual");
+            model.SetParent(visual,false);
+            // Stretch in Unity road coordinates, outside the FBX axis-conversion root.
+            visual.localScale=new Vector3(1,1,width/5.4f);
             t.gameObject.AddComponent<CartRoadJoint>().Configure(width,severity);
         }
         internal static Transform Place(Transform root, string name, Vector3 p, float yaw, bool solid)

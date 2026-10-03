@@ -19,6 +19,7 @@ materials=[];palette=[];_box_cache={};STONE=0;PI=math.pi
 for n in ast.parse((ROOT/'tools/blender/crying_angels.py').read_text()).body:
     if isinstance(n,(ast.ClassDef,ast.FunctionDef)) and n.name in {'Mesh','transform','box','lathe','tube'}:
         exec(compile(ast.Module(body=[n],type_ignores=[]),'geometry','exec'))
+exec(compile((ROOT/'tools/blender/carry_geometry.py').read_text(), 'carry_geometry', 'exec'))
 def mat(n,c,r=.7,m=0):
     name='RW_'+n; material=bpy.data.materials.get(name) or bpy.data.materials.new(name);material.diffuse_color=(*c,1);material.use_nodes=True
     bs=next(n for n in material.node_tree.nodes if n.type=='BSDF_PRINCIPLED');bs.inputs['Base Color'].default_value=(*c,1);bs.inputs['Roughness'].default_value=r;bs.inputs['Metallic'].default_value=m
@@ -35,11 +36,38 @@ def export(m,n):
     bpy.ops.object.select_all(action='DESELECT');o.select_set(True);bpy.context.view_layer.objects.active=o
     bpy.ops.export_scene.fbx(filepath=str(ART/'Models'/('RW_'+n+'.fbx')),use_selection=True,object_types={'MESH'},axis_forward='-Z',axis_up='Y',bake_anim=False)
     o.location=(len(scene.objects)%4*3,len(scene.objects)//4*3,0);return o
-# Low, rounded transverse steel joint. Exactly 5.4 m wide in Unity Z, X normal.
-m=Mesh();box(m,(0,0,.029),(.24,5.4,.058),STEEL,.025)
-for y in (-2.5,-1.65,-.8,0,.8,1.65,2.5):
-    for x in (-.072,.072):lathe(m,(x,y,.056),[(0,.016),(.008,.016)],EDGE,6)
-for y in np.arange(-2.4,2.5,.40):box(m,(0,float(y),.060),(.085,.18,.004),YELLOW,.002)
+# Bolted modular speed cushion: a shallow rounded rubber profile, flush ends,
+# moulded yellow grip panels and recessed fasteners. Height remains 6 cm.
+m=Mesh()
+def cushion(x0,x1,y0,y1,material,lift=0):
+    segments=20;v=[]
+    for y in (y0,y1):
+        for i in range(segments+1):
+            x=x0+(x1-x0)*i/segments
+            z=.006+.054*max(0,math.cos(x/.24*PI/2))**1.3+lift
+            v.append((x,y,z))
+    faces=[]
+    for i in range(segments):faces.append((i,i+1,segments+2+i,segments+1+i))
+    m.add(v,faces,material)
+for k in range(9):
+    y=-2.7+k*.6
+    cushion(-.24,.24,y+.008,y+.592,DARK)
+    if k%2==0:
+        cushion(-.185,.185,y+.085,y+.515,YELLOW,.0015)
+    for yy in (y+.05,y+.55):
+        for x in (-.18,.18):
+            z=.006+.054*math.cos(x/.24*PI/2)**1.3
+            lathe(m,(x,yy,z),[(0,.026),(.002,.026)],DARK,12)
+            lathe(m,(x,yy,z+.001),[(0,.013),(.004,.013)],EDGE,6)
+    for yy in (y+.18,y+.3,y+.42):
+        # Fine raised tread follows the curved crown.
+        tube(m,[(x,yy,.009+.054*math.cos(x/.24*PI/2)**1.3) for x in (-.15,-.1,0,.1,.15)],.0025,DARK,6)
+# End noses slope into the floor; no square floating ends.
+for end in (-1,1):
+    m.add([(-.24,end*2.7,.006),(0,end*2.7,.06),(.24,end*2.7,.006),
+           (-.16,end*2.77,.002),(0,end*2.8,.002),(.16,end*2.77,.002)],
+          [(0,1,4,3),(1,2,5,4)],DARK)
+m.v=[(x,y*5.4/5.6,z) for x,y,z in m.v]
 export(m,'Joint')
 # Patched plate, worn corners, weld marks, rivets. Main deck remains smooth.
 m=Mesh();box(m,(0,0,.012),(1.20,2.64,.024),STEEL,.038)

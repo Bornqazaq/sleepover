@@ -14,6 +14,7 @@ scene.name='CarryConstruction_697'; materials=[]; _box_cache={}; STONE=0; PI=mat
 for node in ast.parse((ROOT/'tools/blender/crying_angels.py').read_text()).body:
  if isinstance(node,(ast.ClassDef,ast.FunctionDef)) and node.name in {'Mesh','transform','box','lathe','tube'}:
   exec(compile(ast.Module(body=[node],type_ignores=[]),'geometry','exec'))
+exec(compile((ROOT/'tools/blender/carry_geometry.py').read_text(), 'carry_geometry', 'exec'))
 for entry in json.loads((ART.parent/'Roadworks/palette.json').read_text())['materials']:
  mat=bpy.data.materials.get(entry['name']) or bpy.data.materials.new(entry['name'])
  mat.diffuse_color=tuple(entry['color']);materials.append(mat)

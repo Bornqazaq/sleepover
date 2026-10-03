@@ -47,20 +47,25 @@ namespace Igruha.EditorTools
                 }
                 var gallery=Group(root,side>0?"Concrete gallery north":"Concrete gallery south");
                 var mesh=Ribbon(left,right,side);
-                gallery.gameObject.AddComponent<MeshFilter>().sharedMesh=mesh;
+                gallery.gameObject.AddComponent<MeshFilter>().sharedMesh=RoundedRibbon(left,right,side);
                 gallery.gameObject.AddComponent<MeshRenderer>().sharedMaterial=Concrete();
                 gallery.gameObject.AddComponent<MeshCollider>().sharedMesh=mesh;
                 gallery.gameObject.layer=LayerMask.NameToLayer("Ground");
                 for(int i=1;i<points.Length;i++)
                 {
                     Rail(gallery,left[i-1],left[i]);Rail(gallery,right[i-1],right[i]);
+                    Vector3 inward=(right[i-1]-left[i-1]).normalized*.18f;
+                    Beam(gallery,left[i-1]+inward+Vector3.up*.014f,left[i]+inward+Vector3.up*.014f,.085f,.012f,Paint("Safety yellow",new Color(1f,.66f,.08f)),false);
+                    Beam(gallery,right[i-1]-inward+Vector3.up*.014f,right[i]-inward+Vector3.up*.014f,.085f,.012f,Paint("Safety yellow",new Color(1f,.66f,.08f)),false);
                     Beam(gallery,left[i-1]-Vector3.up*.4f,left[i]-Vector3.up*.4f,.16f,.28f,Metal());
                     Beam(gallery,right[i-1]-Vector3.up*.4f,right[i]-Vector3.up*.4f,.16f,.28f,Metal());
                     Vector3 d=points[i]-points[i-1];int count=Mathf.Max(1,Mathf.CeilToInt(d.magnitude/4));
                     for(int j=0;j<count;j++)
                     {
                         Vector3 p=Vector3.Lerp(points[i-1],points[i],(j+.5f)/count);
-                        CarryRoadArena.Chevron(gallery,p+Vector3.up*.029f,Mathf.Atan2(d.x,d.z)*Mathf.Rad2Deg,Paint("Safe",new Color(.31f,.51f,.42f)),.48f);
+                        // Avoid a dense row of arrows through short arc segments.
+                        if(d.magnitude>2 || i%3==0)
+                            CarryRoadArena.Chevron(gallery,p+Vector3.up*.029f,Mathf.Atan2(d.x,d.z)*Mathf.Rad2Deg,Paint("Safe",new Color(.035f,.66f,.48f)),.48f);
                         if(j>0)
                         {
                             Vector3 n=Vector3.Cross(Vector3.up,d.normalized)*(CarryRouteLayout.GalleryWidth*.5f-.12f);
@@ -100,6 +105,50 @@ namespace Igruha.EditorTools
             quad(right[0],left[0],left[0]+down,right[0]+down);
             int last=left.Length-1;quad(left[last],right[last],right[last]+down,left[last]+down);
             mesh.SetVertices(v);mesh.SetUVs(0,uv);mesh.SetTriangles(triangles,0);mesh.RecalculateNormals();mesh.RecalculateBounds();
+            if(fresh)AssetDatabase.CreateAsset(mesh,path);else{EditorUtility.SetDirty(mesh);AssetDatabase.SaveAssetIfDirty(mesh);}return mesh;
+        }
+        private static Mesh RoundedRibbon(Vector3[] left,Vector3[] right,int side)
+        {
+            const float radius=.035f;const int ring=16;
+            string path=Art+"/Gallery"+(side>0?"North":"South")+"Rounded.asset";
+            var mesh=AssetDatabase.LoadAssetAtPath<Mesh>(path);bool fresh=mesh==null;
+            if(fresh)mesh=new Mesh{name="Rounded concrete gallery"};else mesh.Clear();
+            var v=new List<Vector3>();var normals=new List<Vector3>();var uv=new List<Vector2>();var triangles=new List<int>();
+            for(int i=0;i<left.Length;i++)
+            {
+                Vector3 across=(right[i]-left[i]).normalized;float half=Vector3.Distance(left[i],right[i])*.5f;
+                Vector3 center=(left[i]+right[i])*.5f-Vector3.up*(SlabThickness*.5f);
+                for(int corner=0;corner<4;corner++)for(int step=0;step<=3;step++)
+                {
+                    float angle=(corner+step/3f)*Mathf.PI*.5f;
+                    float x=Mathf.Cos(angle),y=Mathf.Sin(angle);
+                    float sx=corner==0||corner==3?1:-1,sy=corner<2?1:-1;
+                    Vector3 n=across*x+Vector3.up*y;
+                    v.Add(center+across*(sx*(half-radius))+Vector3.up*(sy*(SlabThickness*.5f-radius))+n*radius);
+                    normals.Add(n);uv.Add(new Vector2(i*.5f,(corner+step/3f)*.5f));
+                }
+            }
+            for(int i=0;i<left.Length-1;i++)for(int j=0;j<ring;j++)
+            {
+                int a=i*ring+j,b=i*ring+(j+1)%ring,c=b+ring,d=a+ring;
+                if(Vector3.Dot(Vector3.Cross(v[b]-v[a],v[c]-v[a]),normals[a]+normals[b])>0)
+                    triangles.AddRange(new[]{a,b,c,a,c,d});
+                else triangles.AddRange(new[]{a,c,b,a,d,c});
+            }
+            // End faces meet the main slab. Physics keeps the continuous unrounded ribbon.
+            for(int end=0;end<2;end++)
+            {
+                int index=end==0?0:left.Length-1,start=v.Count;
+                Vector3 normal=((left[index]+right[index])-(left[end==0?1:index-1]+right[end==0?1:index-1])).normalized;
+                for(int j=0;j<ring;j++){v.Add(v[index*ring+j]);normals.Add(normal);uv.Add(Vector2.zero);}
+                for(int j=1;j<ring-1;j++)
+                {
+                    if(Vector3.Dot(Vector3.Cross(v[start+j]-v[start],v[start+j+1]-v[start]),normal)>0)
+                        triangles.AddRange(new[]{start,start+j,start+j+1});
+                    else triangles.AddRange(new[]{start,start+j+1,start+j});
+                }
+            }
+            mesh.SetVertices(v);mesh.SetNormals(normals);mesh.SetUVs(0,uv);mesh.SetTriangles(triangles,0);mesh.RecalculateBounds();
             if(fresh)AssetDatabase.CreateAsset(mesh,path);else{EditorUtility.SetDirty(mesh);AssetDatabase.SaveAssetIfDirty(mesh);}return mesh;
         }
         private static void OpenGalleryEntrances(Transform arena)
@@ -179,12 +228,12 @@ namespace Igruha.EditorTools
             foreach(int side in new[]{-1,1})
             {
                 // The safe branch is longer because it goes around the building, not an arbitrary slowdown.
-                CarryRoadArena.Polyline(root,new[]{new Vector3(-18.5f,0,side*9),new Vector3(-18.5f,0,side*14.2f)},Paint("Safe",new Color(.31f,.51f,.42f)),.16f);
+                CarryRoadArena.Polyline(root,new[]{new Vector3(-18.5f,0,side*9),new Vector3(-18.5f,0,side*14.2f)},Paint("Safe",new Color(.035f,.66f,.48f)),.16f);
                 CarryRoadArena.Place(root,"SmoothSign",new Vector3(-21.5f,0,side*11.7f),side>0?0:180,true);
                 Sign(root,new Vector3(-16.9f,0,side*8.2f),side,"КОРОТКО","ТРЯСКИЙ НАСТИЛ",false);
                 Sign(root,new Vector3(-21.5f,0,side*10.4f),side,"В ОБХОД","РОВНО · ДОЛЬШЕ",true);
-                CarryRoadArena.Chevron(root,new Vector3(-16.2f,.028f,side*5.04f),90,Paint("Rough",new Color(.69f,.35f,.12f)),.65f);
-                CarryRoadArena.Chevron(root,new Vector3(-18.5f,.028f,side*12.5f),side>0?0:180,Paint("Safe",new Color(.31f,.51f,.42f)),.65f);
+                CarryRoadArena.Chevron(root,new Vector3(-16.2f,.028f,side*5.04f),90,Paint("Rough",new Color(1f,.53f,.045f)),.65f);
+                CarryRoadArena.Chevron(root,new Vector3(-18.5f,.028f,side*12.5f),side>0?0:180,Paint("Safe",new Color(.035f,.66f,.48f)),.65f);
             }
             Sign(root,new Vector3(-23.2f,0,.8f),1,"ПО ВЕРХУ","ПРОПУСТИ БАЛКУ",false);
         }
@@ -196,7 +245,7 @@ namespace Igruha.EditorTools
             Block(sign,"Foot",new Vector3(0,.06f,0),new Vector3(.7f,.12f,.55f),Concrete(),true);
             Block(sign,"Post",new Vector3(0,.88f,0),new Vector3(.09f,1.75f,.09f),Metal(),true);
             Block(sign,"Board",new Vector3(0,1.75f,0),new Vector3(2.0f,.92f,.10f),Paint("Board",new Color(.73f,.73f,.68f)),true);
-            Block(sign,"Stripe",new Vector3(-.84f,1.75f,.06f),new Vector3(.14f,.76f,.015f),safe?Paint("Safe",new Color(.31f,.51f,.42f)):Paint("Rough",new Color(.69f,.35f,.12f)),false);
+            Block(sign,"Stripe",new Vector3(-.84f,1.75f,.06f),new Vector3(.14f,.76f,.015f),safe?Paint("Safe",new Color(.035f,.66f,.48f)):Paint("Rough",new Color(1f,.53f,.045f)),false);
             Label(sign,title,new Vector3(.03f,1.93f,.065f),.24f);
             Label(sign,subtitle,new Vector3(.03f,1.59f,.065f),.13f);
         }
@@ -211,11 +260,11 @@ namespace Igruha.EditorTools
             var map=new Dictionary<string,Material>
             {
                 {"RW_Teal",Metal()},{"RW_Steel",Metal()},{"RW_Concrete",Concrete()},{"RW_Floor",Concrete()},
-                {"RW_Brick",Tint("Block",new Color(.48f,.48f,.46f))},{"RW_Ivory",Tint("Chalk",new Color(.72f,.72f,.68f))},
+                {"RW_Brick",Tint("Block",new Color(.78f,.28f,.10f))},{"RW_Ivory",Tint("Chalk",new Color(.72f,.72f,.68f))},
                 {"CS_Concrete",Concrete()},{"CS_ConcreteEdge",Tint("Concrete edge",new Color(.40f,.41f,.40f))},
-                {"CS_CabinBlue",Tint("Equipment",new Color(.32f,.36f,.37f))},{"CS_TarpBlue",Tint("Tarpaulin",new Color(.33f,.36f,.34f))},
-                {"CS_Terracotta",Tint("Block",new Color(.48f,.48f,.46f))},{"CS_Galvanized",Metal()},
-                {"CS_Timber",Tint("Timber",new Color(.45f,.39f,.30f))},{"CS_Plywood",Tint("Shuttering",new Color(.37f,.32f,.25f))}
+                {"CS_CabinBlue",Tint("Equipment",new Color(.035f,.42f,.72f))},{"CS_TarpBlue",Tint("Tarpaulin",new Color(.035f,.43f,.70f))},
+                {"CS_Terracotta",Tint("Block",new Color(.78f,.28f,.10f))},{"CS_Galvanized",Metal()},
+                {"CS_Timber",Tint("Timber",new Color(.64f,.38f,.16f))},{"CS_Plywood",Tint("Shuttering",new Color(.56f,.31f,.105f))}
             };
             foreach(var renderer in arena.GetComponentsInChildren<MeshRenderer>())
             {
@@ -235,12 +284,12 @@ namespace Igruha.EditorTools
         private static void LightSite()
         {
             var sun=RenderSettings.sun;
-            if(sun!=null){sun.color=new Color(.98f,.965f,.92f);sun.intensity=1.35f;sun.transform.rotation=Quaternion.Euler(32,118,0);}
+            if(sun!=null){sun.color=new Color(1f,.98f,.93f);sun.intensity=1.65f;sun.transform.rotation=Quaternion.Euler(32,118,0);}
             var fill=GameObject.Find("CarryItemSkyFill");
-            if(fill!=null){var light=fill.GetComponent<Light>();light.color=new Color(.69f,.77f,.88f);light.intensity=.30f;}
-            RenderSettings.ambientSkyColor=new Color(.55f,.63f,.71f);
-            RenderSettings.ambientEquatorColor=new Color(.57f,.59f,.60f);RenderSettings.ambientGroundColor=new Color(.28f,.28f,.29f);
-            RenderSettings.fogColor=new Color(.70f,.74f,.78f);
+            if(fill!=null){var light=fill.GetComponent<Light>();light.color=new Color(.69f,.77f,.88f);light.intensity=.42f;}
+            RenderSettings.ambientSkyColor=new Color(.48f,.66f,.88f);
+            RenderSettings.ambientEquatorColor=new Color(.65f,.72f,.77f);RenderSettings.ambientGroundColor=new Color(.35f,.39f,.43f);
+            RenderSettings.fogColor=new Color(.63f,.79f,.92f);
             string skyPath=Mats+"/Site_Sky.mat";var sky=AssetDatabase.LoadAssetAtPath<Material>(skyPath);
             if(sky==null){sky=new Material(RenderSettings.skybox);AssetDatabase.CreateAsset(sky,skyPath);}
             sky.SetColor("_SkyTint",new Color(.50f,.56f,.64f));sky.SetColor("_GroundColor",new Color(.58f,.61f,.63f));
@@ -254,19 +303,18 @@ namespace Igruha.EditorTools
                 var source=AssetDatabase.LoadAssetAtPath<UnityEngine.Rendering.VolumeProfile>(CarrySkyscraperAssets.Materials+"/CS_Daylight.asset");
                 foreach(var component in source.components){var clone=Object.Instantiate(component);profile.components.Add(clone);AssetDatabase.AddObjectToAsset(clone,profile);}
             }
-            if(profile.TryGet<UnityEngine.Rendering.Universal.WhiteBalance>(out var white)){white.temperature.Override(0);white.tint.Override(0);}
-            if(profile.TryGet<UnityEngine.Rendering.Universal.ColorAdjustments>(out var color)){color.postExposure.Override(.05f);color.contrast.Override(15);color.saturation.Override(-4);}
+            if(profile.TryGet<UnityEngine.Rendering.Universal.WhiteBalance>(out var white)){white.temperature.Override(4);white.tint.Override(0);}
+            if(profile.TryGet<UnityEngine.Rendering.Universal.ColorAdjustments>(out var color)){color.postExposure.Override(.22f);color.contrast.Override(13);color.saturation.Override(22);}
             if(profile.TryGet<UnityEngine.Rendering.Universal.SplitToning>(out var tone))
-            {tone.shadows.Override(new Color(.46f,.49f,.52f));tone.highlights.Override(new Color(.52f,.51f,.48f));tone.balance.Override(0);}
+            {tone.shadows.Override(new Color(.46f,.49f,.53f));tone.highlights.Override(new Color(.53f,.51f,.46f));tone.balance.Override(0);}
             foreach(var component in profile.components)EditorUtility.SetDirty(component);
             EditorUtility.SetDirty(profile);AssetDatabase.SaveAssetIfDirty(profile);
             var volume=GameObject.Find("CarryItemGoldenHour");if(volume!=null)volume.GetComponent<UnityEngine.Rendering.Volume>().sharedProfile=profile;
         }
         internal static Material Concrete()
         {
-            var m=Tint("Concrete",new Color(.68f,.69f,.68f));
-            if(m.GetTexture("_BaseMap")!=null&&Mathf.Approximately(m.GetFloat("_Smoothness"),.09f))return m;
-            m.SetTexture("_BaseMap",AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/_Project/Art/CarryItem/Original/Textures/CS_Concrete.png"));
+            var m=Tint("Concrete",new Color(.86f,.92f,1f));
+            m.SetTexture("_BaseMap",AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/_Project/Art/CarryItem/Roadworks/Textures/RW_Concrete.png"));
             m.SetFloat("_Smoothness",.09f);EditorUtility.SetDirty(m);AssetDatabase.SaveAssetIfDirty(m);return m;
         }
         private static Material Metal(){var m=Tint("Galvanized",new Color(.33f,.36f,.36f));if(m.GetFloat("_Metallic")>.5f&&Mathf.Approximately(m.GetFloat("_Smoothness"),.24f))return m;m.SetFloat("_Metallic",.55f);m.SetFloat("_Smoothness",.24f);EditorUtility.SetDirty(m);AssetDatabase.SaveAssetIfDirty(m);return m;}
@@ -287,7 +335,9 @@ namespace Igruha.EditorTools
             {
                 var t=Group(parent,"Site railing");t.position=Vector3.Lerp(a,b,(i+.5f)/count);t.rotation=Quaternion.FromToRotation(Vector3.right,d.normalized);
                 var model=AssetDatabase.LoadAssetAtPath<GameObject>(Art+"/Models/HR_Rail.fbx");
-                var visual=(GameObject)PrefabUtility.InstantiatePrefab(model,t);visual.transform.localScale=new Vector3(part/4,1,1);
+                var visual=(GameObject)PrefabUtility.InstantiatePrefab(model,t);
+                // FBX root carries the centimetre-to-metre conversion. Keep it when stretching a section.
+                visual.transform.localScale=Vector3.Scale(visual.transform.localScale,new Vector3(part/4,1,1));
                 var box=t.gameObject.AddComponent<BoxCollider>();box.center=new Vector3(0,RailHeight*.5f,0);box.size=new Vector3(part,RailHeight,.1f);t.gameObject.layer=LayerMask.NameToLayer("Cover");
             }
         }

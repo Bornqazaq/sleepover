@@ -816,53 +816,53 @@
   "models": [
     {
       "name": "Slab",
-      "vertices": 480,
-      "faces": 450
+      "vertices": 720,
+      "faces": 750
     },
     {
       "name": "Bridge",
-      "vertices": 544,
-      "faces": 458
+      "vertices": 720,
+      "faces": 678
     },
     {
       "name": "Wall",
-      "vertices": 812,
-      "faces": 556
+      "vertices": 828,
+      "faces": 576
     },
     {
       "name": "Column",
-      "vertices": 480,
-      "faces": 342
+      "vertices": 496,
+      "faces": 362
     },
     {
       "name": "CoreBlock",
-      "vertices": 1344,
-      "faces": 1242
+      "vertices": 1968,
+      "faces": 2022
     },
     {
       "name": "Pallet",
-      "vertices": 664,
-      "faces": 590
+      "vertices": 936,
+      "faces": 930
     },
     {
       "name": "BrickStack",
-      "vertices": 2200,
-      "faces": 2030
+      "vertices": 3240,
+      "faces": 3330
     },
     {
       "name": "Brick",
-      "vertices": 92,
-      "faces": 66
+      "vertices": 108,
+      "faces": 86
     },
     {
       "name": "Lumber",
-      "vertices": 576,
-      "faces": 540
+      "vertices": 864,
+      "faces": 900
     },
     {
       "name": "CementBags",
-      "vertices": 1432,
-      "faces": 1310
+      "vertices": 2088,
+      "faces": 2130
     },
     {
       "name": "CableReel",
@@ -876,23 +876,23 @@
     },
     {
       "name": "Scaffold",
-      "vertices": 1216,
-      "faces": 950
+      "vertices": 1520,
+      "faces": 1330
     },
     {
       "name": "Guardrail",
-      "vertices": 304,
-      "faces": 198
+      "vertices": 384,
+      "faces": 298
     },
     {
       "name": "Barricade",
-      "vertices": 192,
-      "faces": 116
+      "vertices": 224,
+      "faces": 156
     },
     {
       "name": "Cone",
-      "vertices": 200,
-      "faces": 154
+      "vertices": 216,
+      "faces": 174
     },
     {
       "name": "Wheelbarrow",
@@ -901,8 +901,8 @@
     },
     {
       "name": "Standpipe",
-      "vertices": 144,
-      "faces": 100
+      "vertices": 160,
+      "faces": 120
     },
     {
       "name": "Spout",
@@ -921,13 +921,13 @@
     },
     {
       "name": "Workbench",
-      "vertices": 288,
-      "faces": 254
+      "vertices": 384,
+      "faces": 374
     },
     {
       "name": "Generator",
-      "vertices": 240,
-      "faces": 182
+      "vertices": 272,
+      "faces": 222
     },
     {
       "name": "Mixer",
@@ -936,28 +936,28 @@
     },
     {
       "name": "SiteCabin",
-      "vertices": 256,
-      "faces": 240
+      "vertices": 384,
+      "faces": 400
     },
     {
       "name": "Beam",
-      "vertices": 96,
-      "faces": 90
+      "vertices": 144,
+      "faces": 150
     },
     {
       "name": "Crane",
-      "vertices": 5090,
-      "faces": 3330
+      "vertices": 5250,
+      "faces": 3530
     },
     {
       "name": "CityTower",
-      "vertices": 2240,
-      "faces": 2100
+      "vertices": 3360,
+      "faces": 3500
     },
     {
       "name": "CityFrame",
-      "vertices": 672,
-      "faces": 630
+      "vertices": 1008,
+      "faces": 1050
     },
     {
       "name": "Puddle",
@@ -996,8 +996,8 @@
     },
     {
       "name": "TankCage",
-      "vertices": 816,
-      "faces": 646
+      "vertices": 976,
+      "faces": 846
     },
     {
       "name": "TankBand",
@@ -1006,58 +1006,58 @@
     },
     {
       "name": "CityGlassA",
-      "vertices": 376,
-      "faces": 316
+      "vertices": 488,
+      "faces": 456
     },
     {
       "name": "CityGlassB",
-      "vertices": 544,
-      "faces": 472
+      "vertices": 736,
+      "faces": 712
     },
     {
       "name": "CityGlassC",
-      "vertices": 898,
-      "faces": 778
+      "vertices": 1202,
+      "faces": 1158
     },
     {
       "name": "CityBrickA",
-      "vertices": 452,
-      "faces": 368
+      "vertices": 564,
+      "faces": 508
     },
     {
       "name": "CityBrickB",
-      "vertices": 620,
-      "faces": 524
+      "vertices": 812,
+      "faces": 764
     },
     {
       "name": "CityBandA",
-      "vertices": 340,
-      "faces": 294
+      "vertices": 452,
+      "faces": 434
     },
     {
       "name": "CityBandB",
-      "vertices": 544,
-      "faces": 472
+      "vertices": 736,
+      "faces": 712
     },
     {
       "name": "CityDark",
-      "vertices": 884,
-      "faces": 766
+      "vertices": 1188,
+      "faces": 1146
     },
     {
       "name": "CityLandmark",
-      "vertices": 1238,
-      "faces": 1072
+      "vertices": 1654,
+      "faces": 1592
     },
     {
       "name": "CityFrameB",
-      "vertices": 992,
-      "faces": 900
+      "vertices": 1440,
+      "faces": 1460
     },
     {
       "name": "CitySlab",
-      "vertices": 872,
-      "faces": 816
+      "vertices": 1304,
+      "faces": 1356
     },
     {
       "name": "StreetGround",
@@ -1066,8 +1066,8 @@
     },
     {
       "name": "RoadStrip",
-      "vertices": 152,
-      "faces": 126
+      "vertices": 184,
+      "faces": 166
     },
     {
       "name": "RoadCross",
@@ -1076,33 +1076,33 @@
     },
     {
       "name": "FencePanel",
-      "vertices": 288,
-      "faces": 260
+      "vertices": 416,
+      "faces": 420
     },
     {
       "name": "DumpTruck",
-      "vertices": 464,
-      "faces": 312
+      "vertices": 528,
+      "faces": 392
     },
     {
       "name": "Excavator",
-      "vertices": 184,
-      "faces": 168
+      "vertices": 264,
+      "faces": 268
     },
     {
       "name": "PumpTruck",
-      "vertices": 592,
-      "faces": 376
+      "vertices": 640,
+      "faces": 436
     },
     {
       "name": "Car",
-      "vertices": 288,
-      "faces": 188
+      "vertices": 320,
+      "faces": 228
     },
     {
       "name": "Container",
-      "vertices": 736,
-      "faces": 690
+      "vertices": 1104,
+      "faces": 1150
     },
     {
       "name": "DirtPile",
@@ -1116,13 +1116,13 @@
     },
     {
       "name": "StreetLamp",
-      "vertices": 56,
-      "faces": 48
+      "vertices": 72,
+      "faces": 68
     },
     {
       "name": "TankFrame",
-      "vertices": 1846,
-      "faces": 1644
+      "vertices": 1910,
+      "faces": 1724
     },
     {
       "name": "TankRing",
@@ -1161,8 +1161,8 @@
     },
     {
       "name": "FloodTower",
-      "vertices": 208,
-      "faces": 170
+      "vertices": 272,
+      "faces": 250
     },
     {
       "name": "HoistMast",
@@ -1171,8 +1171,8 @@
     },
     {
       "name": "HoistCage",
-      "vertices": 272,
-      "faces": 220
+      "vertices": 304,
+      "faces": 260
     },
     {
       "name": "ChuteRun",
@@ -1191,8 +1191,8 @@
     },
     {
       "name": "Formwork",
-      "vertices": 224,
-      "faces": 200
+      "vertices": 320,
+      "faces": 320
     },
     {
       "name": "RebarCage",
@@ -1216,8 +1216,8 @@
     },
     {
       "name": "Toolbox",
-      "vertices": 130,
-      "faces": 122
+      "vertices": 162,
+      "faces": 162
     },
     {
       "name": "WaterBarrel",
@@ -1231,23 +1231,23 @@
     },
     {
       "name": "PortaPotty",
-      "vertices": 144,
-      "faces": 130
+      "vertices": 208,
+      "faces": 210
     },
     {
       "name": "SkipBin",
-      "vertices": 136,
-      "faces": 105
+      "vertices": 168,
+      "faces": 145
     },
     {
       "name": "SignBoard",
-      "vertices": 160,
-      "faces": 132
+      "vertices": 192,
+      "faces": 172
     },
     {
       "name": "Bench",
-      "vertices": 352,
-      "faces": 330
+      "vertices": 528,
+      "faces": 550
     },
     {
       "name": "Hose",
@@ -1256,13 +1256,13 @@
     },
     {
       "name": "Compressor",
-      "vertices": 192,
-      "faces": 122
+      "vertices": 208,
+      "faces": 142
     },
     {
       "name": "WeldCart",
-      "vertices": 276,
-      "faces": 199
+      "vertices": 292,
+      "faces": 219
     },
     {
       "name": "CylinderRack",
@@ -1271,13 +1271,13 @@
     },
     {
       "name": "CraneMast",
-      "vertices": 2656,
-      "faces": 1670
+      "vertices": 2672,
+      "faces": 1690
     },
     {
       "name": "CraneTop",
-      "vertices": 3124,
-      "faces": 2028
+      "vertices": 3236,
+      "faces": 2168
     },
     {
       "name": "CraneHook",

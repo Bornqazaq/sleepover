@@ -55,6 +55,18 @@ namespace Igruha.Tests
                 {
                     Vector3 following=paths[side][next[side]+1]-target;following.y=0;
                     if(Vector3.Angle(delta,following)>25)strength=Mathf.Lerp(.30f,1f,Mathf.InverseLerp(1.8f,3.8f,delta.magnitude));
+                    // A rounded road has many short tangent segments. Read its curvature
+                    // over a physical look-ahead distance so tessellation cannot defeat braking.
+                    Vector3 lookAhead=target;float remaining=3.8f;
+                    for(int node=next[side]+1;node<paths[side].Length&&remaining>0;node++)
+                    {
+                        Vector3 segment=paths[side][node]-lookAhead;segment.y=0;
+                        float distance=Mathf.Min(segment.magnitude,remaining);
+                        lookAhead+=segment.normalized*distance;remaining-=distance;
+                    }
+                    Vector3 upcoming=lookAhead-target;upcoming.y=0;
+                    if(Vector3.Angle(delta,upcoming)>15)
+                        strength=Mathf.Min(strength,Mathf.Lerp(.30f,1f,Mathf.InverseLerp(1.8f,3.8f,delta.magnitude)));
                 }
                 if(!slowSecond&&cart.Carry.FlatVelocity.sqrMagnitude>.04f&&Vector3.Angle(cart.Carry.FlatVelocity,delta)>12)strength=Mathf.Min(strength,.30f);
                 driveStrength=Mathf.MoveTowards(driveStrength,strength,Time.deltaTime*.75f);
