@@ -59,10 +59,20 @@ namespace Igruha.Tests
             if (!roundChecked && Time.realtimeSinceStartup - roundAt > 5)
             {
                 roundChecked = true;
-                if (!reader.enabled || !reader.LocallyControlled)
+                string scene = game.gameObject.scene.name;
+                bool walkingRole = scene == "MemoryRun" || scene == "Infection" || scene == "Stopwatch" || scene == "SumoRing";
+                bool controlReady = reader.LocallyControlled && (!walkingRole || reader.enabled);
+                var mosquitoes = game as Igruha.Minigames.Mosquitoes.MosquitoesMinigame;
+                if (mosquitoes != null && !mosquitoes.IsGiant(local.Avatar))
+                {
+                    // Mosquitoes park the human avatar and use an owned flight body.
+                    var body = mosquitoes.FindBody(local.Id);
+                    controlReady = body != null && body.IsSpawned && body.IsLocal && body.enabled;
+                }
+                if (!controlReady)
                     Debug.LogError("SCENE_READY_CHECK FAIL local input disabled in round");
                 else Debug.Log("SCENE_READY_CHECK PASS scene=" + game.gameObject.scene.name +
-                    " participants=" + readiness.ParticipantIds.Count + " local=" + local.Id + " reader=enabled");
+                    " participants=" + readiness.ParticipantIds.Count + " local=" + local.Id + " reader=" + reader.enabled);
             }
             if (mode == "flow" && roundChecked && Time.realtimeSinceStartup - roundAt > 10 &&
                 NetworkManager.Singleton.IsServer) game.EndMinigame();
