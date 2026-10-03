@@ -29,12 +29,6 @@ namespace Igruha.Core.Minigame
         /// </summary>
         private const int MinNetworkPlayers = 2;
 
-        /// <summary>
-        /// Сколько ждать события «сцену догрузили все», прежде чем начинать
-        /// без него. Потерянное событие не должно стоить раунда.
-        /// </summary>
-        private const float PlacementGateTimeout = 20f;
-
         [SerializeField] private PlayerSpawner playerSpawner;
         [SerializeField] private MinigameControllerBase minigame;
         [SerializeField] private MinigameCameraController cameraController;
@@ -42,8 +36,9 @@ namespace Igruha.Core.Minigame
         [SerializeField] private EmoteWheel emoteWheel;
         [Tooltip("Сколько секунд ждать ростер и аватары сетевой сессии")]
         [SerializeField] private float networkRosterTimeout = 180f;
-        [Tooltip("Сколько секунд состав не должен меняться, чтобы считать его собравшимся")]
-        [SerializeField] private float networkRosterSettleTime = 1f;
+
+        private bool networkReady;
+        private readonly List<SessionPlayer> networkPlayers = new List<SessionPlayer>();
 
         private void Start()
         {
@@ -66,13 +61,14 @@ namespace Igruha.Core.Minigame
             {
                 yield return WaitForNetworkRoster();
 
+                if (!networkReady) yield break;
                 if (SessionScoreboard.Current == null)
                 {
                     Debug.LogError($"{name}: сетевая сессия не отдала табло — мини-игра не стартует", this);
                     yield break;
                 }
 
-                players = SessionScoreboard.Current.Players;
+                players = networkPlayers;
             }
             else
             {
@@ -96,110 +92,59 @@ namespace Igruha.Core.Minigame
             minigame.StartMinigame(players);
         }
 
-        /// <summary>
-        /// Ждём, пока сервер пришлёт ростер и заспавнит персонажей: до этого
-        /// у участников нет аватаров, и роли раздать некому.
-        ///
-        /// Мало дождаться непустого состава — надо дождаться, пока он перестанет
-        /// расти. Хост загружает сцену мини-игры сразу, как поднялся сервер, и
-        /// в этот момент в ростере он один: без выдержки мини-игра стартует на
-        /// одного, раздаёт роли на одного, а подключившийся следом клиент
-        /// приезжает в уже идущий раунд, где его нет ни в списке, ни в ролях.
-        /// Замерено 16.08 на host + client: у обоих в мини-игре был один
-        /// участник при ростере из двух.
-        /// </summary>
+        // Ни таймаут, ни временно неполный ростер не разрешают начать раунд.
+        // Подтверждение относится к NetworkObject этой загрузки, поэтому старый
+        // RPC не может открыть следующую тренировку той же сцены.
         private IEnumerator WaitForNetworkRoster()
         {
+            var readiness = minigame.GetComponent<IMinigameSceneReadiness>();
+            if (readiness == null)
+            {
+                Debug.LogError($"{name}: отсутствует сетевой шлюз готовности", this);
+                yield break;
+            }
+
             float deadline = Time.realtimeSinceStartup + networkRosterTimeout;
-
-            // Сначала шлюз расстановки: сцену обязаны догрузить все, и общая
-            // раскладка по точкам спавна обязана пройти ДО того, как игра
-            // начнёт раздавать свои места. Иначе общий телепорт прилетает
-            // следом и выдёргивает людей из клеток и кресел — разбор в
-            // ScenePlacementGate.
-            // Ждём шлюз недолго и отдельно от общего срока: событие загрузки
-            // приходит за секунды, а если оно потерялось вовсе, лучше начать
-            // игру с опозданием, чем не начать её три минуты.
-            float gateDeadline = Mathf.Min(deadline, Time.realtimeSinceStartup + PlacementGateTimeout);
-            while (!ScenePlacementGate.IsOpen && Time.realtimeSinceStartup < gateDeadline)
-            {
-                yield return null;
-            }
-
-            if (!ScenePlacementGate.IsOpen)
-            {
-                Debug.LogWarning($"{name}: ⏳ событие загрузки сцены не пришло за {PlacementGateTimeout:F0} с — " +
-                                 "начинаю без общей раскладки по точкам спавна", this);
-            }
-
-            // Шлюз открыло настоящее сетевое событие — значит в сцене уже все,
-            // и состав вырасти больше не может. Выдержка на «устаканивание»
-            // здесь только добавила бы секунду свободного падения с точки
-            // спавна до места, которое игра отведёт человеку сама.
-            float settleTime = ScenePlacementGate.OpenedByNetwork ? 0f : networkRosterSettleTime;
-            int settledCount = 0;
-            float settledSince = 0f;
-
+            bool reported = false;
+            Debug.Log($"[SceneReady] {gameObject.scene.name}: waiting for placement and all peers");
             while (Time.realtimeSinceStartup < deadline)
             {
-                if (!RosterReady(out int count))
+                var manager = NetworkManager.Singleton;
+                if (manager == null || !manager.IsListening || manager.ShutdownInProgress) yield break;
+                if (readiness.PlacementComplete && CollectReadyRoster(readiness.ParticipantIds))
                 {
-                    settledCount = 0;
+                    if (!reported)
+                    {
+                        BindLocalPlayer(networkPlayers);
+                        readiness.ReportLocalReady();
+                        reported = true;
+                    }
+                    if (readiness.CanStart)
+                    {
+                        networkReady = true;
+                        Debug.Log($"[SceneReady] {gameObject.scene.name}: START participants={networkPlayers.Count}");
+                        yield break;
+                    }
                 }
-                else if (count != settledCount)
-                {
-                    settledCount = count;
-                    settledSince = Time.realtimeSinceStartup;
-                }
-                else if (Time.realtimeSinceStartup - settledSince >= settleTime)
-                {
-                    yield break;
-                }
-
                 yield return null;
             }
 
-            int joined = SessionScoreboard.Current != null ? SessionScoreboard.Current.Players.Count : 0;
-            Debug.LogWarning($"{name}: ⏳ ростер сессии не собрался за {networkRosterTimeout:F0} с — стартуем с тем, " +
-                             $"что есть ({joined}). Если участников меньше двух, ролей не будет и фонарь не загорится", this);
+            readiness.AbortPreparation("Не удалось дождаться загрузки игроков. Подключитесь к хосту заново.");
         }
 
-        /// <summary>Состав готов: играть есть с кем и у всех уже есть персонажи.</summary>
-        private static bool RosterReady(out int count)
+        private bool CollectReadyRoster(IReadOnlyList<int> ids)
         {
-            count = 0;
-
-            ISessionScoreboard scoreboard = SessionScoreboard.Current;
-            if (scoreboard == null)
+            networkPlayers.Clear();
+            var scoreboard = SessionScoreboard.Current;
+            if (scoreboard == null || ids.Count < MinNetworkPlayers) return false;
+            for (int i = 0; i < ids.Count; i++)
             {
-                return false;
+                SessionPlayer found = null;
+                foreach (var player in scoreboard.Players)
+                    if (player.Id == ids[i]) { found = player; break; }
+                if (found == null || found.Avatar == null) return false;
+                networkPlayers.Add(found);
             }
-
-            IReadOnlyList<SessionPlayer> players = scoreboard.Players;
-            if (players.Count < MinNetworkPlayers)
-            {
-                return false;
-            }
-
-            ICharacterSelection selection = CharacterSelection.Current;
-
-            for (int i = 0; i < players.Count; i++)
-            {
-                // Подключившийся посреди матча тела не получит вовсе — он
-                // зритель до возвращения в хаб. Ждать его аватар значит ждать
-                // до самого таймаута и держать раунд у всех остальных.
-                if (selection != null && !selection.HasCharacter(players[i].Id))
-                {
-                    continue;
-                }
-
-                if (players[i].Avatar == null)
-                {
-                    return false;
-                }
-            }
-
-            count = players.Count;
             return true;
         }
 
