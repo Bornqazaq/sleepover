@@ -16,6 +16,7 @@ for mesh in list(bpy.data.meshes):
 PI=math.pi;materials=[];palette=[];_box_cache={};STONE=0
 for n in ast.parse((ROOT/'tools/blender/crying_angels.py').read_text()).body:
  if isinstance(n,(ast.ClassDef,ast.FunctionDef)) and n.name in {'Mesh','transform','box','lathe','tube'}:exec(compile(ast.Module(body=[n],type_ignores=[]),'geometry','exec'))
+exec(compile((ROOT/'tools/blender/carry_geometry.py').read_text(), 'carry_geometry', 'exec'))
 def mat(name,c,rough=.4,metal=.0,transparent=False):
  name='CW_'+name;m=bpy.data.materials.get(name) or bpy.data.materials.new(name);m.diffuse_color=c;m.use_nodes=True
  bs=next(n for n in m.node_tree.nodes if n.type=='BSDF_PRINCIPLED');bs.inputs['Base Color'].default_value=c;bs.inputs['Roughness'].default_value=rough;bs.inputs['Metallic'].default_value=metal;bs.inputs['Alpha'].default_value=c[3]

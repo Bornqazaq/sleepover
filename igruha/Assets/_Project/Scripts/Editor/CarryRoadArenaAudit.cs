@@ -29,6 +29,16 @@ namespace Igruha.EditorTools
             {
                 var r=j.GetComponentInChildren<Renderer>();
                 if(r==null)problems.Add("Invisible joint "+j.transform.position);
+                if(r!=null)
+                {
+                    var bounds=r.localBounds;float min=float.MaxValue,max=float.MinValue;
+                    for(int corner=0;corner<8;corner++)
+                    {
+                        var p=bounds.center+Vector3.Scale(bounds.extents,new Vector3((corner&1)==0?-1:1,(corner&2)==0?-1:1,(corner&4)==0?-1:1));
+                        float z=j.transform.InverseTransformPoint(r.transform.TransformPoint(p)).z;min=Mathf.Min(min,z);max=Mathf.Max(max,z);
+                    }
+                    if(Mathf.Abs(max-min-j.Width)>.04f)problems.Add("Joint model does not fit road: "+j.transform.position);
+                }
                 if(Mathf.Abs(j.transform.position.z)>7)problems.Add("Rough joint on safe route "+j.transform.position);
             }
             if(joints.Length!=14)problems.Add("Expected 14 visible rough-route joints, found "+joints.Length);
@@ -45,6 +55,20 @@ namespace Igruha.EditorTools
                 if(mesh.GetComponent<Collider>()==null)problems.Add("Missing site collision: "+mesh.name);
             }
             report.Append("Rough concrete patches=").Append(patches.Length).Append('\n');
+            foreach(var rail in GameObject.Find("_Arena/HeistRoutes/LowerRoutes").GetComponentsInChildren<Renderer>())
+                if(rail.name=="HR_Rail"&&rail.bounds.size.y<1f)problems.Add("Undersized gallery railing "+rail.transform.position);
+            int seated=0;
+            foreach(Transform prop in GameObject.Find("_Arena/Environment/Horizon").transform)
+            {
+                if(prop.position.y>=-.5f||prop.position.y<-36)continue;
+                if(prop.name!="CS_CementBags"&&prop.name!="CS_WeldCart"&&prop.name!="CS_Tarp"&&prop.name!="CS_Lumber"&&
+                    prop.name!="CS_Formwork"&&prop.name!="CS_FloodTower"&&prop.name!="CS_Scaffold")continue;
+                var b=CarryItemDress.BoundsOf(prop.gameObject);seated++;
+                foreach(float x in new[]{b.min.x+.03f,b.max.x-.03f})foreach(float z in new[]{b.min.z+.03f,b.max.z-.03f})
+                    if(!Physics.Raycast(new Vector3(x,b.min.y+.035f,z),Vector3.down,.10f,LayerMask.GetMask("Cover","Ground"),QueryTriggerInteraction.Ignore))
+                        problems.Add("Unsupported lower prop "+prop.name+" "+prop.position);
+            }
+            report.Append("Lower props seated=").Append(seated).Append('\n');
             report.Append("Carry road audit: ").Append(samples).Append(" footprints, joints=").Append(joints.Length).Append(", problems=").Append(problems.Count);
             foreach(var p in problems)report.Append('\n').Append(p);
             report.Append('\n').Append(CarryArenaCollision.Audit(GameObject.Find("_Arena").transform));

@@ -8,12 +8,28 @@ namespace Igruha.Minigames.CarryItem
         public const float UpperEnd = 18.8f, UpperFlat = 6.2f, UpperHeight = 3.8f;
         public const float GalleryWidth = 4.2f, GalleryOutside = 25f;
         public const float GalleryEntrance = -18.5f, GalleryExit = 19.4f;
-        public static Vector3[] Gallery(int side) => new[]
+        public static Vector3[] Gallery(int side)
         {
-            new Vector3(GalleryEntrance,0,side*10), new Vector3(GalleryEntrance,0,side*(GalleryOutside-3.2f)),
-            new Vector3(-15.3f,0,side*GalleryOutside), new Vector3(16.2f,0,side*GalleryOutside),
-            new Vector3(GalleryExit,0,side*(GalleryOutside-3.2f)), new Vector3(GalleryExit,0,side*10)
-        };
+            // Tangent quarter circles give the cart a continuous steering arc.
+            const float radius = 4.5f;
+            const int arcSegments = 8;
+            var points = new System.Collections.Generic.List<Vector3>();
+            points.Add(new Vector3(GalleryEntrance, 0, side * 10));
+            for (int i = 0; i <= arcSegments; i++)
+            {
+                float angle = Mathf.PI - i * Mathf.PI * .5f / arcSegments;
+                points.Add(new Vector3(GalleryEntrance + radius + Mathf.Cos(angle) * radius, 0,
+                    side * (GalleryOutside - radius + Mathf.Sin(angle) * radius)));
+            }
+            for (int i = 0; i <= arcSegments; i++)
+            {
+                float angle = Mathf.PI * .5f - i * Mathf.PI * .5f / arcSegments;
+                points.Add(new Vector3(GalleryExit - radius + Mathf.Cos(angle) * radius, 0,
+                    side * (GalleryOutside - radius + Mathf.Sin(angle) * radius)));
+            }
+            points.Add(new Vector3(GalleryExit, 0, side * 10));
+            return points.ToArray();
+        }
         public static Vector3[] Upper => new[]
         {
             new Vector3(-UpperEnd,0,0),new Vector3(-UpperFlat,UpperHeight,0),

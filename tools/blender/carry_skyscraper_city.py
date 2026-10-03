@@ -80,6 +80,7 @@ VWHITE=mat('VehicleWhite',(.86,.86,.84),.45,.1)
 GOLD=STEEL
 for n in ast.parse((ROOT/'tools/blender/crying_angels.py').read_text()).body:
  if isinstance(n,(ast.ClassDef,ast.FunctionDef)) and n.name in {'Mesh','transform','box','lathe','tube','arc','ring','ellipsoid'}:exec(compile(ast.Module(body=[n],type_ignores=[]),'own_geometry','exec'))
+exec(compile((ROOT/'tools/blender/carry_geometry.py').read_text(), 'carry_geometry', 'exec'))
 _box_cache={}
 def export(m,name,obj=None):
  o=obj or m.object('CS_'+name);used=sorted(set(m.m));o.data.materials.clear()

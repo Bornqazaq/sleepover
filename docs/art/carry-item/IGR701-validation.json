@@ -1,0 +1,245 @@
+{
+  "issue": "IGR-701",
+  "date": "2026-10-03",
+  "base": "2f0960b48f8d87876ccfe5d1128677a4556ea1da",
+  "tests": {
+    "PlayMode": {
+      "passed": 28,
+      "failed": 0,
+      "job": "9a03e3c818cc4b95bf7d975bf9e26e09"
+    }
+  },
+  "build": {
+    "target": "macOS Development",
+    "scenes": [
+      "Boot",
+      "Hub",
+      "CarryItem"
+    ],
+    "errors": 0,
+    "warnings": 0,
+    "job": "build-3138cee418"
+  },
+  "network": {
+    "carry-route-20261003-130033": {
+      "peers": 8,
+      "passed": true,
+      "evidence": {
+        "client-5.log": [
+          "CARRY_ROUTE_CHECK delivery A=39 B=150 seconds=31.71065/45.94228 hop=0.055/0 flow=75/0 pos=(19.73, 0.00, 11.49)/(19.58, 0.00, -10.58)",
+          "CARRY_ROUTE_CHECK same seams A=42 B=150 seconds=4.53196/12.7841 hop=0.055/0 flow=75/0 pos=(7.51, 0.00, 1.35)/(7.04, 0.00, -1.35)",
+          "CARRY_ROUTE_CHECK PASS id=5"
+        ],
+        "client-4.log": [
+          "CARRY_ROUTE_CHECK delivery A=39 B=150 seconds=31.81117/45.94228 hop=0.055/0 flow=75/0 pos=(19.73, 0.00, 11.49)/(19.58, 0.00, -10.58)",
+          "CARRY_ROUTE_CHECK same seams A=42 B=150 seconds=4.53196/12.7841 hop=0.055/0 flow=75/0 pos=(7.51, 0.00, 1.35)/(7.04, 0.00, -1.35)",
+          "CARRY_ROUTE_CHECK PASS id=4"
+        ],
+        "client-6.log": [
+          "CARRY_ROUTE_CHECK delivery A=39 B=150 seconds=31.71065/45.94228 hop=0.055/0 flow=75/0 pos=(19.73, 0.00, 11.49)/(19.58, 0.00, -10.58)",
+          "CARRY_ROUTE_CHECK same seams A=42 B=150 seconds=4.53196/12.7841 hop=0.055/0 flow=75/0 pos=(7.51, 0.00, 1.35)/(7.04, 0.00, -1.35)",
+          "CARRY_ROUTE_CHECK PASS id=6"
+        ],
+        "client-7.log": [
+          "CARRY_ROUTE_CHECK delivery A=39 B=150 seconds=31.81117/45.94228 hop=0.055/0 flow=75/0 pos=(19.73, 0.00, 11.49)/(19.58, 0.00, -10.58)",
+          "CARRY_ROUTE_CHECK same seams A=42 B=150 seconds=4.53196/12.7841 hop=0.055/0 flow=75/0 pos=(7.51, 0.00, 1.35)/(7.04, 0.00, -1.35)",
+          "CARRY_ROUTE_CHECK PASS id=7"
+        ],
+        "client-3.log": [
+          "CARRY_ROUTE_CHECK delivery A=39 B=150 seconds=31.71065/45.94228 hop=0.055/0 flow=75/0 pos=(19.73, 0.00, 11.49)/(19.58, 0.00, -10.58)",
+          "CARRY_ROUTE_CHECK same seams A=42 B=150 seconds=4.53196/12.7841 hop=0.055/0 flow=75/0 pos=(7.51, 0.00, 1.35)/(7.04, 0.00, -1.35)",
+          "CARRY_ROUTE_CHECK PASS id=3"
+        ],
+        "client-2.log": [
+          "CARRY_ROUTE_CHECK delivery A=39 B=150 seconds=31.71065/45.94228 hop=0.055/0 flow=75/0 pos=(19.73, 0.00, 11.49)/(19.58, 0.00, -10.58)",
+          "CARRY_ROUTE_CHECK same seams A=42 B=150 seconds=4.53196/12.7841 hop=0.055/0 flow=75/0 pos=(7.51, 0.00, 1.35)/(7.04, 0.00, -1.35)",
+          "CARRY_ROUTE_CHECK PASS id=2"
+        ],
+        "host.log": [
+          "CARRY_ROUTE_CHECK delivery A=39 B=150 seconds=31.63651/45.78058 hop=0.055/0 flow=75/0 pos=(19.73, 0.00, 11.49)/(19.58, 0.00, -10.58)",
+          "CARRY_ROUTE_CHECK same seams A=42 B=150 seconds=4.438133/12.6834 hop=0.055/0 flow=75/0 pos=(7.51, 0.00, 1.35)/(7.04, 0.00, -1.35)",
+          "CARRY_ROUTE_CHECK PASS id=0"
+        ],
+        "client-1.log": [
+          "CARRY_ROUTE_CHECK delivery A=39 B=150 seconds=31.81117/45.83212 hop=0.055/0 flow=75/0 pos=(19.73, 0.00, 11.49)/(19.58, 0.00, -10.58)",
+          "CARRY_ROUTE_CHECK same seams A=42 B=150 seconds=4.53196/12.7841 hop=0.055/0 flow=75/0 pos=(7.51, 0.00, 1.35)/(7.04, 0.00, -1.35)",
+          "CARRY_ROUTE_CHECK PASS id=1"
+        ]
+      }
+    },
+    "carry-risk-20261003-130035": {
+      "peers": 2,
+      "passed": true,
+      "evidence": {
+        "host.log": [
+          "CARRY_RISK_CHECK PASS id=0 players=2"
+        ],
+        "client-1.log": [
+          "CARRY_RISK_CHECK PASS id=1 players=2"
+        ]
+      }
+    }
+  },
+  "first_route_run": {
+    "path": "carry-route-20261003-125635",
+    "outcome": "All 8 peers reached both endpoints and retained four grips, but the old test driver ignored curvature split across short segments (safe water 123). Test driver now looks 3.8m ahead for turn braking; game speed and spill rules unchanged."
+  },
+  "audit": {
+    "route_footprints": 4816,
+    "joint_count": 14,
+    "rough_patch_count": 8,
+    "lower_props_supported": 40,
+    "collision_bodies": 193,
+    "problems": 0
+  },
+  "limitations": [
+    "Automated localhost sessions; no live human acceptance or different-PC playtest.",
+    "Performance comparison is one macOS Editor camera, not a target Windows GPU profile."
+  ],
+  "rebuild": {
+    "before": 3088,
+    "after": 3088,
+    "cloud_volumes": 1,
+    "arena_active_mesh_renderers": 1741,
+    "scene_active_mesh_renderers": 1749
+  },
+  "cloud_performance": {
+    "method": "Same Game View, simulation paused, 2 s warmup + 6 s sampling for each alternating window. Editor total-frame median; not isolated GPU cost.",
+    "samples": [
+      {
+        "clouds": true,
+        "frames": 510,
+        "median_ms": 9.482
+      },
+      {
+        "clouds": false,
+        "frames": 515,
+        "median_ms": 9.425
+      },
+      {
+        "clouds": true,
+        "frames": 507,
+        "median_ms": 9.422
+      }
+    ]
+  },
+  "console": {
+    "compile_errors": 0,
+    "new_play_session_errors": 0,
+    "transient_editor_diagnostics": [
+      "Two Metal memoryless depth load/store diagnostics after ending sessions with ScreenCapture. Not seen during fresh Play Mode without capture; no shader compilation errors."
+    ]
+  },
+  "rounding": {
+    "date": "2026-10-03",
+    "geometry": {
+      "active_arena_renderers": 1740,
+      "active_arena_triangles": 1639244,
+      "unique_active_meshes": 151,
+      "primitive_instances": 122,
+      "shared_rounded_box_assets": 22,
+      "invalid_normals": 0,
+      "solid_unrounded_cubes": 0,
+      "edit_mode_mesh_placeholders": [
+        "Tank_A/SuctionHose",
+        "Tank_B/SuctionHose"
+      ],
+      "placeholder_note": "WaterPumpPresentation creates suction hose meshes in Awake; both pumps checked in network run."
+    },
+    "audit": {
+      "footprints": 4816,
+      "collision_bodies": 193,
+      "joints": 14,
+      "rough_patches": 8,
+      "supported_lower_props": 40,
+      "problems": 0
+    },
+    "rebuild": {
+      "authored_transforms_before": 3762,
+      "authored_transforms_after": 3762,
+      "note": "TMP creates 10 fallback text submeshes when rendering; excluded from authored geometry count."
+    },
+    "build": {
+      "target": "macOS Development",
+      "result": "Succeeded",
+      "started_utc": "2026-10-03T08:21:41.843235",
+      "seconds": 31.822143,
+      "errors": 0,
+      "warnings": 2,
+      "warning_details": "MCP websocket reconnect warnings during build; no project warnings."
+    },
+    "network": {
+      "carry-route-20261003-132308": {
+        "peers": 8,
+        "passed": true,
+        "evidence": {
+          "client-1.log": [
+            "CARRY_ROUTE_CHECK delivery A=38 B=150 seconds=31.86798/45.28 hop=0.055/0 flow=75/0 pos=(19.72, 0.00, 11.45)/(19.58, 0.00, -10.64)",
+            "CARRY_ROUTE_CHECK same seams A=41 B=150 seconds=4.563805/13.23094 hop=0.055/0 flow=75/0 pos=(7.50, 0.00, 1.35)/(7.07, 0.00, -1.35)",
+            "CARRY_ROUTE_CHECK PASS id=1"
+          ],
+          "client-2.log": [
+            "CARRY_ROUTE_CHECK delivery A=38 B=150 seconds=31.86798/45.28 hop=0.055/0 flow=75/0 pos=(19.72, 0.00, 11.45)/(19.58, 0.00, -10.64)",
+            "CARRY_ROUTE_CHECK same seams A=41 B=150 seconds=4.563805/13.33096 hop=0.055/0 flow=75/0 pos=(7.50, 0.00, 1.35)/(7.07, 0.00, -1.35)",
+            "CARRY_ROUTE_CHECK PASS id=2"
+          ],
+          "client-3.log": [
+            "CARRY_ROUTE_CHECK delivery A=38 B=150 seconds=31.86798/45.28 hop=0.055/0 flow=75/0 pos=(19.72, 0.00, 11.45)/(19.58, 0.00, -10.64)",
+            "CARRY_ROUTE_CHECK same seams A=41 B=150 seconds=4.563805/13.23094 hop=0.055/0 flow=75/0 pos=(7.50, 0.00, 1.35)/(7.07, 0.00, -1.35)",
+            "CARRY_ROUTE_CHECK PASS id=3"
+          ],
+          "client-4.log": [
+            "CARRY_ROUTE_CHECK delivery A=38 B=150 seconds=31.86798/45.28 hop=0.055/0 flow=75/0 pos=(19.72, 0.00, 11.45)/(19.58, 0.00, -10.64)",
+            "CARRY_ROUTE_CHECK same seams A=41 B=150 seconds=4.563805/13.23094 hop=0.055/0 flow=75/0 pos=(7.50, 0.00, 1.35)/(7.07, 0.00, -1.35)",
+            "CARRY_ROUTE_CHECK PASS id=4"
+          ],
+          "client-5.log": [
+            "CARRY_ROUTE_CHECK delivery A=38 B=150 seconds=31.86798/45.28 hop=0.055/0 flow=75/0 pos=(19.72, 0.00, 11.45)/(19.58, 0.00, -10.64)",
+            "CARRY_ROUTE_CHECK same seams A=41 B=150 seconds=4.563805/13.23094 hop=0.055/0 flow=75/0 pos=(7.50, 0.00, 1.35)/(7.07, 0.00, -1.35)",
+            "CARRY_ROUTE_CHECK PASS id=5"
+          ],
+          "client-6.log": [
+            "CARRY_ROUTE_CHECK delivery A=38 B=150 seconds=31.86798/45.28 hop=0.055/0 flow=75/0 pos=(19.72, 0.00, 11.45)/(19.58, 0.00, -10.64)",
+            "CARRY_ROUTE_CHECK same seams A=41 B=150 seconds=4.563805/13.23094 hop=0.055/0 flow=75/0 pos=(7.50, 0.00, 1.35)/(7.07, 0.00, -1.35)",
+            "CARRY_ROUTE_CHECK PASS id=6"
+          ],
+          "client-7.log": [
+            "CARRY_ROUTE_CHECK delivery A=38 B=150 seconds=31.86798/45.28 hop=0.055/0 flow=75/0 pos=(19.72, 0.00, 11.45)/(19.58, 0.00, -10.64)",
+            "CARRY_ROUTE_CHECK same seams A=41 B=150 seconds=4.563805/13.23094 hop=0.055/0 flow=75/0 pos=(7.50, 0.00, 1.35)/(7.07, 0.00, -1.35)",
+            "CARRY_ROUTE_CHECK PASS id=7"
+          ],
+          "host.log": [
+            "CARRY_ROUTE_CHECK delivery A=38 B=150 seconds=31.79938/45.22987 hop=0.055/0 flow=75/0 pos=(19.73, 0.00, 11.45)/(19.58, 0.00, -10.64)",
+            "CARRY_ROUTE_CHECK same seams A=41 B=150 seconds=4.447372/13.16455 hop=0.055/0 flow=75/0 pos=(7.50, 0.00, 1.35)/(7.07, 0.00, -1.35)",
+            "CARRY_ROUTE_CHECK PASS id=0"
+          ]
+        }
+      },
+      "carry-risk-20261003-132308": {
+        "peers": 2,
+        "passed": true,
+        "evidence": {
+          "client-1.log": [
+            "CARRY_RISK_CHECK PASS id=1 players=2"
+          ],
+          "host.log": [
+            "CARRY_RISK_CHECK PASS id=0 players=2"
+          ]
+        }
+      }
+    },
+    "console": {
+      "compile_errors": 0,
+      "transient_diagnostics": [
+        "Metal memoryless depth load/store after screenshot, also seen before rounding.",
+        "One Persistent allocation warning during repeated asset import; no stack supplied by Unity.",
+        "First build attempt aborted while scripts were compiling; successful build after editor became idle."
+      ]
+    },
+    "limitations": [
+      "Localhost automated play; human art approval and different-PC playtest pending.",
+      "Triangle/renderer counts only; no new target Windows GPU profile.",
+      "28 PlayMode tests in parent record ran before this geometry-only continuation; not rerun."
+    ]
+  }
+}

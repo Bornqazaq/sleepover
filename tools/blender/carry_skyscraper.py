@@ -13,7 +13,7 @@ scene=bpy.data.scenes.new('CarrySkyscraper_Build')
 bpy.context.window.scene=scene
 # Delete only previous scenes owned by this generator; unrelated Blender work stays intact.
 for previous in list(bpy.data.scenes):
- if previous != scene and previous.name.startswith('CarrySkyscraper_'):
+ if previous != scene and previous.name == 'CarrySkyscraper_Original':
   for obj in list(previous.objects): bpy.data.objects.remove(obj,do_unlink=True)
   bpy.data.scenes.remove(previous)
 for mesh in list(bpy.data.meshes):
@@ -46,6 +46,7 @@ CITY=mat('City',(.42,.55,.64),.85)
 GOLD=STEEL
 for n in ast.parse((ROOT/'tools/blender/crying_angels.py').read_text()).body:
  if isinstance(n,(ast.ClassDef,ast.FunctionDef)) and n.name in {'Mesh','transform','box','lathe','tube','arc','ring','ellipsoid'}:exec(compile(ast.Module(body=[n],type_ignores=[]),'own_geometry','exec'))
+exec(compile((ROOT/'tools/blender/carry_geometry.py').read_text(), 'carry_geometry', 'exec'))
 _box_cache={}
 def export(m,name):
  o=m.object('CS_'+name);used=sorted(set(m.m));o.data.materials.clear()

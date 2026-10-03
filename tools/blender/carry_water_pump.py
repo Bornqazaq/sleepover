@@ -16,6 +16,7 @@ PI=math.pi; materials=[]; palette=[]; _box_cache={}; STONE=0
 for n in ast.parse((ROOT/'tools/blender/crying_angels.py').read_text()).body:
     if isinstance(n,(ast.ClassDef,ast.FunctionDef)) and n.name in {'Mesh','transform','box','lathe','tube'}:
         exec(compile(ast.Module(body=[n],type_ignores=[]),'geometry','exec'))
+exec(compile((ROOT/'tools/blender/carry_geometry.py').read_text(), 'carry_geometry', 'exec'))
 _lathe = lathe
 def lathe(m,pos,profile,mat=STONE,segments=32,flutes=0,matrix=None):
     # Rotate a part around its own centre, then translate into the assembly.

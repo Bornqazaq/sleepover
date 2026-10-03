@@ -25,6 +25,7 @@ namespace Igruha.EditorTools
             sky.SetTexture("_MainTex",AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath));
             sky.SetFloat("_Exposure",1.1f);sky.SetFloat("_Rotation",118);
             EditorUtility.SetDirty(sky);AssetDatabase.SaveAssetIfDirty(sky);RenderSettings.skybox=sky;
+            CarryCloudSea.Apply(arena);
         }
     }
 }

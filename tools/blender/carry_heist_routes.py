@@ -12,6 +12,7 @@ for old in list(bpy.data.scenes):
 scene.name='CarryHeist_696';materials=[];_box_cache={};STONE=0;PI=math.pi
 for n in ast.parse((ROOT/'tools/blender/crying_angels.py').read_text()).body:
  if isinstance(n,(ast.ClassDef,ast.FunctionDef)) and n.name in {'Mesh','transform','box','lathe','tube'}:exec(compile(ast.Module(body=[n],type_ignores=[]),'geometry','exec'))
+exec(compile((ROOT/'tools/blender/carry_geometry.py').read_text(), 'carry_geometry', 'exec'))
 for e in json.loads((ART.parent/'Roadworks/palette.json').read_text())['materials']:
  mat=bpy.data.materials.get(e['name']) or bpy.data.materials.new(e['name']);mat.diffuse_color=tuple(e['color']);materials.append(mat)
 STEEL,EDGE,YELLOW,DARK,IVORY,WOOD,BRICK,TEAL,CONCRETE,RUST=range(10)
