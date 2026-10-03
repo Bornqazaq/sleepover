@@ -42,7 +42,7 @@ namespace Igruha.EditorTools
         [MenuItem("Igruha/Стенд/Собрать раздаточный билд macOS")]
         public static void BuildMac()
         {
-            if (!Build(BuildTarget.StandaloneOSX, MacPath, "macOS") && Application.isBatchMode) EditorApplication.Exit(1);
+            if (!Build(BuildTarget.StandaloneOSX, MacPath, "macOS Universal") && Application.isBatchMode) EditorApplication.Exit(1);
         }
 
         [MenuItem("Igruha/Стенд/Собрать раздаточный билд Windows")]
@@ -96,6 +96,9 @@ namespace Igruha.EditorTools
                 options = BuildOptions.None,
             };
 
+            if (target == BuildTarget.StandaloneOSX)
+                // One archive must run natively on both Intel and Apple silicon Macs.
+                EditorUserBuildSettings.SetPlatformSettings("Standalone", "OSXUniversal", "Architecture", "x64ARM64");
             BuildReport report = BuildPipeline.BuildPlayer(options);
             BuildSummary summary = report.summary;
 
@@ -104,7 +107,8 @@ namespace Igruha.EditorTools
 
             if (ok)
             {
-                Debug.Log($"[Билд] {label}: готово, {size}, {summary.totalTime.TotalSeconds:F0} с → {path}");
+                Debug.Log($"[Билд] {label}: готово, {size}, {summary.totalTime.TotalSeconds:F0} с, "
+                    + $"ошибок {summary.totalErrors}, предупреждений {summary.totalWarnings}, сцен {scenes.Count} → {path}");
             }
             else
             {

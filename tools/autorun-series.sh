@@ -15,7 +15,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-APP="$ROOT/igruha/Builds/Autotest/sleepover.app/Contents/MacOS/sleepover"
+APP="${AUTORUN_APP:-$ROOT/igruha/Builds/Autotest/sleepover.app/Contents/MacOS/sleepover}"
 
 PLAYERS="${1:-3}"
 GAMES="${2:-Stopwatch,Exam}"
