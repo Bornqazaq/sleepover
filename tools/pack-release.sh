@@ -54,7 +54,7 @@ if [[ "${1:-}" != "--no-build" ]]; then
         local target="$1" method="$2" label="$3" log="$RELEASE/build-$3.log"
 
         echo "▶ Собираю $label (несколько минут, при смене платформы — дольше)…"
-        "$UNITY" -batchmode -nographics -quit -projectPath "$ROOT/igruha" \
+        "$UNITY" -batchmode -nographics -quit -useHub -projectPath "$ROOT/igruha" \
                  -buildTarget "$target" \
                  -executeMethod "Igruha.EditorTools.ReleaseBuild.$method" \
                  -logFile "$log" || {
@@ -96,13 +96,17 @@ fi
 # гигабайта в обычный zip просто не поместилась бы.
 make_zip() {
     local src="$1" dest="$2"
+    local temporary="$dest.partial.zip"
+    # zip updates an existing archive; use a fresh file so removed assets cannot survive.
+    [[ ! -e "$temporary" ]] || { echo "Остался незавершённый архив: $temporary" >&2; exit 1; }
 
     if command -v zip >/dev/null 2>&1; then
-        ( cd "$src" && zip -qry "$dest" . )
+        ( cd "$src" && zip -qry "$temporary" . )
+        mv -f "$temporary" "$dest"
         return
     fi
 
-    python - "$src" "$dest" <<'PYZIP'
+    python - "$src" "$temporary" <<'PYZIP'
 import os, sys, zipfile
 src, dest = sys.argv[1], sys.argv[2]
 with zipfile.ZipFile(dest, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as z:
@@ -111,6 +115,7 @@ with zipfile.ZipFile(dest, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as z:
             full = os.path.join(root, name)
             z.write(full, os.path.relpath(full, src))
 PYZIP
+    mv -f "$temporary" "$dest"
 }
 
 rm -rf "$STAGE"
@@ -120,17 +125,24 @@ if [[ -z "${MAC_SKIPPED:-}" ]]; then
     echo "▶ Упаковываю macOS…"
     mkdir -p "$STAGE/mac"
     cp -R "$RELEASE/Mac/Komnata.app" "$STAGE/mac/"
-    cp "$README" "$STAGE/mac/ЧИТАТЬ-ПЕРВЫМ.txt"
-    # Карантин снимается здесь, а не у друга: иначе macOS встречает его
-    # окном «программа повреждена», и дальше этого окна вечер не идёт.
+    # ASCII names survive extraction by Windows tools that ignore ZIP Unicode metadata.
+    cp "$README" "$STAGE/mac/README-RU.txt"
+    cp "$ROOT/tools/dist/ХОСТУ.txt" "$STAGE/mac/HOST-RU.txt"
+    # Downloads can acquire quarantine again on the recipient's machine.
     xattr -cr "$STAGE/mac/Komnata.app" 2>/dev/null || true
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        executable=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$STAGE/mac/Komnata.app/Contents/Info.plist")
+        lipo "$STAGE/mac/Komnata.app/Contents/MacOS/$executable" -verify_arch x86_64 arm64
+        codesign --verify --deep --strict "$STAGE/mac/Komnata.app"
+    fi
     make_zip "$STAGE/mac" "$RELEASE/Komnata-mac-$STAMP.zip"
 fi
 
 echo "▶ Упаковываю Windows…"
 mkdir -p "$STAGE/windows"
 cp -R "$RELEASE/Windows/." "$STAGE/windows/"
-cp "$README" "$STAGE/windows/ЧИТАТЬ-ПЕРВЫМ.txt"
+cp "$README" "$STAGE/windows/README-RU.txt"
+cp "$ROOT/tools/dist/ХОСТУ.txt" "$STAGE/windows/HOST-RU.txt"
 make_zip "$STAGE/windows" "$RELEASE/Komnata-windows-$STAMP.zip"
 
 rm -rf "$STAGE"
