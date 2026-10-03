@@ -35,7 +35,9 @@ UNITY="${UNITY:-$UNITY_DEFAULT}"
 RELEASE="$ROOT/igruha/Builds/Release"
 STAGE="$RELEASE/dist"
 README="$ROOT/tools/dist/README-RU.txt"
-STAMP="$(date +%Y%m%d)"
+STAMP="${RELEASE_STAMP:-$(date +%Y%m%d)}"
+[[ "$STAMP" =~ ^[0-9]{8}(-[A-Za-z0-9]+)?$ ]] || { echo "Некорректный RELEASE_STAMP: $STAMP" >&2; exit 1; }
+REVISION="$(git -C "$ROOT" rev-parse HEAD)"
 
 if [[ "${1:-}" != "--no-build" ]]; then
     [[ -x "$UNITY" ]] || { echo "Редактор не найден: $UNITY (задай путь через UNITY=...)" >&2; exit 1; }
@@ -128,6 +130,7 @@ if [[ -z "${MAC_SKIPPED:-}" ]]; then
     # ASCII names survive extraction by Windows tools that ignore ZIP Unicode metadata.
     cp "$README" "$STAGE/mac/README-RU.txt"
     cp "$ROOT/tools/dist/ХОСТУ.txt" "$STAGE/mac/HOST-RU.txt"
+    printf 'Komnata %s\nSource: %s\nPlatform: macOS Intel + Apple Silicon\n' "$STAMP" "$REVISION" > "$STAGE/mac/BUILD-INFO.txt"
     # Downloads can acquire quarantine again on the recipient's machine.
     xattr -cr "$STAGE/mac/Komnata.app" 2>/dev/null || true
     if [[ "$(uname -s)" == "Darwin" ]]; then
@@ -143,6 +146,7 @@ mkdir -p "$STAGE/windows"
 cp -R "$RELEASE/Windows/." "$STAGE/windows/"
 cp "$README" "$STAGE/windows/README-RU.txt"
 cp "$ROOT/tools/dist/ХОСТУ.txt" "$STAGE/windows/HOST-RU.txt"
+printf 'Komnata %s\nSource: %s\nPlatform: Windows x64\n' "$STAMP" "$REVISION" > "$STAGE/windows/BUILD-INFO.txt"
 make_zip "$STAGE/windows" "$RELEASE/Komnata-windows-$STAMP.zip"
 
 rm -rf "$STAGE"
