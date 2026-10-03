@@ -68,7 +68,7 @@ namespace Igruha.Core.Minigame
         private static readonly TutorialReadiness preparedPracticeReadiness = new TutorialReadiness();
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetPreparedRound()
+        internal static void ResetPreparedRound()
         {
             preparedRoundScene = preparedPracticeScene = null;
             preparedPracticeReadiness.Reset();
