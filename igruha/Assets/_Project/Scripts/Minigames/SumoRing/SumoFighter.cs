@@ -11,6 +11,7 @@ namespace Igruha.Minigames.SumoRing
     public sealed class SumoFighter : MonoBehaviour
     {
         private const float ActionSpeed = .01f;
+        private const float BalanceProbeInterval = .06f, BalanceBlendSeconds = .16f;
         private SumoCombat combat;
         private SumoConfig config;
         private Rigidbody body;
@@ -23,6 +24,9 @@ namespace Igruha.Minigames.SumoRing
         private bool released;
         private Vector3 previousPosition;
         public float PlanarSpeed { get; private set; }
+        private float nextBalanceProbe, balanceTarget;
+        public float BalanceWeight { get; private set; }
+        public Vector3 EdgeDirection { get; private set; }
         private SumoCombatVisualState visual;
         private SumoCombatPose pose;
         private SumoCombatEffects effects;
@@ -45,6 +49,9 @@ namespace Igruha.Minigames.SumoRing
         public void Predict(int sequence, SumoCommand command, float yaw) => visual.Predict(sequence, command, yaw, VisualNow);
         public void Observe(SumoCombatState state) => visual.Receive(state, VisualNow, PredictsLocally);
         public SumoContact LastContact { get; private set; }
+        public SumoAttack ContactAttack { get; private set; }
+        public Vector3 ContactDirection { get; private set; }
+        public float ContactSlide { get; private set; }
         public double ContactAt { get; private set; } = double.NegativeInfinity;
         public bool ContactAsTarget { get; private set; }
 
@@ -73,6 +80,7 @@ namespace Igruha.Minigames.SumoRing
             if (released || Participant == null) return;
             Vector3 step = Motor.Position - previousPosition; step.y = 0;
             PlanarSpeed = Mathf.Min(10, step.magnitude / Mathf.Max(.001f, Time.deltaTime)); previousPosition = Motor.Position;
+            UpdateBalance();
             if (!LocallySimulated) return;
             var s = State;
             bool active = combat.Active && !Participant.Dead && !Motor.IsKnockedDown;
@@ -83,6 +91,18 @@ namespace Igruha.Minigames.SumoRing
             float cap = s.Phase == SumoCombatPhase.Guard ? config.GuardSpeed : s.Phase == SumoCombatPhase.Charge ? config.ChargeSpeed : s.Phase == SumoCombatPhase.Idle ? 0 : ActionSpeed;
             if (cap > 0) Motor.ApplySpeedCap(this, cap); else Motor.ClearSpeedCap(this);
             if (s.Phase != SumoCombatPhase.Idle) emote?.StopEmote();
+        }
+        private void UpdateBalance()
+        {
+            bool standing = combat.Active && !Participant.Dead && !Motor.IsKnockedDown && !Motor.IsCrouched && IsGrounded;
+            if (!standing) { balanceTarget = BalanceWeight = 0; return; }
+            if (Time.unscaledTime >= nextBalanceProbe)
+            {
+                nextBalanceProbe = Time.unscaledTime + BalanceProbeInterval;
+                balanceTarget = SumoEdgeBalance.Evaluate(config, Motor.Position, combat.Elapsed, out var direction);
+                EdgeDirection = direction;
+            }
+            BalanceWeight = Mathf.MoveTowards(BalanceWeight, balanceTarget, Time.deltaTime / BalanceBlendSeconds);
         }
         private void FixedUpdate()
         {
@@ -95,6 +115,7 @@ namespace Igruha.Minigames.SumoRing
         public void Feedback(SumoCombatHit hit, bool target)
         {
             LastContact = hit.Contact; ContactAt = NetworkClock.Now; ContactAsTarget = target;
+            ContactAttack = hit.Attack; ContactDirection = hit.Direction; ContactSlide = hit.Slide;
             if (!target || hit.Contact == SumoContact.Miss) return;
             effects?.Show(hit);
             if (audioPlayer != null) audioPlayer.PlayAt(CoreSfx.PushHit, hit.Point, hit.Contact == SumoContact.Block ? .55f : 1f);

@@ -46,6 +46,7 @@ namespace Igruha.Minigames.SumoRing
         public event Action<SumoCombatHit> Contact;
         public int Count => states.Length;
         public bool Active => game != null && game.Running && game.Elapsed >= 0 && !game.Round.Finished;
+        public double Elapsed => game.Elapsed;
         public SumoCombatState StateAt(int index) => states[index];
         public SumoFighter FighterAt(int index) => fighters[index];
         public SumoFighter Local => local;

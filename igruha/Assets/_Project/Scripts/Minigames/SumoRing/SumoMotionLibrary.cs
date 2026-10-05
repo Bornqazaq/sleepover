@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Igruha.Minigames.SumoRing
 {
-    public enum SumoMotion : byte { Guard, Charge, Quick, Heavy, Counter, Parry, Recoil, Brace }
+    public enum SumoMotion : byte { Guard, Charge, Quick, Heavy, Counter, Parry, Recoil, Brace, Balance, Stumble }
     [Serializable]
     public struct SumoMuscleTrack
     {
