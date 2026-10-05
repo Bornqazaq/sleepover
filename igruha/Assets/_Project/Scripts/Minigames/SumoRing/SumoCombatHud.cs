@@ -1,5 +1,4 @@
 using Igruha.Core.Minigame;
-using Unity.Netcode;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -14,11 +13,10 @@ namespace Igruha.Minigames.SumoRing
         private Canvas canvas;
         private TextMeshProUGUI label;
         private Image fill;
-        private NetworkManager network;
         private int shown = -1;
         public void Bind(SumoMinigame owner, SumoCombat fight, TMP_FontAsset font)
         {
-            game = owner; combat = fight; network = NetworkManager.Singleton;
+            game = owner; combat = fight;
             canvas = gameObject.AddComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay; canvas.sortingOrder = 25;
             var scaler = gameObject.AddComponent<CanvasScaler>(); scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize; scaler.referenceResolution = new Vector2(1920, 1080); scaler.matchWidthOrHeight = .5f;
             var panel = Rect("Combat", transform, new Vector2(.5f, 0), new Vector2(820, 66), new Vector2(0, 103));
@@ -39,7 +37,7 @@ namespace Igruha.Minigames.SumoRing
             bool visible = game.Phase == MinigamePhase.Round && combat.Active && local != null && !local.Participant.Dead;
             canvas.enabled = visible; if (!visible) return;
             // Input windows use estimated command arrival, not buffered presentation time.
-            var s = local.State; double now = network != null && network.IsListening ? network.LocalTime.Time : NetworkClock.Now;
+            var s = local.VisualState; double now = local.VisualNow;
             int status = 0; float amount = 0;
             var color = new Color(.35f, .9f, .83f);
             if (s.HasCounter(now)) { status = 4; amount = (float)(s.CounterUntil - now) / local.Config.CounterWindow; color = new Color(1, .79f, .25f); }

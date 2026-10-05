@@ -37,7 +37,7 @@ namespace Igruha.Minigames.SumoRing
         private void LateUpdate()
         {
             if (fighter == null || arc == null) return;
-            var s = fighter.State;
+            var s = fighter.VisualState;
             bool parry = fighter.ContactAsTarget && fighter.LastContact == SumoContact.Parry && NetworkClock.Now - fighter.ContactAt < .22;
             arc.enabled = !fighter.Participant.Dead && (s.Phase == SumoCombatPhase.Guard || s.Phase == SumoCombatPhase.Charge || parry);
             if (!arc.enabled) return;

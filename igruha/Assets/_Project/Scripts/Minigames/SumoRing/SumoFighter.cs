@@ -23,6 +23,7 @@ namespace Igruha.Minigames.SumoRing
         private bool released;
         private Vector3 previousPosition;
         public float PlanarSpeed { get; private set; }
+        private SumoCombatVisualState visual;
         private SumoCombatPose pose;
         private SumoCombatEffects effects;
         public SumoConfig Config => config;
@@ -36,6 +37,13 @@ namespace Igruha.Minigames.SumoRing
         public float BodyHeight => Capsule != null ? Capsule.height : 1.8f;
         public bool LocallySimulated => body != null && !body.isKinematic && Motor.enabled;
         public SumoCombatState State => combat != null && index < combat.Count ? combat.StateAt(index) : SumoCombatState.Create(Id);
+        public bool PredictsLocally => Identity != null && Identity.IsSpawned && Identity.IsOwner && !Identity.NetworkManager.IsServer;
+        // Owner time estimates when this input reaches the server; remote copies use
+        // buffered server time, like their NetworkTransform.
+        public double VisualNow => PredictsLocally ? Identity.NetworkManager.LocalTime.Time : NetworkClock.Now;
+        public SumoCombatState VisualState => visual != null ? visual.Evaluate(VisualNow) : State;
+        public void Predict(int sequence, SumoCommand command, float yaw) => visual.Predict(sequence, command, yaw, VisualNow);
+        public void Observe(SumoCombatState state) => visual.Receive(state, VisualNow, PredictsLocally);
         public SumoContact LastContact { get; private set; }
         public double ContactAt { get; private set; } = double.NegativeInfinity;
         public bool ContactAsTarget { get; private set; }
@@ -45,10 +53,12 @@ namespace Igruha.Minigames.SumoRing
             combat = owner; Participant = participant; config = settings; index = slot;
             body = GetComponent<Rigidbody>(); Capsule = GetComponent<CapsuleCollider>(); Identity = GetComponent<NetworkObject>();
             emote = GetComponent<PlayerEmoteAbility>(); audioPlayer = GetComponentInChildren<MinigameAudioPlayer>(); savedFacing = Motor.FacingOverride;
+            visual = new SumoCombatVisualState(config, Id);
             pose = gameObject.AddComponent<SumoCombatPose>(); pose.Bind(this, config.Motions);
             effects = gameObject.AddComponent<SumoCombatEffects>(); effects.Bind(this, config.CombatEffectMaterial);
         }
         public void ResetCombat() { slideTime = 0; ContactAt = double.NegativeInfinity; }
+        public void ResetVisual() => visual.Reset(State);
         public void Release()
         {
             if (released) return;
@@ -66,9 +76,10 @@ namespace Igruha.Minigames.SumoRing
             if (!LocallySimulated) return;
             var s = State;
             bool active = combat.Active && !Participant.Dead && !Motor.IsKnockedDown;
-            if (!active) { Motor.ClearSpeedCap(this); return; }
-            bool aiming = s.Phase == SumoCombatPhase.Guard || s.Phase == SumoCombatPhase.Charge || s.Phase == SumoCombatPhase.Windup || s.Phase == SumoCombatPhase.Recovery;
-            Motor.FacingOverride = aiming ? s.Forward : savedFacing;
+            if (!active) { visual.Reset(State); Motor.ClearSpeedCap(this); Motor.FacingOverride = savedFacing; return; }
+            var shown = VisualState;
+            bool aiming = shown.Phase == SumoCombatPhase.Guard || shown.Phase == SumoCombatPhase.Charge || shown.Phase == SumoCombatPhase.Windup || shown.Phase == SumoCombatPhase.Recovery;
+            Motor.FacingOverride = aiming ? shown.Forward : savedFacing;
             float cap = s.Phase == SumoCombatPhase.Guard ? config.GuardSpeed : s.Phase == SumoCombatPhase.Charge ? config.ChargeSpeed : s.Phase == SumoCombatPhase.Idle ? 0 : ActionSpeed;
             if (cap > 0) Motor.ApplySpeedCap(this, cap); else Motor.ClearSpeedCap(this);
             if (s.Phase != SumoCombatPhase.Idle) emote?.StopEmote();

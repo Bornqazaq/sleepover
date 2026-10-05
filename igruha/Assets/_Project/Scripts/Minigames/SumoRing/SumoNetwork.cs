@@ -66,12 +66,12 @@ namespace Igruha.Minigames.SumoRing
             game.ApplySnapshotPresentation();
             for (int i = 0; i < combat.Count; i++) game.Combat.ApplySnapshot(combat[i]);
         }
-        public void SubmitCombat(int id, SumoCommand command, float yaw) => CombatCommandServerRpc(id, command, yaw);
+        public void SubmitCombat(int id, SumoCommand command, float yaw, int sequence) => CombatCommandServerRpc(id, command, yaw, sequence);
         [ServerRpc(RequireOwnership = false)]
-        private void CombatCommandServerRpc(int id, SumoCommand command, float yaw, ServerRpcParams rpc = default)
+        private void CombatCommandServerRpc(int id, SumoCommand command, float yaw, int sequence, ServerRpcParams rpc = default)
         {
-            if (!IsServer || !game.Combat.Active || !game.Combat.Owns(id, rpc.Receive.SenderClientId)) return;
-            game.Combat.Enqueue(id, command, yaw);
+            if (!IsServer || sequence < 0 || !game.Combat.Active || !game.Combat.Owns(id, rpc.Receive.SenderClientId)) return;
+            game.Combat.Enqueue(id, command, yaw, sequence);
         }
         private void PublishCombat()
         {
