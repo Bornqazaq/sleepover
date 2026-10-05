@@ -19,7 +19,7 @@ namespace Igruha.Tests
         private Vector3[] path;
         private int next, stage;
         private bool driving, failed, arrived;
-        private float maxPitch, minHeight, maxHeight, maxGripError;
+        private float maxPitch, minHeight, maxHeight, maxGripError, maxWheelGap, maxSupportError;
         private float nextTelemetry;
         private int heightSamples;
         private float pauseUntil;
@@ -75,6 +75,17 @@ namespace Igruha.Tests
                 if (stage < 2 && x > 8 && x < 16)
                 {
                     maxPitch = Mathf.Max(maxPitch, Vector3.Angle(cart.transform.up, Vector3.up));
+                    float grade = CarryRouteLayout.UpperHeight / (CarryRouteLayout.UpperEnd - CarryRouteLayout.UpperFlat);
+                    Vector3 normal = new Vector3(cart.transform.position.x < 0 ? -grade : grade, 1, 0).normalized;
+                    maxSupportError = Mathf.Max(maxSupportError, Vector3.Angle(cart.transform.up, normal));
+                    Vector3 roadPoint = cart.transform.position; roadPoint.y = CarryRouteLayout.UpperY(roadPoint.x);
+                    for (int wheel = 0; wheel < 4; wheel++)
+                    {
+                        Vector3 center = cart.transform.TransformPoint(new Vector3(
+                            wheel % 2 == 0 ? -CartWheelSupport.HalfTrack : CartWheelSupport.HalfTrack,
+                            CartWheelSupport.Radius, wheel < 2 ? CartWheelSupport.HalfBase : -CartWheelSupport.HalfBase));
+                        maxWheelGap = Mathf.Max(maxWheelGap, Mathf.Abs(Vector3.Dot(center - roadPoint, normal) - CartWheelSupport.Radius));
+                    }
                     // Height residual on the straight ramp reveals alternating lift/drop
                     // even when the whole body is legitimately gaining height.
                     float residual = local.transform.position.y - CarryRouteLayout.UpperY(local.transform.position.x);
@@ -128,12 +139,13 @@ namespace Igruha.Tests
             TeamSide side = game.TeamOfAvatar(local);
             cart = game.CartOf(side);
             int sign = side == TeamSide.A ? 1 : -1;
-            float[] begins = { 6, 28, 50, 105 };
-            float[] ends = { 27, 49, 104, 194 };
+            // Full shortcut/gallery crews are covered separately by CarryRouteChoiceProbe.
+            float[] begins = { 6, 28 };
+            float[] ends = { 27, 49 };
             for (stage = 0; stage < begins.Length; stage++)
             {
                 yield return At(begins[stage]);
-                driving = false; arrived = false; maxPitch = maxGripError = 0;
+                driving = false; arrived = false; maxPitch = maxGripError = maxWheelGap = maxSupportError = 0;
                 pausedOnRamp = parkedSampled = false; pauseUntil = 0;
                 minHeight = float.MaxValue; maxHeight = float.MinValue; heightSamples = 0;
                 path = Route(stage, sign); next = 1;
@@ -182,7 +194,9 @@ namespace Igruha.Tests
                 if (stage < 2)
                 {
                     Check(heightSamples > 20 && maxPitch > 14 && maxPitch < 22, "replicated slope pitch=" + maxPitch);
-                    Check(heightSamples > 20 && maxHeight - minHeight < .09f, "ramp vertical jitter=" + (maxHeight - minHeight));
+                    Check(heightSamples > 20 && maxHeight - minHeight < .02f, "ramp vertical jitter=" + (maxHeight - minHeight));
+                    Check(maxSupportError < .5f && maxWheelGap < .03f,
+                        "wheel contacts gap=" + maxWheelGap + " slope error=" + maxSupportError);
                     Check(maxGripError < .12f, "ramp grip error=" + maxGripError);
                 }
                 Debug.Log("CARRY_SLOPE stage=" + stage + " arrived=" + arrived + " tilt=" + maxPitch +
@@ -195,14 +209,13 @@ namespace Igruha.Tests
                     var c = game.CartOf(game.TeamOfPlayer(p.Id));
                     c.Carry.ResetPose(new Vector3(-9, 0, p.Id * 2 - 1), Quaternion.identity);
                 }
-            yield return At(196);
+            yield return At(51);
             Check(cart.transform.position.y < -1, "unsupported cart falls y=" + cart.transform.position.y);
             if (!failed) Debug.Log("CARRY_SLOPE PASS id=" + net.LocalClientId);
         }
 
         private static Vector3[] Route(int stage, int side)
         {
-            if (stage >= 2) return CarryRouteLayout.Delivery(stage == 2 ? 0 : 2, side);
             float from = stage == 0 ? (side > 0 ? -19.5f : 5.2f) : (side > 0 ? -5.2f : 19.5f);
             float to = stage == 0 ? (side > 0 ? -5.2f : 19.5f) : (side > 0 ? -19.5f : 5.2f);
             return new[] { new Vector3(from, CarryRouteLayout.UpperY(from), side * .95f),
