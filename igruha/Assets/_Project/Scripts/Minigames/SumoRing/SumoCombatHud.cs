@@ -2,18 +2,35 @@ using Igruha.Core.Minigame;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
 
 namespace Igruha.Minigames.SumoRing
 {
     public sealed class SumoCombatHud : MonoBehaviour
     {
         private static readonly string[] Labels = { "ЛКМ  ТОЛЧОК     ЗАЖАТЬ ЛКМ  СИЛА     ПКМ  ЗАЩИТА", "ЗАЩИТА СПЕРЕДИ", "ЗАРЯД — ОТПУСТИ ЛКМ", "СИЛОВОЙ ГОТОВ — ОТПУСТИ ЛКМ", "КОНТРАТАКА!  ЛКМ", "ВОССТАНОВЛЕНИЕ", "РАВНОВЕСИЕ ПОТЕРЯНО", "ПАРИРОВАНИЕ!" };
+        private static readonly string[] GamepadLabels = { "RT/R2  ТОЛЧОК     УДЕРЖАТЬ  СИЛА     LT/L2  ЗАЩИТА", "ЗАЩИТА СПЕРЕДИ", "ЗАРЯД — ОТПУСТИ RT/R2", "СИЛОВОЙ ГОТОВ — ОТПУСТИ RT/R2", "КОНТРАТАКА!  RT/R2", "ВОССТАНОВЛЕНИЕ", "РАВНОВЕСИЕ ПОТЕРЯНО", "ПАРИРОВАНИЕ!" };
+        private const float GamepadHintThreshold = .25f;
+        public bool UsesGamepad { get; private set; }
+        public string LabelFor(int status) => (UsesGamepad ? GamepadLabels : Labels)[status];
         private SumoMinigame game;
         private SumoCombat combat;
         private Canvas canvas;
         private TextMeshProUGUI label;
         private Image fill;
         private int shown = -1;
+        private void OnEnable() => InputSystem.onActionChange += OnActionChange;
+        private void OnDisable() => InputSystem.onActionChange -= OnActionChange;
+        private void OnActionChange(object value, InputActionChange change)
+        {
+            if (change != InputActionChange.ActionPerformed || !(value is InputAction action) || action.activeControl == null) return;
+            var control = action.activeControl;
+            bool gamepad = control.device is Gamepad;
+            if (!gamepad && !(control.device is Mouse) && !(control.device is Keyboard)) return;
+            // Ignore releases and analogue drift; merely connecting a pad changes no hints.
+            if (control.EvaluateMagnitude() < (gamepad ? GamepadHintThreshold : .01f) || UsesGamepad == gamepad) return;
+            UsesGamepad = gamepad; shown = -1;
+        }
         public void Bind(SumoMinigame owner, SumoCombat fight, TMP_FontAsset font)
         {
             game = owner; combat = fight;
@@ -46,7 +63,7 @@ namespace Igruha.Minigames.SumoRing
             else if (s.Phase == SumoCombatPhase.Guard) { status = 1; amount = Mathf.Clamp01((float)(s.ParryUntil - now) / local.Config.ParryWindow); }
             else if (s.Phase == SumoCombatPhase.Stagger) { status = 6; amount = Mathf.Clamp01((float)((s.Until - now) / (s.Until - s.Since))); color = new Color(1, .43f, .3f); }
             else if (s.Phase == SumoCombatPhase.Recovery || s.Phase == SumoCombatPhase.Windup) { status = 5; amount = Mathf.Clamp01((float)((s.Until - now) / (s.Until - s.Since))); }
-            if (shown != status) { shown = status; label.text = Labels[status]; }
+            if (shown != status) { shown = status; label.text = LabelFor(status); }
             fill.rectTransform.sizeDelta = new Vector2(780 * Mathf.Clamp01(amount), 5); fill.color = color;
         }
     }

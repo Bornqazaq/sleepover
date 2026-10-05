@@ -62,11 +62,14 @@ def main():
     parser.add_argument('--scenario', choices=['basic', 'disconnect', 'combat'], default='basic')
     parser.add_argument('--app', type=pathlib.Path)
     parser.add_argument('--visual', action='store_true', help='Combat plus all-avatar motions, edge balance and jump checks')
+    parser.add_argument('--mutual', action='store_true', help='Short two-player same-tick heavy trade and scene return')
     parser.add_argument('--latency-ms', type=int, default=0, help='One-way UDP delay; 75 gives approximately 150 ms RTT')
     parser.add_argument('--jitter-ms', type=int, default=0, help='Variation of each packet delay')
     args = parser.parse_args()
     if args.visual and args.scenario != 'combat':
         parser.error('--visual requires --scenario combat')
+    if args.mutual and (args.scenario != 'combat' or args.players != 2 or args.visual):
+        parser.error('--mutual requires --scenario combat --players 2 and no --visual')
     if args.latency_ms < 0 or args.jitter_ms < 0:
         parser.error('Delay and jitter must be nonnegative')
     root = pathlib.Path(__file__).resolve().parents[1]
@@ -84,6 +87,8 @@ def main():
             command = [str(app), '--sumo-check', args.scenario, '--bot', '-logFile', str(log)]
             if args.visual:
                 command += ['--sumo-visual-check', '1']
+            if args.mutual:
+                command += ['--sumo-mutual-check', '1']
             if i == 0:
                 command += ['--autostart', 'SumoRing', '--wait-players', str(args.players), '-screen-fullscreen', '0', '-screen-width', '1280', '-screen-height', '720']
             else:
@@ -105,7 +110,9 @@ def main():
             intentional = args.scenario == 'disconnect' and log.name == f'client-{args.players - 1}.log'
             passed = 'SUMO_CHECK DISCONNECT' in text if intentional else 'SUMO_CHECK RETURN restored=True' in text
             passed &= 'SUMO_CHECK FAIL' not in text and 'SUMO_COMBAT FAIL' not in text and 'Exception:' not in text
-            if args.scenario == 'combat': passed &= 'SUMO_COMBAT COMPLETE passed=11/11' in text
+            if args.scenario == 'combat' and not args.mutual: passed &= 'SUMO_COMBAT COMPLETE passed=11/11' in text
+            if args.scenario == 'combat' and not args.mutual: passed &= 'SUMO_FEEDBACK FAIL' not in text and all('SUMO_FEEDBACK PASS sound=' + slot in text for slot in ('sumo_hit', 'sumo_block', 'sumo_heavy', 'sumo_break', 'sumo_parry'))
+            if args.mutual: passed &= 'SUMO_MUTUAL PASS contacts=2 stumbleMask=3' in text and 'SUMO_MUTUAL FAIL' not in text
             if args.visual: passed &= 'SUMO_VISUAL COMPLETE passed=5/5' in text and 'SUMO_VISUAL FAIL' not in text
             ok &= passed
             lines = [line for line in text.splitlines() if line.startswith(('SUMO_CHECK', 'SUMO_COMBAT')) or 'итоги раунда SumoRing' in line]

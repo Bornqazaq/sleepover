@@ -3,6 +3,7 @@ using Igruha.Core.Player;
 using Igruha.Core.Session;
 using Igruha.Minigames.SumoRing;
 using UnityEngine;
+using Igruha.Core.Audio;
 
 namespace Igruha.Tests
 {
@@ -19,10 +20,14 @@ namespace Igruha.Tests
         private Vector3 targetStart;
         private double counterExpiry;
         private bool screenshot;
+        private AudioSource[] voices;
+        private MinigameSfxLibrary sounds;
+        private string pendingImpactCapture;
+        private float impactCaptureAt;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Install()
         {
-            if (!LaunchArguments.TryGetValue("--sumo-check", out string scenario) || scenario != "combat") return;
+            if (!LaunchArguments.TryGetValue("--sumo-check", out string scenario) || scenario != "combat" || LaunchArguments.TryGetValue("--sumo-mutual-check", out _)) return;
             var go = new GameObject("SumoCombatProbe"); DontDestroyOnLoad(go); go.AddComponent<SumoCombatProbe>();
         }
         private void Update()
@@ -31,6 +36,9 @@ namespace Igruha.Tests
             if (next == null || next == game || next.Combat == null) return;
             if (game != null) game.Combat.Contact -= Observe;
             game = next; local = null; current = -1; passed = 0; finished = false;
+            var audio = game.GetComponent<MinigameAudioPlayer>();
+            voices = audio.GetComponentsInChildren<AudioSource>();
+            sounds = (MinigameSfxLibrary)typeof(MinigameAudioPlayer).GetField("library", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(audio);
             System.Array.Clear(counts, 0, counts.Length); game.Combat.Contact += Observe;
         }
         private void Observe(SumoCombatHit hit)
@@ -39,7 +47,26 @@ namespace Igruha.Tests
             int c = (int)((game.Elapsed - FirstCase) / CaseSeconds);
             if (c < 0 || c >= Cases.Length) return;
             counts[c, (int)hit.Contact]++;
+            string slot = SumoAudio.ContactSlot(hit);
+            if (slot != null)
+            {
+                bool played = false;
+                if (sounds.TryGet(slot, out var entry))
+                    foreach (var voice in voices)
+                        if (voice.clip != null && (voice.clip == entry.Clip || (entry.Variants != null && System.Array.IndexOf(entry.Variants, voice.clip) >= 0))
+                            && (voice.transform.position - hit.Point).sqrMagnitude < .001f) played = true;
+                Debug.Log("SUMO_FEEDBACK " + (played ? "PASS" : "FAIL") + " sound=" + slot + " case=" + Cases[c]);
+                if (SystemInfo.graphicsDeviceType != UnityEngine.Rendering.GraphicsDeviceType.Null)
+                { pendingImpactCapture = slot; impactCaptureAt = Time.time + .06f; }
+            }
             Debug.Log("SUMO_COMBAT contact case=" + Cases[c] + " kind=" + hit.Contact + " attacker=" + hit.Attacker + " target=" + hit.Target + " at=" + game.Elapsed.ToString("F3"));
+        }
+        private void LateUpdate()
+        {
+            if (pendingImpactCapture == null || Time.time < impactCaptureAt) return;
+            var dir = System.IO.Path.GetDirectoryName(Application.consoleLogPath);
+            if (!string.IsNullOrEmpty(dir)) ScreenCapture.CaptureScreenshot(System.IO.Path.Combine(dir, "sumo-feedback-" + pendingImpactCapture + ".png"));
+            pendingImpactCapture = null;
         }
         private void FixedUpdate()
         {

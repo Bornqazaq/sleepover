@@ -1,4 +1,3 @@
-using Igruha.Core.Audio;
 using Igruha.Core.Minigame;
 using Igruha.Core.Player;
 using Unity.Netcode;
@@ -16,7 +15,6 @@ namespace Igruha.Minigames.SumoRing
         private SumoConfig config;
         private Rigidbody body;
         private PlayerEmoteAbility emote;
-        private MinigameAudioPlayer audioPlayer;
         private Vector3? savedFacing;
         private Vector3 slideDirection;
         private float slideSpeed, slideTime, slideLength;
@@ -59,12 +57,12 @@ namespace Igruha.Minigames.SumoRing
         {
             combat = owner; Participant = participant; config = settings; index = slot;
             body = GetComponent<Rigidbody>(); Capsule = GetComponent<CapsuleCollider>(); Identity = GetComponent<NetworkObject>();
-            emote = GetComponent<PlayerEmoteAbility>(); audioPlayer = GetComponentInChildren<MinigameAudioPlayer>(); savedFacing = Motor.FacingOverride;
+            emote = GetComponent<PlayerEmoteAbility>(); savedFacing = Motor.FacingOverride;
             visual = new SumoCombatVisualState(config, Id);
             pose = gameObject.AddComponent<SumoCombatPose>(); pose.Bind(this, config.Motions);
             effects = gameObject.AddComponent<SumoCombatEffects>(); effects.Bind(this, config.CombatEffectMaterial);
         }
-        public void ResetCombat() { slideTime = 0; ContactAt = double.NegativeInfinity; }
+        public void ResetCombat() { slideTime = 0; ContactAt = double.NegativeInfinity; ContactAsTarget = false; }
         public void ResetVisual() => visual.Reset(State);
         public void Release()
         {
@@ -114,11 +112,11 @@ namespace Igruha.Minigames.SumoRing
         }
         public void Feedback(SumoCombatHit hit, bool target)
         {
+            // An outgoing contact must not erase a simultaneous incoming reaction.
+            if (!target || hit.Contact == SumoContact.Miss) return;
             LastContact = hit.Contact; ContactAt = NetworkClock.Now; ContactAsTarget = target;
             ContactAttack = hit.Attack; ContactDirection = hit.Direction; ContactSlide = hit.Slide;
-            if (!target || hit.Contact == SumoContact.Miss) return;
             effects?.Show(hit);
-            if (audioPlayer != null) audioPlayer.PlayAt(CoreSfx.PushHit, hit.Point, hit.Contact == SumoContact.Block ? .55f : 1f);
             if (!LocallySimulated || Participant.Dead || hit.Contact == SumoContact.Parry) return;
             // Combine converging shoves, with a cap: no order-dependent overwrite and no eight-player launch exploit.
             Vector3 velocity = slideDirection * slideSpeed * (slideLength > 0 ? slideTime / slideLength : 0) + hit.Direction * hit.Speed;

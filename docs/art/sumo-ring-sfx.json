@@ -8,6 +8,11 @@
     {"id":"sumo_collapse","file":"Core/Traps/SFX_TRAP_Floor_Collapse_01","event":"обвал, один раз на кольцо","spatial":false,"loop":false,"volume":0.7},
     {"id":"sumo_crowd","file":"Core/Crowd/SFX_CROWD_Amb_Stomp_Loop_01","event":"тихий фон зала во время боя","spatial":false,"loop":true,"volume":0.09},
     {"id":"sumo_react","file":"Core/Crowd/SFX_CROWD_Applause","event":"реакция на выбывание с ограничением частоты","spatial":true,"loop":false,"volume":0.3},
-    {"id":"sumo_final","file":"Core/Flow/SFX_FLOW_Fanfare_Bright_01","event":"окончание боя","spatial":false,"loop":false,"volume":0.45}
+    {"id":"sumo_final","file":"Core/Flow/SFX_FLOW_Fanfare_Bright_01","event":"окончание боя","spatial":false,"loop":false,"volume":0.45},
+    {"id":"sumo_hit","file":"Core/Character/SFX_CHR_Push_Hit_02","event":"быстрый толчок попал","spatial":true,"loop":false,"volume":0.8},
+    {"id":"sumo_block","file":"Core/Character/SFX_CHR_Push_Hit_01","event":"защита поглотила быстрый толчок","spatial":true,"loop":false,"volume":0.45},
+    {"id":"sumo_heavy","file":"Minigames/Circus/SFX_CIRCUS_Bear_Impact","event":"силовой толчок или контратака попали","spatial":true,"loop":false,"volume":0.65},
+    {"id":"sumo_break","file":"CryingAngels/SFX_ANGL_Petrified_Impact_01","event":"силовой толчок пробил защиту","spatial":true,"loop":false,"volume":0.45},
+    {"id":"sumo_parry","file":"Core/UI/SFX_UI_Char_Select_01","event":"точное парирование","spatial":true,"loop":false,"volume":0.6}
   ]
 }
