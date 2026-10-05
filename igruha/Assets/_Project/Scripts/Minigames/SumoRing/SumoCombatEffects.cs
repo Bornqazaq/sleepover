@@ -87,12 +87,13 @@ namespace Igruha.Minigames.SumoRing
             UpdatePulse();
             var s = fighter.VisualState;
             bool parry = fighter.ContactAsTarget && fighter.LastContact == SumoContact.Parry && NetworkClock.Now - fighter.ContactAt < .22;
-            arc.enabled = !fighter.Participant.Dead && (s.Phase == SumoCombatPhase.Guard || s.Phase == SumoCombatPhase.Charge || parry);
+            bool dash = s.Attack == SumoAttack.Dash && (s.Phase == SumoCombatPhase.Windup || s.Phase == SumoCombatPhase.Dash);
+            arc.enabled = !fighter.Participant.Dead && (s.Phase == SumoCombatPhase.Guard || s.Phase == SumoCombatPhase.Charge || parry || dash);
             if (!arc.enabled) return;
             bool charge = s.Phase == SumoCombatPhase.Charge;
-            float angle = parry ? 360 : fighter.Config.GuardArc;
+            float angle = dash ? 55 : parry ? 360 : fighter.Config.GuardArc;
             float radius = fighter.Capsule.radius + .25f;
-            Color color = parry || charge ? CounterColor : GuardColor; arc.startColor = arc.endColor = color;
+            Color color = dash ? BreakColor : parry || charge ? CounterColor : GuardColor; arc.startColor = arc.endColor = color;
             for (int i = 0; i < ArcPoints; i++)
             {
                 float yaw = s.Yaw + Mathf.Lerp(-angle * .5f, angle * .5f, i / (float)(ArcPoints - 1));

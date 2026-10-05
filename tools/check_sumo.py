@@ -59,7 +59,7 @@ class DelayedLink:
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--players', type=int, choices=range(2, 9), default=3)
-    parser.add_argument('--scenario', choices=['basic', 'disconnect', 'combat'], default='basic')
+    parser.add_argument('--scenario', choices=['basic', 'disconnect', 'combat', 'dash'], default='basic')
     parser.add_argument('--app', type=pathlib.Path)
     parser.add_argument('--capture', action='store_true', help='Capture PNGs; use separately from timing-sensitive regression')
     parser.add_argument('--trace', action='store_true', help='Log input arrival and authority windows')
@@ -118,10 +118,11 @@ def main():
             passed &= 'SUMO_CHECK FAIL' not in text and 'SUMO_COMBAT FAIL' not in text and 'Exception:' not in text
             if args.scenario == 'combat' and not args.mutual: passed &= 'SUMO_COMBAT COMPLETE passed=11/11' in text
             if args.scenario == 'combat' and not args.mutual: passed &= 'SUMO_FEEDBACK FAIL' not in text and all('SUMO_FEEDBACK PASS sound=' + slot in text for slot in ('sumo_hit', 'sumo_block', 'sumo_heavy', 'sumo_break', 'sumo_parry'))
+            if args.scenario == 'dash': passed &= 'SUMO_DASH COMPLETE passed=6/6' in text and 'SUMO_DASH FAIL' not in text
             if args.mutual: passed &= 'SUMO_MUTUAL PASS contacts=2 stumbleMask=3' in text and 'SUMO_MUTUAL FAIL' not in text
             if args.visual: passed &= 'SUMO_VISUAL COMPLETE passed=5/5' in text and 'SUMO_VISUAL FAIL' not in text
             ok &= passed
-            lines = [line for line in text.splitlines() if line.startswith(('SUMO_CHECK', 'SUMO_COMBAT')) or 'итоги раунда SumoRing' in line]
+            lines = [line for line in text.splitlines() if line.startswith(('SUMO_CHECK', 'SUMO_COMBAT', 'SUMO_DASH')) or 'итоги раунда SumoRing' in line]
             print(log.name, 'PASS' if passed else 'FAIL', '\n' + '\n'.join(lines[-6:]), flush=True)
             results += [line for line in lines if 'итоги раунда SumoRing' in line]
         # Every remaining peer must agree on the complete ordered results record.

@@ -24,6 +24,7 @@ namespace Igruha.Tests
             SumoCombatRules.Command(ref s, SumoCommand.GuardDown, 180, 1.71, config);
             Assert.That(s.ParryUntil, Is.GreaterThan(1.71));
         }
+        [TestCase(SumoAttack.Dash, SumoContact.Block)]
         [TestCase(SumoAttack.Quick, SumoContact.Block)]
         [TestCase(SumoAttack.Heavy, SumoContact.GuardBreak)]
         [TestCase(SumoAttack.Counter, SumoContact.GuardBreak)]
@@ -91,6 +92,51 @@ namespace Igruha.Tests
             SumoCombatRules.Command(ref s, SumoCommand.Aim, 170, 1.15, config);
             Assert.That(s.ParryUntil, Is.EqualTo(1.2).Within(.001)); Assert.That(s.Yaw, Is.EqualTo(170));
         }
+        [Test]
+        public void DashCommitsDirectionAndCannotRefreshOrBypassCooldown()
+        {
+            var s = Guard();
+            Assert.That(SumoCombatRules.Command(ref s, SumoCommand.Dash, 90, 2, config), Is.True);
+            double expiry = s.NextDashAt;
+            foreach (var command in new[] { SumoCommand.Aim, SumoCommand.Cancel, SumoCommand.AttackUp, SumoCommand.GuardUp, SumoCommand.Dash })
+                Assert.That(SumoCombatRules.Command(ref s, command, 180, 2.1, config), Is.False);
+            Assert.That(s.Yaw, Is.EqualTo(90)); Assert.That(s.NextDashAt, Is.EqualTo(expiry));
+            SumoCombatRules.Advance(ref s, s.DashAt, config); Assert.That(s.Phase, Is.EqualTo(SumoCombatPhase.Dash));
+            SumoCombatRules.BlockDash(ref s, 2.6, config);
+            Assert.That(s.Until, Is.EqualTo(2.6 + config.DashBlockedRecovery).Within(.0001));
+            SumoCombatRules.Advance(ref s, 4, config);
+            Assert.That(SumoCombatRules.Command(ref s, SumoCommand.Dash, 0, 4, config), Is.False);
+            Assert.That(SumoCombatRules.Command(ref s, SumoCommand.Dash, 0, expiry + .01, config), Is.True);
+        }
+        [Test]
+        public void DashCanBeParriedOrHitFromBehindAndCounterTakesPriorityOverCooldown()
+        {
+            var a = SumoCombatState.Create(1); a.Attack = SumoAttack.Dash; var d = Guard();
+            Assert.That(SumoCombatRules.Contact(a, d, Vector3.back, true, 1.1, config), Is.EqualTo(SumoContact.Parry));
+            Assert.That(SumoCombatRules.Contact(a, d, Vector3.forward, true, 1.1, config), Is.EqualTo(SumoContact.Push));
+            d.NextDashAt = 10;
+            SumoCombatRules.AwardCounter(ref d, 1, 1.1, config);
+            Assert.That(SumoCombatRules.Command(ref d, SumoCommand.Dash, 180, 1.2, config), Is.True);
+            Assert.That(d.Attack, Is.EqualTo(SumoAttack.Counter)); Assert.That(d.CounterTarget, Is.EqualTo(1));
+            Assert.That(d.NextDashAt, Is.EqualTo(10));
+        }
+        [Test]
+        public void DashVisualUsesFullWindupAndMovementWindowButRejectionClearsPrediction()
+        {
+            var visual = new SumoCombatVisualState(config, 1);
+            var state = SumoCombatState.Create(1);
+            SumoCombatRules.Command(ref state, SumoCommand.Dash, 0, 1, config);
+            visual.Receive(state, .9, false);
+            Assert.That(visual.Evaluate(1.1).Phase, Is.EqualTo(SumoCombatPhase.Windup));
+            Assert.That(visual.Evaluate(state.DashAt + .01).Phase, Is.EqualTo(SumoCombatPhase.Dash));
+            Assert.That(visual.Evaluate(state.DashAt + config.DashSeconds + .01).Phase, Is.EqualTo(SumoCombatPhase.Recovery));
+            visual.Reset(SumoCombatState.Create(1)); visual.Predict(1, SumoCommand.Dash, 0, 1);
+            var rejected = SumoCombatState.Create(1); rejected.ProcessedInput = rejected.Revision = 1;
+            visual.Receive(rejected, 1.2, true);
+            Assert.That(visual.Evaluate(1.2).Phase, Is.EqualTo(SumoCombatPhase.Idle));
+            Assert.That(visual.Evaluate(1.8).Phase, Is.EqualTo(SumoCombatPhase.Idle));
+        }
+
         [Test]
         public void SectorSeamKeepsFootingButAirAndMissingFloorDoNot()
         {

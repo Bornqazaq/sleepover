@@ -13,6 +13,7 @@ namespace Igruha.Tests
         private SumoParticipant local;
         private string scenario;
         private bool mutual;
+        private bool Scripted => scenario == "combat" || scenario == "dash";
         private bool ready, punched, staged, jumped, departed, final, returned;
         private int warnings, collapses, deaths, punches;
         private float started, nextTrace, nextChoice, hubArrived = -1, quitAt = -1;
@@ -68,7 +69,7 @@ namespace Igruha.Tests
             {
                 final = true;
                 Debug.Log("SUMO_CHECK FINAL alive=" + game.Round.AliveCount + " warnings=" + warnings + " collapses=" + collapses + " deaths=" + deaths);
-                if (game.Round.AliveCount != 1 || warnings != (mutual ? 1 : 6) || collapses != (mutual ? 1 : 6)) Debug.LogError("SUMO_CHECK FAIL final state");
+                if (game.Round.AliveCount != 1 || warnings != (mutual ? 1 : scenario == "dash" ? 3 : 6) || collapses != (mutual ? 1 : scenario == "dash" ? 3 : 6)) Debug.LogError("SUMO_CHECK FAIL final state");
             }
             if (final && !returned && UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "Hub")
             {
@@ -96,12 +97,12 @@ namespace Igruha.Tests
             double t = game.Elapsed; int id = local.Player.Id;
             local.Input.DriveMove(Vector2.zero);
             // Hold two bodies at arm's length until all peers have their positions.
-            if (scenario != "combat" && t < 3.5 && id < 2)
+            if (!Scripted && t < 3.5 && id < 2)
                 local.Motor.TeleportTo(new Vector3(0, game.Config.Height + .03f, id * .95f), Quaternion.Euler(0, id == 0 ? 0 : 180, 0));
-            if (scenario != "combat" && id == 1 && t > 4 && !punched)
+            if (!Scripted && id == 1 && t > 4 && !punched)
             { punched = true; local.Motor.FacingOverride = Vector3.back; RequestCombatPush(); Debug.Log("SUMO_CHECK CLIENT_PUNCH"); }
-            if (scenario != "combat" && id == 1 && t > 4.1 && t < 4.4) RequestCombatPush();
-            if (scenario != "combat" && t > 7 && !staged)
+            if (!Scripted && id == 1 && t > 4.1 && t < 4.4) RequestCombatPush();
+            if (!Scripted && t > 7 && !staged)
             {
                 if (id == 1)
                 {
@@ -112,13 +113,13 @@ namespace Igruha.Tests
                 float angle = id * Mathf.PI * 2 / game.Participants.Count;
                 local.Motor.TeleportTo(new Vector3(Mathf.Cos(angle) * 1.45f, game.Config.Height + .04f, Mathf.Sin(angle) * 1.45f), Quaternion.identity);
             }
-            if (scenario != "combat" && t > 12 && !jumped) { jumped = true; local.Input.DriveJump(); Debug.Log("SUMO_CHECK JUMP"); }
+            if (!Scripted && t > 12 && !jumped) { jumped = true; local.Input.DriveJump(); Debug.Log("SUMO_CHECK JUMP"); }
             if (scenario == "disconnect" && id == game.Participants.Count - 1 && t > 18)
             { Debug.Log("SUMO_CHECK DISCONNECT"); Application.Quit(); return; }
-            if (t > (mutual ? 12 : 77) && id > 0 && !departed)
+            if (t > (mutual ? 12 : scenario == "dash" ? 38 : 77) && id > 0 && !departed)
             {
                 departed = true; float a = id * Mathf.PI * 2 / game.Participants.Count;
-                local.Motor.TeleportTo(new Vector3(Mathf.Cos(a) * (mutual ? game.Config.Radius + 1 : 3.3f), game.Config.Height + .5f, Mathf.Sin(a) * (mutual ? game.Config.Radius + 1 : 3.3f)), Quaternion.identity);
+                local.Motor.TeleportTo(new Vector3(Mathf.Cos(a) * (mutual || scenario == "dash" ? game.Config.Radius + 1 : 3.3f), game.Config.Height + .5f, Mathf.Sin(a) * (mutual || scenario == "dash" ? game.Config.Radius + 1 : 3.3f)), Quaternion.identity);
                 Debug.Log("SUMO_CHECK FALL_FROM_AIR");
             }
         }

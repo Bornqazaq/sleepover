@@ -4,9 +4,9 @@ using UnityEngine;
 
 namespace Igruha.Minigames.SumoRing
 {
-    public enum SumoCombatPhase : byte { Idle, Guard, Charge, Windup, Recovery, Stagger }
-    public enum SumoAttack : byte { Quick, Heavy, Counter }
-    public enum SumoCommand : byte { AttackDown, AttackUp, GuardDown, GuardUp, Aim, Cancel }
+    public enum SumoCombatPhase : byte { Idle, Guard, Charge, Windup, Recovery, Stagger, Dash }
+    public enum SumoAttack : byte { Quick, Heavy, Counter, Dash }
+    public enum SumoCommand : byte { AttackDown, AttackUp, GuardDown, GuardUp, Aim, Cancel, Dash }
     public enum SumoContact : byte { Miss, Push, Block, Parry, GuardBreak, Counter }
 
     /// <summary>Server-owned combat snapshot. Times use NetworkClock; no frame timers are replicated.</summary>
@@ -15,7 +15,7 @@ namespace Igruha.Minigames.SumoRing
         public int Id, CounterTarget, Revision, ProcessedInput;
         public SumoCombatPhase Phase;
         public SumoAttack Attack;
-        public double Since, Until, ParryUntil, NextParryAt, CounterUntil;
+        public double Since, Until, ParryUntil, NextParryAt, CounterUntil, DashAt, NextDashAt;
         public float Yaw;
         public bool HasCounter(double now) => CounterTarget >= 0 && now <= CounterUntil;
         public Vector3 Forward => Quaternion.Euler(0, Yaw, 0) * Vector3.forward;
@@ -25,6 +25,7 @@ namespace Igruha.Minigames.SumoRing
             s.SerializeValue(ref Id); s.SerializeValue(ref CounterTarget); s.SerializeValue(ref Revision); s.SerializeValue(ref ProcessedInput);
             s.SerializeValue(ref Phase); s.SerializeValue(ref Attack); s.SerializeValue(ref Since); s.SerializeValue(ref Until);
             s.SerializeValue(ref ParryUntil); s.SerializeValue(ref NextParryAt); s.SerializeValue(ref CounterUntil); s.SerializeValue(ref Yaw);
+            s.SerializeValue(ref DashAt); s.SerializeValue(ref NextDashAt);
         }
         public bool Equals(SumoCombatState other) => Id == other.Id && Revision == other.Revision;
     }
@@ -58,6 +59,18 @@ namespace Igruha.Minigames.SumoRing
                 BeginAttack(ref s, attack, yaw, now, c); return true;
             }
             if (s.Phase != SumoCombatPhase.Idle && s.Phase != SumoCombatPhase.Guard) return false;
+            if (command == SumoCommand.Dash)
+            {
+                if (s.HasCounter(now)) BeginAttack(ref s, SumoAttack.Counter, yaw, now, c);
+                else
+                {
+                    if (now < s.NextDashAt) return false;
+                    s.NextDashAt = now + c.DashCooldown;
+                    s.DashAt = now + c.DashWindup;
+                    BeginAttack(ref s, SumoAttack.Dash, yaw, now, c);
+                }
+                return true;
+            }
             if (command == SumoCommand.AttackDown)
             {
                 if (s.HasCounter(now)) BeginAttack(ref s, SumoAttack.Counter, yaw, now, c);
@@ -75,11 +88,13 @@ namespace Igruha.Minigames.SumoRing
             s.Attack = attack; s.Yaw = Mathf.Repeat(yaw, 360);
             if (attack != SumoAttack.Counter) s.CounterTarget = -1;
             s.CounterUntil = 0;
-            double delay = attack == SumoAttack.Heavy ? c.HeavyWindup : attack == SumoAttack.Counter ? c.CounterWindup : c.QuickWindup;
+            double delay = attack == SumoAttack.Dash ? c.DashWindup : attack == SumoAttack.Heavy ? c.HeavyWindup : attack == SumoAttack.Counter ? c.CounterWindup : c.QuickWindup;
             SetPhase(ref s, SumoCombatPhase.Windup, now, now + delay);
         }
         public static bool Advance(ref SumoCombatState s, double now, SumoConfig c)
         {
+            if (s.Phase == SumoCombatPhase.Windup && s.Attack == SumoAttack.Dash && now >= s.Until)
+            { SetPhase(ref s, SumoCombatPhase.Dash, s.DashAt, s.DashAt + c.DashSeconds); return true; }
             if (s.Phase == SumoCombatPhase.Charge && now >= s.Until)
             { BeginAttack(ref s, SumoAttack.Heavy, s.Yaw, now, c); return true; }
             if ((s.Phase == SumoCombatPhase.Recovery || s.Phase == SumoCombatPhase.Stagger) && now >= s.Until)
@@ -97,14 +112,16 @@ namespace Igruha.Minigames.SumoRing
         {
             bool guard = grounded && target.Phase == SumoCombatPhase.Guard && IsFrontal(target.Forward, towardsAttacker, c.GuardArc);
             if (guard && now <= target.ParryUntil) return SumoContact.Parry;
-            if (guard) return attacker.Attack == SumoAttack.Quick ? SumoContact.Block : SumoContact.GuardBreak;
+            if (guard) return (attacker.Attack == SumoAttack.Quick || attacker.Attack == SumoAttack.Dash) ? SumoContact.Block : SumoContact.GuardBreak;
             return attacker.Attack == SumoAttack.Counter ? SumoContact.Counter : SumoContact.Push;
         }
         public static void Recover(ref SumoCombatState s, double now, SumoConfig c)
         {
             s.CounterTarget = -1;
-            SetPhase(ref s, SumoCombatPhase.Recovery, now, now + (s.Attack == SumoAttack.Heavy ? c.HeavyRecoverySeconds : c.RecoverySeconds));
+            SetPhase(ref s, SumoCombatPhase.Recovery, now, now + (s.Attack == SumoAttack.Dash ? c.DashRecovery : s.Attack == SumoAttack.Heavy ? c.HeavyRecoverySeconds : c.RecoverySeconds));
         }
+        public static void BlockDash(ref SumoCombatState s, double now, SumoConfig c)
+        { s.CounterTarget = -1; SetPhase(ref s, SumoCombatPhase.Recovery, now, now + c.DashBlockedRecovery); }
         public static void Stagger(ref SumoCombatState s, double now, float duration)
         { s.CounterTarget = -1; s.CounterUntil = 0; s.ParryUntil = 0; SetPhase(ref s, SumoCombatPhase.Stagger, now, now + duration); }
         public static void AwardCounter(ref SumoCombatState defender, int attackerId, double now, SumoConfig c)
