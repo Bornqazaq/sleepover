@@ -15515,6 +15515,11 @@ GameObject:
   - component: {fileID: 8611171222261393541}
   - component: {fileID: 101874412661438126}
   - component: {fileID: 2137857676860700600}
+  - component: {fileID: 3706227600018547125}
+  - component: {fileID: 8083371969885329904}
+  - component: {fileID: 7938353988075483549}
+  - component: {fileID: 506170353863232648}
+  - component: {fileID: 8276537241620753050}
   m_Layer: 0
   m_Name: WaterCart
   m_TagString: Untagged
@@ -15598,8 +15603,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.9, y: 1, z: 1.2}
-  m_Center: {x: 0, y: 0.5, z: 0}
+  m_Size: {x: 0.9, y: 0.7, z: 1.2}
+  m_Center: {x: 0, y: 0.65, z: 0}
 --- !u!114 &8604607912877317731
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -15813,6 +15818,102 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 193b22ac2d65f4c62ac80ac6185cf89c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.CarryItem.CartOverflowVisual
+--- !u!135 &3706227600018547125
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7233307270582071236}
+  m_Material: {fileID: 13400000, guid: c276cebc5df1e40ca8ba9c0fd7ed68fc, type: 2}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.22
+  m_Center: {x: -0.48, y: 0.22, z: 0.4}
+--- !u!135 &8083371969885329904
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7233307270582071236}
+  m_Material: {fileID: 13400000, guid: c276cebc5df1e40ca8ba9c0fd7ed68fc, type: 2}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.22
+  m_Center: {x: 0.48, y: 0.22, z: 0.4}
+--- !u!135 &7938353988075483549
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7233307270582071236}
+  m_Material: {fileID: 13400000, guid: c276cebc5df1e40ca8ba9c0fd7ed68fc, type: 2}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.22
+  m_Center: {x: -0.48, y: 0.22, z: -0.4}
+--- !u!135 &506170353863232648
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7233307270582071236}
+  m_Material: {fileID: 13400000, guid: c276cebc5df1e40ca8ba9c0fd7ed68fc, type: 2}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.22
+  m_Center: {x: 0.48, y: 0.22, z: -0.4}
+--- !u!114 &8276537241620753050
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7233307270582071236}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e887fa8b26484738b7bbe44855bc80e, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.CarryItem.CartWheelSupport
 --- !u!1 &7949716374861780266
 GameObject:
   m_ObjectHideFlags: 0

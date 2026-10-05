@@ -143,6 +143,7 @@ namespace Igruha.EditorTools
             if(created)AssetDatabase.CreateAsset(mesh,path);else{EditorUtility.SetDirty(mesh);AssetDatabase.SaveAssetIfDirty(mesh);}
             var t=Group(root,"Continuous flyover collision");t.gameObject.layer=LayerMask.NameToLayer("Ground");
             t.gameObject.AddComponent<MeshCollider>().sharedMesh=mesh;
+            t.gameObject.AddComponent<Igruha.Core.Player.WalkableRamp>();
         }
         private static void BuildLowerRoutes(Transform root)
         {

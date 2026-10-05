@@ -110634,7 +110634,6 @@ MonoBehaviour:
   cameraController: {fileID: 1246980261}
   emoteWheel: {fileID: 1069350558}
   networkRosterTimeout: 180
-  networkRosterSettleTime: 1
 --- !u!114 &756139776
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -149399,6 +149398,7 @@ GameObject:
   m_Component:
   - component: {fileID: 991512596}
   - component: {fileID: 991512597}
+  - component: {fileID: 991512598}
   m_Layer: 6
   m_Name: Continuous flyover collision
   m_TagString: Untagged
@@ -149443,6 +149443,18 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4300000, guid: 1197bc8ff81c84e9d8f725c73794598a, type: 2}
+--- !u!114 &991512598
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 991512595}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e935ef2c1c74a344b87f9ca3c79dc0f6, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Player.WalkableRamp
 --- !u!1 &991974709
 GameObject:
   m_ObjectHideFlags: 0

@@ -22,7 +22,8 @@ namespace Igruha.Minigames.CarryItem
         private Vector3 tubRest;
         private float angle;
         private Transform visualFrame;
-        public Quaternion Heading => visualFrame != null ? visualFrame.rotation : transform.rotation;
+        public Quaternion Heading => Quaternion.LookRotation(Vector3.ProjectOnPlane(
+            visualFrame != null ? visualFrame.forward : transform.forward, Vector3.up), Vector3.up);
 
         private void Awake()
         {
@@ -106,7 +107,8 @@ namespace Igruha.Minigames.CarryItem
                 if (wheels[i] != null) wheels[i].localRotation = Quaternion.Euler(angle, 0f, 0f);
             if (tub != null)
             {
-                tub.localRotation = CartWaterSurface.BodyRotation(cart.Stability.State.BodySlope, Heading);
+                tub.localRotation = Quaternion.Inverse(visualFrame.rotation) * Heading *
+                    CartWaterSurface.BodyRotation(cart.Stability.State.BodySlope, Heading);
                 Vector3 pivot = Vector3.up * 0.44f;
                 tub.localPosition = tubRest + pivot - tub.localRotation * pivot - Vector3.up * (loadedSag * cart.Load - cart.Stability.State.RoadHop);
             }
