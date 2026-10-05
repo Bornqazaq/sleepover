@@ -61,6 +61,8 @@ def main():
     parser.add_argument('--players', type=int, choices=range(2, 9), default=3)
     parser.add_argument('--scenario', choices=['basic', 'disconnect', 'combat'], default='basic')
     parser.add_argument('--app', type=pathlib.Path)
+    parser.add_argument('--capture', action='store_true', help='Capture PNGs; use separately from timing-sensitive regression')
+    parser.add_argument('--trace', action='store_true', help='Log input arrival and authority windows')
     parser.add_argument('--visual', action='store_true', help='Combat plus all-avatar motions, edge balance and jump checks')
     parser.add_argument('--mutual', action='store_true', help='Short two-player same-tick heavy trade and scene return')
     parser.add_argument('--latency-ms', type=int, default=0, help='One-way UDP delay; 75 gives approximately 150 ms RTT')
@@ -85,6 +87,10 @@ def main():
         for i in range(args.players):
             log = logs / ('host.log' if i == 0 else f'client-{i}.log')
             command = [str(app), '--sumo-check', args.scenario, '--bot', '-logFile', str(log)]
+            if args.capture:
+                command += ['--sumo-capture', '1']
+            if args.trace:
+                command += ['--sumo-trace', '1']
             if args.visual:
                 command += ['--sumo-visual-check', '1']
             if args.mutual:

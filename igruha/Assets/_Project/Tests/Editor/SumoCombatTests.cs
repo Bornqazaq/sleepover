@@ -92,6 +92,25 @@ namespace Igruha.Tests
             Assert.That(s.ParryUntil, Is.EqualTo(1.2).Within(.001)); Assert.That(s.Yaw, Is.EqualTo(170));
         }
         [Test]
+        public void SectorSeamKeepsFootingButAirAndMissingFloorDoNot()
+        {
+            var left = new GameObject("left-floor"); var right = new GameObject("right-floor");
+            try
+            {
+                int layer = LayerMask.NameToLayer("Ground"); Assert.That(layer, Is.GreaterThanOrEqualTo(0));
+                left.layer = right.layer = layer;
+                left.transform.position = new Vector3(-.51f, -.05f, 0); right.transform.position = new Vector3(.51f, -.05f, 0);
+                left.AddComponent<BoxCollider>().size = right.AddComponent<BoxCollider>().size = new Vector3(1, .1f, 4);
+                Physics.SyncTransforms(); int mask = 1 << layer;
+                Assert.That(Physics.Raycast(Vector3.up * .18f, Vector3.down, .38f, mask), Is.False, "centre ray falls through the seam");
+                Assert.That(SumoCombat.HasGroundSupport(Vector3.zero, mask), Is.True);
+                Assert.That(SumoCombat.HasGroundSupport(Vector3.up * .6f, mask), Is.False);
+                Assert.That(SumoCombat.HasGroundSupport(Vector3.right * 2, mask), Is.False);
+            }
+            finally { Object.DestroyImmediate(left); Object.DestroyImmediate(right); }
+        }
+
+        [Test]
         public void AdjacentCapsulesAreReachableButDifferentFloorsAreNot()
         {
             var a = new GameObject("a"); var b = new GameObject("b");

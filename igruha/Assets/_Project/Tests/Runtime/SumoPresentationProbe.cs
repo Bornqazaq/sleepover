@@ -91,11 +91,13 @@ namespace Igruha.Tests
         private void Check(string label, bool ok)
         {
             checkedStage = true; if (ok) passed++;
+            float expected = SumoEdgeBalance.Evaluate(game.Config, local.Motor.Position, game.Elapsed, out _);
+            Debug.Log($"SUMO_VISUAL_SAMPLE case={label} at={game.Elapsed:F4} pos={local.Motor.Position:F4} ground={local.IsGrounded} crouch={local.Motor.IsCrouched} knocked={local.Motor.IsKnockedDown} dead={local.Participant.Dead} phase={local.State.Phase} expected={expected:F4}");
             Debug.Log("SUMO_VISUAL " + (ok ? "PASS " : "FAIL ") + label + " owner=" + local.Id + " balance=" + local.BalanceWeight.ToString("F3"));
         }
         private void Capture(string name)
         {
-            if (SystemInfo.graphicsDeviceType == UnityEngine.Rendering.GraphicsDeviceType.Null) return;
+            if (!LaunchArguments.TryGetValue("--sumo-capture", out _) || SystemInfo.graphicsDeviceType == UnityEngine.Rendering.GraphicsDeviceType.Null) return;
             var dir = System.IO.Path.GetDirectoryName(Application.consoleLogPath);
             if (!string.IsNullOrEmpty(dir)) ScreenCapture.CaptureScreenshot(System.IO.Path.Combine(dir, "sumo-visual-" + name + ".png"));
         }

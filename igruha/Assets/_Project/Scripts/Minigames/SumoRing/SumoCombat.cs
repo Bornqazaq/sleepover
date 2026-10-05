@@ -24,11 +24,14 @@ namespace Igruha.Minigames.SumoRing
     public sealed class SumoCombat : MonoBehaviour
     {
         private const int CommandCapacity = 64;
-        private const float GroundProbeHeight = .18f, GroundProbeLength = .38f;
+        private const float GroundProbeHeight = .18f, GroundProbeLength = .38f, GroundProbeRadius = .08f, MinimumGroundNormal = .5f;
         private const float AimInterval = .08f, AimThreshold = 3f;
         private struct Intent { public int Id, Sequence; public SumoCommand Command; public float Yaw; }
         private readonly Intent[] queue = new Intent[CommandCapacity];
         private int queued, nextInputSequence;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        private static bool TraceEnabled => Igruha.Core.Session.LaunchArguments.TryGetValue("--sumo-trace", out _);
+#endif
         private SumoMinigame game;
         private SumoNetwork network;
         private Camera gameCamera;
@@ -124,6 +127,10 @@ namespace Igruha.Minigames.SumoRing
             if (network != null && network.IsSpawned)
             {
                 int sequence = local != null && id == local.Id ? ++nextInputSequence : 0;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                if (TraceEnabled && command != SumoCommand.Aim)
+                    Debug.Log($"SUMO_INPUT send id={id} seq={sequence} cmd={command} server={NetworkClock.Now:F4} local={network.NetworkManager.LocalTime.Time:F4} wall={Time.realtimeSinceStartupAsDouble:F4}");
+#endif
                 if (!network.IsServer && sequence > 0)
                 {
                     bool releasing = command == SumoCommand.Cancel || command == SumoCommand.GuardUp;
@@ -156,8 +163,11 @@ namespace Igruha.Minigames.SumoRing
         public bool Grounded(int index)
         {
             var f = fighters[index];
-            return f != null && Physics.Raycast(f.Motor.Position + Vector3.up * GroundProbeHeight, Vector3.down, GroundProbeLength, f.Motor.GroundLayers, QueryTriggerInteraction.Ignore);
+            return f != null && HasGroundSupport(f.Motor.Position, f.Motor.GroundLayers);
         }
+        public static bool HasGroundSupport(Vector3 feet, int groundLayers) => Physics.SphereCast(
+            feet + Vector3.up * GroundProbeHeight, GroundProbeRadius, Vector3.down, out var hit,
+            GroundProbeLength - GroundProbeRadius, groundLayers, QueryTriggerInteraction.Ignore) && hit.normal.y >= MinimumGroundNormal;
         private bool Available(int i) => fighters[i] != null && !fighters[i].Participant.Dead && !fighters[i].Motor.IsKnockedDown && !fighters[i].Motor.MovementLocked && fighters[i].Motor.Position.y >= config.Height - config.FallTolerance;
         public void TickAuthority(double now)
         {
@@ -183,10 +193,15 @@ namespace Igruha.Minigames.SumoRing
                     states[i].Revision++;
                     changed = true;
                 }
-                if (!Available(i)) continue;
+                bool available = Available(i), grounded = Grounded(i);
                 bool releasing = intent.Command == SumoCommand.Cancel || intent.Command == SumoCommand.GuardUp;
-                if (!releasing && !Grounded(i)) continue;
-                changed |= SumoCombatRules.Command(ref states[i], intent.Command, intent.Yaw, now, config);
+                var before = states[i];
+                bool applied = available && (releasing || grounded) && SumoCombatRules.Command(ref states[i], intent.Command, intent.Yaw, now, config);
+                changed |= applied;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                if (TraceEnabled && intent.Command != SumoCommand.Aim)
+                    Debug.Log($"SUMO_INPUT apply id={intent.Id} seq={intent.Sequence} cmd={intent.Command} now={now:F4} elapsed={Elapsed:F4} wall={Time.realtimeSinceStartupAsDouble:F4} available={available} grounded={grounded} applied={applied} before={before.Phase} since={before.Since:F4} until={before.Until:F4} parry={before.ParryUntil:F4} after={states[i].Phase} attack={states[i].Attack} newParry={states[i].ParryUntil:F4}");
+#endif
             }
             queued = 0;
             int hits = 0;
