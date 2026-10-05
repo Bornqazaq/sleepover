@@ -55,6 +55,7 @@ namespace Igruha.Minigames.CarryItem
         private bool spilledThisTrip;
         private readonly CartTeamRocking rocking = new CartTeamRocking();
         private const float WheelHalfTrack=.48f, WheelHalfBase=.4f, CombinedSlopeLimit=.38f;
+        private const float MinSupportUp = .7f;
         private readonly CartRoadResponse road = new CartRoadResponse();
         private readonly CartTurnResponse turning = new CartTurnResponse();
         private Quaternion lastRotation;
@@ -142,9 +143,12 @@ namespace Igruha.Minigames.CarryItem
                 waveVelocity += ((target - wave) * config.WaveResponse - waveVelocity * config.WaveDamping) * dt;
                 wave = Vector2.ClampMagnitude(wave + waveVelocity * dt, CartWaterSurface.MaxSlope);
             }
-            Vector2 localWave = CartWaterSurface.InHeading(wave, transform.rotation);
-            Vector2 bodySlope = Vector2.ClampMagnitude(rocking.Slope + road.Slope + turning.Slope, CombinedSlopeLimit);
-            Vector2 localBody = CartWaterSurface.InHeading(bodySlope, transform.rotation);
+            Quaternion heading = Quaternion.LookRotation(Vector3.ProjectOnPlane(transform.forward, Vector3.up));
+            Vector2 localWave = CartWaterSurface.InHeading(wave, heading);
+            Vector3 supportUp = body.rotation * Vector3.up;
+            Vector2 groundSlope = supportUp.y > MinSupportUp ? new Vector2(-supportUp.x, -supportUp.z) / supportUp.y : Vector2.zero;
+            Vector2 bodySlope = Vector2.ClampMagnitude(groundSlope + rocking.Slope + road.Slope + turning.Slope, CombinedSlopeLimit);
+            Vector2 localBody = CartWaterSurface.InHeading(bodySlope, heading);
             if (road.Hold > 0f && cause != CartTiltCause.Disagreement) cause = CartTiltCause.Road;
             float rate = CartWaterSurface.Overflow(cart.Load, localWave, config.OverflowRate,
                 out byte side, out float along, out float width, out float risk, localBody);
@@ -156,7 +160,7 @@ namespace Igruha.Minigames.CarryItem
             next.Cause = cause; next.Responsible = -1;
             bool edge = (State.Outflow > 0f) != (rate > 0f);
             ApplyState(next);
-            // The collider and grips stay on the chassis. The presentation rocks the tub only.
+            // Terrain tilts the chassis; suspension adds a separate tub response.
             carry.SetTiltTarget(Vector3.zero);
             cart.DrainOverflow(rate, dt);
             publishTimer -= dt;
