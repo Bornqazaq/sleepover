@@ -35,6 +35,7 @@ namespace Igruha.Minigames.CryingAngels
 
         /// <summary>Состояние сменилось — визуал и HUD цепляются сюда.</summary>
         public event Action<Phase> Changed;
+        public event Action<RunnerState> RespawnRequested;
 
         public Phase Current { get; private set; } = Phase.Free;
 
@@ -249,7 +250,8 @@ namespace Igruha.Minigames.CryingAngels
                 return;
             }
 
-            respawner?.Respawn();
+            if (RespawnRequested != null) RespawnRequested.Invoke(this);
+            else respawner?.Respawn();
             petrifyTimer = 0f;
             Current = Phase.Free;
             motor.MovementLocked = false;

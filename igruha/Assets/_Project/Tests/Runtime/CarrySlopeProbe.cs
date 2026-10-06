@@ -57,19 +57,19 @@ namespace Igruha.Tests
                 float x = Mathf.Abs(cart.transform.position.x);
                 if (stage < 2 && !pausedOnRamp && x < 12.5f && x > 11.5f)
                 {
-                    pausedOnRamp = true; pauseUntil = Time.realtimeSinceStartup + 2f;
+                    pausedOnRamp = true; pauseUntil = Time.time + 2f;
                     if (!string.IsNullOrEmpty(screenshots))
                         ScreenCapture.CaptureScreenshot(screenshots + "-slope-" + stage + ".png");
                 }
-                if (pausedOnRamp && Time.realtimeSinceStartup < pauseUntil)
+                if (pausedOnRamp && Time.time < pauseUntil)
                 {
                     move = Vector2.zero;
-                    if (!parkedSampled && Time.realtimeSinceStartup > pauseUntil - .5f)
+                    if (!parkedSampled && Time.time > pauseUntil - .5f)
                     { parkedSampled = true; parkedPosition = cart.transform.position; }
                 }
                 else if (parkedSampled)
                 {
-                    Check(Vector3.Distance(parkedPosition, cart.transform.position) < .05f, "parked on slope stage=" + stage);
+                    Check(Vector3.Distance(parkedPosition, cart.transform.position) < .05f, "parked on slope stage=" + stage + " drift=" + Vector3.Distance(parkedPosition, cart.transform.position));
                     parkedSampled = false;
                 }
                 if (stage < 2 && x > 8 && x < 16)
@@ -211,6 +211,19 @@ namespace Igruha.Tests
                 }
             yield return At(51);
             Check(cart.transform.position.y < -1, "unsupported cart falls y=" + cart.transform.position.y);
+            if (net.IsServer)
+                foreach (var p in SessionScoreboard.Current.Players)
+                {
+                    var platform = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    platform.name = "Wheel edge regression fixture";
+                    platform.layer = LayerMask.NameToLayer("Ground");
+                    platform.transform.position = new Vector3(-40, 2.85f, 30 + p.Id * 5);
+                    platform.transform.localScale = new Vector3(4, .3f, 4);
+                    var c = game.CartOf(game.TeamOfPlayer(p.Id));
+                    c.Carry.ResetPose(new Vector3(-40, 3.04f, 32.2f + p.Id * 5), Quaternion.identity);
+                }
+            yield return At(54);
+            Check(cart.transform.position.y < 2.4f, "cart tips off edge with only rear axle supported y=" + cart.transform.position.y);
             if (!failed) Debug.Log("CARRY_SLOPE PASS id=" + net.LocalClientId);
         }
 

@@ -18,6 +18,9 @@ namespace Igruha.EditorTools
             AssetDatabase.Refresh();
             var old = arena.Find("SiteFinish"); if (old != null) Object.DestroyImmediate(old.gameObject);
             var root = Group(arena, "SiteFinish");
+            // The authored road paint replaces the old plank stripes.
+            var legacyMarks = arena.Find("PlankMarks");
+            if (legacyMarks != null) legacyMarks.gameObject.SetActive(false);
             concrete = CarryConstructionArena.Concrete();
             steel = Material("Oxidized steel", new Color(.23f,.26f,.27f), .65f);
             dark = Material("Crevices", new Color(.27f,.26f,.235f));

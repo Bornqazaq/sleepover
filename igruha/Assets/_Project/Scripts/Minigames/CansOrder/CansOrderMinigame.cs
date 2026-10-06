@@ -96,15 +96,6 @@ namespace Igruha.Minigames.CansOrder
         [Range(0f, 1f)]
         [SerializeField] private float botSolveChance = 0.28f;
 
-        /// <summary>Кому мы сами заблокировали ноги на время окна: снимаем ровно свою блокировку.</summary>
-        private readonly List<PlayerController> movementLockedByShelf = new List<PlayerController>(8);
-
-        /// <summary>Рендереры своего персонажа, погашенные на время окна. Возвращаем ровно те, что гасили.</summary>
-        private readonly List<Renderer> hiddenLocalRenderers = new List<Renderer>(16);
-
-        /// <summary>Буфер под выборку рендереров: без него каждый круг плодил бы массив.</summary>
-        private readonly List<Renderer> rendererBuffer = new List<Renderer>(16);
-
         /// <summary>Буфер своей карточки результата. Поле, а не локальная переменная: строка пересобирается каждый круг.</summary>
         private readonly System.Text.StringBuilder revealText = new System.Text.StringBuilder(160);
 
@@ -323,6 +314,8 @@ namespace Igruha.Minigames.CansOrder
 
         protected override void OnDisable()
         {
+            // Scene cancellation/disconnection does not necessarily deliver Results.
+            OnRoundEnded();
             base.OnDisable();
             if (stageState != null)
             {
@@ -526,8 +519,6 @@ namespace Igruha.Minigames.CansOrder
             // Всё, что мини-игра навесила на игрока, она обязана снять сама:
             // персонаж переезжает между сценами живым, и незакрытая роль
             // уезжает в хаб вместе с ним (спека 10.5).
-            SetShelfMovementLock(false);
-            HideLocalAvatar(false);
             for (int i = 0; i < contestants.Count; i++)
             {
                 Contestant c = contestants[i];
@@ -789,65 +780,6 @@ namespace Igruha.Minigames.CansOrder
         }
 
         /// <summary>
-        /// Заблокировать ноги на время окна выставления.
-        ///
-        /// На плейтесте 22.08: «на фоне всё равно модель ходит, и кнопки на неё
-        /// работают». В окне выставления камера стоит на полке, ходить некуда
-        /// и незачем, а WASD уводил персонажа из кадра — со стороны это
-        /// выглядело просто сломанным.
-        ///
-        /// <b>Цена решения:</b> <c>PlayerEmoteAbility</c> не открывает колесо
-        /// насмешек при <c>MovementLocked</c>, то есть Tab не работает те
-        /// секунды, что открыто окно. В брифинге, показе результатов и на
-        /// падении он работает как раньше. Это осознанный размен, а не
-        /// недосмотр: именно из-за него на IGR-370 курсор посадили на мышь,
-        /// а не на A/D.
-        ///
-        /// Снимаем ровно свою блокировку и строго до <see cref="DescendCages"/>:
-        /// клетка на спуске ставит свою, и затирать её нельзя.
-        ///
-        /// <b>По сети блокировка не едет и ехать не должна.</b> Реплицируется
-        /// стадия, а блокировка — её локальное следствие: каждая машина ставит
-        /// её своему игроку, потому что ввод читается только там, где им
-        /// управляют. Чужая копия едет <c>NetworkTransform</c>'ом, и блокировать
-        /// её здесь нечего.
-        /// </summary>
-        private void SetShelfMovementLock(bool locked)
-        {
-            if (!locked)
-            {
-                for (int i = 0; i < movementLockedByShelf.Count; i++)
-                {
-                    if (movementLockedByShelf[i] != null)
-                    {
-                        movementLockedByShelf[i].MovementLocked = false;
-                    }
-                }
-
-                movementLockedByShelf.Clear();
-                return;
-            }
-
-            for (int i = 0; i < contestants.Count; i++)
-            {
-                Contestant c = contestants[i];
-                PlayerController avatar = c.Session != null ? c.Session.Avatar : null;
-                if (avatar == null || !c.Entry.Alive || c.Entry.Solved)
-                {
-                    continue;
-                }
-
-                if (WorldAuthority.IsNetworkSession && !c.LocallyControlled)
-                {
-                    continue;
-                }
-
-                avatar.MovementLocked = true;
-                movementLockedByShelf.Add(avatar);
-            }
-        }
-
-        /// <summary>
         /// Запомнить, что локальный игрок отправил в этом круге и что получил.
         /// Зовётся в стадии показа — там же, где совпадения впервые выходят
         /// из контроллера, и ни секундой раньше.
@@ -926,67 +858,6 @@ namespace Igruha.Minigames.CansOrder
             return local.Entry.Confirmed
                 ? "РАССТАНОВКА ПРИНЯТА — ждём остальных"
                 : string.Empty;
-        }
-
-        /// <summary>
-        /// Спрятать своего персонажа на время окна выставления.
-        ///
-        /// Камера стоит в 1.4 м перед доской, игрок — примерно там же, и его
-        /// собственная голова временами закрывает половину ряда (плейтест
-        /// 22.08). Двигать камеру дальше нельзя: ряд с кнопкой перестаёт
-        /// помещаться в кадр.
-        ///
-        /// Гасим только рендереры и только у своего персонажа: коллайдер,
-        /// физика и всё остальное на месте, чужие видят его как обычно.
-        /// Возвращаем ровно те, что гасили сами, — <c>CircusKnockout</c>
-        /// хранит своё состояние рендереров и восстанавливает точно, и затирать
-        /// его нельзя.
-        /// </summary>
-        private void HideLocalAvatar(bool hide)
-        {
-            if (!hide)
-            {
-                for (int i = 0; i < hiddenLocalRenderers.Count; i++)
-                {
-                    if (hiddenLocalRenderers[i] != null)
-                    {
-                        hiddenLocalRenderers[i].enabled = true;
-                    }
-                }
-
-                hiddenLocalRenderers.Clear();
-                return;
-            }
-
-            if (hiddenLocalRenderers.Count > 0)
-            {
-                return;
-            }
-
-            Contestant local = FindLocal();
-            if (local == null || !local.Entry.Alive || local.Entry.Solved)
-            {
-                return;
-            }
-
-            PlayerController avatar = local.Session != null ? local.Session.Avatar : null;
-            if (avatar == null)
-            {
-                return;
-            }
-
-            avatar.GetComponentsInChildren(true, rendererBuffer);
-            for (int i = 0; i < rendererBuffer.Count; i++)
-            {
-                Renderer r = rendererBuffer[i];
-                if (r == null || !r.enabled)
-                {
-                    continue;
-                }
-
-                r.enabled = false;
-                hiddenLocalRenderers.Add(r);
-            }
         }
 
         /// <summary>
@@ -1086,14 +957,9 @@ namespace Igruha.Minigames.CansOrder
         /// </summary>
         private void HandleStageStarted(byte stage)
         {
-            // Свою блокировку ног снимаем первым делом — строго до DescendCages:
-            // на спуске клетка ставит собственную, и порядок здесь не косметика.
-            SetShelfMovementLock(false);
-            HideLocalAvatar(false);
+            // Players stay visible and can walk inside the cage while arranging cans.
             if (stage == StagePlacement)
             {
-                SetShelfMovementLock(true);
-                HideLocalAvatar(true);
                 RememberPlacementWindow();
             }
 
@@ -1192,8 +1058,10 @@ namespace Igruha.Minigames.CansOrder
             // Доска смотрит внутрь клетки, игрок стоит перед ней — значит
             // камера уходит против её forward и приподнимается над рядом,
             // чтобы банки читались сверху, а не с торца.
-            shelfCameraRig.position = board.position - board.forward * shelfCameraDistance + Vector3.up * shelfCameraHeight;
-            shelfCameraRig.rotation = Quaternion.LookRotation(board.position - shelfCameraRig.position, Vector3.up);
+            shelfCameraRig.position = board.position - board.forward * shelfCameraDistance +
+                board.right * .65f + Vector3.up * shelfCameraHeight;
+            Vector3 focus = Vector3.Lerp(board.position, local.Session.Avatar.CameraTarget.position, .3f);
+            shelfCameraRig.rotation = Quaternion.LookRotation(focus - shelfCameraRig.position, Vector3.up);
 
             cameraController.Apply(CameraMode.Fixed, shelfCameraRig);
         }

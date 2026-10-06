@@ -45,6 +45,7 @@ namespace Igruha.Minigames.Circus
             internal Animator Animator;
             internal float StandingTime;
             internal bool Ready;
+            internal bool HeadStartGranted;
         }
         private readonly List<Runner> runners = new List<Runner>(8);
         private static readonly int FlyBack = Animator.StringToHash("FlyBack");
@@ -154,11 +155,15 @@ namespace Igruha.Minigames.Circus
             }
             if(Target!=nearest)
             {
-                Target=nearest;windUpLeft=windUpDuration;currentSpeed=0;
+                Target=nearest;
+                Runner entrant=runners.Find(r=>r.Player==nearest);
+                windUpLeft=entrant!=null && entrant.HeadStartGranted ? 0 : windUpDuration;
+                if(entrant!=null)entrant.HeadStartGranted=true;
+                currentSpeed=0;
                 SetState(BearState.WindUp);
                 // This frame's delta belongs to the preceding state. Starting a
                 // target on a long frame must still grant the full head start.
-                if(windUpDuration>0)
+                if(windUpLeft>0)
                 {
                     FaceTowards(nearest.transform.position-transform.position,deltaTime);
                     return;
@@ -185,8 +190,8 @@ namespace Igruha.Minigames.Circus
         {
             float previous=attackElapsed;attackElapsed+=dt;
             // Short committed lunge; no homing or turning during the swipe.
-            float lungeTime=Mathf.Max(0,Mathf.Min(attackElapsed,attackContactTime)-Mathf.Max(previous,.47f));
-            MoveBy(attackDirection*(lungeTime*2.2f));currentSpeed=0;
+            float lungeTime=Mathf.Max(0,Mathf.Min(attackElapsed,attackContactTime)-Mathf.Max(previous,.18f));
+            MoveBy(attackDirection*(lungeTime*8.5f));currentSpeed=0;
             if(!hitEvaluated && attackElapsed>=attackContactTime)
             {
                 hitEvaluated=true;

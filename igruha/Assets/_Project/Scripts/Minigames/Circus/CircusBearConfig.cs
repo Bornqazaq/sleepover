@@ -26,12 +26,12 @@ namespace Igruha.Minigames.Circus
     public sealed class CircusBearConfig : ScriptableObject
     {
         [Header("Погоня")]
-        [Tooltip("Скорость погони, м/с. Меньше, чем у игрока (6.5), и это принципиально: медведь догоняет срезанием по хорде, а не скоростью. Дай ему быстрее игрока — и забега нет, есть мгновенная смерть")]
-        [SerializeField] private float chaseSpeed = 5.5f;
+        [Tooltip("Скорость погони, м/с. Медведь догоняет бегущего по прямой; от удара спасает уход в сторону от объявленного рывка")]
+        [SerializeField] private float chaseSpeed = 8.2f;
         [Tooltip("Скорость патрулирования пустой ямы, м/с")]
         [SerializeField] private float patrolSpeed = 2.1f;
         [Tooltip("Фора после приземления и завершения подъёма. Всё это время медведь наблюдает и не приближается")]
-        [SerializeField] private float firstAttackDelay = 3f;
+        [SerializeField] private float firstAttackDelay = 1.25f;
 
         [Header("Удар")]
         [Tooltip("Радиус удара лапой, м")]

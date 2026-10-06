@@ -29,6 +29,7 @@ namespace Igruha.Minigames.Circus
         [SerializeField] private Transform respawnPoint;
         [Tooltip("Пол на створках. Общий компонент Core — та же механика служит платформам «Экзамена»")]
         [SerializeField] private HingedFloorHatch hatch;
+        [SerializeField] private AnimationClip fallingClip;
 
         [Tooltip("На какой слой возвращать спрятанную от камеры стену, когда клетка опустела")]
         [SerializeField] private string cameraBlockingLayerName = "Ground";
@@ -97,7 +98,18 @@ namespace Igruha.Minigames.Circus
             hatch.Released += HandleHatchReleased;
         }
 
-        private void HandleHatchReleased(HingedFloorHatch _) => DoorsOpened?.Invoke(this);
+        private void HandleHatchReleased(HingedFloorHatch _)
+        {
+            LockOccupant(false);
+            platform.SetPassenger(null);
+            if (occupant != null && fallingClip != null)
+            {
+                var fall = occupant.GetComponent<CircusFallPose>();
+                if (fall == null) fall = occupant.gameObject.AddComponent<CircusFallPose>();
+                fall.Begin(fallingClip, transform.position.y);
+            }
+            DoorsOpened?.Invoke(this);
+        }
 
         private void OnDestroy()
         {
@@ -300,7 +312,7 @@ namespace Igruha.Minigames.Circus
         /// остаётся висеть пустой на своём уровне, и это единственный смысл
         /// пустой клетки на арене: отсюда уже кто-то выпал.
         /// </summary>
-        public void OpenDoors(float duration)
+        public void OpenDoors(float duration, float elapsedSeconds = 0f)
         {
             if (DoorsOpen)
             {
@@ -311,7 +323,7 @@ namespace Igruha.Minigames.Circus
             // мешает спрятанное сильно: см. SetCameraBlocking.
             SetCameraBlocking(true);
 
-            hatch.OpenDoors(duration);
+            hatch.OpenDoors(duration, elapsedSeconds);
         }
 
         /// <summary>
@@ -366,7 +378,7 @@ namespace Igruha.Minigames.Circus
                     occupant.TeleportTo(position, occupant.transform.rotation);
                 }
                 HandleArrived();
-                OpenDoors(openDuration);
+                OpenDoors(openDuration, (float)(Igruha.Core.Minigame.NetworkClock.Now - startTime - rise));
                 return;
             }
             platform.MoveTo(config.ExecutionDropHeight, rise, startTime);
@@ -386,7 +398,7 @@ namespace Igruha.Minigames.Circus
                 yield return null;
             }
 
-            OpenDoors(openDuration);
+            OpenDoors(openDuration, (float)(Igruha.Core.Minigame.NetworkClock.Now - openAt));
         }
 
         public void CloseDoors()
@@ -395,6 +407,7 @@ namespace Igruha.Minigames.Circus
             SetCameraBlocking(false);
 
             hatch.CloseDoors();
+            platform.SetPassenger(occupant);
         }
 
         private void LockOccupant(bool locked)
@@ -429,6 +442,7 @@ namespace Igruha.Minigames.Circus
         /// </summary>
         public void ReleaseOccupant()
         {
+            if (occupant != null) occupant.GetComponent<CircusFallPose>()?.Clear();
             LockOccupant(false);
             RestoreStuckDetector();
 

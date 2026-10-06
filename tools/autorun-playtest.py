@@ -9,21 +9,22 @@ import time
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 APP = ROOT / 'igruha/Builds/Autotest/sleepover.app/Contents/MacOS/sleepover'
 GAMES = {'carry': 'CarryItem', 'infection': 'Infection', 'exam': 'Exam', 'cans': 'CansOrder',
-         'memory': 'MemoryRun', 'angels': 'CryingAngels', 'tutorial': 'MemoryRun', 'footsteps': None,
+         'memory': 'MemoryRun', 'angels': 'CryingAngels', 'angels-roles': 'CryingAngels', 'tutorial': 'MemoryRun', 'footsteps': None,
          'countdown-infection': 'Infection', 'countdown-carry': 'CarryItem',
          'countdown-angels': 'CryingAngels', 'countdown-duck': 'DuckHunt',
-         'countdown-sumo': 'SumoRing', 'countdown-bullet': 'OneBullet'}
+         'countdown-sumo': 'SumoRing', 'countdown-bullet': 'OneBullet',
+         'circus-cans': 'CansOrder', 'circus-stopwatch': 'Stopwatch'}
 
 
-def run(mode, port):
+def run(mode, port, players=4, visible=False):
     stamp = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
     logs = ROOT / 'igruha/Builds/Autotest/logs' / f'playtest-{mode}-{stamp}'
     logs.mkdir(parents=True)
     processes = []
     print(f'{mode}: {logs}', flush=True)
     try:
-        for index in range(4):
-            role = ['--autostart', GAMES[mode], '--wait-players', '4'] if index == 0 else ['--client', '--host', '127.0.0.1']
+        for index in range(players):
+            role = ['--autostart', GAMES[mode], '--wait-players', str(players)] if index == 0 else ['--client', '--host', '127.0.0.1']
             if mode == 'footsteps' and index == 0:
                 role = []
             path = logs / ('host.log' if index == 0 else f'client-{index}.log')
@@ -31,9 +32,13 @@ def run(mode, port):
                     '-batchmode', '-logFile', str(path)]
             if mode != 'footsteps':
                 args.append('-nographics')
+            if visible and index < 2:
+                args.remove('-batchmode'); args.remove('-nographics')
+                args += ['-screen-fullscreen','0','-screen-width','1280','-screen-height','720',
+                         '--playtest-screenshots',str(logs/('host' if index==0 else 'client-1'))]
             if mode == 'tutorial':
                 args += ['--tutorial-check', 'repeat']
-            if mode.startswith('countdown-'):
+            if mode.startswith('countdown-') or mode == 'angels-roles':
                 args += ['--tutorial-check', 'countdown']
             processes.append(subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT))
             time.sleep(6 if index == 0 else 1.5)
@@ -49,7 +54,7 @@ def run(mode, port):
                        and 'Exception:' not in contents and 'NetworkConfig mismatch' not in contents)
             if mode == 'tutorial':
                 passed &= 'TUTORIAL_CHECK PASS' in contents and 'TUTORIAL_CHECK FAIL' not in contents
-        passed &= len(list(logs.glob('*.log'))) == 4
+        passed &= len(list(logs.glob('*.log'))) == players
         passed &= all(p.poll() == 0 for p in processes)
         print(f'{mode}: {"PASS" if passed else "FAIL"}', flush=True)
         return passed
@@ -69,8 +74,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('modes', nargs='*', default=list(GAMES), choices=list(GAMES))
     parser.add_argument('--port', type=int, default=17600)
+    parser.add_argument('--players',type=int,default=4,choices=range(2,9))
+    parser.add_argument('--visible',action='store_true')
     options = parser.parse_args()
     if not APP.is_file():
         parser.error(f'Missing development build: {APP}')
-    results = [run(mode, options.port + index) for index, mode in enumerate(options.modes)]
+    results = [run(mode, options.port + index, options.players, options.visible) for index, mode in enumerate(options.modes)]
     raise SystemExit(0 if all(results) else 1)

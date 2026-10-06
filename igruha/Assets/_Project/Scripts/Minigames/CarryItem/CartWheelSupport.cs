@@ -42,7 +42,9 @@ namespace Igruha.Minigames.CarryItem
                 points[i] = hit.point; normal += hit.normal; count++;
                 clearance = Mathf.Min(clearance, Vector3.Dot(center - hit.point, hit.normal) - Radius);
             }
-            Supported = count >= 2 && !carry.InFlight;
+            // One axle over the chasm is no longer a stable footprint. Two rear
+            // wheels must not cancel gravity and hold the cart horizontally forever.
+            Supported = count >= 3 && !carry.InFlight;
             if (Supported)
             {
                 normal.Normalize();
