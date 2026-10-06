@@ -61,6 +61,7 @@ namespace Igruha.EditorTools
 
         internal static void ApplyToCart(GameObject root)
         {
+            CarrySlopeSetup.ConfigureCart(root);
             var network = root.GetComponent<Unity.Netcode.Components.NetworkTransform>();
             if (network != null && !(network is Igruha.Networking.ObservedNetworkTransform))
             {
