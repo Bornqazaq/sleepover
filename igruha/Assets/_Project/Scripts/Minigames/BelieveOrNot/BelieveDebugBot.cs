@@ -88,6 +88,10 @@ namespace Igruha.Minigames.BelieveOrNot
                 OnStageChanged(stage);
             }
 
+            if (stage == BelieveStage.Oath && IsBot(game.KnowerPlayerId))
+                game.HandleOath(game.KnowerPlayerId, game.PredictionRound,
+                    Random.value < .5f ? BelieveOath.Mine : BelieveOath.Yours);
+
             if (stage == BelieveStage.Persuasion)
             {
                 DriveSeatedBots();

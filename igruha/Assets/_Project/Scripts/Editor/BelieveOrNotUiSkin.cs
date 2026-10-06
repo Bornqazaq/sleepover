@@ -74,6 +74,26 @@ namespace Igruha.EditorTools
                 Bubble(bubble.transform);
             }
             UnifiedHudStyle.Apply(SceneManager.GetActiveScene());
+            DuelStatus(canvas);
+        }
+
+        // Освобождаем центр для реплики и общего отсчёта кона.
+        internal static void DuelStatus(Transform canvas)
+        {
+            var plate = canvas.Find("_HudPlates/StatusPlate") as RectTransform;
+            if (plate == null) return;
+            BelieveDuelHud.ArrangeStatus(plate);
+            var text = plate.GetComponentInChildren<TMP_Text>(true);
+            if (text == null) return;
+            text.fontSize = 22f;
+            text.enableAutoSizing = true;
+            text.fontSizeMin = 18f;
+            text.fontSizeMax = 22f;
+            text.alignment = TextAlignmentOptions.MidlineLeft;
+            text.rectTransform.anchorMin = Vector2.zero;
+            text.rectTransform.anchorMax = Vector2.one;
+            text.rectTransform.offsetMin = new Vector2(20f, 8f);
+            text.rectTransform.offsetMax = new Vector2(-20f, -8f);
         }
 
         // ================= Общий HUD =================

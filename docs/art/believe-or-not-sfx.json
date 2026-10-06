@@ -1,6 +1,6 @@
 {
   "game": "Верю / не верю",
-  "source": "поставка звука (sounds.json). Слот без клипа — это заказ поставщику, а не ошибка.",
+  "source": "Поставки Sonniss/Kenney, уже принятые в проект. IGR-735: существующие клипы + три короткие монтажные версии; происхождение ниже.",
   "output_folder": "Assets/_Project/Audio/BelieveOrNot",
   "slots": [
     {
@@ -8,87 +8,125 @@
       "event": "Начало кона, рассадка (стадия Seating)",
       "loop": false,
       "spatial": false,
-      "volume": 0.8
+      "volume": 0.36,
+      "file": "Core/UI/SFX_UI_Logo_Sting_01"
     },
     {
       "id": "peek_latch",
       "event": "Показ карточки Знающему (стадия Peek)",
       "loop": false,
       "spatial": false,
-      "volume": 0.9
+      "volume": 0.4,
+      "file": "Minigames/Circus/SFX_CIRCUS_Relay_Click_01"
     },
     {
       "id": "phrase_knower",
       "event": "Реплика Знающего (пузырь над местом 0)",
       "loop": false,
       "spatial": true,
-      "volume": 0.6
+      "volume": 0.15,
+      "file": "Core/UI/SFX_UI_Notify_Pop_01"
     },
     {
       "id": "phrase_decider",
       "event": "Реплика Решающего (пузырь над местом 1)",
       "loop": false,
       "spatial": true,
-      "volume": 0.6
+      "volume": 0.15,
+      "file": "Core/UI/SFX_UI_Notify_Pop_01"
     },
     {
       "id": "tick_last",
-      "event": "Последние 5 с уговоров",
-      "loop": true,
+      "event": "Один тихий тик на каждую из последних пяти секунд, по общему отсчёту",
+      "loop": false,
       "spatial": false,
-      "volume": 0.5
+      "volume": 0.42,
+      "file": "Core/UI/SFX_UI_Slider_Tick_01"
     },
     {
       "id": "box_swap",
       "event": "Обмен коробок местами (стадия Reveal, решение «Поменять»)",
       "loop": false,
       "spatial": true,
-      "volume": 0.9
+      "volume": 0.6,
+      "file": "SFX_BEL_Box_Slide"
     },
     {
       "id": "lids_open",
       "event": "Одновременное раскрытие крышек (стадия Reveal)",
       "loop": false,
       "spatial": true,
-      "volume": 1.0
+      "volume": 0.6,
+      "file": "SFX_BEL_Lids"
     },
     {
       "id": "outcome_win",
       "event": "Решающий угадал",
       "loop": false,
       "spatial": false,
-      "volume": 0.85,
-      "file": "Core/Flow/SFX_FLOW_Sting_Positive"
+      "volume": 0.5,
+      "file": "Core/Flow/SFX_FLOW_Sting_Positive_01"
     },
     {
       "id": "outcome_fail",
       "event": "Решающего обманули",
       "loop": false,
       "spatial": false,
-      "volume": 0.85,
-      "file": "Core/Flow/SFX_FLOW_Sting_Negative"
+      "volume": 0.48,
+      "file": "Core/Flow/SFX_FLOW_Sting_Negative_03"
     },
     {
       "id": "gag_puff",
       "event": "Облачко в лицо проигравшему (стадия Reaction)",
       "loop": false,
       "spatial": true,
-      "volume": 0.8
+      "volume": 0.3,
+      "file": "SFX_BEL_Puff"
     },
     {
       "id": "crowd_react",
       "event": "Реакция зала на раскрытие",
       "loop": false,
       "spatial": false,
-      "volume": 0.7,
-      "file": "Core/Crowd/SFX_CROWD_Boo_Claps"
+      "volume": 0.24,
+      "file": "Core/Crowd/SFX_CROWD_Laugh_Claps_01"
     },
     {
       "id": "hall_ambience",
       "event": "Фон зала весь матч",
       "loop": true,
       "spatial": false,
-      "volume": 0.35
+      "volume": 0.08,
+      "file": "CryingAngels/SFX_ANGL_Amb_Hall_Loop_01"
+    },
+    {
+      "id": "oath_seal",
+      "file": "Core/Traps/SFX_TRAP_Button_Press_01",
+      "volume": 0.45,
+      "event": "Публичная клятва принята; одинаково для правды и лжи",
+      "loop": false,
+      "spatial": false
+    },
+    {
+      "id": "decision_lock",
+      "file": "Core/Traps/SFX_TRAP_Lever_Pull_01",
+      "volume": 0.4,
+      "event": "Решение принято, перед обменом и раскрытием",
+      "loop": false,
+      "spatial": false
+    },
+    {
+      "id": "crowd_applause",
+      "file": "Core/Crowd/SFX_CROWD_Applause_01",
+      "volume": 0.22,
+      "event": "Реакция зала, когда Решающий угадал",
+      "loop": false,
+      "spatial": false
     }
-  ]
+  ],
+  "edits": {
+    "SFX_BEL_Lids": "Core/Traps/SFX_TRAP_Hatch_Open_01, первые 0.42 с, короткие фейды",
+    "SFX_BEL_Box_Slide": "Core/Character/SFX_CHR_Step_Carpet_01, два шороха с интервалом 0.5 с, длина 1.2 с",
+    "SFX_BEL_Puff": "Core/Traps/SFX_TRAP_Hatch_Open_01, участок 0.52–0.87 с, короткие фейды"
+  }
 }

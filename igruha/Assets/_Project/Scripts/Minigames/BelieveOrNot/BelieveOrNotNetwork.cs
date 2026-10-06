@@ -34,6 +34,7 @@ namespace Igruha.Minigames.BelieveOrNot
         public bool Resolved;
         public bool Cancelled;
         public bool IsRematch;
+        public byte Oath;
 
         /// <summary>
         /// Матч ещё не начался. Места именно <c>NoPlayer</c>, а не нули:
@@ -61,6 +62,7 @@ namespace Igruha.Minigames.BelieveOrNot
             serializer.SerializeValue(ref Resolved);
             serializer.SerializeValue(ref Cancelled);
             serializer.SerializeValue(ref IsRematch);
+            serializer.SerializeValue(ref Oath);
         }
 
         public bool Equals(BelieveMatchNetState other) =>
@@ -74,7 +76,7 @@ namespace Igruha.Minigames.BelieveOrNot
             TeamBWins == other.TeamBWins &&
             Resolved == other.Resolved &&
             Cancelled == other.Cancelled &&
-            IsRematch == other.IsRematch;
+            IsRematch == other.IsRematch && Oath == other.Oath;
     }
 
     /// <summary>
@@ -292,7 +294,8 @@ namespace Igruha.Minigames.BelieveOrNot
                 TeamBWins = state.TeamBWins,
                 Resolved = state.Resolved,
                 Cancelled = state.Cancelled,
-                IsRematch = state.IsRematch
+                IsRematch = state.IsRematch,
+                Oath = (byte)state.Oath
             };
         }
 
@@ -450,6 +453,15 @@ namespace Igruha.Minigames.BelieveOrNot
         [Rpc(SendTo.Server, RequireOwnership = false)]
         private void SubmitPhraseRpc(int phraseIndex, RpcParams rpcParams = default) =>
             game?.HandlePhrase((int)rpcParams.Receive.SenderClientId, phraseIndex);
+
+        public void SubmitOath(int round, BelieveOath oath)
+        {
+            if (IsSpawned) SubmitOathServerRpc(round, (byte)oath);
+        }
+
+        [Rpc(SendTo.Server, RequireOwnership = false)]
+        private void SubmitOathServerRpc(int round, byte oath, RpcParams rpcParams = default) =>
+            game?.HandleOath((int)rpcParams.Receive.SenderClientId, round, (BelieveOath)oath);
 
         // Скрытые выборы хранятся только у сервера. Ответ на нажатие адресован
         // отправителю; общая NetworkVariable заполняется лишь при открытии коробок.

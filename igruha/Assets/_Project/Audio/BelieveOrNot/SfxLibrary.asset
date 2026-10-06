@@ -14,82 +14,92 @@ MonoBehaviour:
   m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.MinigameSfxLibrary
   entries:
   - Id: round_gong
-    Clip: {fileID: 0}
+    Clip: {fileID: 8300000, guid: 67201e7a3da414749b4f48c14572ef56, type: 3}
     Variants: []
-    Volume: 0.8
+    Volume: 0.36
     Loop: 0
     Spatial: 0
   - Id: peek_latch
-    Clip: {fileID: 0}
+    Clip: {fileID: 8300000, guid: 46cef62d796de3f43bc875d71c323456, type: 3}
     Variants: []
-    Volume: 0.9
+    Volume: 0.4
     Loop: 0
     Spatial: 0
   - Id: phrase_knower
-    Clip: {fileID: 0}
+    Clip: {fileID: 8300000, guid: 9d3cf38996ad27645801e0b12c585dba, type: 3}
     Variants: []
-    Volume: 0.6
+    Volume: 0.15
     Loop: 0
     Spatial: 1
   - Id: phrase_decider
-    Clip: {fileID: 0}
+    Clip: {fileID: 8300000, guid: 9d3cf38996ad27645801e0b12c585dba, type: 3}
+    Variants: []
+    Volume: 0.15
+    Loop: 0
+    Spatial: 1
+  - Id: tick_last
+    Clip: {fileID: 8300000, guid: f2fd41ac779760a48a17900ba33463e1, type: 3}
+    Variants: []
+    Volume: 0.42
+    Loop: 0
+    Spatial: 0
+  - Id: box_swap
+    Clip: {fileID: 8300000, guid: a8a5f936601d04256af4a5b0d5facae7, type: 3}
     Variants: []
     Volume: 0.6
     Loop: 0
     Spatial: 1
-  - Id: tick_last
-    Clip: {fileID: 0}
-    Variants: []
-    Volume: 0.5
-    Loop: 1
-    Spatial: 0
-  - Id: box_swap
-    Clip: {fileID: 0}
-    Variants: []
-    Volume: 0.9
-    Loop: 0
-    Spatial: 1
   - Id: lids_open
-    Clip: {fileID: 0}
+    Clip: {fileID: 8300000, guid: 43f6b731c4d924aed8148eb4b7b0f207, type: 3}
     Variants: []
-    Volume: 1
+    Volume: 0.6
     Loop: 0
     Spatial: 1
   - Id: outcome_win
     Clip: {fileID: 8300000, guid: be1f90c46c22a954c9f70a1227a506ab, type: 3}
-    Variants:
-    - {fileID: 8300000, guid: be1f90c46c22a954c9f70a1227a506ab, type: 3}
-    - {fileID: 8300000, guid: 816b2e4a416ceb742bd36abb871caab9, type: 3}
-    - {fileID: 8300000, guid: 4e512947175f58841906b65d852a28ed, type: 3}
-    - {fileID: 8300000, guid: 6a18103cc688a0347ac5bee628491f93, type: 3}
-    Volume: 0.85
+    Variants: []
+    Volume: 0.5
     Loop: 0
     Spatial: 0
   - Id: outcome_fail
-    Clip: {fileID: 8300000, guid: 727bf5c4a0520de4d9ccd968bf5e1244, type: 3}
-    Variants:
-    - {fileID: 8300000, guid: 727bf5c4a0520de4d9ccd968bf5e1244, type: 3}
-    - {fileID: 8300000, guid: 3072fd0f058a8d04bb4e104efa9366ef, type: 3}
-    - {fileID: 8300000, guid: c468fbf7736923444880a985a7580dd6, type: 3}
-    - {fileID: 8300000, guid: 4cb4aba5e8369be47855d779d34a6edb, type: 3}
-    Volume: 0.85
+    Clip: {fileID: 8300000, guid: c468fbf7736923444880a985a7580dd6, type: 3}
+    Variants: []
+    Volume: 0.48
     Loop: 0
     Spatial: 0
   - Id: gag_puff
-    Clip: {fileID: 0}
+    Clip: {fileID: 8300000, guid: 51734b9ad62ed408d8c2e18da9b98639, type: 3}
     Variants: []
-    Volume: 0.8
+    Volume: 0.3
     Loop: 0
     Spatial: 1
   - Id: crowd_react
-    Clip: {fileID: 8300000, guid: 32a48acd78a462e44979d08f3c42df82, type: 3}
+    Clip: {fileID: 8300000, guid: 3683face1666d614a98bd762104a9fb2, type: 3}
     Variants: []
-    Volume: 0.7
+    Volume: 0.24
     Loop: 0
     Spatial: 0
   - Id: hall_ambience
-    Clip: {fileID: 0}
+    Clip: {fileID: 8300000, guid: 92c7a467b29d1ab478c9c6d2c3efe390, type: 3}
     Variants: []
-    Volume: 0.35
+    Volume: 0.08
     Loop: 1
+    Spatial: 0
+  - Id: oath_seal
+    Clip: {fileID: 8300000, guid: 02b9c1c10804f76429bbf66410f6a6a6, type: 3}
+    Variants: []
+    Volume: 0.45
+    Loop: 0
+    Spatial: 0
+  - Id: decision_lock
+    Clip: {fileID: 8300000, guid: f261df92c7f306d4c80ed64e503dab02, type: 3}
+    Variants: []
+    Volume: 0.4
+    Loop: 0
+    Spatial: 0
+  - Id: crowd_applause
+    Clip: {fileID: 8300000, guid: dae0f40bd3c59004abe7ee5dd9372175, type: 3}
+    Variants: []
+    Volume: 0.22
+    Loop: 0
     Spatial: 0

@@ -166,6 +166,7 @@ namespace Igruha.Minigames.BelieveOrNot
 
             network = GetComponent<BelieveOrNotNetwork>();
             InitializePredictions();
+            InitializeOath();
 
             if (decisionPanel != null)
             {
@@ -187,6 +188,7 @@ namespace Igruha.Minigames.BelieveOrNot
         private void OnDestroy()
         {
             if (predictionPanel != null) predictionPanel.Picked -= SubmitPrediction;
+            if (duelHud != null) duelHud.Picked -= SubmitOath;
             if (decisionPanel != null)
             {
                 decisionPanel.DecisionPicked -= SubmitDecision;
@@ -283,6 +285,8 @@ namespace Igruha.Minigames.BelieveOrNot
             }
 
             predictionPanel?.Close();
+            duelHud?.Close();
+            DuelEnded?.Invoke();
             LogFinalTable();
             peekView?.Close();
             decisionPanel?.Close();
@@ -388,6 +392,9 @@ namespace Igruha.Minigames.BelieveOrNot
         {
             match.IsRematch = TryRematch(roundNumber);
             match.RoundNumber = roundNumber;
+            match.Oath = BelieveOath.Pending;
+            oathRevealed = false;
+            oathTruth = false;
             match.Decision = Decision.None;
             match.Resolved = false;
             match.Cancelled = false;
@@ -511,6 +518,17 @@ namespace Igruha.Minigames.BelieveOrNot
                         break;
                     }
 
+                    stageState.EnterStage(BelieveStage.Oath, config.OathSeconds);
+                    break;
+
+                case BelieveStage.Oath:
+                    if (RoundInterrupted)
+                    {
+                        FinishRound();
+                        break;
+                    }
+                    if (match.Oath == BelieveOath.Pending) match.Oath = BelieveOath.Declined;
+                    PublishMatch();
                     stageState.EnterStage(BelieveStage.Persuasion, config.PersuasionSeconds);
                     break;
 
@@ -781,6 +799,7 @@ namespace Igruha.Minigames.BelieveOrNot
                 // время, и ушедший в них Знающий не должен получить очко.
                 bool beforeDecision = Stage == BelieveStage.Seating
                                       || Stage == BelieveStage.Peek
+                                      || Stage == BelieveStage.Oath
                                       || Stage == BelieveStage.Persuasion;
 
                 if (playerId == match.DeciderPlayerId && beforeDecision)
@@ -875,6 +894,10 @@ namespace Igruha.Minigames.BelieveOrNot
                     ApplyPeekStage();
                     break;
 
+                case BelieveStage.Oath:
+                    BeginOathView();
+                    break;
+
                 case BelieveStage.Persuasion:
                     ApplyPersuasionStage();
                     break;
@@ -892,6 +915,9 @@ namespace Igruha.Minigames.BelieveOrNot
                     break;
             }
 
+            Hud?.SetTimerPlateVisible(false);
+            RefreshOathView();
+            duelHud?.ShowClock(stage, stageState.StageRemaining);
             UpdateHud();
         }
 
@@ -1390,11 +1416,17 @@ namespace Igruha.Minigames.BelieveOrNot
                 yield return new WaitForSeconds(config.BoxSwapSeconds);
             }
 
+            yield return new WaitForSeconds(config.RevealHoldSeconds);
+            LidsOpening?.Invoke();
+
             // Обе крышки — одним кадром. Иначе зал успевает прочитать исход
             // по первой открывшейся.
             atSeat0?.Reveal(seat0Card, config.LidOpenSeconds);
             atSeat1?.Reveal(seat1Card, config.LidOpenSeconds);
 
+            yield return new WaitForSeconds(config.LidOpenSeconds);
+            RevealOath(seat0Card);
+            CardsRevealed?.Invoke(WinnerSeat(decision, seat0Card) == SeatOf(match.DeciderPlayerId));
             PredictionBoxesOpened(SeatedId(WinnerSeat(decision, seat0Card)));
             AnnounceOutcome(decision, seat0Card);
 
@@ -1569,6 +1601,7 @@ namespace Igruha.Minigames.BelieveOrNot
             PinSeatedPlayers();
 
             float remaining = stageState.StageRemaining;
+            duelHud?.ShowClock(Stage, remaining);
 
             if (peekView != null && peekView.IsOpen)
             {
@@ -1582,6 +1615,7 @@ namespace Igruha.Minigames.BelieveOrNot
 
             if (autoplay)
             {
+                DriveOathAutoplay();
                 DriveAutoplay();
             }
         }
@@ -1612,6 +1646,9 @@ namespace Igruha.Minigames.BelieveOrNot
             match.Resolved = state.Resolved;
             match.Cancelled = state.Cancelled;
             match.IsRematch = state.IsRematch;
+            match.Oath = (BelieveOath)state.Oath;
+            if (newPredictionRound) { oathRevealed = false; oathTruth = false; }
+            RefreshOathView();
             if (newPredictionRound) ResetPredictions();
 
             UpdateHud();

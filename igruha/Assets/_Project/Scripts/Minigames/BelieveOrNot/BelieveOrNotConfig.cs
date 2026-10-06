@@ -20,6 +20,8 @@ namespace Igruha.Minigames.BelieveOrNot
         [SerializeField] private float seatingSeconds = 3f;
         [Tooltip("Показ карточки Знающему")]
         [SerializeField] private float peekSeconds = 3f;
+        [SerializeField, Min(1f)] private float oathSeconds = 4f;
+        [SerializeField, Min(0f)] private float revealHoldSeconds = .55f;
         [Tooltip("Уговоры в одном коне. После него та же пара меняется ролями")]
         [SerializeField] private float persuasionSeconds = 20f;
         [Tooltip("Раскрытие: обмен коробок и подъём обеих крышек")]
@@ -138,13 +140,15 @@ namespace Igruha.Minigames.BelieveOrNot
 
         public float SeatingSeconds => seatingSeconds;
         public float PeekSeconds => peekSeconds;
+        public float OathSeconds => oathSeconds;
+        public float RevealHoldSeconds => revealHoldSeconds;
         public float PersuasionSeconds => persuasionSeconds;
         public float RevealSeconds => revealSeconds;
         public float ReactionSeconds => reactionSeconds;
 
         /// <summary>Полный кон целиком — для проверки тайминга и для HUD.</summary>
         public float RoundSeconds =>
-            seatingSeconds + peekSeconds + persuasionSeconds + revealSeconds + reactionSeconds;
+            seatingSeconds + peekSeconds + oathSeconds + persuasionSeconds + revealSeconds + reactionSeconds;
 
         public float BoxSwapSeconds => boxSwapSeconds;
         public float LidOpenSeconds => lidOpenSeconds;

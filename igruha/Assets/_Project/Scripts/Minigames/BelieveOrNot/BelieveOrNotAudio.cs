@@ -1,4 +1,3 @@
-using System.Collections;
 using UnityEngine;
 using Igruha.Core.Audio;
 using Igruha.Core.Minigame;
@@ -60,11 +59,11 @@ namespace Igruha.Minigames.BelieveOrNot
         private const float TickLeadSeconds = 5f;
 
         /// <summary>
-        /// Пауза между крышками и аккордом исхода. Полсекунды тишины —
-        /// требование брифа (14.6): аккорд, наложенный на стук крышек,
-        /// перестаёт быть ответом на вопрос «ну что там».
+        /// Клятва и окончательное решение звучат одинаково при любом скрытом исходе.
         /// </summary>
-        private const float ChordDelaySeconds = 0.45f;
+        private const string SlotOath = "oath_seal";
+        private const string SlotDecision = "decision_lock";
+        private const string SlotApplause = "crowd_applause";
 
         [Header("Сцена")]
         [SerializeField] private BelieveOrNotMinigame game;
@@ -73,9 +72,10 @@ namespace Igruha.Minigames.BelieveOrNot
         [SerializeField] private BelieveOrNotConfig config;
         [SerializeField] private MinigameAudioPlayer audioPlayer;
 
-        private bool ticking;
         private bool ambient;
-        private Coroutine revealRoutine;
+        private int lastTick = -1;
+        private bool deciderWon;
+        public event System.Action<string> CuePlayed;
 
         private void OnEnable()
         {
@@ -88,6 +88,10 @@ namespace Igruha.Minigames.BelieveOrNot
             {
                 game.PhraseShown += OnPhraseShown;
                 game.RevealStarted += OnRevealStarted;
+                game.OathCommitted += OnOathCommitted;
+                game.LidsOpening += OnLidsOpening;
+                game.CardsRevealed += OnCardsRevealed;
+                game.DuelEnded += StopAudio;
             }
         }
 
@@ -102,15 +106,17 @@ namespace Igruha.Minigames.BelieveOrNot
             {
                 game.PhraseShown -= OnPhraseShown;
                 game.RevealStarted -= OnRevealStarted;
+                game.OathCommitted -= OnOathCommitted;
+                game.LidsOpening -= OnLidsOpening;
+                game.CardsRevealed -= OnCardsRevealed;
+                game.DuelEnded -= StopAudio;
             }
+            StopAudio();
+        }
 
-            if (revealRoutine != null)
-            {
-                StopCoroutine(revealRoutine);
-                revealRoutine = null;
-            }
-
-            ticking = false;
+        private void StopAudio()
+        {
+            lastTick = -1;
             ambient = false;
             audioPlayer?.StopAll();
         }
@@ -127,23 +133,10 @@ namespace Igruha.Minigames.BelieveOrNot
                 return;
             }
 
-            bool shouldTick = stageState.Stage == BelieveStage.Persuasion
-                              && stageState.StageRemaining <= TickLeadSeconds;
-
-            if (shouldTick == ticking)
-            {
-                return;
-            }
-
-            ticking = shouldTick;
-            if (ticking)
-            {
-                audioPlayer.StartLoop(SlotTick);
-            }
-            else
-            {
-                audioPlayer.StopLoop(SlotTick);
-            }
+            int second = Mathf.CeilToInt(stageState.StageRemaining);
+            if (stageState.Stage != BelieveStage.Persuasion || second <= 0 || second > TickLeadSeconds || second == lastTick) return;
+            lastTick = second;
+            Play(SlotTick);
         }
 
         private void OnStageStarted(byte stage)
@@ -161,19 +154,24 @@ namespace Igruha.Minigames.BelieveOrNot
                 audioPlayer.StartLoop(SlotAmbience);
             }
 
+            lastTick = -1;
+            if (stage == BelieveStage.Cancelled) { audioPlayer.StopAll(); ambient = false; return; }
+            // Тихий воздух под разговором; на раскрытии оставляем место замкам и исходу.
+            audioPlayer.SetLoopLevel(SlotAmbience, stage == BelieveStage.Reveal ? .18f : 1f, 1f);
+
             switch (stage)
             {
                 case BelieveStage.Seating:
-                    audioPlayer.Play(SlotGong);
+                    Play(SlotGong);
                     break;
 
                 case BelieveStage.Peek:
-                    audioPlayer.Play(SlotLatch);
+                    Play(SlotLatch);
                     break;
 
                 case BelieveStage.Reaction:
                     PlayGagSound();
-                    audioPlayer.Play(SlotCrowd);
+                    Play(deciderWon ? SlotApplause : SlotCrowd);
                     break;
             }
         }
@@ -195,7 +193,7 @@ namespace Igruha.Minigames.BelieveOrNot
                 BelieveBox box = table.GetBox(seat);
                 if (box != null && box.Card == BelieveCard.Lose)
                 {
-                    audioPlayer.PlayAt(SlotGag, box.transform.position);
+                    PlayAt(SlotGag, box.transform.position);
                     return;
                 }
             }
@@ -210,45 +208,33 @@ namespace Igruha.Minigames.BelieveOrNot
 
             Transform anchor = table.GetSeatAnchor(seat);
             Vector3 point = anchor != null ? anchor.position : table.transform.position;
-            audioPlayer.PlayAt(byKnower ? SlotPhraseKnower : SlotPhraseDecider, point);
+            PlayAt(byKnower ? SlotPhraseKnower : SlotPhraseDecider, point);
         }
 
         private void OnRevealStarted(Decision decision, bool deciderGuessedRight)
         {
-            if (audioPlayer == null)
-            {
-                return;
-            }
-
-            if (revealRoutine != null)
-            {
-                StopCoroutine(revealRoutine);
-            }
-
-            revealRoutine = StartCoroutine(RevealRoutine(decision, deciderGuessedRight));
+            deciderWon = deciderGuessedRight;
+            Play(SlotDecision);
+            if (decision == Decision.Swap) PlayAt(SlotSwap, TablePoint);
         }
 
-        /// <summary>
-        /// Звуковая дорожка раскрытия. Идёт теми же паузами, что и картинка:
-        /// сначала обмен коробок, потом крышки, потом аккорд. Числа берутся
-        /// из конфига, а не пишутся здесь: разъехавшись с анимацией, звук
-        /// объявил бы исход раньше, чем крышки поднялись.
-        /// </summary>
-        private IEnumerator RevealRoutine(Decision decision, bool deciderGuessedRight)
+        private Vector3 TablePoint => table != null ? table.transform.position : transform.position;
+        private void OnOathCommitted() => Play(SlotOath);
+        private void OnLidsOpening() => PlayAt(SlotLids, TablePoint);
+        private void OnCardsRevealed(bool guessedRight) => Play(guessedRight ? SlotWin : SlotFail);
+
+        private void Play(string slot)
         {
-            Vector3 point = table != null ? table.transform.position : transform.position;
+            if (audioPlayer == null) return;
+            audioPlayer.Play(slot);
+            CuePlayed?.Invoke(slot);
+        }
 
-            if (decision == Decision.Swap)
-            {
-                audioPlayer.PlayAt(SlotSwap, point);
-                yield return new WaitForSeconds(config != null ? config.BoxSwapSeconds : 1.2f);
-            }
-
-            audioPlayer.PlayAt(SlotLids, point);
-            yield return new WaitForSeconds(ChordDelaySeconds);
-
-            audioPlayer.Play(deciderGuessedRight ? SlotWin : SlotFail);
-            revealRoutine = null;
+        private void PlayAt(string slot, Vector3 position)
+        {
+            if (audioPlayer == null) return;
+            audioPlayer.PlayAt(slot, position);
+            CuePlayed?.Invoke(slot);
         }
     }
 }

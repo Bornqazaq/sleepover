@@ -12,7 +12,7 @@ import time
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--scenario', choices=['normal', 'cancel-seating', 'cancel-peek', 'cancel-persuasion', 'predictions'], default='normal')
+    parser.add_argument('--scenario', choices=['normal', 'cancel-seating', 'cancel-peek', 'cancel-persuasion', 'cancel-oath', 'predictions', 'oaths', 'oath-timeout'], default='normal')
     parser.add_argument('--players', type=int, choices=range(2, 9))
     args = parser.parse_args()
     players = args.players or (2 if args.scenario == 'normal' else 4)
@@ -39,7 +39,7 @@ def main():
         while any(p.poll() is None for p in processes) and time.monotonic() < deadline:
             time.sleep(1)
         ok = all(p.poll() == 0 for p in processes)
-        snapshots, disconnects, predictions, pairs = [], 0, {}, {}
+        snapshots, disconnects, predictions, pairs, oaths, verdicts = [], 0, {}, {}, {}, {}
         for log in sorted(logs.glob('*.log')):
             contents = log.read_text(errors='replace')
             lines = [line for line in contents.splitlines() if line.startswith('BELIEVE_CHECK')]
@@ -54,6 +54,10 @@ def main():
                     passed &= any(' PAUSE_PASS ' in line for line in lines)
                 snapshots += [line for line in lines if ' FINAL ' in line]
                 for line in lines:
+                    if ' OATH ' in line or ' OATH_RESULT ' in line:
+                        target = verdicts if ' OATH_RESULT ' in line else oaths
+                        round_id = line.split('round=')[1].split()[0]
+                        target.setdefault(round_id, []).append(line)
                     if ' PAIR ' in line:
                         round_id = line.split('round=')[1].split()[0]
                         pairs.setdefault(round_id, []).append(line)
@@ -70,8 +74,11 @@ def main():
         if not expected_disconnects:
             expected_rounds = [4, 6, 4, 6, 6, 8, 8][players - 2]
             ok &= len(pairs) == expected_rounds and all(len(v) == players and len(set(v)) == 1 for v in pairs.values())
-        if args.scenario == 'predictions':
+        if args.scenario in ['predictions', 'oaths', 'oath-timeout']:
             ok &= bool(predictions) and all(len(v) == players and len(set(v)) == 1 for v in predictions.values())
+        if not expected_disconnects:
+            ok &= len(oaths) == expected_rounds and all(len(v) == players and len(set(v)) == 1 for v in oaths.values())
+            ok &= len(verdicts) == expected_rounds and all(len(v) == players and len(set(v)) == 1 for v in verdicts.values())
         print('BELIEVE LOCALHOST CHECK:', 'PASS' if ok else 'FAIL', flush=True)
         return 0 if ok else 1
     finally:

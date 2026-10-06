@@ -74,6 +74,8 @@ namespace Igruha.Minigames.BelieveOrNot
 
         /// <summary>Знающий вышел до решения: без раскрытия, победителя и эффектов исхода.</summary>
         public const byte Cancelled = 6;
+
+        public const byte Oath = 7;
     }
 
     /// <summary>
@@ -134,6 +136,7 @@ namespace Igruha.Minigames.BelieveOrNot
 
         /// <summary>Второй кон той же пары: Знающий и Решающий поменялись ролями.</summary>
         public bool IsRematch;
+        public BelieveOath Oath;
     }
 
     /// <summary>

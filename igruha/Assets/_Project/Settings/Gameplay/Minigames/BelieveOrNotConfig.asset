@@ -14,6 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.BelieveOrNot.BelieveOrNotConfig
   seatingSeconds: 3
   peekSeconds: 3
+  oathSeconds: 4
+  revealHoldSeconds: 0.55
   persuasionSeconds: 20
   revealSeconds: 4
   reactionSeconds: 3

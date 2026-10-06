@@ -24,12 +24,16 @@ namespace Igruha.Tests
         private string scenario;
         private float started, nextChoice, quitAt = -1;
         private int handledRound, observedRound, reveals, decisions;
+        private int oathPickedRound, oathLoggedRound, oathVerdictRound;
+        private readonly List<string> soundCues = new List<string>();
+        private readonly List<string> playedClips = new List<string>();
+        private AudioSource[] audioVoices;
         private byte observedStage;
         private int predictionRound, predictionResultRound, expectedWinner;
         private float persuasionStarted;
         private int checkedPairRound, completedRound;
         private BelieveMatchState previousPair;
-        private bool PredictionScenario => scenario == "predictions" || scenario == "cancel-persuasion";
+        private bool PredictionScenario => scenario == "predictions" || scenario == "oaths" || scenario == "oath-timeout" || scenario == "cancel-oath" || scenario == "cancel-persuasion";
         private bool ready, cancelled, departing, finished, failed, returned;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -73,6 +77,12 @@ namespace Igruha.Tests
                 game = current;
                 stage = game.GetComponent<MinigameStageState>();
                 ready = false; handledRound = observedRound = reveals = 0; observedStage = 0;
+                var sound = Object.FindFirstObjectByType<BelieveOrNotAudio>();
+                if (sound != null)
+                {
+                    sound.CuePlayed += cue => soundCues.Add(cue);
+                    audioVoices = sound.GetComponentsInChildren<AudioSource>();
+                }
                 game.RevealStarted += (decision, won) =>
                 {
                     reveals++;
@@ -87,7 +97,8 @@ namespace Igruha.Tests
                 { ready = true; game.ToggleTutorialReady(); }
                 if (game.Phase == MinigamePhase.Round)
                 {
-                    if (stage.Subround != observedRound) { observedRound = stage.Subround; reveals = 0; }
+                    if (stage.Subround != observedRound) { observedRound = stage.Subround; reveals = 0; soundCues.Clear(); playedClips.Clear(); }
+                    CheckOath();
                     if (stage.Stage != observedStage)
                     {
                         observedStage = stage.Stage;
@@ -98,7 +109,7 @@ namespace Igruha.Tests
                     if (PredictionScenario) CheckPredictions();
                     CheckRematch();
                     byte leaveStage = scenario == "cancel-seating" ? BelieveStage.Seating :
-                        scenario == "cancel-peek" ? BelieveStage.Peek : BelieveStage.Persuasion;
+                        scenario == "cancel-peek" ? BelieveStage.Peek : scenario == "cancel-oath" ? BelieveStage.Oath : BelieveStage.Persuasion;
                     bool cancelThisRound = scenario.StartsWith("cancel-") && !cancelled && game.KnowerPlayerId != 0;
                     if (cancelThisRound && stage.Stage == leaveStage && game.KnowerPlayerId == LocalId && !departing &&
                         (scenario != "cancel-persuasion" || Time.realtimeSinceStartup - persuasionStarted > 2f))
@@ -128,6 +139,67 @@ namespace Igruha.Tests
             if (quitAt > 0 && Time.realtimeSinceStartup >= quitAt) Application.Quit(failed ? 2 : 0);
             if (Time.realtimeSinceStartup - started > Timeout)
             { Check(false, "timeout"); Application.Quit(2); }
+        }
+
+        private void CheckOath()
+        {
+            if (audioVoices != null)
+                foreach (var source in audioVoices)
+                    if (source != null && source.isPlaying && source.clip != null && !playedClips.Contains(source.clip.name))
+                        playedClips.Add(source.clip.name);
+            bool waiting = stage.Stage == BelieveStage.Oath;
+            if (waiting || stage.Stage == BelieveStage.Persuasion)
+                Check(!game.OathRevealed, "oath truth stays hidden before box opening");
+            if (waiting && game.KnowerPlayerId == LocalId && oathPickedRound != stage.Subround &&
+                scenario != "cancel-oath" && !(scenario == "oath-timeout" && stage.Subround == 1))
+            {
+                oathPickedRound = stage.Subround;
+                StartCoroutine(PickOath());
+            }
+            if (stage.Stage == BelieveStage.Persuasion && oathLoggedRound != stage.Subround)
+            {
+                if (game.Oath == BelieveOath.Pending) return;
+                oathLoggedRound = stage.Subround;
+                Debug.Log("BELIEVE_CHECK OATH round=" + stage.Subround + " claim=" + game.Oath);
+            }
+            if (stage.Stage == BelieveStage.Reaction && oathVerdictRound != stage.Subround)
+            {
+                oathVerdictRound = stage.Subround;
+                var match = Get<BelieveMatchState>(game, "match");
+                bool claimed = BelieveOathRules.IsClaim(game.Oath);
+                Check(game.OathRevealed == claimed, "only an explicit promise gets a verdict");
+                if (claimed)
+                {
+                    var table = Get<BelieveTable>(game, "table");
+                    int knowerSeat = match.Seat0PlayerId == game.KnowerPlayerId ? 0 : 1;
+                    Check(game.OathTruth == BelieveOathRules.IsTrue(game.Oath, table.GetBox(knowerSeat).Card == BelieveCard.Win),
+                        "verdict matches original knower card, even after swap");
+                    Check(soundCues.Contains("oath_seal"), "public oath cue on each machine");
+                }
+                int lid = soundCues.IndexOf("lids_open");
+                int outcome = soundCues.FindIndex(c => c == "outcome_win" || c == "outcome_fail");
+                Check(lid >= 0 && outcome > lid, "lid sound precedes outcome on each machine");
+                Check(soundCues.Contains("decision_lock"), "decision lock cue");
+                if (scenario == "oath-timeout" && stage.Subround == 1)
+                    Check(soundCues.Contains("tick_last"), "last seconds tick");
+                Debug.Log("BELIEVE_CHECK OATH_RESULT round=" + stage.Subround + " claim=" + game.Oath +
+                    " revealed=" + game.OathRevealed + " truth=" + game.OathTruth);
+                Debug.Log("BELIEVE_CHECK AUDIO round=" + stage.Subround + " cues=" + string.Join(",", soundCues) +
+                    " clips=" + string.Join(",", playedClips));
+            }
+        }
+
+        private IEnumerator PickOath()
+        {
+            yield return new WaitForSeconds(.35f);
+            if (stage.Stage != BelieveStage.Oath) yield break;
+            var panel = Get<BelieveDuelHud>(game, "duelHud");
+            var pause = PauseScreen.Current;
+            Call(pause, "Pause");
+            panel.Choose(BelieveOath.Mine);
+            Check(panel.Choosing && game.Oath == BelieveOath.Pending, "pause blocks oath input");
+            pause.Resume();
+            panel.Choose(stage.Subround % 2 == 0 ? BelieveOath.Yours : BelieveOath.Mine);
         }
 
         private void CheckRematch()
@@ -191,7 +263,8 @@ namespace Igruha.Tests
                 }
                 snapshot.Sort();
                 var panel = Get<BelievePredictionPanel>(game, "predictionPanel");
-                Check(panel.IsVisible && !panel.CanPick, "revealed predictions visible to both roles");
+                Check(panel.IsVisible == (spectators > 0) && !panel.CanPick,
+                    "prediction results visible only when spectators participate");
                 Debug.Log("BELIEVE_CHECK PREDICTIONS round=" + result.Round + " winner=" + result.WinnerId +
                     " picks=" + string.Join(",", snapshot));
                 game.GetComponent<BelieveOrNotNetwork>().SubmitPrediction(stage.Subround, match.Seat0PlayerId);
@@ -235,7 +308,8 @@ namespace Igruha.Tests
 
         private IEnumerator CheckDecision()
         {
-            if (PredictionScenario) yield return new WaitForSeconds(3f);
+            if (scenario == "oath-timeout" && stage.Subround == 1) yield return new WaitForSeconds(16f);
+            else if (PredictionScenario) yield return new WaitForSeconds(3f);
             var panel = Get<BelieveDecisionPanel>(game, "decisionPanel");
             var pause = PauseScreen.Current;
             var keyboard = InputSystem.AddDevice<Keyboard>();
