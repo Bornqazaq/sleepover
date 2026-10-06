@@ -417,9 +417,18 @@ namespace Igruha.Core.Minigame
         {
             if (tutorialScreen == null) tutorialScreen = gameObject.AddComponent<TutorialScreen>();
             tutorialScreen.Show(definition, ToggleTutorialReady, SetTutorialReading, RequestPracticeRestart);
+            ConfigureTutorial(tutorialScreen);
             RefreshTutorialReadiness();
             if (LaunchArguments.BotEnabled && !LaunchArguments.TryGetValue("--tutorial-check", out _))
                 StartCoroutine(ConfirmTutorialForBot());
+        }
+
+        /// <summary>Local role instructions; called after showing rules and when replicated roles change.</summary>
+        protected virtual void ConfigureTutorial(TutorialScreen screen) { }
+
+        protected void RefreshTutorialInstructions()
+        {
+            if (tutorialScreen != null && tutorialScreen.IsVisible) ConfigureTutorial(tutorialScreen);
         }
 
         private IEnumerator ConfirmTutorialForBot()

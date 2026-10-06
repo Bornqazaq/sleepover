@@ -364,6 +364,8 @@ namespace Igruha.Core.Items
             rollingSupported = supported;
             rollingSupportNormal = supported ? normal.normalized : Vector3.up;
             rollingSupportClearance = supported ? Mathf.Max(0f, clearance) : 0f;
+            if (body != null && HasAuthority && IsRolling && body.freezeRotation != supported)
+                body.freezeRotation = supported;
         }
 
         public void SetPresentationFrame(Transform frame) => presentationFrame = frame;
@@ -2015,6 +2017,13 @@ namespace Igruha.Core.Items
 
         private void ApplyRotation()
         {
+            if (IsRolling && !rollingSupported)
+            {
+                // Let the physical chassis tip off an edge; forcing Heading here
+                // kept the front axle hanging over empty space.
+                if (tiltPivot != null) ApplyPivotTilt();
+                return;
+            }
             if (tiltPivot == null)
             {
                 body.MoveRotation(Quaternion.AngleAxis(TiltDegrees(), TiltAxis()) * Heading);

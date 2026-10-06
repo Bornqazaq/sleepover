@@ -488,23 +488,25 @@ namespace Igruha.Minigames.CarryItem
         /// машине осталось прицепить к ней числа игры, стоянку и записать за
         /// краном своей команды.
         /// </summary>
-        public void AdoptNetworkCart(WaterCart cart)
+        public bool AdoptNetworkCart(WaterCart cart)
         {
             if (cart == null || config == null)
             {
-                return;
+                return false;
             }
 
             TeamSide side = cart.Team;
             TeamRig rig = RigOf(side);
             if (rig == null || rig.Tap == null)
             {
-                return;
+                return false;
             }
 
+            if (rig.Cart == cart) return true;
             cart.ApplyNetworkSetup(config, voidLevel, rig.Tap.DockPosition, rig.Tap.DockRotation);
             AttachCart(rig, side, cart);
             ramDetector?.SetCarts(teamA.Cart, teamB.Cart);
+            return true;
         }
 
         /// <summary>Сколько воды команда потеряла по этой причине за раунд, единиц.</summary>

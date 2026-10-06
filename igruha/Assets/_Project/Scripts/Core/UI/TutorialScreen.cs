@@ -94,6 +94,11 @@ namespace Igruha.Core.UI
             view?.SetReadiness(players, participants, localId);
         }
 
+        public void SetRoleInstructions(string role, string objective, string[] steps, string[] quickHints, string[] controls)
+        {
+            view?.SetRoleInstructions(role, objective, steps, quickHints, controls);
+        }
+
         public void RequestReady()
         {
             if (visible && Time.unscaledTime >= inputEnabledAt &&

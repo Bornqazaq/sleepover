@@ -16,7 +16,7 @@ MonoBehaviour:
   measureWindowSeconds: 15
   resultsSeconds: 5
   cageDescendSeconds: 2
-  hatchOpenSeconds: 2
+  hatchOpenSeconds: 0.9
   pauseSeconds: 1
   targetLowRange: {x: 3, y: 8}
   targetHighRange: {x: 5, y: 10}
@@ -45,8 +45,8 @@ MonoBehaviour:
     errorLimit: 2
     worstPerSubround: 2
   twoPlayerTieThreshold: 0.05
-  bearSpeed: 5.5
-  bearFirstAttackDelay: 3
+  bearSpeed: 8.2
+  bearFirstAttackDelay: 1.25
   bearStrikeRadius: 2.35
   bearKnockbackSpeed: 8
   bearKnockdownDuration: 1.5

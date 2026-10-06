@@ -18,7 +18,7 @@ MonoBehaviour:
   placementWindowSeconds: 14
   resultsSeconds: 7
   cageDescendSeconds: 2
-  hatchOpenSeconds: 2
+  hatchOpenSeconds: 0.9
   pauseSeconds: 1
   rosterRules:
   - players: 2
