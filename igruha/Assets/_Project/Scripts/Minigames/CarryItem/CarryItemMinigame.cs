@@ -91,19 +91,6 @@ namespace Igruha.Minigames.CarryItem
         [Tooltip("Слои, которые болванки соло-теста считают препятствием")]
         [SerializeField] private LayerMask botObstacles;
 
-        private int shownWater = int.MinValue;
-        private bool shownLeaking;
-        private bool shownCarried;
-        private bool shownFilling;
-        private bool shownDraining;
-        private bool shownLost;
-        private int shownStock = -1;
-        private TeamSide shownCartControl = TeamSide.None;
-        private bool statusShown;
-        private CartTiltCause shownCause;
-        private int shownResponsible = -1;
-        private bool shownNeedsHands;
-        private bool shownLocalHolding;
         public CartCoordinationHud CoordinationHud { get; private set; }
 
         private readonly List<Entry> entries = new List<Entry>(8);
@@ -208,14 +195,15 @@ namespace Igruha.Minigames.CarryItem
                 root.transform.SetParent(transform, false);
                 CoordinationHud = root.AddComponent<CartCoordinationHud>();
                 var label = Hud != null ? Hud.GetComponentInChildren<TMPro.TMP_Text>(true) : null;
-                CoordinationHud.Bind(this, label != null ? label.font : null, announcer);
+                CoordinationHud.Bind(this, label != null ? label.font : null);
             }
-            if (GetComponentInChildren<CartFleetHud>() == null)
+            if (GetComponentInChildren<CarryWaterHud>() == null)
             {
-                var fleet = new GameObject("Cart fleet", typeof(RectTransform));
-                fleet.transform.SetParent(transform, false);
-                fleet.AddComponent<CartFleetHud>().Bind(this);
+                var waterHud = new GameObject("Carry water HUD", typeof(RectTransform));
+                waterHud.transform.SetParent(transform, false);
+                waterHud.AddComponent<CarryWaterHud>().Bind(this, Hud, announcer);
             }
+
         }
 
         /// <summary>
@@ -522,22 +510,8 @@ namespace Igruha.Minigames.CarryItem
         /// <summary>Сколько воды команда потеряла по этой причине за раунд, единиц.</summary>
         public int SpentBy(TeamSide side, WaterLossReason reason) => spentByReason[(int)side, (int)reason];
 
-        // ========== СТРОКА СОСТОЯНИЯ ==========
+        // ========== ПОТЕРЯ ТЕЛЕЖЕК И РЕСПАВН ==========
 
-        /// <summary>
-        /// Что сейчас со своей бутылью — числом, а не догадкой.
-        ///
-        /// Зачем. Уровень воды виден только столбиком внутри тары, а тара на
-        /// бегу стоит к игроку боком или спиной: на плейтесте раунд читался
-        /// как «что-то происходит, вода куда-то девается». Строка отвечает
-        /// ровно на три вопроса: сколько осталось, льётся ли прямо сейчас и
-        /// что делать дальше.
-        ///
-        /// Это <b>показ</b>: считается на каждой машине по своему участнику,
-        /// ничего не решает и в сеть не уходит. Строка собирается только на
-        /// смене значений — уровень меняется ступенями по пять, так что за
-        /// ходку это единицы вызовов, а не кадровый мусор.
-        /// </summary>
         private void FixedUpdate()
         {
             if (!HasAuthority || !Phase.IsGameplay() || config == null) return;
@@ -619,141 +593,6 @@ namespace Igruha.Minigames.CarryItem
             entry.Waiting = waiting;
         }
 
-        private void Update()
-        {
-            if (Hud == null)
-            {
-                return;
-            }
-
-            if (!Phase.IsGameplay() || config == null)
-            {
-                ClearStatus();
-                return;
-            }
-
-            int localId = SessionScoreboard.Current?.LocalPlayer?.Id ?? (Players.Count > 0 ? Players[0].Id : -1);
-            TeamSide side = TeamOfPlayer(localId);
-            if (side == TeamSide.None)
-            {
-                ClearStatus();
-                return;
-            }
-
-            if ((respawnPresentation != null && respawnPresentation.IsWaiting) ||
-                (TryGetRespawnDeadline(localId, out double deadline) && deadline > 0))
-            {
-                ClearStatus();
-                return;
-            }
-
-            WaterCart cart = CartForPlayer(localId);
-            int capacity = config.CartCapacity;
-            int water = cart != null ? cart.Water : -1;
-            bool leaking = cart != null && water > 0 && cart.Stability.IsSpilling;
-            bool carried = cart != null && cart.Carry.IsCarried;
-            bool filling = cart != null && cart.IsFilling;
-            bool draining = cart != null && cart.IsPouring;
-            bool lost = cart != null && cart.IsLost;
-            int stock = cart != null ? cart.RemainingCarts : -1;
-            CartTiltCause cause = cart != null && cart.Stability.State.Risk > 0.65f ? cart.Stability.State.Cause : CartTiltCause.None;
-            int responsible = cart != null ? cart.Stability.State.Responsible : -1;
-            bool needsHands = cart != null && cart.Stability.NeedsHands;
-            bool localHolding = cart != null && cart.Carry.IsCarriedBy(AvatarOf(localId));
-
-            if (statusShown && cart != null && cart.ControlTeam == shownCartControl && water == shownWater && leaking == shownLeaking && carried == shownCarried &&
-                filling == shownFilling && draining == shownDraining && lost == shownLost && stock == shownStock &&
-                cause == shownCause && responsible == shownResponsible && needsHands == shownNeedsHands &&
-                localHolding == shownLocalHolding)
-            {
-                return;
-            }
-
-            shownCartControl = cart != null ? cart.ControlTeam : TeamSide.None;
-            shownWater = water;
-            shownLeaking = leaking;
-            shownCarried = carried;
-            shownFilling = filling;
-            shownDraining = draining;
-            shownLost = lost;
-            shownStock = stock;
-            statusShown = true;
-            shownCause = cause;
-            shownResponsible = responsible;
-            shownNeedsHands = needsHands;
-            shownLocalHolding = localHolding;
-
-            if (cart == null)
-            {
-                Hud.ShowStatus("Тележка команды выезжает к крану…");
-                return;
-            }
-
-            if (lost)
-            {
-                Hud.ShowStatus(cart.IsDepleted
-                    ? "СВОИХ ТЕЛЕЖЕК НЕТ · Украдите свободную чужую по E и везите к своему насосу"
-                    : "ТЕЛЕЖКА ПОТЕРЯНА · Последняя замена появится у крана через 5 секунд");
-                return;
-            }
-
-            if (!localHolding && cart.ControlTeam != side)
-            {
-                Hud.ShowStatus($"ТЕЛЕЖКУ УВЕЛИ · {water} / {capacity} · Сбейте хват соперника и заберите её по E");
-                return;
-            }
-
-            if (leaking)
-            {
-                string why = cause == CartTiltCause.Brake ? "Резкое торможение" :
-                    cause == CartTiltCause.Disagreement ? "Тянете в разные стороны" :
-                    cause == CartTiltCause.Road ? "Тряский настил" :
-                    cause == CartTiltCause.Turn ? "Быстрый поворот" : "Удар / волна";
-                string advice = cause == CartTiltCause.Disagreement ? "Совместите стрелки" :
-                    cause == CartTiltCause.Road ? "Сбавьте ход или выберите ровный обход" : "Двигайтесь плавнее";
-                Hud.ShowStatus($"ВОДА ЧЕРЕЗ КРАЙ — {why} · {water} / {capacity} · {advice}");
-                return;
-            }
-            if (localHolding && cause != CartTiltCause.None)
-            {
-                Hud.ShowStatus(cause == CartTiltCause.Disagreement
-                    ? $"ТЕЛЕЖКУ КАЧАЕТ · Совместите направления стрелок · {water} / {capacity}"
-                    : cause == CartTiltCause.Road ? $"СТЫКИ · Сбавьте ход или выберите ровный обход · {water} / {capacity}"
-                    : $"ВОЛНА ПОДНИМАЕТСЯ · Плавнее на поворотах · {water} / {capacity}");
-                return;
-            }
-
-            if (draining)
-            {
-                Hud.ShowStatus($"Насос откачивает: в тележке ещё {water} из {capacity}");
-                return;
-            }
-
-            if (filling)
-            {
-                Hud.ShowStatus($"Набирается: {water} из {capacity} — уезжайте, когда хватит");
-                return;
-            }
-
-            if (water == 0)
-            {
-                Hud.ShowStatus(carried
-                    ? "WASD — катить и поворачивать · Назад — тормозить · E — отпустить · К своему крану"
-                    : "E — взяться за пустую тележку и катить к крану");
-                return;
-            }
-
-            if (localHolding && needsHands)
-            {
-                Hud.ShowStatus($"Помощник ускорит тележку · Перед поворотом отпустите движение · {water} из {capacity}");
-                return;
-            }
-
-            Hud.ShowStatus(carried
-                ? $"{water} / {capacity} · WASD — катить · E — отпустить · Поворачивайте плавно"
-                : $"E — взяться за тележку ({water} из {capacity})");
-        }
-
         private void AnnounceSpill(CartTiltCause cause, int responsible)
         {
             string text = cause switch
@@ -767,23 +606,6 @@ namespace Igruha.Minigames.CarryItem
             announcer?.Announce(text, 3f);
         }
 
-        private void ClearStatus()
-        {
-            if (!statusShown)
-            {
-                return;
-            }
-
-            statusShown = false;
-            shownWater = int.MinValue;
-            shownLeaking = false;
-            shownCarried = false;
-            shownFilling = false;
-            shownDraining = false;
-            shownLost = false;
-            Hud.HideStatus();
-        }
-
         // ========== РАУНД ==========
 
         protected override void OnRoundStarted()
@@ -793,6 +615,8 @@ namespace Igruha.Minigames.CarryItem
                 StopCoroutine(countdownRoutine);
             }
 
+            // EnterRound has primed the full duration. Keep it intact until GO.
+            if (HasAuthority) Timer?.StopTimer();
             countdownRoutine = StartCoroutine(CountdownThenGo());
         }
 
@@ -816,6 +640,7 @@ namespace Igruha.Minigames.CarryItem
             }
 
             Hud?.HideCountdown();
+            if (HasAuthority && Phase == MinigamePhase.Round) Timer?.StartTimer(RoundDuration);
             SetStartCountdownActive(false);
             countdownRoutine = null;
         }
