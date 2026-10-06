@@ -46,6 +46,8 @@ namespace Igruha.Minigames.Circus
             internal float StandingTime;
             internal bool Ready;
             internal bool HeadStartGranted;
+            internal Vector3 PreviousPosition, Velocity;
+            internal float SampleSeconds;
         }
         private readonly List<Runner> runners = new List<Runner>(8);
         private static readonly int FlyBack = Animator.StringToHash("FlyBack");
@@ -79,7 +81,7 @@ namespace Igruha.Minigames.Circus
         {
             if(player==null)return;
             ForgetRunner(player);
-            runners.Add(new Runner { Player=player, Animator=player.GetComponentInChildren<Animator>() });
+            runners.Add(new Runner { Player=player, Animator=player.GetComponentInChildren<Animator>(), PreviousPosition=player.Position });
         }
 
         public void ForgetRunner(PlayerController player)
@@ -132,6 +134,19 @@ namespace Igruha.Minigames.Circus
         public void Tick(float deltaTime,PlayerController nearest,bool someoneOnLowestCage)
         {
             if(deltaTime<=0)return;
+            foreach(var runner in runners)
+            {
+                if(runner.Player==null)continue;
+                runner.SampleSeconds+=deltaTime;
+                if(runner.SampleSeconds<.1f)continue;
+                Vector3 position=runner.Player.Position;
+                Vector3 velocity=(position-runner.PreviousPosition)/runner.SampleSeconds;velocity.y=0;
+                runner.PreviousPosition=position;
+                // Remote bodies are kinematic: derive motion from replicated positions.
+                // Clamp teleports and smooth packet steps before choosing an intercept.
+                runner.Velocity=Vector3.Lerp(runner.Velocity,Vector3.ClampMagnitude(velocity,8),.7f);
+                runner.SampleSeconds=0;
+            }
             if(state==BearState.Attack){TickAttack(deltaTime);return;}
             if(state==BearState.Recovery)
             {
@@ -170,7 +185,10 @@ namespace Igruha.Minigames.Circus
                 }
             }
             Vector3 delta=nearest.transform.position-transform.position;delta.y=0;
-            FaceTowards(delta,deltaTime);
+            var pursued=runners.Find(r=>r.Player==nearest);
+            Vector3 intercept=delta+(pursued!=null?pursued.Velocity:Vector3.zero)*.45f;
+            if(Vector3.Dot(intercept,delta)<=0)intercept=delta;
+            FaceTowards(intercept,deltaTime);
             if(windUpLeft>0)
             {
                 windUpLeft-=deltaTime;currentSpeed=0;
@@ -178,12 +196,12 @@ namespace Igruha.Minigames.Circus
                 return;
             }
             SetState(BearState.Chase);
-            if(delta.magnitude<=strikeRadius && Vector3.Dot(transform.forward,delta.normalized)>.75f)
+            if(delta.magnitude<=strikeRadius && Vector3.Dot(transform.forward,intercept.normalized)>.85f)
             {
                 attackVictim=nearest;attackDirection=transform.forward;attackElapsed=0;hitEvaluated=false;
                 currentSpeed=0;SetState(BearState.Attack);return;
             }
-            Steer(delta,chaseSpeed,deltaTime);
+            Steer(intercept,chaseSpeed,deltaTime);
         }
 
         private void TickAttack(float dt)

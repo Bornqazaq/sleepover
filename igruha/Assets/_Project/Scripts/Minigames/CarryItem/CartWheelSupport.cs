@@ -28,7 +28,7 @@ namespace Igruha.Minigames.CarryItem
 
         private void FixedUpdate()
         {
-            if (body.isKinematic || cart != null && !cart.IsAuthority) return;
+            if (body.isKinematic || cart != null && (!cart.IsAuthority || cart.IsLost)) return;
             int count = 0;
             Vector3 normal = Vector3.zero;
             float clearance = float.MaxValue;
