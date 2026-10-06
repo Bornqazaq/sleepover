@@ -364,6 +364,8 @@ namespace Igruha.Core.Items
             rollingSupported = supported;
             rollingSupportNormal = supported ? normal.normalized : Vector3.up;
             rollingSupportClearance = supported ? Mathf.Max(0f, clearance) : 0f;
+            if (body != null && HasAuthority && IsRolling && body.freezeRotation != supported)
+                body.freezeRotation = supported;
         }
 
         public void SetPresentationFrame(Transform frame) => presentationFrame = frame;
