@@ -29,6 +29,8 @@ namespace Igruha.Core.Arena
         [SerializeField] private float doorOpenAngle = 110f;
         [Tooltip("С какого угла створки перестают держать игрока. Раньше — он съезжает по наклонной и его подбрасывает")]
         [SerializeField] private float doorReleaseAngle = 25f;
+        [Tooltip("Короткая дрожь перед раскрытием. Ноль сохраняет обычный ход люка")]
+        [SerializeField] private float anticipationSeconds;
 
         /// <summary>
         /// Створки наклонились достаточно, чтобы отпустить стоявшего: с этого
@@ -63,7 +65,7 @@ namespace Igruha.Core.Arena
         /// вызов на уже открытых створках игнорируется — иначе анимация
         /// перезапустилась бы с нуля и пассажир повис бы в воздухе.
         /// </summary>
-        public void OpenDoors(float duration)
+        public void OpenDoors(float duration, float elapsedSeconds = 0f)
         {
             if (DoorsOpen)
             {
@@ -90,7 +92,7 @@ namespace Igruha.Core.Arena
                 StopCoroutine(swingRoutine);
             }
 
-            swingRoutine = StartCoroutine(SwingDoors(duration));
+            swingRoutine = StartCoroutine(SwingDoors(duration, elapsedSeconds));
         }
 
         /// <summary>Вернуть пол на место и снова сделать его опорой.</summary>
@@ -107,16 +109,19 @@ namespace Igruha.Core.Arena
             SetDoorCollidersEnabled(true);
         }
 
-        private IEnumerator SwingDoors(float duration)
+        private IEnumerator SwingDoors(float duration, float elapsedSeconds)
         {
-            float elapsed = 0f;
+            float elapsed = Mathf.Max(0, elapsedSeconds);
             float span = Mathf.Max(0.01f, duration);
+            float warning = Mathf.Clamp(anticipationSeconds, 0, span * .5f);
             bool released = false;
 
             while (elapsed < span)
             {
                 elapsed += Time.deltaTime;
-                float angle = Mathf.Lerp(0f, doorOpenAngle, elapsed / span);
+                float progress = Mathf.Clamp01((elapsed - warning) / (span - warning));
+                float angle = elapsed < warning ? Mathf.Abs(Mathf.Sin(elapsed * 70)) * 1.8f :
+                    Mathf.Lerp(0f, doorOpenAngle, warning > 0 ? progress * progress * (3 - 2 * progress) : progress);
                 SetDoorAngle(angle);
 
                 // Коллайдеры снимаются, как только створки заметно наклонились:
