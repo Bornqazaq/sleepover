@@ -211,6 +211,9 @@ namespace Igruha.Tests
                 }
             yield return At(51);
             Check(cart.transform.position.y < -1, "unsupported cart falls y=" + cart.transform.position.y);
+            // Leave a full network second for every peer to observe the first fall
+            // before the authority moves the same replicated carts to the edge fixture.
+            yield return At(52);
             if (net.IsServer)
                 foreach (var p in SessionScoreboard.Current.Players)
                 {
@@ -220,9 +223,10 @@ namespace Igruha.Tests
                     platform.transform.position = new Vector3(-40, 2.85f, 30 + p.Id * 5);
                     platform.transform.localScale = new Vector3(4, .3f, 4);
                     var c = game.CartOf(game.TeamOfPlayer(p.Id));
+                    c.ReturnHome();
                     c.Carry.ResetPose(new Vector3(-40, 3.04f, 32.2f + p.Id * 5), Quaternion.identity);
                 }
-            yield return At(54);
+            yield return At(55);
             Check(cart.transform.position.y < 2.4f, "cart tips off edge with only rear axle supported y=" + cart.transform.position.y);
             if (!failed) Debug.Log("CARRY_SLOPE PASS id=" + net.LocalClientId);
         }
