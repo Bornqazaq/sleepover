@@ -116,7 +116,7 @@ namespace Igruha.Tests
         public void EveryAudioCueAndTheConsoleCoverHaveShippedAssets()
         {
             var audio = AssetDatabase.LoadAssetAtPath<Igruha.Core.Audio.MinigameSfxLibrary>("Assets/_Project/Audio/SumoRing/SfxLibrary.asset");
-            Assert.That(audio.Entries.Count, Is.EqualTo(6));
+            Assert.That(audio.Entries.Count, Is.EqualTo(11));
             foreach (var entry in audio.Entries) Assert.That(entry.Clip != null || (entry.Variants != null && entry.Variants.Any(c => c != null)), Is.True, entry.Id);
             var library = AssetDatabase.LoadAssetAtPath<Igruha.Core.Hub.ConsoleArtworkLibrary>("Assets/_Project/Art/Hub/Console/ConsoleArtwork.asset");
             var game = AssetDatabase.LoadAssetAtPath<MinigameDefinition>("Assets/_Project/Settings/Gameplay/Minigames/SumoRing.asset");

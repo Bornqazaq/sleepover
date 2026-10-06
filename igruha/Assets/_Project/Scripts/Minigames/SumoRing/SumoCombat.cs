@@ -26,9 +26,9 @@ namespace Igruha.Minigames.SumoRing
         private const int CommandCapacity = 64;
         private const float GroundProbeHeight = .18f, GroundProbeLength = .38f;
         private const float AimInterval = .08f, AimThreshold = 3f;
-        private struct Intent { public int Id; public SumoCommand Command; public float Yaw; }
+        private struct Intent { public int Id, Sequence; public SumoCommand Command; public float Yaw; }
         private readonly Intent[] queue = new Intent[CommandCapacity];
-        private int queued;
+        private int queued, nextInputSequence;
         private SumoMinigame game;
         private SumoNetwork network;
         private Camera gameCamera;
@@ -46,6 +46,7 @@ namespace Igruha.Minigames.SumoRing
         public event Action<SumoCombatHit> Contact;
         public int Count => states.Length;
         public bool Active => game != null && game.Running && game.Elapsed >= 0 && !game.Round.Finished;
+        public double Elapsed => game.Elapsed;
         public SumoCombatState StateAt(int index) => states[index];
         public SumoFighter FighterAt(int index) => fighters[index];
         public SumoFighter Local => local;
@@ -75,11 +76,11 @@ namespace Igruha.Minigames.SumoRing
         }
         public void ResetCombat()
         {
-            queued = 0; attackHeld = guardHeld = false;
+            queued = nextInputSequence = 0; attackHeld = guardHeld = false;
             for (int i = 0; i < states.Length; i++)
             {
                 states[i] = SumoCombatState.Create(states[i].Id);
-                if (fighters[i] != null) fighters[i].ResetCombat();
+                if (fighters[i] != null) { fighters[i].ResetCombat(); fighters[i].ResetVisual(); }
             }
             StateChanged?.Invoke();
         }
@@ -120,18 +121,33 @@ namespace Igruha.Minigames.SumoRing
         /// <summary>Normal input and the development probe share this exact transport path.</summary>
         public void Submit(int id, SumoCommand command, float yaw)
         {
-            if (network != null && network.IsSpawned) network.SubmitCombat(id, command, yaw);
+            if (network != null && network.IsSpawned)
+            {
+                int sequence = local != null && id == local.Id ? ++nextInputSequence : 0;
+                if (!network.IsServer && sequence > 0)
+                {
+                    bool releasing = command == SumoCommand.Cancel || command == SumoCommand.GuardUp;
+                    if (Active && Available(IndexOf(id)) && (releasing || Grounded(IndexOf(id))))
+                        local.Predict(sequence, command, yaw);
+                }
+                network.SubmitCombat(id, command, yaw, sequence);
+            }
             else Enqueue(id, command, yaw);
         }
-        public void Enqueue(int id, SumoCommand command, float yaw)
+        public void Enqueue(int id, SumoCommand command, float yaw, int sequence = 0)
         {
             if (queued >= queue.Length || (byte)command > (byte)SumoCommand.Cancel || float.IsNaN(yaw) || float.IsInfinity(yaw)) return;
-            queue[queued++] = new Intent { Id = id, Command = command, Yaw = yaw };
+            queue[queued++] = new Intent { Id = id, Command = command, Yaw = yaw, Sequence = sequence };
         }
         public int IndexOf(int id)
         { for (int i = 0; i < states.Length; i++) if (states[i].Id == id) return i; return -1; }
         public void ApplySnapshot(SumoCombatState state)
-        { int i = IndexOf(state.Id); if (i >= 0) states[i] = state; }
+        {
+            int i = IndexOf(state.Id);
+            if (i < 0) return;
+            states[i] = state;
+            fighters[i].Observe(state);
+        }
         public bool Owns(int id, ulong sender)
         {
             int i = IndexOf(id);
@@ -157,7 +173,17 @@ namespace Igruha.Minigames.SumoRing
             for (int q = 0; q < queued; q++)
             {
                 var intent = queue[q]; int i = IndexOf(intent.Id);
-                if (i < 0 || !Available(i)) continue;
+                if (i < 0) continue;
+                // Acknowledge even a rejected action: the owner must undo its visual
+                // prediction when airborne, stunned or otherwise unavailable.
+                if (intent.Sequence > 0)
+                {
+                    if (intent.Sequence <= states[i].ProcessedInput) continue;
+                    states[i].ProcessedInput = intent.Sequence;
+                    states[i].Revision++;
+                    changed = true;
+                }
+                if (!Available(i)) continue;
                 bool releasing = intent.Command == SumoCommand.Cancel || intent.Command == SumoCommand.GuardUp;
                 if (!releasing && !Grounded(i)) continue;
                 changed |= SumoCombatRules.Command(ref states[i], intent.Command, intent.Yaw, now, config);
@@ -203,7 +229,11 @@ namespace Igruha.Minigames.SumoRing
                 if (network != null && network.IsSpawned) network.BroadcastContact(hit);
                 else PresentContact(hit);
             }
-            if (changed) StateChanged?.Invoke();
+            if (changed)
+            {
+                for (int i = 0; i < fighters.Length; i++) if (fighters[i] != null) fighters[i].Observe(states[i]);
+                StateChanged?.Invoke();
+            }
         }
         private int FindTarget(int attacker)
         {

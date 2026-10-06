@@ -1,24 +1,39 @@
 using Igruha.Core.Minigame;
-using Unity.Netcode;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
 
 namespace Igruha.Minigames.SumoRing
 {
     public sealed class SumoCombatHud : MonoBehaviour
     {
         private static readonly string[] Labels = { "ЛКМ  ТОЛЧОК     ЗАЖАТЬ ЛКМ  СИЛА     ПКМ  ЗАЩИТА", "ЗАЩИТА СПЕРЕДИ", "ЗАРЯД — ОТПУСТИ ЛКМ", "СИЛОВОЙ ГОТОВ — ОТПУСТИ ЛКМ", "КОНТРАТАКА!  ЛКМ", "ВОССТАНОВЛЕНИЕ", "РАВНОВЕСИЕ ПОТЕРЯНО", "ПАРИРОВАНИЕ!" };
+        private static readonly string[] GamepadLabels = { "RT/R2  ТОЛЧОК     УДЕРЖАТЬ  СИЛА     LT/L2  ЗАЩИТА", "ЗАЩИТА СПЕРЕДИ", "ЗАРЯД — ОТПУСТИ RT/R2", "СИЛОВОЙ ГОТОВ — ОТПУСТИ RT/R2", "КОНТРАТАКА!  RT/R2", "ВОССТАНОВЛЕНИЕ", "РАВНОВЕСИЕ ПОТЕРЯНО", "ПАРИРОВАНИЕ!" };
+        private const float GamepadHintThreshold = .25f;
+        public bool UsesGamepad { get; private set; }
+        public string LabelFor(int status) => (UsesGamepad ? GamepadLabels : Labels)[status];
         private SumoMinigame game;
         private SumoCombat combat;
         private Canvas canvas;
         private TextMeshProUGUI label;
         private Image fill;
-        private NetworkManager network;
         private int shown = -1;
+        private void OnEnable() => InputSystem.onActionChange += OnActionChange;
+        private void OnDisable() => InputSystem.onActionChange -= OnActionChange;
+        private void OnActionChange(object value, InputActionChange change)
+        {
+            if (change != InputActionChange.ActionPerformed || !(value is InputAction action) || action.activeControl == null) return;
+            var control = action.activeControl;
+            bool gamepad = control.device is Gamepad;
+            if (!gamepad && !(control.device is Mouse) && !(control.device is Keyboard)) return;
+            // Ignore releases and analogue drift; merely connecting a pad changes no hints.
+            if (control.EvaluateMagnitude() < (gamepad ? GamepadHintThreshold : .01f) || UsesGamepad == gamepad) return;
+            UsesGamepad = gamepad; shown = -1;
+        }
         public void Bind(SumoMinigame owner, SumoCombat fight, TMP_FontAsset font)
         {
-            game = owner; combat = fight; network = NetworkManager.Singleton;
+            game = owner; combat = fight;
             canvas = gameObject.AddComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay; canvas.sortingOrder = 25;
             var scaler = gameObject.AddComponent<CanvasScaler>(); scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize; scaler.referenceResolution = new Vector2(1920, 1080); scaler.matchWidthOrHeight = .5f;
             var panel = Rect("Combat", transform, new Vector2(.5f, 0), new Vector2(820, 66), new Vector2(0, 103));
@@ -39,7 +54,7 @@ namespace Igruha.Minigames.SumoRing
             bool visible = game.Phase == MinigamePhase.Round && combat.Active && local != null && !local.Participant.Dead;
             canvas.enabled = visible; if (!visible) return;
             // Input windows use estimated command arrival, not buffered presentation time.
-            var s = local.State; double now = network != null && network.IsListening ? network.LocalTime.Time : NetworkClock.Now;
+            var s = local.VisualState; double now = local.VisualNow;
             int status = 0; float amount = 0;
             var color = new Color(.35f, .9f, .83f);
             if (s.HasCounter(now)) { status = 4; amount = (float)(s.CounterUntil - now) / local.Config.CounterWindow; color = new Color(1, .79f, .25f); }
@@ -48,7 +63,7 @@ namespace Igruha.Minigames.SumoRing
             else if (s.Phase == SumoCombatPhase.Guard) { status = 1; amount = Mathf.Clamp01((float)(s.ParryUntil - now) / local.Config.ParryWindow); }
             else if (s.Phase == SumoCombatPhase.Stagger) { status = 6; amount = Mathf.Clamp01((float)((s.Until - now) / (s.Until - s.Since))); color = new Color(1, .43f, .3f); }
             else if (s.Phase == SumoCombatPhase.Recovery || s.Phase == SumoCombatPhase.Windup) { status = 5; amount = Mathf.Clamp01((float)((s.Until - now) / (s.Until - s.Since))); }
-            if (shown != status) { shown = status; label.text = Labels[status]; }
+            if (shown != status) { shown = status; label.text = LabelFor(status); }
             fill.rectTransform.sizeDelta = new Vector2(780 * Mathf.Clamp01(amount), 5); fill.color = color;
         }
     }

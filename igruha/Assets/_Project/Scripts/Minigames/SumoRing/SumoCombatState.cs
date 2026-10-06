@@ -12,7 +12,7 @@ namespace Igruha.Minigames.SumoRing
     /// <summary>Server-owned combat snapshot. Times use NetworkClock; no frame timers are replicated.</summary>
     public struct SumoCombatState : INetworkSerializable, IEquatable<SumoCombatState>
     {
-        public int Id, CounterTarget, Revision;
+        public int Id, CounterTarget, Revision, ProcessedInput;
         public SumoCombatPhase Phase;
         public SumoAttack Attack;
         public double Since, Until, ParryUntil, NextParryAt, CounterUntil;
@@ -22,7 +22,7 @@ namespace Igruha.Minigames.SumoRing
         public static SumoCombatState Create(int id) => new SumoCombatState { Id = id, CounterTarget = -1 };
         public void NetworkSerialize<T>(BufferSerializer<T> s) where T : IReaderWriter
         {
-            s.SerializeValue(ref Id); s.SerializeValue(ref CounterTarget); s.SerializeValue(ref Revision);
+            s.SerializeValue(ref Id); s.SerializeValue(ref CounterTarget); s.SerializeValue(ref Revision); s.SerializeValue(ref ProcessedInput);
             s.SerializeValue(ref Phase); s.SerializeValue(ref Attack); s.SerializeValue(ref Since); s.SerializeValue(ref Until);
             s.SerializeValue(ref ParryUntil); s.SerializeValue(ref NextParryAt); s.SerializeValue(ref CounterUntil); s.SerializeValue(ref Yaw);
         }

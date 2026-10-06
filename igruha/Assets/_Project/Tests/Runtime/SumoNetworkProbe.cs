@@ -12,6 +12,7 @@ namespace Igruha.Tests
         private SumoMinigame game;
         private SumoParticipant local;
         private string scenario;
+        private bool mutual;
         private bool ready, punched, staged, jumped, departed, final, returned;
         private int warnings, collapses, deaths, punches;
         private float started, nextTrace, nextChoice, hubArrived = -1, quitAt = -1;
@@ -21,7 +22,7 @@ namespace Igruha.Tests
             if (!LaunchArguments.TryGetValue("--sumo-check", out _)) return;
             var go = new GameObject("SumoNetworkProbe"); DontDestroyOnLoad(go); go.AddComponent<SumoNetworkProbe>();
         }
-        private void Awake() { started = Time.realtimeSinceStartup; LaunchArguments.TryGetValue("--sumo-check", out scenario); }
+        private void Awake() { started = Time.realtimeSinceStartup; LaunchArguments.TryGetValue("--sumo-check", out scenario); mutual = LaunchArguments.TryGetValue("--sumo-mutual-check", out _); }
         private void Update()
         {
             var selection = CharacterSelection.Current;
@@ -67,7 +68,7 @@ namespace Igruha.Tests
             {
                 final = true;
                 Debug.Log("SUMO_CHECK FINAL alive=" + game.Round.AliveCount + " warnings=" + warnings + " collapses=" + collapses + " deaths=" + deaths);
-                if (game.Round.AliveCount != 1 || warnings != 6 || collapses != 6) Debug.LogError("SUMO_CHECK FAIL final state");
+                if (game.Round.AliveCount != 1 || warnings != (mutual ? 1 : 6) || collapses != (mutual ? 1 : 6)) Debug.LogError("SUMO_CHECK FAIL final state");
             }
             if (final && !returned && UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "Hub")
             {
@@ -114,10 +115,10 @@ namespace Igruha.Tests
             if (scenario != "combat" && t > 12 && !jumped) { jumped = true; local.Input.DriveJump(); Debug.Log("SUMO_CHECK JUMP"); }
             if (scenario == "disconnect" && id == game.Participants.Count - 1 && t > 18)
             { Debug.Log("SUMO_CHECK DISCONNECT"); Application.Quit(); return; }
-            if (t > 77 && id > 0 && !departed)
+            if (t > (mutual ? 12 : 77) && id > 0 && !departed)
             {
                 departed = true; float a = id * Mathf.PI * 2 / game.Participants.Count;
-                local.Motor.TeleportTo(new Vector3(Mathf.Cos(a) * 3.3f, game.Config.Height + .5f, Mathf.Sin(a) * 3.3f), Quaternion.identity);
+                local.Motor.TeleportTo(new Vector3(Mathf.Cos(a) * (mutual ? game.Config.Radius + 1 : 3.3f), game.Config.Height + .5f, Mathf.Sin(a) * (mutual ? game.Config.Radius + 1 : 3.3f)), Quaternion.identity);
                 Debug.Log("SUMO_CHECK FALL_FROM_AIR");
             }
         }
