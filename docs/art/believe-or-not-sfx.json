@@ -122,6 +122,30 @@
       "event": "Реакция зала, когда Решающий угадал",
       "loop": false,
       "spatial": false
+    },
+    {
+      "id": "final_intro",
+      "event": "Объявление двух финалистов",
+      "loop": false,
+      "spatial": false,
+      "volume": 0.4,
+      "file": "Core/Flow/SFX_FLOW_Fanfare_Bright_01"
+    },
+    {
+      "id": "tournament_win",
+      "event": "Единственный чемпион после решающего кона",
+      "loop": false,
+      "spatial": false,
+      "volume": 0.5,
+      "file": "Core/Flow/SFX_FLOW_Fanfare_Win_01"
+    },
+    {
+      "id": "prediction_streak",
+      "event": "Личная серия верных прогнозов от трёх, только после открытия",
+      "loop": false,
+      "spatial": false,
+      "volume": 0.25,
+      "file": "Core/UI/SFX_UI_Notify_Pop_01"
     }
   ],
   "edits": {

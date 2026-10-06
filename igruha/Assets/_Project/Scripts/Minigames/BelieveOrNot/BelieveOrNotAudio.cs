@@ -92,6 +92,9 @@ namespace Igruha.Minigames.BelieveOrNot
                 game.LidsOpening += OnLidsOpening;
                 game.CardsRevealed += OnCardsRevealed;
                 game.DuelEnded += StopAudio;
+                game.FinalAnnounced += OnFinal;
+                game.ChampionAnnounced += OnChampion;
+                game.PredictionStreakAwarded += OnStreak;
             }
         }
 
@@ -110,6 +113,9 @@ namespace Igruha.Minigames.BelieveOrNot
                 game.LidsOpening -= OnLidsOpening;
                 game.CardsRevealed -= OnCardsRevealed;
                 game.DuelEnded -= StopAudio;
+                game.FinalAnnounced -= OnFinal;
+                game.ChampionAnnounced -= OnChampion;
+                game.PredictionStreakAwarded -= OnStreak;
             }
             StopAudio();
         }
@@ -148,6 +154,7 @@ namespace Igruha.Minigames.BelieveOrNot
 
             // Гул комнаты заводится с первой же стадией и живёт до конца
             // мини-игры: это воздух зала, а не событие.
+            if (stage == BelieveStage.Champion) return;
             if (!ambient)
             {
                 ambient = true;
@@ -219,6 +226,9 @@ namespace Igruha.Minigames.BelieveOrNot
         }
 
         private Vector3 TablePoint => table != null ? table.transform.position : transform.position;
+        private void OnFinal() => Play("final_intro");
+        private void OnChampion() { audioPlayer?.StopAll(); ambient = false; Play("tournament_win"); }
+        private void OnStreak() => Play("prediction_streak");
         private void OnOathCommitted() => Play(SlotOath);
         private void OnLidsOpening() => PlayAt(SlotLids, TablePoint);
         private void OnCardsRevealed(bool guessedRight) => Play(guessedRight ? SlotWin : SlotFail);

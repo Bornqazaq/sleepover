@@ -29,6 +29,11 @@ namespace Igruha.Minigames.BelieveOrNot
         [Tooltip("Пауза на реакцию: звук, гэг, обновление счёта")]
         [SerializeField] private float reactionSeconds = 3f;
 
+        [SerializeField, Min(1f)] private float finalIntroSeconds = 4f;
+        [SerializeField, Min(1f)] private float championSeconds = 5f;
+        public float FinalIntroSeconds => finalIntroSeconds;
+        public float ChampionSeconds => championSeconds;
+
         [Header("Коробки")]
         [Tooltip("Обмен коробок местами по дуге. Наглядность здесь важнее скорости")]
         [SerializeField] private float boxSwapSeconds = 1.2f;
@@ -47,11 +52,11 @@ namespace Igruha.Minigames.BelieveOrNot
 
         [Header("Число конов по составу")]
         [Tooltip("Лобби от 2 до 8. Каждая пара играет два кона со сменой ролей")]
-        [SerializeField] private int[] roundsByPlayerCount = { 4, 6, 4, 6, 6, 8, 8 };
+        [SerializeField] private int[] roundsByPlayerCount = { 4, 6, 8, 10, 12, 14, 16 };
 
         [Header("Страховки")]
-        [Tooltip("Жёсткий предел матча. Восемь конов по 33 секунды укладываются в 264 с")]
-        [SerializeField] private float matchTimeoutSeconds = 360f;
+        [Tooltip("Аварийный предел турнира, включая отбор, дополнительные дуэли и финал")]
+        [SerializeField] private float matchTimeoutSeconds = 1200f;
 
         [Header("Арена, в ширинах персонажа (1 ШП = 0.72 м)")]
         //

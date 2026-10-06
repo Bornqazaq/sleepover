@@ -103,3 +103,21 @@ MonoBehaviour:
     Volume: 0.22
     Loop: 0
     Spatial: 0
+  - Id: final_intro
+    Clip: {fileID: 8300000, guid: 0ef5188709c4ff74bb99460159ac34b4, type: 3}
+    Variants: []
+    Volume: 0.4
+    Loop: 0
+    Spatial: 0
+  - Id: tournament_win
+    Clip: {fileID: 8300000, guid: 6c61e00ad8a57b64e994d40fa1ea7fc1, type: 3}
+    Variants: []
+    Volume: 0.5
+    Loop: 0
+    Spatial: 0
+  - Id: prediction_streak
+    Clip: {fileID: 8300000, guid: 9d3cf38996ad27645801e0b12c585dba, type: 3}
+    Variants: []
+    Volume: 0.25
+    Loop: 0
+    Spatial: 0

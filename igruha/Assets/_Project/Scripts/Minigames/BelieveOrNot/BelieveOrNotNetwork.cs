@@ -9,7 +9,7 @@ namespace Igruha.Minigames.BelieveOrNot
 {
     /// <summary>
     /// Положение матча одной структурой: номер кона, кто за столом, кто из
-    /// двоих знает, счёт команд.
+    /// двоих знает, стадия и счёт личного турнира.
     ///
     /// Вместе, а не по отдельности, потому что назначаются они одним решением
     /// сервера. Приехавший раньше новый Знающий под старым номером кона
@@ -35,6 +35,8 @@ namespace Igruha.Minigames.BelieveOrNot
         public bool Cancelled;
         public bool IsRematch;
         public byte Oath;
+        public BelieveTournamentState Tournament;
+        public int ForfeitWinner;
 
         /// <summary>
         /// Матч ещё не начался. Места именно <c>NoPlayer</c>, а не нули:
@@ -46,7 +48,9 @@ namespace Igruha.Minigames.BelieveOrNot
             Seat0PlayerId = SpecialRoleHistory.NoPlayer,
             Seat1PlayerId = SpecialRoleHistory.NoPlayer,
             KnowerPlayerId = SpecialRoleHistory.NoPlayer,
-            DeciderPlayerId = SpecialRoleHistory.NoPlayer
+            DeciderPlayerId = SpecialRoleHistory.NoPlayer,
+            ForfeitWinner = SpecialRoleHistory.NoPlayer,
+            Tournament = new BelieveTournamentState { FinalA = -1, FinalB = -1, Champion = -1, RunnerUp = -1 }
         };
 
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
@@ -63,6 +67,8 @@ namespace Igruha.Minigames.BelieveOrNot
             serializer.SerializeValue(ref Cancelled);
             serializer.SerializeValue(ref IsRematch);
             serializer.SerializeValue(ref Oath);
+            serializer.SerializeValue(ref Tournament);
+            serializer.SerializeValue(ref ForfeitWinner);
         }
 
         public bool Equals(BelieveMatchNetState other) =>
@@ -76,7 +82,7 @@ namespace Igruha.Minigames.BelieveOrNot
             TeamBWins == other.TeamBWins &&
             Resolved == other.Resolved &&
             Cancelled == other.Cancelled &&
-            IsRematch == other.IsRematch && Oath == other.Oath;
+            IsRematch == other.IsRematch && Oath == other.Oath && Tournament.Equals(other.Tournament) && ForfeitWinner == other.ForfeitWinner;
     }
 
     /// <summary>
@@ -120,6 +126,16 @@ namespace Igruha.Minigames.BelieveOrNot
         public byte RoundsSeated;
         public double LastWonAt;
         public bool Present;
+        public byte QualificationWins;
+        public byte QualificationPlayed;
+        public byte ForfeitWins;
+        public byte OathHistory;
+        public byte OathCount;
+        public byte PredictionStreak;
+        public byte BestPredictionStreak;
+        public byte CorrectPredictions;
+        public byte PredictionRound;
+
 
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
@@ -130,6 +146,16 @@ namespace Igruha.Minigames.BelieveOrNot
             serializer.SerializeValue(ref RoundsSeated);
             serializer.SerializeValue(ref LastWonAt);
             serializer.SerializeValue(ref Present);
+            serializer.SerializeValue(ref QualificationWins);
+            serializer.SerializeValue(ref QualificationPlayed);
+            serializer.SerializeValue(ref ForfeitWins);
+            serializer.SerializeValue(ref OathHistory);
+            serializer.SerializeValue(ref OathCount);
+            serializer.SerializeValue(ref PredictionStreak);
+            serializer.SerializeValue(ref BestPredictionStreak);
+            serializer.SerializeValue(ref CorrectPredictions);
+            serializer.SerializeValue(ref PredictionRound);
+
         }
 
         public bool Equals(BelieveEntryNetState other) =>
@@ -139,7 +165,15 @@ namespace Igruha.Minigames.BelieveOrNot
             DeciderWins == other.DeciderWins &&
             RoundsSeated == other.RoundsSeated &&
             LastWonAt.Equals(other.LastWonAt) &&
-            Present == other.Present;
+            Present == other.Present &&
+            QualificationWins == other.QualificationWins &&
+            QualificationPlayed == other.QualificationPlayed &&
+            ForfeitWins == other.ForfeitWins &&
+            OathHistory == other.OathHistory &&
+            OathCount == other.OathCount &&
+            PredictionStreak == other.PredictionStreak &&
+            BestPredictionStreak == other.BestPredictionStreak &&
+            CorrectPredictions == other.CorrectPredictions && PredictionRound == other.PredictionRound;
     }
 
     /// <summary>
@@ -295,7 +329,9 @@ namespace Igruha.Minigames.BelieveOrNot
                 Resolved = state.Resolved,
                 Cancelled = state.Cancelled,
                 IsRematch = state.IsRematch,
-                Oath = (byte)state.Oath
+                Oath = (byte)state.Oath,
+                Tournament = state.Tournament,
+                ForfeitWinner = state.ForfeitWinner
             };
         }
 
@@ -319,7 +355,16 @@ namespace Igruha.Minigames.BelieveOrNot
                     DeciderWins = (byte)Mathf.Clamp(e.DeciderWins, 0, 255),
                     RoundsSeated = (byte)Mathf.Clamp(e.RoundsSeated, 0, 255),
                     LastWonAt = e.LastWonAt,
-                    Present = e.Present
+                    Present = e.Present,
+                    QualificationWins = (byte)Mathf.Clamp(e.QualificationWins, 0, 255),
+                    QualificationPlayed = (byte)Mathf.Clamp(e.QualificationPlayed, 0, 255),
+                    ForfeitWins = (byte)Mathf.Clamp(e.ForfeitWins, 0, 255),
+                    OathHistory = (byte)Mathf.Clamp(e.OathHistory, 0, 255),
+                    OathCount = (byte)Mathf.Clamp(e.OathCount, 0, 255),
+                    PredictionStreak = (byte)Mathf.Clamp(e.PredictionStreak, 0, 255),
+                    BestPredictionStreak = (byte)Mathf.Clamp(e.BestPredictionStreak, 0, 255),
+                    CorrectPredictions = (byte)Mathf.Clamp(e.CorrectPredictions, 0, 255),
+                    PredictionRound = (byte)Mathf.Clamp(e.PredictionRound, 0, 255)
                 });
             }
         }

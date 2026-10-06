@@ -88,26 +88,32 @@ namespace Igruha.EditorTools
             var so = new SerializedObject(definition);
             so.FindProperty("displayName").stringValue = "Верю / не верю";
 
-            // Team: при 4–8 играют командами, при 2–3 счёт личный (спека 6.3).
-            so.FindProperty("category").enumValueIndex = (int)MinigameCategory.Team;
+            so.FindProperty("category").enumValueIndex = (int)MinigameCategory.FreeForAll;
             so.FindProperty("sceneName").stringValue = SceneName;
 
-            // Это страховка на зависший кон, а не длина матча: штатный матч
-            // на четырёх конах занимает около 212 с.
-            so.FindProperty("roundDuration").floatValue = config != null ? config.MatchTimeoutSeconds : 360f;
+            // Страховка на зависший турнир. Штатная длина зависит от числа
+            // игроков, досрочных решений и дополнительных дуэлей за финал.
+            so.FindProperty("roundDuration").floatValue = config != null ? config.MatchTimeoutSeconds : 1200f;
             so.FindProperty("minPlayers").intValue = 2;
             so.FindProperty("maxPlayers").intValue = 8;
             so.FindProperty("cameraMode").enumValueIndex = (int)CameraMode.ThirdPerson;
             so.FindProperty("objective").stringValue =
-                "Один за столом видел свою карточку. Второй — нет, и решает: оставить коробки или поменять. " +
-                "У кого в итоге галочка, тот и выиграл кон. Остальные — болеют, подсказывают и мешают друг другу.";
+                "Личный турнир блефа. Четыре кона отбора каждому, двое лучших — в финал до двух побед. " +
+                "Дай клятву, убеди соперника и открой коробки. Зрители прогнозируют победителя.";
 
             SerializedProperty hints = so.FindProperty("controlHints");
             hints.arraySize = 4;
             hints.GetArrayElementAtIndex(0).stringValue = "WASD — бег, ЛКМ — толкнуть";
-            hints.GetArrayElementAtIndex(1).stringValue = "За столом: 1–5 — реплика";
+            hints.GetArrayElementAtIndex(1).stringValue = "Знающему: 1/2 — клятва; затем 1–5 — реплики";
             hints.GetArrayElementAtIndex(2).stringValue = "Решающий: ← оставить, → поменять";
             hints.GetArrayElementAtIndex(3).stringValue = "Tab — насмешки";
+
+            SerializedProperty steps = so.FindProperty("tutorialSteps");
+            steps.arraySize = 4;
+            steps.GetArrayElementAtIndex(0).stringValue = "Посмотри карточку и дай клятву: выигрышная у тебя или у соперника. Можно блефовать.";
+            steps.GetArrayElementAtIndex(1).stringValue = "За 20 секунд реши: оставить коробки или поменять. Правда откроется вместе с крышками.";
+            steps.GetArrayElementAtIndex(2).stringValue = "Четыре кона отбора каждому. Двое лучших — в финал до двух побед.";
+            steps.GetArrayElementAtIndex(3).stringValue = "Между своими дуэлями прогнозируй победителя. Собери серию точных прогнозов!";
 
             so.ApplyModifiedPropertiesWithoutUndo();
         }

@@ -60,13 +60,19 @@ namespace Igruha.Tests.PlayMode
 
         private void Resolve()
         {
+            int before = 0;
+            foreach (var entry in game.TournamentEntries) before += entry.RoundsWon;
             stage.EnterStage(BelieveStage.Persuasion, config.PersuasionSeconds);
             game.HandleDecision(game.DeciderPlayerId, Decision.Keep);
             Assert.That(Match.Resolved, Is.True);
+            int whileClosed = 0;
+            foreach (var entry in game.TournamentEntries) whileClosed += entry.RoundsWon;
+            Assert.That(whileClosed, Is.EqualTo(before), "score must not expose the result while boxes are closed");
+            Call(game, "CommitDuelResult");
         }
 
-        [TestCase(2, 4)] [TestCase(3, 6)] [TestCase(4, 4)] [TestCase(5, 6)]
-        [TestCase(6, 6)] [TestCase(7, 8)] [TestCase(8, 8)]
+        [TestCase(2, 4)] [TestCase(3, 6)] [TestCase(4, 8)] [TestCase(5, 10)]
+        [TestCase(6, 12)] [TestCase(7, 14)] [TestCase(8, 16)]
         public void WholeMatchGivesBothRolesAndOnePointPerHand(int count, int rounds)
         {
             CreateGame(count);
@@ -98,7 +104,7 @@ namespace Igruha.Tests.PlayMode
                 int points = 0;
                 foreach (var entry in Get<List<BelieveEntry>>(game, "entries")) points += entry.RoundsWon;
                 Assert.That(points, Is.EqualTo(round));
-                if (count >= 4) Assert.That(Match.TeamAWins + Match.TeamBWins, Is.EqualTo(round));
+                Assert.That(Match.TeamAWins + Match.TeamBWins, Is.Zero, "personal tournament");
                 previous = current;
             }
             for (int id = 0; id < count; id++)
@@ -121,7 +127,7 @@ namespace Igruha.Tests.PlayMode
             Assert.That(Match.Seat0PlayerId, Is.Not.EqualTo(departed));
             Assert.That(Match.Seat1PlayerId, Is.Not.EqualTo(departed));
             Resolve();
-            Assert.That(Match.TeamAWins + Match.TeamBWins, Is.EqualTo(2));
+            Assert.That(Match.TeamAWins + Match.TeamBWins, Is.Zero);
         }
 
         [Test] public void SpectatorLeavingDoesNotBreakTheRematch()

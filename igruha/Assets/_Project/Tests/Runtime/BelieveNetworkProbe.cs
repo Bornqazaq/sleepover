@@ -18,7 +18,7 @@ namespace Igruha.Tests
     public sealed class BelieveNetworkProbe : MonoBehaviour
     {
         private const BindingFlags Private = BindingFlags.Instance | BindingFlags.NonPublic;
-        private const float Timeout = 240f;
+        private const float Timeout = 900f;
         private BelieveOrNotMinigame game;
         private MinigameStageState stage;
         private string scenario;
@@ -33,7 +33,9 @@ namespace Igruha.Tests
         private float persuasionStarted;
         private int checkedPairRound, completedRound;
         private BelieveMatchState previousPair;
-        private bool PredictionScenario => scenario == "predictions" || scenario == "oaths" || scenario == "oath-timeout" || scenario == "cancel-oath" || scenario == "cancel-persuasion";
+        private bool finalIntroSeen, championSeen, qualificationChecked, finalSoundSeen, championSoundSeen;
+        private readonly HashSet<string> captures = new HashSet<string>();
+        private bool PredictionScenario => scenario == "predictions" || scenario == "oaths" || scenario == "oath-timeout" || scenario == "cancel-oath" || scenario == "cancel-persuasion" || scenario == "cancel-final";
         private bool ready, cancelled, departing, finished, failed, returned;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -80,7 +82,7 @@ namespace Igruha.Tests
                 var sound = Object.FindFirstObjectByType<BelieveOrNotAudio>();
                 if (sound != null)
                 {
-                    sound.CuePlayed += cue => soundCues.Add(cue);
+                    sound.CuePlayed += cue => { soundCues.Add(cue); finalSoundSeen |= cue == "final_intro"; championSoundSeen |= cue == "tournament_win"; };
                     audioVoices = sound.GetComponentsInChildren<AudioSource>();
                 }
                 game.RevealStarted += (decision, won) =>
@@ -99,6 +101,7 @@ namespace Igruha.Tests
                 {
                     if (stage.Subround != observedRound) { observedRound = stage.Subround; reveals = 0; soundCues.Clear(); playedClips.Clear(); }
                     CheckOath();
+                    CheckTournament();
                     if (stage.Stage != observedStage)
                     {
                         observedStage = stage.Stage;
@@ -109,8 +112,9 @@ namespace Igruha.Tests
                     if (PredictionScenario) CheckPredictions();
                     CheckRematch();
                     byte leaveStage = scenario == "cancel-seating" ? BelieveStage.Seating :
-                        scenario == "cancel-peek" ? BelieveStage.Peek : scenario == "cancel-oath" ? BelieveStage.Oath : BelieveStage.Persuasion;
-                    bool cancelThisRound = scenario.StartsWith("cancel-") && !cancelled && game.KnowerPlayerId != 0;
+                        scenario == "cancel-peek" ? BelieveStage.Peek : (scenario == "cancel-oath" || scenario == "cancel-final") ? BelieveStage.Oath : BelieveStage.Persuasion;
+                    bool cancelThisRound = scenario.StartsWith("cancel-") && !cancelled && game.KnowerPlayerId != 0 &&
+                        (scenario != "cancel-final" || game.TournamentState.Phase == BelieveTournamentPhase.Final);
                     if (cancelThisRound && stage.Stage == leaveStage && game.KnowerPlayerId == LocalId && !departing &&
                         (scenario != "cancel-persuasion" || Time.realtimeSinceStartup - persuasionStarted > 2f))
                     {
@@ -141,6 +145,43 @@ namespace Igruha.Tests
             { Check(false, "timeout"); Application.Quit(2); }
         }
 
+        private void CheckTournament()
+        {
+            var t = game.TournamentState;
+            if (stage.Stage == BelieveStage.Persuasion && stage.StageRemaining < game.Config.PersuasionSeconds - 2f)
+                Capture(LocalId == game.KnowerPlayerId || LocalId == game.DeciderPlayerId ? "duel" : "spectator");
+            if (!qualificationChecked && t.Phase != BelieveTournamentPhase.Qualification)
+            {
+                qualificationChecked = true;
+                foreach (var e in game.TournamentEntries)
+                    if (e.Present) Check(e.QualificationPlayed == 4, "four qualification hands per remaining player");
+                Debug.Log("BELIEVE_CHECK QUALIFIED total=" + t.QualificationTotal);
+            }
+            if (stage.Stage == BelieveStage.FinalIntro && !finalIntroSeen && stage.StageRemaining < game.Config.FinalIntroSeconds - .5f)
+            {
+                finalIntroSeen = true;
+                Check(Get<BelieveTournamentHud>(game, "tournamentHud").BannerVisible, "final banner visible");
+                Check(finalSoundSeen, "final fanfare on every machine");
+                Debug.Log("BELIEVE_CHECK FINAL_INTRO a=" + t.FinalA + " b=" + t.FinalB);
+                Capture("final-intro");
+            }
+            if (stage.Stage == BelieveStage.Champion && !championSeen && stage.StageRemaining < game.Config.ChampionSeconds - .5f)
+            {
+                championSeen = true;
+                Check(t.Champion >= 0 && Get<BelieveTournamentHud>(game, "tournamentHud").BannerVisible, "champion banner visible");
+                Check(championSoundSeen, "champion fanfare on every machine");
+                if (!scenario.StartsWith("cancel-")) Check(t.WinsA == 2 || t.WinsB == 2, "champion won two final hands");
+                Capture("champion");
+            }
+        }
+
+        private void Capture(string view)
+        {
+            if (Application.isBatchMode || !captures.Add(view)) return;
+            string directory = System.IO.Path.GetDirectoryName(Application.consoleLogPath);
+            if (!string.IsNullOrEmpty(directory)) ScreenCapture.CaptureScreenshot(System.IO.Path.Combine(directory, "believe-" + view + ".png"));
+        }
+
         private void CheckOath()
         {
             if (audioVoices != null)
@@ -151,7 +192,7 @@ namespace Igruha.Tests
             if (waiting || stage.Stage == BelieveStage.Persuasion)
                 Check(!game.OathRevealed, "oath truth stays hidden before box opening");
             if (waiting && game.KnowerPlayerId == LocalId && oathPickedRound != stage.Subround &&
-                scenario != "cancel-oath" && !(scenario == "oath-timeout" && stage.Subround == 1))
+                scenario != "cancel-oath" && !(scenario == "cancel-final" && game.TournamentState.Phase == BelieveTournamentPhase.Final) && !(scenario == "oath-timeout" && stage.Subround == 1))
             {
                 oathPickedRound = stage.Subround;
                 StartCoroutine(PickOath());
@@ -214,7 +255,11 @@ namespace Igruha.Tests
             foreach (var entry in Get<List<BelieveEntry>>(game, "entries"))
                 if ((entry.PlayerId == previousPair.Seat0PlayerId || entry.PlayerId == previousPair.Seat1PlayerId) &&
                     !entry.Present) pairPresent = false;
-            bool expectedRematch = match.RoundNumber % 2 == 0 && completedRound == match.RoundNumber - 1 && pairPresent;
+            bool samePhase = previousPair.Tournament.Phase == match.Tournament.Phase;
+            bool expectedRematch = samePhase && pairPresent && completedRound == match.RoundNumber - 1 &&
+                (match.Tournament.Phase == BelieveTournamentPhase.Final ||
+                (match.Tournament.Phase == BelieveTournamentPhase.Qualification && match.Tournament.QualificationRound % 2 == 0 &&
+                 previousPair.Tournament.QualificationRound == match.Tournament.QualificationRound - 1));
             Check(match.IsRematch == expectedRematch, "rematch only follows a completed hand with both players present");
             if (expectedRematch)
             {
@@ -351,9 +396,9 @@ namespace Igruha.Tests
             var table = Get<BelieveTable>(game, "table");
             var hud = Get<BelieveSeatHud>(game, "seatHud");
             var text = Get<TMP_Text>(hud, "talkText");
-            Check(match.Cancelled && !match.Resolved, "cancel flag without resolution");
+            Check(match.Cancelled && match.Resolved && match.ForfeitWinner >= 0, "technical victory without card reveal");
             Check(reveals == 0, "no outcome event in cancelled round");
-            Check(text.enabled && text.text.Contains("Кон отменён") && text.text.Contains("Очко никому"), "cancel notice");
+            Check(text.enabled && text.text.Contains("СОПЕРНИК ВЫШЕЛ"), "forfeit notice");
             for (int i = 0; i < BelieveTable.SeatCount; i++)
                 Check(table.GetBox(i).Card == BelieveCard.Unknown, "cancel hides cards");
             Check(!Get<BelievePeekView>(game, "peekView").IsOpen &&
@@ -371,8 +416,14 @@ namespace Igruha.Tests
             else if (!PredictionScenario) Check(decisions > 0, "local decision controls exercised");
             if (scenario == "predictions") Check(predictionResultRound > 0, "prediction reveal observed");
             var entries = Get<List<BelieveEntry>>(game, "entries");
+            Check(finalIntroSeen || game.TournamentState.FinalA < 0, "final announcement observed");
+            Check(championSeen && game.TournamentState.Champion >= 0, "one champion announced");
+            Debug.Log("BELIEVE_CHECK CHAMPION id=" + game.TournamentState.Champion + " runner=" + game.TournamentState.RunnerUp +
+                " score=" + game.TournamentState.WinsA + ":" + game.TournamentState.WinsB);
             Debug.Log("BELIEVE_CHECK FINAL " + string.Join("|", entries.ConvertAll(e =>
-                e.PlayerId + ":" + e.RoundsWon + ":" + e.DeciderWins + ":" + e.RoundsSeated)));
+                e.PlayerId + ":" + e.RoundsWon + ":" + e.DeciderWins + ":" + e.RoundsSeated +
+                ":q" + e.QualificationWins + "/" + e.QualificationPlayed + ":o" + e.OathHistory + "/" + e.OathCount +
+                ":p" + e.PredictionStreak + "/" + e.BestPredictionStreak + "/" + e.CorrectPredictions)));
         }
 
         private void Check(bool condition, string message)

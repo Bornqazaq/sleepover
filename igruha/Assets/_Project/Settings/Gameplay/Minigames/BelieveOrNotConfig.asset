@@ -19,14 +19,16 @@ MonoBehaviour:
   persuasionSeconds: 20
   revealSeconds: 4
   reactionSeconds: 3
+  finalIntroSeconds: 4
+  championSeconds: 5
   boxSwapSeconds: 1.2
   lidOpenSeconds: 0.4
   lidPeekAngle: 12
   boxSwapArcHeight: 0.35
   phraseCooldown: 1.5
   phraseBubbleSeconds: 3
-  roundsByPlayerCount: 04000000060000000400000006000000060000000800000008000000
-  matchTimeoutSeconds: 360
+  roundsByPlayerCount: 0400000006000000080000000a0000000c0000000e00000010000000
+  matchTimeoutSeconds: 1200
   unitsPerWidth: 0.72
   hallWidth: 23
   hallDepth: 20

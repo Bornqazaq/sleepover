@@ -93,9 +93,11 @@ namespace Igruha.Minigames.BelieveOrNot
             if (HasAuthority)
             {
                 predictionResults = predictions.Reveal(winnerId);
+                RecordPredictionStreaks();
                 network?.PublishPredictions(predictionResults);
             }
             TryShowPredictionResults();
+            RefreshTournamentView();
         }
 
         public void ApplyPredictionResults(in BelievePredictionResults state)
