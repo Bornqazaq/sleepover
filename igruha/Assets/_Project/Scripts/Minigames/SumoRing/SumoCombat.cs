@@ -24,11 +24,14 @@ namespace Igruha.Minigames.SumoRing
     public sealed class SumoCombat : MonoBehaviour
     {
         private const int CommandCapacity = 64;
-        private const float GroundProbeHeight = .18f, GroundProbeLength = .38f;
+        private const float GroundProbeHeight = .18f, GroundProbeLength = .38f, GroundProbeRadius = .08f, MinimumGroundNormal = .5f;
         private const float AimInterval = .08f, AimThreshold = 3f;
         private struct Intent { public int Id, Sequence; public SumoCommand Command; public float Yaw; }
         private readonly Intent[] queue = new Intent[CommandCapacity];
         private int queued, nextInputSequence;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        private static readonly bool TraceEnabled = Igruha.Core.Session.LaunchArguments.TryGetValue("--sumo-trace", out _);
+#endif
         private SumoMinigame game;
         private SumoNetwork network;
         private Camera gameCamera;
@@ -44,6 +47,7 @@ namespace Igruha.Minigames.SumoRing
         private float nextAim, nextGuardRetry, lastYaw, lastAimYaw;
         public event Action StateChanged;
         public event Action<SumoCombatHit> Contact;
+        public event Action<SumoCombatState> StateObserved;
         public int Count => states.Length;
         public bool Active => game != null && game.Running && game.Elapsed >= 0 && !game.Round.Finished;
         public double Elapsed => game.Elapsed;
@@ -108,7 +112,7 @@ namespace Igruha.Minigames.SumoRing
             float yaw = Mathf.Atan2(forward.x, forward.z) * Mathf.Rad2Deg;
             bool attack = attackInput.IsPressed(), guard = guardInput.IsPressed();
             // Press and release in one rendered frame is still one quick shove.
-            if (attackInput.WasPressedThisFrame() && !attackHeld) Submit(local.Id, SumoCommand.AttackDown, yaw);
+            if (attackInput.WasPressedThisFrame() && !attackHeld) Submit(local.Id, guard ? SumoCommand.Dash : SumoCommand.AttackDown, yaw);
             if (attackInput.WasReleasedThisFrame() || (!attack && attackHeld)) Submit(local.Id, SumoCommand.AttackUp, yaw);
             if (guard && (!guardHeld || (local.State.Phase == SumoCombatPhase.Idle && Time.unscaledTime >= nextGuardRetry)))
             { Submit(local.Id, SumoCommand.GuardDown, yaw); nextGuardRetry = Time.unscaledTime + AimInterval; }
@@ -124,6 +128,10 @@ namespace Igruha.Minigames.SumoRing
             if (network != null && network.IsSpawned)
             {
                 int sequence = local != null && id == local.Id ? ++nextInputSequence : 0;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                if (TraceEnabled && command != SumoCommand.Aim)
+                    Debug.Log($"SUMO_INPUT send id={id} seq={sequence} cmd={command} server={NetworkClock.Now:F4} local={network.NetworkManager.LocalTime.Time:F4} wall={Time.realtimeSinceStartupAsDouble:F4}");
+#endif
                 if (!network.IsServer && sequence > 0)
                 {
                     bool releasing = command == SumoCommand.Cancel || command == SumoCommand.GuardUp;
@@ -136,7 +144,7 @@ namespace Igruha.Minigames.SumoRing
         }
         public void Enqueue(int id, SumoCommand command, float yaw, int sequence = 0)
         {
-            if (queued >= queue.Length || (byte)command > (byte)SumoCommand.Cancel || float.IsNaN(yaw) || float.IsInfinity(yaw)) return;
+            if (queued >= queue.Length || (byte)command > (byte)SumoCommand.Dash || float.IsNaN(yaw) || float.IsInfinity(yaw)) return;
             queue[queued++] = new Intent { Id = id, Command = command, Yaw = yaw, Sequence = sequence };
         }
         public int IndexOf(int id)
@@ -146,7 +154,7 @@ namespace Igruha.Minigames.SumoRing
             int i = IndexOf(state.Id);
             if (i < 0) return;
             states[i] = state;
-            fighters[i].Observe(state);
+            fighters[i].Observe(state); StateObserved?.Invoke(state);
         }
         public bool Owns(int id, ulong sender)
         {
@@ -156,8 +164,11 @@ namespace Igruha.Minigames.SumoRing
         public bool Grounded(int index)
         {
             var f = fighters[index];
-            return f != null && Physics.Raycast(f.Motor.Position + Vector3.up * GroundProbeHeight, Vector3.down, GroundProbeLength, f.Motor.GroundLayers, QueryTriggerInteraction.Ignore);
+            return f != null && HasGroundSupport(f.Motor.Position, f.Motor.GroundLayers);
         }
+        public static bool HasGroundSupport(Vector3 feet, int groundLayers) => Physics.SphereCast(
+            feet + Vector3.up * GroundProbeHeight, GroundProbeRadius, Vector3.down, out var hit,
+            GroundProbeLength - GroundProbeRadius, groundLayers, QueryTriggerInteraction.Ignore) && hit.normal.y >= MinimumGroundNormal;
         private bool Available(int i) => fighters[i] != null && !fighters[i].Participant.Dead && !fighters[i].Motor.IsKnockedDown && !fighters[i].Motor.MovementLocked && fighters[i].Motor.Position.y >= config.Height - config.FallTolerance;
         public void TickAuthority(double now)
         {
@@ -165,7 +176,10 @@ namespace Igruha.Minigames.SumoRing
             bool changed = false;
             for (int i = 0; i < states.Length; i++)
             {
-                changed |= SumoCombatRules.Advance(ref states[i], now, config);
+                bool committedDash = states[i].Attack == SumoAttack.Dash && (states[i].Phase == SumoCombatPhase.Windup || states[i].Phase == SumoCombatPhase.Dash);
+                if (committedDash && (!Available(i) || (states[i].Phase == SumoCombatPhase.Windup && !Grounded(i))))
+                { SumoCombatRules.Recover(ref states[i], now, config); changed = true; }
+                else changed |= SumoCombatRules.Advance(ref states[i], now, config);
                 if (!Available(i) || ((states[i].Phase == SumoCombatPhase.Guard || states[i].Phase == SumoCombatPhase.Charge) && !Grounded(i)))
                     changed |= SumoCombatRules.Command(ref states[i], SumoCommand.Cancel, states[i].Yaw, now, config);
                 usedParry[i] = false;
@@ -183,10 +197,15 @@ namespace Igruha.Minigames.SumoRing
                     states[i].Revision++;
                     changed = true;
                 }
-                if (!Available(i)) continue;
+                bool available = Available(i), grounded = Grounded(i);
                 bool releasing = intent.Command == SumoCommand.Cancel || intent.Command == SumoCommand.GuardUp;
-                if (!releasing && !Grounded(i)) continue;
-                changed |= SumoCombatRules.Command(ref states[i], intent.Command, intent.Yaw, now, config);
+                var before = states[i];
+                bool applied = available && (releasing || grounded) && (intent.Command != SumoCommand.Dash || !fighters[i].Motor.IsCrouched) && SumoCombatRules.Command(ref states[i], intent.Command, intent.Yaw, now, config);
+                changed |= applied;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                if (TraceEnabled && intent.Command != SumoCommand.Aim)
+                    Debug.Log($"SUMO_INPUT apply id={intent.Id} seq={intent.Sequence} cmd={intent.Command} now={now:F4} elapsed={Elapsed:F4} wall={Time.realtimeSinceStartupAsDouble:F4} available={available} grounded={grounded} applied={applied} before={before.Phase} since={before.Since:F4} until={before.Until:F4} parry={before.ParryUntil:F4} after={states[i].Phase} attack={states[i].Attack} newParry={states[i].ParryUntil:F4}");
+#endif
             }
             queued = 0;
             int hits = 0;
@@ -194,8 +213,10 @@ namespace Igruha.Minigames.SumoRing
             for (int i = 0; i < states.Length; i++)
             {
                 var s = states[i];
-                if (s.Phase != SumoCombatPhase.Windup || now < s.Until) continue;
-                int target = Available(i) && Grounded(i) ? FindTarget(i) : -1;
+                bool dash = s.Phase == SumoCombatPhase.Dash;
+                if (!dash && (s.Phase != SumoCombatPhase.Windup || now < s.Until)) continue;
+                int target = Available(i) && (dash || Grounded(i)) ? FindTarget(i) : -1;
+                if (dash && target < 0 && Available(i) && now < s.Until) continue;
                 var hit = new SumoCombatHit { Attacker = s.Id, Target = target >= 0 ? states[target].Id : -1, Attack = s.Attack, Contact = SumoContact.Miss };
                 if (target >= 0)
                 {
@@ -205,9 +226,9 @@ namespace Igruha.Minigames.SumoRing
                     var defending = states[target]; if (usedParry[target]) defending.ParryUntil = 0;
                     hit.Contact = SumoCombatRules.Contact(s, defending, from - to, Grounded(target), now, config);
                     if (hit.Contact == SumoContact.Parry) usedParry[target] = true;
-                    hit.Speed = s.Attack == SumoAttack.Quick ? config.QuickPushSpeed : s.Attack == SumoAttack.Heavy ? config.HeavyPushSpeed : config.CounterPushSpeed;
-                    hit.Slide = s.Attack == SumoAttack.Quick ? config.QuickSlideSeconds : config.HeavySlideSeconds;
-                    if (hit.Contact == SumoContact.Block) hit.Speed *= config.GuardPushMultiplier;
+                    hit.Speed = s.Attack == SumoAttack.Dash ? config.DashPushSpeed : s.Attack == SumoAttack.Quick ? config.QuickPushSpeed : s.Attack == SumoAttack.Heavy ? config.HeavyPushSpeed : config.CounterPushSpeed;
+                    hit.Slide = s.Attack == SumoAttack.Dash ? config.DashSlideSeconds : s.Attack == SumoAttack.Quick ? config.QuickSlideSeconds : config.HeavySlideSeconds;
+                    if (hit.Contact == SumoContact.Block) hit.Speed = dash ? 0 : hit.Speed * config.GuardPushMultiplier;
                 }
                 contacts[hits++] = hit;
             }
@@ -223,6 +244,8 @@ namespace Igruha.Minigames.SumoRing
                         SumoCombatRules.Stagger(ref states[a], now, config.ParriedStaggerSeconds);
                         SumoCombatRules.AwardCounter(ref states[t], hit.Attacker, now, config);
                     }
+                    else if (hit.Contact == SumoContact.Block && hit.Attack == SumoAttack.Dash)
+                        SumoCombatRules.BlockDash(ref states[a], now, config);
                     else if (hit.Contact != SumoContact.Block)
                         SumoCombatRules.Stagger(ref states[t], now, hit.Contact == SumoContact.GuardBreak ? config.GuardBreakSeconds : config.StaggerSeconds);
                 }
@@ -231,7 +254,7 @@ namespace Igruha.Minigames.SumoRing
             }
             if (changed)
             {
-                for (int i = 0; i < fighters.Length; i++) if (fighters[i] != null) fighters[i].Observe(states[i]);
+                for (int i = 0; i < fighters.Length; i++) if (fighters[i] != null) { fighters[i].Observe(states[i]); StateObserved?.Invoke(states[i]); }
                 StateChanged?.Invoke();
             }
         }
@@ -244,10 +267,25 @@ namespace Igruha.Minigames.SumoRing
                 if (i == attacker || !Available(i) || (s.Attack == SumoAttack.Counter && states[i].Id != s.CounterTarget)) continue;
                 Vector3 delta = fighters[i].Motor.Position - source.Motor.Position;
                 if (!SumoCombatRules.IsFrontal(s.Forward, delta, config.AttackArc)) continue;
-                if (BodyGap(source.Capsule, fighters[i].Capsule) > config.CombatReach) continue;
+                if (BodyGap(source.Capsule, fighters[i].Capsule) > (s.Attack == SumoAttack.Dash ? config.DashReach : config.CombatReach)) continue;
                 if (delta.sqrMagnitude < nearest) { nearest = delta.sqrMagnitude; chosen = i; }
             }
             return chosen;
+        }
+        /// <summary>Do not drive into an interpolated kinematic opponent while waiting for the server contact.
+        /// This is a movement limit only; target selection and hit consequences still belong to authority.</summary>
+        public float LimitDashStep(int attacker, Vector3 forward, float distance)
+        {
+            const float contactSkin = .06f;
+            var source = fighters[attacker];
+            for (int i = 0; i < fighters.Length; i++)
+            {
+                var target = fighters[i];
+                if (i == attacker || target == null || target.Participant.Dead) continue;
+                if (!SumoCombatRules.IsFrontal(forward, target.Motor.Position - source.Motor.Position, config.AttackArc)) continue;
+                distance = Mathf.Min(distance, Mathf.Max(0, BodyGap(source.Capsule, target.Capsule) - contactSkin));
+            }
+            return distance;
         }
         public static float BodyGap(CapsuleCollider a, CapsuleCollider b)
         {

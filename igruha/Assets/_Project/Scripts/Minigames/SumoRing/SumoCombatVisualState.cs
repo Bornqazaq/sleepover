@@ -116,7 +116,7 @@ namespace Igruha.Minigames.SumoRing
             // so a late confirmation cannot restart a locally displayed swing.
             for (int i = 0; i < 3; i++)
             {
-                if (state.Phase == SumoCombatPhase.Windup && now >= state.Until)
+                if ((state.Phase == SumoCombatPhase.Windup && state.Attack != SumoAttack.Dash || state.Phase == SumoCombatPhase.Dash) && now >= state.Until)
                     SumoCombatRules.Recover(ref state, state.Until, config);
                 else if (state.Until > 0 && now >= state.Until)
                     SumoCombatRules.Advance(ref state, state.Until, config);

@@ -51,9 +51,13 @@ namespace Igruha.Minigames.SumoRing
                 case SumoCombatPhase.Guard: motion = SumoMotion.Guard; sample = Mathf.Repeat((float)(now - state.Since), 1); break;
                 case SumoCombatPhase.Charge: motion = SumoMotion.Charge; sample = Mathf.Clamp01((float)(now - state.Since) / fighter.Config.ChargeSeconds); break;
                 case SumoCombatPhase.Windup:
-                    motion = AttackMotion(state.Attack); sample = Mathf.Clamp01((float)((now - state.Since) / (state.Until - state.Since))) * .6f; break;
+                    motion = AttackMotion(state.Attack); sample = Mathf.Clamp01((float)((now - state.Since) / (state.Until - state.Since))) * (state.Attack == SumoAttack.Dash ? .35f : .6f); break;
+                case SumoCombatPhase.Dash:
+                    motion = SumoMotion.Shoulder; sample = .35f + .3f * Mathf.Clamp01((float)((now - state.Since) / (state.Until - state.Since))); break;
                 case SumoCombatPhase.Recovery:
-                    motion = AttackMotion(state.Attack); sample = .6f + .4f * Mathf.Clamp01((float)(now - state.Since) / RecoveryPoseSeconds); break;
+                    motion = AttackMotion(state.Attack);
+                    sample = state.Attack == SumoAttack.Dash ? .65f + .35f * Mathf.Clamp01((float)(now - state.Since) / fighter.Config.DashRecovery)
+                        : .6f + .4f * Mathf.Clamp01((float)(now - state.Since) / RecoveryPoseSeconds); break;
                 case SumoCombatPhase.Stagger: motion = SumoMotion.Recoil; sample = Mathf.Clamp01((float)((now - state.Since) / (state.Until - state.Since))); break;
                 default:
                     targetWeight = fighter.BalanceWeight;
@@ -118,6 +122,6 @@ namespace Igruha.Minigames.SumoRing
                 hips.position -= Vector3.up * change;
             }
         }
-        private static SumoMotion AttackMotion(SumoAttack attack) => attack == SumoAttack.Heavy ? SumoMotion.Heavy : attack == SumoAttack.Counter ? SumoMotion.Counter : SumoMotion.Quick;
+        private static SumoMotion AttackMotion(SumoAttack attack) => attack == SumoAttack.Dash ? SumoMotion.Shoulder : attack == SumoAttack.Heavy ? SumoMotion.Heavy : attack == SumoAttack.Counter ? SumoMotion.Counter : SumoMotion.Quick;
     }
 }

@@ -3,6 +3,7 @@
   "source":"Лицензированная поставка проекта, повторное использование исходных WAV без копий. Звук отдельного таико/гонга пока отсутствует: старт обозначен существующим коротким позитивным сигналом.",
   "output_folder":"Assets/_Project/Audio/SumoRing",
   "slots":[
+    {"id":"sumo_dash","file":"Core/Character/SFX_CHR_Step_Gravel_01","event":"упор ногой перед рывком, из подтверждённого состояния","spatial":true,"loop":false,"volume":0.6},
     {"id":"sumo_start","file":"Core/Flow/SFX_FLOW_Sting_Positive_01","event":"начало после отсчёта","spatial":false,"loop":false,"volume":0.5},
     {"id":"sumo_warning","file":"CryingAngels/SFX_ANGL_Petrify_Crumble_01","event":"за 2 с до обвала, один раз на кольцо","spatial":false,"loop":false,"volume":0.5},
     {"id":"sumo_collapse","file":"Core/Traps/SFX_TRAP_Floor_Collapse_01","event":"обвал, один раз на кольцо","spatial":false,"loop":false,"volume":0.7},

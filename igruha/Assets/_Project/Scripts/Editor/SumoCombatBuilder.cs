@@ -37,9 +37,9 @@ namespace Igruha.EditorTools
             so.FindProperty("combatEffectMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Art/Minigames/SumoRing/Materials/Dust.mat"); so.ApplyModifiedPropertiesWithoutUndo();
             var definition = AssetDatabase.LoadAssetAtPath<MinigameDefinition>(Settings + "SumoRing.asset");
             var d = new SerializedObject(definition);
-            Strings(d, "controlHints", new[] { "ЛКМ — толчок · зажми и отпусти ЛКМ — силовой", "ПКМ — защита · ПКМ перед попаданием — парирование", "После парирования нажми ЛКМ — контратака", "WASD — движение · Space — прыжок · геймпад: RT / LT" });
-            Strings(d, "tutorialSteps", new[] { "Толкай к краю. Зажми ЛКМ, чтобы пробить защиту.", "Защищайся лицом к удару. Точный блок открывает контратаку ЛКМ.", "Береги спину и следи за трещинами: край осыпается." });
-            Strings(d, "tutorialQuickHints", new[] { "ЛКМ — толчок / заряд", "ПКМ — блок / парирование", "Отбил → ЛКМ — ответ" });
+            Strings(d, "controlHints", new[] { "ЛКМ — толчок · зажми и отпусти ЛКМ — силовой", "ПКМ — защита · ПКМ перед попаданием — парирование", "ПКМ + ЛКМ / LT + RT — рывок плечом · после парирования — ответ", "WASD — движение · Space — прыжок · геймпад: RT / LT" });
+            Strings(d, "tutorialSteps", new[] { "Толкай к краю. Зажми ЛКМ, чтобы пробить защиту.", "Защищайся лицом к удару. Точный блок открывает контратаку ЛКМ.", "Зажми защиту и нажми толчок — рывок. Не промахнись у края!" });
+            Strings(d, "tutorialQuickHints", new[] { "ЛКМ — толчок / заряд", "ПКМ — блок / парирование", "ПКМ + ЛКМ — рывок" });
             d.ApplyModifiedPropertiesWithoutUndo(); AssetDatabase.SaveAssets();
             Debug.Log("SUMO_COMBAT: humanoid clips, motion library and tutorial updated. Shared controllers unchanged.");
         }
@@ -82,6 +82,23 @@ namespace Igruha.EditorTools
             if (motion == SumoMotion.Guard)
                 return value + (muscle == "Chest Front-Back" ? Mathf.Sin(time * Mathf.PI * 2) * .018f : 0);
             if (motion == SumoMotion.Balance) return Balance(muscle, time, left);
+            if (motion == SumoMotion.Shoulder)
+            {
+                float load = Ease(0, .35f, time) * (1 - Ease(.65f, 1, time));
+                if (muscle == "Spine Front-Back") value -= .38f * load;
+                if (muscle == "Chest Front-Back") value -= .20f * load;
+                if (muscle == "Chest Twist Left-Right") value += .40f * load;
+                if (muscle == "Spine Twist Left-Right") value += .18f * load;
+                if (muscle == "Neck Nod Down-Up") value += .08f * load;
+                if (muscle.EndsWith("Arm Down-Up")) value -= .26f * load;
+                if (muscle.EndsWith("Hand Down-Up")) value -= .35f * load;
+                if (muscle.EndsWith("Shoulder Down-Up")) value += (left ? -.10f : .05f) * load;
+                if (muscle.EndsWith("Arm Front-Back")) value += (left ? .24f : .12f) * load;
+                if (muscle.EndsWith("Forearm Stretch")) value += (left ? .25f : .50f) * load;
+                if (muscle.EndsWith("Lower Leg Stretch")) value -= .25f * load;
+                if (muscle.EndsWith("Upper Leg Front-Back")) value += (left ? .16f : -.08f) * load;
+                return Mathf.Clamp(value, -.95f, .95f);
+            }
             if (motion == SumoMotion.Charge || motion == SumoMotion.Heavy || motion == SumoMotion.Quick || motion == SumoMotion.Counter)
             {
                 // Heavy starts in the fully loaded pose: releasing a charge never unfolds

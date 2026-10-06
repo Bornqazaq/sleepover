@@ -19,7 +19,8 @@ namespace Igruha.Minigames.SumoRing
         private Vector3 slideDirection;
         private float slideSpeed, slideTime, slideLength;
         private int index;
-        private bool released;
+        private bool released, wasDashing;
+        public bool IsDashing => wasDashing;
         private Vector3 previousPosition;
         public float PlanarSpeed { get; private set; }
         private float nextBalanceProbe, balanceTarget;
@@ -62,12 +63,14 @@ namespace Igruha.Minigames.SumoRing
             pose = gameObject.AddComponent<SumoCombatPose>(); pose.Bind(this, config.Motions);
             effects = gameObject.AddComponent<SumoCombatEffects>(); effects.Bind(this, config.CombatEffectMaterial);
         }
-        public void ResetCombat() { slideTime = 0; ContactAt = double.NegativeInfinity; ContactAsTarget = false; }
+        public void ResetCombat() { slideTime = 0; wasDashing = false; ContactAt = double.NegativeInfinity; ContactAsTarget = false; }
         public void ResetVisual() => visual.Reset(State);
         public void Release()
         {
             if (released) return;
             released = true; slideTime = 0;
+            if (wasDashing && body != null && !body.isKinematic) body.linearVelocity = new Vector3(0, body.linearVelocity.y, 0);
+            wasDashing = false;
             if (pose != null) { pose.enabled = false; Destroy(pose); }
             if (effects != null) { effects.enabled = false; Destroy(effects); }
             if (Motor != null) { Motor.ClearSpeedCap(this); Motor.FacingOverride = savedFacing; }
@@ -84,7 +87,8 @@ namespace Igruha.Minigames.SumoRing
             bool active = combat.Active && !Participant.Dead && !Motor.IsKnockedDown;
             if (!active) { visual.Reset(State); Motor.ClearSpeedCap(this); Motor.FacingOverride = savedFacing; return; }
             var shown = VisualState;
-            bool aiming = shown.Phase == SumoCombatPhase.Guard || shown.Phase == SumoCombatPhase.Charge || shown.Phase == SumoCombatPhase.Windup || shown.Phase == SumoCombatPhase.Recovery;
+            bool aiming = shown.Phase == SumoCombatPhase.Guard || shown.Phase == SumoCombatPhase.Charge || shown.Phase == SumoCombatPhase.Windup || shown.Phase == SumoCombatPhase.Recovery || shown.Phase == SumoCombatPhase.Dash;
+            if (shown.Attack == SumoAttack.Dash && (shown.Phase == SumoCombatPhase.Windup || shown.Phase == SumoCombatPhase.Dash)) Input.ConsumeJump();
             Motor.FacingOverride = aiming ? shown.Forward : savedFacing;
             float cap = s.Phase == SumoCombatPhase.Guard ? config.GuardSpeed : s.Phase == SumoCombatPhase.Charge ? config.ChargeSpeed : s.Phase == SumoCombatPhase.Idle ? 0 : ActionSpeed;
             if (cap > 0) Motor.ApplySpeedCap(this, cap); else Motor.ClearSpeedCap(this);
@@ -104,10 +108,27 @@ namespace Igruha.Minigames.SumoRing
         }
         private void FixedUpdate()
         {
-            if (released || Participant == null || !combat.Active || Participant.Dead || !LocallySimulated || slideTime <= 0) return;
-            float speed = slideSpeed * Mathf.Clamp01(slideTime / slideLength);
-            var velocity = body.linearVelocity;
-            body.linearVelocity = new Vector3(slideDirection.x * speed, velocity.y, slideDirection.z * speed);
+            if (released || Participant == null || !LocallySimulated) return;
+            var s = State; double now = VisualNow;
+            // Only an acknowledged windup may move the owner. LocalTime compensates the
+            // owner-to-server transport just as the existing owner NetworkTransform does.
+            bool dash = combat.Active && !Participant.Dead && !Motor.IsKnockedDown && s.Attack == SumoAttack.Dash
+                && (s.Phase == SumoCombatPhase.Windup || s.Phase == SumoCombatPhase.Dash)
+                && now >= s.DashAt && now < s.DashAt + config.DashSeconds && slideTime <= 0;
+            Vector3 velocity = body.linearVelocity;
+            if (wasDashing && !dash) body.linearVelocity = new Vector3(0, velocity.y, 0);
+            wasDashing = dash;
+            if (dash)
+            {
+                float speed = config.DashSpeed * Mathf.Clamp01((float)(s.DashAt + config.DashSeconds - now) / Time.fixedDeltaTime);
+                Vector3 direction = s.Forward;
+                speed = combat.LimitDashStep(index, direction, speed * Time.fixedDeltaTime) / Time.fixedDeltaTime;
+                body.linearVelocity = new Vector3(direction.x * speed, velocity.y, direction.z * speed);
+                return;
+            }
+            if (!combat.Active || Participant.Dead || slideTime <= 0) return;
+            float slide = slideSpeed * Mathf.Clamp01(slideTime / slideLength);
+            body.linearVelocity = new Vector3(slideDirection.x * slide, velocity.y, slideDirection.z * slide);
             slideTime = Mathf.Max(0, slideTime - Time.fixedDeltaTime);
         }
         public void Feedback(SumoCombatHit hit, bool target)

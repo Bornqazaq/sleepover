@@ -56,3 +56,12 @@ MonoBehaviour:
   counterPushSpeed: 9
   quickSlideSeconds: 0.32
   heavySlideSeconds: 0.52
+  dashWindup: 0.45
+  dashSeconds: 0.3
+  dashSpeed: 8
+  dashRecovery: 0.65
+  dashBlockedRecovery: 0.75
+  dashCooldown: 3.25
+  dashReach: 0.25
+  dashPushSpeed: 6.8
+  dashSlideSeconds: 0.4
