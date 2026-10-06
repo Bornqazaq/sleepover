@@ -46,6 +46,25 @@ namespace Igruha.Minigames.SumoRing
         [SerializeField, Min(.1f)] private float counterPushSpeed = 9f;
         [SerializeField, Min(.05f)] private float quickSlideSeconds = .32f;
         [SerializeField, Min(.05f)] private float heavySlideSeconds = .52f;
+        [Header("Shoulder dash — prototype")]
+        [SerializeField, Min(.1f)] private float dashWindup = .45f;
+        [SerializeField, Min(.1f)] private float dashSeconds = .30f;
+        [SerializeField, Min(.1f)] private float dashSpeed = 8f;
+        [SerializeField, Min(.1f)] private float dashRecovery = .65f;
+        [SerializeField, Min(.1f)] private float dashBlockedRecovery = .75f;
+        [SerializeField, Min(.1f)] private float dashCooldown = 3.25f;
+        [SerializeField, Min(.01f)] private float dashReach = .25f;
+        [SerializeField, Min(.1f)] private float dashPushSpeed = 6.8f;
+        [SerializeField, Min(.05f)] private float dashSlideSeconds = .40f;
+        public float DashWindup => dashWindup;
+        public float DashSeconds => dashSeconds;
+        public float DashSpeed => dashSpeed;
+        public float DashRecovery => dashRecovery;
+        public float DashBlockedRecovery => dashBlockedRecovery;
+        public float DashCooldown => dashCooldown;
+        public float DashReach => dashReach;
+        public float DashPushSpeed => dashPushSpeed;
+        public float DashSlideSeconds => dashSlideSeconds;
         public float CombatReach => combatReach;
         public float AttackArc => attackArc;
         public float GuardArc => guardArc;

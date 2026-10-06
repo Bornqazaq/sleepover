@@ -1,4 +1,3 @@
-using Igruha.Core.Audio;
 using Igruha.Core.Minigame;
 using Igruha.Core.Player;
 using Unity.Netcode;
@@ -11,18 +10,23 @@ namespace Igruha.Minigames.SumoRing
     public sealed class SumoFighter : MonoBehaviour
     {
         private const float ActionSpeed = .01f;
+        private const float BalanceProbeInterval = .06f, BalanceBlendSeconds = .16f;
         private SumoCombat combat;
         private SumoConfig config;
         private Rigidbody body;
         private PlayerEmoteAbility emote;
-        private MinigameAudioPlayer audioPlayer;
         private Vector3? savedFacing;
         private Vector3 slideDirection;
         private float slideSpeed, slideTime, slideLength;
         private int index;
-        private bool released;
+        private bool released, wasDashing;
+        public bool IsDashing => wasDashing;
         private Vector3 previousPosition;
         public float PlanarSpeed { get; private set; }
+        private float nextBalanceProbe, balanceTarget;
+        public float BalanceWeight { get; private set; }
+        public Vector3 EdgeDirection { get; private set; }
+        private SumoCombatVisualState visual;
         private SumoCombatPose pose;
         private SumoCombatEffects effects;
         public SumoConfig Config => config;
@@ -36,7 +40,17 @@ namespace Igruha.Minigames.SumoRing
         public float BodyHeight => Capsule != null ? Capsule.height : 1.8f;
         public bool LocallySimulated => body != null && !body.isKinematic && Motor.enabled;
         public SumoCombatState State => combat != null && index < combat.Count ? combat.StateAt(index) : SumoCombatState.Create(Id);
+        public bool PredictsLocally => Identity != null && Identity.IsSpawned && Identity.IsOwner && !Identity.NetworkManager.IsServer;
+        // Owner time estimates when this input reaches the server; remote copies use
+        // buffered server time, like their NetworkTransform.
+        public double VisualNow => PredictsLocally ? Identity.NetworkManager.LocalTime.Time : NetworkClock.Now;
+        public SumoCombatState VisualState => visual != null ? visual.Evaluate(VisualNow) : State;
+        public void Predict(int sequence, SumoCommand command, float yaw) => visual.Predict(sequence, command, yaw, VisualNow);
+        public void Observe(SumoCombatState state) => visual.Receive(state, VisualNow, PredictsLocally);
         public SumoContact LastContact { get; private set; }
+        public SumoAttack ContactAttack { get; private set; }
+        public Vector3 ContactDirection { get; private set; }
+        public float ContactSlide { get; private set; }
         public double ContactAt { get; private set; } = double.NegativeInfinity;
         public bool ContactAsTarget { get; private set; }
 
@@ -44,15 +58,19 @@ namespace Igruha.Minigames.SumoRing
         {
             combat = owner; Participant = participant; config = settings; index = slot;
             body = GetComponent<Rigidbody>(); Capsule = GetComponent<CapsuleCollider>(); Identity = GetComponent<NetworkObject>();
-            emote = GetComponent<PlayerEmoteAbility>(); audioPlayer = GetComponentInChildren<MinigameAudioPlayer>(); savedFacing = Motor.FacingOverride;
+            emote = GetComponent<PlayerEmoteAbility>(); savedFacing = Motor.FacingOverride;
+            visual = new SumoCombatVisualState(config, Id);
             pose = gameObject.AddComponent<SumoCombatPose>(); pose.Bind(this, config.Motions);
             effects = gameObject.AddComponent<SumoCombatEffects>(); effects.Bind(this, config.CombatEffectMaterial);
         }
-        public void ResetCombat() { slideTime = 0; ContactAt = double.NegativeInfinity; }
+        public void ResetCombat() { slideTime = 0; wasDashing = false; ContactAt = double.NegativeInfinity; ContactAsTarget = false; }
+        public void ResetVisual() => visual.Reset(State);
         public void Release()
         {
             if (released) return;
             released = true; slideTime = 0;
+            if (wasDashing && body != null && !body.isKinematic) body.linearVelocity = new Vector3(0, body.linearVelocity.y, 0);
+            wasDashing = false;
             if (pose != null) { pose.enabled = false; Destroy(pose); }
             if (effects != null) { effects.enabled = false; Destroy(effects); }
             if (Motor != null) { Motor.ClearSpeedCap(this); Motor.FacingOverride = savedFacing; }
@@ -63,30 +81,63 @@ namespace Igruha.Minigames.SumoRing
             if (released || Participant == null) return;
             Vector3 step = Motor.Position - previousPosition; step.y = 0;
             PlanarSpeed = Mathf.Min(10, step.magnitude / Mathf.Max(.001f, Time.deltaTime)); previousPosition = Motor.Position;
+            UpdateBalance();
             if (!LocallySimulated) return;
             var s = State;
             bool active = combat.Active && !Participant.Dead && !Motor.IsKnockedDown;
-            if (!active) { Motor.ClearSpeedCap(this); return; }
-            bool aiming = s.Phase == SumoCombatPhase.Guard || s.Phase == SumoCombatPhase.Charge || s.Phase == SumoCombatPhase.Windup || s.Phase == SumoCombatPhase.Recovery;
-            Motor.FacingOverride = aiming ? s.Forward : savedFacing;
+            if (!active) { visual.Reset(State); Motor.ClearSpeedCap(this); Motor.FacingOverride = savedFacing; return; }
+            var shown = VisualState;
+            bool aiming = shown.Phase == SumoCombatPhase.Guard || shown.Phase == SumoCombatPhase.Charge || shown.Phase == SumoCombatPhase.Windup || shown.Phase == SumoCombatPhase.Recovery || shown.Phase == SumoCombatPhase.Dash;
+            if (shown.Attack == SumoAttack.Dash && (shown.Phase == SumoCombatPhase.Windup || shown.Phase == SumoCombatPhase.Dash)) Input.ConsumeJump();
+            Motor.FacingOverride = aiming ? shown.Forward : savedFacing;
             float cap = s.Phase == SumoCombatPhase.Guard ? config.GuardSpeed : s.Phase == SumoCombatPhase.Charge ? config.ChargeSpeed : s.Phase == SumoCombatPhase.Idle ? 0 : ActionSpeed;
             if (cap > 0) Motor.ApplySpeedCap(this, cap); else Motor.ClearSpeedCap(this);
             if (s.Phase != SumoCombatPhase.Idle) emote?.StopEmote();
         }
+        private void UpdateBalance()
+        {
+            bool standing = combat.Active && !Participant.Dead && !Motor.IsKnockedDown && !Motor.IsCrouched && IsGrounded;
+            if (!standing) { balanceTarget = BalanceWeight = 0; return; }
+            if (Time.unscaledTime >= nextBalanceProbe)
+            {
+                nextBalanceProbe = Time.unscaledTime + BalanceProbeInterval;
+                balanceTarget = SumoEdgeBalance.Evaluate(config, Motor.Position, combat.Elapsed, out var direction);
+                EdgeDirection = direction;
+            }
+            BalanceWeight = Mathf.MoveTowards(BalanceWeight, balanceTarget, Time.deltaTime / BalanceBlendSeconds);
+        }
         private void FixedUpdate()
         {
-            if (released || Participant == null || !combat.Active || Participant.Dead || !LocallySimulated || slideTime <= 0) return;
-            float speed = slideSpeed * Mathf.Clamp01(slideTime / slideLength);
-            var velocity = body.linearVelocity;
-            body.linearVelocity = new Vector3(slideDirection.x * speed, velocity.y, slideDirection.z * speed);
+            if (released || Participant == null || !LocallySimulated) return;
+            var s = State; double now = VisualNow;
+            // Only an acknowledged windup may move the owner. LocalTime compensates the
+            // owner-to-server transport just as the existing owner NetworkTransform does.
+            bool dash = combat.Active && !Participant.Dead && !Motor.IsKnockedDown && s.Attack == SumoAttack.Dash
+                && (s.Phase == SumoCombatPhase.Windup || s.Phase == SumoCombatPhase.Dash)
+                && now >= s.DashAt && now < s.DashAt + config.DashSeconds && slideTime <= 0;
+            Vector3 velocity = body.linearVelocity;
+            if (wasDashing && !dash) body.linearVelocity = new Vector3(0, velocity.y, 0);
+            wasDashing = dash;
+            if (dash)
+            {
+                float speed = config.DashSpeed * Mathf.Clamp01((float)(s.DashAt + config.DashSeconds - now) / Time.fixedDeltaTime);
+                Vector3 direction = s.Forward;
+                speed = combat.LimitDashStep(index, direction, speed * Time.fixedDeltaTime) / Time.fixedDeltaTime;
+                body.linearVelocity = new Vector3(direction.x * speed, velocity.y, direction.z * speed);
+                return;
+            }
+            if (!combat.Active || Participant.Dead || slideTime <= 0) return;
+            float slide = slideSpeed * Mathf.Clamp01(slideTime / slideLength);
+            body.linearVelocity = new Vector3(slideDirection.x * slide, velocity.y, slideDirection.z * slide);
             slideTime = Mathf.Max(0, slideTime - Time.fixedDeltaTime);
         }
         public void Feedback(SumoCombatHit hit, bool target)
         {
-            LastContact = hit.Contact; ContactAt = NetworkClock.Now; ContactAsTarget = target;
+            // An outgoing contact must not erase a simultaneous incoming reaction.
             if (!target || hit.Contact == SumoContact.Miss) return;
+            LastContact = hit.Contact; ContactAt = NetworkClock.Now; ContactAsTarget = target;
+            ContactAttack = hit.Attack; ContactDirection = hit.Direction; ContactSlide = hit.Slide;
             effects?.Show(hit);
-            if (audioPlayer != null) audioPlayer.PlayAt(CoreSfx.PushHit, hit.Point, hit.Contact == SumoContact.Block ? .55f : 1f);
             if (!LocallySimulated || Participant.Dead || hit.Contact == SumoContact.Parry) return;
             // Combine converging shoves, with a cap: no order-dependent overwrite and no eight-player launch exploit.
             Vector3 velocity = slideDirection * slideSpeed * (slideLength > 0 ? slideTime / slideLength : 0) + hit.Direction * hit.Speed;

@@ -28,7 +28,7 @@ namespace Igruha.EditorTools
             Directory.CreateDirectory(Folder); AssetDatabase.Refresh();
             var library = AssetDatabase.LoadAssetAtPath<SumoMotionLibrary>(Folder + "/SumoMotions.asset");
             if (library == null) { library = ScriptableObject.CreateInstance<SumoMotionLibrary>(); AssetDatabase.CreateAsset(library, Folder + "/SumoMotions.asset"); }
-            var data = new SumoMotionData[8];
+            var data = new SumoMotionData[Enum.GetValues(typeof(SumoMotion)).Length];
             for (int m = 0; m < data.Length; m++) data[m] = BuildMotion((SumoMotion)m);
             var field = typeof(SumoMotionLibrary).GetField("motions", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
             field.SetValue(library, data); EditorUtility.SetDirty(library);
@@ -37,11 +37,11 @@ namespace Igruha.EditorTools
             so.FindProperty("combatEffectMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Art/Minigames/SumoRing/Materials/Dust.mat"); so.ApplyModifiedPropertiesWithoutUndo();
             var definition = AssetDatabase.LoadAssetAtPath<MinigameDefinition>(Settings + "SumoRing.asset");
             var d = new SerializedObject(definition);
-            Strings(d, "controlHints", new[] { "ЛКМ — толчок · зажми и отпусти ЛКМ — силовой", "ПКМ — защита · ПКМ перед попаданием — парирование", "После парирования нажми ЛКМ — контратака", "WASD — движение · Space — прыжок · геймпад: RT / LT" });
-            Strings(d, "tutorialSteps", new[] { "Толкай к краю. Зажми ЛКМ, чтобы пробить защиту.", "Защищайся лицом к удару. Точный блок открывает контратаку ЛКМ.", "Береги спину и следи за трещинами: край осыпается." });
-            Strings(d, "tutorialQuickHints", new[] { "ЛКМ — толчок / заряд", "ПКМ — блок / парирование", "Отбил → ЛКМ — ответ" });
+            Strings(d, "controlHints", new[] { "ЛКМ — толчок · зажми и отпусти ЛКМ — силовой", "ПКМ — защита · ПКМ перед попаданием — парирование", "ПКМ + ЛКМ / LT + RT — рывок плечом · после парирования — ответ", "WASD — движение · Space — прыжок · геймпад: RT / LT" });
+            Strings(d, "tutorialSteps", new[] { "Толкай к краю. Зажми ЛКМ, чтобы пробить защиту.", "Защищайся лицом к удару. Точный блок открывает контратаку ЛКМ.", "Зажми защиту и нажми толчок — рывок. Не промахнись у края!" });
+            Strings(d, "tutorialQuickHints", new[] { "ЛКМ — толчок / заряд", "ПКМ — блок / парирование", "ПКМ + ЛКМ — рывок" });
             d.ApplyModifiedPropertiesWithoutUndo(); AssetDatabase.SaveAssets();
-            Debug.Log("SUMO_COMBAT: eight humanoid clips, motion library and tutorial updated. Shared controllers unchanged.");
+            Debug.Log("SUMO_COMBAT: humanoid clips, motion library and tutorial updated. Shared controllers unchanged.");
         }
         private static void Strings(SerializedObject obj, string name, string[] text)
         { var p = obj.FindProperty(name); p.arraySize = text.Length; for (int i = 0; i < text.Length; i++) p.GetArrayElementAtIndex(i).stringValue = text[i]; }
@@ -49,7 +49,7 @@ namespace Igruha.EditorTools
         {
             string path = Folder + "/Sumo_" + motion + ".anim";
             var clip = new AnimationClip { name = "Sumo_" + motion, frameRate = 60 };
-            float[] times = { 0, .18f, .42f, .6f, .74f, 1 };
+            float[] times = { 0, .08f, .16f, .24f, .30f, .32f, .40f, .48f, .56f, .60f, .68f, .76f, .84f, .92f, 1 };
             var muscles = new List<string>(Names);
             foreach (string name in HumanTrait.MuscleName) if (name.Contains("Stretched") || name.EndsWith(" Spread")) muscles.Add(name);
             var tracks = new SumoMuscleTrack[muscles.Count];
@@ -59,59 +59,111 @@ namespace Igruha.EditorTools
                 if (muscle < 0) throw new InvalidOperationException("Unknown humanoid muscle " + muscles[i]);
                 var keys = new Keyframe[times.Length];
                 for (int k = 0; k < times.Length; k++) keys[k] = new Keyframe(times[k], Value(motion, muscles[i], times[k]));
+                bool constant = true;
+                for (int k = 1; k < keys.Length; k++) constant &= Mathf.Approximately(keys[k].value, keys[0].value);
+                if (constant) keys = new[] { keys[0], keys[keys.Length - 1] };
                 var curve = new AnimationCurve(keys);
-                for (int k = 0; k < times.Length; k++) { AnimationUtility.SetKeyLeftTangentMode(curve, k, AnimationUtility.TangentMode.ClampedAuto); AnimationUtility.SetKeyRightTangentMode(curve, k, AnimationUtility.TangentMode.ClampedAuto); }
+                for (int k = 0; k < keys.Length; k++) { AnimationUtility.SetKeyLeftTangentMode(curve, k, AnimationUtility.TangentMode.ClampedAuto); AnimationUtility.SetKeyRightTangentMode(curve, k, AnimationUtility.TangentMode.ClampedAuto); }
                 AnimationUtility.SetEditorCurve(clip, EditorCurveBinding.FloatCurve("", typeof(Animator), muscles[i]), curve);
                 tracks[i] = new SumoMuscleTrack { Muscle = muscle, Leg = i >= 22 && i < Names.Length, Curve = curve };
             }
-            var settings = AnimationUtility.GetAnimationClipSettings(clip); settings.loopTime = motion == SumoMotion.Guard; settings.stopTime = 1; AnimationUtility.SetAnimationClipSettings(clip, settings);
+            var settings = AnimationUtility.GetAnimationClipSettings(clip); settings.loopTime = motion == SumoMotion.Guard || motion == SumoMotion.Balance; settings.stopTime = 1; AnimationUtility.SetAnimationClipSettings(clip, settings);
             var existing = AssetDatabase.LoadAssetAtPath<AnimationClip>(path);
             if (existing == null) AssetDatabase.CreateAsset(clip, path);
             else { EditorUtility.CopySerialized(clip, existing); UnityEngine.Object.DestroyImmediate(clip); clip = existing; }
             return new SumoMotionData { EditableClip = clip, Tracks = tracks };
         }
         // Human muscle zero is a relaxed, bent-limb stance. Curves are poses, never physical displacement.
+        private static float Ease(float start, float end, float time) => Mathf.SmoothStep(0, 1, Mathf.InverseLerp(start, end, time));
         private static float Value(SumoMotion motion, string muscle, float time)
         {
             float value = Guard(muscle);
-            float wind = Mathf.Sin(Mathf.Clamp01(time / .42f) * Mathf.PI * .5f);
-            float strike = Mathf.Clamp01((time - .42f) / .18f) * (1 - Mathf.Clamp01((time - .74f) / .26f));
-            float pulse = Mathf.Sin(Mathf.Clamp01(time) * Mathf.PI);
             bool left = muscle.StartsWith("Left ");
             if (motion == SumoMotion.Guard)
                 return value + (muscle == "Chest Front-Back" ? Mathf.Sin(time * Mathf.PI * 2) * .018f : 0);
+            if (motion == SumoMotion.Balance) return Balance(muscle, time, left);
+            if (motion == SumoMotion.Shoulder)
+            {
+                float load = Ease(0, .35f, time) * (1 - Ease(.65f, 1, time));
+                if (muscle == "Spine Front-Back") value -= .38f * load;
+                if (muscle == "Chest Front-Back") value -= .20f * load;
+                if (muscle == "Chest Twist Left-Right") value += .40f * load;
+                if (muscle == "Spine Twist Left-Right") value += .18f * load;
+                if (muscle == "Neck Nod Down-Up") value += .08f * load;
+                if (muscle.EndsWith("Arm Down-Up")) value -= .26f * load;
+                if (muscle.EndsWith("Hand Down-Up")) value -= .35f * load;
+                if (muscle.EndsWith("Shoulder Down-Up")) value += (left ? -.10f : .05f) * load;
+                if (muscle.EndsWith("Arm Front-Back")) value += (left ? .24f : .12f) * load;
+                if (muscle.EndsWith("Forearm Stretch")) value += (left ? .25f : .50f) * load;
+                if (muscle.EndsWith("Lower Leg Stretch")) value -= .25f * load;
+                if (muscle.EndsWith("Upper Leg Front-Back")) value += (left ? .16f : -.08f) * load;
+                return Mathf.Clamp(value, -.95f, .95f);
+            }
             if (motion == SumoMotion.Charge || motion == SumoMotion.Heavy || motion == SumoMotion.Quick || motion == SumoMotion.Counter)
             {
-                float load = motion == SumoMotion.Charge ? time : wind * (1 - strike) * (1 - Mathf.Clamp01((time - .74f) / .26f));
-                float power = motion == SumoMotion.Quick ? .72f : 1;
-                if (muscle.EndsWith("Arm Front-Back")) value += .20f * load - .30f * strike;
-                if (muscle.EndsWith("Forearm Stretch")) value += -.40f * load + .80f * strike;
-                if (muscle.EndsWith("Arm Down-Up")) value += -.08f * load + .12f * strike;
-                if (muscle.EndsWith("Hand Down-Up")) value += .12f * strike;
-                if (muscle == "Spine Front-Back") value += (-.24f * load + .42f * strike) * power;
-                if (muscle == "Chest Front-Back") value += (-.16f * load + .24f * strike) * power;
-                if (muscle.EndsWith("Upper Leg Front-Back")) value += left ? -.10f * load + .08f * strike : .05f * load;
-                if (muscle == "Chest Twist Left-Right") value += motion == SumoMotion.Counter ? -.30f * load + .20f * strike : .06f * load;
+                // Heavy starts in the fully loaded pose: releasing a charge never unfolds
+                // back to Guard before winding up again. Palms reach contact at sample .6.
+                float thrust = Ease(.32f, .6f, time) * (1 - Ease(.68f, 1, time));
+                float load = motion == SumoMotion.Charge ? Ease(0, 1, time)
+                    : (motion == SumoMotion.Heavy ? 1 : Ease(0, .3f, time)) * (1 - Ease(.32f, .6f, time));
+                if (motion == SumoMotion.Charge) thrust = 0;
+                float power = motion == SumoMotion.Quick ? .7f : 1;
+                if (muscle.EndsWith("Arm Front-Back")) value += .14f * load - .10f * thrust;
+                if (muscle.EndsWith("Forearm Stretch")) value += -.32f * load + .88f * thrust;
+                if (muscle.EndsWith("Arm Down-Up")) value += -.06f * load + .10f * thrust;
+                if (muscle.EndsWith("Shoulder Down-Up")) value += -.08f * load + .12f * thrust;
+                if (muscle.EndsWith("Hand Down-Up")) value += .18f * thrust;
+                if (muscle == "Spine Front-Back") value += (-.20f * load + .46f * thrust) * power;
+                if (muscle == "Chest Front-Back") value += (-.12f * load + .22f * thrust) * power;
+                if (muscle.EndsWith("Lower Leg Stretch")) value += (-.24f * load + (left ? -.10f : .08f) * thrust) * power;
+                if (muscle.EndsWith("Upper Leg Front-Back")) value += (.12f * load + (left ? .22f : -.14f) * thrust) * power;
+                if (muscle.EndsWith("Upper Leg In-Out")) value += .05f * load;
+                if (muscle.EndsWith("Foot Up-Down")) value += (left ? -.10f : .08f) * thrust * power;
+                if (muscle == "Spine Twist Left-Right") value += -.06f * load + .06f * thrust;
+                if (muscle == "Chest Twist Left-Right") value += motion == SumoMotion.Counter ? -.26f * load + .24f * thrust : -.08f * load + .10f * thrust;
             }
             else if (motion == SumoMotion.Parry)
             {
-                if (muscle == "Chest Twist Left-Right") value = -.35f * pulse;
-                if (muscle == "Spine Twist Left-Right") value = -.16f * pulse;
-                if (muscle == "Left Arm Front-Back") value += .38f * pulse;
-                if (muscle == "Left Arm Down-Up") value += .32f * pulse;
-                if (muscle == "Left Forearm Stretch") value += .4f * pulse;
-                if (muscle == "Right Arm Front-Back") value -= .12f * pulse;
+                float beat = Ease(0, .24f, time) * (1 - Ease(.38f, 1, time));
+                if (muscle == "Chest Twist Left-Right") value -= .38f * beat;
+                if (muscle == "Spine Twist Left-Right") value -= .18f * beat;
+                if (muscle == "Left Arm Front-Back") value += .42f * beat;
+                if (muscle == "Left Arm Down-Up") value += .32f * beat;
+                if (muscle == "Left Forearm Stretch") value += .42f * beat;
+                if (muscle == "Right Arm Front-Back") value -= .08f * beat;
+                if (muscle == "Right Lower Leg Stretch") value -= .14f * beat;
             }
             else
             {
-                float recoil = motion == SumoMotion.Brace ? .45f : 1;
-                if (muscle == "Spine Front-Back") value -= .45f * pulse * recoil;
-                if (muscle == "Chest Front-Back") value -= .3f * pulse * recoil;
-                if (muscle.EndsWith("Arm Down-Up")) value += .28f * pulse * recoil;
-                if (muscle.EndsWith("Forearm Stretch")) value -= .2f * pulse;
-                if (muscle == "Left Upper Leg Front-Back") value += .25f * pulse * recoil;
-                if (muscle == "Right Upper Leg Front-Back") value -= .2f * pulse * recoil;
+                float beat = Ease(0, .16f, time) * (1 - Ease(.38f, 1, time));
+                float recoil = motion == SumoMotion.Brace ? .4f : motion == SumoMotion.Stumble ? 1 : .65f;
+                float step = Mathf.Sin(time * Mathf.PI * (motion == SumoMotion.Stumble ? 4 : 2)) * Mathf.Sin(time * Mathf.PI);
+                if (muscle == "Spine Front-Back") value -= .48f * beat * recoil;
+                if (muscle == "Chest Front-Back") value -= .28f * beat * recoil;
+                if (muscle.EndsWith("Arm Down-Up")) value += .32f * beat * recoil;
+                if (muscle.EndsWith("Arm Front-Back")) value += .20f * beat * recoil;
+                if (muscle.EndsWith("Forearm Stretch")) value -= .18f * beat;
+                if (muscle.EndsWith("Upper Leg Front-Back")) value += (left ? 1 : -1) * .24f * step * recoil;
+                if (muscle.EndsWith("Lower Leg Stretch")) value -= (.16f * beat + .12f * Mathf.Max(0, left ? step : -step)) * recoil;
+                if (muscle == "Spine Left-Right") value += .06f * step * recoil;
             }
+            return Mathf.Clamp(value, -.95f, .95f);
+        }
+        private static float Balance(string muscle, float time, bool left)
+        {
+            float sway = Mathf.Sin(time * Mathf.PI * 2);
+            float paddle = Mathf.Sin((time + (left ? 0 : .35f)) * Mathf.PI * 2);
+            float value = Guard(muscle);
+            if (muscle == "Spine Front-Back") value = .08f;
+            if (muscle == "Spine Left-Right") value = .08f * sway;
+            if (muscle == "Chest Twist Left-Right") value = .10f * sway;
+            if (muscle == "Neck Nod Down-Up") value = -.12f;
+            if (muscle.EndsWith("Arm Down-Up")) value = -.05f + .14f * paddle;
+            if (muscle.EndsWith("Arm Front-Back")) value = -.06f + .20f * paddle;
+            if (muscle.EndsWith("Forearm Stretch")) value = .25f + .18f * paddle;
+            if (muscle.EndsWith("Hand Down-Up")) value = .18f;
+            if (muscle.EndsWith("Upper Leg Front-Back")) value += (left ? 1 : -1) * .12f * sway;
+            if (muscle.EndsWith("Lower Leg Stretch")) value -= .12f + .10f * Mathf.Max(0, left ? sway : -sway);
             return Mathf.Clamp(value, -.95f, .95f);
         }
         private static float Guard(string name)
