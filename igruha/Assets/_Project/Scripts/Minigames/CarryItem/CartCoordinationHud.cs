@@ -19,7 +19,6 @@ namespace Igruha.Minigames.CarryItem
         private const float PanelHeight = 172f;
         private const float PracticeHeight = 370f;
         private const float RoundHeight = 134f;
-        private const float AnnouncementOffset = 140f;
         private static readonly string[] KeyLabels = { "W", "A", "S", "D" };
         private static readonly Vector2[] KeyPositions =
         {
@@ -44,8 +43,6 @@ namespace Igruha.Minigames.CarryItem
         private Camera viewCamera;
         private Canvas canvas;
         private RectTransform panel, result;
-        private RectTransform announcement;
-        private Vector2 originalAnnouncementPosition;
         private CartCoordinationGraphic graphic;
         private TMP_Text resultLabel;
         private int shownCount = -1, shownResult = -1;
@@ -62,18 +59,17 @@ namespace Igruha.Minigames.CarryItem
         public float MemberX(int index) => -PanelWidth * 0.5f + 12f + CardWidth * (index + 0.5f);
         public float ResultX => PanelWidth * 0.5f - ResultWidth * 0.5f - 12f;
 
-        public void Bind(CarryItemMinigame owner, TMP_FontAsset font, AnnouncerBanner banner)
+        public void Bind(CarryItemMinigame owner, TMP_FontAsset font)
         {
             game = owner;
-            announcement = banner != null ? banner.transform as RectTransform : null;
-            if (announcement != null) originalAnnouncementPosition = announcement.anchoredPosition;
             viewCamera = Camera.main;
             canvas = gameObject.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay; canvas.sortingOrder = 25;
             canvas.enabled = false;
             var scaler = gameObject.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920, 1080); scaler.matchWidthOrHeight = 0.5f;
+            scaler.referenceResolution = new Vector2(1920, 1080);
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
             panel = Rect("Coordination", transform, new Vector2(0.5f, 0), Vector2.zero, new Vector2(0, RoundHeight));
             graphic = panel.gameObject.AddComponent<CartCoordinationGraphic>();
             graphic.Bind(this); graphic.raycastTarget = false;
@@ -106,7 +102,6 @@ namespace Igruha.Minigames.CarryItem
             if (!visible)
             {
                 MemberCount = 0;
-                if (announcement != null) announcement.anchoredPosition = originalAnnouncementPosition;
                 return;
             }
             if (viewCamera == null) viewCamera = Camera.main;
@@ -157,9 +152,6 @@ namespace Igruha.Minigames.CarryItem
             if (state != shownResult) { shownResult = state; resultLabel.text = ResultLabels[state]; }
             resultLabel.color = Spilling ? MinigameUiStyle.Urgent : SpillRisk > 0.65f ? MinigameUiStyle.Accent : MinigameUiStyle.MutedOnDark;
             bool practice = game.Phase == MinigamePhase.Practice;
-            if (announcement != null)
-                announcement.anchoredPosition = new Vector2(originalAnnouncementPosition.x,
-                    (practice ? PracticeHeight : RoundHeight) + AnnouncementOffset);
             if (MemberCount != shownCount || practice != wasPractice)
             {
                 shownCount = MemberCount; wasPractice = practice;
@@ -173,11 +165,6 @@ namespace Igruha.Minigames.CarryItem
                 result.anchoredPosition = new Vector2(ResultX, 0);
             }
             graphic.SetVerticesDirty();
-        }
-
-        private void OnDisable()
-        {
-            if (announcement != null) announcement.anchoredPosition = originalAnnouncementPosition;
         }
 
         public static bool KeyActive(Vector2 move, int key) => key switch
