@@ -20,8 +20,8 @@ namespace Igruha.Minigames.BelieveOrNot
         [SerializeField] private float seatingSeconds = 3f;
         [Tooltip("Показ карточки Знающему")]
         [SerializeField] private float peekSeconds = 3f;
-        [Tooltip("Уговоры. ПЕРВОЕ, что резать при затянутости: 40→30 вероятно понадобится на плейтесте")]
-        [SerializeField] private float persuasionSeconds = 40f;
+        [Tooltip("Уговоры в одном коне. После него та же пара меняется ролями")]
+        [SerializeField] private float persuasionSeconds = 20f;
         [Tooltip("Раскрытие: обмен коробок и подъём обеих крышек")]
         [SerializeField] private float revealSeconds = 4f;
         [Tooltip("Пауза на реакцию: звук, гэг, обновление счёта")]
@@ -44,11 +44,11 @@ namespace Igruha.Minigames.BelieveOrNot
         [SerializeField] private float phraseBubbleSeconds = 3f;
 
         [Header("Число конов по составу")]
-        [Tooltip("Индекс 0 — лобби из 2, дальше по возрастанию до 8. Таблица из LDD: она же даёт почти идеальную ротацию")]
-        [SerializeField] private int[] roundsByPlayerCount = { 4, 3, 2, 3, 3, 4, 4 };
+        [Tooltip("Лобби от 2 до 8. Каждая пара играет два кона со сменой ролей")]
+        [SerializeField] private int[] roundsByPlayerCount = { 4, 6, 4, 6, 6, 8, 8 };
 
         [Header("Страховки")]
-        [Tooltip("Жёсткий предел матча. Штатный матч на 4 конах — 212 с, так что срабатывать не должен никогда")]
+        [Tooltip("Жёсткий предел матча. Восемь конов по 33 секунды укладываются в 264 с")]
         [SerializeField] private float matchTimeoutSeconds = 360f;
 
         [Header("Арена, в ширинах персонажа (1 ШП = 0.72 м)")]

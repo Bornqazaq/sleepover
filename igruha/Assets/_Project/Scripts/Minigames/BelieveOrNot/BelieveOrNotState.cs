@@ -131,6 +131,9 @@ namespace Igruha.Minigames.BelieveOrNot
         /// (спека 10.4).
         /// </summary>
         public bool Cancelled;
+
+        /// <summary>Второй кон той же пары: Знающий и Решающий поменялись ролями.</summary>
+        public bool IsRematch;
     }
 
     /// <summary>
