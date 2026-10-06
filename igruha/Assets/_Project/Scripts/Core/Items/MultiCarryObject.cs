@@ -2015,6 +2015,13 @@ namespace Igruha.Core.Items
 
         private void ApplyRotation()
         {
+            if (IsRolling && !rollingSupported)
+            {
+                // Let the physical chassis tip off an edge; forcing Heading here
+                // kept the front axle hanging over empty space.
+                if (tiltPivot != null) ApplyPivotTilt();
+                return;
+            }
             if (tiltPivot == null)
             {
                 body.MoveRotation(Quaternion.AngleAxis(TiltDegrees(), TiltAxis()) * Heading);
