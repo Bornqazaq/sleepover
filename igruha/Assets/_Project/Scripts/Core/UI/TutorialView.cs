@@ -153,6 +153,16 @@ namespace Igruha.Core.UI
             SetExpanded(false);
         }
 
+        // Updating a replicated role must preserve readiness, expanded rules and cursor ownership.
+        public void SetRoleInstructions(string role, string goal, string[] roleSteps, string[] hints, string[] controlHints)
+        {
+            category.text = role;
+            objective.text = goal;
+            for (int i = 0; i < StepSlots; i++) steps[i].text = i < roleSteps.Length ? roleSteps[i] : "";
+            for (int i = 0; i < HintSlots; i++) quickHints[i].text = i < hints.Length ? hints[i] : "";
+            controls.text = string.Join("\n\n", controlHints);
+        }
+
         public void SetReadiness(IReadOnlyList<SessionPlayer> players,IReadOnlyList<TutorialParticipant> participants,int localId)
         {
             int readyCount=0;

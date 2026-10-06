@@ -176,6 +176,7 @@ namespace Igruha.Minigames.Stopwatch
 
         protected override void OnDisable()
         {
+            OnRoundEnded();
             base.OnDisable();
             if (stageState != null)
             {

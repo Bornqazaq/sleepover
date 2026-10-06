@@ -395,6 +395,7 @@ namespace Igruha.EditorTools
         /// </summary>
         private static void TeamStripes(GameObject plank, bool teamA)
         {
+            Physics.SyncTransforms();
             var bounds = plank.GetComponent<Collider>().bounds;
             Transform marks = plank.transform.parent.parent.Find("PlankMarks");
             if (marks == null) marks = ResetGroup(plank.transform.parent.parent, "PlankMarks");

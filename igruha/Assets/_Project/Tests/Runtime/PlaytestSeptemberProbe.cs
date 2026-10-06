@@ -45,6 +45,12 @@ namespace Igruha.Tests
         private IEnumerator Start()
         {
             LaunchArguments.TryGetValue("--playtest-check", out string mode);
+            if (mode == "angels-roles")
+            {
+                yield return AngelsRoleRespawnCheck.Run(Fail);
+                yield return Finish(mode);
+                yield break;
+            }
             if (mode.StartsWith("countdown-"))
             {
                 yield return Countdown();
@@ -71,6 +77,7 @@ namespace Igruha.Tests
             else if (mode == "cans") yield return Cans();
             else if (mode == "memory") yield return Memory();
             else if (mode == "angels") yield return AngelsHuntCheck.Run((CryingAngelsMinigame)game, Fail);
+            else if (mode.StartsWith("circus-")) yield return CircusPlaytestCheck.Run(game, Fail);
             else if (mode == "tutorial") yield return new WaitForSeconds(1);
             else Fail("unknown mode");
             yield return Finish(mode);

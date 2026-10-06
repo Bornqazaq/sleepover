@@ -205,6 +205,14 @@ namespace Igruha.Minigames.CryingAngels
         /// <summary>Идёт сетевая катка и сетевая половина живая.</summary>
         private bool Networked => network != null && network.IsActive;
 
+        protected override void OnDisable()
+        {
+            foreach (var player in Players)
+                if (player.Avatar != null && player.Avatar.TryGetComponent(out RunnerState state))
+                    state.RespawnRequested -= RespawnRunner;
+            base.OnDisable();
+        }
+
         // Разминка длится до готовности игроков; лимит времени нужен только в зачёте.
         protected override float RoundDuration => IsPractice ? 0f : base.RoundDuration;
 
@@ -791,6 +799,49 @@ namespace Igruha.Minigames.CryingAngels
             keeperDarkness?.SetPitchBlack(keeper != null && IsLocal(keeperPlayerId));
             network?.ConfigureKeeper(keeper, IsLocal(keeperPlayerId), firstPersonRig);
             ApplyRoleCamera();
+            RefreshTutorialInstructions();
+        }
+
+        protected override void ConfigureTutorial(TutorialScreen screen)
+        {
+            bool localKeeper = keeperPlayerId != SpecialRoleHistory.NoPlayer && IsLocal(keeperPlayerId);
+            if (localKeeper)
+                screen.SetRoleInstructions("ВАША РОЛЬ — ВОДЯЩИЙ",
+                    "Не дай Бегущим добраться до постамента. Веди фонарём: на свету они замирают, а долгое удержание возвращает их на край арены.",
+                    new[] { "Веди лучом по арене.", "Задержи свет на Бегущем до окаменения.", "Следи за укрытиями — из-за них можно выскочить." },
+                    new[] { "Мышь — направить фонарь", "Удерживай луч на цели", "F1 — все правила" },
+                    new[] { "Мышь — поворачивать фонарь", "Ты стоишь на постаменте: двигаться не нужно.", "F1 — правила · F2 — я готов" });
+            else
+                screen.SetRoleInstructions("ВАША РОЛЬ — БЕГУЩИЙ",
+                    "Доберись до постамента и коснись Водящего. Прячься от фонаря за укрытиями: свет замораживает, а долгое удержание возвращает на случайный край арены.",
+                    new[] { "Подойди к центру, пока луч смотрит в другую сторону.", "Прячься за укрытиями и замершими статуями.", "Коснись Водящего на постаменте." },
+                    new[] { "WASD — движение", "Мышь — осмотреться", "F1 — все правила" },
+                    new[] { "WASD — двигаться к постаменту", "Мышь — осматриваться и следить за лучом", "F1 — правила · F2 — я готов" });
+        }
+
+        private void RespawnRunner(RunnerState state)
+        {
+            if (!HasAuthority || spawnPoints == null) return;
+            RunnerRecord runner = runners.Find(r => r.State == state);
+            if (runner == null || runner.Avatar == null) return;
+            var points = spawnPoints.GetPoints(SpawnRole.Default);
+            SpawnPoint selected = null;
+            int candidates = 0;
+            // Uniform selection among free points, excluding the previous side.
+            for (int pass = 0; pass < 2 && selected == null; pass++)
+                for (int i = 0; i < points.Count; i++)
+                {
+                    var point = points[i];
+                    if (points.Count > 1 && (point.transform.position - runner.SpawnPosition).sqrMagnitude < .1f) continue;
+                    bool occupied = runners.Exists(r => r != runner && r.Avatar != null && !r.Touched &&
+                        ((r.AwaitingSpawnPosition ? r.SpawnPosition : r.Avatar.Position) - point.transform.position).sqrMagnitude < 4f);
+                    if (pass == 0 && occupied) continue;
+                    if (UnityEngine.Random.Range(0, ++candidates) == 0) selected = point;
+                }
+            if (selected == null) return;
+            runner.SpawnPosition = selected.transform.position;
+            runner.AwaitingSpawnPosition = Networked;
+            MoveTo(runner.Avatar, selected);
         }
 
         /// <summary>
@@ -1105,6 +1156,9 @@ namespace Igruha.Minigames.CryingAngels
             // случае погашены, а не сняты (см. ClearRunnerLeftovers).
             state.enabled = true;
             state.Configure(config);
+            // A role can be reassigned repeatedly on a replicated roster update.
+            state.RespawnRequested -= RespawnRunner;
+            state.RespawnRequested += RespawnRunner;
             state.ResetState();
 
             // Бегущие в этой игре идут, а не бегут: потолок скорости ставится

@@ -133,7 +133,7 @@ namespace Igruha.Tests
                 {
                     if (!held && state.Current == RunnerState.Phase.Frozen)
                     { held = true; frozenAt = Time.time; }
-                    if (held && !returned && runner.Position.z > 20f)
+                    if (held && !returned && new Vector2(runner.Position.x, runner.Position.z).magnitude > 20f)
                     { returned = true; respawnSeconds = Time.time - frozenAt; }
                 }
                 if (local == runner)
@@ -145,7 +145,7 @@ namespace Igruha.Tests
                 if (stage == 7)
                 {
                     if (state.Current == RunnerState.Phase.Frozen && runner.IsCrouched) crouchFrozen = true;
-                    if (crouchFrozen && runner.Position.z > 20f) crouchReturned = true;
+                    if (crouchFrozen && new Vector2(runner.Position.x, runner.Position.z).magnitude > 20f) crouchReturned = true;
                 }
                 if (stage == 8)
                 {

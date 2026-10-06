@@ -300,18 +300,14 @@ namespace Igruha.Minigames.CarryItem
                 return;
             }
 
-            if (MinigameControllerBase.Current is not CarryItemMinigame game)
-            {
-                Debug.LogWarning($"{name}: тележка приехала в сцену без правил «Переноски» — настроить её нечем", this);
-                return;
-            }
+            if (MinigameControllerBase.Current is not CarryItemMinigame game || game.gameObject.scene != gameObject.scene) return;
 
-            adopted = true;
-            game.AdoptNetworkCart(this);
+            adopted = game.AdoptNetworkCart(this);
         }
 
         public override void OnNetworkDespawn()
         {
+            adopted = false;
             netState.OnValueChanged -= OnNetStateChanged;
             base.OnNetworkDespawn();
         }
@@ -619,6 +615,9 @@ namespace Igruha.Minigames.CarryItem
 
         private void Update()
         {
+            // A spawned cart can precede its scene controller. Retry independently
+            // of water changes, including an empty orange cart that sends no new state.
+            if (IsSpawned && !IsServer && !adopted) TryAdopt();
             if (config == null)
             {
                 return;

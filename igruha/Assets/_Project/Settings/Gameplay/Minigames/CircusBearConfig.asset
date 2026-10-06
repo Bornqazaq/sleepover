@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a7183e505e1404e34a03ffaa5f93ac8e, type: 3}
   m_Name: CircusBearConfig
   m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.Circus.CircusBearConfig
-  chaseSpeed: 5.5
+  chaseSpeed: 8.2
   patrolSpeed: 2.1
-  firstAttackDelay: 3
+  firstAttackDelay: 1.25
   strikeRadius: 2.35
   knockbackSpeed: 8
   knockdownDuration: 1.5
