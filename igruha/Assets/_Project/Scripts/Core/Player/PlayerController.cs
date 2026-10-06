@@ -1326,6 +1326,12 @@ namespace Igruha.Core.Player
                 return;
             }
 
+            // A continuous ramp already supplies the walking plane. Treating its
+            // uphill face as a stair teleports the capsule upward every few ticks.
+            if (obstacle.collider.TryGetComponent<WalkableRamp>(out _) &&
+                Vector3.Angle(obstacle.normal, Vector3.up) <= config.MaxSlopeAngle)
+                return;
+
             // В уступ надо упереться, а не увидеть его издали. Щуп смотрит
             // вперёд дальше края капсулы, и без этой проверки персонаж
             // взлетал на высоту ступени, ещё не дойдя до неё.

@@ -21,8 +21,9 @@ parser.add_argument("--players", type=int, default=4, choices=range(2, 9))
 parser.add_argument("--delay", type=float, default=0)
 parser.add_argument("--expect-drop", action="store_true", help="Last client exceeds the transport timeout; remaining peers must start")
 parser.add_argument("--port", type=int, default=7785)
-parser.add_argument("--mode", choices=["flow", "input", "release", "manual-full", "manual-single"], default="flow")
+parser.add_argument("--mode", choices=["flow", "input", "release", "manual-full", "manual-single", "carry-slopes"], default="flow")
 parser.add_argument("--timeout", type=float, default=600)
+parser.add_argument("--visible-host", action="store_true", help="Render the host; carry slope checks also save screenshots")
 parser.add_argument("--app", type=Path, default=ROOT / "igruha/Builds/Autotest/sleepover.app/Contents/MacOS/sleepover")
 args = parser.parse_args()
 logs = ROOT / "igruha/Builds/Autotest/logs" / ("igr705-" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + str(args.port))
@@ -51,6 +52,12 @@ try:
         bot = [] if args.mode == "input" else ["--bot"]
         probe = [] if args.mode == "release" else ["--scene-ready-check", args.mode]
         display = ["-batchmode", "-nographics"]
+        if args.mode == "carry-slopes":
+            bot = []
+            probe = ["--carry-slope-check", "true"]
+            if i == 0 and args.visible_host:
+                display = ["-screen-fullscreen", "0", "-screen-width", "1280", "-screen-height", "720"]
+                probe += ["--carry-slope-screenshots", str(logs / "host")]
         if args.mode.startswith("manual-"):
             role = [] if i == 0 else ["--client", "--host", "127.0.0.1"]
             bot = []
@@ -80,12 +87,12 @@ try:
                 event("RESUMED last client" + (" after transport timeout" if args.expect_drop else "; barrier held"))
         lines = host.splitlines()
         for line in lines[seen:]:
-            if any(s in line for s in ("[SceneReady]", "SCENE_READY_", "MANUAL_ENTRY_CHECK", "Exception", "DISCONNECTED")):
+            if any(s in line for s in ("[SceneReady]", "SCENE_READY_", "MANUAL_ENTRY_CHECK", "CARRY_SLOPE", "Exception", "DISCONNECTED")):
                 event("HOST " + line)
         seen = len(lines)
         content = [read(path) for path in paths]
         active_content = content[:-1] if args.expect_drop else content
-        if any("SCENE_READY_CHECK FAIL" in c or "SCENE_READY_INPUT FAIL" in c or "MANUAL_ENTRY_CHECK FAIL" in c for c in content):
+        if any("SCENE_READY_CHECK FAIL" in c or "SCENE_READY_INPUT FAIL" in c or "MANUAL_ENTRY_CHECK FAIL" in c or "CARRY_SLOPE FAIL" in c for c in content):
             raise AssertionError("Integration probe failed; inspect logs")
         if any(p.poll() is not None for p in processes):
             raise AssertionError("A player exited unexpectedly")
@@ -96,6 +103,8 @@ try:
             passed = all(c.count("SCENE_READY_INPUT PASS") >= 2 and "SCENE_READY_CHECK PASS" in c for c in content)
         elif args.mode.startswith("manual-"):
             passed = all("MANUAL_ENTRY_CHECK PASS" in c and "MANUAL_ENTRY_CHECK TUTORIAL_VISIBLE" in c for c in content)
+        elif args.mode == "carry-slopes":
+            passed = all("CARRY_SLOPE PASS" in c for c in content)
         else:
             passed = all(c.count(": START participants=" + str(args.players - int(args.expect_drop))) >= 2 for c in active_content)
             if passed and time.monotonic() - paused_at < args.delay + 15: passed = False
@@ -120,7 +129,7 @@ finally:
 
 errors = {}
 for path in paths:
-    bad = [line for line in read(path).splitlines() if "Exception:" in line or "SCENE_READY_CHECK FAIL" in line or "SCENE_READY_INPUT FAIL" in line or "MANUAL_ENTRY_CHECK FAIL" in line]
+    bad = [line for line in read(path).splitlines() if "Exception:" in line or "SCENE_READY_CHECK FAIL" in line or "SCENE_READY_INPUT FAIL" in line or "MANUAL_ENTRY_CHECK FAIL" in line or "CARRY_SLOPE FAIL" in line]
     if bad: errors[path.name] = bad
 summary = {"passed": passed and not errors, "games": args.games, "players": args.players, "delay": args.delay, "mode": args.mode, "errors": errors}
 (logs / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n")

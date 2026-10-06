@@ -354,6 +354,17 @@ namespace Igruha.Core.Items
         private Quaternion sampledRotation;
         private bool hasSampledPose;
         private Transform presentationFrame;
+        private Vector3 rollingSupportNormal = Vector3.up;
+        private float rollingSupportClearance;
+        private bool rollingSupported;
+
+        /// <summary>Optional wheel support, supplied by a rolling object's chassis before its motor step.</summary>
+        public void SetRollingSupport(Vector3 normal, bool supported, float clearance = 0f)
+        {
+            rollingSupported = supported;
+            rollingSupportNormal = supported ? normal.normalized : Vector3.up;
+            rollingSupportClearance = supported ? Mathf.Max(0f, clearance) : 0f;
+        }
 
         public void SetPresentationFrame(Transform frame) => presentationFrame = frame;
 
@@ -551,6 +562,7 @@ namespace Igruha.Core.Items
 
             ReleaseAll(CarryReleaseReason.RoundEnded);
 
+            SetRollingSupport(Vector3.up, false);
             tiltRotation = Vector3.zero;
             tiltAngularVelocity = Vector3.zero;
             tiltTarget = Vector3.zero;
@@ -761,7 +773,7 @@ namespace Igruha.Core.Items
         public Vector3 HandleAnchor(int slot)
         {
             if (IsRolling && settings.rollingTensionDrive && slot >= 0 && slot < handleCount)
-                return PresentationFrame.position + YawOf(PresentationFrame.rotation, Heading) * HandleLocal(slot);
+                return PresentationFrame.TransformPoint(HandleLocal(slot));
             Vector3 origin = BasePosition;
             return slot >= 0 && slot < handleCount ? origin + HandleOffsetWorld(slot) : origin;
         }
@@ -1423,7 +1435,7 @@ namespace Igruha.Core.Items
             if (!settings.rollingTensionDrive) return;
             double now = IsSpawned ? NetworkManager.ServerTime.Time : Time.fixedTimeAsDouble;
             if (HasAuthority)
-                poseHistory.Record(now, body.position, Quaternion.Euler(0f, yawDegrees, 0f));
+                poseHistory.Record(now, body.position, body.rotation);
             else if (cartPose != null && cartPose.HasRemoteSample)
                 poseHistory.Record(cartPose.ReceivedTime, cartPose.ReceivedPosition, cartPose.ReceivedRotation);
             hasSampledPose = poseHistory.TrySample(now, out sampledPosition, out sampledRotation);
@@ -1634,8 +1646,7 @@ namespace Igruha.Core.Items
                     Mathf.Max(0f, settings.rollingLateralGain - settings.rollingTetherGain), 2.5f);
             }
             Vector3 velocity = handle.DriveVelocity + correction + rotationVelocity;
-            velocity.y = handle.CarrierBody.linearVelocity.y;
-            handle.CarrierBody.linearVelocity = velocity;
+            ApplyCarrierVelocity(handle, velocity);
         }
 
         // Run after the player motor. Input still reaches MoveIntent, but a cart carrier
@@ -1654,7 +1665,23 @@ namespace Igruha.Core.Items
             error.y = 0f;
             Vector3 correction = Vector3.ClampMagnitude(error * StationFollowGain, StationCatchupSpeed);
             Vector3 velocity = stationVelocity + correction;
+            ApplyCarrierVelocity(handle, velocity);
+        }
+
+        private const float CarrierSupportRayHeight = 0.6f;
+        private const float CarrierSupportRayLength = 1f;
+        private const float MinSupportUp = 0.7f;
+
+        // The tether runs after locomotion. Reusing the motor's old Y with a new
+        // horizontal speed drives the capsule into/out of a ramp every other tick.
+        private static void ApplyCarrierVelocity(Handle handle, Vector3 velocity)
+        {
             velocity.y = handle.CarrierBody.linearVelocity.y;
+            var player = handle.Carrier;
+            if (player.IsStandingOnGround && player.GroundCollider != null &&
+                player.GroundCollider.Raycast(new Ray(handle.CarrierBody.position + Vector3.up * CarrierSupportRayHeight,
+                    Vector3.down), out RaycastHit hit, CarrierSupportRayLength) && hit.normal.y > MinSupportUp)
+                velocity.y = -(velocity.x * hit.normal.x + velocity.z * hit.normal.z) / hit.normal.y;
             handle.CarrierBody.linearVelocity = velocity;
         }
 
@@ -1994,9 +2021,12 @@ namespace Igruha.Core.Items
                 return;
             }
 
-            // Тело стоит вертикально: наклонённый коллайдер зарывался бы углом
-            // в пол, и физика гасила бы ход трением. Крен — на узле показа.
-            body.MoveRotation(Heading);
+            // A wheeled chassis follows its support plane. Other pivot-driven
+            // loads remain upright; suspension/impact tilt belongs to the tub.
+            Quaternion rotation = IsRolling && rollingSupported
+                ? Quaternion.LookRotation(Vector3.ProjectOnPlane(Heading * Vector3.forward, rollingSupportNormal), rollingSupportNormal)
+                : Heading;
+            body.MoveRotation(rotation);
             ApplyPivotTilt();
         }
 
@@ -2109,7 +2139,7 @@ namespace Igruha.Core.Items
             // Preserve a short collision response, but tyres remove lateral sliding.
             Vector3 side = flat - forward * speed;
             Vector3 next = forward * nextSpeed + Vector3.MoveTowards(side, Vector3.zero, rate * TyreSideGrip * dt);
-            body.linearVelocity = new Vector3(next.x, current.y, next.z);
+            ApplyRollingSurfaceVelocity(next, current.y);
             lastRollingVelocity = next;
         }
 
@@ -2129,13 +2159,37 @@ namespace Igruha.Core.Items
             Vector3 current = body.linearVelocity;
             Vector3 flat = new Vector3(current.x, 0f, current.z);
             Vector3 next = Vector3.MoveTowards(flat, target, rate * dt);
-            body.linearVelocity = new Vector3(next.x, current.y, next.z);
+            ApplyRollingSurfaceVelocity(next, current.y);
             // Straight, deliberate acceleration does not spill a tension-driven cart.
             // Preserve impulses introduced by collisions between physics ticks.
             if (!settings.rollingDirectControl)
                 StepRollingTilt((settings.rollingTensionDrive ? flat : next) - lastRollingVelocity);
             lastRollingVelocity = next;
             TurnTowardsMotion(settings.rollingTensionDrive && CarrierCount > 0 ? target : next, dt);
+        }
+
+        private const float RollingGroundSettleGain = 12f;
+        private const float RollingGroundSettleSpeed = 1f;
+
+        private void ApplyRollingSurfaceVelocity(Vector3 flat, float vertical)
+        {
+            if (rollingSupported && rollingSupportNormal.y > MinSupportUp)
+            {
+                vertical = -(flat.x * rollingSupportNormal.x + flat.z * rollingSupportNormal.z) / rollingSupportNormal.y;
+                Vector3 velocity = new Vector3(flat.x, vertical, flat.z);
+                if (CarrierCount > 0)
+                {
+                    // Hands hold the supported cart's weight. At a ramp transition
+                    // the wheels touch different planes: a partial gravity correction
+                    // either stalls the motor or accelerates it without player input.
+                    // Settle any small contact gap with velocity, never a position snap.
+                    if (body.useGravity) body.AddForce(-Physics.gravity, ForceMode.Acceleration);
+                    velocity -= rollingSupportNormal * Mathf.Min(rollingSupportClearance * RollingGroundSettleGain,
+                        RollingGroundSettleSpeed);
+                }
+                body.linearVelocity = velocity;
+            }
+            else body.linearVelocity = new Vector3(flat.x, vertical, flat.z);
         }
 
         /// <summary>Доля крена от рывка у пустого объекта: плескаться нечему, но кузов всё же качает.</summary>
