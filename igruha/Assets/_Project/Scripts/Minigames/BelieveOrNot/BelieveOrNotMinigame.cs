@@ -26,7 +26,7 @@ namespace Igruha.Minigames.BelieveOrNot
     /// авторитета, и клиентские намерения приходят в них же — через
     /// <see cref="BelieveOrNotNetwork"/>, с теми же проверками.
     /// </summary>
-    public sealed class BelieveOrNotMinigame : MinigameControllerBase
+    public sealed partial class BelieveOrNotMinigame : MinigameControllerBase
     {
         /// <summary>Ключи истории ролей. У команд истории раздельные: составы не пересекаются.</summary>
         private const string SeatRoleKeyTeamA = "believe-seat-a";
@@ -165,6 +165,9 @@ namespace Igruha.Minigames.BelieveOrNot
             base.Awake();
 
             network = GetComponent<BelieveOrNotNetwork>();
+            InitializePredictions();
+            InitializeOath();
+            InitializeTournamentHud();
 
             if (decisionPanel != null)
             {
@@ -185,6 +188,8 @@ namespace Igruha.Minigames.BelieveOrNot
 
         private void OnDestroy()
         {
+            if (predictionPanel != null) predictionPanel.Picked -= SubmitPrediction;
+            if (duelHud != null) duelHud.Picked -= SubmitOath;
             if (decisionPanel != null)
             {
                 decisionPanel.DecisionPicked -= SubmitDecision;
@@ -219,7 +224,7 @@ namespace Igruha.Minigames.BelieveOrNot
                 return;
             }
 
-            SplitTeams();
+            // Личный турнир: команды больше не назначаются.
 
             for (int i = 0; i < Players.Count; i++)
             {
@@ -233,7 +238,11 @@ namespace Igruha.Minigames.BelieveOrNot
             }
 
             match = default;
-            match.TotalRounds = config.GetRoundCount(Players.Count);
+            tournament = new BelieveTournament(entries, UnityEngine.Random.Range(0, int.MaxValue));
+            match.Tournament = tournament.State;
+            match.TotalRounds = tournament.State.QualificationTotal;
+            match.ForfeitWinner = -1;
+            committedRound = 0;
 
             // Места именно NoPlayer, а не нули: ноль — законный идентификатор
             // клиента (это хост), и на нулях он считал бы себя сидящим
@@ -243,6 +252,7 @@ namespace Igruha.Minigames.BelieveOrNot
             match.KnowerPlayerId = SpecialRoleHistory.NoPlayer;
             match.DeciderPlayerId = SpecialRoleHistory.NoPlayer;
 
+            ResetPredictions();
             resolvedRound = 0;
             ready = true;
 
@@ -279,6 +289,10 @@ namespace Igruha.Minigames.BelieveOrNot
                 revealRoutine = null;
             }
 
+            predictionPanel?.Close();
+            tournamentHud?.Close();
+            duelHud?.Close();
+            DuelEnded?.Invoke();
             LogFinalTable();
             peekView?.Close();
             decisionPanel?.Close();
@@ -341,22 +355,25 @@ namespace Igruha.Minigames.BelieveOrNot
         }
 
         public override string ResultMetricTitle => "ПОБЕДЫ";
-        public override bool ResultsAreTeams => entries.Count > 0 && entries[0].Team != TeamId.None;
+        public override bool ResultsAreTeams => false;
         public override RoundResultDetail GetResultDetail(int playerId)
         {
             foreach (var entry in entries) if (entry.PlayerId == playerId)
             {
-                if (entry.Team == TeamId.None) return new RoundResultDetail(entry.RoundsWon.ToString(), $"За столом: {entry.RoundsSeated}");
-                bool a = entry.Team == TeamId.A;
-                return new RoundResultDetail((a ? match.TeamAWins : match.TeamBWins).ToString(),
-                    a ? "КОМАНДА А" : "КОМАНДА Б", a ? new Color(.18f, .52f, .78f) : new Color(.88f, .37f, .24f));
+                string label = playerId == match.Tournament.Champion ? "ЧЕМПИОН" :
+                    playerId == match.Tournament.RunnerUp ? "ФИНАЛИСТ" : "Отбор: " + entry.QualificationWins + "/4";
+                if (!entry.Present) label += " · вышел";
+                if (entry.BestPredictionStreak >= 3) label += " · прогнозы ×" + entry.BestPredictionStreak;
+                return new RoundResultDetail(entry.RoundsWon.ToString(), label);
             }
             return new RoundResultDetail("—", "Вышел из раунда");
         }
 
         protected override void CollectResults(MinigameResults results)
         {
-            BelieveRanking.Fill(entries, match.TeamAWins, match.TeamBWins, results);
+            if (tournament != null && match.Tournament.Champion < 0)
+            { tournament.ForceFinish(); match.Tournament = tournament.State; PublishMatch(); }
+            BelieveRanking.FillTournament(entries, match.Tournament, results);
 
             // Места в лог целиком: именно по этой строке сверяются дележи мест
             // и порядок тайбрейков — глазами на экране результатов их не поймать.
@@ -382,18 +399,15 @@ namespace Igruha.Minigames.BelieveOrNot
         /// </summary>
         private void BeginRound(int roundNumber)
         {
-            match.RoundNumber = roundNumber;
+            if (!PrepareTournamentRound(roundNumber)) return;
+            match.Oath = BelieveOath.Pending;
+            oathRevealed = false;
+            oathTruth = false;
             match.Decision = Decision.None;
             match.Resolved = false;
             match.Cancelled = false;
 
-            if (!TrySeatPlayers())
-            {
-                Debug.LogWarning($"{name}: 🎴 кон {roundNumber} не составить — матч закрыт досрочно", this);
-                EndMinigame();
-                return;
-            }
-
+            ResetPredictions();
             winningSeat = Random.Range(0, BelieveTable.SeatCount);
             nextPhraseAt[0] = 0d;
             nextPhraseAt[1] = 0d;
@@ -409,64 +423,10 @@ namespace Igruha.Minigames.BelieveOrNot
             PublishMatch();
             PublishEntries();
 
-            stageState.BeginSubround(roundNumber, BelieveStage.Seating, config.SeatingSeconds);
+            stageState.BeginSubround(roundNumber, finalIntroPending ? BelieveStage.FinalIntro : BelieveStage.Seating,
+                finalIntroPending ? config.FinalIntroSeconds : config.SeatingSeconds);
         }
 
-        /// <summary>
-        /// Кто садится и кто из двоих Знающий.
-        ///
-        /// Ротация, а не чистый рандом: садится случайный из тех, кто ещё
-        /// не сидел. Без неё на двоих один человек с вероятностью 1/8 получает
-        /// роль Знающего все четыре кона, и матч ломается.
-        /// </summary>
-        private bool TrySeatPlayers()
-        {
-            SessionPlayer first;
-            SessionPlayer second;
-
-            if (teamA.Count > 0 && teamB.Count > 0)
-            {
-                // Истории команд раздельные: составы не пересекаются, и сброс
-                // одной не должен обнулять память о другой.
-                first = FindPlayer(roles.Pick(SeatRoleKeyTeamA, teamA));
-                second = FindPlayer(roles.Pick(SeatRoleKeyTeamB, teamB));
-            }
-            else if (Players.Count == 3)
-            {
-                // Каждый с каждым: три пары по кругу, третий в коне без роли.
-                int index = (match.RoundNumber - 1) % 3;
-                first = Players[index == 2 ? 1 : 0];
-                second = Players[index == 0 ? 1 : 2];
-            }
-            else if (Players.Count >= MinPlayers)
-            {
-                first = FindPlayer(roles.Pick(SeatRoleKeySolo, Players));
-                second = FirstOther(first);
-            }
-            else
-            {
-                return false;
-            }
-
-            if (first == null || second == null || first == second)
-            {
-                return false;
-            }
-
-            match.Seat0PlayerId = first.Id;
-            match.Seat1PlayerId = second.Id;
-
-            pair.Clear();
-            pair.Add(first);
-            pair.Add(second);
-
-            int knowerId = roles.Pick(KnowerRoleKey, pair);
-            match.KnowerPlayerId = knowerId;
-            match.DeciderPlayerId = knowerId == first.Id ? second.Id : first.Id;
-            return true;
-        }
-
-        /// <summary>Перевести последовательность на следующую стадию. Решает только авторитет.</summary>
         private void AdvanceStage(byte finished)
         {
             switch (finished)
@@ -488,6 +448,17 @@ namespace Igruha.Minigames.BelieveOrNot
                         break;
                     }
 
+                    stageState.EnterStage(BelieveStage.Oath, config.OathSeconds);
+                    break;
+
+                case BelieveStage.Oath:
+                    if (RoundInterrupted)
+                    {
+                        FinishRound();
+                        break;
+                    }
+                    if (match.Oath == BelieveOath.Pending) match.Oath = BelieveOath.Declined;
+                    PublishMatch();
                     stageState.EnterStage(BelieveStage.Persuasion, config.PersuasionSeconds);
                     break;
 
@@ -505,15 +476,15 @@ namespace Igruha.Minigames.BelieveOrNot
                     stageState.EnterStage(BelieveStage.Reaction, config.ReactionSeconds);
                     break;
 
+                case BelieveStage.FinalIntro:
+                    stageState.EnterStage(BelieveStage.Seating, config.SeatingSeconds);
+                    break;
+                case BelieveStage.Champion:
+                    EndMinigame();
+                    break;
                 case BelieveStage.Reaction:
                 case BelieveStage.Cancelled:
-                    if (match.RoundNumber >= match.TotalRounds)
-                    {
-                        Debug.Log($"🎴 матч окончен: {match.TeamAWins}:{match.TeamBWins}");
-                        EndMinigame();
-                        return;
-                    }
-
+                    CommitDuelResult();
                     BeginRound(match.RoundNumber + 1);
                     break;
             }
@@ -570,9 +541,7 @@ namespace Igruha.Minigames.BelieveOrNot
             int winnerId = SeatedId(winnerSeat);
             bool deciderWon = winnerId == match.DeciderPlayerId;
 
-            MarkSeated(SeatedId(0));
-            MarkSeated(SeatedId(1));
-            AwardRound(winnerId, deciderWon);
+            pendingWinner = winnerId;
 
             Debug.Log($"🎴 кон {match.RoundNumber}/{match.TotalRounds}: " +
                       $"{(match.Decision == Decision.Swap ? "поменял" : "оставил")} — " +
@@ -580,34 +549,6 @@ namespace Igruha.Minigames.BelieveOrNot
 
             PublishMatch();
             PublishEntries();
-        }
-
-        private void AwardRound(int winnerId, bool deciderWon)
-        {
-            int index = IndexOf(winnerId);
-            if (index < 0)
-            {
-                return;
-            }
-
-            BelieveEntry entry = entries[index];
-            entry.RoundsWon++;
-            if (deciderWon)
-            {
-                entry.DeciderWins++;
-            }
-
-            entry.LastWonAt = NetworkClock.Now;
-            entries[index] = entry;
-
-            if (entry.Team == TeamId.A)
-            {
-                match.TeamAWins++;
-            }
-            else if (entry.Team == TeamId.B)
-            {
-                match.TeamBWins++;
-            }
         }
 
         private void MarkSeated(int playerId)
@@ -745,57 +686,21 @@ namespace Igruha.Minigames.BelieveOrNot
                 entries[index] = entry;
             }
 
+            if (!match.Resolved) predictions.Remove(playerId);
             roles.Forget(playerId);
             RemovePlayer(playerId);
             teamA.RemoveAll(p => p.Id == playerId);
             teamB.RemoveAll(p => p.Id == playerId);
 
-            if (stageState.Running)
+            bool seated = playerId == match.Seat0PlayerId || playerId == match.Seat1PlayerId;
+            bool beforeDecision = Stage == BelieveStage.Seating || Stage == BelieveStage.Peek ||
+                Stage == BelieveStage.Oath || Stage == BelieveStage.Persuasion || Stage == BelieveStage.FinalIntro;
+            if (stageState.Running && seated && beforeDecision) ForfeitCurrentHand(playerId);
+            PublishMatch(); PublishEntries();
+            if (CountPresent() < MinPlayers && tournament != null)
             {
-                // Стадии до раскрытия — те, в которых решения ещё нет. Рассадка
-                // входит сюда наравне с показом и уговорами: три секунды тоже
-                // время, и ушедший в них Знающий не должен получить очко.
-                bool beforeDecision = Stage == BelieveStage.Seating
-                                      || Stage == BelieveStage.Peek
-                                      || Stage == BelieveStage.Persuasion;
-
-                if (playerId == match.DeciderPlayerId && beforeDecision)
-                {
-                    Debug.Log($"🎴 Решающий {leaver} ушёл в стадии {Stage} — засчитано «Оставить», " +
-                              $"кон {match.RoundNumber} разрешается сам");
-                    match.Decision = Decision.Keep;
-                    stageState.EndStageNow();
-                }
-                else if (playerId == match.KnowerPlayerId && beforeDecision)
-                {
-                    Debug.Log($"🎴 Знающий {leaver} ушёл в стадии {Stage} — кон {match.RoundNumber} отменён, очко никому");
-                    match.Cancelled = true;
-                    stageState.EndStageNow();
-                }
-                else if (playerId == match.KnowerPlayerId || playerId == match.DeciderPlayerId)
-                {
-                    // Знающий, ушедший ПОСЛЕ решения, ничего не отменяет: исход
-                    // уже посчитан на сервере и от него больше не зависит. Без
-                    // этой строки выдёргивание кабеля было бы способом отменить
-                    // собственный проигрыш (спека 10.4).
-                    Debug.Log($"🎴 сидевший {leaver} ушёл после решения — " +
-                              $"кон {match.RoundNumber} доигрывается");
-                }
-                else
-                {
-                    Debug.Log($"🎴 зритель {leaver} ушёл — на кон {match.RoundNumber} не влияет");
-                }
-            }
-
-            // Состав ушедшего уже помечен отсутствующим: место ему считается
-            // по накопленному на момент выхода, а не обнуляется.
-            PublishMatch();
-            PublishEntries();
-
-            if (CountPresent() < MinPlayers || !CanFormRound())
-            {
-                Debug.Log("🎴 матч окончен: составить кон больше не из кого");
-                EndMinigame();
+                tournament.ForceFinish();
+                ShowChampion();
             }
         }
 
@@ -843,12 +748,25 @@ namespace Igruha.Minigames.BelieveOrNot
         {
             switch (stage)
             {
+                case BelieveStage.FinalIntro:
+                    ApplySeating();
+                    FinalAnnounced?.Invoke();
+                    break;
+                case BelieveStage.Champion:
+                    peekView?.Close(); decisionPanel?.Close(); phrasePanel?.Close();
+                    predictionPanel?.Close(); seatHud?.HideAll(); duelHud?.Close();
+                    ChampionAnnounced?.Invoke();
+                    break;
                 case BelieveStage.Seating:
                     ApplySeating();
                     break;
 
                 case BelieveStage.Peek:
                     ApplyPeekStage();
+                    break;
+
+                case BelieveStage.Oath:
+                    BeginOathView();
                     break;
 
                 case BelieveStage.Persuasion:
@@ -868,6 +786,9 @@ namespace Igruha.Minigames.BelieveOrNot
                     break;
             }
 
+            Hud?.SetTimerPlateVisible(false);
+            RefreshOathView();
+            duelHud?.ShowClock(stage == BelieveStage.Champion || stage == BelieveStage.FinalIntro ? (byte)0 : stage, stageState.StageRemaining);
             UpdateHud();
         }
 
@@ -1099,6 +1020,7 @@ namespace Igruha.Minigames.BelieveOrNot
             peekView?.Close();
             ScheduleAutoplay();
             ShowLocalRole();
+            OpenPredictions();
 
             int localSeat = SeatOf(LocalPlayerId);
             if (localSeat < 0)
@@ -1216,6 +1138,10 @@ namespace Igruha.Minigames.BelieveOrNot
             }
 
             double now = NetworkClock.Now;
+            if (SeatOf(LocalPlayerId) < 0 && predictionSentRound != match.RoundNumber)
+            {
+                SubmitPrediction(match.RoundNumber, Random.value < 0.5f ? match.Seat0PlayerId : match.Seat1PlayerId);
+            }
 
             bool phraseDue = autoplayPhraseAt > 0d
                              && now >= autoplayPhraseAt
@@ -1273,6 +1199,7 @@ namespace Igruha.Minigames.BelieveOrNot
 
         private void ApplyCancelledStage()
         {
+            ResetPredictions();
             peekView?.Close();
             decisionPanel?.Close();
             phrasePanel?.Close();
@@ -1287,11 +1214,14 @@ namespace Igruha.Minigames.BelieveOrNot
                     table.GetBoxPosition(seat));
             }
 
-            seatHud?.ShowCancellation(config.ReactionSeconds);
+            if (match.ForfeitWinner >= 0)
+                seatHud?.ShowResult(ShortPredictionName(match.ForfeitWinner) + " · ПОБЕДА: СОПЕРНИК ВЫШЕЛ", true, config.ReactionSeconds);
+            else seatHud?.ShowCancellation(config.ReactionSeconds);
         }
 
         private void ApplyRevealStage()
         {
+            predictionPanel?.Lock();
             decisionPanel?.Close();
             phrasePanel?.Close();
 
@@ -1359,11 +1289,19 @@ namespace Igruha.Minigames.BelieveOrNot
                 yield return new WaitForSeconds(config.BoxSwapSeconds);
             }
 
+            yield return new WaitForSeconds(config.RevealHoldSeconds);
+            LidsOpening?.Invoke();
+
             // Обе крышки — одним кадром. Иначе зал успевает прочитать исход
             // по первой открывшейся.
             atSeat0?.Reveal(seat0Card, config.LidOpenSeconds);
             atSeat1?.Reveal(seat1Card, config.LidOpenSeconds);
 
+            yield return new WaitForSeconds(config.LidOpenSeconds);
+            CommitDuelResult();
+            RevealOath(seat0Card);
+            CardsRevealed?.Invoke(WinnerSeat(decision, seat0Card) == SeatOf(match.DeciderPlayerId));
+            PredictionBoxesOpened(SeatedId(WinnerSeat(decision, seat0Card)));
             AnnounceOutcome(decision, seat0Card);
 
             revealRoutine = null;
@@ -1476,12 +1414,12 @@ namespace Igruha.Minigames.BelieveOrNot
                 return;
             }
 
-            string score = teamA.Count > 0 && teamB.Count > 0
-                ? $"счёт {match.TeamAWins}:{match.TeamBWins}"
-                : "личный зачёт";
-
-            Hud.ShowStatus($"Кон {match.RoundNumber}/{match.TotalRounds}   •   {score}   •   " +
-                           $"знает {NameOf(match.KnowerPlayerId)}   •   решает {NameOf(match.DeciderPlayerId)}");
+            var t = match.Tournament;
+            string label = t.Phase == BelieveTournamentPhase.Qualification ? $"Отбор {t.QualificationRound}/{t.QualificationTotal}" :
+                t.Phase == BelieveTournamentPhase.Playoff ? "Дуэль за финал" : "Финал · до двух побед";
+            if (Stage == BelieveStage.Champion) Hud.HideStatus();
+            else Hud.ShowStatus(label + "   •   " + ShortPredictionName(match.KnowerPlayerId) + " / " + ShortPredictionName(match.DeciderPlayerId));
+            RefreshTournamentView();
         }
 
         /// <summary>
@@ -1536,6 +1474,7 @@ namespace Igruha.Minigames.BelieveOrNot
             PinSeatedPlayers();
 
             float remaining = stageState.StageRemaining;
+            duelHud?.ShowClock(Stage == BelieveStage.Champion || Stage == BelieveStage.FinalIntro ? (byte)0 : Stage, remaining);
 
             if (peekView != null && peekView.IsOpen)
             {
@@ -1549,6 +1488,7 @@ namespace Igruha.Minigames.BelieveOrNot
 
             if (autoplay)
             {
+                DriveOathAutoplay();
                 DriveAutoplay();
             }
         }
@@ -1567,6 +1507,7 @@ namespace Igruha.Minigames.BelieveOrNot
                 return;
             }
 
+            bool newPredictionRound = match.RoundNumber != state.RoundNumber;
             match.RoundNumber = state.RoundNumber;
             match.TotalRounds = state.TotalRounds;
             match.Seat0PlayerId = state.Seat0PlayerId;
@@ -1577,6 +1518,13 @@ namespace Igruha.Minigames.BelieveOrNot
             match.TeamBWins = state.TeamBWins;
             match.Resolved = state.Resolved;
             match.Cancelled = state.Cancelled;
+            match.IsRematch = state.IsRematch;
+            match.Oath = (BelieveOath)state.Oath;
+            match.Tournament = state.Tournament;
+            match.ForfeitWinner = state.ForfeitWinner;
+            if (newPredictionRound) { oathRevealed = false; oathTruth = false; }
+            RefreshOathView();
+            if (newPredictionRound) ResetPredictions();
 
             UpdateHud();
         }
@@ -1607,6 +1555,15 @@ namespace Igruha.Minigames.BelieveOrNot
             entry.RoundsSeated = state.RoundsSeated;
             entry.LastWonAt = state.LastWonAt;
             entry.Present = state.Present;
+            entry.QualificationWins = state.QualificationWins;
+            entry.QualificationPlayed = state.QualificationPlayed;
+            entry.ForfeitWins = state.ForfeitWins;
+            entry.OathHistory = state.OathHistory;
+            entry.OathCount = state.OathCount;
+            entry.PredictionStreak = state.PredictionStreak;
+            entry.BestPredictionStreak = state.BestPredictionStreak;
+            entry.CorrectPredictions = state.CorrectPredictions;
+            entry.PredictionRound = state.PredictionRound;
             entries[index] = entry;
         }
 

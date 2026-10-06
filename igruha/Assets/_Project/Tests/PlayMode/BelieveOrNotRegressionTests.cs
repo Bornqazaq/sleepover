@@ -95,7 +95,7 @@ namespace Igruha.Tests.PlayMode
         [TestCase(BelieveStage.Seating)]
         [TestCase(BelieveStage.Peek)]
         [TestCase(BelieveStage.Persuasion)]
-        public void KnowerLeavingCancelsWithoutOutcomeAndNextRoundStillScores(byte interruptedStage)
+        public void KnowerLeavingAwardsForfeitWithoutRevealingCardsAndNextRoundStillScores(byte interruptedStage)
         {
             var root = Root("Game");
             root.SetActive(false);
@@ -127,24 +127,26 @@ namespace Igruha.Tests.PlayMode
             var match = Get<BelieveMatchState>(game, "match");
             Assert.That(stage.Stage, Is.EqualTo(BelieveStage.Cancelled));
             Assert.That(match.Cancelled, Is.True);
-            Assert.That(match.Resolved, Is.False);
+            Assert.That(match.Resolved, Is.True);
             Assert.That(match.Decision, Is.EqualTo(Decision.None));
             Assert.That(match.TeamAWins + match.TeamBWins, Is.Zero);
             Assert.That(reveals, Is.Zero, "cancel must not raise outcome audio/animation");
             Assert.That(talk.enabled, Is.True);
-            Assert.That(talk.text, Does.Contain("Кон отменён").And.Contain("Очко никому"));
+            Assert.That(talk.text, Does.Contain("СОПЕРНИК ВЫШЕЛ"));
             foreach (var box in boxes) Assert.That(box.Card, Is.EqualTo(BelieveCard.Unknown));
-            foreach (var entry in Get<List<BelieveEntry>>(game, "entries")) Assert.That(entry.RoundsWon, Is.Zero);
+            Assert.That(game.TournamentEntries[game.TournamentEntries[0].PlayerId == match.ForfeitWinner ? 0 : Get<List<BelieveEntry>>(game, "entries").FindIndex(e => e.PlayerId == match.ForfeitWinner)].ForfeitWins, Is.EqualTo(1));
 
             stage.EndStageNow();
             Assert.That(stage.Subround, Is.EqualTo(2));
             Assert.That(stage.Stage, Is.EqualTo(BelieveStage.Seating));
+            Assert.That(Get<BelieveMatchState>(game, "match").IsRematch, Is.False, "cancelled hand has no rematch");
             stage.EnterStage(BelieveStage.Persuasion, 40f);
             game.HandleDecision(game.DeciderPlayerId, Decision.Keep);
             match = Get<BelieveMatchState>(game, "match");
             Assert.That(match.Cancelled, Is.False);
             Assert.That(match.Resolved, Is.True);
-            Assert.That(match.TeamAWins + match.TeamBWins, Is.EqualTo(1));
+            Call(game, "CommitDuelResult");
+            Assert.That(match.TeamAWins + match.TeamBWins, Is.Zero);
             Assert.That(reveals, Is.EqualTo(1));
         }
     }

@@ -5,6 +5,7 @@
         "Igruha.Minigames",
         "Igruha.Networking",
         "Unity.Netcode.Runtime",
+        "Unity.Collections",
         "Unity.InputSystem",
         "Unity.TextMeshPro"
     ],

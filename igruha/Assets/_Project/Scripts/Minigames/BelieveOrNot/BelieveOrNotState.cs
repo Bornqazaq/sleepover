@@ -38,8 +38,7 @@ namespace Igruha.Minigames.BelieveOrNot
     }
 
     /// <summary>
-    /// Команда участника. <see cref="None"/> — лобби из 2–3, где команд нет
-    /// и счёт только личный (спека 6.3).
+    /// Историческое поле состава. Личный турнир использует только None.
     /// </summary>
     public enum TeamId : byte
     {
@@ -72,8 +71,12 @@ namespace Igruha.Minigames.BelieveOrNot
         /// <summary>Пауза на реакцию: звук, гэг, обновление счёта.</summary>
         public const byte Reaction = 5;
 
-        /// <summary>Знающий вышел до решения: без раскрытия, победителя и эффектов исхода.</summary>
+        /// <summary>Игрок вышел до решения: техническая победа сопернику без раскрытия карт.</summary>
         public const byte Cancelled = 6;
+
+        public const byte Oath = 7;
+        public const byte FinalIntro = 8;
+        public const byte Champion = 9;
     }
 
     /// <summary>
@@ -91,9 +94,7 @@ namespace Igruha.Minigames.BelieveOrNot
         public int RoundNumber;
 
         /// <summary>
-        /// Всего конов в матче. Считается один раз на старте и больше
-        /// не меняется, даже если кто-то вышел: от числа конов зависит
-        /// ротация, а она обязана быть предсказуемой (спека 10.4).
+        /// Всего конов отбора. Финал и дополнительные дуэли идут сверх этого числа.
         /// </summary>
         public int TotalRounds;
 
@@ -123,14 +124,19 @@ namespace Igruha.Minigames.BelieveOrNot
         /// <summary>Что решил Решающий в текущем коне.</summary>
         public Decision Decision;
 
-        /// <summary>Кон разрешён: исход посчитан, крышки открыты.</summary>
+        /// <summary>Решение зафиксировано. Очки публикуются только после открытия крышек.</summary>
         public bool Resolved;
 
         /// <summary>
-        /// Кон отменён: Знающий ушёл до решения, очко не начисляется
-        /// (спека 10.4).
+        /// Кон завершён без раскрытия из-за выхода участника; победитель в ForfeitWinner.
         /// </summary>
         public bool Cancelled;
+
+        /// <summary>Второй кон той же пары: Знающий и Решающий поменялись ролями.</summary>
+        public bool IsRematch;
+        public BelieveOath Oath;
+        public BelieveTournamentState Tournament;
+        public int ForfeitWinner;
     }
 
     /// <summary>
@@ -165,5 +171,14 @@ namespace Igruha.Minigames.BelieveOrNot
 
         /// <summary>Игрок ещё в матче. Выбывания в этой игре нет — это про дисконнект.</summary>
         public bool Present;
+        public int QualificationWins;
+        public int QualificationPlayed;
+        public int ForfeitWins;
+        public byte OathHistory;
+        public byte OathCount;
+        public int PredictionStreak;
+        public int BestPredictionStreak;
+        public int CorrectPredictions;
+        public int PredictionRound;
     }
 }

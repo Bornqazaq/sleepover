@@ -28,6 +28,24 @@ namespace Igruha.Minigames.BelieveOrNot
     /// </summary>
     public static class BelieveRanking
     {
+        public static void FillTournament(IReadOnlyList<BelieveEntry> entries, BelieveTournamentState state, MinigameResults results)
+        {
+            results.Clear();
+            var ordered = new List<BelieveEntry>(entries);
+            ordered.Sort((a, b) =>
+            {
+                if (a.PlayerId == b.PlayerId) return 0;
+                if (a.PlayerId == state.Champion) return -1;
+                if (b.PlayerId == state.Champion) return 1;
+                if (a.PlayerId == state.RunnerUp) return -1;
+                if (b.PlayerId == state.RunnerUp) return 1;
+                if (a.Present != b.Present) return a.Present ? -1 : 1;
+                int score = b.QualificationWins.CompareTo(a.QualificationWins);
+                return score != 0 ? score : Compare(a, b);
+            });
+            for (int i = 0; i < ordered.Count; i++) results.Add(ordered[i].PlayerId, i + 1);
+        }
+
         private static readonly List<BelieveEntry> upper = new List<BelieveEntry>(8);
         private static readonly List<BelieveEntry> lower = new List<BelieveEntry>(8);
 

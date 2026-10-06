@@ -88,6 +88,10 @@ namespace Igruha.Minigames.BelieveOrNot
                 OnStageChanged(stage);
             }
 
+            if (stage == BelieveStage.Oath && IsBot(game.KnowerPlayerId))
+                game.HandleOath(game.KnowerPlayerId, game.PredictionRound,
+                    Random.value < .5f ? BelieveOath.Mine : BelieveOath.Yours);
+
             if (stage == BelieveStage.Persuasion)
             {
                 DriveSeatedBots();
@@ -101,6 +105,18 @@ namespace Igruha.Minigames.BelieveOrNot
             if (stage != BelieveStage.Persuasion || game.Config == null)
             {
                 return;
+            }
+
+            IReadOnlyList<SessionPlayer> players = SessionScoreboard.Current?.Players;
+            if (players != null)
+            {
+                for (int i = 0; i < players.Count; i++)
+                {
+                    int id = players[i].Id;
+                    if (!IsBot(id) || id == game.KnowerPlayerId || id == game.DeciderPlayerId) continue;
+                    game.HandlePrediction(id, game.PredictionRound,
+                        Random.value < .5f ? game.KnowerPlayerId : game.DeciderPlayerId);
+                }
             }
 
             decisionSent = false;
