@@ -1,6 +1,6 @@
 """Editable, baked quadruped animation. Metres, 30 fps, +Y forward.
 Grounded IK supports a flexible spine; paw roll and toes give every step weight.
-Strike contact is authored at 0.72 s, matching PitBear.ContactSeconds.
+Strike contact is authored at 0.38 s, matching PitBear.ContactSeconds.
 """
 from mathutils import Euler
 for p in rig.pose.bones: p.rotation_mode='QUATERNION'
@@ -33,7 +33,7 @@ def leg(limb,side,target,roll=0,pole_hint=None):
     paw.matrix=Matrix.LocRotScale(ankle,Quaternion((1,0,0),roll)@paw.bone.matrix_local.to_quaternion(),Vector((1,1,1)))
     bpy.context.view_layer.update()
 
-for title,count in [('Idle',180),('Walk',30),('Run',22),('Alert',90),('Strike',54),('Roar',96)]:
+for title,count in [('Idle',180),('Walk',30),('Run',27),('Alert',90),('Strike',42),('Roar',96)]:
     action=bpy.data.actions.new('Bruno_'+title);action.use_fake_user=True;rig.animation_data.action=action
     for f in range(1,count+2):
         t=(f-1)/count;cycle=t*math.tau;seconds=(f-1)/30
@@ -53,10 +53,10 @@ for title,count in [('Idle',180),('Walk',30),('Run',22),('Alert',90),('Strike',5
             pose('Head',(.05*math.sin(cycle+.3),.12*look,.024*math.sin(cycle+.7)))
             pose('Jaw',(-.018*max(0,math.sin(cycle*2)),0,0));pose('Tail',(0,0,.13*math.sin(cycle+.5)))
         elif title in ('Walk','Run'):
-            run=title=='Run';stance=.31 if run else .58;speed=5.5 if run else 2.1;duration=count/30
+            run=title=='Run';stance=.24 if run else .58;speed=6.6 if run else 2.1;duration=count/30
             # A heavy rolling walk and an asymmetric lope, with visible shoulder travel.
             travel=speed*duration*stance
-            bounce=(-.13+.06*math.sin(cycle*2-.35)) if run else (-.10+.022*math.cos(cycle*2))
+            bounce=(-.10+.075*math.sin(cycle-.45)+.015*math.sin(cycle*2-.8)) if run else (-.10+.022*math.cos(cycle*2))
             pose('Root',loc=(.016*math.sin(cycle) if run else .040*math.sin(cycle),0,bounce))
             pose('Pelvis',((.095 if run else .024)*math.sin(cycle),.024*math.cos(cycle),(.024 if run else .044)*math.cos(cycle)))
             pose('Lumbar',((-.12 if run else -.035)*math.sin(cycle-.40),.026*math.sin(cycle),-.035*math.cos(cycle-.25)))
@@ -70,10 +70,10 @@ for title,count in [('Idle',180),('Walk',30),('Run',22),('Alert',90),('Strike',5
             for key,base in targets.items():
                 phase=(t+phases[key])%1
                 if phase<stance:
-                    support=phase/stance;y=travel*(.5-support);z=.018*math.sin(math.pi*support)
-                    roll=.10*(1-smooth(support/.16))-.16*smooth((support-.80)/.20)
+                    support=phase/stance;y=travel*(.5-support);z=0
+                    roll=.13*(1-smooth(support/.20))-.22*smooth((support-.72)/.28)
                 else:
-                    swing=(phase-stance)/(1-stance);y=travel*(-.5+smooth(swing));z=(.31 if run else .19)*math.sin(math.pi*swing)**1.15
+                    swing=(phase-stance)/(1-stance);y=travel*(-.5+smooth(swing));z=(.25 if run else .15)*math.sin(math.pi*swing)**1.15
                     roll=-.24*math.sin(math.pi*swing)+.12*smooth((swing-.65)/.35)
                 base.y+=y;base.z+=z;rolls[key]=roll
                 if phase>=stance:base.x+=(1 if key[1]=='L' else -1)*.04*math.sin(math.pi*(phase-stance)/(1-stance))
@@ -88,29 +88,37 @@ for title,count in [('Idle',180),('Walk',30),('Run',22),('Alert',90),('Strike',5
             pose('Neck',(-.12*attention,.04*math.sin(cycle)*attention,0));pose('Head',(-.10*attention,.11*math.sin(cycle)*attention,0))
             pose('Jaw',(-.095*math.sin(math.pi*t)**2,0,0))
         elif title=='Strike':
-            # Brace, visibly raise the striking paw, accelerate through the victim,
-            # follow through across the body, then plant it again. No long held pose.
-            wind=smooth(seconds/.47);swing=smooth((seconds-.47)/.25)
-            follow=smooth((seconds-.72)/.25);settle=smooth((seconds-1.00)/.70)
+            # A running swat: the last canter step becomes a planted left shoulder,
+            # while the right forepaw rises and crosses. Runtime IK locks support
+            # paws to the floor and fits contact to each character's actual torso.
+            wind=smooth(seconds/.19);swing=smooth((seconds-.19)/.19)
+            follow=smooth((seconds-.38)/.22);settle=smooth((seconds-.72)/.62)
             weight=wind*(1-settle);extension=swing*(1-settle)
-            pose('Root',loc=(.095*weight,.045*extension,-.10*weight+.035*follow*(1-settle)))
-            pose('Pelvis',(.24*weight,0,-.035*weight))
-            pose('Lumbar',(-.10*weight,-.09*weight+.16*extension,.055*weight))
-            pose('Spine',(.08*weight,-.13*weight+.27*extension,.08*weight-.16*extension))
-            pose('Chest',(.10*weight,-.09*weight+.15*extension,.04*weight-.08*extension))
-            pose('Neck',(-.10*weight,0,-.04*extension));pose('Head',(-.14*weight,.08*extension,0));pose('Jaw',(-.40*weight,0,0))
-            target=targets[('Fore','R')]
-            raised=Vector((-.88,.84,1.62));contact=Vector((-.08,1.85,1.02));across=Vector((.42,1.39,.71))
-            target=target.lerp(raised,wind).lerp(contact,swing).lerp(across,follow)
-            targets[('Fore','R')]=target.lerp(bones['ForePaw.R'][0],settle)
-            rolls[('Fore','R')]=-.40*weight+.58*extension
-            poles[('Fore','R')]=Vector((0,-1,0)).lerp(Vector((-1,0,-.65)),weight)
-            pose('ForeToes.R',(.18*weight-.28*extension,0,0))
-            targets[('Fore','L')].x+=.09*weight;targets[('Fore','L')].y+=.10*weight
-            # Replant the support paw after the root lunge; avoid sliding the whole animal.
-            targets[('Fore','L')].y+=.30*smooth((seconds-.72)/.35)*(1-settle)
-            targets[('Fore','L')].z+=.12*math.sin(math.pi*smooth((seconds-.72)/.35))*(1-settle)
-            targets[('Hind','R')].y-=.13*weight
+            brace=math.sin(math.pi*smooth(seconds/.52))
+            pose('Root',loc=(.075*weight,.035*extension,-.075*brace-.035*weight))
+            pose('Pelvis',(.12*weight,0,-.03*weight))
+            pose('Lumbar',(-.07*weight,-.10*weight+.19*extension,.05*weight))
+            pose('Spine',(.09*weight,-.15*weight+.30*extension,.07*weight-.14*extension))
+            pose('Chest',(.10*weight,-.07*weight+.15*extension,.04*weight-.07*extension))
+            # The gaze stabilises during the swat; mouth closes after the exhale.
+            pose('Neck',(-.085*weight,0,-.035*extension))
+            pose('Head',(-.10*weight,.06*extension,0))
+            pose('Jaw',(-.22*weight-.035*math.sin(math.pi*follow)*(1-settle),0,0))
+            raised=Vector((-.84,.89,1.52));contact=Vector((-.10,1.91,1.10));across=Vector((.48,1.53,.88))
+            targets[('Fore','R')]=targets[('Fore','R')].lerp(raised,wind).lerp(contact,swing).lerp(across,follow).lerp(bones['ForePaw.R'][0],settle)
+            rolls[('Fore','R')]=-.35*weight+.48*extension
+            poles[('Fore','R')]=Vector((0,-1,0)).lerp(Vector((-1,0,-.45)),weight)
+            pose('ForeToes.R',(.16*weight-.23*extension,0,0))
+            # Follow the final asymmetric step into the brace rather than freezing
+            # all three support legs when the running body still has momentum.
+            for key,delay in [(('Hind','R'),0),(('Hind','L'),.07),(('Fore','L'),.13)]:
+                step=smooth((seconds-delay)/.25)
+                lift=math.sin(math.pi*step)
+                targets[key].y+=(.24*math.sin(math.pi*step)+.16*step)*(1-settle)
+                targets[key].z+=.20*lift*(1-settle)
+                rolls[key]=-.12*lift
+            targets[('Fore','L')].x+=.07*weight
+            pose('Tail',(.025*weight,0,-.12*weight+.18*extension))
         elif title=='Roar':
             rise=smooth(t/.27)*(1-smooth((t-.72)/.28))
             pose('Root',loc=(0,0,-.04*rise));pose('Pelvis',(.86*rise,0,0))

@@ -2,7 +2,7 @@
 Run: blender --background --python tools/blender/circus_bear.py
 Metres, +Y forward, Z up; source rig and six editable actions are preserved.
 """
-import bpy, math, random, json
+import bpy, math, random, json, bisect
 from pathlib import Path
 from mathutils import Vector, Matrix, Quaternion
 
@@ -23,26 +23,29 @@ def material(name, color, rough=.8):
     return m
 fur=material('CN_UmberFur',(.185,.102,.057))
 tip=material('CN_FurTips',(.245,.151,.086))
-muzzle=material('CN_Muzzle',(.265,.179,.112))
+muzzle=material('CN_Muzzle',(.22,.14,.085),.9)
 black=material('CN_Nose',(.018,.011,.008),.48)
 darkfur=material('CN_DarkFur',(.054,.028,.012),.93)
-eye=material('CN_AmberEyes',(.085,.039,.010),.32)
+eye=material('CN_AmberEyes',(.025,.010,.004),.34)
 claw=material('CN_Claws',(.23,.185,.133),.55)
 mouth=material('CN_Mouth',(.083,.018,.014),.62)
 import numpy as np
 N=1024
 u,v=np.meshgrid(np.arange(N)/N,np.arange(N)/N)
 noise=np.random.default_rng(88)
-# Soft overlapping directional fibres; continuous at both texture seams.
-hairs=np.full((N,N),.85)
-for frequency,amplitude in ((79,.012),(131,.010),(239,.008),(313,.008),(431,.006)):
+# Several scales of aligned fibres. These stay neutral so the existing URP
+# materials set coat colour; the same map supplies the Blender and Unity grain.
+hairs=np.full((N,N),.80)
+for frequency,amplitude in ((13,.035),(37,.030),(79,.030),(131,.025),(239,.020),(431,.012)):
     phase=noise.uniform(0,math.tau)
-    hairs+=amplitude*np.sin(u*math.tau*frequency+np.sin(v*math.tau*3+phase)*4.8+phase)*(.65+.35*np.cos(v*math.tau*7+phase))
-hairs+=noise.random((N,N))*.025
+    strand=np.sin(u*math.tau*frequency+np.sin(v*math.tau*3+phase)*2.8+phase)
+    hairs+=amplitude*strand*(.72+.28*np.cos(v*math.tau*11+phase))
+hairs+=noise.random((N,N))*.035
+hairs=np.clip(hairs,.53,.98)
 rgba=np.ones((N,N,4),dtype=np.float32);rgba[:,:,:3]=hairs[:,:,None]
 im=bpy.data.images.new('CN_FurGrain',width=N,height=N);im.pixels.foreach_set(rgba.ravel())
 (ART/'Textures').mkdir(exist_ok=True);im.filepath_raw=str(ART/'Textures/CN_FurGrain.png');im.file_format='PNG';im.save()
-dx=(np.roll(hairs,1,1)-np.roll(hairs,-1,1))*.65;dy=(np.roll(hairs,1,0)-np.roll(hairs,-1,0))*.65
+dx=(np.roll(hairs,1,1)-np.roll(hairs,-1,1))*2.2;dy=(np.roll(hairs,1,0)-np.roll(hairs,-1,0))*2.2
 norm=np.stack((dx,dy,np.ones_like(dx)),axis=-1);norm/=np.linalg.norm(norm,axis=-1)[:,:,None]
 rgba[:,:,:3]=norm*.5+.5
 normalmap=bpy.data.images.new('CN_FurNormal',width=N,height=N);normalmap.colorspace_settings.name='Non-Color';normalmap.pixels.foreach_set(rgba.ravel())
@@ -51,7 +54,7 @@ for m in (fur,tip,muzzle,darkfur):
     tree=m.node_tree;tex=tree.nodes.new('ShaderNodeTexImage');tex.image=im
     mix=tree.nodes.new('ShaderNodeMixRGB');mix.blend_type='MULTIPLY';mix.inputs[0].default_value=1;mix.inputs[1].default_value=m.diffuse_color
     tree.links.new(tex.outputs['Color'],mix.inputs[2]);tree.links.new(mix.outputs[0],next(n for n in tree.nodes if n.type=='BSDF_PRINCIPLED').inputs['Base Color'])
-    bump=tree.nodes.new('ShaderNodeBump');bump.inputs['Strength'].default_value=.08;bump.inputs['Distance'].default_value=.004
+    bump=tree.nodes.new('ShaderNodeBump');bump.inputs['Strength'].default_value=.30;bump.inputs['Distance'].default_value=.009
     tree.links.new(tex.outputs['Color'],bump.inputs['Height']);tree.links.new(bump.outputs['Normal'],next(n for n in tree.nodes if n.type=='BSDF_PRINCIPLED').inputs['Normal'])
 parts=[]
 
@@ -64,100 +67,242 @@ def oval(name, pos, scale, mat=fur, bone=None, segments=24, rings=16):
     if bone: o['bone']=bone
     parts.append(o); return o
 
-# Interlocking anatomical masses are voxel-unioned, smoothed and decimated into a continuous skin.
-oval('Ribcage',(0,-.17,1.26),(.65,1.05,.61))
-oval('Haunches',(0,-.94,1.15),(.61,.60,.62))
-oval('ShoulderHump',(0,.32,1.51),(.65,.78,.57))
-oval('Neck',(0,.91,1.44),(.51,.64,.44))
-oval('Skull',(0,1.40,1.54),(.43,.50,.33))
-oval('Brow',(0,1.60,1.70),(.37,.30,.145))
-oval('SnoutBase',(0,1.78,1.43),(.29,.44,.225))
+# Brown-bear proportions: high shoulder girdle, lower rump, concave facial
+# profile, weight carried through long forearms and broad plantigrade feet.
+# Shape reference: https://www.nps.gov/articles/bear-identification.htm
+oval('Ribcage',(0,-.16,1.24),(.60,1.04,.60))
+oval('Haunches',(0,-.95,1.10),(.59,.60,.58))
+oval('ShoulderHump',(0,.24,1.54),(.62,.70,.60))
+oval('Withers',(0,.42,1.72),(.40,.46,.37))
+oval('Neck',(0,.96,1.44),(.43,.62,.385))
+oval('Throat',(0,1.12,1.29),(.34,.41,.29))
+oval('Skull',(0,1.40,1.53),(.345,.45,.285))
+oval('Brow',(0,1.545,1.680),(.30,.29,.125))
+oval('NasalBridge',(0,1.76,1.48),(.215,.31,.16))
+oval('SnoutBase',(0,1.91,1.405),(.225,.255,.165))
 for sign in (-1,1):
-    oval('OrbitalRidge',(sign*.286,1.744,1.681),(.10,.087,.071))
+    oval('Cheek',(sign*.218,1.41,1.445),(.12,.27,.195))
+    oval('EarRoot',(sign*.266,1.24,1.722),(.105,.145,.10))
 for side,x in [('L',.51),('R',-.51)]:
-    oval('ForeShoulder'+side,(x,.37,1.25),(.31,.40,.62))
-    oval('ForeShin'+side,(x,.37,.67),(.235,.28,.46))
-    oval('ForeWrist'+side,(x,.58,.31),(.22,.27,.25))
-    oval('ForePaw'+side,(x,.79,.205),(.29,.39,.20))
-    oval('HindThigh'+side,(x,-.88,.99),(.34,.41,.58))
-    oval('HindShin'+side,(x,-.90,.47),(.235,.31,.37))
-    oval('HindPaw'+side,(x,-.91,.18),(.28,.39,.18))
+    oval('ForeShoulder'+side,(x,.32,1.27),(.27,.36,.62))
+    oval('ForeElbow'+side,(x,.24,.88),(.205,.25,.35))
+    oval('ForeShin'+side,(x,.38,.63),(.192,.25,.44))
+    oval('ForeWrist'+side,(x,.60,.295),(.205,.26,.235))
+    oval('ForePaw'+side,(x,.80,.185),(.275,.36,.18))
+    oval('HindThigh'+side,(x,-.88,.97),(.30,.38,.54))
+    oval('HindShin'+side,(x,-.92,.46),(.205,.29,.36))
+    oval('HindPaw'+side,(x,-.89,.175),(.265,.37,.17))
 bpy.ops.object.select_all(action='DESELECT')
 for o in parts:o.select_set(True)
 bpy.context.view_layer.objects.active=parts[0]; bpy.ops.object.join(); skin=bpy.context.object; skin.name='Bruno_ContinuousSkin'
-remesh=skin.modifiers.new('Anatomy union','REMESH'); remesh.mode='VOXEL'; remesh.voxel_size=.037; remesh.use_smooth_shade=True
+remesh=skin.modifiers.new('Anatomy union','REMESH'); remesh.mode='VOXEL'; remesh.voxel_size=.028; remesh.use_smooth_shade=True
 bpy.ops.object.modifier_apply(modifier=remesh.name)
-smooth=skin.modifiers.new('Sculpt smoothing','SMOOTH'); smooth.factor=.8; smooth.iterations=6; bpy.ops.object.modifier_apply(modifier=smooth.name)
+smooth=skin.modifiers.new('Sculpt smoothing','SMOOTH'); smooth.factor=.8; smooth.iterations=4; bpy.ops.object.modifier_apply(modifier=smooth.name)
 # Inset sockets belong to the continuous face, rather than stacked eyelid beads.
 for sign in (-1,1):
-    bpy.ops.mesh.primitive_uv_sphere_add(segments=24,ring_count=16,location=(sign*.286,1.806,1.679))
-    cutter=bpy.context.object;cutter.scale=(.057,.038,.043)
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=24,ring_count=16,location=(sign*.245,1.688,1.644))
+    cutter=bpy.context.object;cutter.scale=(.035,.034,.024)
     bpy.ops.object.transform_apply(location=False,rotation=False,scale=True)
     bpy.context.view_layer.objects.active=skin
     socket=skin.modifiers.new('Inset eye socket','BOOLEAN');socket.operation='DIFFERENCE';socket.object=cutter
     bpy.ops.object.modifier_apply(modifier=socket.name);bpy.data.objects.remove(cutter,do_unlink=True)
     bpy.context.view_layer.objects.active=skin
-dec=skin.modifiers.new('Game topology','DECIMATE'); dec.ratio=.36; bpy.ops.object.modifier_apply(modifier=dec.name)
+dec=skin.modifiers.new('Game topology','DECIMATE'); dec.ratio=.43; bpy.ops.object.modifier_apply(modifier=dec.name)
 bpy.ops.object.select_all(action='DESELECT');skin.select_set(True);bpy.context.view_layer.objects.active=skin
 bpy.ops.object.transform_apply(location=True,rotation=True,scale=True)
 bpy.ops.object.mode_set(mode='EDIT');bpy.ops.mesh.select_all(action='SELECT');bpy.ops.uv.smart_project(island_margin=.02);bpy.ops.object.mode_set(mode='OBJECT')
 parts=[skin]
 
-# Small ears sit in the fur; narrower eyes and a tapered, flat-nosed muzzle.
-for side,s in [('L',1),('R',-1)]:
-    ear=oval('Ear'+side,(s*.365,1.16,1.875),(.119,.092,.126),fur,'Ear.'+side);ear.rotation_euler.y=s*.23
-    oval('EarInner'+side,(s*.365,1.259,1.895),(.061,.018,.063),darkfur,'Ear.'+side)
-    oval('Eye'+side,(s*.286,1.798,1.679),(.033,.018,.026),eye,'Head')
-    oval('Pupil'+side,(s*.286,1.813,1.679),(.020,.005,.022),black,'Head')
-    oval('BlinkLid'+side,(s*.286,1.816,1.712),(.034,.009,.004),fur,'Lid.'+side)
-    oval('EyeGlint'+side,(s*.278,1.818,1.689),(.003,.002,.003),claw,'Head',12,8)
-# Muzzle colouring lives on the continuous skin, avoiding a floating circular mask.
-skin.data.materials.clear();skin.data.materials.append(fur);skin.data.materials.append(muzzle)
+def tube(name, points, radii, mat, bone_name, sides=8):
+    """A tapered curved solid, used for lips, eyelids and the hooked claws."""
+    vertices=[];polygons=[]
+    for i,point in enumerate(points):
+        point=Vector(point)
+        tangent=Vector(points[min(i+1,len(points)-1)])-Vector(points[max(0,i-1)])
+        tangent.normalize()
+        normal=tangent.cross(Vector((1,0,0)))
+        if normal.length<.01:normal=tangent.cross(Vector((0,0,1)))
+        normal.normalize();across=tangent.cross(normal).normalized()
+        for j in range(sides):
+            a=j/sides*math.tau
+            vertices.append(point+(normal*math.cos(a)+across*math.sin(a))*radii[i])
+        if i:
+            for j in range(sides):
+                a=(i-1)*sides+j;b=(i-1)*sides+(j+1)%sides;c=i*sides+(j+1)%sides;d=i*sides+j
+                polygons.append((a,b,c,d))
+    polygons.append(tuple(reversed(range(sides))))
+    polygons.append(tuple((len(points)-1)*sides+j for j in range(sides)))
+    mesh=bpy.data.meshes.new(name);mesh.from_pydata(vertices,[],polygons);mesh.materials.append(mat)
+    ob=bpy.data.objects.new(name,mesh);scene.collection.objects.link(ob);ob['bone']=bone_name;parts.append(ob)
+    for polygon in mesh.polygons:polygon.use_smooth=True
+    return ob
+
+# Small asymmetrical cups sit inside the mane. Each ear has a real bowl and
+# thickness, with its opening tilted outwards; no flat circular insert.
+coat_sources=[skin]
+for side,sign in [('L',1),('R',-1)]:
+    center=Vector((sign*.278,1.235,1.804))
+    rotation=Quaternion(Vector((0,0,1)),-sign*math.radians(32))@Quaternion(Vector((1,0,0)),math.radians(24))
+    vertices=[];polygons=[];indices=[];segments=28
+    # The first rings form the rear wall, then turn over the thick furred lip
+    # and descend into the recessed front. The small centre closes the cup.
+    for radius,depth in ((.04,-.040),(.74,-.038),(1,-.002),(.85,.020),(.54,-.004),(.025,-.027)):
+        for i in range(segments):
+            a=i/segments*math.tau
+            taper=1-.13*max(0,math.sin(a))
+            x=math.cos(a)*.090*radius*taper
+            z=math.sin(a)*.103*radius
+            point=Vector((x,depth+.007*math.sin(a*2),z))
+            vertices.append(center+rotation@point)
+        ring=len(vertices)//segments-1
+        if ring:
+            for i in range(segments):
+                a=(ring-1)*segments+i;b=(ring-1)*segments+(i+1)%segments
+                c=ring*segments+(i+1)%segments;d=ring*segments+i
+                polygons.append((a,b,c,d));indices.append(1 if ring>=4 else 0)
+    polygons.append(tuple(reversed(range(segments))));indices.append(0)
+    polygons.append(tuple(5*segments+i for i in range(segments)));indices.append(1)
+    mesh=bpy.data.meshes.new('EarCup'+side);mesh.from_pydata(vertices,[],[tuple(reversed(face)) for face in polygons])
+    mesh.materials.append(fur);mesh.materials.append(darkfur)
+    ear=bpy.data.objects.new('Ear'+side,mesh);scene.collection.objects.link(ear);ear['bone']='Ear.'+side
+    parts.append(ear);coat_sources.append(ear)
+    for polygon,index in zip(mesh.polygons,indices):polygon.material_index=index;polygon.use_smooth=True
+    # Eye opening lives in the continuous brow mass, 10 mm behind its surface.
+    # Almost black, wet eyes read as a gaze, not exposed gold beads on stalks.
+    ex=sign*.245;ey=1.675;ez=1.644
+    oval('Eye'+side,(ex,ey,ez),(.022,.010,.014),eye,'Head',24,16)
+    oval('Pupil'+side,(ex,ey+.008,ez),(.015,.003,.0125),black,'Head',20,12)
+    oval('EyeGlint'+side,(ex-sign*.005,ey+.011,ez+.004),(.0006,.0005,.0006),black,'Head',12,8)
+    oval('UpperLid'+side,(ex,1.679,1.662),(.028,.012,.007),fur,'Head',20,12)
+    oval('LowerLid'+side,(ex,1.677,1.630),(.024,.007,.003),darkfur,'Head',20,12)
+    # The established blink moves down 33 mm and triples the strip height.
+    # Place the lid pivot above this smaller opening so it closes exactly on it.
+    oval('BlinkLid'+side,(ex,1.686,1.677),(.026,.008,.0045),fur,'Lid.'+side,20,12)
+
+# Muzzle fur shares the continuous skin. An irregular transition and short coat
+# replace the former hard polygonal colour mask on the nose bridge.
+skin.data.materials.clear()
+for m in (fur,muzzle,darkfur):skin.data.materials.append(m)
 for poly in skin.data.polygons:
     c=poly.center
-    if c.y>1.96+abs(c.x)*.30 and 1.31<c.z<1.61:poly.material_index=1
-oval('Nose',(0,2.125,1.49),(.185,.10,.10),black,'Head')
-for side,s in [('L',1),('R',-1)]:
-    oval('Nostril'+side,(s*.11,2.215,1.48),(.025,.008,.015),black,'Head',16,10)
-oval('MouthLine',(0,1.96,1.286),(.215,.24,.022),black,'Head')
-oval('MouthInterior',(0,1.77,1.29),(.185,.26,.085),mouth,'Head')
-oval('LowerJaw',(0,1.85,1.251),(.24,.32,.072),muzzle,'Jaw')
-oval('Tongue',(0,1.97,1.305),(.115,.14,.015),mouth,'Jaw')
-for side,s in [('L',1),('R',-1)]:
-    oval('Canine'+side,(s*.15,2.05,1.325),(.025,.033,.042),claw,'Head',12,8)
-oval('Tail',(0,-1.49,1.29),(.14,.23,.14),fur,'Tail')
-for side,s in [('L',1),('R',-1)]:
-    for limb,y in [('Fore',.79),('Hind',-.91)]:
-        for i in range(4):
-            x=s*.51+(i-1.5)*.105
-            oval(limb+'Toe'+side+str(i),(x,y+.255,.17),(.087,.18,.10),fur,limb+'Toes.'+side,12,8)
-            o=oval(limb+'Claw'+side+str(i),(x,y+.396,.134),(.034,.118,.045),claw,limb+'Toes.'+side,12,8); o.rotation_euler.x=-.23
+    blend=max(0,min(1,(c.y-1.82-abs(c.x)*.55)/.27))
+    if 1.26<c.z<1.61 and rng.random()<blend*blend:poly.material_index=1
+    elif c.z<.38 and abs(c.x)>.3:poly.material_index=2
+nose=oval('Nose',(0,2.119,1.467),(.146,.080,.072),black,'Head',32,20)
+# Flatten the leathery front of the nose; nostrils are holes rather than beads.
+for vertex in nose.data.vertices:
+    if vertex.co.y>.039:vertex.co.y=.039+(vertex.co.y-.039)*.45
+for side,sign in [('L',1),('R',-1)]:
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=16,ring_count=12,location=(sign*.094,2.174,1.466))
+    cutter=bpy.context.object;cutter.scale=(.025,.030,.015);cutter.rotation_euler.y=sign*.15
+    bpy.ops.object.transform_apply(location=False,rotation=False,scale=True)
+    bpy.context.view_layer.objects.active=nose
+    hole=nose.modifiers.new('Nostril recess','BOOLEAN');hole.operation='DIFFERENCE';hole.object=cutter
+    bpy.ops.object.modifier_apply(modifier=hole.name);bpy.data.objects.remove(cutter,do_unlink=True)
+    oval('Nostril'+side,(sign*.094,2.153,1.466),(.018,.008,.012),darkfur,'Head',16,10)
+tube('Philtrum',[(0,2.161,1.445),(0,2.155,1.408),(0,2.134,1.366)],[.010,.008,.005],black,'Head')
+lip=[]
+for i in range(21):
+    a=i/20*math.pi
+    lip.append((.202*math.cos(a),1.876+.232*math.sin(a),1.306+.015*abs(math.cos(a))))
+tube('MouthLine',lip,[.0085]*len(lip),black,'Head')
+oval('MouthInterior',(0,1.78,1.283),(.17,.24,.06),mouth,'Head')
+jaw=oval('LowerJaw',(0,1.827,1.266),(.205,.30,.066),muzzle,'Jaw');coat_sources.append(jaw)
+oval('Tongue',(0,1.945,1.305),(.10,.135,.012),mouth,'Jaw')
+for side,sign in [('L',1),('R',-1)]:
+    tube('Canine'+side,[(sign*.143,2.0,1.34),(sign*.141,2.018,1.307),(sign*.130,2.016,1.26)],
+         [.019,.014,.0015],claw,'Head')
+tail=oval('Tail',(0,-1.49,1.24),(.11,.175,.11),fur,'Tail');coat_sources.append(tail)
+for side,sign in [('L',1),('R',-1)]:
+    for limb,y in [('Fore',.79),('Hind',-.89)]:
+        for i in range(5):
+            x=sign*.51+(i-2)*.092
+            edge=abs(i-2)/2
+            toe=oval(limb+'Toe'+side+str(i),(x,y+.253-edge*.026,.145),(.075,.145,.095),darkfur,limb+'Toes.'+side,16,10)
+            coat_sources.append(toe)
+            length=.158 if limb=='Fore' else .108
+            start=y+.345-edge*.026
+            points=[(x,start,.142),(x,start+length*.34,.145),(x,start+length*.72,.112),(x,start+length,.061)]
+            tube(limb+'Claw'+side+str(i),points,[.025,.021,.013,.0015],claw,limb+'Toes.'+side)
 
-# Broad, curved locks lie against the coat and follow the anatomy. Their tapered
-# ends break up the silhouette; they do not read as isolated triangular rivets.
+# Dense, narrow, curved fur tufts cover the entire anatomy. Triangle-area sampling
+# gives equal coverage to shins, throat and face; cylindrical rays missed them.
+# The coat uses opaque geometry and existing URP Lit materials, no alpha sorting.
 from mathutils.bvhtree import BVHTree
-bvh=BVHTree.FromObject(skin,bpy.context.evaluated_depsgraph_get())
-verts=[]; faces=[]
-for k in range(4200):
-    a=rng.uniform(0,math.tau); y=rng.uniform(-1.32,1.44)
-    ray=Vector((math.cos(a),0,math.sin(a)))
-    c,n,idx,dist=bvh.ray_cast(Vector((0,y,1.32))+ray*2,-ray,3)
-    if c is None or c.z<1.05 or c.y>1.10:continue
-    direction=Vector((n.x*.3,-1,-.35));direction-=n*direction.dot(n);direction.normalize()
-    tangent=n.cross(direction).normalized();length=rng.uniform(.10,.19);width=rng.uniform(.003,.008)
+skin.data.calc_loop_triangles()
+skin_triangles=[tuple(triangle.vertices) for triangle in skin.data.loop_triangles]
+skin_bvh=BVHTree.FromPolygons([vertex.co for vertex in skin.data.vertices],skin_triangles,all_triangles=True)
+triangles=[];areas=[];total_area=0
+for source in coat_sources:
+    source.data.calc_loop_triangles()
+    for triangle in source.data.loop_triangles:
+        a,b,c=[source.matrix_world@source.data.vertices[i].co for i in triangle.vertices]
+        n=(b-a).cross(c-a)
+        area=n.length*.5
+        if area<1e-8:continue
+        n.normalize();total_area+=area;areas.append(total_area)
+        triangles.append((a,b,c,n,source.get('bone'),source.name))
+verts=[];faces=[];uvs=[];fur_bones={};fur_materials=[]
+for k in range(19000):
+    a,b,c,n,rigid,source_name=triangles[bisect.bisect_left(areas,rng.random()*total_area)]
+    r=math.sqrt(rng.random());t=rng.random();p=a*(1-r)+b*(r*(1-t))+c*(r*t)
+    if p.z<.065 or (p.z<.12 and n.z<-.2):continue
+    if rigid:
+        nearest,normal,_,_=skin_bvh.find_nearest(p)
+        if nearest is not None and (p-nearest).dot(normal)<-.002:continue
+    head=p.y>1.10 and p.z>1.03
+    muzzle_area=head and p.y>1.76+abs(p.x)*.56 and p.z<1.61
+    # Cheek and muzzle fibres radiate backwards from the nose, legs flow down;
+    # long mane/shoulder hair lies diagonally down the flank, not up like spines.
+    if 'Ear' in source_name:
+        flow=Vector((p.x*.25,-.10,.85));length=rng.uniform(.017,.038);width=rng.uniform(.0018,.004)
+    elif head:
+        flow=Vector((p.x*.7,-1,-.36))
+        length=rng.uniform(.010,.023) if muzzle_area else rng.uniform(.030,.066)
+        width=rng.uniform(.0018,.004) if muzzle_area else rng.uniform(.003,.007)
+    elif p.z<1.03 and abs(p.x)>.28:
+        flow=Vector((n.x*.15,-.12,-1));length=rng.uniform(.033,.083);width=rng.uniform(.003,.007)
+    else:
+        flow=Vector((n.x*.25,-.62,-.64));length=rng.uniform(.064,.14);width=rng.uniform(.004,.009)
+    flow-=n*flow.dot(n)
+    if flow.length<.01:flow=n.cross(Vector((1,0,0)))
+    flow.normalize();flow=Quaternion(n,rng.uniform(-.20,.20))@flow
+    across=n.cross(flow).normalized()
+    # Slight variation of lengths prevents rows; low lift makes overlapping
+    # satin-matte locks instead of the old stiff triangular nails.
+    lift=length*rng.uniform(.10,.20)
     start=len(verts)
-    for row,(along,w,lift) in enumerate(((0,.7,-.015),(.33,1,.001),(.72,.6,.003),(1,0,.010))):
-        for side in (-1,0,1):
-            point=c+direction*(along*length)+tangent*(side*width*w)+n*(lift+(1-abs(side))*.014)
-            surface,surface_normal,_,_=bvh.find_nearest(point)
-            point=surface+surface_normal*(max(-.008,lift)+(1-abs(side))*.004)
-            verts.append(tuple(point))
-    for row in range(3):
-        for column in range(2):
-            i=start+row*3+column;faces.extend([(i,i+3,i+1),(i+1,i+3,i+4)])
-me=bpy.data.meshes.new('SculptedFur');me.from_pydata(verts,[],faces);me.materials.append(fur);me.materials.append(tip)
+    origin_u=rng.random()*.88;origin_v=rng.random()*.70
+    for along,spread,height in ((0,.72,-.002),(.38,1,.35),(.76,.54,.8)):
+        for sign in (-1,1):
+            point=p+flow*(length*along)+across*(width*spread*sign)+n*(lift*height if height>0 else height)
+            if rigid is None:
+                surface,surface_normal,_,_=skin_bvh.find_nearest(point)
+                # Stay on the same skin patch; never jump a tuft across a leg gap.
+                if surface is not None and (surface-point).length<length*.5:
+                    point=surface+surface_normal*(max(.001,lift*height))
+            verts.append(tuple(point));uvs.append((origin_u+(sign+1)*.018,origin_v+along*.22))
+            if rigid:fur_bones[len(verts)-1]=rigid
+    point=p+flow*length+n*lift
+    if rigid is None:
+        surface,surface_normal,_,_=skin_bvh.find_nearest(point)
+        if surface is not None and (surface-point).length<length*.5:point=surface+surface_normal*lift
+    verts.append(tuple(point));uvs.append((origin_u+.018,origin_v+.22))
+    if rigid:fur_bones[len(verts)-1]=rigid
+    faces.extend([(start,start+2,start+1),(start+1,start+2,start+3),
+                  (start+2,start+4,start+3),(start+3,start+4,start+5),(start+4,start+6,start+5)])
+    if muzzle_area:mat_index=2 if rng.random()<max(.10,min(.92,(p.y-1.66)*2.2)) else 0
+    elif p.z<.5:mat_index=3 if rng.random()<.6 else 0
+    elif head:mat_index=1 if rng.random()<.10 else 0
+    else:mat_index=1 if rng.random()<(.27 if p.z>1.5 else .13) else 0
+    fur_materials.extend([mat_index]*5)
+me=bpy.data.meshes.new('SculptedFur');me.from_pydata(verts,[],faces)
+for coat_material in (fur,tip,muzzle,darkfur):me.materials.append(coat_material)
+uv_layer=me.uv_layers.new(name='CoatFlow')
+for polygon in me.polygons:
+    polygon.material_index=fur_materials[polygon.index];polygon.use_smooth=True
+    for loop_index in polygon.loop_indices:uv_layer.data[loop_index].uv=uvs[me.loops[loop_index].vertex_index]
 locks=bpy.data.objects.new('Bruno_FurLocks',me);scene.collection.objects.link(locks);parts.append(locks)
-for i,p in enumerate(me.polygons):p.material_index=1 if (i//12)%11==0 else 0;p.use_smooth=True
 # Generic rig, separate from every player/Humanoid asset.
 arm=bpy.data.armatures.new('BrunoSkeleton'); rig=bpy.data.objects.new('BrunoRig',arm);scene.collection.objects.link(rig)
 bpy.context.view_layer.objects.active=rig;rig.select_set(True);bpy.ops.object.mode_set(mode='EDIT')
@@ -186,8 +331,8 @@ for side,s in [('L',1),('R',-1)]:
     bone('HindPaw.'+side,(x,-1.03,.20),(x,-.59,.16),'HindLower.'+side)
     bone('ForeToes.'+side,(x,.97,.17),(x,1.25,.13),'ForePaw.'+side)
     bone('HindToes.'+side,(x,-.73,.17),(x,-.43,.13),'HindPaw.'+side)
-    bone('Lid.'+side,(s*.286,1.816,1.712),(s*.286,1.816,1.763),'Head')
-    bone('Ear.'+side,(s*.365,1.16,1.78),(s*.365,1.16,1.99),'Head')
+    bone('Lid.'+side,(s*.245,1.686,1.677),(s*.245,1.686,1.728),'Head')
+    bone('Ear.'+side,(s*.278,1.235,1.724),(s*.278,1.235,1.93),'Head')
 bpy.ops.object.mode_set(mode='OBJECT')
 
 def segdist(p,a,b):
@@ -198,6 +343,21 @@ for o in parts:
     for v in o.data.vertices:
         p=o.matrix_local@v.co
         if 'bone' in o:weights=[(o['bone'],1)]
+        elif o==locks:
+            if v.index in fur_bones:weights=[(fur_bones[v.index],1)]
+            else:
+                near,normal,triangle_index,distance=skin_bvh.find_nearest(p)
+                from mathutils.geometry import barycentric_transform
+                ids=skin_triangles[triangle_index]
+                a,b,c=[skin.data.vertices[i].co for i in ids]
+                bary=barycentric_transform(near,a,b,c,Vector((1,0,0)),Vector((0,1,0)),Vector((0,0,1)))
+                weights_by_bone={}
+                for index,amount in zip(ids,bary):
+                    for group in skin.data.vertices[index].groups:
+                        name=skin.vertex_groups[group.group].name
+                        weights_by_bone[name]=weights_by_bone.get(name,0)+group.weight*max(0,amount)
+                total=sum(weights_by_bone.values())
+                weights=[(name,weight/total) for name,weight in weights_by_bone.items()] if total>0 else [('Chest',1)]
         else:
             side='L' if p.x>=0 else 'R'
             limb='Fore' if abs(p.y-.44)<abs(p.y+.9) else 'Hind'
@@ -234,6 +394,23 @@ for o in parts:
         bpy.ops.object.vertex_group_normalize_all(lock_active=False)
         bpy.ops.object.mode_set(mode='OBJECT')
         for b in arm.bones:b.use_deform=True
+        for limb in ('Fore','Hind'):
+            for side in ('L','R'):
+                group_name=limb+'Toes.'+side
+                if o.vertex_groups.get(group_name) is None:o.vertex_groups.new(name=group_name)
+        # Heat weights exclude the tiny toe bones, then a smooth anatomical
+        # gradient adds their share. The joined paw pad now bends with the toes
+        # at push-off instead of leaving only the detached nails to articulate.
+        for vertex in o.data.vertices:
+            p=vertex.co
+            if p.z>.36 or abs(p.x)<.22:continue
+            limb='Fore' if p.y>.1 else 'Hind';side='L' if p.x>0 else 'R'
+            start=.88 if limb=='Fore' else -.81
+            amount=max(0,min(1,(p.y-start)/.19));amount=amount*amount*(3-2*amount)*.94
+            if amount<=0:continue
+            for group in list(vertex.groups):
+                o.vertex_groups[group.group].add([vertex.index],group.weight*(1-amount),'REPLACE')
+            o.vertex_groups[limb+'Toes.'+side].add([vertex.index],amount,'REPLACE')
     mod=next((m for m in o.modifiers if m.type=='ARMATURE'),None)
     if mod is None:mod=o.modifiers.new('Bruno skeleton','ARMATURE')
     mod.object=rig

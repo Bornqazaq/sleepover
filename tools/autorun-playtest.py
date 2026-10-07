@@ -16,7 +16,7 @@ GAMES = {'carry': 'CarryItem', 'infection': 'Infection', 'exam': 'Exam', 'cans':
          'circus-cans': 'CansOrder', 'circus-stopwatch': 'Stopwatch'}
 
 
-def run(mode, port, players=4, visible=False):
+def run(mode, port, players=4, visible=False, circus_motion_review=False):
     stamp = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
     logs = ROOT / 'igruha/Builds/Autotest/logs' / f'playtest-{mode}-{stamp}'
     logs.mkdir(parents=True)
@@ -36,6 +36,8 @@ def run(mode, port, players=4, visible=False):
                 args.remove('-batchmode'); args.remove('-nographics')
                 args += ['-screen-fullscreen','0','-screen-width','1280','-screen-height','720',
                          '--playtest-screenshots',str(logs/('host' if index==0 else 'client-1'))]
+                if circus_motion_review and mode.startswith('circus-'):
+                    args.append('--circus-motion-review')
             if mode == 'tutorial':
                 args += ['--tutorial-check', 'repeat']
             if mode.startswith('countdown-') or mode == 'angels-roles':
@@ -76,8 +78,10 @@ if __name__ == '__main__':
     parser.add_argument('--port', type=int, default=17600)
     parser.add_argument('--players',type=int,default=4,choices=range(2,9))
     parser.add_argument('--visible',action='store_true')
+    parser.add_argument('--circus-motion-review',action='store_true',help='Capture 12 fps circus motion frames in visible windows')
     options = parser.parse_args()
     if not APP.is_file():
         parser.error(f'Missing development build: {APP}')
-    results = [run(mode, options.port + index, options.players, options.visible) for index, mode in enumerate(options.modes)]
+    results = [run(mode, options.port + index, options.players, options.visible, options.circus_motion_review)
+               for index, mode in enumerate(options.modes)]
     raise SystemExit(0 if all(results) else 1)

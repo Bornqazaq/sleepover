@@ -89,6 +89,7 @@ namespace Igruha.EditorTools
             BuildLighting(root,config);
             BuildAtmosphere(root);
             CircusCraftBuilder.Apply(root,arena,config);
+            ApplyNaturalLighting();
             if (PhysicsSignature(arena) != physicsBefore) throw new InvalidOperationException("The art pass changed arena collision geometry.");
             EditorSceneManager.MarkSceneDirty(scene);
             AssetDatabase.SaveAssets();
@@ -211,33 +212,68 @@ namespace Igruha.EditorTools
                 data.antialiasingQuality=AntialiasingQuality.High;
                 camera.allowHDR=true;
             }
-            ApplyNaturalLighting();
             AssetDatabase.SaveAssets();
         }
 
         internal static void ApplyNaturalLighting()
         {
-            RenderSettings.ambientSkyColor=new Color(.62f,.65f,.69f);
-            RenderSettings.ambientEquatorColor=new Color(.34f,.35f,.37f);
-            RenderSettings.ambientGroundColor=new Color(.21f,.205f,.20f);
+            var scene=EditorSceneManager.GetActiveScene();
+            if(scene.name!="CansOrder" && scene.name!="Stopwatch")
+                throw new InvalidOperationException("Circus lighting requires CansOrder or Stopwatch.");
+
+            // The roster keeps its usual rendering layer. Amber set lights illuminate
+            // the tent and Bruno, while the neutral key/fill reveal the original skin
+            // and clothing textures. No player prefab or material is overridden.
+            const uint characterLightLayer=1u;
+            const uint sceneryLightLayer=2u;
+            foreach(var renderer in UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsInactive.Include,FindObjectsSortMode.None))
+            {
+                if(renderer.gameObject.scene!=scene || renderer.GetComponentInParent<Igruha.Core.Player.PlayerController>()!=null) continue;
+                renderer.renderingLayerMask|=sceneryLightLayer;
+                EditorUtility.SetDirty(renderer);
+                if(PrefabUtility.IsPartOfPrefabInstance(renderer)) PrefabUtility.RecordPrefabInstancePropertyModifications(renderer);
+            }
+            RenderSettings.ambientMode=AmbientMode.Trilight;
+            RenderSettings.ambientIntensity=1f;
+            RenderSettings.ambientSkyColor=new Color(.65f,.65f,.65f);
+            RenderSettings.ambientEquatorColor=new Color(.355f,.355f,.355f);
+            RenderSettings.ambientGroundColor=new Color(.205f,.205f,.205f);
             RenderSettings.fogColor=new Color(.255f,.265f,.28f);
             RenderSettings.customReflectionTexture=EnsureReflection();
             foreach(var light in UnityEngine.Object.FindObjectsByType<Light>(FindObjectsInactive.Include,FindObjectsSortMode.None))
             {
-                if(light.name=="CanvasBounce" || light.name.StartsWith("CagePool_") || light.name=="PitReadability")
-                    light.color=new Color(1f,.985f,.96f);
+                if(light.gameObject.scene!=scene) continue;
+                bool neutral=light.name=="CanvasBounce" || light.name.StartsWith("CagePool_") || light.name=="PitReadability";
+                bool scenery=light.name.StartsWith("CupolaBounce_") || light.name.StartsWith("CanvasWash_")
+                    || light.name.StartsWith("FairgroundPool_") || light.name.StartsWith("LanternBounce_")
+                    || light.name.StartsWith("StallPractical_") || light.name=="MarqueeWarmth"
+                    || light.name=="Bruno_WarmKey" || light.name=="Bruno_Rim";
+                if(!neutral && !scenery) continue;
+                if(neutral) light.color=Color.white;
                 if(light.name=="Bruno_WarmKey") light.color=new Color(1f,.97f,.92f);
                 if(light.name=="Bruno_Rim") light.color=new Color(.86f,.92f,1f);
                 if(light.name.StartsWith("LanternBounce_")) light.intensity=12f;
+                var data=light.GetComponent<UniversalAdditionalLightData>();
+                if(data==null) data=light.gameObject.AddComponent<UniversalAdditionalLightData>();
+                data.renderingLayers=scenery?sceneryLightLayer:characterLightLayer;
+                // Actors still cast shadows into coloured pools, although those pools
+                // do not tint them. Keeping a separate shadow mask also avoids making
+                // tent geometry transparent to the neutral character lights.
+                data.customShadowLayers=true;
+                data.shadowRenderingLayers=characterLightLayer|sceneryLightLayer;
+                EditorUtility.SetDirty(light);EditorUtility.SetDirty(data);
             }
             var profile=AssetDatabase.LoadAssetAtPath<VolumeProfile>(CircusNightAssets.Materials+"/CN_Grade.asset");
             if(profile!=null)
             {
                 var grade=Ensure<ColorAdjustments>(profile);
                 grade.postExposure.Override(0);grade.contrast.Override(0);grade.saturation.Override(0);
-                grade.colorFilter.Override(Color.white);
+                grade.colorFilter.Override(Color.white);grade.hueShift.Override(0);
+                Ensure<Tonemapping>(profile).mode.Override(TonemappingMode.Neutral);
+                var balance=Ensure<WhiteBalance>(profile);balance.temperature.Override(0);balance.tint.Override(0);
                 EditorUtility.SetDirty(profile);
             }
+            DynamicGI.UpdateEnvironment();
         }
 
         private static T Ensure<T>(VolumeProfile profile) where T:VolumeComponent
@@ -254,7 +290,7 @@ namespace Igruha.EditorTools
             foreach(CubemapFace face in Enum.GetValues(typeof(CubemapFace)))
             {
                 if(face==CubemapFace.Unknown)continue;
-                Color tint=face==CubemapFace.PositiveY?new Color(.245f,.26f,.28f):new Color(.12f,.125f,.13f);
+                Color tint=face==CubemapFace.PositiveY?new Color(.26f,.26f,.26f):new Color(.125f,.125f,.125f);
                 for(int i=0;i<pixels.Length;i++)pixels[i]=tint;cube.SetPixels(pixels,face);
             }
             cube.Apply();if(created)AssetDatabase.CreateAsset(cube,path);else EditorUtility.SetDirty(cube);return cube;

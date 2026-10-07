@@ -31,11 +31,11 @@ namespace Igruha.EditorTools
             var serialized=new SerializedObject(bear);
             serialized.FindProperty("visualRoot").objectReferenceValue=visual;
             serialized.FindProperty("animator").objectReferenceValue=animator;
-            serialized.FindProperty("turnSpeed").floatValue=150f;
-            serialized.FindProperty("acceleration").floatValue=6f;
+            serialized.FindProperty("turnSpeed").floatValue=220f;
+            serialized.FindProperty("acceleration").floatValue=12f;
             serialized.FindProperty("attackContactTime").floatValue=PitBear.ContactSeconds;
             serialized.FindProperty("attackDuration").floatValue=PitBear.StrikeSeconds;
-            serialized.FindProperty("attackRecovery").floatValue=.3f;
+            serialized.FindProperty("attackRecovery").floatValue=.18f;
             serialized.FindProperty("alertParameter").stringValue="Alert";
             serialized.ApplyModifiedPropertiesWithoutUndo();
             CircusBearPolishBuilder.Dress(bear,animator);

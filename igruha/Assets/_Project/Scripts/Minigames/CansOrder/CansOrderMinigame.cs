@@ -31,7 +31,7 @@ namespace Igruha.Minigames.CansOrder
     /// и <c>NetworkList</c>. Всё, что меняет состояние круга, проходит через
     /// стадии, и каждая точка перехода уйдёт за <c>IsServer</c> без переписывания.
     /// </summary>
-    public sealed class CansOrderMinigame : MinigameControllerBase
+    public sealed class CansOrderMinigame : MinigameControllerBase, IMinigameNetworkTarget
     {
         /// <summary>Стадии круга. Значения уезжают в сеть байтом, порядок менять нельзя.</summary>
         private const byte StageBriefing = 1;
@@ -212,6 +212,28 @@ namespace Igruha.Minigames.CansOrder
 
         /// <summary>Сетевая половина. Пусто — сцену открыли напрямую, и всё работает как в соло.</summary>
         private CansOrderNetwork network;
+        private CansShelfVisibility shelfVisibility;
+        private CircusFinaleGate finaleGate;
+
+        private bool LocalKnockoutPresenting()
+        {
+            foreach (var c in contestants)
+                if (c.LocallyControlled && c.Session?.Avatar != null && c.Elimination != null && c.Elimination.IsPresenting)
+                    return true;
+            return false;
+        }
+
+        void IMinigameNetworkTarget.ApplyPhase(MinigamePhase next)
+        {
+            finaleGate ??= new CircusFinaleGate(base.ApplyPhase, base.ApplyResults);
+            finaleGate.ReceivePhase(next, !HasAuthority && LocalKnockoutPresenting(), Time.realtimeSinceStartup);
+        }
+
+        void IMinigameNetworkTarget.ApplyResults(MinigameResults results, bool seriesFinal)
+        {
+            finaleGate ??= new CircusFinaleGate(base.ApplyPhase, base.ApplyResults);
+            finaleGate.ReceiveResults(results, seriesFinal, !HasAuthority && LocalKnockoutPresenting(), Time.realtimeSinceStartup);
+        }
 
         /// <summary>
         /// Скрытая расстановка раунда — одна на всех и её никогда не показывают.
@@ -302,6 +324,7 @@ namespace Igruha.Minigames.CansOrder
             }
 
             network = GetComponent<CansOrderNetwork>();
+            shelfVisibility = new CansShelfVisibility(cameraController, shelfCameraRig);
         }
 
         protected override void OnEnable()
@@ -316,8 +339,10 @@ namespace Igruha.Minigames.CansOrder
 
         protected override void OnDisable()
         {
+            finaleGate?.Cancel();
             // Scene cancellation/disconnection does not necessarily deliver Results.
             OnRoundEnded();
+            shelfVisibility?.Dispose();
             base.OnDisable();
             if (stageState != null)
             {
@@ -328,12 +353,15 @@ namespace Igruha.Minigames.CansOrder
 
         protected override void OnPlayersReady()
         {
+            finaleGate?.Cancel();
+            shelfVisibility?.Dispose();
             if (config == null || arenaConfig == null)
             {
                 Debug.LogError($"{name}: не назначены CansOrderConfig / CircusArenaConfig — играть нечем", this);
                 return;
             }
 
+            foreach (var previous in contestants) CircusAnimationCullingScope.Release(previous.Session?.Avatar);
             contestants.Clear();
             ranking.Clear();
             matchOver = false;
@@ -431,6 +459,7 @@ namespace Igruha.Minigames.CansOrder
                 contestant.LocallyControlled = avatar != null
                                                && avatar.TryGetComponent(out PlayerInputReader reader)
                                                && reader.LocallyControlled;
+                if (contestant.LocallyControlled) shelfVisibility?.Bind(avatar.transform);
 
                 // Подсказке про E нужна полка того игрока, которым управляют
                 // с этой машины. Здесь единственное место, где она уже известна:
@@ -517,6 +546,7 @@ namespace Igruha.Minigames.CansOrder
 
         protected override void OnRoundEnded()
         {
+            shelfVisibility?.SetActive(false);
             SetShelfMovementLock(false);
             attackPresentation?.ResetPresentation();
             // Всё, что мини-игра навесила на игрока, она обязана снять сама:
@@ -545,6 +575,7 @@ namespace Igruha.Minigames.CansOrder
                     // вместе с персонажем — он переезжает между сценами живым.
                     c.Elimination.Restore();
                 }
+                CircusAnimationCullingScope.Release(c.Session?.Avatar);
             }
 
             if (bear != null)
@@ -561,6 +592,12 @@ namespace Igruha.Minigames.CansOrder
 
             stageState?.StopSequence();
             scoreboard?.Clear();
+            // Core disables input before this callback. Restoring the fallen
+            // avatar and spectator must not reopen controls over Results.
+            var localAvatar = SessionScoreboard.Current?.LocalPlayer?.Avatar;
+            if (Phase == MinigamePhase.Results && localAvatar != null &&
+                localAvatar.TryGetComponent(out PlayerInputReader reader) && reader.LocallyControlled)
+                reader.enabled = false;
         }
 
         // ========== РАУНД И КРУГИ ==========
@@ -952,7 +989,6 @@ namespace Igruha.Minigames.CansOrder
         private void HandleStageStarted(byte stage)
         {
             if (stage != StagePlacement) SetShelfMovementLock(false);
-            // Players stay visible and can walk inside the cage while arranging cans.
             if (stage == StagePlacement)
             {
                 RememberPlacementWindow();
@@ -1038,20 +1074,23 @@ namespace Igruha.Minigames.CansOrder
 
         private void ApplyShelfCamera(bool toShelf)
         {
-            if (attackPresentation != null && attackPresentation.OwnsCamera) return;
-            if (cameraController == null || spectator == null || spectator.IsActive)
+            if ((attackPresentation != null && attackPresentation.OwnsCamera) || cameraController == null ||
+                spectator == null || spectator.IsActive)
             {
+                shelfVisibility?.SetActive(false);
                 return;
             }
 
             Contestant local = FindLocal();
             if (local == null || local.Session?.Avatar == null)
             {
+                shelfVisibility?.SetActive(false);
                 return;
             }
 
             if (!toShelf || local.Shelf == null || !local.Entry.Alive || local.Entry.Solved)
             {
+                shelfVisibility?.SetActive(false);
                 cameraController.Apply(CameraMode.ThirdPerson, local.Session.Avatar.transform);
                 return;
             }
@@ -1059,12 +1098,14 @@ namespace Igruha.Minigames.CansOrder
             Transform board = local.Shelf.Board;
             if (board == null)
             {
+                shelfVisibility?.SetActive(false);
                 cameraController.Apply(CameraMode.ThirdPerson, local.Session.Avatar.transform);
                 return;
             }
 
             if (shelfCameraRig == null)
             {
+                shelfVisibility?.SetActive(false);
                 cameraController.Apply(CameraMode.ThirdPerson, local.Session.Avatar.transform);
                 return;
             }
@@ -1080,6 +1121,7 @@ namespace Igruha.Minigames.CansOrder
             shelfCameraRig.rotation = Quaternion.LookRotation(board.position - shelfCameraRig.position, Vector3.up);
 
             cameraController.Apply(CameraMode.Fixed, shelfCameraRig);
+            shelfVisibility?.SetActive(true);
         }
 
         /// <summary>
@@ -1096,6 +1138,7 @@ namespace Igruha.Minigames.CansOrder
         /// </summary>
         private void RestoreCameraToLocalAvatar()
         {
+            shelfVisibility?.SetActive(false);
             if (cameraController == null)
             {
                 return;
@@ -1322,6 +1365,7 @@ namespace Igruha.Minigames.CansOrder
         {
             c.HatchStartedAt = startedAt;
             c.InPit = true;
+            CircusAnimationCullingScope.Bind(c.Session.Avatar);
             if (c.LocallyControlled) attackPresentation?.BeginPit();
             bear?.RegisterFallen(c.Session.Avatar);
             c.Bot?.Disarm();
@@ -1626,6 +1670,7 @@ namespace Igruha.Minigames.CansOrder
         /// </summary>
         private void Update()
         {
+            finaleGate?.Tick(LocalKnockoutPresenting(), Time.realtimeSinceStartup);
             // The puzzle owns its deadline and waits for the pit finale. Feed the
             // shared HUD the same remaining time without enabling automatic round end.
             if (Phase == MinigamePhase.Round && Timer != null && config != null)
@@ -1766,13 +1811,17 @@ namespace Igruha.Minigames.CansOrder
                 }
 
                 c.InPit = false;
-                bear.ShowImpact(victim.transform.position + Vector3.up, false);
-                c.Elimination?.Eliminate(victim.transform.position, impulse);
+                Vector3 hitPoint = victim.Position;
+                Vector3 bearPosition = bear.transform.position;
+                float bearYaw = bear.transform.eulerAngles.y;
+                CircusKnockout.CaptureContact(victim, impulse, out KnockdownType fallType, out float contactYaw);
+                c.Elimination?.Eliminate(hitPoint, impulse, fallType, contactYaw);
+                bear.ShowImpact(hitPoint + Vector3.up, false);
+                c.Elimination?.TraceImpact(bear);
 
-                // Направление отлёта уезжает готовым: тогда клип падения
-                // выбирается одинаково у всех, и смерть выглядит одной и той же
-                // на каждой машине.
-                network?.AnnounceCaught(c.Entry.PlayerId, victim.transform.position, impulse);
+                // Тип падения и разворот выбираются сервером один раз:
+                // предсказанный Facing владельца к приходу RPC уже может отличаться.
+                network?.AnnounceCaught(c.Entry.PlayerId, hitPoint, impulse, (byte)fallType, contactYaw, bearPosition, bearYaw);
                 return;
             }
         }
@@ -2047,6 +2096,8 @@ namespace Igruha.Minigames.CansOrder
         /// </summary>
         private void DetachContestant(Contestant c)
         {
+            if (c.LocallyControlled) shelfVisibility?.Dispose();
+            CircusAnimationCullingScope.Release(c.Session?.Avatar);
             if (c.Button != null)
             {
                 c.Button.Confirmed -= HandleConfirmed;
@@ -2290,6 +2341,7 @@ namespace Igruha.Minigames.CansOrder
             if (doorsOpen)
             {
                 c.InPit = true;
+                CircusAnimationCullingScope.Bind(c.Session.Avatar);
                 if (c.LocallyControlled) attackPresentation?.BeginPit();
                 // Opening belongs to this cage, not to a global final-stage clock.
                 c.Cage.OpenDoors(config.HatchOpenSeconds, (float)System.Math.Max(0, NetworkClock.Now - c.HatchStartedAt));
@@ -2388,10 +2440,10 @@ namespace Igruha.Minigames.CansOrder
 
         /// <summary>
         /// Сервер объявил, что медведь достал игрока. Отыгрываем ту же гибель
-        /// тем же импульсом: направление приезжает готовым, поэтому клип падения
-        /// выбирается одинаково у всех.
+        /// тем же импульсом, типом падения и разворотом, выбранными сервером.
         /// </summary>
-        public void ApplyNetworkCaught(int playerId, Vector3 hitPoint, Vector3 impulse)
+        public void ApplyNetworkCaught(int playerId, Vector3 hitPoint, Vector3 impulse, byte fallType, float contactYaw,
+            Vector3 bearPosition, float bearYaw)
         {
             if (HasAuthority)
             {
@@ -2406,8 +2458,11 @@ namespace Igruha.Minigames.CansOrder
             }
 
             c.InPit = false;
-            bear?.ShowImpact(hitPoint + Vector3.up, true);
-            c.Elimination?.Eliminate(hitPoint, impulse);
+            bear?.SetPresentationTarget(c.Session.Avatar);
+            CircusAnimationCullingScope.Bind(c.Session.Avatar);
+            c.Elimination?.Eliminate(hitPoint, impulse, (KnockdownType)fallType, contactYaw);
+            bear?.ShowImpact(hitPoint + Vector3.up, true, bearPosition, bearYaw);
+            c.Elimination?.TraceImpact(bear);
         }
 
         /// <summary>Состояние медведя пришло из сети — показать, не считая ИИ.</summary>
@@ -2419,6 +2474,7 @@ namespace Igruha.Minigames.CansOrder
             }
 
             bear.PresentationTargetId = targetId;
+            bear.SetPresentationTarget(Find(targetId)?.Session.Avatar);
             var next = (PitBear.BearState)state;
             bear.ApplyNetworkState(next, next == PitBear.BearState.Chase
                 ? bearConfig.ChaseSpeed

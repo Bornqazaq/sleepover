@@ -3,6 +3,7 @@ using UnityEngine;
 namespace Igruha.Minigames.Circus
 {
     /// <summary>Spatial anticipation and contact cues, all driven by the strike clock.</summary>
+    [DefaultExecutionOrder(210)]
     public sealed class CircusBearFeedback : MonoBehaviour
     {
         [SerializeField] private AudioSource voice;
@@ -40,7 +41,7 @@ namespace Igruha.Minigames.Circus
             if (impactDust != null)
             {
                 impactDust.transform.position = point;
-                impactDust.Emit(22);
+                impactDust.Emit(9);
             }
         }
 
@@ -63,12 +64,12 @@ namespace Igruha.Minigames.Circus
         private void LateUpdate()
         {
             float age = Time.time - attackStartedAt;
-            if (!swiped && age >= .47f)
+            if (!swiped && age >= PitBear.SwipeSeconds)
             {
                 swiped = true;
                 if (voice != null && swipe != null) voice.PlayOneShot(swipe, .8f);
             }
-            if (clawTrail != null) clawTrail.emitting = age >= .47f && age < .9f;
+            if (clawTrail != null) clawTrail.emitting = age >= PitBear.SwipeSeconds && age < PitBear.ContactSeconds + .16f;
             if (paws == null || bear == null) return;
             bool moving = bear.State == PitBear.BearState.Chase || bear.State == PitBear.BearState.Patrol;
             for (int i = 0; i < paws.Length && i < previousHeights.Length; i++)

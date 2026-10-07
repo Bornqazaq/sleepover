@@ -1,6 +1,6 @@
 {
-  "mesh_vertices": 45775,
-  "triangles": 62650,
+  "mesh_vertices": 135748,
+  "triangles": 128879,
   "bones": 31,
   "actions": [
     "Bruno_Alert",

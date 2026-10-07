@@ -21,8 +21,8 @@ namespace Igruha.EditorTools
             new Color(.20f,.095f,.048f), new Color(.32f,.18f,.09f),new Color(.58f,.028f,.041f),new Color(.045f,.27f,.30f),
             new Color(.47f,.30f,.11f),new Color(.045f,.059f,.069f),new Color(.29f,.27f,.23f),new Color(.39f,.35f,.27f),
             new Color(.43f,.30f,.14f),new Color(1f,.61f,.22f),new Color(.023f,.022f,.020f),new Color(.69f,.52f,.29f),
-            new Color(.185f,.102f,.057f),new Color(.245f,.151f,.086f),new Color(.265f,.179f,.112f),new Color(.018f,.011f,.008f),
-            new Color(.085f,.039f,.010f),new Color(.23f,.185f,.133f),new Color(.083f,.018f,.014f),new Color(.054f,.028f,.012f),Color.white,new Color(.52f,.56f,.59f),
+            new Color(.185f,.102f,.057f),new Color(.245f,.151f,.086f),new Color(.22f,.14f,.085f),new Color(.018f,.011f,.008f),
+            new Color(.025f,.010f,.004f),new Color(.23f,.185f,.133f),new Color(.083f,.018f,.014f),new Color(.054f,.028f,.012f),Color.white,new Color(.52f,.56f,.59f),
             new Color(.72f,.045f,.062f),new Color(.92f,.83f,.65f),new Color(.52f,.37f,.19f)
         };
 
@@ -66,7 +66,10 @@ namespace Igruha.EditorTools
                 importer.bakeAxisConversion = true; importer.addCollider = false;
                 importer.importCameras = false; importer.importLights = false;
                 importer.importAnimation = bear; importer.animationType = bear ? ModelImporterAnimationType.Generic : ModelImporterAnimationType.None;
-                importer.isReadable = false;
+                // These hollow combined meshes need exact visibility queries:
+                // their bounds also enclose the open spaces between the bars.
+                string modelName = System.IO.Path.GetFileNameWithoutExtension(path);
+                importer.isReadable = modelName == "CN_CageWindow" || modelName == "CN_GameShelf";
                 if (bear)
                 {
                     ConfigureBearImport(importer);
@@ -101,6 +104,7 @@ namespace Igruha.EditorTools
                 material.SetColor("_BaseColor",Colors[Array.IndexOf(Names,name)]);
                 EditorUtility.SetDirty(material);
             }
+            var eyes=Material("CN_AmberEyes");eyes.SetColor("_BaseColor",Colors[Array.IndexOf(Names,"CN_AmberEyes")]);eyes.SetFloat("_Smoothness",.38f);EditorUtility.SetDirty(eyes);
             var claws=Material("CN_Claws");claws.SetColor("_BaseColor",Colors[Array.IndexOf(Names,"CN_Claws")]);EditorUtility.SetDirty(claws);
             AssetDatabase.SaveAssets();
         }
@@ -178,7 +182,7 @@ namespace Igruha.EditorTools
             controller.AddParameter("Alert",AnimatorControllerParameterType.Trigger);
             var tree = new BlendTree { name="BearGait",blendType=BlendTreeType.Simple1D,blendParameter="Speed",useAutomaticThresholds=false };
             AssetDatabase.AddObjectToAsset(tree,controller);tree.AddChild(clip("Idle"),0);tree.AddChild(clip("Walk"),2.1f);tree.AddChild(clip("Run"),8.2f);
-            var gaits=tree.children;gaits[2].timeScale=8.2f/5.5f;tree.children=gaits;
+            var gaits=tree.children;gaits[2].timeScale=8.2f/6.6f;tree.children=gaits;
             var idle = machine.AddState("Locomotion");idle.motion = tree;machine.defaultState = idle;
             foreach (string title in new[] { "Strike", "Roar", "Alert" })
             {
