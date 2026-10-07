@@ -6,10 +6,17 @@ using Igruha.Core.Player;
 namespace Igruha.Minigames.Circus
 {
     /// <summary>Server-driven pursuit; clients reproduce the same telegraph before the impact.</summary>
+    [DefaultExecutionOrder(190)] // Current player pose (150), then bear IK (180), then authoritative contact.
     public sealed class PitBear : MonoBehaviour
     {
-        public const float ContactSeconds = .72f;
-        public const float StrikeSeconds = 1.8f;
+        public const float ContactSeconds = .38f;
+        public const float StrikeSeconds = 1.4f;
+        public const float SwipeSeconds = .19f;
+        private const float ContactStandOff = 2.6f;
+        private const float MaximumLunge = 2.5f;
+        private const float MaximumBackstep = 2.0f;
+        private const float ContactReach = 2.85f;
+        private const float ContactWindow = .09f;
         private static readonly int StrikeState = Animator.StringToHash("Strike");
         // Existing values are kept because the state is replicated as a byte.
         public enum BearState { Patrol, WindUp, Chase, Taunt, Attack, Recovery, Watching }
@@ -25,7 +32,7 @@ namespace Igruha.Minigames.Circus
         [SerializeField] private float turnSpeed = 150f;
         [SerializeField] private float wallMargin = .8f;
         [SerializeField] private float acceleration = 6f;
-        [Header("Attack — matches Bruno_Strike, 1.8 seconds")]
+        [Header("Attack — matches Bruno_Strike, 1.4 seconds")]
         [SerializeField] private float attackContactTime = ContactSeconds;
         [SerializeField] private float attackDuration = StrikeSeconds;
         [SerializeField] private float attackRecovery = .3f;
@@ -37,7 +44,12 @@ namespace Igruha.Minigames.Circus
         public PlayerController AttackVictim => attackVictim;
         public int PresentationTargetId { get; set; } = -1;
         public Transform VisualRoot => visualRoot;
+        public Transform PresentationRoot => visualRoot != null ? visualRoot : transform;
         public float AnimatorSpeed => currentSpeed;
+        public float AttackAge => Mathf.Max(0, Time.time - visualAttackStartedAt);
+        public PlayerController PresentationVictim => attackVictim != null ? attackVictim : Target != null ? Target : presentationVictim;
+        public Vector3 ContactPoint { get; private set; }
+        public bool HasContact { get; private set; }
 
         private sealed class Runner
         {
@@ -56,15 +68,29 @@ namespace Igruha.Minigames.Circus
         private float windUpLeft, patrolAngle, currentSpeed, attackElapsed, recoveryLeft;
         private float patrolPauseIn = 9f, patrolPauseLeft;
         private bool hitEvaluated;
+        private bool contactPending;
+        private int contactPendingFrame;
+        private uint contactVersionBeforeTick;
         private PlayerController attackVictim;
         private Vector3 attackDirection, previousPosition;
         private float attackTravel;
+        private float plannedStandOff;
         private bool visualPositionKnown;
         private BearState state = BearState.Patrol;
         private float visualAttackStartedAt;
         private CircusBearFeedback feedback;
+        private CircusBearMotion motion;
+        private CircusBearContactPresentation contactPresentation;
+        private PlayerController presentationVictim;
 
-        private void Awake() => feedback = GetComponent<CircusBearFeedback>();
+        private void Awake()
+        {
+            feedback = GetComponent<CircusBearFeedback>();
+            motion = GetComponentInChildren<CircusBearMotion>(true);
+            contactPresentation = GetComponent<CircusBearContactPresentation>();
+            if(contactPresentation==null)contactPresentation=gameObject.AddComponent<CircusBearContactPresentation>();
+            contactPresentation.Initialize(this,visualRoot);
+        }
 
         public void Configure(float chase, float patrol, float strike, float windUp, float knockback, float pit)
         {
@@ -72,7 +98,11 @@ namespace Igruha.Minigames.Circus
             knockbackSpeed=knockback; pitRadius=pit; runners.Clear(); Target=null;
             currentSpeed=0; windUpLeft=0; attackVictim=null; state=BearState.Patrol;
             patrolPauseIn=9; patrolPauseLeft=0; visualPositionKnown=false;
+            presentationVictim=null;HasContact=false;contactPending=false;
+            contactPresentation?.ResetPresentation();
         }
+
+        public void SetPresentationTarget(PlayerController player) => presentationVictim=player;
 
         /// <summary>Called when the hatch opens, while the player is still above the pit.</summary>
         public void RegisterFallen(PlayerController player)
@@ -127,7 +157,7 @@ namespace Igruha.Minigames.Circus
         }
         private static bool IsRecovery(int hash)=>hash==FlyBack || hash==FallForward;
 
-        /// <summary>Only the authoritative minigame calls Tick; impacts are decided here.</summary>
+        /// <summary>Only the authoritative minigame calls Tick; contact resolves after this frame's IK.</summary>
         public void Tick(float deltaTime,PlayerController nearest,bool someoneOnLowestCage)
         {
             if(deltaTime<=0)return;
@@ -185,6 +215,7 @@ namespace Igruha.Minigames.Circus
             var pursued=runners.Find(r=>r.Player==nearest);
             Vector3 intercept=delta+(pursued!=null?pursued.Velocity:Vector3.zero)*.45f;
             if(Vector3.Dot(intercept,delta)<=0)intercept=delta;
+            if(windUpLeft<=0 && TryMakeStrikeRoom(nearest,delta,deltaTime))return;
             FaceTowards(intercept,deltaTime);
             if(windUpLeft>0)
             {
@@ -193,44 +224,100 @@ namespace Igruha.Minigames.Circus
                 return;
             }
             SetState(BearState.Chase);
-            if(delta.magnitude<=strikeRadius && Vector3.Dot(transform.forward,intercept.normalized)>.85f)
+            if(delta.magnitude<=Mathf.Max(strikeRadius,ContactStandOff+.15f) && Vector3.Dot(transform.forward,intercept.normalized)>.85f)
             {
-                attackVictim=nearest;attackDirection=transform.forward;attackElapsed=0;hitEvaluated=false;
+                attackVictim=nearest;presentationVictim=nearest;attackDirection=transform.forward;attackElapsed=0;hitEvaluated=false;HasContact=false;contactPending=false;
                 Vector3 expected=delta+(pursued!=null?pursued.Velocity:Vector3.zero)*attackContactTime;
-                attackTravel=Mathf.Clamp(Vector3.Dot(expected,attackDirection)-1.25f,.15f,4.9f);
+                float standOff=motion!=null?motion.ApproachDistance(nearest):ContactStandOff;
+                plannedStandOff=standOff;
+                attackTravel=Mathf.Clamp(Vector3.Dot(expected,attackDirection)-standOff,-MaximumBackstep,MaximumLunge);
                 currentSpeed=0;SetState(BearState.Attack);return;
             }
+            // Once there is room for a swipe, turn on planted feet before
+            // committing. Accelerating toward a close runner while still facing
+            // sideways makes a tight orbit that never reaches attack alignment.
+            if(delta.magnitude<=Mathf.Max(strikeRadius,ContactStandOff+.15f))
+            {
+                currentSpeed=0;
+                return;
+            }
             Steer(intercept,chaseSpeed,deltaTime);
+        }
+
+        private bool TryMakeStrikeRoom(PlayerController victim,Vector3 delta,float dt)
+        {
+            if(motion==null || delta.sqrMagnitude>=ContactStandOff*ContactStandOff || delta.sqrMagnitude<.0001f)return false;
+            float standOff=motion.ApproachDistance(victim);
+            if(delta.magnitude>=standOff)return false;
+            Vector3 away=-delta.normalized;
+            Vector3 retreat=victim.Position+away*standOff;
+            float limit=Mathf.Max(.5f,pitRadius-wallMargin);
+            if(new Vector2(retreat.x,retreat.z).sqrMagnitude<=(limit-.03f)*(limit-.03f))return false;
+            // A wall-blocked backstep cannot produce a valid strike. Walk around
+            // the runner first, keeping one orbit direction; normal locomotion
+            // and foot plants handle this turn, not a lateral sliding Strike.
+            Vector3 side=Vector3.Cross(Vector3.up,delta.normalized);
+            SetState(BearState.Chase);
+            currentSpeed=Mathf.Min(currentSpeed,patrolSpeed);
+            FaceTowards(side,dt);
+            Steer(side,patrolSpeed,dt);
+            return true;
         }
 
         private void TickAttack(float dt)
         {
             float previous=attackElapsed;attackElapsed+=dt;
-            // Short committed lunge; no homing or turning during the swipe.
-            float before=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.10f,attackContactTime,previous));
-            float after=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.10f,attackContactTime,attackElapsed));
+            // The final running step brakes into the swipe. A runner already
+            // under the chest makes this a backward step, using the same authored
+            // foot lifts; the committed direction never flips during the attack.
+            float before=LungeProgress(previous/attackContactTime);
+            float after=LungeProgress(attackElapsed/attackContactTime);
             MoveBy(attackDirection*((after-before)*attackTravel));currentSpeed=0;
-            if(!hitEvaluated && attackElapsed>=attackContactTime)
+            // Never use the preceding frame's paw distance here: the target and
+            // bear have both moved since that sample. An entire skipped contact
+            // window is a miss, rather than retrospective damage in a released pose.
+            contactPending=!hitEvaluated && attackElapsed>=attackContactTime && attackElapsed<=attackContactTime+ContactWindow;
+            contactPendingFrame=Time.frameCount;
+            contactVersionBeforeTick=motion!=null?motion.ContactVersion:0;
+            if(attackElapsed>attackContactTime+ContactWindow)
             {
+                if(!hitEvaluated)Trace("Miss root="+transform.position.ToString("F3")+" yaw="+transform.eulerAngles.y.ToString("F2")+
+                    " standOff="+plannedStandOff.ToString("F3")+" lunge="+attackTravel.ToString("F3")+
+                    " wallRadius="+(pitRadius-wallMargin).ToString("F3")+" radial="+new Vector2(transform.position.x,transform.position.z).magnitude.ToString("F3")+
+                    " "+(motion!=null?motion.DescribeContact():"no motion"));
                 hitEvaluated=true;
-                if(attackVictim!=null)
-                {
-                    Vector3 delta=attackVictim.transform.position-transform.position;
-                    float vertical=Mathf.Abs(delta.y);delta.y=0;
-                    if(vertical<1.3f && delta.magnitude<=strikeRadius+.1f && Vector3.Dot(attackDirection,delta.normalized)>.35f)
-                    {
-                        Vector3 impulse=(delta.sqrMagnitude>.001f?delta.normalized:attackDirection)+Vector3.up*.35f;
-                        var victim=attackVictim;ForgetRunner(victim);Target=null;
-                        Trace("Contact "+victim.name+" at "+attackElapsed.ToString("F2")+" s");
-                        Caught?.Invoke(victim,impulse.normalized*knockbackSpeed);
-                    }
-                }
             }
             if(attackElapsed>=attackDuration)
             {
                 attackVictim=null;recoveryLeft=attackRecovery;
                 SetState(BearState.Recovery);
             }
+        }
+
+        private void ResolveAttackContact()
+        {
+            if(!contactPending)return;
+            contactPending=false;
+            if(hitEvaluated || state!=BearState.Attack || attackVictim==null || contactPendingFrame!=Time.frameCount)return;
+            if(motion==null || motion.ContactFrame!=Time.frameCount || motion.ContactVersion==contactVersionBeforeTick ||
+                motion.ContactVictim!=attackVictim || motion.ContactDistance>.12f)return;
+            Vector3 delta=attackVictim.transform.position-transform.position;
+            float vertical=Mathf.Abs(delta.y);delta.y=0;
+            if(vertical>=.95f || delta.magnitude>ContactReach || Vector3.Dot(attackDirection,delta.normalized)<=.82f)return;
+            // A paw can touch a runner standing inside the bear. That is not a
+            // valid hit pose, including when the pit wall blocked the backstep.
+            if(!motion.HasBodyClearance(attackVictim))return;
+            hitEvaluated=true;
+            Vector3 impulse=(delta.sqrMagnitude>.001f?delta.normalized:attackDirection)+Vector3.up*.35f;
+            var victim=attackVictim;ForgetRunner(victim);Target=null;
+            Trace("Contact "+victim.name+" at "+attackElapsed.ToString("F2")+" s");
+            Caught?.Invoke(victim,impulse.normalized*knockbackSpeed);
+        }
+
+        private static float LungeProgress(float t)
+        {
+            t=Mathf.Clamp01(t);
+            return t+t*t-t*t*t;
         }
 
         public void ApplyNetworkState(BearState next,float animatorSpeed,float elapsed=0)
@@ -241,6 +328,7 @@ namespace Igruha.Minigames.Circus
 
         private void PlayStrike(float elapsed)
         {
+            HasContact=false;
             visualAttackStartedAt=Time.time-elapsed;
             if(animator!=null)
             {
@@ -253,12 +341,22 @@ namespace Igruha.Minigames.Circus
         /// <summary>One impact cue at the same instant as the player's fall.
         /// A contact RPC can precede a batched phase update: never show damage in an idle pose.</summary>
         public void ShowImpact(Vector3 point,bool synchronizePose)
+        { ShowImpact(point,synchronizePose,transform.position,transform.eulerAngles.y); }
+
+        public void ShowImpact(Vector3 point,bool synchronizePose,Vector3 serverBearPosition,float serverBearYaw)
         {
-            if(synchronizePose && (state!=BearState.Attack || Time.time-visualAttackStartedAt<attackContactTime))
+            ContactPoint=point;HasContact=true;
+            if(synchronizePose)
             {
                 state=BearState.Attack;
                 visualAttackStartedAt=Time.time-attackContactTime;
-                if(animator!=null)animator.Play(StrikeState,0,attackContactTime/attackDuration);
+                contactPresentation?.BeginContact(serverBearPosition,serverBearYaw);
+                if(animator!=null)
+                {
+                    animator.Play(StrikeState,0,attackContactTime/attackDuration);
+                    animator.Update(0);
+                }
+                motion?.ResetPresentationHistory();
             }
             feedback?.Impact(point);
             ImpactShown?.Invoke(point);
@@ -302,6 +400,7 @@ namespace Igruha.Minigames.Circus
         }
         private void LateUpdate()
         {
+            ResolveAttackContact();
             if(animator==null || Time.deltaTime<=0)return;
             float distance=Vector3.Distance(transform.position,previousPosition);
             float speed=visualPositionKnown && distance<chaseSpeed*Time.deltaTime*3 ? distance/Time.deltaTime : 0;

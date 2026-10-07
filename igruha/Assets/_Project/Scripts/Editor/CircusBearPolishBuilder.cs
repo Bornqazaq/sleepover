@@ -29,6 +29,8 @@ namespace Igruha.EditorTools
                 {
                     var scene = EditorSceneManager.OpenScene("Assets/_Project/Scenes/Minigames/" + name + ".unity");
                     CircusBeast.RedressInScene();
+                    foreach (var cage in Object.FindObjectsByType<CageStation>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                        CircusPlaytestFixes.ApplyCageFloor(cage.transform);
                     foreach (var light in Object.FindObjectsByType<Light>(FindObjectsSortMode.None))
                     {
                         if (light.name == "Bruno_WarmKey" || light.name == "Bruno_Rim")
@@ -40,6 +42,7 @@ namespace Igruha.EditorTools
                         }
                         if (light.name == "PitReadability") light.intensity = 48f;
                     }
+                    CircusNightBuilder.ApplyNaturalLighting();
                     EditorSceneManager.MarkSceneDirty(scene);
                     EditorSceneManager.SaveScene(scene);
                 }
@@ -67,14 +70,14 @@ namespace Igruha.EditorTools
             var voice = root.gameObject.AddComponent<AudioSource>();
             voice.playOnAwake = false; voice.spatialBlend = 1; voice.minDistance = 4; voice.maxDistance = 27;
             voice.rolloffMode = AudioRolloffMode.Linear;
-            var impact = Dust(root, "ClawContact", .55f, .16f, 2.4f);
+            var impact = Dust(root, "ClawContact", .38f, .09f, 1.1f);
             var foot = Dust(root, "PawDust", .55f, .15f, .55f);
             var trailObject = new GameObject("ClawSwipe");
             trailObject.transform.SetParent(bone("ForeToes.R"), false);
             var trail = trailObject.AddComponent<TrailRenderer>();
-            trail.time = .12f; trail.minVertexDistance = .05f; trail.widthMultiplier = .13f;
+            trail.time = .12f; trail.minVertexDistance = .05f; trail.widthMultiplier = .055f;
             trail.widthCurve = AnimationCurve.EaseInOut(0, 1, 1, 0);
-            trail.startColor = new Color(1, .88f, .59f, .36f); trail.endColor = new Color(1, .85f, .6f, 0);
+            trail.startColor = new Color(.68f, .55f, .40f, .14f); trail.endColor = new Color(.68f, .55f, .4f, 0);
             trail.sharedMaterial = AssetDatabase.LoadAssetAtPath<Material>(CircusNightAssets.Materials + "/CN_EventDust.mat");
             trail.shadowCastingMode = ShadowCastingMode.Off; trail.receiveShadows = false; trail.emitting = false;
 
@@ -85,16 +88,11 @@ namespace Igruha.EditorTools
             data.FindProperty("impactDust").objectReferenceValue = impact;
             data.FindProperty("footDust").objectReferenceValue = foot;
             data.FindProperty("clawTrail").objectReferenceValue = trail;
-            foreach (string name in new[] { "growl", "swipe", "impact", "step" })
-            {
-                var clip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/_Project/Audio/Minigames/Circus/Bruno_" + name + ".wav");
-                if (clip == null) throw new InvalidOperationException("Missing authored bear cue: " + name);
-                data.FindProperty(name).objectReferenceValue = clip;
-            }
             var paws = data.FindProperty("paws"); paws.arraySize = 4;
             string[] names = { "ForePaw.L", "ForePaw.R", "HindPaw.L", "HindPaw.R" };
             for (int i = 0; i < names.Length; i++) paws.GetArrayElementAtIndex(i).objectReferenceValue = bone(names[i]);
             data.ApplyModifiedPropertiesWithoutUndo();
+            CircusSfx.RefreshBear(bear);
             DressPresentation(bear);
         }
 
@@ -155,7 +153,7 @@ namespace Igruha.EditorTools
             main.startLifetime = new ParticleSystem.MinMaxCurve(lifetime * .6f, lifetime);
             main.startSize = new ParticleSystem.MinMaxCurve(size * .5f, size * 1.8f);
             main.startSpeed = new ParticleSystem.MinMaxCurve(speed * .4f, speed);
-            main.startColor = new Color(.85f, .66f, .38f, .65f);
+            main.startColor = new Color(.65f, .52f, .36f, .42f);
             main.gravityModifier = .3f; main.maxParticles = 64;
             main.simulationSpace = ParticleSystemSimulationSpace.World;
             var emission = particles.emission; emission.rateOverTime = 0;

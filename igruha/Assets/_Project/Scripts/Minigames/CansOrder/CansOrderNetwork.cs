@@ -533,25 +533,26 @@ namespace Igruha.Minigames.CansOrder
         }
 
         /// <summary>
-        /// Медведь достал игрока. Тоже событие: направление отлёта нужно один
-        /// раз и в момент удара, и приезжает оно готовым — тогда клип падения
-        /// выбирается одинаково у всех.
+        /// Медведь достал игрока. Готовые импульс, тип падения и разворот
+        /// передаются один раз в момент контакта, без выбора клипа по Facing клиента.
         /// </summary>
-        public void AnnounceCaught(int playerId, Vector3 hitPoint, Vector3 impulse)
+        public void AnnounceCaught(int playerId, Vector3 hitPoint, Vector3 impulse, byte fallType, float contactYaw,
+            Vector3 bearPosition, float bearYaw)
         {
             if (!IsSpawned || !IsServer)
             {
                 return;
             }
 
-            AnnounceCaughtRpc(playerId, hitPoint, impulse);
+            AnnounceCaughtRpc(playerId, hitPoint, impulse, fallType, contactYaw, bearPosition, bearYaw);
         }
 
         /// <summary>Сервер уже применил гибель у себя, поэтому себе не шлём.</summary>
         [Rpc(SendTo.NotServer)]
-        private void AnnounceCaughtRpc(int playerId, Vector3 hitPoint, Vector3 impulse)
+        private void AnnounceCaughtRpc(int playerId, Vector3 hitPoint, Vector3 impulse, byte fallType, float contactYaw,
+            Vector3 bearPosition, float bearYaw)
         {
-            game?.ApplyNetworkCaught(playerId, hitPoint, impulse);
+            game?.ApplyNetworkCaught(playerId, hitPoint, impulse, fallType, contactYaw, bearPosition, bearYaw);
         }
 
         // ========== МЕДВЕДЬ ==========

@@ -247,7 +247,7 @@ ModelImporter:
       takeName: BrunoRig|Bruno_Run
       internalID: -3211383073390513289
       firstFrame: 0
-      lastFrame: 22
+      lastFrame: 27
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -276,7 +276,7 @@ ModelImporter:
       takeName: BrunoRig|Bruno_Strike
       internalID: -6728080868839423168
       firstFrame: 0
-      lastFrame: 54
+      lastFrame: 42
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
