@@ -71,6 +71,12 @@ namespace Igruha.Core.Arena
         private PlayerController passenger;
         private Rigidbody passengerBody;
         private NetworkObject passengerNetwork;
+        private bool passengerRiding, passengerWasEnabled, passengerWasKinematic;
+
+        // Opt-in for scripted cage lifts. The normal motor and contact solver
+        // must not also move a passenger who is being carried explicitly.
+        public bool StabilizeScriptedPassenger { get; set; }
+        public bool EaseScriptedMotion { get; set; }
 
         private float axis;
         private bool scripted;
@@ -78,10 +84,9 @@ namespace Igruha.Core.Arena
         private float scriptedTo;
         private float scriptedDuration;
         private float scriptedElapsed;
-
-        /// <summary>Момент начала хода на общих часах. Ноль — ход считается кадрами.</summary>
         private double scriptedStartTime;
         private bool scriptedFromClock;
+
 
         /// <summary>Высотой распоряжается не эта машина: едем к присланной отметке.</summary>
         private bool followsNetwork;
@@ -142,6 +147,7 @@ namespace Igruha.Core.Arena
         /// </summary>
         public void SetPassenger(PlayerController player)
         {
+            RestorePassenger();
             passenger = player;
             passengerBody = player != null ? player.GetComponent<Rigidbody>() : null;
             passengerNetwork = player != null ? player.GetComponent<NetworkObject>() : null;
@@ -201,6 +207,8 @@ namespace Igruha.Core.Arena
             scriptedElapsed = 0f;
             scriptedFromClock = false;
             scripted = true;
+            if (StabilizeScriptedPassenger && Mathf.Abs(scriptedTo - scriptedFrom) > .001f)
+                StabilizePassenger();
         }
 
         /// <summary>
@@ -218,8 +226,12 @@ namespace Igruha.Core.Arena
                 return;
             }
 
+            // Network time is sampled once per rendered frame. Sampling it in
+            // every physics tick produces repeated positions and then a jump.
+            // Join the shared timeline once, then integrate on the physics clock.
+            scriptedElapsed = (float)(NetworkClock.Now - startTime);
             scriptedStartTime = startTime;
-            scriptedFromClock = true;
+            scriptedFromClock = !EaseScriptedMotion;
         }
 
         /// <summary>Поставить платформу на отметку мгновенно — расстановка уровней на старте матча.</summary>
@@ -238,6 +250,8 @@ namespace Igruha.Core.Arena
 
         private void FixedUpdate()
         {
+            // Restore after the last MovePosition has reached the physics world.
+            if (!scripted) RestorePassenger();
             float currentY = CurrentY;
             float nextY;
 
@@ -300,7 +314,8 @@ namespace Igruha.Core.Arena
             float t = scriptedFromClock
                 ? Mathf.Clamp01((float)(NetworkClock.Now - scriptedStartTime) / scriptedDuration)
                 : Mathf.Clamp01(scriptedElapsed / scriptedDuration);
-            float y = Mathf.Lerp(scriptedFrom, scriptedTo, t);
+            float blend = EaseScriptedMotion ? Mathf.SmoothStep(0f, 1f, t) : t;
+            float y = Mathf.Lerp(scriptedFrom, scriptedTo, blend);
 
             if (t >= 1f)
             {
@@ -334,5 +349,31 @@ namespace Igruha.Core.Arena
 
             passengerBody.MovePosition(passengerBody.position + Vector3.up * deltaY);
         }
+
+        private void StabilizePassenger()
+        {
+            if (passengerRiding || passengerBody == null || passenger == null ||
+                (passengerNetwork != null && passengerNetwork.IsSpawned && !passengerNetwork.IsOwner)) return;
+            passengerWasEnabled = passenger.enabled;
+            passengerWasKinematic = passengerBody.isKinematic;
+            if (!passengerWasKinematic)
+            {
+                passengerBody.linearVelocity = Vector3.zero;
+                passengerBody.angularVelocity = Vector3.zero;
+            }
+            passenger.enabled = false;
+            passengerBody.isKinematic = true;
+            passengerRiding = true;
+        }
+
+        private void RestorePassenger()
+        {
+            if (!passengerRiding) return;
+            passengerRiding = false;
+            if (passengerBody != null) passengerBody.isKinematic = passengerWasKinematic;
+            if (passenger != null) passenger.enabled = passengerWasEnabled;
+        }
+
+        private void OnDisable() => RestorePassenger();
     }
 }

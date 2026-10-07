@@ -93,20 +93,23 @@ for title,count in [('Idle',180),('Walk',30),('Run',22),('Alert',90),('Strike',5
             wind=smooth(seconds/.47);swing=smooth((seconds-.47)/.25)
             follow=smooth((seconds-.72)/.25);settle=smooth((seconds-1.00)/.70)
             weight=wind*(1-settle);extension=swing*(1-settle)
-            pose('Root',loc=(.085*weight,0,-.07*weight))
+            pose('Root',loc=(.095*weight,.045*extension,-.10*weight+.035*follow*(1-settle)))
             pose('Pelvis',(.24*weight,0,-.035*weight))
             pose('Lumbar',(-.10*weight,-.09*weight+.16*extension,.055*weight))
             pose('Spine',(.08*weight,-.13*weight+.27*extension,.08*weight-.16*extension))
             pose('Chest',(.10*weight,-.09*weight+.15*extension,.04*weight-.08*extension))
             pose('Neck',(-.10*weight,0,-.04*extension));pose('Head',(-.14*weight,.08*extension,0));pose('Jaw',(-.40*weight,0,0))
             target=targets[('Fore','R')]
-            raised=Vector((-1.04,.90,1.85));contact=Vector((.16,1.73,1.02));across=Vector((.68,1.34,.64))
+            raised=Vector((-.88,.84,1.62));contact=Vector((-.08,1.85,1.02));across=Vector((.42,1.39,.71))
             target=target.lerp(raised,wind).lerp(contact,swing).lerp(across,follow)
             targets[('Fore','R')]=target.lerp(bones['ForePaw.R'][0],settle)
             rolls[('Fore','R')]=-.40*weight+.58*extension
             poles[('Fore','R')]=Vector((0,-1,0)).lerp(Vector((-1,0,-.65)),weight)
             pose('ForeToes.R',(.18*weight-.28*extension,0,0))
             targets[('Fore','L')].x+=.09*weight;targets[('Fore','L')].y+=.10*weight
+            # Replant the support paw after the root lunge; avoid sliding the whole animal.
+            targets[('Fore','L')].y+=.30*smooth((seconds-.72)/.35)*(1-settle)
+            targets[('Fore','L')].z+=.12*math.sin(math.pi*smooth((seconds-.72)/.35))*(1-settle)
             targets[('Hind','R')].y-=.13*weight
         elif title=='Roar':
             rise=smooth(t/.27)*(1-smooth((t-.72)/.28))

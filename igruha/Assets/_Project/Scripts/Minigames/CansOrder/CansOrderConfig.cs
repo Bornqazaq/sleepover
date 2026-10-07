@@ -66,6 +66,9 @@ namespace Igruha.Minigames.CansOrder
         [SerializeField, Min(1f)] private float roundSeconds = 120f;
         public float RoundSeconds => Mathf.Max(1f, roundSeconds);
 
+        [SerializeField, Min(1)] private int bottomChances = 2;
+        public int BottomChances => Mathf.Max(1, bottomChances);
+
         [Header("Длительности стадий, с (8.1)")]
         [Tooltip("Брифинг раунда: табло объявляет номер раунда и число банок, клетки выживших едут наверх")]
         [SerializeField] private float briefingSeconds = 4f;
@@ -77,7 +80,7 @@ namespace Igruha.Minigames.CansOrder
         [SerializeField] private float resultsSeconds = 5f;
         [Tooltip("Спуск клетки на новую высоту. Идёт внутри показа результатов, в первые его секунды")]
         [SerializeField] private float cageDescendSeconds = 2f;
-        [Tooltip("Открытие створок дна — только на последнем круге раунда")]
+        [Tooltip("Открытие створок дна после исчерпания шансов нижней клетки")]
         [SerializeField] private float hatchOpenSeconds = 2f;
         [Tooltip("Пауза между кругами: табло гаснет")]
         [SerializeField] private float pauseSeconds = 1f;

@@ -55,7 +55,7 @@ namespace Igruha.Minigames.CansOrder
             "РАУНД НАЧИНАЕТСЯ",
             "ВЫСТАВЛЯЙ РАССТАНОВКУ",
             "РЕЗУЛЬТАТЫ",
-            "ДНО ОТКРЫВАЕТСЯ",
+            "ФИНАЛ",
             string.Empty
         };
 
@@ -217,6 +217,12 @@ namespace Igruha.Minigames.CansOrder
         /// Текст собираем один раз на входе в стадию, а не каждый кадр:
         /// в нём разметка цвета и склейка строк.
         /// </summary>
+        public void RefreshResult()
+        {
+            lastRevealStage = byte.MaxValue;
+            if (stageState != null) UpdateReveal(stageState.Stage);
+        }
+
         private void UpdateReveal(byte stage)
         {
             if (revealLabel == null)
@@ -250,7 +256,9 @@ namespace Igruha.Minigames.CansOrder
                 return;
             }
 
-            string text = stage == PlacementStage && rules != null ? rules.BuildLastCircleText() : string.Empty;
+            string text = string.Empty;
+            if (stage == PlacementStage && rules != null)
+                text = rules.BuildLocalDangerText() + "\n\n" + rules.BuildLastCircleText();
             lastCircleLabel.text = text;
             lastCircleLabel.enabled = text.Length > 0;
         }

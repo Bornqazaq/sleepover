@@ -19,15 +19,15 @@ rng = random.Random(791)
 
 def material(name, color, rough=.8):
     m=bpy.data.materials.new(name); m.diffuse_color=(*color,1); m.use_nodes=True
-    p=m.node_tree.nodes.get('Principled BSDF'); p.inputs['Base Color'].default_value=(*color,1); p.inputs['Roughness'].default_value=rough
+    p=next(n for n in m.node_tree.nodes if n.type=='BSDF_PRINCIPLED'); p.inputs['Base Color'].default_value=(*color,1); p.inputs['Roughness'].default_value=rough
     return m
-fur=material('CN_UmberFur',(.235,.105,.039))
-tip=material('CN_FurTips',(.30,.15,.064))
-muzzle=material('CN_Muzzle',(.36,.235,.125))
+fur=material('CN_UmberFur',(.185,.102,.057))
+tip=material('CN_FurTips',(.245,.151,.086))
+muzzle=material('CN_Muzzle',(.265,.179,.112))
 black=material('CN_Nose',(.018,.011,.008),.48)
 darkfur=material('CN_DarkFur',(.054,.028,.012),.93)
 eye=material('CN_AmberEyes',(.085,.039,.010),.32)
-claw=material('CN_Claws',(.61,.49,.31),.55)
+claw=material('CN_Claws',(.23,.185,.133),.55)
 mouth=material('CN_Mouth',(.083,.018,.014),.62)
 import numpy as np
 N=1024
@@ -35,14 +35,14 @@ u,v=np.meshgrid(np.arange(N)/N,np.arange(N)/N)
 noise=np.random.default_rng(88)
 # Soft overlapping directional fibres; continuous at both texture seams.
 hairs=np.full((N,N),.85)
-for frequency,amplitude in ((157,.018),(239,.021),(313,.018),(431,.016),(487,.012)):
+for frequency,amplitude in ((79,.012),(131,.010),(239,.008),(313,.008),(431,.006)):
     phase=noise.uniform(0,math.tau)
-    hairs+=amplitude*np.sin(u*math.tau*frequency+np.sin(v*math.tau*3+phase)*1.4+phase)*(.65+.35*np.cos(v*math.tau*7+phase))
-hairs+=noise.random((N,N))*.04
+    hairs+=amplitude*np.sin(u*math.tau*frequency+np.sin(v*math.tau*3+phase)*4.8+phase)*(.65+.35*np.cos(v*math.tau*7+phase))
+hairs+=noise.random((N,N))*.025
 rgba=np.ones((N,N,4),dtype=np.float32);rgba[:,:,:3]=hairs[:,:,None]
 im=bpy.data.images.new('CN_FurGrain',width=N,height=N);im.pixels.foreach_set(rgba.ravel())
 (ART/'Textures').mkdir(exist_ok=True);im.filepath_raw=str(ART/'Textures/CN_FurGrain.png');im.file_format='PNG';im.save()
-dx=(np.roll(hairs,1,1)-np.roll(hairs,-1,1))*1.5;dy=(np.roll(hairs,1,0)-np.roll(hairs,-1,0))*1.5
+dx=(np.roll(hairs,1,1)-np.roll(hairs,-1,1))*.65;dy=(np.roll(hairs,1,0)-np.roll(hairs,-1,0))*.65
 norm=np.stack((dx,dy,np.ones_like(dx)),axis=-1);norm/=np.linalg.norm(norm,axis=-1)[:,:,None]
 rgba[:,:,:3]=norm*.5+.5
 normalmap=bpy.data.images.new('CN_FurNormal',width=N,height=N);normalmap.colorspace_settings.name='Non-Color';normalmap.pixels.foreach_set(rgba.ravel())
@@ -50,9 +50,9 @@ normalmap.filepath_raw=str(ART/'Textures/CN_FurNormal.png');normalmap.file_forma
 for m in (fur,tip,muzzle,darkfur):
     tree=m.node_tree;tex=tree.nodes.new('ShaderNodeTexImage');tex.image=im
     mix=tree.nodes.new('ShaderNodeMixRGB');mix.blend_type='MULTIPLY';mix.inputs[0].default_value=1;mix.inputs[1].default_value=m.diffuse_color
-    tree.links.new(tex.outputs['Color'],mix.inputs[2]);tree.links.new(mix.outputs[0],tree.nodes['Principled BSDF'].inputs['Base Color'])
+    tree.links.new(tex.outputs['Color'],mix.inputs[2]);tree.links.new(mix.outputs[0],next(n for n in tree.nodes if n.type=='BSDF_PRINCIPLED').inputs['Base Color'])
     bump=tree.nodes.new('ShaderNodeBump');bump.inputs['Strength'].default_value=.08;bump.inputs['Distance'].default_value=.004
-    tree.links.new(tex.outputs['Color'],bump.inputs['Height']);tree.links.new(bump.outputs['Normal'],tree.nodes['Principled BSDF'].inputs['Normal'])
+    tree.links.new(tex.outputs['Color'],bump.inputs['Height']);tree.links.new(bump.outputs['Normal'],next(n for n in tree.nodes if n.type=='BSDF_PRINCIPLED').inputs['Normal'])
 parts=[]
 
 def oval(name, pos, scale, mat=fur, bone=None, segments=24, rings=16):
@@ -67,8 +67,8 @@ def oval(name, pos, scale, mat=fur, bone=None, segments=24, rings=16):
 # Interlocking anatomical masses are voxel-unioned, smoothed and decimated into a continuous skin.
 oval('Ribcage',(0,-.17,1.26),(.65,1.05,.61))
 oval('Haunches',(0,-.94,1.15),(.61,.60,.62))
-oval('ShoulderHump',(0,.32,1.51),(.67,.76,.61))
-oval('Neck',(0,.91,1.44),(.55,.68,.48))
+oval('ShoulderHump',(0,.32,1.51),(.65,.78,.57))
+oval('Neck',(0,.91,1.44),(.51,.64,.44))
 oval('Skull',(0,1.40,1.54),(.43,.50,.33))
 oval('Brow',(0,1.60,1.70),(.37,.30,.145))
 oval('SnoutBase',(0,1.78,1.43),(.29,.44,.225))
@@ -105,17 +105,17 @@ parts=[skin]
 
 # Small ears sit in the fur; narrower eyes and a tapered, flat-nosed muzzle.
 for side,s in [('L',1),('R',-1)]:
-    ear=oval('Ear'+side,(s*.365,1.16,1.875),(.135,.10,.15),fur,'Ear.'+side);ear.rotation_euler.y=s*.23
-    oval('EarInner'+side,(s*.365,1.259,1.895),(.080,.023,.085),darkfur,'Ear.'+side)
+    ear=oval('Ear'+side,(s*.365,1.16,1.875),(.119,.092,.126),fur,'Ear.'+side);ear.rotation_euler.y=s*.23
+    oval('EarInner'+side,(s*.365,1.259,1.895),(.061,.018,.063),darkfur,'Ear.'+side)
     oval('Eye'+side,(s*.286,1.798,1.679),(.033,.018,.026),eye,'Head')
     oval('Pupil'+side,(s*.286,1.813,1.679),(.020,.005,.022),black,'Head')
     oval('BlinkLid'+side,(s*.286,1.816,1.712),(.034,.009,.004),fur,'Lid.'+side)
     oval('EyeGlint'+side,(s*.278,1.818,1.689),(.003,.002,.003),claw,'Head',12,8)
 # Muzzle colouring lives on the continuous skin, avoiding a floating circular mask.
-skin.data.materials.append(muzzle)
+skin.data.materials.clear();skin.data.materials.append(fur);skin.data.materials.append(muzzle)
 for poly in skin.data.polygons:
     c=poly.center
-    if c.y>1.87+abs(c.x)*.40 and 1.30<c.z<1.69:poly.material_index=1
+    if c.y>1.96+abs(c.x)*.30 and 1.31<c.z<1.61:poly.material_index=1
 oval('Nose',(0,2.125,1.49),(.185,.10,.10),black,'Head')
 for side,s in [('L',1),('R',-1)]:
     oval('Nostril'+side,(s*.11,2.215,1.48),(.025,.008,.015),black,'Head',16,10)
@@ -138,15 +138,15 @@ for side,s in [('L',1),('R',-1)]:
 from mathutils.bvhtree import BVHTree
 bvh=BVHTree.FromObject(skin,bpy.context.evaluated_depsgraph_get())
 verts=[]; faces=[]
-for k in range(430):
+for k in range(4200):
     a=rng.uniform(0,math.tau); y=rng.uniform(-1.32,1.44)
     ray=Vector((math.cos(a),0,math.sin(a)))
     c,n,idx,dist=bvh.ray_cast(Vector((0,y,1.32))+ray*2,-ray,3)
-    if c is None or c.z<1.75:continue
+    if c is None or c.z<1.05 or c.y>1.10:continue
     direction=Vector((n.x*.3,-1,-.35));direction-=n*direction.dot(n);direction.normalize()
-    tangent=n.cross(direction).normalized();length=rng.uniform(.08,.13);width=rng.uniform(.012,.022)
+    tangent=n.cross(direction).normalized();length=rng.uniform(.10,.19);width=rng.uniform(.003,.008)
     start=len(verts)
-    for row,(along,w,lift) in enumerate(((0,.7,-.015),(.33,1,.005),(.72,.6,.012),(1,0,.020))):
+    for row,(along,w,lift) in enumerate(((0,.7,-.015),(.33,1,.001),(.72,.6,.003),(1,0,.010))):
         for side in (-1,0,1):
             point=c+direction*(along*length)+tangent*(side*width*w)+n*(lift+(1-abs(side))*.014)
             surface,surface_normal,_,_=bvh.find_nearest(point)
@@ -157,7 +157,7 @@ for k in range(430):
             i=start+row*3+column;faces.extend([(i,i+3,i+1),(i+1,i+3,i+4)])
 me=bpy.data.meshes.new('SculptedFur');me.from_pydata(verts,[],faces);me.materials.append(fur);me.materials.append(tip)
 locks=bpy.data.objects.new('Bruno_FurLocks',me);scene.collection.objects.link(locks);parts.append(locks)
-for i,p in enumerate(me.polygons):p.material_index=0;p.use_smooth=True
+for i,p in enumerate(me.polygons):p.material_index=1 if (i//12)%11==0 else 0;p.use_smooth=True
 # Generic rig, separate from every player/Humanoid asset.
 arm=bpy.data.armatures.new('BrunoSkeleton'); rig=bpy.data.objects.new('BrunoRig',arm);scene.collection.objects.link(rig)
 bpy.context.view_layer.objects.active=rig;rig.select_set(True);bpy.ops.object.mode_set(mode='EDIT')
@@ -255,14 +255,14 @@ bpy.ops.export_scene.fbx(filepath=str(ART/'Models/CN_Bruno.fbx'),use_selection=T
 
 # Source includes an independent studio; exported FBX contains only bear and skeleton.
 scene.world=bpy.data.worlds.new('StudioNight');scene.world.use_nodes=True
-scene.world.node_tree.nodes['Background'].inputs[0].default_value=(.026,.038,.06,1)
-scene.world.node_tree.nodes['Background'].inputs[1].default_value=.4
+next(n for n in scene.world.node_tree.nodes if n.type=='BACKGROUND').inputs[0].default_value=(.026,.038,.06,1)
+next(n for n in scene.world.node_tree.nodes if n.type=='BACKGROUND').inputs[1].default_value=.4
 def area(name,pos,power,color,size):
     d=bpy.data.lights.new(name,'AREA');d.energy=power;d.color=color;d.shape='DISK';d.size=size
     o=bpy.data.objects.new(name,d);scene.collection.objects.link(o);o.location=pos;o.rotation_euler=(Vector((0,0,1.2))-o.location).to_track_quat('-Z','Y').to_euler()
-area('WarmKey',(3,4,6),1000,(1,.78,.53),4)
-area('CoolRim',(-3,-2,4),1450,(.34,.57,1),3)
-area('FaceFill',(-1,5,2.8),420,(1,.91,.77),3)
+area('WarmKey',(3,4,6),1000,(1,.97,.92),4)
+area('CoolRim',(-3,-2,4),950,(.78,.86,1),3)
+area('FaceFill',(-1,5,2.8),320,(1,1,1),3)
 bpy.ops.mesh.primitive_plane_add(size=200);floor=bpy.context.object;floor.name='StudioGround';floor.data.materials.append(material('StudioSlate',(.035,.044,.059)))
 camd=bpy.data.cameras.new('BrunoPortrait');cam=bpy.data.objects.new('BrunoPortrait',camd);scene.collection.objects.link(cam)
 cam.location=(5,7,3.0);cam.rotation_euler=(Vector((0,.15,1.14))-cam.location).to_track_quat('-Z','Y').to_euler();camd.type='ORTHO';camd.ortho_scale=5.5;scene.camera=cam

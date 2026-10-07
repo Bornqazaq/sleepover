@@ -28,6 +28,8 @@ namespace Igruha.Minigames.CansOrder
         public double Deadline;
     }
 
+    public enum CansOrderPenalty : byte { None, Descended, LastChance, Dropped }
+
     /// <summary>
     /// Состояние одного участника — то, что в фазе 3 уедет в <c>NetworkList</c>.
     ///
@@ -74,5 +76,8 @@ namespace Igruha.Minigames.CansOrder
 
         /// <summary>Доля высоты клетки 0…1: 0 — нижняя ступень, 1 — верхняя (спека 5.5).</summary>
         public float HeightFraction;
+        public int BottomChances;
+        public int EliminatedCircle;
+        public CansOrderPenalty Penalty;
     }
 }

@@ -25,7 +25,13 @@ namespace Igruha.Minigames.CansOrder
         public static int CompareFinish(CansOrderEntry a, CansOrderEntry b)
         {
             if (a.Solved != b.Solved) return a.Solved ? -1 : 1;
-            return a.Solved ? a.ConfirmTime.CompareTo(b.ConfirmTime) : 0;
+            if (a.Solved) return a.ConfirmTime.CompareTo(b.ConfirmTime);
+            if (a.Alive != b.Alive) return a.Alive ? -1 : 1;
+            if (!a.Alive) return b.EliminatedCircle.CompareTo(a.EliminatedCircle);
+            int height = b.HeightFraction.CompareTo(a.HeightFraction);
+            if (height != 0) return height;
+            int chances = b.BottomChances.CompareTo(a.BottomChances);
+            return chances != 0 ? chances : b.BestMatches.CompareTo(a.BestMatches);
         }
 
         public static int CompareForBoard(CansOrderEntry a, CansOrderEntry b)
