@@ -40,6 +40,7 @@ namespace Igruha.Minigames.MemoryRun
             Fell,
             TimedOut,
             Reached,
+            SkippedStep,
 
             /// <summary>Персонажа вытащил <c>StuckDetector</c>. Смерть за это не засчитывается.</summary>
             Unstuck
@@ -56,12 +57,13 @@ namespace Igruha.Minigames.MemoryRun
         /// <summary>
         /// На сколько метров от настила игрок ещё считается стоящим на нём.
         ///
-        /// Заменяет проверку земли у мотора, которой у сервера нет для чужих
-        /// аватаров. Полметра прыжка выше этой полосы, а спуск на плиту при
-        /// пятидесяти шагах физики проходит её за три-четыре кадра — так что
-        /// приземление ловится, а пролёт над плитой мимо цели — нет.
+        /// Проверяется на физической позиции владельца, затем ещё раз на
+        /// сервере. Проверку земли у чужой серверной копии использовать нельзя:
+        /// её мотор выключен. Пролёт выше этой полосы касанием не считается.
         /// </summary>
         private const float SurfaceTolerance = 0.3f;
+        private const int ContactHistoryCapacity = 128;
+        private const double ContactHistorySeconds = 2d;
 
         /// <summary>
         /// Сколько ждать перед объявлением результатов, чтобы последняя
@@ -231,6 +233,16 @@ namespace Igruha.Minigames.MemoryRun
         private double nextGateCheck;
         private int lastStep = -1;
         private int lastLane = -1;
+        // BestStep is a round record. Finishing requires every row in THIS attempt.
+        private int completedSteps;
+        private int reportedStep = -1;
+        private int reportedLane = -1;
+        // Reliable contacts and transform snapshots use different delivery paths.
+        // A delayed contact must also be checked against recently observed positions.
+        private readonly Vector3[] contactPositions = new Vector3[ContactHistoryCapacity];
+        private readonly double[] contactTimes = new double[ContactHistoryCapacity];
+        private int contactPositionCount;
+        private int contactPositionCursor;
 
         protected override void Awake()
         {
@@ -361,63 +373,114 @@ namespace Igruha.Minigames.MemoryRun
 
         private void FixedUpdate()
         {
-            if (!RoundActive || !HasAuthority)
+            if (!RoundActive)
             {
                 return;
             }
 
-            EnforceGate();
+            if (HasAuthority) EnforceGate();
 
             if (walker == null || turnClosing)
             {
                 return;
             }
 
-            Vector3 position = walker.transform.position;
+            Vector3 position = walker.Position;
+            if (HasAuthority) RememberWalkerPosition(position);
 
-            if (position.y < FallThreshold)
+            if (HasAuthority && position.y < FallThreshold)
             {
                 FinishTurn(TurnEnd.Fell);
                 return;
             }
 
-            // 🔴 Не IsGrounded, и это стоило первого же сетевого прогона.
-            //
-            // Проверку земли считает мотор персонажа, а мотор на чужих копиях
-            // выключен — в том числе на сервере, у аватара любого клиента
-            // (NetworkPlayerController.DisableLocalControl). Значит у сервера
-            // IsGrounded клиента ЛОЖЕН всегда, и сервер не заметил бы ни одного
-            // его приземления и ни одного прихода к двери. На стенде это
-            // выглядело так: клиент своим ходом дошёл до выходной площадки
-            // и стоял на ней, пока не истёк таймер, — «дальний шаг 0».
-            //
-            // По позиции это решается без мотора и одинаково для всех: верхняя
-            // грань плиты и настил площадки лежат на одной отметке, и стоящий
-            // держится у неё, а летящий — нет.
-            if (Mathf.Abs(position.y - config.PlateSurfaceY) > SurfaceTolerance)
+            // A remote NetworkTransform can smooth a landing straight into the next
+            // jump. Sample the physics owner's position, then send contacts reliably
+            // in order. Never race those events against the server's interpolated copy.
+            if (network != null && network.IsActive && !network.IsLocalWalker)
             {
                 return;
             }
 
-            if (position.z >= config.ExitPadZ)
+            if (!TryGetContact(position, out int step, out int lane) ||
+                (step == reportedStep && lane == reportedLane)) return;
+
+            reportedStep = step;
+            reportedLane = lane;
+            if (HasAuthority) ResolveContact(step, lane);
+            else network?.ReportContact(turnNumber, position);
+        }
+
+        private bool TryGetContact(Vector3 position, out int step, out int lane)
+        {
+            step = lane = -1;
+            if (!float.IsFinite(position.x) || !float.IsFinite(position.y) || !float.IsFinite(position.z) ||
+                Mathf.Abs(position.y - config.PlateSurfaceY) > SurfaceTolerance) return false;
+
+            if (position.z >= config.ExitPadZ && position.z <= config.ExitPadZ + config.ExitPadDepth &&
+                Mathf.Abs(position.x) <= config.HallWidth * .5f)
             {
-                FinishTurn(TurnEnd.Reached);
+                step = config.Steps;
+                return true;
+            }
+            return config.TryGetCell(position, out step, out lane);
+        }
+
+        /// <summary>
+        /// Owner reports a contact, never its outcome. The server checks identity,
+        /// attempt, arena bounds, proximity and ordered progress against its secret route.
+        /// Recent positions allow reliable events and transform ticks to arrive in either order.
+        /// </summary>
+        public void ApplyContactReport(int senderId, int attempt, Vector3 position)
+        {
+            if (!HasAuthority || !RoundActive || walker == null || turnClosing ||
+                senderId != walkerId || attempt != turnNumber || NetworkClock.Now >= turnDeadline ||
+                !TryGetContact(position, out int step, out int lane)) return;
+
+            if (!IsNearObservedPosition(position))
+            {
+                if (logTurns) Debug.Log($"[Рейс] контакт отклонён: игрок {senderId}, ход {attempt}, " +
+                    $"плита {step}/{lane}, контакт {position:F2}, копия {walker.Position:F2}");
+                return;
+            }
+            ResolveContact(step, lane);
+        }
+
+        private void RememberWalkerPosition(Vector3 position)
+        {
+            contactPositions[contactPositionCursor] = position;
+            contactTimes[contactPositionCursor] = NetworkClock.Now;
+            contactPositionCursor = (contactPositionCursor + 1) % ContactHistoryCapacity;
+            contactPositionCount = Mathf.Min(contactPositionCount + 1, ContactHistoryCapacity);
+        }
+
+        private bool IsNearObservedPosition(Vector3 position)
+        {
+            // A transition can span opposite lanes, not only one longitudinal pitch.
+            float lateralSpan = (MemoryRunConfig.LaneCount - 1) * config.LanePitch;
+            float toleranceSquared = config.StepPitch * config.StepPitch + lateralSpan * lateralSpan;
+            if ((position - walker.Position).sqrMagnitude <= toleranceSquared) return true;
+            double oldest = NetworkClock.Now - ContactHistorySeconds;
+            for (int i = 0; i < contactPositionCount; i++)
+                if (contactTimes[i] >= oldest && (position - contactPositions[i]).sqrMagnitude <= toleranceSquared)
+                    return true;
+            return false;
+        }
+
+        private void ResolveContact(int step, int lane)
+        {
+            if (step == config.Steps)
+            {
+                FinishTurn(completedSteps == config.Steps ? TurnEnd.Reached : TurnEnd.SkippedStep);
                 return;
             }
 
-            // Сервер сам определяет, на какой плите игрок, — по позиции.
-            // Клиент об этом не сообщает: приземление здесь единственное
-            // действие, влияющее на исход, и верить в нём клиенту нельзя.
-            if (!config.TryGetCell(position, out int step, out int lane))
+            if (step == lastStep && lane == lastLane) return;
+            if (step > completedSteps)
             {
+                FinishTurn(TurnEnd.SkippedStep);
                 return;
             }
-
-            if (step == lastStep && lane == lastLane)
-            {
-                return;
-            }
-
             lastStep = step;
             lastLane = lane;
             ResolveLanding(step, lane);
@@ -425,8 +488,8 @@ namespace Igruha.Minigames.MemoryRun
 
         /// <summary>
         /// Единственное место во всей игре, которое спрашивает у маршрута,
-        /// безопасна ли плита. Зовётся только из <see cref="FixedUpdate"/>
-        /// под авторитетом, то есть на сервере и нигде больше.
+        /// безопасна ли плита. Зовётся после проверки контакта под авторитетом:
+        /// из локальной физики хоста либо из проверенного события владельца.
         ///
         /// <b>Безопасный шаг наружу не объявляется.</b> Это и был бы маршрут,
         /// выданный по одному шагу. Что шаг пройден, зрители видят сами —
@@ -436,6 +499,7 @@ namespace Igruha.Minigames.MemoryRun
         {
             if (route.IsSafe(step, lane))
             {
+                if (step == completedSteps) completedSteps++;
                 state.RegisterReach(walkerId, step, NetworkClock.Now);
                 SafePlateProved?.Invoke(step, lane);
                 network?.PublishProgress(state.Records);
@@ -548,7 +612,7 @@ namespace Igruha.Minigames.MemoryRun
                           $"место {where:F2}, последняя плита ш{lastStep}/п{lastLane}");
             }
 
-            if (reason == TurnEnd.Mine || reason == TurnEnd.Fell)
+            if (reason == TurnEnd.Mine || reason == TurnEnd.Fell || reason == TurnEnd.SkippedStep)
             {
                 Vector3 impulse = Vector3.zero;
                 if (reason == TurnEnd.Mine)
@@ -697,6 +761,9 @@ namespace Igruha.Minigames.MemoryRun
 
             lastStep = -1;
             lastLane = -1;
+            completedSteps = 0;
+            reportedStep = reportedLane = -1;
+            contactPositionCount = contactPositionCursor = 0;
             turnNumber++;
 
             // Оба момента считаются здесь и объявляются разом. Раньше конец
@@ -942,13 +1009,16 @@ namespace Igruha.Minigames.MemoryRun
         /// Чей ход и до какого момента. Оба момента — по общим часам, поэтому
         /// остаток на экране клиента сходится с серверным без поправки на пинг.
         /// </summary>
-        public void ApplyNetworkTurn(int netWalkerId, double armTime, double deadline)
+        public void ApplyNetworkTurn(int netWalkerId, int netTurnNumber, double armTime, double deadline)
         {
             if (HasAuthority)
             {
                 return;
             }
 
+            if (turnNumber != netTurnNumber || walkerId != netWalkerId)
+                reportedStep = reportedLane = -1;
+            turnNumber = netTurnNumber;
             walkerId = netWalkerId;
             announceDeadline = armTime;
             turnDeadline = deadline;

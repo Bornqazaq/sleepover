@@ -118,7 +118,7 @@ namespace Igruha.Minigames.MemoryRun
     /// при точно совпадающем ростере, а список сходится всегда — и на сервере
     /// не остаётся ни одного сида, который что-то значит.
     ///
-    /// Три канала и один <c>Rpc</c>, больше ничего. Перечень снимается
+    /// Три канала состояния, события контакта и поражения. Перечень снимается
     /// рефлексией и проверяется <c>MemoryRunTrafficAudit</c> — это и есть
     /// приёмка секрета (спека 10.1).
     /// </summary>
@@ -161,6 +161,22 @@ namespace Igruha.Minigames.MemoryRun
 
         /// <summary>Идёт сетевая катка и эта половина живая.</summary>
         public bool IsActive => IsSpawned;
+        public bool IsLocalWalker => IsSpawned && game != null &&
+            game.CurrentWalkerId == (int)NetworkManager.LocalClientId;
+
+        /// <summary>Only contact events travel here; the route and verdict stay on the server.</summary>
+        public void ReportContact(int attempt, Vector3 position)
+        {
+            // Use the attempt observed by the sampler: a newer NetworkVariable may
+            // already be here while its LateUpdate has not rebound the walker yet.
+            if (IsLocalWalker && !IsServer) ContactServerRpc(attempt, position);
+        }
+
+        [Rpc(SendTo.Server, RequireOwnership = false, Delivery = RpcDelivery.Reliable)]
+        private void ContactServerRpc(int attempt, Vector3 position, RpcParams rpcParams = default)
+        {
+            game?.ApplyContactReport((int)rpcParams.Receive.SenderClientId, attempt, position);
+        }
 
         private void Awake()
         {
@@ -418,7 +434,7 @@ namespace Igruha.Minigames.MemoryRun
             {
                 turnDirty = false;
                 MemoryRunTurnNetState state = turn.Value;
-                game.ApplyNetworkTurn(state.WalkerId, state.ArmTime, state.Deadline);
+                game.ApplyNetworkTurn(state.WalkerId, state.TurnNumber, state.ArmTime, state.Deadline);
             }
         }
 
