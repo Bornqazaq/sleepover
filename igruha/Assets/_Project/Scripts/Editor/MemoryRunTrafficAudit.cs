@@ -81,13 +81,28 @@ namespace Igruha.EditorTools
                 "точка взрыва для VFX и звука. Это то, что и так видели все восемь человек. " +
                 "Обратного события «плита оказалась безопасной» не существует — оно и было бы " +
                 "маршрутом, выданным по одному шагу",
+            ["MemoryRunNetwork.FailureClientRpc(playerId)"] = "кто отыгрывает уже объявленную неудачу",
+            ["MemoryRunNetwork.FailureClientRpc(impulse)"] = "импульс неудачи для физики владельца",
+            ["MemoryRunNetwork.ContactServerRpc(attempt)"] = "номер попытки: отбрасывает запоздалые события прошлого хода",
+            ["MemoryRunNetwork.ContactServerRpc(position)"] = "только клиент → сервер: место касания; сервер сам проверяет секретный маршрут",
 
             // ---- общий слой шаблона, живёт на том же объекте ----
             ["NetworkMinigameBridge.phase"] = "фаза мини-игры: обучалка / раунд / результаты",
             ["NetworkMinigameBridge.roundRemaining"] = "остаток общего таймера раунда",
             ["NetworkMinigameBridge.roundDuration"] = "длительность общего таймера раунда",
-            ["NetworkMinigameBridge.ApplyResultsRpc(ids)"] = "итоговые места: идентификаторы",
-            ["NetworkMinigameBridge.ApplyResultsRpc(places)"] = "итоговые места: места"
+            ["NetworkMinigameBridge.sceneParticipants"] = "состав участников загрузки сцены",
+            ["NetworkMinigameBridge.placementComplete"] = "персонажи размещены перед стартом",
+            ["NetworkMinigameBridge.sceneReady"] = "все участники загрузили сцену",
+            ["NetworkMinigameBridge.tutorialParticipants"] = "готовность участников обучалки",
+            ["NetworkMinigameBridge.tutorialParticipants.PlayerId"] = "кто готовится",
+            ["NetworkMinigameBridge.tutorialParticipants.Ready"] = "нажата ли готовность",
+            ["NetworkMinigameBridge.TutorialReadyServerRpc(ready)"] = "клиент сообщает готовность к раунду",
+            ["NetworkMinigameBridge.ApplyResultsRpc(payload)"] = "итоговые места, очки и текст результата",
+            ["NetworkMinigameBridge.ApplyResultsRpc(playerCount)"] = "размер состава для результатов",
+            ["NetworkMinigameBridge.ApplyResultsRpc(countsTowardSession)"] = "зачётный раунд или тренировка",
+            ["NetworkMinigameBridge.ApplyResultsRpc(seriesFinal)"] = "закончилась ли серия игр",
+            ["NetworkMinigameBridge.ApplyResultsRpc(metricTitle)"] = "название колонки результата",
+            ["NetworkMinigameBridge.ApplyResultsRpc(areTeams)"] = "командный ли формат таблицы"
         };
 
         /// <summary>
