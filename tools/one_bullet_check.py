@@ -10,9 +10,10 @@ from pathlib import Path
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('scenario', choices=['flow', 'disconnect', 'timeout'])
 parser.add_argument('--port', type=int, default=17777)
+parser.add_argument('--app', type=Path, help='Use an existing development .app instead of Builds/OneBulletChecks.')
 args = parser.parse_args()
 root = Path(__file__).resolve().parents[1] / 'igruha/Builds/OneBulletChecks'
-exe = root / 'sleepover.app/Contents/MacOS/sleepover'
+exe = (args.app.resolve() if args.app else root / 'sleepover.app') / 'Contents/MacOS/sleepover'
 if not exe.is_file():
     raise SystemExit('Build the development player into Builds/OneBulletChecks first.')
 folder = root / (args.scenario + '-' + time.strftime('%Y%m%d-%H%M%S'))
@@ -40,11 +41,12 @@ try:
         disconnected += 'ONE_BULLET DISCONNECT holding weapon' in data
         rankings.extend(line for line in data.splitlines() if '📊 итоги раунда OneBullet' in line)
         expected = 'ONE_BULLET DISCONNECT holding weapon' if args.scenario == 'disconnect' and 'ONE_BULLET DISCONNECT holding weapon' in data else 'ONE_BULLET RETURN lock=False'
-        valid = proc.poll() == 0 and expected in data and 'ONE_BULLET FAIL' not in data and 'Exception:' not in data
+        crouch_checked = index > 1 or 'ONE_BULLET CROUCH valid=True' in data
+        valid = proc.poll() == 0 and expected in data and crouch_checked and 'ONE_BULLET FAIL' not in data and 'Exception:' not in data
         failed |= not valid
         print(log.name, 'PASS' if valid else 'FAIL', flush=True)
         for line in data.splitlines():
-            if any(marker in line for marker in ['ONE_BULLET ADS', 'ONE_BULLET FINAL', 'ONE_BULLET RETURN', 'ONE_BULLET FAIL', 'ONE_BULLET DISCONNECT', 'итоги раунда']):
+            if any(marker in line for marker in ['ONE_BULLET CROUCH', 'ONE_BULLET ADS', 'ONE_BULLET FINAL', 'ONE_BULLET RETURN', 'ONE_BULLET FAIL', 'ONE_BULLET DISCONNECT', 'итоги раунда']):
                 print(line, flush=True)
     if len(set(rankings)) != 1 or len(rankings) != players - disconnected:
         print("FAIL: result tables do not match")
