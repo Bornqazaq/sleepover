@@ -20,9 +20,9 @@ namespace Igruha.EditorTools
             string opened = EditorSceneManager.GetActiveScene().path;
             string settings = "Assets/_Project/Settings/Gameplay/Minigames/";
             SetNumbers(AssetDatabase.LoadAssetAtPath<ScriptableObject>(settings + "CircusBearConfig.asset"),
-                new[] { "chaseSpeed", "firstAttackDelay" }, new[] { 8.2f, 1.25f });
+                new[] { "chaseSpeed", "firstAttackDelay" }, new[] { 8.2f, 0f });
             SetNumbers(AssetDatabase.LoadAssetAtPath<ScriptableObject>(settings + "StopwatchConfig.asset"),
-                new[] { "bearSpeed", "bearFirstAttackDelay", "hatchOpenSeconds" }, new[] { 8.2f, 1.25f, .9f });
+                new[] { "bearSpeed", "bearFirstAttackDelay", "hatchOpenSeconds" }, new[] { 8.2f, 0f, .9f });
             SetNumbers(AssetDatabase.LoadAssetAtPath<ScriptableObject>(settings + "CansOrderConfig.asset"),
                 new[] { "hatchOpenSeconds" }, new[] { .9f });
             var wood = Material("CN_CagePlywood", new Color(.57f, .31f, .115f));
@@ -68,7 +68,7 @@ namespace Igruha.EditorTools
                     foreach (var bear in Object.FindObjectsByType<PitBear>(FindObjectsSortMode.None))
                         SetNumbers(bear,new[] { "turnSpeed", "acceleration" },new[] { 220f,12f });
                     var cans = Object.FindFirstObjectByType<CansOrderMinigame>();
-                    if (cans != null) SetNumbers(cans,new[] { "shelfCameraDistance", "shelfCameraHeight" },new[] { 3.1f,1.3f });
+                    if (cans != null) SetNumbers(cans,new[] { "shelfCameraDistance", "shelfCameraHeight" },new[] { 1.2f,.5f });
                     EditorSceneManager.MarkSceneDirty(scene);
                     EditorSceneManager.SaveScene(scene);
                 }

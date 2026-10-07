@@ -43,7 +43,6 @@ namespace Igruha.Minigames.Circus
         {
             internal PlayerController Player;
             internal Animator Animator;
-            internal float StandingTime;
             internal bool Ready;
             internal bool HeadStartGranted;
             internal Vector3 PreviousPosition, Velocity;
@@ -52,8 +51,6 @@ namespace Igruha.Minigames.Circus
         private readonly List<Runner> runners = new List<Runner>(8);
         private static readonly int FlyBack = Animator.StringToHash("FlyBack");
         private static readonly int FallForward = Animator.StringToHash("FallForward");
-        private static readonly int StandUpBack = Animator.StringToHash("StandUpFromBack");
-        private static readonly int StandUpForward = Animator.StringToHash("StandUpFromForward");
         private float chaseSpeed = 5.5f, patrolSpeed = 2.1f, strikeRadius = 2.35f;
         private float windUpDuration = 3f, knockbackSpeed = 8f, pitRadius = 8.64f;
         private float windUpLeft, patrolAngle, currentSpeed, attackElapsed, recoveryLeft;
@@ -61,6 +58,7 @@ namespace Igruha.Minigames.Circus
         private bool hitEvaluated;
         private PlayerController attackVictim;
         private Vector3 attackDirection, previousPosition;
+        private float attackTravel;
         private bool visualPositionKnown;
         private BearState state = BearState.Patrol;
         private float visualAttackStartedAt;
@@ -91,7 +89,7 @@ namespace Igruha.Minigames.Circus
         }
 
         /// <summary>
-        /// The head start begins only after landing AND completing the get-up.
+        /// Pursuit starts as soon as the landed player regains movement.
         /// Remote motors are disabled: use their replicated animation and observed floor position.
         /// Readiness latches, so jumping later cannot renew protection.
         /// </summary>
@@ -106,7 +104,7 @@ namespace Igruha.Minigames.Circus
                 if(player.enabled)
                 {
                     onFloor &= player.IsGrounded;
-                    recovering |= player.IsKnockedDown || player.MovementLocked;
+                    recovering = player.IsKnockedDown || player.MovementLocked;
                 }
                 else
                 {
@@ -114,9 +112,8 @@ namespace Igruha.Minigames.Circus
                     onFloor &= Physics.Raycast(player.transform.position+Vector3.up*.25f,Vector3.down,out hit,.6f,
                         Physics.DefaultRaycastLayers,QueryTriggerInteraction.Ignore) && hit.point.y<=transform.position.y+.3f;
                 }
-                runner.StandingTime=onFloor && !recovering ? runner.StandingTime+deltaTime : 0;
-                runner.Ready=runner.StandingTime>=.3f;
-                if(runner.Ready)Trace("Ready "+player.name+"; full head start begins after recovery");
+                runner.Ready=onFloor && !recovering;
+                if(runner.Ready)Trace("Ready "+player.name+"; movement available; chase begins");
                 return runner.Ready;
             }
             return false;
@@ -128,7 +125,7 @@ namespace Igruha.Minigames.Circus
             return IsRecovery(a.GetCurrentAnimatorStateInfo(0).shortNameHash) ||
                 (a.IsInTransition(0) && IsRecovery(a.GetNextAnimatorStateInfo(0).shortNameHash));
         }
-        private static bool IsRecovery(int hash)=>hash==FlyBack || hash==FallForward || hash==StandUpBack || hash==StandUpForward;
+        private static bool IsRecovery(int hash)=>hash==FlyBack || hash==FallForward;
 
         /// <summary>Only the authoritative minigame calls Tick; impacts are decided here.</summary>
         public void Tick(float deltaTime,PlayerController nearest,bool someoneOnLowestCage)
@@ -175,7 +172,7 @@ namespace Igruha.Minigames.Circus
                 windUpLeft=entrant!=null && entrant.HeadStartGranted ? 0 : windUpDuration;
                 if(entrant!=null)entrant.HeadStartGranted=true;
                 currentSpeed=0;
-                SetState(BearState.WindUp);
+                if(windUpLeft>0)SetState(BearState.WindUp);
                 // This frame's delta belongs to the preceding state. Starting a
                 // target on a long frame must still grant the full head start.
                 if(windUpLeft>0)
@@ -199,6 +196,8 @@ namespace Igruha.Minigames.Circus
             if(delta.magnitude<=strikeRadius && Vector3.Dot(transform.forward,intercept.normalized)>.85f)
             {
                 attackVictim=nearest;attackDirection=transform.forward;attackElapsed=0;hitEvaluated=false;
+                Vector3 expected=delta+(pursued!=null?pursued.Velocity:Vector3.zero)*attackContactTime;
+                attackTravel=Mathf.Clamp(Vector3.Dot(expected,attackDirection)-1.25f,.15f,4.9f);
                 currentSpeed=0;SetState(BearState.Attack);return;
             }
             Steer(intercept,chaseSpeed,deltaTime);
@@ -208,8 +207,9 @@ namespace Igruha.Minigames.Circus
         {
             float previous=attackElapsed;attackElapsed+=dt;
             // Short committed lunge; no homing or turning during the swipe.
-            float lungeTime=Mathf.Max(0,Mathf.Min(attackElapsed,attackContactTime)-Mathf.Max(previous,.18f));
-            MoveBy(attackDirection*(lungeTime*8.5f));currentSpeed=0;
+            float before=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.10f,attackContactTime,previous));
+            float after=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.10f,attackContactTime,attackElapsed));
+            MoveBy(attackDirection*((after-before)*attackTravel));currentSpeed=0;
             if(!hitEvaluated && attackElapsed>=attackContactTime)
             {
                 hitEvaluated=true;

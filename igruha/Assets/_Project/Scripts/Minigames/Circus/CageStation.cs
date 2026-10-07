@@ -83,6 +83,8 @@ namespace Igruha.Minigames.Circus
         {
             platform = GetComponent<RidePlatform>();
             platform.Mode = RidePlatform.DriveMode.Scripted;
+            platform.StabilizeScriptedPassenger = true;
+            platform.EaseScriptedMotion = true;
             platform.Arrived += HandleArrived;
             CacheCameraHiddenColliders();
 

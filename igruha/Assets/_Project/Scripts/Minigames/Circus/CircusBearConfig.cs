@@ -31,7 +31,7 @@ namespace Igruha.Minigames.Circus
         [Tooltip("Скорость патрулирования пустой ямы, м/с")]
         [SerializeField] private float patrolSpeed = 2.1f;
         [Tooltip("Фора после приземления и завершения подъёма. Всё это время медведь наблюдает и не приближается")]
-        [SerializeField] private float firstAttackDelay = 1.25f;
+        [SerializeField] private float firstAttackDelay = 0f;
 
         [Header("Удар")]
         [Tooltip("Радиус удара лапой, м")]
