@@ -106,6 +106,9 @@ namespace Igruha.Minigames.CansOrder
 
         /// <summary>Доля высоты клетки 0…1. Сама анимация считается локально от начала стадии.</summary>
         public float HeightFraction;
+        public byte BottomChances, Penalty;
+        public int EliminatedCircle;
+        public double HatchStartedAt;
 
         /// <summary>Данные круга открыты: идёт стадия показа результатов.</summary>
         public bool Revealed;
@@ -143,6 +146,10 @@ namespace Igruha.Minigames.CansOrder
             serializer.SerializeValue(ref Attempts);
             serializer.SerializeValue(ref FinishTime);
             serializer.SerializeValue(ref HeightFraction);
+            serializer.SerializeValue(ref BottomChances);
+            serializer.SerializeValue(ref Penalty);
+            serializer.SerializeValue(ref EliminatedCircle);
+            serializer.SerializeValue(ref HatchStartedAt);
             serializer.SerializeValue(ref Revealed);
             serializer.SerializeValue(ref Confirmed);
             serializer.SerializeValue(ref SolvedThisCircle);
@@ -163,6 +170,8 @@ namespace Igruha.Minigames.CansOrder
             Matches == other.Matches &&
             Arrangement == other.Arrangement &&
             ArrangementCount == other.ArrangementCount &&
+            BottomChances == other.BottomChances && Penalty == other.Penalty &&
+            EliminatedCircle == other.EliminatedCircle && HatchStartedAt == other.HatchStartedAt &&
             Mathf.Approximately(HeightFraction, other.HeightFraction);
 
         /// <summary>
