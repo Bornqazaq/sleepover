@@ -32,6 +32,7 @@ namespace Igruha.EditorTools
             serialized.FindProperty("visualRoot").objectReferenceValue=visual;
             serialized.FindProperty("animator").objectReferenceValue=animator;
             serialized.FindProperty("turnSpeed").floatValue=220f;
+            serialized.FindProperty("wallMargin").floatValue=PitBear.BodyWallClearance;
             serialized.FindProperty("acceleration").floatValue=12f;
             serialized.FindProperty("attackContactTime").floatValue=PitBear.ContactSeconds;
             serialized.FindProperty("attackDuration").floatValue=PitBear.StrikeSeconds;

@@ -12,7 +12,7 @@ using UnityEngine.SceneManagement;
 
 namespace Igruha.Tests
 {
-    /// <summary>Steps the production pursuit, imported Strike and real four-limb IK.
+    /// <summary>Steps the production pursuit, imported Strike and real contact IK.
     /// Only the editor clock is supplied manually; contact is never mocked.</summary>
     public sealed class CircusBearContactTimingTests
     {
@@ -102,7 +102,7 @@ namespace Igruha.Tests
             // Stopwatch host + seven clients: the bear comes from the fleeing
             // Boss at this contact position, then approaches the stationary player
             // under the northern cage after the initial move-right input.
-            bear.transform.SetPositionAndRotation(new Vector3(5.093f,0,4.204f),Quaternion.Euler(0,-1.9f,0));
+            bear.transform.SetPositionAndRotation(Vector3.ClampMagnitude(new Vector3(5.093f,0,4.204f),8.64f-PitBear.BodyWallClearance),Quaternion.Euler(0,-1.9f,0));
             MovePlayer(new Vector3(-.6f,0,7.92f));
             bear.Caught+=(victim,impulse)=>
             {
@@ -136,13 +136,22 @@ namespace Igruha.Tests
         {
             Build("Player",276.17f,false);
             idlePhase=phase;
-            bear.transform.SetPositionAndRotation(new Vector3(.661f,0,7.060f),Quaternion.Euler(0,299.61f,0));
+            // The recorded root was inside the masonry with the old .8 m
+            // margin. Keep the victim/pose, start at the new safe boundary.
+            bear.transform.SetPositionAndRotation(Vector3.ClampMagnitude(new Vector3(.661f,0,7.060f),8.64f-PitBear.BodyWallClearance),Quaternion.Euler(0,299.61f,0));
             MovePlayer(new Vector3(-1.080f,0,8.050f));
             if(usePosePipeline)EnablePlayerPosePipeline();
             SamplePlayerPose(1f/30);
             contactTrace.Append("phase=").Append(phase).Append(" pipeline=").Append(usePosePipeline)
                 .Append(" standOff=").Append(motion.ApproachDistance(player).ToString("F4")).AppendLine();
-            bear.Tick(.001f,player,false);
+            for(int frame=0;frame<300 && bear.State!=PitBear.BearState.Attack;frame++)
+            {
+                bear.Tick(1f/30,player,false);
+                animator.SetFloat("Speed",bear.AnimatorSpeed);animator.Update(1f/30);
+                Invoke(motion,"EvaluatePose",1f/30);
+                Assert.That(new Vector2(bear.transform.position.x,bear.transform.position.z).magnitude,
+                    Is.LessThanOrEqualTo(8.64f-PitBear.BodyWallClearance+.001f));
+            }
             Assert.That(bear.State,Is.EqualTo(PitBear.BearState.Attack));
             bear.Caught+=(victim,impulse)=>
             {
@@ -197,8 +206,10 @@ namespace Igruha.Tests
         [Test] public void WallBlockedRetreatWalksAroundThenReachesTheCloseRunner()
         {
             Build("Boss",0,false);
-            bear.transform.SetPositionAndRotation(new Vector3(0,0,7.84f),Quaternion.Euler(0,180,0));
-            MovePlayer(new Vector3(0,0,7.09f));
+            float edge=8.64f-PitBear.BodyWallClearance;
+            bear.transform.SetPositionAndRotation(new Vector3(0,0,edge),Quaternion.Euler(0,180,0));
+            Vector3 beforeReposition=bear.transform.position;
+            MovePlayer(new Vector3(0,0,edge-.75f));
             bool sawReposition=false;const float dt=1f/30;
             bear.Caught+=(victim,impulse)=>
             {
@@ -219,14 +230,47 @@ namespace Igruha.Tests
                 }
                 else
                 {
-                    sawReposition|=bear.State==PitBear.BearState.Chase && Mathf.Abs(bear.transform.position.x)>.4f;
+                    sawReposition|=bear.State==PitBear.BearState.Chase && Vector3.Distance(beforeReposition,bear.transform.position)>.2f;
                     animator.SetFloat("Speed",bear.AnimatorSpeed);animator.Update(dt);
                 }
                 SamplePlayerPose(dt);Invoke(motion,"EvaluatePose",dt);Invoke(bear,"LateUpdate");
-                Assert.That(new Vector2(bear.transform.position.x,bear.transform.position.z).magnitude,Is.LessThanOrEqualTo(7.841f));
+                Assert.That(new Vector2(bear.transform.position.x,bear.transform.position.z).magnitude,Is.LessThanOrEqualTo(edge+.001f));
             }
             Assert.That(sawReposition,Is.True,"A blocked retreat must use visible walking to make room.");
             Assert.That(hits,Is.EqualTo(1),"The wall must not create endless guarded misses. "+motion.DescribeContact());
+        }
+
+        [TestCase(1f,0f,-4f)] [TestCase(-1f,0f,-4f)]
+        [TestCase(1f,45f,5.5f)] [TestCase(-1f,45f,5.5f)]
+        [TestCase(1f,0f,5.5f)] [TestCase(-1f,0f,5.5f)]
+        public void RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane(float direction,float startAngle,float bearZ)
+        {
+            Build("Boss",0,false);
+            bear.transform.position=new Vector3(0,0,bearZ);
+            MovePlayer(new Vector3(Mathf.Sin(startAngle*Mathf.Deg2Rad)*7.8f,0,Mathf.Cos(startAngle*Mathf.Deg2Rad)*7.8f));
+            bear.RegisterFallen(player);
+            const float dt=1f/60;
+            int attacks=0;
+            for(int frame=0;frame<1800 && hits==0;frame++)
+            {
+                float angle=startAngle*Mathf.Deg2Rad+direction*frame*dt*6.5f/7.8f;
+                MovePlayer(new Vector3(Mathf.Sin(angle)*7.8f,0,Mathf.Cos(angle)*7.8f));
+                avatar.transform.rotation=Quaternion.Euler(0,angle*Mathf.Rad2Deg+direction*90,0);
+                bool wasAttack=bear.State==PitBear.BearState.Attack;
+                if(wasAttack)elapsed+=dt;
+                Set(bear,"visualAttackStartedAt",Time.time-elapsed);
+                bear.Tick(dt,player,false);
+                if(bear.State==PitBear.BearState.Attack)
+                {
+                    if(!wasAttack){attacks++;elapsed=0;Set(bear,"visualAttackStartedAt",Time.time);}
+                    animator.Play("Strike",0,elapsed/PitBear.StrikeSeconds);animator.Update(0);
+                }
+                else{animator.SetFloat("Speed",bear.AnimatorSpeed);animator.Update(dt);}
+                SamplePlayerPose(dt);Invoke(motion,"EvaluatePose",dt);Invoke(bear,"LateUpdate");
+                Assert.That(new Vector2(bear.transform.position.x,bear.transform.position.z).magnitude,
+                    Is.LessThanOrEqualTo(8.64f-PitBear.BodyWallClearance+.001f));
+            }
+            Assert.That(hits,Is.EqualTo(1),"Circling the rim must not trap the bear against its movement limit. Attacks="+attacks);
         }
 
         private void AssertTrunkMeshesAreSeparated()

@@ -28658,7 +28658,7 @@ Light:
   m_Enabled: 1
   serializedVersion: 12
   m_Type: 0
-  m_Color: {r: 1, g: 0.97, b: 0.92, a: 1}
+  m_Color: {r: 1, g: 0.89, b: 0.72, a: 1}
   m_Intensity: 245
   m_Range: 19
   m_SpotAngle: 102
@@ -83123,7 +83123,7 @@ Light:
   serializedVersion: 12
   m_Type: 2
   m_Color: {r: 1, g: 0.84, b: 0.62, a: 1}
-  m_Intensity: 12
+  m_Intensity: 28
   m_Range: 9
   m_SpotAngle: 70
   m_InnerSpotAngle: 38.5
@@ -100294,7 +100294,7 @@ Light:
   serializedVersion: 12
   m_Type: 2
   m_Color: {r: 1, g: 0.84, b: 0.62, a: 1}
-  m_Intensity: 12
+  m_Intensity: 28
   m_Range: 9
   m_SpotAngle: 70
   m_InnerSpotAngle: 38.5
@@ -110280,7 +110280,7 @@ Light:
   serializedVersion: 12
   m_Type: 2
   m_Color: {r: 1, g: 0.84, b: 0.62, a: 1}
-  m_Intensity: 12
+  m_Intensity: 28
   m_Range: 9
   m_SpotAngle: 70
   m_InnerSpotAngle: 38.5
@@ -142010,7 +142010,7 @@ Light:
   serializedVersion: 12
   m_Type: 2
   m_Color: {r: 1, g: 0.84, b: 0.62, a: 1}
-  m_Intensity: 12
+  m_Intensity: 28
   m_Range: 9
   m_SpotAngle: 70
   m_InnerSpotAngle: 38.5
@@ -149434,7 +149434,7 @@ Light:
   serializedVersion: 12
   m_Type: 2
   m_Color: {r: 1, g: 0.84, b: 0.62, a: 1}
-  m_Intensity: 12
+  m_Intensity: 28
   m_Range: 9
   m_SpotAngle: 70
   m_InnerSpotAngle: 38.5
@@ -150852,7 +150852,7 @@ Light:
   serializedVersion: 12
   m_Type: 2
   m_Color: {r: 1, g: 0.84, b: 0.62, a: 1}
-  m_Intensity: 12
+  m_Intensity: 28
   m_Range: 9
   m_SpotAngle: 70
   m_InnerSpotAngle: 38.5
@@ -166302,7 +166302,7 @@ Light:
   serializedVersion: 12
   m_Type: 2
   m_Color: {r: 1, g: 0.84, b: 0.62, a: 1}
-  m_Intensity: 12
+  m_Intensity: 28
   m_Range: 9
   m_SpotAngle: 70
   m_InnerSpotAngle: 38.5
@@ -181561,7 +181561,7 @@ MonoBehaviour:
   roarParameter: Roar
   alertParameter: Alert
   turnSpeed: 220
-  wallMargin: 0.8
+  wallMargin: 2.5
   acceleration: 12
   attackContactTime: 0.38
   attackDuration: 1.4
@@ -210001,7 +210001,7 @@ Light:
   serializedVersion: 12
   m_Type: 2
   m_Color: {r: 1, g: 0.84, b: 0.62, a: 1}
-  m_Intensity: 12
+  m_Intensity: 28
   m_Range: 9
   m_SpotAngle: 70
   m_InnerSpotAngle: 38.5

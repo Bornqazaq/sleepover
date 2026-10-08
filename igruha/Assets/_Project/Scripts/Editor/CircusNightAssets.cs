@@ -18,13 +18,24 @@ namespace Igruha.EditorTools
         internal const string Controller = Art + "/Bruno.controller";
         private static readonly string[] Names = { "CN_Walnut", "CN_WalnutLight", "CN_OxbloodVelvet", "CN_MidnightCanvas", "CN_AgedBrass", "CN_BlackIron", "CN_PitStone", "CN_StoneEdge", "CN_Sawdust", "CN_WarmBulb", "CN_Seams", "CN_Parchment", "CN_UmberFur", "CN_FurTips", "CN_Muzzle", "CN_Nose", "CN_AmberEyes", "CN_Claws", "CN_Mouth", "CN_DarkFur", "CN_TinPaint", "CN_TinSteel", "CN_CanvasRed", "CN_CanvasIvory", "CN_HempRope" };
         private static readonly Color[] Colors = {
-            new Color(.20f,.095f,.048f), new Color(.32f,.18f,.09f),new Color(.58f,.028f,.041f),new Color(.045f,.27f,.30f),
-            new Color(.47f,.30f,.11f),new Color(.045f,.059f,.069f),new Color(.29f,.27f,.23f),new Color(.39f,.35f,.27f),
-            new Color(.43f,.30f,.14f),new Color(1f,.61f,.22f),new Color(.023f,.022f,.020f),new Color(.69f,.52f,.29f),
+            new Color(.23f,.085f,.033f), new Color(.36f,.17f,.065f),new Color(.65f,.012f,.024f),new Color(.025f,.35f,.34f),
+            new Color(.58f,.34f,.09f),new Color(.045f,.059f,.069f),new Color(.29f,.27f,.23f),new Color(.39f,.35f,.27f),
+            new Color(.48f,.29f,.10f),new Color(1f,.61f,.22f),new Color(.023f,.022f,.020f),new Color(.69f,.52f,.29f),
             new Color(.185f,.102f,.057f),new Color(.245f,.151f,.086f),new Color(.22f,.14f,.085f),new Color(.018f,.011f,.008f),
             new Color(.025f,.010f,.004f),new Color(.23f,.185f,.133f),new Color(.083f,.018f,.014f),new Color(.054f,.028f,.012f),Color.white,new Color(.52f,.56f,.59f),
-            new Color(.72f,.045f,.062f),new Color(.92f,.83f,.65f),new Color(.52f,.37f,.19f)
+            new Color(.80f,.018f,.035f),new Color(.92f,.83f,.65f),new Color(.52f,.37f,.19f)
         };
+
+        internal static void RefreshSceneryColors()
+        {
+            foreach (int i in new[] { 0, 1, 2, 3, 4, 8, 22 })
+            {
+                var material = Material(Names[i]);
+                if (material == null) continue;
+                material.SetColor("_BaseColor", Colors[i]);
+                EditorUtility.SetDirty(material);
+            }
+        }
 
         internal static void Import()
         {

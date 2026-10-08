@@ -33,8 +33,9 @@ def leg(limb,side,target,roll=0,pole_hint=None):
     paw.matrix=Matrix.LocRotScale(ankle,Quaternion((1,0,0),roll)@paw.bone.matrix_local.to_quaternion(),Vector((1,1,1)))
     bpy.context.view_layer.update()
 
-for title,count in [('Idle',180),('Walk',30),('Run',27),('Alert',90),('Strike',42),('Roar',96)]:
+for title,count in [('Idle',180),('Walk',24),('Run',18),('Alert',90),('Strike',42),('Roar',96)]:
     action=bpy.data.actions.new('Bruno_'+title);action.use_fake_user=True;rig.animation_data.action=action
+    previous_rotations={}
     for f in range(1,count+2):
         t=(f-1)/count;cycle=t*math.tau;seconds=(f-1)/30
         for p in rig.pose.bones:p.matrix_basis=Matrix.Identity(4)
@@ -53,10 +54,11 @@ for title,count in [('Idle',180),('Walk',30),('Run',27),('Alert',90),('Strike',4
             pose('Head',(.05*math.sin(cycle+.3),.12*look,.024*math.sin(cycle+.7)))
             pose('Jaw',(-.018*max(0,math.sin(cycle*2)),0,0));pose('Tail',(0,0,.13*math.sin(cycle+.5)))
         elif title in ('Walk','Run'):
-            run=title=='Run';stance=.24 if run else .58;speed=6.6 if run else 2.1;duration=count/30
-            # A heavy rolling walk and an asymmetric lope, with visible shoulder travel.
+            run=title=='Run';stance=.28 if run else .60;speed=6.6 if run else 2.1;duration=count/30
+            # Shorter, weight-bearing strides. Walk/run share footfall order, so
+            # blending cannot pull a planted leg toward another gait's swing.
             travel=speed*duration*stance
-            bounce=(-.10+.075*math.sin(cycle-.45)+.015*math.sin(cycle*2-.8)) if run else (-.10+.022*math.cos(cycle*2))
+            bounce=(-.10+.045*math.cos(cycle*2)) if run else (-.10+.018*math.cos(cycle*2))
             pose('Root',loc=(.016*math.sin(cycle) if run else .040*math.sin(cycle),0,bounce))
             pose('Pelvis',((.095 if run else .024)*math.sin(cycle),.024*math.cos(cycle),(.024 if run else .044)*math.cos(cycle)))
             pose('Lumbar',((-.12 if run else -.035)*math.sin(cycle-.40),.026*math.sin(cycle),-.035*math.cos(cycle-.25)))
@@ -66,15 +68,20 @@ for title,count in [('Idle',180),('Walk',30),('Run',27),('Alert',90),('Strike',4
             pose('Head',(-.065*math.sin(cycle-1.1),.025*math.sin(cycle-.3),-.018*math.cos(cycle)))
             pose('Jaw',(-.07-.016*math.sin(cycle*2) if run else -.012,0,0))
             pose('Tail',(.055*math.sin(cycle-1),0,.09*math.sin(cycle-.8)))
-            phases={('Fore','L'):0,('Fore','R'):.12,('Hind','L'):.49,('Hind','R'):.64} if run else {('Hind','L'):0,('Fore','L'):.25,('Hind','R'):.5,('Fore','R'):.75}
+            phases={('Fore','L'):0,('Fore','R'):.5,('Hind','L'):.55,('Hind','R'):.05}
             for key,base in targets.items():
                 phase=(t+phases[key])%1
                 if phase<stance:
                     support=phase/stance;y=travel*(.5-support);z=0
-                    roll=.13*(1-smooth(support/.20))-.22*smooth((support-.72)/.28)
+                    roll=-.12*smooth((support-.76)/.24)
                 else:
-                    swing=(phase-stance)/(1-stance);y=travel*(-.5+smooth(swing));z=(.25 if run else .15)*math.sin(math.pi*swing)**1.15
-                    roll=-.24*math.sin(math.pi*swing)+.12*smooth((swing-.65)/.35)
+                    swing=(phase-stance)/(1-stance)
+                    # Hermite endpoints retain the support velocity at lift-off
+                    # and touchdown. Smoothstep used to reverse it instantly.
+                    tangent=-(1-stance)/stance
+                    y=travel*(-.5+smooth(swing)+tangent*(2*swing**3-3*swing**2+swing))
+                    z=(.22 if run else .14)*math.sin(math.pi*swing)**2
+                    roll=-.12*(1-smooth(swing))-.12*math.sin(math.pi*swing)**2
                 base.y+=y;base.z+=z;rolls[key]=roll
                 if phase>=stance:base.x+=(1 if key[1]=='L' else -1)*.04*math.sin(math.pi*(phase-stance)/(1-stance))
                 if key[0]=='Fore':pose('Scapula.'+key[1],(.08*math.sin(math.tau*phase),0,.022*math.sin(math.tau*phase)))
@@ -134,6 +141,9 @@ for title,count in [('Idle',180),('Walk',30),('Run',27),('Alert',90),('Strike',4
             flick=.09*math.sin(cycle*3+.6*sign)*max(0,1-abs(t-(.36 if side=='L' else .67))/.09) if title=='Idle' else .025*math.sin(cycle-1.2+.4*sign)
             pose('Ear.'+side,(flick,0,sign*flick*.45))
         for p in rig.pose.bones:
+            if p.name in previous_rotations and p.rotation_quaternion.dot(previous_rotations[p.name])<0:
+                p.rotation_quaternion.negate()
+            previous_rotations[p.name]=p.rotation_quaternion.copy()
             p.keyframe_insert('rotation_quaternion',frame=f);p.keyframe_insert('location',frame=f);p.keyframe_insert('scale',frame=f)
     if title in ('Idle','Walk','Run'):
         scene.frame_set(1)

@@ -221,6 +221,8 @@ namespace Igruha.EditorTools
             if(scene.name!="CansOrder" && scene.name!="Stopwatch")
                 throw new InvalidOperationException("Circus lighting requires CansOrder or Stopwatch.");
 
+            CircusNightAssets.RefreshSceneryColors();
+
             // The roster keeps its usual rendering layer. Amber set lights illuminate
             // the tent and Bruno, while the neutral key/fill reveal the original skin
             // and clothing textures. No player prefab or material is overridden.
@@ -250,9 +252,9 @@ namespace Igruha.EditorTools
                     || light.name=="Bruno_WarmKey" || light.name=="Bruno_Rim";
                 if(!neutral && !scenery) continue;
                 if(neutral) light.color=Color.white;
-                if(light.name=="Bruno_WarmKey") light.color=new Color(1f,.97f,.92f);
+                if(light.name=="Bruno_WarmKey") light.color=new Color(1f,.89f,.72f);
                 if(light.name=="Bruno_Rim") light.color=new Color(.86f,.92f,1f);
-                if(light.name.StartsWith("LanternBounce_")) light.intensity=12f;
+                if(light.name.StartsWith("LanternBounce_")) light.intensity=28f;
                 var data=light.GetComponent<UniversalAdditionalLightData>();
                 if(data==null) data=light.gameObject.AddComponent<UniversalAdditionalLightData>();
                 data.renderingLayers=scenery?sceneryLightLayer:characterLightLayer;

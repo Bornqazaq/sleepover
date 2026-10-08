@@ -71,11 +71,19 @@ namespace Igruha.Tests
                 game.GetType().GetMethod("EnterDescend",Private).Invoke(game,null);
             }
             Vector3 bearBefore=bear.transform.position; float maxSpeed=0;
+            float nextPursuitReport=Time.realtimeSinceStartup+3;
             float liftMin=float.MaxValue,liftMax=float.MinValue;
             var localCage=UnityEngine.Object.FindObjectsByType<CageStation>(FindObjectsSortMode.None).FirstOrDefault(c=>c.Occupant==local);
             while (Time.realtimeSinceStartup<deadline && !caught.All(v=>v))
             {
                 bearProbe.Sample();
+                if(Time.realtimeSinceStartup>=nextPursuitReport && bear.Target!=null)
+                {
+                    nextPursuitReport=Time.realtimeSinceStartup+3;
+                    Debug.Log("PLAYTEST_CHECK pursuit state="+bear.State+" bear="+bear.transform.position.ToString("F2")+
+                        " yaw="+bear.transform.eulerAngles.y.ToString("F1")+" target="+bear.Target.Position.ToString("F2")+
+                        " targetTransform="+bear.Target.transform.position.ToString("F2"));
+                }
                 if(localCage!=null && localCage.Descending && !localCage.DoorsOpen)
                 {
                     float offset=local.transform.position.y-localCage.transform.position.y;
