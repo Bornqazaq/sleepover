@@ -92,6 +92,7 @@ namespace Igruha.EditorTools
             ApplyNaturalLighting();
             if (PhysicsSignature(arena) != physicsBefore) throw new InvalidOperationException("The art pass changed arena collision geometry.");
             CircusBearPairBuilder.ApplyActive();
+            CircusInterfaceBuilder.ApplyActive();
             EditorSceneManager.MarkSceneDirty(scene);
             AssetDatabase.SaveAssets();
             Debug.Log("Grand Chapiteau applied to " + scene.name + ": striped Blender tent, theatrical lighting and Bruno; gameplay colliders preserved.");

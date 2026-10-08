@@ -112,6 +112,7 @@ namespace Igruha.Minigames.Stopwatch
 
         // Буферы для табло: пересоздавать списки каждый подраунд незачем.
         private readonly List<string> boardNames = new List<string>(8);
+        private readonly List<int> boardPlayerIds = new List<int>(8);
         private readonly List<float> boardTimes = new List<float>(8);
         private readonly List<bool> boardCompleted = new List<bool>(8);
         private readonly List<int> boardErrors = new List<int>(8);
@@ -1251,6 +1252,7 @@ namespace Igruha.Minigames.Stopwatch
             }
 
             boardNames.Clear();
+            boardPlayerIds.Clear();
             boardTimes.Clear();
             boardCompleted.Clear();
             boardErrors.Clear();
@@ -1261,6 +1263,7 @@ namespace Igruha.Minigames.Stopwatch
             {
                 Contestant c = contestants[i];
                 boardNames.Add(c.Session.DisplayName);
+                boardPlayerIds.Add(c.Session.Id);
                 boardTimes.Add(c.Measured);
                 boardCompleted.Add(c.Completed);
                 boardErrors.Add(c.Errors);
@@ -1268,7 +1271,7 @@ namespace Igruha.Minigames.Stopwatch
                 boardFaulted.Add(c.FaultedThisSubround);
             }
 
-            scoreboard.ShowPlayers(boardNames, boardTimes, boardCompleted, boardErrors, boardAlive, boardFaulted, showTimes);
+            scoreboard.ShowPlayers(boardNames, boardTimes, boardCompleted, boardErrors, boardAlive, boardFaulted, showTimes, boardPlayerIds);
         }
 
         /// <summary>

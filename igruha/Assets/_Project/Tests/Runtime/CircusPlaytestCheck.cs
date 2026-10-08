@@ -662,6 +662,7 @@ namespace Igruha.Tests
                 }
                 if(cans.Stage==2 && stage.Subround==cans.Round.Circle && sent!=cans.Round.Circle && stage.StageDuration-stage.StageRemaining>.9f)
                 {
+                    if(cans.Round.Circle==2)Capture("interface-board");
                     var order=Enumerable.Range(0,count).Select(i=>(i+1)%count).ToList();
                     if(!victim){order=solution.ToList();int t=order[0];order[0]=order[1];order[1]=t;}
                     shelf.SetArrangement(order);button.Interact(local);sent=cans.Round.Circle;

@@ -865,6 +865,30 @@ namespace Igruha.Minigames.CansOrder
                     + "\nШанс теряется только при худшем результате";
         }
 
+        /// <summary>Typed local presentation, with the same reveal gate as the text HUD.</summary>
+        public bool TryGetLocalHudState(out CansOrderEntry entry, out int levels, out int chanceLimit,
+            List<int> shownOrder, bool previous, out bool hasPrevious, out bool confirmed, out int matches)
+        {
+            var local=FindLocal();entry=default;levels=0;chanceLimit=config!=null?config.BottomChances:0;
+            hasPrevious=false;confirmed=false;matches=0;shownOrder.Clear();
+            if(local==null)return false;
+            entry=local.Entry;levels=arenaConfig.MaxLevelSteps;
+            // Local confirmation is public to its author; score is not.
+            if(!resultsRevealed){entry.Matches=0;entry.SolvedThisCircle=false;}
+            if(previous)
+            {
+                hasPrevious=lastCircleRound==round.Round && lastCircleNumber>=0;
+                confirmed=hasPrevious && lastCircleConfirmed;matches=confirmed?lastCircleMatches:0;
+                if(confirmed)shownOrder.AddRange(lastCircleArrangement);
+            }
+            else if(resultsRevealed)
+            {
+                confirmed=entry.Confirmed;matches=entry.Matches;
+                if(confirmed && !entry.Solved)shownOrder.AddRange(local.Submitted);
+            }
+            return true;
+        }
+
         private static string DescentMessage(CansOrderEntry entry)
         {
             switch (entry.Penalty)
