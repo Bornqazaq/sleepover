@@ -94,7 +94,7 @@ namespace Igruha.EditorTools
             if (mat == null) { mat = new Material(Shader.Find(shader)); AssetDatabase.CreateAsset(mat, path); }
             mat.SetColor("_BaseColor", color); EditorUtility.SetDirty(mat); return mat;
         }
-        private static void BuildHud(OneBulletStormPresentation view)
+        public static void BuildHud(OneBulletStormPresentation view)
         {
             var canvas = GameObject.Find("_UI").GetComponentInChildren<Canvas>().transform;
             var old = canvas.Find("StormHUD"); if (old != null) Object.DestroyImmediate(old.gameObject);
@@ -103,9 +103,9 @@ namespace Igruha.EditorTools
             var tint = Panel(root, "SandTint", Vector2.zero, Vector2.zero, Color.clear);
             tint.rectTransform.anchorMin = Vector2.zero; tint.rectTransform.anchorMax = Vector2.one; tint.rectTransform.offsetMin = tint.rectTransform.offsetMax = Vector2.zero;
             Set(view, "tint", tint);
-            var can = Card(root, "Decoys", new Vector2(0, 0), new Vector2(28, 28), new Vector2(254, 72));
-            Set(view, "canPanel", can); Set(view, "canCount", Label(can.transform, "CanCount", new Vector2(0, 12), new Vector2(226, 30), 23, "Q  ·  БАНКА   2"));
-            Label(can.transform, "CanHint", new Vector2(0, -15), new Vector2(226, 22), 14, "Брось за угол. Обмани слух.");
+            var can = Card(root, "Decoys", new Vector2(0, 0), new Vector2(28, 28), new Vector2(328, 76));
+            Set(view, "canPanel", can); Set(view, "canCount", Label(can.transform, "CanCount", new Vector2(0, 12), new Vector2(306, 30), 22, "Q  ·  БРОСИТЬ БАНКУ   2"));
+            Set(view, "canHint", Label(can.transform, "CanHint", new Vector2(0, -15), new Vector2(306, 22), 14, "Уже с собой · подбирать не нужно"));
             var warn = Card(root, "StormWarning", new Vector2(.5f, 1), new Vector2(0, -246), new Vector2(558, 84));
             Set(view, "warningPanel", warn);
             Set(view, "title", Label(warn.transform, "Title", new Vector2(-37, 16), new Vector2(442, 30), 23, "БУРЯ ПРИБЛИЖАЕТСЯ"));

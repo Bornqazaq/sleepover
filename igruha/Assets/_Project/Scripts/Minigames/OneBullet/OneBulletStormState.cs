@@ -11,17 +11,27 @@ namespace Igruha.Minigames.OneBullet
         public double IdleAt { get; private set; }
         public bool Warning => Target > Stage;
         public int SafeStage => Warning ? Stage + 1 : Stage;
+        private int eliminations, eliminationsToDuel;
         public void Reset(int players, int finalStage, double begins, double idle)
         {
-            Stage = Target = Math.Clamp(8 - players, 0, finalStage);
+            Stage = Target = 0;
+            eliminations = 0; eliminationsToDuel = Math.Max(1, players - 2);
             ClosesAt = 0; IdleAt = begins + idle;
         }
         public bool Elimination(double now, int finalStage, double warning, double idle)
         {
+            eliminations++;
+            // Reach the same final courtyard by the duel, irrespective of the starting roster.
+            // Never skip a territory: queued closures still each grant the full evacuation warning.
+            int deathTarget = (int)Math.Ceiling((double)eliminations * finalStage / eliminationsToDuel);
+            return QueueClosure(Math.Max(Target + 1, deathTarget), now, finalStage, warning, idle);
+        }
+        private bool QueueClosure(int target, double now, int finalStage, double warning, double idle)
+        {
             IdleAt = now + idle;
             if (Target >= finalStage) return false;
             if (!Warning) ClosesAt = now + warning;
-            Target++; return true;
+            Target = Math.Min(target, finalStage); return true;
         }
         public bool Tick(double now, int finalStage, double warning, double idle)
         {
@@ -32,7 +42,7 @@ namespace Igruha.Minigames.OneBullet
                 return true;
             }
             if (!Warning && Stage < finalStage && now >= IdleAt)
-                return Elimination(now, finalStage, warning, idle);
+                return QueueClosure(Target + 1, now, finalStage, warning, idle);
             return false;
         }
         public void Apply(int stage, int target, double closes, double idle)

@@ -26,6 +26,7 @@ namespace Igruha.Minigames.OneBullet
         private double nextSnapshot;
         private const double SnapshotInterval = .1, ImpactInterval = .13;
         private const float AudibleImpactSpeed = .7f, SpinRate = 240f;
+        private static readonly Vector3 ReleaseOffset = new Vector3(.2f, -.12f, .3f);
         public event Action<int, OneBulletCanState> StateChanged;
         public event Action<Vector3, float> Impact;
         public event Action<Vector3> ThrowRequested;
@@ -120,8 +121,16 @@ namespace Igruha.Minigames.OneBullet
             if (player?.Motor == null || player.Dead || player.Motor.IsKnockedDown || player.Motor.MovementLocked) return;
             var c = game.Config;
             Vector3 origin = OneBulletMinigame.ShotOrigin(player);
-            // Spawn at the server's eye: no client position and no offset through a nearby wall.
+            // Start beside the eye so the full-size can visibly leaves the lower-right view.
+            // Sweep from the authoritative eye to keep the offset on this side of nearby walls.
             if (Physics.CheckSphere(origin, c.CanRadius, c.CanCollisionMask, QueryTriggerInteraction.Ignore)) return;
+            Vector3 right = Vector3.Cross(Vector3.up, aim);
+            if (right.sqrMagnitude < .01f) right = player.Motor.transform.right;
+            Vector3 offset = right.normalized * ReleaseOffset.x + Vector3.up * ReleaseOffset.y + aim * ReleaseOffset.z;
+            if (Physics.SphereCast(origin, c.CanRadius, offset.normalized, out var obstruction,
+                offset.magnitude, c.CanCollisionMask, QueryTriggerInteraction.Ignore))
+                offset = offset.normalized * Mathf.Max(0, obstruction.distance - .01f);
+            origin += offset;
             if (!game.Round.ThrowCan(r.Id, now, c.CanCooldown)) return;
             int index = playerIndex * c.CansPerRound + c.CansPerRound - r.Cans - 1;
             var s = new OneBulletCanState { Active = true, Position = origin,

@@ -38,11 +38,23 @@ namespace Igruha.Tests
             Assert.False(r.Spawn(3, 2)); r.Take(0, 3);
             Assert.False(r.RelocatePickup(4)); Assert.AreEqual(0, r.Holder);
         }
-        [TestCase(2, 6)] [TestCase(4, 4)] [TestCase(8, 0)]
-        public void StartsAtTerritoryForRoster(int players, int stage)
+        [TestCase(2)] [TestCase(4)] [TestCase(8)]
+        public void StartsWithoutStormForEveryRoster(int players)
         {
             var s = new OneBulletStormState(); s.Reset(players, 6, 3, 60);
-            Assert.AreEqual(stage, s.Stage); Assert.False(s.Warning); Assert.AreEqual(63, s.IdleAt);
+            Assert.AreEqual(0, s.Stage); Assert.AreEqual(0, s.SafeStage);
+            Assert.False(s.Warning); Assert.AreEqual(63, s.IdleAt);
+            Assert.False(s.Tick(62.99, 6, 12, 60));
+        }
+        [TestCase(3)] [TestCase(4)] [TestCase(6)] [TestCase(8)]
+        public void EliminationsQueueFinalCourtyardByDuelWithoutSkippingWarnings(int players)
+        {
+            var s = new OneBulletStormState(); s.Reset(players, 6, 3, 60);
+            for (int i = 0; i < players - 2; i++) s.Elimination(10, 6, 12, 60);
+            Assert.AreEqual(6, s.Target); Assert.AreEqual(0, s.Stage);
+            for (int stage = 1; stage <= 6; stage++)
+            { s.Tick(10 + stage * 12, 6, 12, 60); Assert.AreEqual(stage, s.Stage); }
+            Assert.False(s.Warning);
         }
         [Test] public void SimultaneousEliminationsQueueFullWarnings()
         {
@@ -59,9 +71,26 @@ namespace Igruha.Tests
             var s = new OneBulletStormState(); s.Reset(4, 6, 3, 60);
             Assert.False(s.Tick(62.99, 6, 12, 60)); Assert.True(s.Tick(63, 6, 12, 60));
             Assert.AreEqual(75, s.ClosesAt); s.Tick(75, 6, 12, 60);
-            Assert.AreEqual(135, s.IdleAt); s.Tick(135, 6, 12, 60); s.Tick(147, 6, 12, 60);
+            Assert.AreEqual(1, s.Stage); Assert.AreEqual(135, s.IdleAt);
+            for (int stage = 2; stage <= 6; stage++)
+            { double at = s.IdleAt; s.Tick(at, 6, 12, 60); s.Tick(at + 12, 6, 12, 60); }
             Assert.AreEqual(6, s.Stage); Assert.False(s.Tick(1000, 6, 12, 60));
             s.Reset(8, 6, 1000, 60); Assert.AreEqual(0, s.Stage); Assert.AreEqual(0, s.ClosesAt);
+        }
+        [Test] public void CanPrefabKeepsFbxUnitsAndReadablePhysicalSize()
+        {
+            var asset = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Prefabs/Minigames/OneBullet/DecoyCan.prefab");
+            var can = Object.Instantiate(asset);
+            try
+            {
+                var renderers = can.GetComponentsInChildren<Renderer>();
+                var bounds = renderers[0].bounds;
+                foreach (var renderer in renderers) bounds.Encapsulate(renderer.bounds);
+                Assert.That(Mathf.Max(bounds.size.x, bounds.size.y, bounds.size.z), Is.EqualTo(.18f).Within(.002f));
+                Assert.That(bounds.center.magnitude, Is.LessThan(.002f));
+                Assert.IsEmpty(can.GetComponentsInChildren<Collider>());
+            }
+            finally { Object.DestroyImmediate(can); }
         }
         [Test] public void EveryTerritoryIsConnectedNestedAndHasTwoWeaponPoints()
         {

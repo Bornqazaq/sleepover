@@ -60,7 +60,7 @@ namespace Igruha.EditorTools
             var p = so.FindProperty(field); p.arraySize = values.Length;
             for (int i = 0; i < values.Length; i++) p.GetArrayElementAtIndex(i).stringValue = values[i];
         }
-        private static GameObject BuildCan()
+        public static GameObject BuildCan()
         {
             Directory.CreateDirectory(PrefabFolder);
             var root = new GameObject("DecoyCan");
@@ -73,7 +73,9 @@ namespace Igruha.EditorTools
             var bounds = renderers[0].bounds; foreach (var r in renderers) bounds.Encapsulate(r.bounds);
             Vector3 centre = bounds.center;
             float scale = .18f / Mathf.Max(bounds.size.x, bounds.size.y, bounds.size.z);
-            foreach (Transform child in root.transform) { child.localPosition = -centre * scale; child.localScale = Vector3.one * scale; }
+            // FBX roots carry their unit conversion (100 for these models). Preserve it.
+            foreach (Transform child in root.transform)
+            { child.localPosition = (child.localPosition - centre) * scale; child.localScale *= scale; }
             foreach (var collider in root.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(collider);
             var prefab = PrefabUtility.SaveAsPrefabAsset(root, PrefabFolder + "/DecoyCan.prefab"); Object.DestroyImmediate(root); return prefab;
         }

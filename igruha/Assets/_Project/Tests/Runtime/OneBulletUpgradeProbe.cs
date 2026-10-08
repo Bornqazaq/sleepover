@@ -11,7 +11,7 @@ namespace Igruha.Tests
     {
         private OneBulletMinigame game;
         private OneBulletNetwork relay;
-        private bool ready, first, second, third, eliminated, forcedGun, escaped, verified, final, returned;
+        private bool ready, checkedStart, first, second, third, eliminated, forcedGun, escaped, verified, final, returned;
         private int impacts, stageChanges, roster = 4;
         private float started, hubReadyAt = -1;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -31,7 +31,7 @@ namespace Igruha.Tests
             if (current != null && current != game)
             {
                 game = current; relay = game.GetComponent<OneBulletNetwork>();
-                ready = first = second = third = eliminated = forcedGun = escaped = verified = false;
+                ready = checkedStart = first = second = third = eliminated = forcedGun = escaped = verified = false;
                 impacts = stageChanges = 0;
                 game.Decoys.Impact += (p, speed) => { impacts++; Debug.Log("OB_UPGRADE impact=" + impacts); };
                 game.Storm.Changed += () => { stageChanges++; Debug.Log("OB_UPGRADE stage=" + game.Storm.State.Stage + " target=" + game.Storm.State.Target); };
@@ -65,11 +65,19 @@ namespace Igruha.Tests
             var local = game.LocalParticipant; if (local?.Motor == null) return;
             double now = NetworkClock.Now, t = now - game.Round.BeginsAt;
             int id = game.LocalId;
+            if (t > 1 && !checkedStart)
+            {
+                checkedStart = true;
+                bool valid = game.Storm.State.Stage == 0 && !game.Storm.State.Warning;
+                foreach (var r in game.Round.Records) valid &= r.Alive && r.DangerSince < 0 && r.Cans == 2;
+                Debug.Log("OB_UPGRADE START valid=" + valid);
+                if (!valid) Debug.LogError("OB_UPGRADE FAIL storm or wrong inventory at round start");
+            }
             local.Input.EngageAutopilot(); local.Input.DriveMove(Vector2.zero);
             if (!local.Dead)
             {
                 int node = id == 0 ? 42 : id == 1 ? 52 : id == 2 ? 49 : id == 3 ? 61 : id == 4 ? 43 : id == 5 ? 44 : id == 6 ? 50 : 59;
-                if (id == 2 && ((t > 23 && t < 26) || t > 29)) node = roster > 4 ? 8 : 47;
+                if (id == 2 && ((t > 23 && t < 26) || t > 29)) node = 8;
                 local.Motor.TeleportTo(game.Storm.Layout.StandingPoint(node), Quaternion.identity);
                 if (t > 3 && !first) { first = true; relay.RequestCan(Vector3.up); }
                 if (t > 4 && !second) { second = true; relay.RequestCan(Vector3.down); }
@@ -81,7 +89,7 @@ namespace Igruha.Tests
             {
                 forcedGun = true;
                 // Put the only floor weapon in the closing region, then let the real closure relocate it.
-                game.Round.RelocatePickup(roster > 4 ? 0 : 4); relay.Publish();
+                game.Round.RelocatePickup(0); relay.Publish();
                 Debug.Log("OB_UPGRADE weapon_in_closing=" + !game.Storm.SafeWeapon(game.PickupPosition));
             }
             if (t > 27 && t < 29 && !escaped)
@@ -91,7 +99,7 @@ namespace Igruha.Tests
                 Debug.Log("OB_UPGRADE ESCAPE valid=" + valid);
                 if (!valid) Debug.LogError("OB_UPGRADE FAIL escape did not reset exposure");
             }
-            if (t > (roster > 4 ? 86 : 52) && !verified)
+            if (t > 86 && !verified)
             {
                 verified = true; bool valid = game.Storm.State.Stage == 6 && !game.Storm.State.Warning &&
                     game.Round.AliveCount == 2 && !game.Round.Find(2).Alive && game.Round.Find(0).Kills == 0 &&
@@ -100,7 +108,7 @@ namespace Igruha.Tests
                 Debug.Log("OB_UPGRADE CHECK valid=" + valid + " stage=" + game.Storm.State.Stage + " alive=" + game.Round.AliveCount + " pickup=" + game.Round.Pickup);
                 if (!valid) Debug.LogError("OB_UPGRADE FAIL state");
             }
-            if (id == 0 && t > (roster > 4 ? 89 : 55) && game.Round.AliveCount == 2) game.Leave(1);
+            if (id == 0 && t > 89 && game.Round.AliveCount == 2) game.Leave(1);
         }
     }
 }

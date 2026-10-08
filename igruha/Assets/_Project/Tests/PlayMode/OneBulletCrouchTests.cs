@@ -95,13 +95,66 @@ namespace Igruha.Tests.PlayMode
             Assert.That(player.Motor.IsKnockedDown, Is.False);
         }
 
+        [UnityTest]
+        public IEnumerator RaisedCrouchViewDoesNotShootOverLowCover()
+        {
+            player.Motor.TeleportTo(game.Storm.Layout.StandingPoint(50), Quaternion.identity);
+            rig.SetView(0, 0);
+            yield return SetCrouch(true);
+            var cover = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            cover.layer = 8;
+            cover.transform.localScale = new Vector3(1.4f, .95f, .1f);
+            cover.transform.position = player.Motor.Position + Vector3.forward * .9f + Vector3.up * .475f;
+            bool fired = false; Vector3 impact = Vector3.zero;
+            System.Action<Vector3, Vector3, bool> onShot = (origin, hit, lethal) => { fired = true; impact = hit; };
+            game.Shot += onShot;
+            try
+            {
+                yield return new WaitForFixedUpdate(); yield return null;
+                Assert.Greater(Camera.main.transform.position.y, cover.GetComponent<Collider>().bounds.max.y);
+                Assert.True(game.HandlePushButton(player.Motor));
+                yield return new WaitForFixedUpdate(); yield return null;
+                Assert.True(fired);
+                Assert.That(impact.z, Is.EqualTo(cover.transform.position.z - .05f).Within(.03f),
+                    "Seeing above cover must not move the authoritative bullet above it.");
+            }
+            finally { game.Shot -= onShot; Object.Destroy(cover); }
+        }
+
+        [UnityTest]
+        public IEnumerator ThrownCanIsVisibleFromFirstPerson()
+        {
+            // Aim down a real open corridor, independent of the randomized player spawn.
+            player.Motor.TeleportTo(game.Storm.Layout.StandingPoint(50), Quaternion.identity);
+            rig.SetView(0, 0);
+            yield return new WaitForSeconds(PoseSettleSeconds);
+            int before = game.Round.Find(game.LocalId).Cans;
+            game.Decoys.QueueThrow(game.LocalId, Vector3.forward);
+            yield return new WaitForFixedUpdate(); yield return null;
+            Assert.AreEqual(before - 1, game.Round.Find(game.LocalId).Cans);
+            Transform can = null;
+            foreach (Transform child in game.Decoys.transform)
+                if (child.name.StartsWith("DecoyCan") && child.gameObject.activeSelf) { can = child; break; }
+            Assert.NotNull(can, "The accepted throw needs a visible world model.");
+            var renderers = can.GetComponentsInChildren<Renderer>();
+            var bounds = renderers[0].bounds;
+            foreach (var renderer in renderers) bounds.Encapsulate(renderer.bounds);
+            var camera = Camera.main;
+            Assert.True(GeometryUtility.TestPlanesAABB(GeometryUtility.CalculateFrustumPlanes(camera), bounds));
+            Vector3 top = camera.WorldToViewportPoint(bounds.center + camera.transform.up * bounds.extents.magnitude);
+            Vector3 bottom = camera.WorldToViewportPoint(bounds.center - camera.transform.up * bounds.extents.magnitude);
+            Assert.Greater(top.y - bottom.y, .03f, "The can should visibly occupy the frame, not be a millimetre-sized speck.");
+        }
+
         private void AssertEyeLevel()
         {
-            float expected = OneBulletMinigame.ShotOrigin(player).y;
+            float expected = player.Motor.transform.position.y + OneBulletFirstPerson.ViewEyeHeight(player.Capsule);
+            Assert.That(Camera.main.transform.position.y - player.Motor.transform.position.y,
+                Is.GreaterThanOrEqualTo(1.03f), "Crouching must not put the viewpoint near the floor.");
             Assert.That(rig.transform.position.y, Is.EqualTo(expected).Within(EyeTolerance),
-                "View must follow the current capsule exactly once, including after rebinding while crouched.");
+                "View must apply game-local crouch framing exactly once, including after rebinding.");
             Assert.That(Camera.main.transform.position.y, Is.EqualTo(expected).Within(EyeTolerance),
-                "The rendered camera must agree with the authoritative shot origin.");
+                "The rendered camera must use the minigame's crouch framing.");
         }
     }
 }

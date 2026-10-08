@@ -20,6 +20,10 @@ namespace Igruha.Minigames.OneBullet
         [SerializeField] private Vector3 hipPosition = new Vector3(.17f, -.22f, .46f);
         [SerializeField] private Vector3 aimPosition = new Vector3(0, -.094f, .46f);
         private const float ViewScale = 1f, PitchLimit = 80f;
+        // The shared 0.8 m crouch collider is for gameplay, not comfortable first-person framing.
+        public const float MinimumViewEyeHeight = 1.05f;
+        public static float ViewEyeHeight(CapsuleCollider capsule) =>
+            Mathf.Max(OneBulletMinigame.EyeHeight(capsule), MinimumViewEyeHeight);
         private static readonly Vector3 StudioPosition = new Vector3(10000, 10000, 10000);
         private Camera weaponCamera;
         private UniversalAdditionalCameraData outputData;
@@ -90,7 +94,7 @@ namespace Igruha.Minigames.OneBullet
                 // Correct from that actual base, not a second cached standing height: otherwise
                 // rebinding while crouched subtracts the crouch twice and puts the view below the floor.
                 // Use the interpolated transform so following physics does not introduce camera jitter.
-                float eyeY = tracked.Motor.transform.position.y + OneBulletMinigame.EyeHeight(tracked.Capsule);
+                float eyeY = tracked.Motor.transform.position.y + ViewEyeHeight(tracked.Capsule);
                 rig.SetShoulderOffset(Vector3.up * (eyeY - rig.EyePosition.y));
             }
             if (!weaponCamera.enabled) return;

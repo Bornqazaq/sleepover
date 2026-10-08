@@ -156,7 +156,7 @@ namespace Igruha.Tests
                 crouchStageAt = Time.realtimeSinceStartup;
                 return;
             }
-            float expected = OneBulletMinigame.ShotOrigin(local).y;
+            float expected = local.Motor.transform.position.y + OneBulletFirstPerson.ViewEyeHeight(local.Capsule);
             bool valid = local.Motor.IsCrouched && !local.Motor.IsKnockedDown &&
                 Mathf.Abs(firstPersonRig.transform.position.y - expected) < EyeTolerance &&
                 Mathf.Abs(Camera.main.transform.position.y - expected) < EyeTolerance;

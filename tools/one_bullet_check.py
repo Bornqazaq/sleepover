@@ -46,12 +46,12 @@ try:
         crouch_checked = 'ONE_BULLET CROUCH valid=True' in data or (args.scenario == 'disconnect' and index > 0 and 'ONE_BULLET DISCONNECT holding weapon' not in data)
         if args.scenario == 'upgrade':
             expected = 'OB_UPGRADE RETURN valid=True'
-            crouch_checked = all(marker in data for marker in ['OB_UPGRADE CHECK valid=True', 'OB_UPGRADE ESCAPE valid=True', 'OB_UPGRADE FINAL valid=True'])
+            crouch_checked = all(marker in data for marker in ['OB_UPGRADE START valid=True', 'OB_UPGRADE CHECK valid=True', 'OB_UPGRADE ESCAPE valid=True', 'OB_UPGRADE FINAL valid=True'])
         valid = proc.poll() == 0 and expected in data and crouch_checked and 'ONE_BULLET FAIL' not in data and 'OB_UPGRADE FAIL' not in data and 'Exception:' not in data
         failed |= not valid
         print(log.name, 'PASS' if valid else 'FAIL', flush=True)
         for line in data.splitlines():
-            if any(marker in line for marker in ['OB_UPGRADE CHECK', 'OB_UPGRADE ESCAPE', 'OB_UPGRADE FINAL', 'OB_UPGRADE RETURN', 'OB_UPGRADE FAIL', 'ONE_BULLET CROUCH', 'ONE_BULLET ADS', 'ONE_BULLET FINAL', 'ONE_BULLET RETURN', 'ONE_BULLET FAIL', 'ONE_BULLET DISCONNECT', 'итоги раунда']):
+            if any(marker in line for marker in ['OB_UPGRADE START', 'OB_UPGRADE CHECK', 'OB_UPGRADE ESCAPE', 'OB_UPGRADE FINAL', 'OB_UPGRADE RETURN', 'OB_UPGRADE FAIL', 'ONE_BULLET CROUCH', 'ONE_BULLET ADS', 'ONE_BULLET FINAL', 'ONE_BULLET RETURN', 'ONE_BULLET FAIL', 'ONE_BULLET DISCONNECT', 'итоги раунда']):
                 print(line, flush=True)
     if len(set(rankings)) != 1 or len(rankings) != players - disconnected:
         print("FAIL: result tables do not match")

@@ -15,12 +15,12 @@ namespace Igruha.Minigames.OneBullet
         [SerializeField] private Transform[] arrows;
         [SerializeField] private Renderer[] veils;
         [SerializeField] private CanvasGroup canPanel, warningPanel, routePanel;
-        [SerializeField] private TMP_Text canCount, title, detail, seconds, route;
+        [SerializeField] private TMP_Text canCount, canHint, title, detail, seconds, route;
         [SerializeField] private Image progress, tint;
         [SerializeField] private Material warningVeil, dangerVeil;
         private int[] dustModes;
         private int stage = -1, safeStage = -1, shownCans = -1, shownSecond = -1, shownMode = -1, shownRoute = -1;
-        private bool wasActive, practiceLayout;
+        private bool wasActive, practiceLayout, shownCanReady;
         private RectTransform canRect;
         private const float WarningRate = 2f, DangerRate = 6f;
         private static readonly Color Sand = new Color(.9f, .63f, .28f), Danger = new Color(1f, .34f, .19f);
@@ -57,9 +57,15 @@ namespace Igruha.Minigames.OneBullet
             if (stage != storm.State.Stage || safeStage != storm.State.SafeStage)
             { stage = storm.State.Stage; safeStage = storm.State.SafeStage; RefreshWorld(); }
             var record = game.Round.Find(game.LocalId);
-            if (record != null && shownCans != record.Cans)
-            { shownCans = record.Cans; canCount.SetText("Q  ·  БАНКА   {0}", shownCans); }
             double now = NetworkClock.Now;
+            bool canReady = game.Round.IsLive(now);
+            if (record != null && (shownCans != record.Cans || shownCanReady != canReady))
+            {
+                shownCans = record.Cans; shownCanReady = canReady;
+                canCount.SetText("Q  ·  БРОСИТЬ БАНКУ   {0}", shownCans);
+                canHint.text = !canReady ? "Бросок доступен после отсчёта" : shownCans == 0 ?
+                    "Банки закончились до конца раунда" : "Уже с собой · подбирать не нужно";
+            }
             bool danger = alive && record != null && record.DangerSince >= 0;
             bool closing = alive && !storm.Layout.Safe(game.LocalParticipant.Motor.Position, safeStage);
             int mode = danger ? 2 : storm.State.Warning ? 1 : 0;
