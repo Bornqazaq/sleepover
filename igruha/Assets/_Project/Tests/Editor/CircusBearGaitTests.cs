@@ -21,7 +21,7 @@ namespace Igruha.Tests
         [SetUp] public void Load()
         {
             preview = EditorSceneManager.OpenPreviewScene("Assets/_Project/Scenes/Minigames/CansOrder.unity");
-            var source = preview.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<PitBear>(true)).Single();
+            var source = preview.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<PitBear>(true)).First(b => b.name == "PitBear");
             copy = Object.Instantiate(source.gameObject);
             copy.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
             bear = copy.GetComponent<PitBear>();

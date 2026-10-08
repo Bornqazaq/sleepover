@@ -50,8 +50,16 @@ namespace Igruha.Tests
             // CaptureScreenshot renders at the end of the frame. Do not switch
             // the host to the hatch camera before this character frame is written.
             yield return new WaitForSeconds(.4f);
-            var bear = UnityEngine.Object.FindFirstObjectByType<PitBear>();
+            var bears = UnityEngine.Object.FindObjectsByType<PitBear>(FindObjectsSortMode.None).OrderBy(b=>b.name).ToArray();
+            if(bears.Length!=2){fail("circus must have two bears");yield break;}
+            if(bears.Select(b=>b.GetComponent<NetworkObject>().NetworkObjectId).Distinct().Count()!=2)
+                fail("bears do not have independent network identities");
+            var bear = bears[0];
             using var bearProbe = new BearPresentationProbe(game,bear,local,fail);
+            using var secondProbe = new BearPresentationProbe(game,bears[1],local,fail,false);
+            Vector3 secondBefore=bears[1].transform.position;
+            float secondTravel=0,minimumSeparation=float.MaxValue;
+            bool secondChased=false;
             var victims = players.Take(2).Select(p=>p.Avatar).ToArray();
             var cages = victims.Select(v=>UnityEngine.Object.FindObjectsByType<CageStation>(FindObjectsSortMode.None).Single(c=>c.Occupant==v)).ToArray();
             bool[] fell = new bool[2], caught = new bool[2], opened = new bool[2];
@@ -76,7 +84,14 @@ namespace Igruha.Tests
             var localCage=UnityEngine.Object.FindObjectsByType<CageStation>(FindObjectsSortMode.None).FirstOrDefault(c=>c.Occupant==local);
             while (Time.realtimeSinceStartup<deadline && !caught.All(v=>v))
             {
-                bearProbe.Sample();
+                bearProbe.Sample();secondProbe.Sample();
+                if(bears[0]!=null && bears[1]!=null)
+                {
+                    secondTravel+=Vector3.Distance(secondBefore,bears[1].transform.position);
+                    secondBefore=bears[1].transform.position;
+                    secondChased|=bears[1].State==PitBear.BearState.Chase;
+                    minimumSeparation=Mathf.Min(minimumSeparation,Vector3.Distance(bears[0].transform.position,bears[1].transform.position));
+                }
                 if(Time.realtimeSinceStartup>=nextPursuitReport && bear.Target!=null)
                 {
                     nextPursuitReport=Time.realtimeSinceStartup+3;
@@ -127,7 +142,14 @@ namespace Igruha.Tests
             float presentationDeadline=Time.realtimeSinceStartup+CircusKnockout.PresentationSeconds+.6f;
             while(game!=null && game.Phase==MinigamePhase.Round && Time.realtimeSinceStartup<presentationDeadline)
             {
-                bearProbe.Sample();
+                bearProbe.Sample();secondProbe.Sample();
+                if(bears[0]!=null && bears[1]!=null)
+                {
+                    secondTravel+=Vector3.Distance(secondBefore,bears[1].transform.position);
+                    secondBefore=bears[1].transform.position;
+                    secondChased|=bears[1].State==PitBear.BearState.Chase;
+                    minimumSeparation=Mathf.Min(minimumSeparation,Vector3.Distance(bears[0].transform.position,bears[1].transform.position));
+                }
                 yield return null;
             }
             if(liftMax>=liftMin)
@@ -140,6 +162,10 @@ namespace Igruha.Tests
             if(!caught.All(v=>v))fail("bear did not eliminate stationary and fleeing players within timeout");
             Debug.Log("PLAYTEST_CHECK circus floors="+string.Join(",",opened)+" fall="+string.Join(",",fell)+
                 " caught="+string.Join(",",caught)+" chasePeak="+maxSpeed.ToString("F2"));
+            if(!secondChased || secondTravel<2f)fail("second bear did not independently pursue players");
+            if(NetworkManager.Singleton.IsServer && minimumSeparation<PitBear.CompanionClearance-.02f)
+                fail("bear bodies crossed each other");
+            Debug.Log("PLAYTEST_CHECK bear pair secondChased="+secondChased+" travel="+secondTravel.ToString("F2")+" separation="+minimumSeparation.ToString("F3"));
             Capture("bear");
             if(NetworkManager.Singleton.IsServer && game!=null && game.Phase==MinigamePhase.Round)game.EndMinigame();
             float returnDeadline=Time.realtimeSinceStartup+25;
@@ -166,7 +192,7 @@ namespace Igruha.Tests
             if(local!=null && local.TryGetComponent(out PlayerInputReader hubInput) && hubInput.LocallyControlled && !hubInput.enabled)
                 fail("circus Results input lock survived return to hub");
             shelfProbe?.CheckFinished();
-            bearProbe.CheckFinished();
+            bearProbe.CheckFinished();secondProbe.CheckFinished();
         }
 
         private sealed class BearPresentationProbe : IDisposable
@@ -179,7 +205,7 @@ namespace Igruha.Tests
             private readonly MinigameCameraController cameras;
             private readonly Transform shotView;
             private readonly Action<string> fail;
-            private readonly bool reviewMotion;
+            private readonly bool reviewMotion, captureImages;
             private readonly string reviewPrefix;
             private readonly System.Text.StringBuilder reviewFrames = new System.Text.StringBuilder(8192);
             private bool failed, trackingAttack, contact, localHit, localShot, spectatorSeen;
@@ -192,9 +218,9 @@ namespace Igruha.Tests
             private bool reviewSaved;
             private static readonly float[] CaptureTimes={0,.15f,.35f};
 
-            public BearPresentationProbe(MinigameControllerBase game,PitBear bear,PlayerController local,Action<string> fail)
+            public BearPresentationProbe(MinigameControllerBase game,PitBear bear,PlayerController local,Action<string> fail,bool captureImages=true)
             {
-                this.bear=bear;this.fail=fail;
+                this.bear=bear;this.fail=fail;this.captureImages=captureImages;
                 motion=bear.GetComponentInChildren<CircusBearMotion>(true);
                 presentation=(CircusAttackPresentation)Get(game,"attackPresentation");
                 knockout=local.GetComponent<CircusKnockout>();
@@ -203,7 +229,7 @@ namespace Igruha.Tests
                 shotView=(Transform)Get(presentation,"attackView");
                 bear.Caught+=Caught;
                 bear.ImpactShown+=Impact;
-                reviewMotion=LaunchArguments.HasFlag("--circus-motion-review") &&
+                reviewMotion=captureImages && LaunchArguments.HasFlag("--circus-motion-review") &&
                     SystemInfo.graphicsDeviceType!=GraphicsDeviceType.Null &&
                     LaunchArguments.TryGetValue("--playtest-screenshots",out reviewPrefix);
                 if(reviewMotion)reviewFrames.AppendLine("frame,time,attackAge,state,pawX,pawY,pawZ,contactDistance,contactView");
@@ -270,7 +296,7 @@ namespace Igruha.Tests
                     Fail("bear contact view returned to the fallen body's camera before spectator handoff");
                 if(presenting && !watching && Time.frameCount>localHitFrame && !localShot)
                     Fail("confirmed bear hit did not enter the contact view on the following frame");
-                if(localHit && captureIndex<CaptureTimes.Length && Time.time-localHitAt>=CaptureTimes[captureIndex] &&
+                if(captureImages && localHit && captureIndex<CaptureTimes.Length && Time.time-localHitAt>=CaptureTimes[captureIndex] &&
                     (captureIndex>0 || presentation.OwnsCamera))
                 {
                     Capture("strike-"+Mathf.RoundToInt(CaptureTimes[captureIndex]*1000).ToString("D3"));
@@ -301,7 +327,7 @@ namespace Igruha.Tests
                 contact=true;
                 if(motion==null || motion.ContactDistance>.1201f || float.IsNaN(motion.ContactDistance))
                     Fail("authoritative bear caught player without measured paw contact");
-                Debug.Log("PLAYTEST_CHECK bear CONTACT target="+victim.name+" age="+bear.AttackAge.ToString("F3")+
+                Debug.Log("PLAYTEST_CHECK bear CONTACT source="+bear.name+" target="+victim.name+" age="+bear.AttackAge.ToString("F3")+
                     " paw="+(motion!=null?motion.StrikePawCenter.ToString("F3"):"missing")+
                     " contactDistance="+(motion!=null?motion.ContactDistance.ToString("F4"):"missing"));
             }
@@ -310,7 +336,7 @@ namespace Igruha.Tests
 
             private void FinishAttack()
             {
-                Debug.Log("PLAYTEST_CHECK bear attack="+attackNumber+" contact="+contact+" age="+lastAge.ToString("F3")+
+                Debug.Log("PLAYTEST_CHECK bear source="+bear.name+" attack="+attackNumber+" contact="+contact+" age="+lastAge.ToString("F3")+
                     " contactMin="+minContact.ToString("F4")+" contactMax="+maxContact.ToString("F4")+
                     " pawFrom="+firstPaw.ToString("F3")+" pawTo="+lastPaw.ToString("F3"));
                 trackingAttack=false;

@@ -47,6 +47,9 @@ namespace Igruha.Minigames.Stopwatch
         [SerializeField] private CageStation[] cages = System.Array.Empty<CageStation>();
         [Tooltip("Медведь в яме")]
         [SerializeField] private PitBear bear;
+        [SerializeField] private PitBear secondBear;
+        public int BearCount => secondBear != null ? 2 : bear != null ? 1 : 0;
+        public PitBear GetBear(int index) => index == 0 ? bear : index == 1 ? secondBear : null;
         [SerializeField] private CircusAttackPresentation attackPresentation;
         [Tooltip("Камера наблюдателя — включается выбывшему")]
         [SerializeField] private SpectatorCamera spectator;
@@ -235,12 +238,14 @@ namespace Igruha.Minigames.Stopwatch
 
             distractions?.Configure(config.RoarIntervalRange, config.SpotlightIntervalRange, arenaConfig.PitRadius);
 
-            if (bear != null)
+            for (int bearIndex = 0; bearIndex < BearCount; bearIndex++)
             {
+                PitBear bear = GetBear(bearIndex);
                 bear.Configure(config.BearSpeed, config.BearPatrolSpeed, config.BearStrikeRadius,
                     config.BearFirstAttackDelay, config.BearKnockbackSpeed, arenaConfig.PitRadius);
-                bear.Caught -= HandleBearCaught;
-                bear.Caught += HandleBearCaught;
+                bear.CaughtByBear -= HandleBearCaught;
+                bear.CaughtByBear += HandleBearCaught;
+                bear.ConfigureCompanion(GetBear(1 - bearIndex), bearIndex);
             }
         }
 
@@ -395,9 +400,10 @@ namespace Igruha.Minigames.Stopwatch
                 CircusAnimationCullingScope.Release(c.Session?.Avatar);
             }
 
-            if (bear != null)
+            for (int bearIndex = 0; bearIndex < BearCount; bearIndex++)
             {
-                bear.Caught -= HandleBearCaught;
+                PitBear bear = GetBear(bearIndex);
+                bear.CaughtByBear -= HandleBearCaught;
             }
 
             LocalButton = null;
@@ -658,7 +664,7 @@ namespace Igruha.Minigames.Stopwatch
                 c.InPit = true;
                 CircusAnimationCullingScope.Bind(c.Session.Avatar);
                 if (c.LocallyControlled) attackPresentation?.BeginPit();
-                bear?.RegisterFallen(c.Session.Avatar);
+                for (int b = 0; b < BearCount; b++) GetBear(b).RegisterFallen(c.Session.Avatar);
                 eliminatedThisSubround.Add(c.Session.Id);
                 c.Cage?.RaiseAndOpenDoors(config.HatchOpenSeconds, startedAt);
             }
@@ -710,13 +716,18 @@ namespace Igruha.Minigames.Stopwatch
                 return;
             }
 
-            bear.Tick(Time.deltaTime, FindNearestInPit(), SomeoneOnLowestCage());
-            int targetId = -1;
-            var target = bear.AttackVictim != null ? bear.AttackVictim : bear.Target;
-            for (int i = 0; i < contestants.Count; i++)
-                if (contestants[i].Session.Avatar == target && target != null) targetId = contestants[i].Session.Id;
-            bear.PresentationTargetId = targetId;
-            network?.PublishBearState((byte)bear.State, targetId);
+            bool lowest = SomeoneOnLowestCage();
+            for (int bearIndex = 0; bearIndex < BearCount; bearIndex++)
+            {
+                PitBear pursuer = GetBear(bearIndex);
+                pursuer.Tick(Time.deltaTime, FindNearestInPit(pursuer), lowest);
+                int targetId = -1;
+                var target = pursuer.AttackVictim != null ? pursuer.AttackVictim : pursuer.Target;
+                for (int i = 0; i < contestants.Count; i++)
+                    if (contestants[i].Session.Avatar == target && target != null) targetId = contestants[i].Session.Id;
+                pursuer.PresentationTargetId = targetId;
+                network?.PublishBearState((byte)pursuer.State, targetId, bearIndex);
+            }
             if (waitingForPitFinale) TryFinishPitFinale();
         }
 
@@ -742,7 +753,7 @@ namespace Igruha.Minigames.Stopwatch
             EndMinigame();
         }
 
-        private PlayerController FindNearestInPit()
+        private PlayerController FindNearestInPit(PitBear bear)
         {
             PlayerController nearest = null;
             float nearestSqr = float.MaxValue;
@@ -773,6 +784,7 @@ namespace Igruha.Minigames.Stopwatch
                 }
 
                 float sqr = (c.Session.Avatar.transform.position - bearPosition).sqrMagnitude;
+                if (bear.Companion != null && bear.Companion.Target == c.Session.Avatar) sqr += 400f;
                 if (sqr < nearestSqr)
                 {
                     nearestSqr = sqr;
@@ -801,7 +813,7 @@ namespace Igruha.Minigames.Stopwatch
         /// Медведь достал выпавшего. Место игрока уже посчитано в момент
         /// падения — гибель ничего не решает, она только доигрывает сцену.
         /// </summary>
-        private void HandleBearCaught(PlayerController victim, Vector3 impulse)
+        private void HandleBearCaught(PitBear bear, PlayerController victim, Vector3 impulse)
         {
             for (int i = 0; i < contestants.Count; i++)
             {
@@ -812,6 +824,8 @@ namespace Igruha.Minigames.Stopwatch
                 }
 
                 c.InPit = false;
+                for (int b = 0; b < BearCount; b++) GetBear(b).ForgetRunner(victim);
+                if (c.LocallyControlled) attackPresentation?.UseBear(bear);
 
                 Vector3 hitPoint = victim.Position;
                 Vector3 bearPosition = bear.transform.position;
@@ -821,7 +835,7 @@ namespace Igruha.Minigames.Stopwatch
                 bear.ShowImpact(hitPoint + Vector3.up, false);
                 c.Elimination?.TraceImpact(bear);
                 // Гибель решил сервер — остальные её только отыгрывают.
-                network?.AnnounceCaught(c.Session.Id, hitPoint, impulse, (byte)fallType, contactYaw, bearPosition, bearYaw);
+                network?.AnnounceCaught(c.Session.Id, hitPoint, impulse, (byte)fallType, contactYaw, bearPosition, bearYaw, bear == secondBear ? 1 : 0);
                 return;
             }
         }
@@ -959,7 +973,7 @@ namespace Igruha.Minigames.Stopwatch
             // Из состава раунда — иначе беглец получит место, хотя его нет
             // в матче. Ростер сессии чистит Core, здесь свой локальный список.
             RemovePlayer(playerId);
-            bear?.ForgetRunner(c.Session.Avatar);
+            for (int b = 0; b < BearCount; b++) GetBear(b).ForgetRunner(c.Session.Avatar);
 
             if (c.Alive)
             {
@@ -1000,8 +1014,9 @@ namespace Igruha.Minigames.Stopwatch
         }
 
         /// <summary>Состояние медведя пришло из сети — показать, не считая ИИ.</summary>
-        public void ApplyNetworkBearState(byte state, float elapsed = 0f, int targetId = -1)
+        public void ApplyNetworkBearState(byte state, float elapsed = 0f, int targetId = -1, int bearIndex = 0)
         {
+            PitBear bear = GetBear(bearIndex);
             if (HasAuthority || bear == null)
             {
                 return;
@@ -1023,8 +1038,9 @@ namespace Igruha.Minigames.Stopwatch
         /// <c>NetworkObject</c> персонажа жив: он переезжает в хаб.
         /// </summary>
         public void ApplyNetworkCaught(int playerId, Vector3 hitPoint, Vector3 impulse, byte fallType, float contactYaw,
-            Vector3 bearPosition, float bearYaw)
+            Vector3 bearPosition, float bearYaw, int bearIndex = 0)
         {
+            PitBear bear = GetBear(bearIndex);
             if (HasAuthority)
             {
                 return;
@@ -1038,6 +1054,7 @@ namespace Igruha.Minigames.Stopwatch
             }
 
             c.InPit = false;
+            if (c.LocallyControlled) attackPresentation?.UseBear(bear);
 
             bear?.SetPresentationTarget(c.Session.Avatar);
             CircusAnimationCullingScope.Bind(c.Session.Avatar);

@@ -20,6 +20,9 @@ namespace Igruha.Minigames.Circus
         // Fur, muzzle and lifted paws must fit even while the body turns.
         // The masonry's inner face is slightly inside the logical pit radius.
         public const float BodyWallClearance = 2.5f;
+        public const float CompanionClearance = 4.8f;
+        private const float CompanionLookAhead = 1.1f;
+        private const float PawWallPadding = .55f;
         private const float WallBrakingDistance = .65f;
         private const float TurnStrideRadius = .55f;
         private const float StrikeAlignment = .9999f;
@@ -49,7 +52,9 @@ namespace Igruha.Minigames.Circus
         [SerializeField] private float attackRecovery = .3f;
 
         public event Action<PlayerController, Vector3> Caught;
+        public event Action<PitBear, PlayerController, Vector3> CaughtByBear;
         public event Action<Vector3> ImpactShown;
+        public PitBear Companion { get; private set; }
         public BearState State => state;
         public PlayerController Target { get; private set; }
         public PlayerController AttackVictim => attackVictim;
@@ -118,6 +123,23 @@ namespace Igruha.Minigames.Circus
 
         public void SetPresentationTarget(PlayerController player) => presentationVictim=player;
 
+        public void ConfigureCompanion(PitBear other, int slot)
+        {
+            Companion=other;
+            patrolAngle=Mathf.Atan2(transform.position.x,transform.position.z)*Mathf.Rad2Deg;
+            patrolPauseIn=7f+slot*3.5f;
+            if(animator!=null && animator.isInitialized)
+                animator.Play(0,0,slot*.43f);
+        }
+
+        public Vector3 ConstrainPawCenter(Vector3 position)
+        {
+            Vector2 radial=Vector2.ClampMagnitude(new Vector2(position.x,position.z),Mathf.Max(.5f,pitRadius-PawWallPadding));
+            position.x=radial.x;position.z=radial.y;
+            position.y=Mathf.Max(position.y,transform.position.y+.23f);
+            return position;
+        }
+
         /// <summary>Called when the hatch opens, while the player is still above the pit.</summary>
         public void RegisterFallen(PlayerController player)
         {
@@ -130,6 +152,8 @@ namespace Igruha.Minigames.Circus
         {
             for(int i=runners.Count-1;i>=0;i--)
                 if(runners[i].Player==null || runners[i].Player==player)runners.RemoveAt(i);
+            if(Target==player)Target=null;
+            if(attackVictim==player)hitEvaluated=true;
         }
 
         /// <summary>
@@ -266,7 +290,7 @@ namespace Igruha.Minigames.Circus
             // body clearance continuously brakes into the rim instead of
             // gaining on them along the shorter inner circumference.
             float approach=motion!=null?motion.ApproachDistance(nearest):ContactStandOff;
-            Vector3 route=InsideApproachDirection(transform.position+intercept,approach);
+            Vector3 route=AvoidCompanion(InsideApproachDirection(transform.position+intercept,approach));
             FaceTowards(route,deltaTime);
             Steer(route,chaseSpeed,deltaTime);
         }
@@ -305,6 +329,7 @@ namespace Igruha.Minigames.Circus
             }
             SetState(BearState.Chase);
             currentSpeed=Mathf.Min(currentSpeed,repositionSpeed);
+            side=AvoidCompanion(side);
             FaceTowards(side,dt);
             Steer(side,repositionSpeed,dt);
             return true;
@@ -358,6 +383,7 @@ namespace Igruha.Minigames.Circus
             var victim=attackVictim;ForgetRunner(victim);Target=null;
             Trace("Contact "+victim.name+" at "+attackElapsed.ToString("F2")+" s");
             Caught?.Invoke(victim,impulse.normalized*knockbackSpeed);
+            CaughtByBear?.Invoke(this,victim,impulse.normalized*knockbackSpeed);
         }
 
         private static float LungeProgress(float t)
@@ -417,7 +443,20 @@ namespace Igruha.Minigames.Circus
             patrolAngle+=patrolSpeed/radius*dt*Mathf.Rad2Deg;
             float variedRadius=radius-.3f+.3f*Mathf.Sin(patrolAngle*Mathf.Deg2Rad*1.7f);
             Vector3 target=Quaternion.Euler(0,patrolAngle+18,0)*Vector3.forward*variedRadius;
-            Vector3 delta=target-transform.position;delta.y=0;FaceTowards(delta,dt);Steer(delta,patrolSpeed,dt);
+            Vector3 delta=target-transform.position;delta.y=0;delta=AvoidCompanion(delta);FaceTowards(delta,dt);Steer(delta,patrolSpeed,dt);
+        }
+        private Vector3 AvoidCompanion(Vector3 direction)
+        {
+            if(Companion==null || !Companion.isActiveAndEnabled || direction.sqrMagnitude<.001f)return direction;
+            Vector3 toward=Companion.transform.position-transform.position;toward.y=0;
+            float distance=toward.magnitude;
+            if(distance>CompanionClearance+CompanionLookAhead || distance<.01f)return direction;
+            toward/=distance;
+            float entering=Vector3.Dot(direction.normalized,toward);
+            if(entering<=0)return direction;
+            float avoid=Mathf.InverseLerp(CompanionClearance+CompanionLookAhead,CompanionClearance,distance);
+            Vector3 tangent=Vector3.Cross(Vector3.up,toward);
+            return Vector3.Lerp(direction.normalized,(tangent-toward*.3f).normalized,avoid);
         }
         private void Steer(Vector3 direction,float speed,float dt)
         {
@@ -433,7 +472,19 @@ namespace Igruha.Minigames.Circus
         private void MoveBy(Vector3 delta)
         {
             Vector3 next=transform.position+delta;Vector2 flat=new Vector2(next.x,next.z);
-            flat=Vector2.ClampMagnitude(flat,MovementRadius);next.x=flat.x;next.z=flat.y;transform.position=next;
+            flat=Vector2.ClampMagnitude(flat,MovementRadius);next.x=flat.x;next.z=flat.y;
+            if(Companion!=null && Companion.isActiveAndEnabled)
+            {
+                Vector3 separation=next-Companion.transform.position;separation.y=0;
+                if(separation.sqrMagnitude<CompanionClearance*CompanionClearance)
+                {
+                    if(separation.sqrMagnitude<.0001f)return;
+                    Vector3 outside=Companion.transform.position+separation.normalized*CompanionClearance;
+                    if(new Vector2(outside.x,outside.z).magnitude>MovementRadius)return;
+                    next.x=outside.x;next.z=outside.z;
+                }
+            }
+            transform.position=next;
         }
         private void FaceTowards(Vector3 direction,float dt)
         {

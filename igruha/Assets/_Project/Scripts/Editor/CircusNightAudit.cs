@@ -27,7 +27,9 @@ namespace Igruha.EditorTools
                     var scene=EditorSceneManager.OpenScene("Assets/_Project/Scenes/Minigames/"+name+".unity",OpenSceneMode.Single);
                     var roots=scene.GetRootGameObjects();
                     Require(roots.Count(r=>r.name=="_CircusNight")==1,"Exactly one circus art root");
-                    var bear=roots.SelectMany(r=>r.GetComponentsInChildren<PitBear>(true)).Single();
+                    var bears=roots.SelectMany(r=>r.GetComponentsInChildren<PitBear>(true)).ToArray();
+                    Require(bears.Length==2,"Two independently animated bears");
+                    var bear=bears[0];
                     var animator=bear.GetComponentInChildren<Animator>();
                     Require(animator!=null && animator.runtimeAnimatorController!=null,"Bear animator assigned");
                     Require(!animator.isHuman,"Original generic bear skeleton");
@@ -36,7 +38,7 @@ namespace Igruha.EditorTools
                     Require(GameObject.Find("_CircusNight").GetComponentsInChildren<Collider>(true).Length==0,"Scenery adds no gameplay collisions");
                     var game=GameObject.Find("MinigameManager").GetComponents<MonoBehaviour>().Single(m=>m.GetType().Name==name+"Minigame");
                     var data=new SerializedObject(game);
-                    foreach(string field in new[]{"bear","scoreboard"})Require(data.FindProperty(field).objectReferenceValue!=null,name+"."+field);
+                    foreach(string field in new[]{"bear","secondBear","scoreboard"})Require(data.FindProperty(field).objectReferenceValue!=null,name+"."+field);
                     var cages=data.FindProperty("cages");Require(cages.arraySize==8,"Eight cage bindings");
                     for(int i=0;i<cages.arraySize;i++)Require(cages.GetArrayElementAtIndex(i).objectReferenceValue!=null,"Cage "+i+" bound");
                     int missing=roots.Sum(r=>r.GetComponentsInChildren<Transform>(true).Sum(t=>GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(t.gameObject)));
@@ -50,7 +52,7 @@ namespace Igruha.EditorTools
                     Require(bulb!=null && bulb.IsKeywordEnabled("_EMISSION") && (bulb.globalIlluminationFlags & MaterialGlobalIlluminationFlags.AnyEmissive)!=0,"Bulb emission survives URP material validation");
                     CheckCraft(scene.path);
                     result.AppendLine(name+": 8 cage bindings, scoreboard, bear, original art, camera post processing and missing-script checks PASS.");
-                    CheckBear(bear,result);
+                    foreach(var animal in bears)CheckBear(animal,result);
                 }
             }
             finally{if(!string.IsNullOrEmpty(original))EditorSceneManager.OpenScene(original,OpenSceneMode.Single);}

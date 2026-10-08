@@ -29,6 +29,8 @@ namespace Igruha.Minigames.Circus
         [SerializeField] private SpectatorCamera spectator;
         [SerializeField] private Transform attackView;
         [SerializeField] private PitBear bear;
+        [SerializeField] private PitBear secondBear;
+        private PitBear firstBear;
         [SerializeField] private TMP_Text cue;
         [SerializeField] private GameObject shelfHud;
         private PlayerController local;
@@ -47,6 +49,7 @@ namespace Igruha.Minigames.Circus
 
         private void Awake()
         {
+            firstBear = bear;
             solidMask = LayerMask.GetMask("Ground", "Cover", "PlayerBarrier");
             if (attackView != null) shotCamera = attackView.GetComponent<CinemachineCamera>();
             if (shotCamera != null) originalFieldOfView = shotCamera.Lens.FieldOfView;
@@ -76,13 +79,34 @@ namespace Igruha.Minigames.Circus
             if (local == null || bear == null) { ResetPresentation(); return; }
             bool watching = spectator != null && spectator.IsActive;
             bool caught = knockout != null && knockout.IsEliminated;
+            if (!caught && !shot && secondBear != null)
+            {
+                PitBear closest = firstBear;
+                if (closest == null || ThreatScore(secondBear) > ThreatScore(closest)) closest = secondBear;
+                UseBear(closest);
+            }
             if (cue == null) return;
             bool targeted = bear.PresentationTargetId == localId && bear.State == PitBear.BearState.Attack;
             cue.enabled = !watching;
             cue.text = caught ? "БРУНО ПОЙМАЛ ТЕБЯ" : targeted ? "ЗАМАХ — УКЛОНЯЙСЯ!" :
                 bear.State == PitBear.BearState.Watching ? "ПРИЗЕМЛИСЬ И ВСТАВАЙ" :
-                bear.State == PitBear.BearState.WindUp ? "БРУНО ГОТОВИТСЯ К РЫВКУ" : "БРУНО РЯДОМ — БЕГИ!";
+                bear.State == PitBear.BearState.WindUp ? "МЕДВЕДИ ГОТОВЯТСЯ К РЫВКУ" : "ДВА МЕДВЕДЯ — НЕ СТОЙ НА МЕСТЕ!";
             cue.color = caught ? new Color(1, .47f, .3f) : targeted ? new Color(1, .77f, .3f) : new Color(1, .91f, .72f);
+        }
+
+        private float ThreatScore(PitBear source)
+        {
+            if (source == null || local == null) return float.NegativeInfinity;
+            float score = -Vector3.SqrMagnitude(source.transform.position - local.Position);
+            if (source.PresentationTargetId == localId && source.State == PitBear.BearState.Attack) score += 1000;
+            return score;
+        }
+
+        public void UseBear(PitBear source)
+        {
+            if (source == null || source == bear || shot) return;
+            bear = source;
+            geometry.Bind(bear, local);
         }
 
         private void BeginShot()

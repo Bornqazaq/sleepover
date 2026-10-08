@@ -372,6 +372,36 @@ namespace Igruha.Tests
             Assert.That(hits,Is.Zero,"Crossing the whole remaining window cannot apply damage from a late released pose.");
         }
 
+        [TestCase("Player",0f)][TestCase("Boss",90f)]
+        [TestCase("Fat",180f)][TestCase("MyBoy",270f)]
+        public void AdaptedStrikeSkinStaysInsideMasonryAndAboveTheFloor(string character,float heading)
+        {
+            Build(character,heading+180);
+            Vector3 outward=Quaternion.Euler(0,heading,0)*Vector3.forward;
+            bear.transform.SetPositionAndRotation(outward*(8.64f-PitBear.BodyWallClearance),Quaternion.Euler(0,heading,0));
+            MovePlayer(outward*8.45f);
+            var skin=bearObject.GetComponentInChildren<SkinnedMeshRenderer>();
+            var mesh=new Mesh();float maximumRadius=0,minimumHeight=float.MaxValue;
+            try
+            {
+                for(int frame=0;frame<66;frame++)
+                {
+                    Step(1f/60);
+                    skin.BakeMesh(mesh);
+                    foreach(var vertex in mesh.vertices)
+                    {
+                        Vector3 world=skin.transform.TransformPoint(vertex);
+                        maximumRadius=Mathf.Max(maximumRadius,new Vector2(world.x,world.z).magnitude);
+                        minimumHeight=Mathf.Min(minimumHeight,world.y);
+                    }
+                }
+                TestContext.Out.WriteLine("Solved skin radius="+maximumRadius+" floor="+minimumHeight);
+                Assert.That(maximumRadius,Is.LessThan(8.54f),"Contact IK must keep fur and claws before the visible masonry.");
+                Assert.That(minimumHeight,Is.GreaterThan(-.035f),"The complete swiping paw must not enter the floor.");
+            }
+            finally { Object.DestroyImmediate(mesh); }
+        }
+
         private void Build(string character,float facing=180,bool startAttack=true)
         {
             elapsed=0;hits=0;idlePhase=.25f;armClearance=null;footGrounding=null;contactTrace.Clear();

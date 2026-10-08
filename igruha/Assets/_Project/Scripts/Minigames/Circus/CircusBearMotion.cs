@@ -21,10 +21,13 @@ namespace Igruha.Minigames.Circus
             internal float UpperLength, LowerLength;
         }
         private readonly Leg[] legs = new Leg[4];
+        private readonly Transform[] lids = new Transform[2];
+        private readonly Transform[] ears = new Transform[2];
         private readonly CircusBearContactShape contactShape = new CircusBearContactShape();
         private PlayerController fittedVictim;
         private Vector3 previousPosition, previousContact;
         private float previousYaw, headTurn;
+        private float lifeTime;
         private bool initialized, contactKnown;
         private Vector3 sampledSurface,sampledShoulder;
         private float sampledAge,sampledReach,sampledShoulderDistance;
@@ -101,6 +104,14 @@ namespace Igruha.Minigames.Circus
         private void Awake()
         {
             var bones = GetComponentsInChildren<Transform>(true);
+            foreach (var bone in bones)
+            {
+                if (bone.name == "Lid.L") lids[0] = bone;
+                if (bone.name == "Lid.R") lids[1] = bone;
+                if (bone.name == "Ear.L") ears[0] = bone;
+                if (bone.name == "Ear.R") ears[1] = bone;
+            }
+            lifeTime = bear != null && bear.name.EndsWith("_Second") ? 1.7f : 0;
             string[] names = { "Fore", "Fore", "Hind", "Hind" };
             for (int i = 0; i < legs.Length; i++)
             {
@@ -147,6 +158,25 @@ namespace Igruha.Minigames.Circus
             bool locomotion = bear.State == PitBear.BearState.Patrol || bear.State == PitBear.BearState.Chase;
             bool striking = bear.State == PitBear.BearState.Attack;
             bool turning = Mathf.Abs(turn) > 8 && bear.State != PitBear.BearState.Taunt;
+            lifeTime += dt;
+            // Facial life continues during locomotion and pauses; it is not tied
+            // to the short repeating walk cycle. The two animals have different phases.
+            if (!striking && bear.State != PitBear.BearState.Taunt)
+            {
+                float blink = Mathf.Max(0, 1 - Mathf.Abs(Mathf.Repeat(lifeTime, 4.9f) - 3.6f) / .095f);
+                for (int i = 0; i < 2; i++)
+                {
+                    if (lids[i] != null && blink > 0)
+                    {
+                        Vector3 scale = lids[i].localScale;
+                        scale.y *= 1 + 2 * blink;
+                        lids[i].localScale = scale;
+                    }
+                    float flick = Mathf.Max(0, 1 - Mathf.Abs(Mathf.Repeat(lifeTime + i * 1.3f, 6.1f) - 2.2f) / .24f);
+                    if (ears[i] != null) ears[i].localRotation *= Quaternion.Euler(5 * flick, 0, (i == 0 ? 3 : -3) * flick);
+                }
+                if (head != null) head.localRotation *= Quaternion.Euler(.65f * Mathf.Sin(lifeTime * 2.15f), 0, 0);
+            }
             float bearing = turn * .065f;
             if (bear.PresentationVictim != null)
             {
@@ -192,6 +222,9 @@ namespace Igruha.Minigames.Circus
             Vector3 wanted = Vector3.Lerp(animated, surface, approach * release * reachable);
             wanted = contactShape.ProjectOutside(wanted, approachPoint, PawRadius);
             if (contactKnown) wanted = contactShape.SweepOutside(previousContact, wanted, approachPoint, PawRadius);
+            // IK is evaluated after the authored clip, so the root's wall margin
+            // alone cannot keep the extended paw and claws out of the masonry.
+            wanted = bear.ConstrainPawCenter(wanted);
             Quaternion rotation = leg.Paw.rotation;
             Vector3 ankle = wanted - leg.Paw.TransformVector(leg.ContactOffset);
             Solve(leg, ankle, rotation);
