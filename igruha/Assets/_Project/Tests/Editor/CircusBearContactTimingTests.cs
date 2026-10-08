@@ -186,7 +186,7 @@ namespace Igruha.Tests
         }
 
         [TestCase(15)][TestCase(30)][TestCase(60)]
-        public void RunnerChargingInsideAfterWindupCannotBeHitInsideTheChest(int fps)
+        public void RunnerChargingIntoTheSwipingPawReceivesTheFirstVisibleContact(int fps)
         {
             Build("Boss");
             Step(.34f);
@@ -200,7 +200,20 @@ namespace Igruha.Tests
                 if(elapsed>=PitBear.ContactSeconds && elapsed<=PitBear.ContactSeconds+.09f && motion.ContactDistance<=.12f)touching=true;
             }
             Assert.That(touching,Is.True,"Regression must exercise a real paw touch, not merely an out-of-reach dodge.");
-            Assert.That(hits,Is.Zero,"Touching the paw from inside the bear cannot be confirmed as a valid strike pose.");
+            Assert.That(hits,Is.EqualTo(1),"A current, visible paw contact cannot be vetoed by a torso-clearance heuristic.");
+        }
+
+        [TestCase(15)][TestCase(30)][TestCase(60)]
+        public void FreshContactDuringSwipeFollowThroughStillCounts(int fps)
+        {
+            Build("Player");
+            Vector3 reachable=player.Position;
+            MovePlayer(reachable+Vector3.right*2);
+            Step(.48f);
+            Assert.That(hits,Is.Zero,"An actual miss must remain a miss.");
+            MovePlayer(reachable);
+            for(int i=0;i<Mathf.CeilToInt(.13f*fps);i++)Step(1f/fps);
+            Assert.That(hits,Is.EqualTo(1),"The paw is still swiping after the old 90 ms contact gate.\n"+contactTrace);
         }
 
         [Test] public void WallBlockedRetreatWalksAroundThenReachesTheCloseRunner()

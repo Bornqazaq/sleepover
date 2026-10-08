@@ -211,7 +211,7 @@ namespace Igruha.Minigames.Circus
             float age = bear.AttackAge;
             contactShape.RefreshPose();
             float approach = Mathf.SmoothStep(0, 1, Mathf.InverseLerp(PitBear.SwipeSeconds, PitBear.ContactSeconds, age));
-            float release = 1 - Mathf.SmoothStep(0, 1, Mathf.InverseLerp(PitBear.ContactSeconds + .08f, PitBear.ContactSeconds + .32f, age));
+            float release = 1 - Mathf.SmoothStep(0, 1, Mathf.InverseLerp(PitBear.ContactSeconds + .14f, PitBear.ContactSeconds + .32f, age));
             Vector3 approachPoint = bear.PresentationRoot.position + Vector3.up;
             Vector3 surface = contactShape.SurfaceToward(approachPoint, PawRadius);
             // Keep the authored miss; never stretch the foreleg to a player who escaped.

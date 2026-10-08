@@ -42,6 +42,7 @@ namespace Igruha.Minigames.Circus
         private int localId = -1, solidMask;
         private bool inPit, shot, shotAttempted, hudWasActive, blendPathClear, occlusionReported;
         private readonly CircusShotGeometry geometry = new CircusShotGeometry();
+        private CircusHatchVisibility hatchVisibility;
         private float originalFieldOfView, shotStarted;
         private Vector3 center, centerVelocity;
         private string rejection;
@@ -63,6 +64,7 @@ namespace Igruha.Minigames.Circus
             local = player; localId = id;
             knockout = player != null ? player.GetComponent<CircusKnockout>() : null;
             output = Camera.main;
+            hatchVisibility = new CircusHatchVisibility(player, output, bear != null ? bear.transform.root : transform.root);
             geometry.Bind(bear, player);
         }
 
@@ -70,6 +72,7 @@ namespace Igruha.Minigames.Circus
         {
             if (inPit) return;
             inPit = true;
+            hatchVisibility?.SetActive(true);
             if (shelfHud != null) { hudWasActive = shelfHud.activeSelf; shelfHud.SetActive(false); }
         }
 
@@ -294,6 +297,8 @@ namespace Igruha.Minigames.Circus
 
         public void ResetPresentation()
         {
+            hatchVisibility?.Dispose();
+            hatchVisibility = null;
             if (shot) EndShot(spectator != null && spectator.IsActive);
             // Spectator.Deactivate restores the camera which preceded spectating.
             // That may have been this shot; it must not survive into the next round.

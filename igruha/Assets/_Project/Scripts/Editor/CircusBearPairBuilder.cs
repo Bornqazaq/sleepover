@@ -42,6 +42,8 @@ namespace Igruha.EditorTools
             var scene = EditorSceneManager.GetActiveScene();
             if (scene.name != "CansOrder" && scene.name != "Stopwatch")
                 throw new InvalidOperationException("Open a circus scene.");
+            foreach (var cage in Object.FindObjectsByType<CageStation>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                CircusPlaytestFixes.ApplyShelfSupport(cage.transform);
             var game = Object.FindFirstObjectByType<MinigameControllerBase>();
             var data = new SerializedObject(game);
             var first = data.FindProperty("bear").objectReferenceValue as PitBear;

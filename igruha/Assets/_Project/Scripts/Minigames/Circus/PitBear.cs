@@ -16,7 +16,7 @@ namespace Igruha.Minigames.Circus
         private const float MaximumLunge = 2.5f;
         private const float MaximumBackstep = 2.0f;
         private const float ContactReach = 2.85f;
-        private const float ContactWindow = .09f;
+        private const float ContactWindow = .22f;
         // Fur, muzzle and lifted paws must fit even while the body turns.
         // The masonry's inner face is slightly inside the logical pit radius.
         public const float BodyWallClearance = 2.5f;
@@ -373,11 +373,10 @@ namespace Igruha.Minigames.Circus
             if(motion==null || motion.ContactFrame!=Time.frameCount || motion.ContactVersion==contactVersionBeforeTick ||
                 motion.ContactVictim!=attackVictim || motion.ContactDistance>ContactTolerance)return;
             Vector3 delta=attackVictim.transform.position-transform.position;
-            float vertical=Mathf.Abs(delta.y);delta.y=0;
-            if(vertical>=.95f || delta.magnitude>ContactReach || Vector3.Dot(attackDirection,delta.normalized)<=.82f)return;
-            // A paw can touch a runner standing inside the bear. That is not a
-            // valid hit pose, including when the pit wall blocked the backstep.
-            if(!motion.HasBodyClearance(attackVictim))return;
+            delta.y=0;
+            // This frame's solved paw touching the actual skin is the hit.
+            // Root distance, facing and torso-clearance heuristics are useful
+            // for planning the approach, but cannot veto an observed contact.
             hitEvaluated=true;
             Vector3 impulse=(delta.sqrMagnitude>.001f?delta.normalized:attackDirection)+Vector3.up*.35f;
             var victim=attackVictim;ForgetRunner(victim);Target=null;

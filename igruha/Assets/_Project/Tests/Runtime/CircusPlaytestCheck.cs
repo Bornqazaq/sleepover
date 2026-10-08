@@ -32,6 +32,7 @@ namespace Igruha.Tests
             input.EngageAutopilot(); input.DriveMove(Vector2.zero);
             var stage = game.GetComponent<MinigameStageState>();
             float deadline = Time.realtimeSinceStartup + 155;
+            if(game is CansOrderMinigame) yield return CheckInitialShelfRush(local,input,stage,fail);
             while (stage.Stage != 2 && Time.realtimeSinceStartup < deadline) yield return null;
             yield return new WaitForSeconds(.5f);
             bool cansPlacement=game is CansOrderMinigame;
@@ -377,6 +378,48 @@ namespace Igruha.Tests
                 System.IO.File.WriteAllText(reviewPrefix+"-motion.csv",reviewFrames.ToString());
                 Debug.Log("PLAYTEST_CHECK circus motionReview frames="+reviewFrame+" manifest="+reviewPrefix+"-motion.csv");
             }
+        }
+
+        private static IEnumerator CheckInitialShelfRush(PlayerController local,PlayerInputReader input,MinigameStageState stage,Action<string> fail)
+        {
+            var cage=UnityEngine.Object.FindObjectsByType<CageStation>(FindObjectsSortMode.None).Single(c=>c.Occupant==local);
+            var shelf=cage.GetComponentInChildren<CanShelf>();
+            var grounding=local.GetComponent<CharacterFootGrounding>();
+            float low=float.MaxValue,skinLow=float.MaxValue,seconds=0;int movingFrames=0,crouchedFrames=0;
+            float unlockDeadline=Time.realtimeSinceStartup+5;
+            while(local.MovementLocked && stage.Stage!=2 && Time.realtimeSinceStartup<unlockDeadline)yield return null;
+            bool wasSuppressed=local.CrouchInputSuppressed;
+            local.CrouchInputSuppressed=true;
+            while(seconds<2f && stage.Stage!=2)
+            {
+                local.SetCrouched(seconds<.65f);
+                Vector3 direction=shelf.Board.position-local.Position;direction.y=0;
+                direction.Normalize();
+                if(seconds>.65f && seconds<1f)direction=-direction;
+                local.SetCameraReference(null);input.DriveMove(new Vector2(direction.x,direction.z));
+                if(!local.MovementLocked)movingFrames++;
+                if(local.IsCrouched)crouchedFrames++;
+                float offset=local.Position.y-cage.transform.position.y;
+                if(offset<low-.01f && offset<-.06f)
+                {
+                    var capsule=local.GetComponent<CapsuleCollider>();
+                    Debug.Log("PLAYTEST_CHECK shelf penetration t="+seconds+" offset="+offset+
+                        " body="+local.Position+" visual="+local.transform.position+" cage="+cage.transform.position+
+                        " capsule="+capsule.center+" height="+capsule.height+" floor="+
+                        cage.transform.Find("Floor/ClosedFloorSupport").GetComponent<Collider>().bounds);
+                }
+                low=Mathf.Min(low,offset);
+                if(seconds>.15f && grounding!=null)skinLow=Mathf.Min(skinLow,grounding.LowestSkinHeight-cage.transform.position.y);
+                seconds+=Time.deltaTime;yield return null;
+            }
+            input.DriveMove(Vector2.zero);
+            local.SetCrouched(false);local.CrouchInputSuppressed=wasSuppressed;
+            if(movingFrames==0)fail("initial shelf rush never exercised unlocked movement");
+            if(crouchedFrames==0)fail("initial shelf rush never exercised crouching");
+            if(low<-.06f)fail("initial shelf rush sank under the closed cage floor: "+low);
+            if(skinLow<-.06f)fail("initial shelf rush put the visible skin under the closed floor: "+skinLow);
+            Debug.Log("PLAYTEST_CHECK shelf rush movingFrames="+movingFrames+" crouchedFrames="+crouchedFrames+" minimumFloorOffset="+low+" minimumSkinOffset="+skinLow);
+            Capture("shelf-rush");
         }
 
         private static IEnumerator CheckShelfOcclusion(CansOrderMinigame cans, ShelfRenderProbe probe, ProbeBarrier barrier, Action<string> fail)

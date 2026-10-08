@@ -236,6 +236,11 @@ namespace Igruha.EditorTools
                 fill=Light(lighting,"Bruno_SoftFill",LightType.Directional,new Vector3(0,6,-4),Vector3.zero,
                     new Color(.92f,.96f,1f),.95f,30).transform;
             fill.rotation=Quaternion.Euler(25,155,0);
+            var playerFill=lighting.Find("Player_SoftFill");
+            if(playerFill==null)
+                playerFill=Light(lighting,"Player_SoftFill",LightType.Directional,new Vector3(0,6,-4),Vector3.zero,
+                    Color.white,.8f,30).transform;
+            playerFill.rotation=Quaternion.Euler(22,145,0);
             foreach(var renderer in UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsInactive.Include,FindObjectsSortMode.None))
             {
                 if(renderer.gameObject.scene!=scene || renderer.GetComponentInParent<Igruha.Core.Player.PlayerController>()!=null) continue;
@@ -254,7 +259,7 @@ namespace Igruha.EditorTools
             foreach(var light in UnityEngine.Object.FindObjectsByType<Light>(FindObjectsInactive.Include,FindObjectsSortMode.None))
             {
                 if(light.gameObject.scene!=scene) continue;
-                bool neutral=light.name=="CanvasBounce" || light.name.StartsWith("CagePool_") || light.name=="PitReadability";
+                bool neutral=light.name=="CanvasBounce" || light.name.StartsWith("CagePool_") || light.name=="PitReadability" || light.name=="Player_SoftFill";
                 bool scenery=light.name.StartsWith("CupolaBounce_") || light.name.StartsWith("CanvasWash_")
                     || light.name.StartsWith("FairgroundPool_") || light.name.StartsWith("LanternBounce_")
                     || light.name.StartsWith("StallPractical_") || light.name=="MarqueeWarmth"
@@ -263,6 +268,7 @@ namespace Igruha.EditorTools
                 if(!neutral && !scenery && !animalFill) continue;
                 if(animalFill){light.intensity=.95f;light.color=new Color(.92f,.96f,1f);}
                 if(neutral) light.color=Color.white;
+                if(light.name=="Player_SoftFill"){light.intensity=.8f;light.shadows=LightShadows.None;}
                 if(light.name=="CanvasBounce")
                 {light.intensity=1.45f;light.color=new Color(1f,.95f,.87f);light.transform.rotation=Quaternion.Euler(48,328,0);}
                 if(light.name=="PitReadability") light.intensity=12f;
@@ -284,7 +290,7 @@ namespace Igruha.EditorTools
             if(profile!=null)
             {
                 var grade=Ensure<ColorAdjustments>(profile);
-                grade.postExposure.Override(.1f);grade.contrast.Override(8);grade.saturation.Override(8);
+                grade.postExposure.Override(.14f);grade.contrast.Override(2);grade.saturation.Override(8);
                 grade.colorFilter.Override(Color.white);grade.hueShift.Override(0);
                 Ensure<Tonemapping>(profile).mode.Override(TonemappingMode.ACES);
                 var balance=Ensure<WhiteBalance>(profile);balance.temperature.Override(0);balance.tint.Override(0);
