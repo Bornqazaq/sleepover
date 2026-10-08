@@ -84,7 +84,7 @@ namespace Igruha.Tests
             int id=game.LocalId;
             // Keep idle test players away from all random weapon locations.
             if((id==0&&t<17)||(id>1&&t<20))
-                local.Motor.TeleportTo(game.Storm.Layout.StandingPoint(id==0?42:52),Quaternion.identity);
+                local.Motor.TeleportTo(game.Storm.Layout.StandingPoint(id==0?42:50),Quaternion.identity);
             if(game.Round.Pickup>=0 && ((!missed && id==1 && t<17) || (id==0 && t>=17 && !movedToStage)))
             {
                 moveTarget=game.PickupPosition;moveUntil=now+.4;

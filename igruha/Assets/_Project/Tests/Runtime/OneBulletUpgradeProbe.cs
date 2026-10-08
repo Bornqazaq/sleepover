@@ -80,8 +80,8 @@ namespace Igruha.Tests
             local.Input.EngageAutopilot(); local.Input.DriveMove(Vector2.zero);
             if (!local.Dead)
             {
-                int node = id == 0 ? 42 : id == 1 ? 52 : id == 2 ? 49 : id == 3 ? 61 : id == 4 ? 43 : id == 5 ? 44 : id == 6 ? 50 : 59;
-                if (id == 2 && ((t > firstClose + 1 && t < firstClose + 4) || t > firstClose + 7)) node = 8;
+                int node = id == 0 ? 42 : id == 1 ? 50 : id == 2 ? 49 : id == 3 ? 59 : id == 4 ? 43 : id == 5 ? 44 : id == 6 ? 40 : 51;
+                if (id == 2 && ((t > firstClose + 1 && t < firstClose + 4) || t > firstClose + 7)) node = 72;
                 local.Motor.TeleportTo(game.Storm.Layout.StandingPoint(node), Quaternion.identity);
                 if (t > 3 && !first) { first = true; relay.RequestCan(Vector3.up); }
                 if (t > 4 && !second) { second = true; relay.RequestCan(Vector3.down); }
@@ -93,14 +93,14 @@ namespace Igruha.Tests
             {
                 forcedGun = true;
                 // Place the gun before the elimination; the warning must move it immediately.
-                game.Round.RelocatePickup(0); relay.Publish();
-                Debug.Log("OB_UPGRADE weapon_in_closing=" + !game.Storm.SafeWeapon(game.PickupPosition));
+                game.Round.RelocatePickup(7); relay.Publish();
+                Debug.Log("OB_UPGRADE weapon_in_closing=" + !game.Storm.Layout.Safe(game.PickupPosition, game.Storm.State.Stage + 1));
             }
             if (t > firstDeath + 3 && !checkedGun)
             {
                 checkedGun = true;
                 bool valid = game.Storm.State.Stage == 0 && game.Storm.State.Warning &&
-                    game.Round.Pickup >= 0 && game.Storm.SafeWeapon(game.PickupPosition);
+                    game.Round.Pickup >= 0 && game.Round.Pickup != 7 && game.Storm.SafeWeapon(game.PickupPosition);
                 Debug.Log("OB_UPGRADE EARLY_GUN valid=" + valid);
                 if (!valid) Debug.LogError("OB_UPGRADE FAIL gun left in announced storm territory");
             }

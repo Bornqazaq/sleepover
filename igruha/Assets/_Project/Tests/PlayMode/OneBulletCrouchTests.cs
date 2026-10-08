@@ -99,7 +99,7 @@ namespace Igruha.Tests.PlayMode
         public IEnumerator ClosingTerritoryMovesFloorGunBeforeDangerAndKeepsHeldGun()
         {
             var round = game.Round;
-            round.ApplyHeader(OneBulletRound.Nobody, 0, 0, round.BeginsAt, round.EndsAt,
+            round.ApplyHeader(OneBulletRound.Nobody, 7, 7, round.BeginsAt, round.EndsAt,
                 round.SpawnAt, false, OneBulletRound.Nobody);
             game.NotifyChanged();
             game.Leave(3);
@@ -107,20 +107,50 @@ namespace Igruha.Tests.PlayMode
             Assert.That(game.Storm.State.Target, Is.EqualTo(1));
             Assert.That(NetworkClock.Now, Is.LessThan(game.Storm.State.ClosesAt));
             Assert.That(round.Pickup, Is.GreaterThanOrEqualTo(0));
-            Assert.That(round.Pickup, Is.Not.EqualTo(0), "Move at announcement, not when the area becomes lethal.");
+            Assert.That(round.Pickup, Is.Not.EqualTo(7), "Move at announcement, not when the area becomes lethal.");
             Assert.True(game.Storm.SafeWeapon(game.PickupPosition));
             // Even a long pending queue must not place the new gun in a later closing territory.
-            round.RelocatePickup(9);
+            round.RelocatePickup(0);
             game.Storm.State.Apply(0, 6, NetworkClock.Now + 20, NetworkClock.Now + 60);
             game.RelocateUnsafePickup();
             Assert.True(game.Storm.SafeWeapon(game.PickupPosition));
-            CollectionAssert.Contains(new[] { 3, 5 }, round.Pickup);
+            CollectionAssert.Contains(new[] { 3, 5, 9, 11 }, round.Pickup);
             Assert.True(round.Take(game.LocalId, NetworkClock.Now));
             game.RelocateUnsafePickup(); game.NotifyChanged();
             Assert.That(round.Holder, Is.EqualTo(game.LocalId));
             var view = Object.FindFirstObjectByType<OneBulletPresentation>();
             Assert.False(view.transform.Find("PickupGlints").GetComponent<ParticleSystem>().isPlaying);
             yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator NewPassagesCanBeWalkedInBothDirections()
+        {
+            int[] from = { 13, 17, 35, 38, 40, 66 };
+            int[] to = { 22, 26, 44, 47, 41, 67 };
+            player.Input.EngageAutopilot();
+            player.Motor.SetCrouched(false);
+            for (int i = 0; i < from.Length; i++)
+                for (int direction = 0; direction < 2; direction++)
+                {
+                    int start = direction == 0 ? from[i] : to[i];
+                    int end = direction == 0 ? to[i] : from[i];
+                    player.Motor.TeleportTo(game.Storm.Layout.StandingPoint(start), Quaternion.identity);
+                    yield return new WaitForFixedUpdate();
+                    yield return new WaitForFixedUpdate();
+                    Vector3 target = game.Storm.Layout.StandingPoint(end);
+                    float deadline = Time.realtimeSinceStartup + 3f;
+                    while (Vector3.Distance(player.Motor.Position, target) > .35f && Time.realtimeSinceStartup < deadline)
+                    {
+                        Vector3 delta = target - player.Motor.Position;
+                        rig.SetView(Mathf.Atan2(delta.x, delta.z) * Mathf.Rad2Deg, 0);
+                        player.Input.DriveMove(player.Motor.WorldToMoveInput(delta));
+                        yield return new WaitForFixedUpdate();
+                    }
+                    player.Input.DriveMove(Vector2.zero);
+                    Assert.Less(Vector3.Distance(player.Motor.Position, target), .4f,
+                        "Blocked new route " + start + " -> " + end);
+                }
         }
 
         [UnityTest]

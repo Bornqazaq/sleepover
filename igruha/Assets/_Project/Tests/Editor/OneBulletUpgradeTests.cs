@@ -96,7 +96,7 @@ namespace Igruha.Tests
         {
             var l = AssetDatabase.LoadAssetAtPath<OneBulletStormLayout>("Assets/_Project/Settings/Gameplay/Minigames/OneBulletStorm.asset");
             Assert.NotNull(l);
-            int[] sizes = { 81, 69, 58, 47, 36, 25, 13 }, guns = { 8,30,35,41,47,53,67,72,75,78,0,4 };
+            int[] sizes = { 81, 69, 58, 47, 36, 25, 13 }, guns = { 8,13,26,41,38,52,67,72,75,61,0,48 };
             for (int stage = 0; stage <= l.FinalStage; stage++)
             {
                 var safe = Enumerable.Range(0, l.NodeCount).Where(n => l.Safe(n, stage)).ToHashSet();

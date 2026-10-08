@@ -110,7 +110,7 @@ namespace Igruha.EditorTools
             Set(view, "warningPanel", warn);
             Set(view, "title", Label(warn.transform, "Title", new Vector2(-37, 16), new Vector2(442, 30), 23, "БУРЯ ПРИБЛИЖАЕТСЯ"));
             Set(view, "detail", Label(warn.transform, "Detail", new Vector2(-37, -12), new Vector2(442, 22), 15, "Уходи в чистый двор по стрелкам"));
-            Set(view, "seconds", Label(warn.transform, "Seconds", new Vector2(234, 3), new Vector2(64, 46), 38, "12"));
+            Set(view, "seconds", Label(warn.transform, "Seconds", new Vector2(234, 3), new Vector2(64, 46), 38, "20"));
             var fill = Panel(warn.transform, "Progress", new Vector2(0, -37), new Vector2(530, 3), new Color(1, .76f, .36f));
             fill.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Background.psd"); fill.type = Image.Type.Filled; fill.fillMethod = Image.FillMethod.Horizontal;
             Set(view, "progress", fill);

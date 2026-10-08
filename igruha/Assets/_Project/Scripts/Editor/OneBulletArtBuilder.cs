@@ -26,7 +26,9 @@ namespace Igruha.EditorTools
         private static Transform art;
         private static Material[] stone,floor;
         [MenuItem("Igruha/Art/Build One Bullet ruins")]
-        public static void Build()
+        public static void Build() => BuildEnvironment(true);
+        public static void RebuildEnvironment() => BuildEnvironment(false);
+        private static void BuildEnvironment(bool rebuildPresentation)
         {
             if(EditorApplication.isPlaying)throw new InvalidOperationException("Stop play mode first");
             EditorSceneManager.OpenScene(OneBulletArenaBuilder.ScenePath);
@@ -81,7 +83,8 @@ namespace Igruha.EditorTools
             AddPaving(arena,l);
             BuildLandmarks(l);
             Flush();
-            DressGun();BuildHud();Lighting();BuildEffects();OneBulletSfx.Build();OneBulletFirstPersonBuilder.Configure();
+            if(rebuildPresentation)
+            { DressGun();BuildHud();Lighting();BuildEffects();OneBulletSfx.Build();OneBulletFirstPersonBuilder.Configure(); }
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());AssetDatabase.SaveAssets();
             int triangles=0;foreach(var mf in art.GetComponentsInChildren<MeshFilter>())triangles+=mf.sharedMesh.triangles.Length/3;
             Debug.Log("OneBullet art: "+art.GetComponentsInChildren<Renderer>().Length+" renderers, "+triangles+" triangles; decorative colliders="+art.GetComponentsInChildren<Collider>().Length);
