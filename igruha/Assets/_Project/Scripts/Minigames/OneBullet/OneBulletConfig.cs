@@ -26,7 +26,7 @@ namespace Igruha.Minigames.OneBullet
         [SerializeField, Min(1f)] private float canSoundRange = 12f;
         [SerializeField] private LayerMask canCollisionMask = (1 << 6) | (1 << 8) | (1 << 9);
         [Header("Storm")]
-        [SerializeField, Min(1f)] private float stormWarning = 12f;
+        [SerializeField, Min(1f)] private float stormWarning = 20f;
         [SerializeField, Min(1f)] private float stormExposure = 8f;
         [SerializeField, Min(1f)] private float stormIdle = 60f;
         public int CansPerRound => cansPerRound;

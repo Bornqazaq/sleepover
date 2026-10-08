@@ -11,20 +11,14 @@ namespace Igruha.Minigames.OneBullet
         public double IdleAt { get; private set; }
         public bool Warning => Target > Stage;
         public int SafeStage => Warning ? Stage + 1 : Stage;
-        private int eliminations, eliminationsToDuel;
         public void Reset(int players, int finalStage, double begins, double idle)
         {
             Stage = Target = 0;
-            eliminations = 0; eliminationsToDuel = Math.Max(1, players - 2);
             ClosesAt = 0; IdleAt = begins + idle;
         }
         public bool Elimination(double now, int finalStage, double warning, double idle)
         {
-            eliminations++;
-            // Reach the same final courtyard by the duel, irrespective of the starting roster.
-            // Never skip a territory: queued closures still each grant the full evacuation warning.
-            int deathTarget = (int)Math.Ceiling((double)eliminations * finalStage / eliminationsToDuel);
-            return QueueClosure(Math.Max(Target + 1, deathTarget), now, finalStage, warning, idle);
+            return QueueClosure(Target + 1, now, finalStage, warning, idle);
         }
         private bool QueueClosure(int target, double now, int finalStage, double warning, double idle)
         {

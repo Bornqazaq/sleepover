@@ -11,7 +11,7 @@ namespace Igruha.Tests
     {
         private OneBulletMinigame game;
         private OneBulletNetwork relay;
-        private bool ready, checkedStart, first, second, third, eliminated, forcedGun, escaped, verified, final, returned;
+        private bool ready, checkedStart, checkedGun, first, second, third, eliminated, forcedGun, escaped, verified, final, returned;
         private int impacts, stageChanges, roster = 4;
         private float started, hubReadyAt = -1;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -31,7 +31,7 @@ namespace Igruha.Tests
             if (current != null && current != game)
             {
                 game = current; relay = game.GetComponent<OneBulletNetwork>();
-                ready = checkedStart = first = second = third = eliminated = forcedGun = escaped = verified = false;
+                ready = checkedStart = checkedGun = first = second = third = eliminated = forcedGun = escaped = verified = false;
                 impacts = stageChanges = 0;
                 game.Decoys.Impact += (p, speed) => { impacts++; Debug.Log("OB_UPGRADE impact=" + impacts); };
                 game.Storm.Changed += () => { stageChanges++; Debug.Log("OB_UPGRADE stage=" + game.Storm.State.Stage + " target=" + game.Storm.State.Target); };
@@ -57,13 +57,17 @@ namespace Igruha.Tests
                     { returned = true; Debug.Log("OB_UPGRADE RETURN valid=True"); Application.Quit(); }
                 }
             }
-            if (Time.realtimeSinceStartup - started > 160) { Debug.LogError("OB_UPGRADE FAIL timeout"); Application.Quit(2); }
+            if (Time.realtimeSinceStartup - started > 220) { Debug.LogError("OB_UPGRADE FAIL timeout"); Application.Quit(2); }
         }
         private void FixedUpdate()
         {
             if (game == null || game.Phase != MinigamePhase.Round || !game.LocalRosterReady) return;
             var local = game.LocalParticipant; if (local?.Motor == null) return;
             double now = NetworkClock.Now, t = now - game.Round.BeginsAt;
+            const double firstDeath = 13;
+            double firstClose = firstDeath + game.Config.StormWarning;
+            double checkAt = System.Math.Max(firstDeath + (roster - 2) * game.Config.StormWarning,
+                firstClose + 7 + game.Config.StormExposure + game.Config.StormWarning) + 4;
             int id = game.LocalId;
             if (t > 1 && !checkedStart)
             {
@@ -77,38 +81,46 @@ namespace Igruha.Tests
             if (!local.Dead)
             {
                 int node = id == 0 ? 42 : id == 1 ? 52 : id == 2 ? 49 : id == 3 ? 61 : id == 4 ? 43 : id == 5 ? 44 : id == 6 ? 50 : 59;
-                if (id == 2 && ((t > 23 && t < 26) || t > 29)) node = 8;
+                if (id == 2 && ((t > firstClose + 1 && t < firstClose + 4) || t > firstClose + 7)) node = 8;
                 local.Motor.TeleportTo(game.Storm.Layout.StandingPoint(node), Quaternion.identity);
                 if (t > 3 && !first) { first = true; relay.RequestCan(Vector3.up); }
                 if (t > 4 && !second) { second = true; relay.RequestCan(Vector3.down); }
                 if (t > 5 && !third) { third = true; relay.RequestCan(Vector3.forward); }
             }
-            if (id == 0 && t > 10 && !eliminated)
+            if (id == 0 && t > firstDeath && !eliminated)
             { eliminated = true; for (int victim = 3; victim < roster; victim++) game.Leave(victim); }
-            if (id == 0 && t > 12 && !forcedGun && game.Round.Pickup >= 0)
+            if (id == 0 && t > 11 && !forcedGun && game.Round.Pickup >= 0)
             {
                 forcedGun = true;
-                // Put the only floor weapon in the closing region, then let the real closure relocate it.
+                // Place the gun before the elimination; the warning must move it immediately.
                 game.Round.RelocatePickup(0); relay.Publish();
                 Debug.Log("OB_UPGRADE weapon_in_closing=" + !game.Storm.SafeWeapon(game.PickupPosition));
             }
-            if (t > 27 && t < 29 && !escaped)
+            if (t > firstDeath + 3 && !checkedGun)
+            {
+                checkedGun = true;
+                bool valid = game.Storm.State.Stage == 0 && game.Storm.State.Warning &&
+                    game.Round.Pickup >= 0 && game.Storm.SafeWeapon(game.PickupPosition);
+                Debug.Log("OB_UPGRADE EARLY_GUN valid=" + valid);
+                if (!valid) Debug.LogError("OB_UPGRADE FAIL gun left in announced storm territory");
+            }
+            if (t > firstClose + 5 && t < firstClose + 7 && !escaped)
             {
                 escaped = true;
                 bool valid = game.Round.Find(2).DangerSince < 0 && game.Round.Find(2).Alive;
                 Debug.Log("OB_UPGRADE ESCAPE valid=" + valid);
                 if (!valid) Debug.LogError("OB_UPGRADE FAIL escape did not reset exposure");
             }
-            if (t > 86 && !verified)
+            if (t > checkAt && !verified)
             {
-                verified = true; bool valid = game.Storm.State.Stage == 6 && !game.Storm.State.Warning &&
+                verified = true; bool valid = game.Storm.State.Stage == roster - 2 && !game.Storm.State.Warning &&
                     game.Round.AliveCount == 2 && !game.Round.Find(2).Alive && game.Round.Find(0).Kills == 0 &&
                     game.Round.Pickup >= 0 && game.Storm.SafeWeapon(game.PickupPosition) && impacts > 0;
                 foreach (var r in game.Round.Records) valid &= r.Cans == 0;
                 Debug.Log("OB_UPGRADE CHECK valid=" + valid + " stage=" + game.Storm.State.Stage + " alive=" + game.Round.AliveCount + " pickup=" + game.Round.Pickup);
                 if (!valid) Debug.LogError("OB_UPGRADE FAIL state");
             }
-            if (id == 0 && t > 89 && game.Round.AliveCount == 2) game.Leave(1);
+            if (id == 0 && t > checkAt + 3 && game.Round.AliveCount == 2) game.Leave(1);
         }
     }
 }

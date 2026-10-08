@@ -50,7 +50,7 @@ namespace Igruha.EditorTools
             var definition = AssetDatabase.LoadAssetAtPath<MinigameDefinition>("Assets/_Project/Settings/Gameplay/Minigames/OneBullet.asset");
             var ds = new SerializedObject(definition);
             SetStrings(ds, "controlHints", new[] { "WASD — бег · Space — прыжок · Ctrl — присед", "ЛКМ — выстрел · ПКМ — прицел · Shift — толчок", "Q — бросить пустую банку. Две на раунд: обмани слух.", "Буря сужает дворы. Уходи из пыли по стрелкам." });
-            SetStrings(ds, "tutorialSteps", new[] { "Ищи револьвер и слушай шаги. Оружие подбирается касанием.", "Q бросает шумную банку. Две попытки отвлечь соперника.", "После выбываний буря сужает карту. 12 секунд, чтобы уйти.", "В густой буре можно прожить 8 секунд. Доберись до чистого двора.", "Один патрон. Промахнулся — ищи оружие снова." });
+            SetStrings(ds, "tutorialSteps", new[] { "Ищи револьвер и слушай шаги. Оружие подбирается касанием.", "Q бросает шумную банку. Две попытки отвлечь соперника.", "После выбываний буря сужает карту. 20 секунд, чтобы уйти.", "Револьвер переносится из закрывающихся дворов в безопасные.", "В густой буре можно прожить 8 секунд. Доберись до чистого двора.", "Один патрон. Промахнулся — ищи оружие снова." });
             ds.ApplyModifiedPropertiesWithoutUndo();
             EditorSceneManager.MarkSceneDirty(game.gameObject.scene); EditorSceneManager.SaveScene(game.gameObject.scene);
             AssetDatabase.SaveAssets(); Debug.Log("OneBullet rules upgraded: seven connected territories, safe starts, decoy model.");

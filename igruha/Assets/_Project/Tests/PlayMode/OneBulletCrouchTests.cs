@@ -96,6 +96,34 @@ namespace Igruha.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator ClosingTerritoryMovesFloorGunBeforeDangerAndKeepsHeldGun()
+        {
+            var round = game.Round;
+            round.ApplyHeader(OneBulletRound.Nobody, 0, 0, round.BeginsAt, round.EndsAt,
+                round.SpawnAt, false, OneBulletRound.Nobody);
+            game.NotifyChanged();
+            game.Leave(3);
+            Assert.That(game.Storm.State.Stage, Is.Zero);
+            Assert.That(game.Storm.State.Target, Is.EqualTo(1));
+            Assert.That(NetworkClock.Now, Is.LessThan(game.Storm.State.ClosesAt));
+            Assert.That(round.Pickup, Is.GreaterThanOrEqualTo(0));
+            Assert.That(round.Pickup, Is.Not.EqualTo(0), "Move at announcement, not when the area becomes lethal.");
+            Assert.True(game.Storm.SafeWeapon(game.PickupPosition));
+            // Even a long pending queue must not place the new gun in a later closing territory.
+            round.RelocatePickup(9);
+            game.Storm.State.Apply(0, 6, NetworkClock.Now + 20, NetworkClock.Now + 60);
+            game.RelocateUnsafePickup();
+            Assert.True(game.Storm.SafeWeapon(game.PickupPosition));
+            CollectionAssert.Contains(new[] { 3, 5 }, round.Pickup);
+            Assert.True(round.Take(game.LocalId, NetworkClock.Now));
+            game.RelocateUnsafePickup(); game.NotifyChanged();
+            Assert.That(round.Holder, Is.EqualTo(game.LocalId));
+            var view = Object.FindFirstObjectByType<OneBulletPresentation>();
+            Assert.False(view.transform.Find("PickupGlints").GetComponent<ParticleSystem>().isPlaying);
+            yield return null;
+        }
+
+        [UnityTest]
         public IEnumerator RaisedCrouchViewDoesNotShootOverLowCover()
         {
             player.Motor.TeleportTo(game.Storm.Layout.StandingPoint(50), Quaternion.identity);

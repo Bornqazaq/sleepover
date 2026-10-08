@@ -35,6 +35,6 @@ MonoBehaviour:
   canCollisionMask:
     serializedVersion: 2
     m_Bits: 832
-  stormWarning: 12
+  stormWarning: 20
   stormExposure: 8
   stormIdle: 60

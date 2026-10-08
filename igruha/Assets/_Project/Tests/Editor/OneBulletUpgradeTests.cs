@@ -47,12 +47,12 @@ namespace Igruha.Tests
             Assert.False(s.Tick(62.99, 6, 12, 60));
         }
         [TestCase(3)] [TestCase(4)] [TestCase(6)] [TestCase(8)]
-        public void EliminationsQueueFinalCourtyardByDuelWithoutSkippingWarnings(int players)
+        public void EachEliminationQueuesOnlyOneClosureRegardlessOfRoster(int players)
         {
             var s = new OneBulletStormState(); s.Reset(players, 6, 3, 60);
             for (int i = 0; i < players - 2; i++) s.Elimination(10, 6, 12, 60);
-            Assert.AreEqual(6, s.Target); Assert.AreEqual(0, s.Stage);
-            for (int stage = 1; stage <= 6; stage++)
+            Assert.AreEqual(players-2, s.Target); Assert.AreEqual(0, s.Stage);
+            for (int stage = 1; stage <= players-2; stage++)
             { s.Tick(10 + stage * 12, 6, 12, 60); Assert.AreEqual(stage, s.Stage); }
             Assert.False(s.Warning);
         }

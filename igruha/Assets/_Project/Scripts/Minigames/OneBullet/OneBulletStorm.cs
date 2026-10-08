@@ -60,6 +60,7 @@ namespace Igruha.Minigames.OneBullet
         {
             if (!game.Authority || game.Round.AliveCount < 2 || game.Round.Finished) return;
             State.Elimination(NetworkClock.Now, layout.FinalStage, game.Config.StormWarning, game.Config.StormIdle);
+            game.RelocateUnsafePickup();
             RefreshPresentation(); game.NotifyChanged();
         }
         public void Tick(double now)
@@ -82,7 +83,8 @@ namespace Igruha.Minigames.OneBullet
             if (count > 0) game.EliminateFromStorm(casualties, count);
             if (changed) game.NotifyChanged();
         }
-        public bool SafeWeapon(Vector3 point) => layout.Safe(point, State.SafeStage);
+        // A visible floor weapon must survive ALL announced closures, not only the next one.
+        public bool SafeWeapon(Vector3 point) => layout.Safe(point, State.Target);
         public Transform RecoveryPoint(Vector3 position)
         {
             int node = layout.NearestSafe(position, State.SafeStage);

@@ -188,7 +188,7 @@ namespace Igruha.Minigames.OneBullet
         }
         public void RelocateUnsafePickup()
         {
-            if (!HasAuthority || storm == null || round.Pickup < 0 || storm.Layout.Safe(PickupPosition, storm.State.Stage)) return;
+            if (!HasAuthority || storm == null || round.Pickup < 0 || storm.SafeWeapon(PickupPosition)) return;
             if (round.RelocatePickup(ChooseWeaponPoint())) Changed?.Invoke();
         }
         public void EliminateFromStorm(int[] victims, int count)

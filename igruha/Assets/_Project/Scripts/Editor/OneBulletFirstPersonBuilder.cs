@@ -116,6 +116,7 @@ namespace Igruha.EditorTools
             ring.sharedMaterial = material;
             ring.shadowCastingMode = ShadowCastingMode.Off; ring.receiveShadows = false; ring.enabled = false;
             OneBulletArenaBuilder.Set(view, "pickupRing", ring);
+            OneBulletPickupGlowBuilder.Configure(view);
         }
         public static void ConfigureDefinition(MinigameDefinition definition)
         {
