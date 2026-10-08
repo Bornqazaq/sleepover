@@ -84,7 +84,7 @@ namespace Igruha.Tests
             int id=game.LocalId;
             // Keep idle test players away from all random weapon locations.
             if((id==0&&t<17)||(id>1&&t<20))
-                local.Motor.TeleportTo(new Vector3(-14.4f, .1f, id==0?-19.2f:-14.4f),Quaternion.identity);
+                local.Motor.TeleportTo(game.Storm.Layout.StandingPoint(id==0?42:52),Quaternion.identity);
             if(game.Round.Pickup>=0 && ((!missed && id==1 && t<17) || (id==0 && t>=17 && !movedToStage)))
             {
                 moveTarget=game.PickupPosition;moveUntil=now+.4;
@@ -105,7 +105,7 @@ namespace Igruha.Tests
                     UnityEngine.InputSystem.InputSystem.QueueStateEvent(mouse,new UnityEngine.InputSystem.LowLevel.MouseState().WithButton(UnityEngine.InputSystem.LowLevel.MouseButton.Right));
                 }
                 movedToStage=true;
-                local.Motor.TeleportTo(new Vector3(-19.2f,0.1f,-19.2f+(id==0?0:1.4f)),Quaternion.identity);
+                local.Motor.TeleportTo(game.Storm.Layout.StandingPoint(50)+Vector3.forward*(id==0?0:1.4f),Quaternion.identity);
                 if(id==0)
                     foreach(var target in game.Participants)
                     {

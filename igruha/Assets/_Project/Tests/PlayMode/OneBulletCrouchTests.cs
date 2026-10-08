@@ -26,7 +26,7 @@ namespace Igruha.Tests.PlayMode
             yield return SceneManager.LoadSceneAsync("OneBullet", LoadSceneMode.Single);
             game = Object.FindFirstObjectByType<OneBulletMinigame>();
             float deadline = Time.realtimeSinceStartup + 20f;
-            while ((!game.LocalRosterReady || game.LocalParticipant.Motor.MovementLocked || game.Round.Pickup < 0) &&
+            while ((!game.LocalRosterReady || game.LocalParticipant.Motor.MovementLocked) &&
                    Time.realtimeSinceStartup < deadline)
                 yield return null;
             Assert.That(game.LocalRosterReady, Is.True);
@@ -35,7 +35,11 @@ namespace Igruha.Tests.PlayMode
             rig = Object.FindFirstObjectByType<FirstPersonCameraRig>();
             // Exercise the real motor/animation/camera with held crouch, without editor focus affecting input.
             player.Motor.CrouchInputSuppressed = true;
-            Assert.That(game.Round.Take(game.LocalId, NetworkClock.Now), Is.True);
+            // Camera regression needs a held weapon, independent of random spawns/dummy pickups.
+            var round = game.Round;
+            round.ApplyHeader(OneBulletRound.Nobody, 0, 0, round.BeginsAt, round.EndsAt,
+                round.SpawnAt, false, OneBulletRound.Nobody);
+            Assert.That(round.Take(game.LocalId, NetworkClock.Now), Is.True);
             Assert.That(game.LocalArmed, Is.True);
         }
 

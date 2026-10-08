@@ -28,6 +28,13 @@ namespace Igruha.Minigames.OneBullet
         private readonly RaycastHit[] aimHits = new RaycastHit[64];
         private HitscanWeapon weapon;
         private OneBulletNetwork network;
+        private OneBulletDecoys decoys;
+        private OneBulletStorm storm;
+        public OneBulletStorm Storm => storm;
+        public OneBulletDecoys Decoys => decoys;
+        public bool Authority => HasAuthority;
+        public Vector3 LocalAim => gameCamera != null ? gameCamera.transform.forward : Vector3.forward;
+        public void NotifyChanged() => Changed?.Invoke();
         public bool LocalRosterReady => participants.Count > 0;
         private OneBulletParticipant local;
         private bool countdownFinished, restored, shotPending;
@@ -55,6 +62,8 @@ namespace Igruha.Minigames.OneBullet
         {
             base.Awake();
             network = GetComponent<OneBulletNetwork>();
+            decoys = GetComponent<OneBulletDecoys>();
+            storm = GetComponent<OneBulletStorm>();
             weapon = gameObject.AddComponent<HitscanWeapon>();
         }
         protected override void OnPlayersReady()
@@ -76,7 +85,9 @@ namespace Igruha.Minigames.OneBullet
         {
             SetStartCountdownActive(true);
             countdownFinished = false; shotPending = false; shownAlive = -1; showResultsAt = 0;
-            round.Reset(ids, NetworkClock.Now + config.Countdown, config.Duration, config.FirstSpawnDelay);
+            round.Reset(ids, NetworkClock.Now + config.Countdown, config.Duration, config.FirstSpawnDelay, config.CansPerRound);
+            decoys?.ResetRound();
+            storm?.ResetRound();
             weapon.Configure(1, 0f, config.Duration + config.RespawnDelay, config.ShotRange, config.HitMask);
             weapon.SpreadAngle = 0f;
             if (HasAuthority) Timer.StopTimer();
@@ -129,13 +140,13 @@ namespace Igruha.Minigames.OneBullet
             {
                 shotPending = false;
                 ResolveShot(pendingShooter, pendingAim, now);
-                if (!RoundActive) return;
+                if (!RoundActive || round.Finished) return;
             }
+            storm?.Tick(now);
+            if (round.Finished) return;
             if (round.CanSpawn(now) && weaponSpawns.Length > 1)
             {
-                int next = UnityEngine.Random.Range(0, weaponSpawns.Length - (round.PreviousPickup >= 0 ? 1 : 0));
-                if (round.PreviousPickup >= 0 && next >= round.PreviousPickup) next++;
-                round.Spawn(next, now); Changed?.Invoke();
+                if (round.Spawn(ChooseWeaponPoint(), now)) Changed?.Invoke();
             }
             foreach (var p in participants)
             {
@@ -153,8 +164,8 @@ namespace Igruha.Minigames.OneBullet
         }
         private void UpdateRecovery(OneBulletParticipant p)
         {
-            Transform nearest = null; float distance = float.PositiveInfinity;
-            foreach (var spawn in safeSpawns)
+            Transform nearest = storm?.RecoveryPoint(p.Motor.Position); float distance = float.PositiveInfinity;
+            if (storm == null) foreach (var spawn in safeSpawns)
             {
                 float d = (spawn.position - p.Motor.Position).sqrMagnitude;
                 if (d < distance) { distance = d; nearest = spawn; }
@@ -164,6 +175,28 @@ namespace Igruha.Minigames.OneBullet
             Vector3 position = p.Motor.Position;
             if (position.y < RecoveryFloor || Mathf.Abs(position.x) > 21.6f || Mathf.Abs(position.z) > 21.6f)
                 p.Respawner?.Respawn();
+        }
+        private int ChooseWeaponPoint()
+        {
+            int result = -1, count = 0;
+            for (int i = 0; i < weaponSpawns.Length; i++)
+            {
+                if (i == round.PreviousPickup || (storm != null && !storm.SafeWeapon(weaponSpawns[i].position))) continue;
+                if (UnityEngine.Random.Range(0, ++count) == 0) result = i;
+            }
+            return result;
+        }
+        public void RelocateUnsafePickup()
+        {
+            if (!HasAuthority || storm == null || round.Pickup < 0 || storm.Layout.Safe(PickupPosition, storm.State.Stage)) return;
+            if (round.RelocatePickup(ChooseWeaponPoint())) Changed?.Invoke();
+        }
+        public void EliminateFromStorm(int[] victims, int count)
+        {
+            if (!HasAuthority || !round.IsLive(NetworkClock.Now)) return;
+            for (int i = 0; i < count; i++)
+                if (round.Leave(victims[i], NetworkClock.Now, config.RespawnDelay)) ApplyDeath(victims[i], Vector3.zero);
+            Changed?.Invoke(); CheckEnd();
         }
         public bool HandlePushButton(PlayerController player)
         {
@@ -259,6 +292,7 @@ namespace Igruha.Minigames.OneBullet
         {
             if (HasAuthority) round.Finish(NetworkClock.Now);
             RestorePlayers();
+            decoys?.Clear();
             Hud?.HideCountdown(); Hud?.HideStatus(); Changed?.Invoke();
         }
         private void RestorePlayers()

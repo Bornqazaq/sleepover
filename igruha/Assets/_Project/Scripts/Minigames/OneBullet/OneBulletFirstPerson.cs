@@ -84,6 +84,8 @@ namespace Igruha.Minigames.OneBullet
         {
             if (ViewingSelf)
             {
+                if (game.Storm != null && Igruha.Core.Minigame.NetworkClock.Now < game.Round.BeginsAt)
+                    rig.SetView(game.Storm.StartYaw(game.LocalId), 0);
                 // ResolveTarget runs in the rig's Update and can cache an already crouched height.
                 // Correct from that actual base, not a second cached standing height: otherwise
                 // rebinding while crouched subtracts the crouch twice and puts the view below the floor.
