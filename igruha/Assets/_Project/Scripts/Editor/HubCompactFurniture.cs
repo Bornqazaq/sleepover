@@ -40,7 +40,7 @@ namespace Igruha.EditorTools
             foreach(float x in new[]{-.5f,2.25f}){var bookcase=Prop(library,"Shelf",new Vector3(x,0,-9.35f));ModelBox(bookcase,new Vector3(0,1.10f,0),new Vector3(2.4f,2.2f,.58f));}
             for(int i=0;i<3;i++){var c=Prop(library,"Crate",new Vector3(-2.25f-i*.58f,0,-9.26f+i*.12f),i*6);ModelBox(c,new Vector3(0,.26f,0),new Vector3(.65f,.55f,.56f));}
             var stackedCrate=Prop(library,"Crate",new Vector3(-2.83f,.55f,-9.14f),-8);ModelBox(stackedCrate,new Vector3(0,.26f,0),new Vector3(.65f,.55f,.56f));
-            foreach(var p in new[]{new Vector3(-8.8f,0,5.95f),new Vector3(-4.5f,0,6.6f),new Vector3(4.72f,0,-4.12f),new Vector3(8.65f,0,5.55f),new Vector3(-9.22f,0,-5.4f)})
+            foreach(var p in new[]{new Vector3(-8.8f,0,5.95f),new Vector3(2.5f,0,8.85f),new Vector3(4.72f,0,-4.12f),new Vector3(8.65f,0,5.55f),new Vector3(-9.22f,0,-5.4f)})
             {var plant=Prop(root,"Plant",p);ModelBox(plant,new Vector3(0,.22f,0),new Vector3(.51f,.44f,.51f));}
             HubCompactDetails.Build(root);
         }
