@@ -100,7 +100,7 @@ namespace Igruha.Core.Hub.Activities
 
         [System.NonSerialized] private string enterPrompt;
 
-        public string InteractionPrompt
+        public virtual string InteractionPrompt
         {
             get
             {
