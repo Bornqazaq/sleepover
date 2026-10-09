@@ -49,3 +49,15 @@ MonoBehaviour:
     Volume: 0.65
     Loop: 0
     Spatial: 1
+  - Id: ob_can_hit
+    Clip: {fileID: 8300000, guid: 1d2827abcbbe64642bd0ea407ac409aa, type: 3}
+    Variants: []
+    Volume: 0.9
+    Loop: 0
+    Spatial: 1
+  - Id: ob_storm_warning
+    Clip: {fileID: 8300000, guid: c278b68c134ca694db1b7282ebe13abb, type: 3}
+    Variants: []
+    Volume: 0.45
+    Loop: 0
+    Spatial: 0

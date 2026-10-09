@@ -26,7 +26,9 @@ namespace Igruha.EditorTools
         private static Transform art;
         private static Material[] stone,floor;
         [MenuItem("Igruha/Art/Build One Bullet ruins")]
-        public static void Build()
+        public static void Build() => BuildEnvironment(true);
+        public static void RebuildEnvironment() => BuildEnvironment(false);
+        private static void BuildEnvironment(bool rebuildPresentation)
         {
             if(EditorApplication.isPlaying)throw new InvalidOperationException("Stop play mode first");
             EditorSceneManager.OpenScene(OneBulletArenaBuilder.ScenePath);
@@ -78,24 +80,66 @@ namespace Igruha.EditorTools
                     }
                 }
             }
+            AddPaving(arena,l);
+            BuildLandmarks(l);
+            Flush();
+            if(rebuildPresentation)
+            { DressGun();BuildHud();Lighting();BuildEffects();OneBulletSfx.Build();OneBulletFirstPersonBuilder.Configure(); }
+            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());AssetDatabase.SaveAssets();
+            int triangles=0;foreach(var mf in art.GetComponentsInChildren<MeshFilter>())triangles+=mf.sharedMesh.triangles.Length/3;
+            Debug.Log("OneBullet art: "+art.GetComponentsInChildren<Renderer>().Length+" renderers, "+triangles+" triangles; decorative colliders="+art.GetComponentsInChildren<Collider>().Length);
+        }
+        /// <summary>Repair only paving; preserve the scene's props, lighting, gameplay and camera setup.</summary>
+        [MenuItem("Igruha/Art/Repair One Bullet paving")]
+        public static void RebuildPaving()
+        {
+            if(EditorApplication.isPlaying)throw new InvalidOperationException("Stop play mode first");
+            EditorSceneManager.OpenScene(OneBulletArenaBuilder.ScenePath);
+            materials.Clear();meshes.Clear();batches.Clear();
+            art=GameObject.Find("_OneBulletArt").transform;
+            floor=new Material[5];
+            for(int i=0;i<floor.Length;i++)floor[i]=AssetDatabase.LoadAssetAtPath<Material>(Root+"Materials/Paving_"+i+".mat");
+            for(int i=art.childCount-1;i>=0;i--)
+            {
+                var child=art.GetChild(i);var renderer=child.GetComponent<MeshRenderer>();
+                if(renderer!=null&&renderer.sharedMaterial!=null&&renderer.sharedMaterial.name.StartsWith("Paving_"))
+                    Object.DestroyImmediate(child.gameObject);
+            }
+            AddPaving(GameObject.Find("_Arena").transform,OneBulletArenaBuilder.ReadLayout());Flush();
+            EditorSceneManager.MarkSceneDirty(art.gameObject.scene);EditorSceneManager.SaveScene(art.gameObject.scene);AssetDatabase.SaveAssets();
+        }
+        private static void AddPaving(Transform arena,OneBulletArenaBuilder.Layout layout)
+        {
+            var pavingRandom=new System.Random(598);
             foreach(Transform t in arena)
             {
                 if(!t.name.StartsWith("Landing_")&&!t.name.StartsWith("Passage_"))continue;
                 float w=t.localScale.x,d=t.localScale.z;
+                Vector3 centre=t.TransformPoint(new Vector3(0,.5f,0));
+                if(t.name.StartsWith("Passage_"))
+                {
+                    var indices=t.name.Split('_');int aIndex=int.Parse(indices[1]),bIndex=int.Parse(indices[2]);
+                    Vector3 a=OneBulletArenaBuilder.Position(layout,aIndex),b=OneBulletArenaBuilder.Position(layout,bIndex);
+                    // Collision blocks deliberately overlap. Their decorative skins must not:
+                    // in a courtyard that used to put two independent sets of slabs on one plane.
+                    // Sloped connectors retain their existing surface and collision alignment.
+                    if(Mathf.Abs(a.y-b.y)<.001f)
+                    {
+                        float aHalf=Array.IndexOf(layout.rooms,aIndex)>=0?2.88f:layout.width*.5f;
+                        float bHalf=Array.IndexOf(layout.rooms,bIndex)>=0?2.88f:layout.width*.5f;
+                        Vector3 direction=(b-a).normalized;
+                        Vector3 start=a+direction*aHalf,end=b-direction*bHalf;
+                        var midpoint=(start+end)*.5f;centre.x=midpoint.x;centre.z=midpoint.z;
+                        d=Vector3.Distance(start,end);
+                    }
+                }
                 int columns=Mathf.Max(1,Mathf.CeilToInt(w/1.1f)),rows=Mathf.Max(1,Mathf.CeilToInt(d/1.05f));
                 for(int z=0;z<rows;z++)for(int x=0;x<columns;x++)
                 {
-                    Vector3 p=t.TransformPoint(new Vector3((x+.5f)/columns-.5f,.5f,(z+.5f)/rows-.5f));
-                    p+=t.up*.025f;
-                    Add("OB_Slab_"+random.Next(3),p,t.rotation,new Vector3(w/columns-.035f,.075f,d/rows-.035f),floor[random.Next(floor.Length)]);
+                    Vector3 p=centre+t.right*((x+.5f)/columns-.5f)*w+t.forward*((z+.5f)/rows-.5f)*d+t.up*.025f;
+                    Add("OB_Slab_"+pavingRandom.Next(3),p,t.rotation,new Vector3(w/columns-.035f,.075f,d/rows-.035f),floor[pavingRandom.Next(floor.Length)]);
                 }
             }
-            BuildLandmarks(l);
-            Flush();
-            DressGun();BuildHud();Lighting();BuildEffects();OneBulletSfx.Build();OneBulletFirstPersonBuilder.Configure();
-            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());AssetDatabase.SaveAssets();
-            int triangles=0;foreach(var mf in art.GetComponentsInChildren<MeshFilter>())triangles+=mf.sharedMesh.triangles.Length/3;
-            Debug.Log("OneBullet art: "+art.GetComponentsInChildren<Renderer>().Length+" renderers, "+triangles+" triangles; decorative colliders="+art.GetComponentsInChildren<Collider>().Length);
         }
         private static void WallFace(Vector3 a,Vector3 b,Vector3 inward)
         {

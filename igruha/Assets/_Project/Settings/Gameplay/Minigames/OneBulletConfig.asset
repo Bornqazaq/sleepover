@@ -23,3 +23,18 @@ MonoBehaviour:
   hitMask:
     serializedVersion: 2
     m_Bits: 4294967295
+  cansPerRound: 2
+  canCooldown: 0.6
+  canSpeed: 9
+  canLift: 2
+  canRadius: 0.09
+  canLifetime: 8
+  canBounce: 0.45
+  canDrag: 0.24
+  canSoundRange: 12
+  canCollisionMask:
+    serializedVersion: 2
+    m_Bits: 832
+  stormWarning: 20
+  stormExposure: 8
+  stormIdle: 60
