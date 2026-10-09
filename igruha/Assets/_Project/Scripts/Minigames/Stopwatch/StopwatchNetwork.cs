@@ -193,6 +193,7 @@ namespace Igruha.Minigames.Stopwatch
         /// медведь дразнит клетку, а на другой молча ходит кругами.
         /// </summary>
         private readonly NetworkVariable<CircusBearSnapshot> bearState = new NetworkVariable<CircusBearSnapshot>();
+        private readonly NetworkVariable<CircusBearSnapshot> secondBearState = new NetworkVariable<CircusBearSnapshot>();
 
         private StopwatchMinigame game;
         private MinigameStageState stageState;
@@ -229,6 +230,7 @@ namespace Igruha.Minigames.Stopwatch
             stage.OnValueChanged += OnStageChanged;
             cages.OnListChanged += OnCagesChanged;
             bearState.OnValueChanged += OnBearStateChanged;
+            secondBearState.OnValueChanged += OnBearStateChanged;
 
             if (IsServer)
             {
@@ -256,6 +258,7 @@ namespace Igruha.Minigames.Stopwatch
             stage.OnValueChanged -= OnStageChanged;
             cages.OnListChanged -= OnCagesChanged;
             bearState.OnValueChanged -= OnBearStateChanged;
+            secondBearState.OnValueChanged -= OnBearStateChanged;
 
             if (IsServer)
             {
@@ -383,14 +386,16 @@ namespace Igruha.Minigames.Stopwatch
         // ========== МЕДВЕДЬ ==========
 
         /// <summary>Сервер объявил, в каком состоянии медведь. Двигают его серверный ИИ и NetworkTransform.</summary>
-        public void PublishBearState(byte state, int targetId)
+        public void PublishBearState(byte state, int targetId, int bearIndex = 0)
         {
-            if (!IsSpawned || !IsServer || (bearState.Value.State == state && bearState.Value.TargetId == targetId))
+            if (bearIndex < 0 || bearIndex > 1) return;
+            var snapshot = bearIndex == 0 ? bearState : secondBearState;
+            if (!IsSpawned || !IsServer || (snapshot.Value.State == state && snapshot.Value.TargetId == targetId))
             {
                 return;
             }
 
-            bearState.Value = new CircusBearSnapshot { State = state, StartedAt = NetworkManager.ServerTime.Time, TargetId = targetId };
+            snapshot.Value = new CircusBearSnapshot { State = state, StartedAt = NetworkManager.ServerTime.Time, TargetId = targetId };
         }
 
         private void OnBearStateChanged(CircusBearSnapshot previous, CircusBearSnapshot current)
@@ -403,8 +408,13 @@ namespace Igruha.Minigames.Stopwatch
 
         private void ApplyBearState()
         {
-            game?.ApplyNetworkBearState(bearState.Value.State, Mathf.Max(0, (float)(NetworkManager.ServerTime.Time - bearState.Value.StartedAt)), bearState.Value.TargetId);
+            ApplyBearState(bearState.Value, 0);
+            ApplyBearState(secondBearState.Value, 1);
         }
+
+        private void ApplyBearState(CircusBearSnapshot snapshot, int index) =>
+            game?.ApplyNetworkBearState(snapshot.State,
+                Mathf.Max(0, (float)(NetworkManager.ServerTime.Time - snapshot.StartedAt)), snapshot.TargetId, index);
 
         /// <summary>
         /// Медведь достал игрока. Это событие, а не состояние, поэтому уходит
@@ -412,22 +422,22 @@ namespace Igruha.Minigames.Stopwatch
         /// в реплицируемом поле незачем.
         /// </summary>
         public void AnnounceCaught(int playerId, Vector3 hitPoint, Vector3 impulse, byte fallType, float contactYaw,
-            Vector3 bearPosition, float bearYaw)
+            Vector3 bearPosition, float bearYaw, int bearIndex = 0)
         {
             if (!IsSpawned || !IsServer)
             {
                 return;
             }
 
-            AnnounceCaughtRpc(playerId, hitPoint, impulse, fallType, contactYaw, bearPosition, bearYaw);
+            AnnounceCaughtRpc(playerId, hitPoint, impulse, fallType, contactYaw, bearPosition, bearYaw, bearIndex);
         }
 
         /// <summary>Сервер уже применил гибель у себя, поэтому себе не шлём.</summary>
         [Rpc(SendTo.NotServer)]
         private void AnnounceCaughtRpc(int playerId, Vector3 hitPoint, Vector3 impulse, byte fallType, float contactYaw,
-            Vector3 bearPosition, float bearYaw)
+            Vector3 bearPosition, float bearYaw, int bearIndex)
         {
-            game?.ApplyNetworkCaught(playerId, hitPoint, impulse, fallType, contactYaw, bearPosition, bearYaw);
+            game?.ApplyNetworkCaught(playerId, hitPoint, impulse, fallType, contactYaw, bearPosition, bearYaw, bearIndex);
         }
 
         // ========== НАЖАТИЕ ==========

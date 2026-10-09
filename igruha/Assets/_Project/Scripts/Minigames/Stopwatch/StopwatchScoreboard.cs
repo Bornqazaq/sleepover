@@ -14,6 +14,7 @@ namespace Igruha.Minigames.Stopwatch
     public sealed class StopwatchScoreboard : MonoBehaviour
     {
         [SerializeField] private WorldScoreboard board;
+        [SerializeField] private Igruha.Minigames.Circus.CircusBoardView presentation;
 
         /// <summary>
         /// Имена типов подраунда. Не «как называется правило», а «что делать»:
@@ -60,6 +61,7 @@ namespace Igruha.Minigames.Stopwatch
             }
 
             board.SetHeader($"ПОДРАУНД {subround} — {TypeNames[(int)type]}", $"ЦЕЛЬ: {target:0.0} с");
+            presentation?.Task($"{TypeNames[(int)type]} · {target:0.0} С", $"ПОДРАУНД {subround} · ЩИТЫ — ОСТАВШИЕСЯ ШАНСЫ", false);
         }
 
         /// <summary>
@@ -69,7 +71,7 @@ namespace Igruha.Minigames.Stopwatch
         /// </summary>
         public void ShowPlayers(IReadOnlyList<string> names, IReadOnlyList<float> times,
             IReadOnlyList<bool> completed, IReadOnlyList<int> errors, IReadOnlyList<bool> alive,
-            IReadOnlyList<bool> faulted, bool showTimes)
+            IReadOnlyList<bool> faulted, bool showTimes, IReadOnlyList<int> playerIds = null)
         {
             if (board == null)
             {
@@ -77,9 +79,13 @@ namespace Igruha.Minigames.Stopwatch
             }
 
             board.BeginRows();
+            presentation?.Begin(names.Count, 0);
             for (int i = 0; i < names.Count; i++)
             {
                 board.AddRow(names[i], FormatValue(times[i], completed[i], errors[i], alive[i], faulted[i], showTimes, errorLimit));
+                string value = !alive[i] ? "" : showTimes && completed[i] ? times[i].ToString("0.00") : "—";
+                presentation?.StopwatchRow(i, playerIds != null ? playerIds[i] : -1, names[i], value,
+                    errors[i], errorLimit, alive[i], showTimes && faulted[i]);
             }
 
             board.EndRows();
@@ -129,6 +135,6 @@ namespace Igruha.Minigames.Stopwatch
             return new string('•', used) + new string('·', errorLimit - used);
         }
 
-        public void Clear() => board?.Clear();
+        public void Clear() { board?.Clear(); presentation?.Clear(); }
     }
 }

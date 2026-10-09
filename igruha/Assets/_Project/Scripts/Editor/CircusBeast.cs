@@ -17,8 +17,13 @@ namespace Igruha.EditorTools
         [MenuItem("Igruha/Цирк/Переодеть зверя в яме")]
         internal static void RedressInScene()
         {
-            var bear=Object.FindFirstObjectByType<PitBear>(FindObjectsInactive.Include);
-            if(bear==null)throw new System.InvalidOperationException("Open Stopwatch or CansOrder.");
+            var bears=Object.FindObjectsByType<PitBear>(FindObjectsInactive.Include,FindObjectsSortMode.None);
+            if(bears.Length==0)throw new System.InvalidOperationException("Open Stopwatch or CansOrder.");
+            foreach(var bear in bears) Redress(bear);
+        }
+
+        private static void Redress(PitBear bear)
+        {
             Transform visual=bear.VisualRoot;
             if(visual==null){visual=new GameObject("Visual").transform;visual.SetParent(bear.transform,false);}
             // Validate the replacement before touching the existing character.
@@ -32,6 +37,7 @@ namespace Igruha.EditorTools
             serialized.FindProperty("visualRoot").objectReferenceValue=visual;
             serialized.FindProperty("animator").objectReferenceValue=animator;
             serialized.FindProperty("turnSpeed").floatValue=220f;
+            serialized.FindProperty("wallMargin").floatValue=PitBear.BodyWallClearance;
             serialized.FindProperty("acceleration").floatValue=12f;
             serialized.FindProperty("attackContactTime").floatValue=PitBear.ContactSeconds;
             serialized.FindProperty("attackDuration").floatValue=PitBear.StrikeSeconds;

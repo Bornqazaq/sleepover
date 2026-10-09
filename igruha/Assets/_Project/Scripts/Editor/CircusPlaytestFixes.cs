@@ -38,6 +38,7 @@ namespace Igruha.EditorTools
                         data.FindProperty("fallingClip").objectReferenceValue = clip;
                         data.ApplyModifiedPropertiesWithoutUndo();
                         ApplyCageFloor(cage.transform);
+                        ApplyShelfSupport(cage.transform);
                     }
                     foreach (var bear in Object.FindObjectsByType<PitBear>(FindObjectsSortMode.None))
                         SetNumbers(bear,new[] { "turnSpeed", "acceleration" },new[] { 220f,12f });
@@ -51,9 +52,29 @@ namespace Igruha.EditorTools
             finally { if (!string.IsNullOrEmpty(opened)) EditorSceneManager.OpenScene(opened); }
         }
 
-        internal const float HatchOpenAngle = 210f;
+        internal const float HatchOpenAngle = 270f;
         internal const float HatchReleaseAngle = 25f * HatchOpenAngle / 110f;
         internal const float HatchHingeOffset = .20f;
+
+        internal static void ApplyShelfSupport(Transform cage)
+        {
+            var shelf = cage.GetComponentInChildren<CanShelf>(true);
+            // CanShelf.Board is the can-slot anchor, not the physical tabletop.
+            var boardTransform = shelf != null ? shelf.transform.Find("Board") : null;
+            var board = boardTransform != null ? boardTransform.GetComponent<BoxCollider>() : null;
+            if (board == null) return;
+            // A waist-height thin box can expel a charging capsule downward
+            // through the thin hatch. Give it a continuous vertical front from
+            // the floor to its existing top, without changing the visible shelf.
+            float top = board.center.y + board.size.y * .5f;
+            Vector3 floor = board.transform.position;
+            floor.y = cage.position.y - .1f;
+            float bottom = board.transform.InverseTransformPoint(floor).y;
+            Vector3 center = board.center, size = board.size;
+            center.y = (top + bottom) * .5f; size.y = top - bottom;
+            board.center = center; board.size = size;
+            EditorUtility.SetDirty(board);
+        }
 
         internal static void ApplyCageFloor(Transform cage)
         {
@@ -92,6 +113,33 @@ namespace Igruha.EditorTools
                             new Vector3(.045f,.008f,.045f),iron);
                 }
             }
+            var support = floor.Find("ClosedFloorSupport");
+            if (support == null)
+            {
+                support = new GameObject("ClosedFloorSupport").transform;
+                support.SetParent(floor,false);
+            }
+            var closedBox = support.GetComponent<BoxCollider>();
+            if (closedBox == null) closedBox = support.gameObject.AddComponent<BoxCollider>();
+            Bounds bounds = new Bounds(Vector3.zero,Vector3.zero);
+            bool first = true;
+            foreach (string side in new[] { "DoorLeft", "DoorRight" })
+            {
+                var collider = floor.Find(side+"/Collider").GetComponent<BoxCollider>();
+                Vector3 lo=collider.center-collider.size*.5f,hi=collider.center+collider.size*.5f;
+                foreach (var corner in new[] {lo,hi})
+                {
+                    Vector3 point=floor.InverseTransformPoint(collider.transform.TransformPoint(corner));
+                    if(first){bounds=new Bounds(point,Vector3.zero);first=false;}else bounds.Encapsulate(point);
+                }
+                collider.enabled=false;
+            }
+            float top=bounds.max.y;
+            bounds.center=new Vector3(bounds.center.x,top-.12f,bounds.center.z);
+            bounds.size=new Vector3(bounds.size.x,.24f,bounds.size.z);
+            closedBox.center=bounds.center;closedBox.size=bounds.size;closedBox.enabled=true;
+            support.gameObject.layer=LayerMask.NameToLayer("Ground");
+            ApplyShelfSupport(cage);
         }
 
         private static void ConfigureDoor(Transform door, float sign)
