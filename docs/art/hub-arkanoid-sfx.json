@@ -1,0 +1,14 @@
+{
+  "game": "HubArkanoid",
+  "source": "Короткие электронные эффекты принятой UI-поставки проекта. Пространственное воспроизведение из автомата, без копирования WAV.",
+  "output_folder": "Assets/_Project/Audio/Hub/Arkanoid",
+  "builder": "Igruha.EditorTools.HubArkanoidBuilder.Apply",
+  "slots": [
+    {"id":"arcade.launch","file":"Core/UI/SFX_UI_Toggle_On_01","event":"Подача мяча","volume":0.38,"spatial":true,"loop":false},
+    {"id":"arcade.bounce","file":"Core/UI/SFX_UI_Slider_Tick_01","event":"Отскок от бортика или платформы","volume":0.25,"spatial":true,"loop":false},
+    {"id":"arcade.brick","file":"Core/UI/SFX_UI_Click_01","event":"Разбитый кирпич","volume":0.4,"spatial":true,"loop":false},
+    {"id":"arcade.life","file":"Core/UI/SFX_UI_Toggle_Off_01","event":"Потеря жизни","volume":0.4,"spatial":true,"loop":false},
+    {"id":"arcade.level","file":"Core/UI/SFX_UI_Notify_Pop_01","event":"Новый уровень","volume":0.42,"spatial":true,"loop":false},
+    {"id":"arcade.over","file":"Core/UI/SFX_UI_Error_01","event":"Конец игры","volume":0.42,"spatial":true,"loop":false}
+  ]
+}
