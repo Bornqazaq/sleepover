@@ -1,0 +1,24 @@
+{
+  "game": "HubPingPong",
+  "source": "Повторное использование принятой поставки проекта, без копирования WAV. Сведение коротких сухих щелчков под контакт ракетки/стола; финальная проверка на слух в хабе.",
+  "output_folder": "Assets/_Project/Audio/Hub/PingPong",
+  "builder": "Igruha.EditorTools.HubPingPongBuilder.Apply",
+  "slots": [
+    {
+      "id": "pingpong.paddle",
+      "file": "Core/UI/SFX_UI_Click_01",
+      "event": "Начало показанного перелёта у каждой машины, включая локальное визуальное предсказание",
+      "volume": 0.42,
+      "spatial": true,
+      "loop": false
+    },
+    {
+      "id": "pingpong.bounce",
+      "file": "Core/UI/SFX_UI_Slider_Tick_01",
+      "event": "Отскок показанного перелёта у каждой машины",
+      "volume": 0.32,
+      "spatial": true,
+      "loop": false
+    }
+  ]
+}
