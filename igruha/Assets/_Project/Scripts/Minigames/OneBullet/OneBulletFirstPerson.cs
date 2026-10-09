@@ -20,13 +20,18 @@ namespace Igruha.Minigames.OneBullet
         [SerializeField] private Vector3 hipPosition = new Vector3(.17f, -.22f, .46f);
         [SerializeField] private Vector3 aimPosition = new Vector3(0, -.094f, .46f);
         private const float ViewScale = 1f, PitchLimit = 80f;
+        // The shared 0.8 m crouch collider is for gameplay, not comfortable first-person framing.
+        public const float MinimumViewEyeHeight = 1.05f;
+        public static float ViewEyeHeight(CapsuleCollider capsule) =>
+            Mathf.Max(OneBulletMinigame.EyeHeight(capsule), MinimumViewEyeHeight);
         private static readonly Vector3 StudioPosition = new Vector3(10000, 10000, 10000);
         private Camera weaponCamera;
         private UniversalAdditionalCameraData outputData;
         private CinemachineCamera lensCamera;
         private Transform viewGun;
         private OneBulletParticipant tracked;
-        private float standingEye, aimBlend;
+        private float aimBlend;
+        private bool ViewingSelf => rig.isActiveAndEnabled && tracked?.Motor != null && !tracked.Dead && game.GameplayActive;
         public bool IsAiming { get; private set; }
         public float AimBlend => aimBlend;
         public bool WeaponVisible => weaponCamera != null && weaponCamera.enabled;
@@ -67,19 +72,9 @@ namespace Igruha.Minigames.OneBullet
         }
         private void Update()
         {
-            var local = game.LocalParticipant;
-            if (local != tracked)
-            {
-                tracked = local;
-                if (tracked?.Capsule != null) standingEye = OneBulletMinigame.EyeHeight(tracked.Capsule);
-            }
-            bool viewingSelf = rig.isActiveAndEnabled && tracked?.Motor != null && !tracked.Dead && game.GameplayActive;
+            tracked = game.LocalParticipant;
+            bool viewingSelf = ViewingSelf;
             rig.SetViewDrivenExternally(!viewingSelf || !game.LocalInputAvailable);
-            if (viewingSelf)
-            {
-                // The shared rig caches standing height. Follow this game's crouching capsule locally.
-                rig.SetShoulderOffset(Vector3.up * (OneBulletMinigame.EyeHeight(tracked.Capsule) - standingEye));
-            }
             IsAiming = viewingSelf && game.LocalArmed && game.LocalInputAvailable && !tracked.Motor.MovementLocked &&
                 Mouse.current?.rightButton.isPressed == true;
             aimBlend = Mathf.MoveTowards(aimBlend, IsAiming ? 1f : 0f, Time.unscaledDeltaTime * aimSpeed);
@@ -91,6 +86,17 @@ namespace Igruha.Minigames.OneBullet
         }
         private void LateUpdate()
         {
+            if (ViewingSelf)
+            {
+                if (game.Storm != null && Igruha.Core.Minigame.NetworkClock.Now < game.Round.BeginsAt)
+                    rig.SetView(game.Storm.StartYaw(game.LocalId), 0);
+                // ResolveTarget runs in the rig's Update and can cache an already crouched height.
+                // Correct from that actual base, not a second cached standing height: otherwise
+                // rebinding while crouched subtracts the crouch twice and puts the view below the floor.
+                // Use the interpolated transform so following physics does not introduce camera jitter.
+                float eyeY = tracked.Motor.transform.position.y + ViewEyeHeight(tracked.Capsule);
+                rig.SetShoulderOffset(Vector3.up * (eyeY - rig.EyePosition.y));
+            }
             if (!weaponCamera.enabled) return;
             weaponCamera.fieldOfView = lensCamera.Lens.FieldOfView;
             weaponCamera.aspect = output.aspect;

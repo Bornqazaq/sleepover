@@ -22,6 +22,9 @@ namespace Igruha.Tests
                 float crouched = OneBulletMinigame.EyeHeight(capsule);
                 Assert.That(crouched, Is.EqualTo(.75f).Within(.001f));
                 Assert.That(crouched, Is.LessThan(standing));
+                Assert.That(OneBulletFirstPerson.ViewEyeHeight(capsule), Is.EqualTo(1.05f).Within(.001f));
+                // Raising only the view must not let a shot originate above the physical body.
+                Assert.That(crouched, Is.LessThan(capsule.bounds.max.y));
             }
             finally { Object.DestroyImmediate(go); }
         }
