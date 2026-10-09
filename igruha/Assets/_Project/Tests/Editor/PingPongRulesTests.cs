@@ -79,7 +79,7 @@ namespace Igruha.Tests
         [Test]
         public void LateClickOutsideWindowMissesEvenWithALargePingBudget()
         {
-            double stamp = incoming.ContactAt + PingPongRules.LateWindow + .03;
+            double stamp = incoming.ContactAt + PingPongRules.LateWindow(incoming.Rally) + .03;
             Assert.That(Hit(0, 11, 1, stamp, stamp + .2, .3f), Is.False);
         }
 
@@ -108,10 +108,58 @@ namespace Igruha.Tests
         [Test]
         public void PaceHasAComfortableLimitAndNetworkGraceIsBounded()
         {
-            Assert.That(PingPongRules.Duration(3), Is.EqualTo(PingPongRules.StartDuration));
-            Assert.That(PingPongRules.Duration(4), Is.LessThan(PingPongRules.StartDuration));
+            Assert.That(PingPongRules.Duration(0), Is.EqualTo(PingPongRules.StartDuration));
+            Assert.That(PingPongRules.Duration(1), Is.LessThan(PingPongRules.StartDuration));
             Assert.That(PingPongRules.Duration(1000000), Is.EqualTo(PingPongRules.MinimumDuration));
             Assert.That(PingPongRules.RewindBudget(60), Is.EqualTo(PingPongRules.MaximumRewind));
+        }
+
+        [TestCase(0)] [TestCase(12)] [TestCase(24)]
+        public void GreenBarAndServerUseExactlyTheSameWindow(int rally)
+        {
+            var flight = incoming;
+            flight.Rally = rally;
+            flight.Duration = PingPongRules.Duration(rally);
+            double opens = flight.ContactAt - PingPongRules.EarlyWindow(rally);
+            double closes = flight.ContactAt + PingPongRules.LateWindow(rally);
+            Assert.That(PingPongRules.TimingProgress(flight, opens),
+                Is.EqualTo(PingPongRules.TimingWindowStart(flight)).Within(.00001f));
+            Assert.That(PingPongRules.TimingProgress(flight, closes), Is.EqualTo(1).Within(.00001f));
+            Assert.That(PingPongRules.InWindow(flight, opens + .001), Is.True);
+            Assert.That(PingPongRules.InWindow(flight, closes - .001), Is.True);
+            Assert.That(PingPongRules.InWindow(flight, opens - .001), Is.False);
+            Assert.That(PingPongRules.InWindow(flight, closes + .001), Is.False);
+        }
+
+        [Test]
+        public void EveryReturnSpeedsUpAndShrinksTheWindowUntilTheCap()
+        {
+            var previous = incoming;
+            for (uint id = 2; id <= PingPongRules.FullDifficultyRally + 1; id++)
+            {
+                var next = PingPongRules.Return(previous, id);
+                Assert.That(next.Duration, Is.LessThan(previous.Duration));
+                Assert.That(PingPongRules.EarlyWindow(next.Rally), Is.LessThan(PingPongRules.EarlyWindow(previous.Rally)));
+                Assert.That(PingPongRules.LateWindow(next.Rally), Is.LessThan(PingPongRules.LateWindow(previous.Rally)));
+                Assert.That(PingPongRules.TimingWindowStart(next), Is.GreaterThan(PingPongRules.TimingWindowStart(previous)));
+                previous = next;
+            }
+            Assert.That(previous.Duration, Is.EqualTo(PingPongRules.MinimumDuration).Within(.00001f));
+            Assert.That(PingPongRules.EarlyWindow(1000000), Is.EqualTo(PingPongRules.MinimumEarlyWindow).Within(.00001f));
+            Assert.That(PingPongRules.LateWindow(1000000), Is.EqualTo(PingPongRules.MinimumLateWindow).Within(.00001f));
+            var fresh = PingPongRules.Serve(100, 0, 20);
+            Assert.That(fresh.Rally, Is.Zero);
+            Assert.That(fresh.Duration, Is.EqualTo(PingPongRules.StartDuration));
+        }
+
+        [Test]
+        public void ExpertRallyRejectsATimeThatWasValidOnTheFirstServe()
+        {
+            incoming.Rally = PingPongRules.FullDifficultyRally;
+            incoming.Duration = PingPongRules.Duration(incoming.Rally);
+            Set(table, "offlineState", new PingPongState { Phase = PingPongPhase.Playing, Flight = incoming });
+            double stamp = incoming.ContactAt - .15;
+            Assert.That(Hit(0, 11, incoming.Id, stamp, stamp + .15, .15f), Is.False);
         }
 
         private bool Hit(byte side, ulong sender, uint id, double stamp, double now, float rtt) =>

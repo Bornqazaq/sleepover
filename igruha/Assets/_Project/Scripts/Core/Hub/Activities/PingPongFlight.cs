@@ -57,12 +57,14 @@ namespace Igruha.Core.Hub.Activities
     /// <summary>Shared trajectory and bounded timing validation, also used for presentation prediction.</summary>
     public static class PingPongRules
     {
-        public const float EarlyWindow = .28f;
-        public const float LateWindow = .18f;
+        public const float StartEarlyWindow = .28f;
+        public const float StartLateWindow = .18f;
+        public const float MinimumEarlyWindow = .075f;
+        public const float MinimumLateWindow = .055f;
         public const float StartDuration = 1.35f;
-        public const float MinimumDuration = .9f;
-        public const float SpeedStep = .06f;
-        public const int ReturnsPerStep = 4;
+        public const float MinimumDuration = .65f;
+        public const int FullDifficultyRally = 24;
+        public const float AutomaticReturnLead = .28f;
         public const float BounceFraction = .72f;
         public const float TableHeight = .87f;
         public const float BallRadius = .035f;
@@ -78,8 +80,16 @@ namespace Igruha.Core.Hub.Activities
         private const float FlyoutSpeed = 2.8f;
         private const float FlyoutGravity = 5f;
 
-        public static float Duration(int rally) => Mathf.Max(MinimumDuration,
-            StartDuration - Mathf.Max(0, rally) / ReturnsPerStep * SpeedStep);
+        private static float Difficulty(int rally) => Mathf.Clamp01((float)rally / FullDifficultyRally);
+        public static float Duration(int rally) => Mathf.Lerp(StartDuration, MinimumDuration, Difficulty(rally));
+        public static float EarlyWindow(int rally) => Mathf.Lerp(StartEarlyWindow, MinimumEarlyWindow, Difficulty(rally));
+        public static float LateWindow(int rally) => Mathf.Lerp(StartLateWindow, MinimumLateWindow, Difficulty(rally));
+
+        // The bar includes the late part of the window, so its green zone exactly matches the server rule.
+        public static float TimingProgress(PingPongFlight flight, double now) => Mathf.Clamp01(
+            (float)(now - flight.StartsAt) / (flight.Duration + LateWindow(flight.Rally)));
+        public static float TimingWindowStart(PingPongFlight flight) =>
+            (flight.Duration - EarlyWindow(flight.Rally)) / (flight.Duration + LateWindow(flight.Rally));
 
         public static float RewindBudget(float rttSeconds) =>
             Mathf.Clamp(rttSeconds + NetworkSlack, NetworkSlack, MaximumRewind);
@@ -89,7 +99,7 @@ namespace Igruha.Core.Hub.Activities
             stamp <= receivedAt + FutureTolerance && stamp >= receivedAt - rewindBudget;
 
         public static bool InWindow(PingPongFlight flight, double stamp) => flight.Valid &&
-            stamp >= flight.ContactAt - EarlyWindow && stamp <= flight.ContactAt + LateWindow;
+            stamp >= flight.ContactAt - EarlyWindow(flight.Rally) && stamp <= flight.ContactAt + LateWindow(flight.Rally);
 
         public static Vector3 Contact(byte side, float z) => new Vector3(side == 0 ? -ContactX : ContactX, ContactY, z);
 

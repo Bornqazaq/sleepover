@@ -139,13 +139,13 @@ namespace Igruha.Core.Hub.Activities
             if (target.Occupant == HubActivityStation.NoOccupant)
             {
                 // Publish an automatic rebound before contact so clients can interpolate both legs.
-                if (now >= current.Flight.ContactAt - PingPongRules.EarlyWindow) Return(current);
+                if (now >= current.Flight.ContactAt - PingPongRules.AutomaticReturnLead) Return(current);
             }
             else
             {
                 float rtt = IsSpawned && target.Occupant != NetworkManager.ServerClientId
                     ? NetworkManager.NetworkConfig.NetworkTransport.GetCurrentRtt(target.Occupant) * .001f : 0;
-                if (now <= current.Flight.ContactAt + PingPongRules.LateWindow + PingPongRules.RewindBudget(rtt)) return;
+                if (now <= current.Flight.ContactAt + PingPongRules.LateWindow(current.Flight.Rally) + PingPongRules.RewindBudget(rtt)) return;
                 current.Phase = PingPongPhase.Missed;
                 Publish(current);
                 nextReceiver = current.Flight.Target;

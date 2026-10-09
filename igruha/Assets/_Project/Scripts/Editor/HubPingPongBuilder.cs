@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Igruha.Core.Audio;
+using Igruha.Core.CameraSystems;
 using Igruha.Core.Hub.Activities;
+using Unity.Cinemachine;
 using Unity.Netcode;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -69,9 +71,43 @@ namespace Igruha.EditorTools
             Set(view, "leftCue", leftCue); Set(view, "rightCue", rightCue); Set(view, "audioPlayer", sound);
             ball.localPosition = new Vector3(-.54f, PingPongRules.TableHeight + PingPongRules.BallRadius, .38f);
             RestPaddle(leftPaddle, 0); RestPaddle(rightPaddle, 1);
+            ConfigureView();
             Physics.SyncTransforms();
             EditorSceneManager.MarkSceneDirty(scene);
             Debug.Log("Ping-pong built: two scene seats, shared flight controller, timing markers and spatial sound.");
+        }
+
+        /// <summary>Upgrade the local camera without rebuilding the scene's network object identities.</summary>
+        public static void ConfigureView()
+        {
+            var scene = EditorSceneManager.GetActiveScene();
+            if (EditorApplication.isPlaying || scene.path != ScenePath)
+                throw new InvalidOperationException("Open Hub.unity outside Play Mode.");
+            GameObject root = GameObject.Find(RootName);
+            var view = root.GetComponent<PingPongCamera>();
+            if (view == null) view = root.AddComponent<PingPongCamera>();
+            Transform child = root.transform.Find("PingPongView");
+            if (child == null)
+            {
+                child = new GameObject("PingPongView").transform;
+                child.SetParent(root.transform, false);
+            }
+            var rig = child.GetComponent<CinemachineCamera>();
+            if (rig == null) rig = child.gameObject.AddComponent<CinemachineCamera>();
+            rig.Priority.Value = -100;
+            rig.Priority.Enabled = true;
+            LensSettings lens = rig.Lens;
+            lens.FieldOfView = 60;
+            lens.NearClipPlane = .05f;
+            lens.FarClipPlane = 100;
+            rig.Lens = lens;
+            rig.enabled = false;
+            Set(view, "table", root.GetComponentInChildren<PingPongTable>());
+            Set(view, "tableRig", rig);
+            Set(view, "brain", Object.FindFirstObjectByType<CinemachineBrain>());
+            Set(view, "cameraController", Object.FindFirstObjectByType<MinigameCameraController>());
+            Set(root.GetComponent<PingPongPresentation>(), "localCamera", view);
+            EditorSceneManager.MarkSceneDirty(scene);
         }
 
         private static PingPongSeat Seat(Transform root, PingPongTable table, byte side)

@@ -24,6 +24,8 @@ namespace Igruha.Tests
         private PlayerInputReader input;
         private PlayerPushAbility push;
         private PingPongSeat seat;
+        private PingPongCamera tableView;
+        private SkinnedMeshRenderer ownModel;
         private string scenario;
         private bool failed, autoplay, injectEarly, earlySent, earlyRetry, sawMiss, closing;
         private bool offline;
@@ -79,6 +81,8 @@ namespace Igruha.Tests
             if (failed) { Finish(); yield break; }
             side = offline && scenario == "solo-right" ? 1 : localId == 0 ? 0 : 1;
             seat = table.Seat(side);
+            tableView = table.GetComponentInParent<PingPongCamera>();
+            ownModel = body.GetComponentInChildren<SkinnedMeshRenderer>();
             input = body.GetComponent<PlayerInputReader>();
             push = body.GetComponent<PlayerPushAbility>();
             input.EngageAutopilot();
@@ -88,7 +92,7 @@ namespace Igruha.Tests
             {
                 yield return Enter();
                 autoplay = true;
-                yield return Wait(() => maxSolo >= 10, 30, "solo rally");
+                yield return Wait(() => maxSolo >= 26, 45, "solo rally through maximum difficulty");
                 autoplay = false;
                 yield return Leave();
                 Check(table.State.Phase == PingPongPhase.Idle, "empty table reset");
@@ -97,6 +101,7 @@ namespace Igruha.Tests
                 body.TeleportTo(seat.StandPosition + Vector3.forward * 6, Quaternion.identity);
                 yield return new WaitForSeconds(.4f);
                 Check(!body.MovementLocked && push.ButtonOverride == null, "teleport cleanup");
+                Check(tableView != null && !tableView.IsActive, "teleport restores camera");
                 Finish(); yield break;
             }
 
@@ -107,6 +112,7 @@ namespace Igruha.Tests
                 body.TeleportTo(table.Seat(0).StandPosition + Vector3.forward, Quaternion.identity);
                 yield return new WaitForSeconds(.5f);
                 Check(!table.Seat(0).CanInteract(body) && !table.Seat(1).CanInteract(body), "third player cannot take occupied seats");
+                Check(tableView != null && !tableView.IsActive, "observer retains ordinary camera");
                 body.GetComponent<IInteractionRelay>()?.TryRelayInteract(table.Seat(0).gameObject);
                 yield return new WaitForSeconds(.5f);
                 Check(table.Seat(0).Occupant == first && table.Seat(1).Occupant == second, "third player's RPC did not replace owners");
@@ -121,7 +127,7 @@ namespace Igruha.Tests
             injectEarly = localId == 1;
             // A host shutdown may intentionally discard its last unsent flight. The client
             // arms its disconnect assertion one exchange earlier instead of waiting for it.
-            int requiredPair = scenario == "host-exit" && localId == 1 ? 6 : 8;
+            int requiredPair = scenario == "flow" ? 26 : scenario == "host-exit" && localId == 1 ? 6 : 8;
             yield return Wait(() => sawMiss && maxPair >= requiredPair, 60, "pair rally after intentional early miss");
             Check(sawMiss, "miss replicated");
             if (failed) { Finish(); yield break; }
@@ -134,6 +140,8 @@ namespace Igruha.Tests
                     body.Knockdown(KnockdownType.FallForward);
                     yield return Wait(() => !seat.IsLocal && !body.MovementLocked && push.ButtonOverride == null,
                         6, "client knockdown releases seat and input");
+                    yield return null;
+                    Check(tableView != null && !tableView.IsActive, "knockdown restores camera");
                     // Stay connected while the host verifies the automatic replacement.
                     yield return new WaitForSeconds(9);
                     Finish(); yield break;
@@ -174,6 +182,7 @@ namespace Igruha.Tests
                 autoplay = false;
                 yield return new WaitForSeconds(1);
                 Check(body == null || push == null || push.ButtonOverride == null, "shutdown releases push override");
+                Check(tableView == null || !tableView.IsActive, "shutdown releases table camera");
                 Finish(); yield break;
             }
 
@@ -220,6 +229,7 @@ namespace Igruha.Tests
             game = MinigameControllerBase.Current;
             Check(game != null && game.Phase == MinigamePhase.Round, "entered main minigame");
             Check(body != null && !body.MovementLocked && push.ButtonOverride == null, "movement and punch restored in minigame");
+            Check(tableView == null || !tableView.IsActive, "minigame has no table camera override");
         }
 
         private IEnumerator Enter()
@@ -232,6 +242,9 @@ namespace Igruha.Tests
             input.DriveInteract();
             yield return Wait(() => seat.IsLocal && body.MovementLocked, 6, "seat binding");
             Check(ReferenceEquals(push.ButtonOverride, seat), "LMB overrides punch");
+            yield return Wait(() => tableView != null && tableView.IsActive && tableView.ViewSide == side,
+                3, "first-person table camera active on correct side");
+            Check(ownModel != null && ownModel.forceRenderingOff, "own head hidden in first-person view");
         }
 
         private IEnumerator Leave()
@@ -240,6 +253,8 @@ namespace Igruha.Tests
             yield return Wait(() => !seat.IsLocal, 6, "E release");
             yield return null;
             Check(!body.MovementLocked && push.ButtonOverride == null, "release restores movement and punch");
+            Check(tableView != null && !tableView.IsActive, "E restores ordinary camera");
+            Check(ownModel != null && !ownModel.forceRenderingOff, "E restores own model");
         }
 
         private void Update()
@@ -278,7 +293,8 @@ namespace Igruha.Tests
                 }
                 return;
             }
-            if (now >= state.Flight.ContactAt - .12 && now < state.Flight.ContactAt + PingPongRules.LateWindow)
+            if (now >= state.Flight.ContactAt - PingPongRules.EarlyWindow(state.Flight.Rally) * .4f &&
+                now < state.Flight.ContactAt + PingPongRules.LateWindow(state.Flight.Rally))
             {
                 pressedFlight = state.Flight.Id;
                 PushInput.SetValue(input, true);

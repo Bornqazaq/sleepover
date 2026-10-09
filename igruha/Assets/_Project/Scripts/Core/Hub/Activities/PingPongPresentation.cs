@@ -11,6 +11,7 @@ namespace Igruha.Core.Hub.Activities
         public const string PaddleSound = "pingpong.paddle";
         public const string BounceSound = "pingpong.bounce";
         [SerializeField] private PingPongTable table;
+        [SerializeField] private PingPongCamera localCamera;
         [SerializeField] private Transform ball;
         [SerializeField] private Transform leftPaddle;
         [SerializeField] private Transform rightPaddle;
@@ -121,7 +122,8 @@ namespace Igruha.Core.Hub.Activities
         private void OnGUI()
         {
             int side = table.LocalSide;
-            if (side < 0 || (PauseScreen.Current != null && PauseScreen.Current.IsPaused)) return;
+            if (side < 0 || (localCamera != null && !localCamera.IsActive) ||
+                (PauseScreen.Current != null && PauseScreen.Current.IsPaused)) return;
             if (titleStyle == null)
             {
                 titleStyle = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter,
@@ -151,10 +153,10 @@ namespace Igruha.Core.Hub.Activities
             Draw(bar, new Color(.20f, .25f, .23f));
             if (incoming)
             {
-                float window = PingPongRules.EarlyWindow / flight.Duration;
-                Draw(new Rect(bar.x + bar.width * (1 - window), bar.y, bar.width * window, bar.height), ReadyColor * .55f);
-                float progress = Mathf.Clamp01((float)((now - flight.StartsAt) / flight.Duration));
-                Draw(new Rect(bar.x + (bar.width - 5) * progress, bar.y - 3, 5, 15), accent);
+                float windowStart = PingPongRules.TimingWindowStart(flight);
+                Draw(new Rect(bar.x + bar.width * windowStart, bar.y, bar.width * (1 - windowStart), bar.height), ReadyColor * .55f);
+                float progress = PingPongRules.TimingProgress(flight, now);
+                Draw(new Rect(bar.x + bar.width * progress - 2.5f, bar.y - 3, 5, 15), accent);
             }
             GUI.Label(new Rect(x, y + 73, width, 23), "ЛКМ — удар   ·   Зажми E — отойти", hintStyle);
             GUI.matrix = old;
