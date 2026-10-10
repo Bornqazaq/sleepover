@@ -17,25 +17,28 @@ MonoBehaviour:
   wakeSeconds: 0.5
   lieDownSeconds: 1
   immunitySeconds: 2
+  wakeSleepLoss: 2.5
   idleMosquitoPenalty: 0
   biteDistance: 0.55
   biteHoldSeconds: 0.5
+  soloBiteHoldSeconds: 1
   biteCooldown: 5
   biteWindow: 4
   bitesToWake: 2
   swatRadius: 1.3
   swatArc: 140
-  maxSpeed: 8
-  quietSpeed: 2.2
-  acceleration: 24
-  braking: 20
+  swatCooldown: 1
+  maxSpeed: 4.8
+  quietSpeed: 1.25
+  acceleration: 16
+  braking: 24
   flightCeiling: 2.16
   bodyRadius: 0.12
   stuckSeconds: 3
   cameraRadius: 1.2
   lightRadius: 2.88
   windowIntensity: 0.15
-  quietThreshold: 2.2
-  loudThreshold: 7
+  quietThreshold: 1.25
+  loudThreshold: 4.8
   hearingRadius: 12
   sleepVignette: 0.9

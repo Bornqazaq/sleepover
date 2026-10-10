@@ -20,6 +20,14 @@ namespace Igruha.Minigames.Mosquitoes
         private readonly List<int> groups = new List<int>();
         public float BackContactHeight { get; private set; }
         private float reaction;
+        private float transitionElapsed, transitionDuration;
+        private Vector3 transitionPosition;
+        private Quaternion transitionRotation;
+        private readonly List<Transform> poseBones = new List<Transform>();
+        private readonly List<Quaternion> transitionBones = new List<Quaternion>();
+        private readonly List<Quaternion> sleepingBones = new List<Quaternion>();
+        private Transform chestBone;
+        private Quaternion sleepingChest;
         public Bounds SkinBounds { get; private set; }
         public Bounds MeasureSkinBounds() { ReadSkin(); return SkinBounds; }
         public int ContactCount => parts.Count;
@@ -28,7 +36,15 @@ namespace Igruha.Minigames.Mosquitoes
 
         public void Initialize(Animator value)
         {
-            animator = value; model = animator.transform;
+            animator = value;
+            if (animator == null) return;
+            model = animator.transform;
+            chestBone = animator.GetBoneTransform(HumanBodyBones.Chest);
+            for (int i = 0; i < (int)HumanBodyBones.LastBone; i++)
+            {
+                Transform bone = animator.GetBoneTransform((HumanBodyBones)i);
+                if (bone != null) { poseBones.Add(bone); transitionBones.Add(bone.localRotation); sleepingBones.Add(bone.localRotation); }
+            }
             originalPosition = model.localPosition; originalRotation = model.localRotation;
             originalEnabled = animator.enabled; originalCulling = animator.cullingMode;
             animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
@@ -67,9 +83,13 @@ namespace Igruha.Minigames.Mosquitoes
             c.includeLayers = 1 << 12; c.excludeLayers = ~(1 << 12); c.layerOverridePriority = 100;
             parts.Add(new Part { A = start, B = end, Radius = radius, Collider = c });
         }
-        public void SetSleeping(bool value)
+        public void SetSleeping(bool value, float duration = 0)
         {
+            if (model == null) return;
             if (sleeping == value) return;
+            transitionPosition = model.position; transitionRotation = model.rotation;
+            for (int i = 0; i < poseBones.Count; i++) transitionBones[i] = poseBones[i].localRotation;
+            transitionDuration = duration; transitionElapsed = 0;
             sleeping = value; model.localPosition = originalPosition; model.localRotation = originalRotation;
             animator.enabled = true; animator.speed = 1;
             animator.Play("Base Layer.Idle", 0, 0); animator.Update(0);
@@ -102,6 +122,8 @@ namespace Igruha.Minigames.Mosquitoes
                 float top = chest.y;
                 foreach (var p in points) if (Mathf.Abs(p.x - chest.x) < .22f && Mathf.Abs(p.z - chest.z) < .23f) top = Mathf.Max(top, p.y);
                 BiteSurfacePoint = new Vector3(chest.x, top + .025f, chest.z);
+                if (chestBone != null) sleepingChest = chestBone.localRotation;
+                for (int i = 0; i < poseBones.Count; i++) sleepingBones[i] = poseBones[i].localRotation;
             }
             RefreshContacts();
         }
@@ -227,7 +249,23 @@ namespace Igruha.Minigames.Mosquitoes
             reaction = Mathf.Max(0, reaction - Time.deltaTime);
             if (sleeping)
             {
-                model.SetPositionAndRotation(sleepingPosition, sleepingRotation);
+                for (int i = 0; i < poseBones.Count; i++) poseBones[i].localRotation = sleepingBones[i];
+                float breathe = Mathf.Sin(Time.time * 1.6f) * .004f;
+                float flinch = Mathf.Sin(Mathf.Clamp01(reaction / .32f) * Mathf.PI);
+                model.SetPositionAndRotation(sleepingPosition + Vector3.up * breathe, sleepingRotation);
+                if (chestBone != null) chestBone.localRotation = sleepingChest * Quaternion.Euler(flinch * 5, 0, flinch * -3);
+            }
+            else if (transitionElapsed < transitionDuration)
+            {
+                model.localPosition = originalPosition;
+                model.localRotation = originalRotation;
+            }
+            if (transitionElapsed < transitionDuration)
+            {
+                transitionElapsed += Time.deltaTime;
+                float t = Mathf.SmoothStep(0, 1, Mathf.Clamp01(transitionElapsed / transitionDuration));
+                model.SetPositionAndRotation(Vector3.Lerp(transitionPosition, model.position, t), Quaternion.Slerp(transitionRotation, model.rotation, t));
+                for (int i = 0; i < poseBones.Count; i++) poseBones[i].localRotation = Quaternion.Slerp(transitionBones[i], poseBones[i].localRotation, t);
             }
             RefreshContacts();
         }

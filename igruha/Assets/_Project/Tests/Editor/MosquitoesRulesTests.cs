@@ -24,18 +24,32 @@ namespace Igruha.Tests
             var s = new GiantSleepState(config); Assert.That(s.RegisterBite()); s.Tick(3.99f);
             Assert.That(s.RegisterBite()); Assert.That(s.Phase, Is.EqualTo(GiantPhase.Waking));
             Assert.That(s.ImmunityRemaining, Is.EqualTo(2)); Assert.That(s.RegisterBite(), Is.False);
-            s.Tick(.5f); Assert.That(s.CanSwat); Assert.That(s.Sleep, Is.EqualTo(3.99f).Within(.001f));
+            s.Tick(.5f); Assert.That(s.CanSwat); Assert.That(s.Sleep, Is.EqualTo(3.99f - config.WakeSleepLoss).Within(.001f));
+            Assert.That(s.ToggleBed(), Is.False, "forced wake must leave a counterattack window");
+            s.Tick(config.ImmunitySeconds); Assert.That(s.ToggleBed(), Is.True);
         }
-        [Test] public void OneMosquitoCannotWakeWithFiveSecondCooldown()
+        [Test] public void PairExpiresButLastSurvivorCanStillWake()
         {
             var s = new GiantSleepState(config); s.RegisterBite(); s.Tick(config.BiteCooldown); s.RegisterBite();
             Assert.That(s.Phase, Is.EqualTo(GiantPhase.Sleeping));
+            s.Tick(config.BiteCooldown); Assert.That(s.RegisterBite(1), Is.True);
+            Assert.That(s.Phase, Is.EqualTo(GiantPhase.Waking));
         }
         [Test] public void BitesDuringLyingDownDoNotPreloadWakePair()
         {
             var s = new GiantSleepState(config); s.ToggleBed(); s.Tick(.5f); s.ToggleBed();
-            Assert.That(s.RegisterBite()); Assert.That(s.RegisterBite()); Assert.That(s.Phase, Is.EqualTo(GiantPhase.LyingDown));
+            Assert.That(s.RegisterBite(), Is.False); Assert.That(s.RegisterBite(), Is.False); Assert.That(s.Phase, Is.EqualTo(GiantPhase.LyingDown));
             s.Tick(1); s.RegisterBite(); Assert.That(s.Phase, Is.EqualTo(GiantPhase.Sleeping));
+        }
+        [Test] public void ReplicatedBiteWindowShowsTheSameTeamOpportunity()
+        {
+            var server = new GiantSleepState(config); server.RegisterBite(); server.Tick(1);
+            var client = new GiantSleepState(config);
+            client.ApplySnapshot(server.Phase, server.Sleep, server.TransitionRemaining, server.ImmunityRemaining, server.LampOn,
+                server.RecentBites, server.BiteWindowRemaining);
+            Assert.That(client.RecentBites, Is.EqualTo(1));
+            Assert.That(client.BiteWindowRemaining, Is.EqualTo(3).Within(.001f));
+            server.Tick(4); Assert.That(server.RecentBites, Is.Zero);
         }
         [TestCase(3)] [TestCase(4)] [TestCase(8)] public void TeamResultsPreserveOriginalRosterAndDisconnectedMosquitoTeamPlace(int n)
         {

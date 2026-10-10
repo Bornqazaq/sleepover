@@ -9,14 +9,18 @@ namespace Igruha.Minigames.Mosquitoes
         public int GiantId;
         public byte Phase;
         public bool Lamp;
-        public float Sleep, Transition, Immunity, Countdown, EntryRemaining;
+        public float Sleep, Transition, Immunity, Countdown, EntryRemaining, BiteWindow;
+        public int RecentBites;
+        public Vector3 BiteTarget, BiteSurface;
         public void NetworkSerialize<T>(BufferSerializer<T> s) where T : IReaderWriter
         {
             s.SerializeValue(ref GiantId); s.SerializeValue(ref Phase); s.SerializeValue(ref Lamp);
             s.SerializeValue(ref Sleep); s.SerializeValue(ref Transition); s.SerializeValue(ref Immunity); s.SerializeValue(ref Countdown); s.SerializeValue(ref EntryRemaining);
+            s.SerializeValue(ref RecentBites); s.SerializeValue(ref BiteWindow);
+            s.SerializeValue(ref BiteTarget); s.SerializeValue(ref BiteSurface);
         }
         public bool Equals(MosquitoesSnapshot o) => GiantId == o.GiantId && Phase == o.Phase && Lamp == o.Lamp &&
-            Sleep == o.Sleep && Transition == o.Transition && Immunity == o.Immunity && Countdown == o.Countdown && EntryRemaining == o.EntryRemaining;
+            Sleep == o.Sleep && Transition == o.Transition && Immunity == o.Immunity && Countdown == o.Countdown && EntryRemaining == o.EntryRemaining && RecentBites == o.RecentBites && BiteWindow == o.BiteWindow && BiteTarget == o.BiteTarget && BiteSurface == o.BiteSurface;
     }
     public sealed class MosquitoesNetwork : NetworkBehaviour
     {
@@ -53,7 +57,9 @@ namespace Igruha.Minigames.Mosquitoes
             if (!IsSpawned || !IsServer || game.Sleep == null) return;
             state.Value = new MosquitoesSnapshot { GiantId = game.GiantId, Phase = (byte)game.Sleep.Phase,
                 Lamp = game.Sleep.LampOn, Sleep = game.Sleep.Sleep, Transition = game.Sleep.TransitionRemaining,
-                Immunity = game.Sleep.ImmunityRemaining, Countdown = game.Countdown, EntryRemaining = game.EntryRemaining };
+                Immunity = game.Sleep.ImmunityRemaining, Countdown = game.Countdown, EntryRemaining = game.EntryRemaining,
+                RecentBites = game.Sleep.RecentBites, BiteWindow = game.Sleep.BiteWindowRemaining,
+                BiteTarget = game.BiteTarget, BiteSurface = game.BiteSurfaceOrigin };
             for (int i = Living.Count - 1; i >= 0; i--) if (!game.IsLiving(Living[i])) Living.RemoveAt(i);
             foreach (MosquitoBody body in game.Bodies) if (body != null && game.IsLiving(body.Id) && !Living.Contains(body.Id)) Living.Add(body.Id);
         }

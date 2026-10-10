@@ -70,6 +70,10 @@ namespace Igruha.EditorTools
             exit.rotation = Quaternion.Euler(0, 180, 0);
             var lampPoint = Point("LampCenter", new Vector3(-3.02f, 1.48f, -2.47f));
             var config = Asset<MosquitoesConfig>(Settings + "/MosquitoesConfig.asset");
+            Set(config, "maxSpeed", 4.8f); Set(config, "quietSpeed", 1.25f);
+            Set(config, "acceleration", 16f); Set(config, "braking", 24f);
+            Set(config, "quietThreshold", 1.25f); Set(config, "loudThreshold", 4.8f);
+            Set(config, "wakeSleepLoss", 2.5f); Set(config, "soloBiteHoldSeconds", 1f); Set(config, "swatCooldown", 1f);
             var definition = Asset<MinigameDefinition>(Settings + "/Mosquitoes.asset");
             Set(definition, "displayName", "Комары"); Set(definition, "sceneName", "Mosquitoes");
             Set(definition, "category", (int)MinigameCategory.Asymmetric); Set(definition, "cameraMode", (int)CameraMode.ThirdPerson);
@@ -365,7 +369,13 @@ namespace Igruha.EditorTools
             ColorUtility.TryParseHtmlString(hex, out Color color); material.color = color; material.SetFloat("_Smoothness", .12f); EditorUtility.SetDirty(material); return material;
         }
         private static Light Light(string name, Vector3 p, LightType type, float intensity, Color color, Transform root)
-        { var go = new GameObject(name); go.transform.SetParent(root); go.transform.position = p; var light = go.AddComponent<Light>(); light.type = type; light.color = color; light.intensity = intensity; light.shadows = LightShadows.Soft; return light; }
+        {
+            var go = new GameObject(name); go.transform.SetParent(root); go.transform.position = p;
+            var light = go.AddComponent<Light>(); light.type = type; light.color = color; light.intensity = intensity; light.shadows = LightShadows.Soft;
+            var data = go.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalLightData>() ?? go.AddComponent<UnityEngine.Rendering.Universal.UniversalAdditionalLightData>();
+            Set(data, "m_AdditionalLightsShadowResolutionTier", type == LightType.Point ? 0 : 1);
+            return light;
+        }
         private static void Stretch(RectTransform rect) { rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one; rect.offsetMin = rect.offsetMax = Vector2.zero; }
         private static TextMeshProUGUI Label(Transform parent, string name, Vector2 anchor, Vector2 size, float font)
         {

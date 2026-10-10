@@ -22,6 +22,7 @@ namespace Igruha.Minigames.Mosquitoes
         private float ambientIntensity, reflection, lampIntensity, windowIntensity, fillIntensity;
         private bool active, giant, warned;
         private GiantPhase lastPhase = (GiantPhase)255;
+        private MosquitoObjectiveView objectives;
         public void Begin()
         {
             if (active) return; active = true; warned = false; lastPhase = (GiantPhase)255;
@@ -66,7 +67,13 @@ namespace Igruha.Minigames.Mosquitoes
             vignette?.SetAmount(giant && state.Phase == GiantPhase.Sleeping ? config.SleepVignette : 0);
             if (!warned && state.Sleep >= config.SleepTarget - 10) { warned = true; audioPlayer?.LastTenSeconds(); }
         }
-        public void SetStatus(string text) { if (status != null) status.text = text; }
+        public void PaintHud(MosquitoesMinigame game, MosquitoBody body, bool eaten)
+        {
+            if (status != null) MosquitoesHud.PaintStatus(status, game, body, eaten);
+            if (instructions != null) instructions.SetText(MosquitoesHud.Instructions(game, body));
+            if (objectives == null && status != null) objectives = new MosquitoObjectiveView(status);
+            objectives?.Paint(game, body);
+        }
         private void SetLampGlow(bool on)
         {
             if (lampGlow == null) return;
@@ -83,6 +90,7 @@ namespace Igruha.Minigames.Mosquitoes
         public void End()
         {
             if (!active) return; active = false;
+            objectives?.Dispose(); objectives = null;
             RenderSettings.ambientMode = ambientMode; RenderSettings.ambientLight = ambient;
             RenderSettings.ambientProbe = ambientProbe;
             RenderSettings.ambientSkyColor = ambientSky; RenderSettings.ambientEquatorColor = ambientEquator; RenderSettings.ambientGroundColor = ambientGround;

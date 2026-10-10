@@ -11,8 +11,8 @@ namespace Igruha.Minigames.Mosquitoes
         public static readonly Vector3 Inside = new Vector3(2.85f, 1.85f, .94f);
         // Spread players through the open air near the facade. Every start is
         // reachable in the entry time, but flight is not confined to this area.
-        public static Vector3 Spawn(int slot) => new Vector3(8f + slot % 3 * 2.2f,
-            1.85f + Mathf.Sin(slot * 2.4f) * 3.5f, .94f + Mathf.Cos(slot * 1.75f) * 5.5f);
+        public static Vector3 Spawn(int slot) => new Vector3(7.2f + slot / 3 * 1.1f,
+            1.85f + (slot % 3 - 1) * .35f, .94f + (slot % 3 - 1) * 1.25f);
         public static Vector3 Recovery(int slot) => new Vector3(-3.15f, 1.85f + slot / 4 * .25f, -2.5f + slot % 4 * 1.5f);
         public static bool Crossed(Vector3 previous, Vector3 current)
         {

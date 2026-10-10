@@ -15,7 +15,10 @@ namespace Igruha.Minigames.Mosquitoes
         public float TransitionRemaining { get; private set; }
         public float ImmunityRemaining { get; private set; }
         public bool LampOn { get; private set; }
-        public bool CanBite => ImmunityRemaining <= 0f && (Phase == GiantPhase.Sleeping || Phase == GiantPhase.LyingDown);
+        public bool CanBite => ImmunityRemaining <= 0f && Phase == GiantPhase.Sleeping;
+        public bool CanSleep => Phase == GiantPhase.Awake && ImmunityRemaining <= 0f;
+        public int RecentBites => biteWindowRemaining > 0 ? bites : 0;
+        public float BiteWindowRemaining => biteWindowRemaining;
         public bool CanSwat => Phase == GiantPhase.Awake;
         public bool ReachedTarget => Sleep >= config.SleepTarget;
 
@@ -24,7 +27,7 @@ namespace Igruha.Minigames.Mosquitoes
         public bool ToggleBed()
         {
             if (Phase == GiantPhase.Sleeping) { Wake(false); return true; }
-            if (Phase != GiantPhase.Awake) return false;
+            if (!CanSleep) return false;
             Phase = GiantPhase.LyingDown;
             TransitionRemaining = config.LieDownSeconds;
             LampOn = false;
@@ -47,20 +50,21 @@ namespace Igruha.Minigames.Mosquitoes
             Phase = GiantPhase.Waking;
             TransitionRemaining = config.WakeSeconds;
             if (!forced) LampOn = true;
-            if (forced) ImmunityRemaining = config.ImmunitySeconds;
+            if (forced)
+            {
+                ImmunityRemaining = config.ImmunitySeconds;
+                Sleep = Mathf.Max(0, Sleep - config.WakeSleepLoss);
+            }
             bites = 0;
             biteWindowRemaining = 0f;
         }
 
-        public bool RegisterBite()
+        public bool RegisterBite(int livingMosquitoes = 2)
         {
             if (!CanBite) return false;
-            // LDD exception: bites while lying down consume the mosquito's cooldown,
-            // but cannot wake the giant or carry a preloaded pair into sleep.
-            if (Phase == GiantPhase.LyingDown) return true;
             if (biteWindowRemaining <= 0f) bites = 0;
             if (bites == 0) biteWindowRemaining = config.BiteWindow;
-            if (++bites >= config.BitesToWake) Wake(true);
+            if (++bites >= (livingMosquitoes == 1 ? 1 : config.BitesToWake)) Wake(true);
             return true;
         }
 
@@ -80,9 +84,10 @@ namespace Igruha.Minigames.Mosquitoes
             if (Phase == GiantPhase.Sleeping && !LampOn) Sleep = Mathf.Min(config.SleepTarget, Sleep + sleepDelta);
         }
 
-        public void ApplySnapshot(GiantPhase phase, float sleep, float transition, float immunity, bool lamp)
+        public void ApplySnapshot(GiantPhase phase, float sleep, float transition, float immunity, bool lamp, int recentBites = 0, float biteWindow = 0)
         {
             Phase = phase; Sleep = sleep; TransitionRemaining = transition; ImmunityRemaining = immunity; LampOn = lamp;
+            bites = recentBites; biteWindowRemaining = biteWindow;
         }
     }
 }

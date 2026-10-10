@@ -8,6 +8,31 @@ namespace Igruha.Tests
     public sealed class MosquitoesAvatarTests
     {
         [Test]
+        public void CoincidentImportedWingPivotsStillFlapInOppositeDirections()
+        {
+            var roster = AssetDatabase.LoadAssetAtPath<CharacterRoster>("Assets/_Project/Settings/Gameplay/CharacterRoster.asset");
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Prefabs/Minigames/Mosquitoes/Characters/" + roster.Characters[0].DisplayName + ".prefab");
+            var body = new GameObject("wing test");
+            try
+            {
+                var visual = Object.Instantiate(prefab, body.transform);
+                Transform left = null, right = null;
+                foreach (var t in visual.GetComponentsInChildren<Transform>(true))
+                {
+                    if (t.name == "WingPivot_-1_0") left = t;
+                    if (t.name == "WingPivot_1_0") right = t;
+                }
+                Assert.That(left, Is.Not.Null); Assert.That(right, Is.Not.Null);
+                Quaternion l = left.localRotation, r = right.localRotation;
+                var pose = new Igruha.Minigames.Mosquitoes.MosquitoFlightVisual(visual.transform, 0);
+                pose.Tick(Vector3.forward * 4.8f, 4.8f, false, false, true, Vector3.zero, .013f);
+                Quaternion dl = left.localRotation * Quaternion.Inverse(l), dr = right.localRotation * Quaternion.Inverse(r);
+                Assert.That(Quaternion.Angle(dl, Quaternion.identity), Is.GreaterThan(10));
+                Assert.That(Quaternion.Angle(dl * dr, Quaternion.identity), Is.LessThan(.05f), "left and right must mirror even when both hinges are at zero");
+            }
+            finally { Object.DestroyImmediate(body); }
+        }
+        [Test]
         public void EveryGiantFitsMattressAndRestoresOriginalModelTransform()
         {
             var roster = AssetDatabase.LoadAssetAtPath<CharacterRoster>("Assets/_Project/Settings/Gameplay/CharacterRoster.asset");
