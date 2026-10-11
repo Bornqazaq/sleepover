@@ -100,7 +100,7 @@ namespace Igruha.Core.Hub.Activities
 
         [System.NonSerialized] private string enterPrompt;
 
-        public string InteractionPrompt
+        public virtual string InteractionPrompt
         {
             get
             {
@@ -113,7 +113,7 @@ namespace Igruha.Core.Hub.Activities
             }
         }
 
-        public bool CanInteract(PlayerController player)
+        public virtual bool CanInteract(PlayerController player)
         {
             if (player == null || standPoint == null)
             {
@@ -187,7 +187,10 @@ namespace Igruha.Core.Hub.Activities
         /// <see cref="UpdateAiming"/> по удержанию, а этот метод только
         /// съедает нажатие, чтобы не прошёл удар.
         /// </summary>
-        public bool HandlePushButton(PlayerController player) => true;
+        public virtual bool HandlePushButton(PlayerController player) => true;
+
+        /// <summary>Timing activities use the existing push callback instead of charging on release.</summary>
+        protected virtual bool UsesChargeInput => true;
 
         // ================== жизненный цикл ==================
 
@@ -218,9 +221,10 @@ namespace Igruha.Core.Hub.Activities
             base.OnNetworkDespawn();
         }
 
-        private void OnDestroy()
+        public override void OnDestroy()
         {
             UnbindLocalPlayer();
+            base.OnDestroy();
         }
 
         protected virtual void Start()
@@ -332,7 +336,7 @@ namespace Igruha.Core.Hub.Activities
             return body != null ? body.GetComponent<PlayerController>() : null;
         }
 
-        private bool IsOccupiedByLocalPlayer()
+        protected bool IsOccupiedByLocalPlayer()
         {
             ulong current = Occupant;
             if (current == NoOccupant)
@@ -364,6 +368,8 @@ namespace Igruha.Core.Hub.Activities
             // Прицел (A/D и прочее) — до шкалы силы: так отпускание ЛКМ
             // берёт уже актуальное направление.
             OnLocalAiming(boundPlayer, boundInput);
+
+            if (!UsesChargeInput) return;
 
             bool holding = boundInput.PushHeld;
 

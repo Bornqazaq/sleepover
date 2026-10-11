@@ -25,9 +25,6 @@ namespace Igruha.EditorTools
                 new[] { "bearSpeed", "bearFirstAttackDelay", "hatchOpenSeconds" }, new[] { 8.2f, 0f, .9f });
             SetNumbers(AssetDatabase.LoadAssetAtPath<ScriptableObject>(settings + "CansOrderConfig.asset"),
                 new[] { "hatchOpenSeconds" }, new[] { .9f });
-            var wood = Material("CN_CagePlywood", new Color(.57f, .31f, .115f));
-            var edge = Material("CN_CagePlyEdge", new Color(.79f, .51f, .23f));
-            var iron = CircusNightAssets.Material("CN_BlackIron");
             var clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(
                 "Assets/_Project/Art/Animations/Karlan(Fbx without color)@Flying Back Death.fbx");
             try
@@ -40,30 +37,8 @@ namespace Igruha.EditorTools
                         var data = new SerializedObject(cage);
                         data.FindProperty("fallingClip").objectReferenceValue = clip;
                         data.ApplyModifiedPropertiesWithoutUndo();
-                        SetNumbers(cage.GetComponent<HingedFloorHatch>(), new[] { "anticipationSeconds" }, new[] { .18f });
-                        foreach (string side in new[] { "DoorLeft", "DoorRight" })
-                        {
-                            var door = cage.transform.Find("Floor/" + side);
-                            var old = door.Find("Plywood"); if (old != null) Object.DestroyImmediate(old.gameObject);
-                            foreach (var renderer in door.GetComponentsInChildren<Renderer>()) renderer.enabled = false;
-                            var parent = new GameObject("Plywood").transform; parent.SetParent(door, false);
-                            var collider = door.Find("Collider");
-                            Vector3 center = collider.localPosition, size = collider.localScale;
-                            float width = size.x - .018f, depth = size.z - .018f;
-                            // Continuous skin, exposed laminated edge and underside battens.
-                            Box(parent,"Sheet",center,new Vector3(width,size.y,depth),wood);
-                            for (int layer = 0; layer < 3; layer++)
-                                Box(parent,"PlyEdge_"+layer,center+Vector3.up*(-.035f+layer*.025f),
-                                    new Vector3(width+.003f,.008f,depth+.003f),edge);
-                            for (int i = -1; i <= 1; i += 2)
-                            {
-                                Box(parent,"Underbrace_"+i,center+new Vector3(0,-.08f,i*depth*.28f),new Vector3(width,.075f,.12f),edge);
-                                Box(parent,"Hinge_"+i,new Vector3(0,.008f,i*depth*.32f),new Vector3(.25f,.025f,.18f),iron);
-                                for (int corner = -1; corner <= 1; corner += 2)
-                                    Box(parent,"Fastener_"+i+"_"+corner,center+new Vector3(corner*(width*.5f-.1f),size.y*.5f+.003f,i*(depth*.5f-.12f)),
-                                        new Vector3(.045f,.008f,.045f),iron);
-                            }
-                        }
+                        ApplyCageFloor(cage.transform);
+                        ApplyShelfSupport(cage.transform);
                     }
                     foreach (var bear in Object.FindObjectsByType<PitBear>(FindObjectsSortMode.None))
                         SetNumbers(bear,new[] { "turnSpeed", "acceleration" },new[] { 220f,12f });
@@ -75,6 +50,116 @@ namespace Igruha.EditorTools
                 AssetDatabase.SaveAssets();
             }
             finally { if (!string.IsNullOrEmpty(opened)) EditorSceneManager.OpenScene(opened); }
+        }
+
+        internal const float HatchOpenAngle = 270f;
+        internal const float HatchReleaseAngle = 25f * HatchOpenAngle / 110f;
+        internal const float HatchHingeOffset = .20f;
+
+        internal static void ApplyShelfSupport(Transform cage)
+        {
+            var shelf = cage.GetComponentInChildren<CanShelf>(true);
+            // CanShelf.Board is the can-slot anchor, not the physical tabletop.
+            var boardTransform = shelf != null ? shelf.transform.Find("Board") : null;
+            var board = boardTransform != null ? boardTransform.GetComponent<BoxCollider>() : null;
+            if (board == null) return;
+            // A waist-height thin box can expel a charging capsule downward
+            // through the thin hatch. Give it a continuous vertical front from
+            // the floor to its existing top, without changing the visible shelf.
+            float top = board.center.y + board.size.y * .5f;
+            Vector3 floor = board.transform.position;
+            floor.y = cage.position.y - .1f;
+            float bottom = board.transform.InverseTransformPoint(floor).y;
+            Vector3 center = board.center, size = board.size;
+            center.y = (top + bottom) * .5f; size.y = top - bottom;
+            board.center = center; board.size = size;
+            EditorUtility.SetDirty(board);
+        }
+
+        internal static void ApplyCageFloor(Transform cage)
+        {
+            var floor = cage.Find("Floor");
+            if (floor == null) throw new InvalidOperationException("Missing circus cage floor: " + cage.name);
+            // Radial hinges leave room between neighbouring open leaves. The
+            // extended hinges clear the cage posts while the closed seam stays put.
+            floor.localRotation = Quaternion.Euler(0, 90, 0);
+            SetNumbers(cage.GetComponent<HingedFloorHatch>(),
+                new[] { "doorOpenAngle", "doorReleaseAngle", "anticipationSeconds" },
+                new[] { HatchOpenAngle, HatchReleaseAngle, .18f });
+            var wood = Material("CN_CagePlywood", new Color(.57f, .31f, .115f));
+            var edge = Material("CN_CagePlyEdge", new Color(.79f, .51f, .23f));
+            var iron = CircusNightAssets.Material("CN_BlackIron");
+            foreach (string side in new[] { "DoorLeft", "DoorRight" })
+            {
+                var door = cage.Find("Floor/" + side);
+                ConfigureDoor(door, side == "DoorLeft" ? -1f : 1f);
+                var old = door.Find("Plywood"); if (old != null) Object.DestroyImmediate(old.gameObject);
+                foreach (var renderer in door.GetComponentsInChildren<Renderer>()) renderer.enabled = false;
+                var parent = new GameObject("Plywood").transform; parent.SetParent(door, false);
+                var collider = door.Find("Collider");
+                Vector3 center = collider.localPosition, size = collider.localScale;
+                float width = size.x - .018f, depth = size.z - .018f;
+                // Continuous skin, exposed laminated edge and underside battens.
+                Box(parent,"Sheet",center,new Vector3(width,size.y,depth),wood);
+                for (int layer = 0; layer < 3; layer++)
+                    Box(parent,"PlyEdge_"+layer,center+Vector3.up*(-.035f+layer*.025f),
+                        new Vector3(width+.003f,.008f,depth+.003f),edge);
+                for (int i = -1; i <= 1; i += 2)
+                {
+                    Box(parent,"Underbrace_"+i,center+new Vector3(0,-.08f,i*depth*.28f),new Vector3(width,.075f,.12f),edge);
+                    Box(parent,"Hinge_"+i,new Vector3(0,.008f,i*depth*.32f),new Vector3(.25f,.025f,.18f),iron);
+                    for (int corner = -1; corner <= 1; corner += 2)
+                        Box(parent,"Fastener_"+i+"_"+corner,center+new Vector3(corner*(width*.5f-.1f),size.y*.5f+.003f,i*(depth*.5f-.12f)),
+                            new Vector3(.045f,.008f,.045f),iron);
+                }
+            }
+            var support = floor.Find("ClosedFloorSupport");
+            if (support == null)
+            {
+                support = new GameObject("ClosedFloorSupport").transform;
+                support.SetParent(floor,false);
+            }
+            var closedBox = support.GetComponent<BoxCollider>();
+            if (closedBox == null) closedBox = support.gameObject.AddComponent<BoxCollider>();
+            Bounds bounds = new Bounds(Vector3.zero,Vector3.zero);
+            bool first = true;
+            foreach (string side in new[] { "DoorLeft", "DoorRight" })
+            {
+                var collider = floor.Find(side+"/Collider").GetComponent<BoxCollider>();
+                Vector3 lo=collider.center-collider.size*.5f,hi=collider.center+collider.size*.5f;
+                foreach (var corner in new[] {lo,hi})
+                {
+                    Vector3 point=floor.InverseTransformPoint(collider.transform.TransformPoint(corner));
+                    if(first){bounds=new Bounds(point,Vector3.zero);first=false;}else bounds.Encapsulate(point);
+                }
+                collider.enabled=false;
+            }
+            float top=bounds.max.y;
+            bounds.center=new Vector3(bounds.center.x,top-.12f,bounds.center.z);
+            bounds.size=new Vector3(bounds.size.x,.24f,bounds.size.z);
+            closedBox.center=bounds.center;closedBox.size=bounds.size;closedBox.enabled=true;
+            support.gameObject.layer=LayerMask.NameToLayer("Ground");
+            ApplyShelfSupport(cage);
+        }
+
+        private static void ConfigureDoor(Transform door, float sign)
+        {
+            if (door == null) throw new InvalidOperationException("Missing circus hatch leaf");
+            var blocker = door.Find("Collider");
+            var box = blocker != null ? blocker.GetComponent<BoxCollider>() : null;
+            if (box == null) throw new InvalidOperationException("Missing circus hatch collision box: " + door.name);
+            float center = blocker.localPosition.x + box.center.x * blocker.localScale.x;
+            float halfWidth = Mathf.Abs(box.size.x * blocker.localScale.x) * .5f;
+            if (halfWidth < .01f || Mathf.Abs(Mathf.Abs(center) - halfWidth) > .005f ||
+                Quaternion.Angle(blocker.localRotation, Quaternion.identity) > .01f)
+                throw new InvalidOperationException("Unexpected hatch leaf geometry: " + door.name);
+            // Derive the original span from its unscaled child collider, so
+            // reapplying never adds another offset or assumes a 1.52 m asset.
+            float span = Mathf.Abs(center) + halfWidth;
+            var position = door.localPosition; position.x = sign * (span + HatchHingeOffset);
+            door.localPosition = position; door.localRotation = Quaternion.identity;
+            var scale = door.localScale; scale.x = (span + HatchHingeOffset) / span;
+            door.localScale = scale;
         }
 
         private static void SetNumbers(Object obj, string[] names, float[] values)

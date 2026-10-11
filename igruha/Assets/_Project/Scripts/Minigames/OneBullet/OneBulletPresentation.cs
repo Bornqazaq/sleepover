@@ -13,11 +13,12 @@ namespace Igruha.Minigames.OneBullet
         [SerializeField] private ParticleSystem impact;
         [SerializeField] private Light muzzleFlash;
         [SerializeField] private LineRenderer pickupRing;
+        [SerializeField] private ParticleSystem pickupGlow;
         private int holder = -1, pickup = -1;
         private float tracerUntil;
         private const float HeldScale = 1f, PickupScale = 1.15f, PalmDrop = .06f;
         private static readonly Vector3 GripCenter = new Vector3(0, -.067f, -.060f);
-        private const float SpinSpeed = 35f, BobAmplitude = .035f, BobSpeed = 2f;
+        private const float SpinSpeed = 35f, BobAmplitude = .035f, BobSpeed = 2f, PickupHover = .38f;
         private void OnEnable() { game.Changed += Refresh; game.Shot += OnShot; }
         private void OnDisable() { game.Changed -= Refresh; game.Shot -= OnShot; }
         private void Refresh()
@@ -27,6 +28,12 @@ namespace Igruha.Minigames.OneBullet
             gun.gameObject.SetActive(visible && !game.LocalArmed);
             pickupLight.enabled = visible && pickup >= 0;
             if (pickupRing != null) pickupRing.enabled = visible && pickup >= 0;
+            if (pickupGlow != null)
+            {
+                bool glowing = visible && pickup >= 0;
+                if (glowing && !pickupGlow.isPlaying) pickupGlow.Play();
+                else if (!glowing) pickupGlow.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            }
             ammunition.alpha = game.LocalArmed ? 1f : 0f;
         }
         private void LateUpdate()
@@ -37,10 +44,11 @@ namespace Igruha.Minigames.OneBullet
             if (pickup >= 0)
             {
                 gun.localScale = Vector3.one * PickupScale;
-                gun.position = game.PickupPosition + Vector3.up * (.25f + Mathf.Sin(Time.time * BobSpeed) * BobAmplitude);
+                gun.position = game.PickupPosition + Vector3.up * (PickupHover + Mathf.Sin(Time.time * BobSpeed) * BobAmplitude);
                 gun.rotation = Quaternion.Euler(0, Time.time * SpinSpeed, -12);
                 pickupLight.transform.position = gun.position + Vector3.up * .3f;
                 if (pickupRing != null) pickupRing.transform.position = game.PickupPosition - Vector3.up * .08f;
+                if (pickupGlow != null) pickupGlow.transform.position = game.PickupPosition;
             }
             else if (holder >= 0)
             {

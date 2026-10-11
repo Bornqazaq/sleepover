@@ -957,6 +957,8 @@ namespace Igruha.EditorTools
             serialized.FindProperty("propSlot").objectReferenceValue = slot.transform;
             serialized.FindProperty("respawnPoint").objectReferenceValue = respawn.transform;
             serialized.ApplyModifiedPropertiesWithoutUndo();
+            CircusPlaytestFixes.ApplyCageFloor(anchor);
+            CircusPlaytestFixes.ApplyShelfSupport(anchor);
         }
 
         /// <summary>

@@ -171,6 +171,8 @@ namespace Igruha.Minigames.CansOrder
         /// то одно, то другое при неподвижном курсоре.
         /// </summary>
         public bool OwnsInput => active && owner != null && slots.Count > 0;
+        public bool HasMarkedCan => markedSlot != NoCell;
+        public bool CursorOnConfirm => cursorCell == ConfirmCell;
 
         /// <summary>Индекс ячейки «подтвердить» — сразу за последней банкой.</summary>
         private int ConfirmCell => slots.Count;

@@ -49,6 +49,67 @@ namespace Igruha.EditorTools
             var l = ReadLayout();
             var arena = GameObject.Find("_Arena").transform; Clear(arena);
             Clear(GameObject.Find("_Traps").transform); Clear(GameObject.Find("_Pickups").transform);
+            BuildGeometry(arena,l);
+            var spawns=GameObject.Find("_Spawns");
+            foreach(var p in spawns.GetComponentsInChildren<SpawnPoint>())Object.DestroyImmediate(p.gameObject);
+            var safe=new Transform[l.spawns.Length];
+            for(int i=0;i<safe.Length;i++)
+            {
+                var g=new GameObject("Spawn_"+i);g.transform.SetParent(spawns.transform,false);
+                g.transform.position=Position(l,l.spawns[i])+Vector3.up*.08f;g.AddComponent<SpawnPoint>();safe[i]=g.transform;
+            }
+            Set(spawns.GetComponent<PlayerSpawner>(),"debugPlayerCount",4);
+            var guns=BuildWeaponSpawns(arena,l);
+            var bounds=GameObject.Find("_Bounds");
+            var kill=bounds.GetComponentInChildren<KillZone>();
+            if(kill!=null){kill.transform.position=new Vector3(0,-5,0);kill.GetComponent<BoxCollider>().size=new Vector3(Size+8,1,Size+8);}
+            var manager=GameObject.Find("MinigameManager");
+            Object.DestroyImmediate(manager.GetComponent<TemplateMinigame>());
+            var game=manager.AddComponent<OneBulletMinigame>();
+            manager.AddComponent<OneBulletNetwork>();
+            var config=Asset<OneBulletConfig>(Settings+"OneBulletConfig.asset");
+            var definition=Asset<MinigameDefinition>(Settings+"OneBullet.asset");
+            Set(definition,"displayName","Один патрон");Set(definition,"sceneName","OneBullet");
+            Set(definition,"roundDuration",300f);Set(definition,"minPlayers",2);Set(definition,"maxPlayers",8);
+            Set(definition,"objective","Найди единственный пистолет. Один патрон — одно решение. Выживи или держи оружие в конце раунда.");
+            Strings(definition,"controlHints",new[]{"WASD — бег · Space — прыжок · Ctrl — присед","ЛКМ — выстрел с оружием · ПКМ / Shift — толчок","Оружие подбирается касанием. После выстрела ищи его снова.","На финише держатель оружия первый; затем — убийства и время жизни."});
+            Strings(definition,"tutorialSteps",new[]{"Исследуй лабиринт. Запоминай ориентиры и слушай шаги.","Найди револьвер: один выстрел, даже если промахнёшься.","Выживи. Оружие в руке на финише приносит первое место."});
+            var ui=GameObject.Find("_UI");var canvas=ui.GetComponentInChildren<Canvas>();
+            var hud=ui.GetComponentInChildren<RoundHud>();
+            Set(game,"definition",definition);Set(game,"config",config);Set(game,"roundTimer",manager.GetComponent<RoundTimer>());
+            Set(game,"hud",hud);Set(game,"tutorialScreen",ui.GetComponentInChildren<TutorialScreen>());
+            Refs(game,"weaponSpawns",guns);Refs(game,"safeSpawns",safe);
+            Set(manager.GetComponent<MinigameBootstrap>(),"minigame",game);
+            var camera=GameObject.Find("_Camera");var spectator=manager.AddComponent<SpectatorCamera>();
+            Set(spectator,"cameraController",camera.GetComponentInChildren<MinigameCameraController>());
+            Set(spectator,"cameraRig",camera.GetComponentInChildren<ThirdPersonCameraRig>());Set(spectator,"hud",hud);
+            Set(game,"spectator",spectator);Set(game,"gameCamera",camera.GetComponentInChildren<Camera>());
+            BuildPresentation(game,canvas.transform);
+            OneBulletFirstPersonBuilder.Configure();
+            Register(definition);
+            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());AssetDatabase.SaveAssets();
+            Debug.Log("OneBullet blockout built: "+l.grid*l.grid+" nodes, "+l.edges.Length+" passages, "+l.guns.Length+" weapon spawns.");
+        }
+        /// <summary>Rebuild authored routes and their art without replacing the running-game setup.</summary>
+        [MenuItem("Igruha/Minigames/Rebuild One Bullet routes")]
+        public static void RebuildRoutes()
+        {
+            if(EditorApplication.isPlaying)throw new InvalidOperationException("Stop play mode first.");
+            EditorSceneManager.OpenScene(ScenePath);
+            var layout=ReadLayout();
+            grey=AssetDatabase.LoadAssetAtPath<Material>(Art+"/Blockout.mat");
+            var arena=GameObject.Find("_Arena").transform;Clear(arena);BuildGeometry(arena,layout);
+            var game=Object.FindFirstObjectByType<OneBulletMinigame>();
+            Refs(game,"weaponSpawns",BuildWeaponSpawns(arena,layout));
+            EditorSceneManager.MarkSceneDirty(game.gameObject.scene);EditorSceneManager.SaveScene(game.gameObject.scene);
+            OneBulletArtBuilder.RebuildEnvironment();
+            OneBulletUpgradeBuilder.BuildRules();
+            OneBulletStormArtBuilder.Build();
+            Debug.Log("OneBullet routes rebuilt: "+layout.edges.Length+" passages, "+layout.guns.Length+" weapon points.");
+        }
+        private static void BuildGeometry(Transform arena,Layout l)
+        {
             Box(arena, "Foundation", new Vector3(0,-.5f,0), new Vector3(Size,1,Size), grey);
             var walk = new bool[Resolution,Resolution];
             for (int i=0;i<l.grid*l.grid;i++)
@@ -84,15 +145,9 @@ namespace Igruha.EditorTools
                 for(int v=z;v<z+h;v++)for(int u=x;u<x+w;u++)used[u,v]=true;
                 Box(walls,"Wall_"+(count++),new Vector3((x+w*.5f)*Pixel-Size*.5f,WallTop*.5f,(z+h*.5f)*Pixel-Size*.5f),new Vector3(w*Pixel,WallTop,h*Pixel),grey);
             }
-            var spawns=GameObject.Find("_Spawns");
-            foreach(var p in spawns.GetComponentsInChildren<SpawnPoint>())Object.DestroyImmediate(p.gameObject);
-            var safe=new Transform[l.spawns.Length];
-            for(int i=0;i<safe.Length;i++)
-            {
-                var g=new GameObject("Spawn_"+i);g.transform.SetParent(spawns.transform,false);
-                g.transform.position=Position(l,l.spawns[i])+Vector3.up*.08f;g.AddComponent<SpawnPoint>();safe[i]=g.transform;
-            }
-            Set(spawns.GetComponent<PlayerSpawner>(),"debugPlayerCount",4);
+        }
+        private static Transform[] BuildWeaponSpawns(Transform arena,Layout l)
+        {
             var guns=new Transform[l.guns.Length];
             var gunPoints=new GameObject("WeaponSpawns").transform;gunPoints.SetParent(arena,false);
             for(int i=0;i<guns.Length;i++)
@@ -100,36 +155,7 @@ namespace Igruha.EditorTools
                 guns[i]=new GameObject("WeaponSpawn_"+i).transform;guns[i].SetParent(gunPoints,false);
                 guns[i].position=OneBulletFirstPersonBuilder.WeaponPosition(l,l.guns[i]);
             }
-            var bounds=GameObject.Find("_Bounds");
-            var kill=bounds.GetComponentInChildren<KillZone>();
-            if(kill!=null){kill.transform.position=new Vector3(0,-5,0);kill.GetComponent<BoxCollider>().size=new Vector3(Size+8,1,Size+8);}
-            var manager=GameObject.Find("MinigameManager");
-            Object.DestroyImmediate(manager.GetComponent<TemplateMinigame>());
-            var game=manager.AddComponent<OneBulletMinigame>();
-            manager.AddComponent<OneBulletNetwork>();
-            var config=Asset<OneBulletConfig>(Settings+"OneBulletConfig.asset");
-            var definition=Asset<MinigameDefinition>(Settings+"OneBullet.asset");
-            Set(definition,"displayName","Один патрон");Set(definition,"sceneName","OneBullet");
-            Set(definition,"roundDuration",300f);Set(definition,"minPlayers",2);Set(definition,"maxPlayers",8);
-            Set(definition,"objective","Найди единственный пистолет. Один патрон — одно решение. Выживи или держи оружие в конце раунда.");
-            Strings(definition,"controlHints",new[]{"WASD — бег · Space — прыжок · Ctrl — присед","ЛКМ — выстрел с оружием · ПКМ / Shift — толчок","Оружие подбирается касанием. После выстрела ищи его снова.","На финише держатель оружия первый; затем — убийства и время жизни."});
-            Strings(definition,"tutorialSteps",new[]{"Исследуй лабиринт. Запоминай ориентиры и слушай шаги.","Найди револьвер: один выстрел, даже если промахнёшься.","Выживи. Оружие в руке на финише приносит первое место."});
-            var ui=GameObject.Find("_UI");var canvas=ui.GetComponentInChildren<Canvas>();
-            var hud=ui.GetComponentInChildren<RoundHud>();
-            Set(game,"definition",definition);Set(game,"config",config);Set(game,"roundTimer",manager.GetComponent<RoundTimer>());
-            Set(game,"hud",hud);Set(game,"tutorialScreen",ui.GetComponentInChildren<TutorialScreen>());
-            Refs(game,"weaponSpawns",guns);Refs(game,"safeSpawns",safe);
-            Set(manager.GetComponent<MinigameBootstrap>(),"minigame",game);
-            var camera=GameObject.Find("_Camera");var spectator=manager.AddComponent<SpectatorCamera>();
-            Set(spectator,"cameraController",camera.GetComponentInChildren<MinigameCameraController>());
-            Set(spectator,"cameraRig",camera.GetComponentInChildren<ThirdPersonCameraRig>());Set(spectator,"hud",hud);
-            Set(game,"spectator",spectator);Set(game,"gameCamera",camera.GetComponentInChildren<Camera>());
-            BuildPresentation(game,canvas.transform);
-            OneBulletFirstPersonBuilder.Configure();
-            Register(definition);
-            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
-            EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());AssetDatabase.SaveAssets();
-            Debug.Log("OneBullet blockout built: 81 nodes, 87 passages, 14 T, 4 crossings, 10 dead ends, 12 weapon spawns.");
+            return guns;
         }
         private static void BuildPresentation(OneBulletMinigame game,Transform canvas)
         {

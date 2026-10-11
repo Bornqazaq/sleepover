@@ -14,6 +14,9 @@ namespace Igruha.Minigames.OneBullet
             public bool Alive { get; internal set; } = true;
             public int Kills { get; internal set; }
             public double Life { get; internal set; }
+            public int Cans { get; internal set; }
+            public double CanReadyAt { get; internal set; }
+            public double DangerSince { get; internal set; } = -1;
             public Record(int id) { Id = id; }
         }
         private readonly List<Record> records = new List<Record>(8);
@@ -29,10 +32,10 @@ namespace Igruha.Minigames.OneBullet
         public int Winner { get; private set; } = Nobody;
         public int AliveCount { get { int n = 0; foreach (var r in records) if (r.Alive) n++; return n; } }
 
-        public void Reset(IReadOnlyList<int> ids, double beginsAt, double duration, double firstDelay)
+        public void Reset(IReadOnlyList<int> ids, double beginsAt, double duration, double firstDelay, int cans = 2)
         {
             records.Clear(); sorted.Clear();
-            foreach (int id in ids) records.Add(new Record(id));
+            foreach (int id in ids) records.Add(new Record(id) { Cans = cans });
             Holder = Pickup = PreviousPickup = Winner = Nobody;
             BeginsAt = beginsAt; EndsAt = beginsAt + duration;
             SpawnAt = beginsAt + firstDelay; Finished = false;
@@ -55,6 +58,24 @@ namespace Igruha.Minigames.OneBullet
             Holder = id; Pickup = Nobody; return true;
         }
         public bool CanFire(int id, double now) => IsLive(now) && Holder == id && Find(id)?.Alive == true;
+        public bool ThrowCan(int id, double now, double cooldown)
+        {
+            var r = Find(id);
+            if (!IsLive(now) || r == null || !r.Alive || r.Cans <= 0 || now < r.CanReadyAt) return false;
+            r.Cans--; r.CanReadyAt = now + cooldown; return true;
+        }
+        public bool SetDanger(int id, bool dangerous, double now)
+        {
+            var r = Find(id);
+            if (r == null || !r.Alive || !IsLive(now)) return false;
+            if (dangerous == (r.DangerSince >= 0)) return false;
+            r.DangerSince = dangerous ? now : -1; return true;
+        }
+        public bool RelocatePickup(int point)
+        {
+            if (Finished || Holder >= 0 || Pickup < 0 || point < 0 || point == Pickup) return false;
+            Pickup = PreviousPickup = point; return true;
+        }
         public bool Fire(int id, int victim, double now, double respawnDelay)
         {
             if (!CanFire(id, now)) return false;
@@ -111,11 +132,12 @@ namespace Igruha.Minigames.OneBullet
             BeginsAt = begins; EndsAt = ends; SpawnAt = spawn; Finished = finished; Winner = winner;
         }
 
-        public void ApplyRecord(int id, bool alive, int kills, double life)
+        public void ApplyRecord(int id, bool alive, int kills, double life, int cans = 2, double dangerSince = -1)
         {
             var record = Find(id);
             if (record == null) { record = new Record(id); records.Add(record); }
             record.Alive = alive; record.Kills = kills; record.Life = life;
+            record.Cans = cans; record.DangerSince = dangerSince;
         }
     }
 }

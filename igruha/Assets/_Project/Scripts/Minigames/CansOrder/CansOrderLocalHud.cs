@@ -27,6 +27,7 @@ namespace Igruha.Minigames.CansOrder
     public sealed class CansOrderLocalHud : MonoBehaviour
     {
         [SerializeField] private TMP_Text label;
+        [SerializeField] private Igruha.Minigames.Circus.CircusHudView presentation;
         [Tooltip("Полоса остатка стадии. Заполнение от 1 до 0")]
         [SerializeField] private Image bar;
         [SerializeField] private MinigameStageState stageState;
@@ -91,6 +92,7 @@ namespace Igruha.Minigames.CansOrder
 
         private void OnDisable()
         {
+            presentation?.Hide();
             // These labels can live outside this component's hierarchy.
             // Hide them explicitly when the local player falls into the pit.
             ShowShelfHints(false);
@@ -151,6 +153,7 @@ namespace Igruha.Minigames.CansOrder
 
         private void Update()
         {
+            if(presentation!=null){presentation.RenderCans(stageState,shelf,rules);return;}
             if (stageState == null)
             {
                 return;
@@ -219,6 +222,7 @@ namespace Igruha.Minigames.CansOrder
         /// </summary>
         public void RefreshResult()
         {
+            if(presentation!=null){presentation.Invalidate();return;}
             lastRevealStage = byte.MaxValue;
             if (stageState != null) UpdateReveal(stageState.Stage);
         }

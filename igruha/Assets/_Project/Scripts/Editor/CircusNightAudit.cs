@@ -27,7 +27,9 @@ namespace Igruha.EditorTools
                     var scene=EditorSceneManager.OpenScene("Assets/_Project/Scenes/Minigames/"+name+".unity",OpenSceneMode.Single);
                     var roots=scene.GetRootGameObjects();
                     Require(roots.Count(r=>r.name=="_CircusNight")==1,"Exactly one circus art root");
-                    var bear=roots.SelectMany(r=>r.GetComponentsInChildren<PitBear>(true)).Single();
+                    var bears=roots.SelectMany(r=>r.GetComponentsInChildren<PitBear>(true)).ToArray();
+                    Require(bears.Length==2,"Two independently animated bears");
+                    var bear=bears[0];
                     var animator=bear.GetComponentInChildren<Animator>();
                     Require(animator!=null && animator.runtimeAnimatorController!=null,"Bear animator assigned");
                     Require(!animator.isHuman,"Original generic bear skeleton");
@@ -36,7 +38,7 @@ namespace Igruha.EditorTools
                     Require(GameObject.Find("_CircusNight").GetComponentsInChildren<Collider>(true).Length==0,"Scenery adds no gameplay collisions");
                     var game=GameObject.Find("MinigameManager").GetComponents<MonoBehaviour>().Single(m=>m.GetType().Name==name+"Minigame");
                     var data=new SerializedObject(game);
-                    foreach(string field in new[]{"bear","scoreboard"})Require(data.FindProperty(field).objectReferenceValue!=null,name+"."+field);
+                    foreach(string field in new[]{"bear","secondBear","scoreboard"})Require(data.FindProperty(field).objectReferenceValue!=null,name+"."+field);
                     var cages=data.FindProperty("cages");Require(cages.arraySize==8,"Eight cage bindings");
                     for(int i=0;i<cages.arraySize;i++)Require(cages.GetArrayElementAtIndex(i).objectReferenceValue!=null,"Cage "+i+" bound");
                     int missing=roots.Sum(r=>r.GetComponentsInChildren<Transform>(true).Sum(t=>GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(t.gameObject)));
@@ -50,7 +52,7 @@ namespace Igruha.EditorTools
                     Require(bulb!=null && bulb.IsKeywordEnabled("_EMISSION") && (bulb.globalIlluminationFlags & MaterialGlobalIlluminationFlags.AnyEmissive)!=0,"Bulb emission survives URP material validation");
                     CheckCraft(scene.path);
                     result.AppendLine(name+": 8 cage bindings, scoreboard, bear, original art, camera post processing and missing-script checks PASS.");
-                    CheckBear(bear,result);
+                    foreach(var animal in bears)CheckBear(animal,result);
                 }
             }
             finally{if(!string.IsNullOrEmpty(original))EditorSceneManager.OpenScene(original,OpenSceneMode.Single);}
@@ -83,9 +85,10 @@ namespace Igruha.EditorTools
                         if(clip.name=="Bruno_Walk" || clip.name=="Bruno_Run")
                             Require(copy.transform.InverseTransformPoint(head.position).z>copy.transform.InverseTransformPoint(pelvis.position).z,"Gait faces the movement direction (+Z)");
                         skin.BakeMesh(mesh);
+                        Matrix4x4 toBear=copy.transform.worldToLocalMatrix*skin.transform.localToWorldMatrix;
                         foreach(Vector3 v in mesh.vertices)
                         {
-                            Vector3 point=copy.transform.InverseTransformPoint(skin.transform.TransformPoint(v));
+                            Vector3 point=toBear.MultiplyPoint3x4(v);
                             Require(!float.IsNaN(point.y) && !float.IsInfinity(point.y),"Finite skinned vertices");
                             min=Mathf.Min(min,point.y);max=Mathf.Max(max,point.y);
                         }
@@ -112,6 +115,7 @@ namespace Igruha.EditorTools
                 Require(cage.transform.Find("Wall_1").GetComponentsInChildren<Renderer>(true).All(r=>!r.enabled),"Front bars do not obscure results");
                 Require(cage.transform.Find("Wall_1").GetComponentInChildren<Collider>().enabled,"Viewing opening preserves the safety collider");
             }
+            CheckHatches(arena.transform);
             var chains=arena.GetComponentsInChildren<CageChain>(true);
             Require(chains.Length==16,"Two side chains per cage, no duplicate suspension after rebuilding");
             foreach(var chain in chains)
@@ -125,6 +129,47 @@ namespace Igruha.EditorTools
             Require(fx.FindProperty("descentDust").arraySize==8,"Eight cage dust effects");
             foreach(string field in new[]{"controller","bear","landingBurst","tauntSparks","catchImpact","confetti"})
                 Require(fx.FindProperty(field).objectReferenceValue!=null,"Original effect binding: "+field);
+        }
+
+        private static void CheckHatches(Transform arena)
+        {
+            int doors = 0;
+            foreach (var cage in arena.GetComponentsInChildren<CageStation>(true))
+            {
+                var hatch = cage.GetComponent<Igruha.Core.Arena.HingedFloorHatch>();
+                Require(hatch != null, "Cage hatch exists");
+                var data = new SerializedObject(hatch);
+                float open = data.FindProperty("doorOpenAngle").floatValue;
+                float release = data.FindProperty("doorReleaseAngle").floatValue;
+                Require(Mathf.Abs(open - CircusPlaytestFixes.HatchOpenAngle) < .001f, "Hatch folds clear of the pit");
+                Require(Mathf.Abs(release / open - 25f / 110f) < .0001f, "Release occurs at the original normalized swing time");
+                Require(Mathf.Abs(data.FindProperty("anticipationSeconds").floatValue - .18f) < .001f, "Hatch anticipation preserved");
+                var floor = cage.transform.Find("Floor");
+                Require(floor != null && Quaternion.Angle(floor.localRotation, Quaternion.Euler(0,90,0)) < .01f, "Radial hatch hinges");
+                foreach (string side in new[] { "DoorLeft", "DoorRight" })
+                {
+                    var door = floor.Find(side); float sign = side == "DoorLeft" ? -1f : 1f;
+                    Require(door != null && data.FindProperty(side == "DoorLeft" ? "doorLeft" : "doorRight").objectReferenceValue == door, "Correct hatch leaf binding");
+                    var blocker = door.Find("Collider"); var box = blocker.GetComponent<BoxCollider>();
+                    float localCenter = blocker.localPosition.x + box.center.x * blocker.localScale.x;
+                    float half = Mathf.Abs(box.size.x * blocker.localScale.x) * .5f;
+                    float seam = door.localPosition.x + (localCenter - sign * half) * door.localScale.x;
+                    float span = Mathf.Abs(localCenter) + half;
+                    Require(Mathf.Abs(seam) < .003f, "Closed floor seam stays covered");
+                    Require(Mathf.Abs(Mathf.Abs(door.localPosition.x) - span - CircusPlaytestFixes.HatchHingeOffset) < .003f, "Hinge clears the own cage frame");
+                    Require(Quaternion.Angle(door.localRotation,Quaternion.identity) < .01f, "Scene hatch starts closed");
+                    var sheet = door.Find("Plywood/Sheet"); Require(sheet != null, "Continuous plywood floor retained by full build");
+                    var renderer = sheet.GetComponent<MeshRenderer>(); var bounds = renderer.localBounds;
+                    var matrix = floor.localToWorldMatrix * Matrix4x4.TRS(door.localPosition,Quaternion.Euler(0,0,sign*open),door.localScale) * door.worldToLocalMatrix * sheet.localToWorldMatrix;
+                    for (int corner = 0; corner < 8; corner++)
+                    {
+                        Vector3 point = bounds.center + Vector3.Scale(bounds.extents,new Vector3((corner&1)==0?-1:1,(corner&2)==0?-1:1,(corner&4)==0?-1:1));
+                        Require(matrix.MultiplyPoint3x4(point).y >= cage.transform.position.y - .01f, "Open plywood stays above the pit instead of cutting through Bruno");
+                    }
+                    doors++;
+                }
+            }
+            Require(doors == 16, "All sixteen hatch leaves verified");
         }
 
         private static void Require(bool value,string message)

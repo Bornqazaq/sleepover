@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using UnityEditor;
 using UnityEngine;
@@ -23,6 +24,9 @@ namespace Igruha.EditorTools
             var floor=new GameObject("BearAuditFloor");floor.transform.position=new Vector3(0,99.5f,0);
             floor.AddComponent<BoxCollider>().size=new Vector3(40,1,40);
             var bear=copy.GetComponent<PitBear>();var output=new StringBuilder();
+            var motion=copy.GetComponentInChildren<CircusBearMotion>();
+            Invoke(bear,"Awake");Invoke(motion,"Awake");
+            Set(bear,"feedback",null);
             try
             {
                 foreach(string name in new[]{"Player","Aza","Boss","Fat","Girl","Milez","MyBoy","Shlanga"})
@@ -46,8 +50,7 @@ namespace Igruha.EditorTools
                             for(int i=0;i<40;i++)Require(!bear.CanChase(player,.05f),name+" protected throughout "+state);
                         }
                         animator.Play("Idle",0,0);animator.Update(.001f);
-                        Require(!bear.CanChase(player,.15f),"Brief grounded stability required");
-                        Require(bear.CanChase(player,.16f),name+" becomes chaseable after getting up");
+                        Require(bear.CanChase(player,.01f),name+" becomes chaseable immediately after getting up");
                         bear.Tick(.33f,player,false);
                         for(int i=0;i<28;i++)bear.Tick(.1f,player,false);
                         Require(bear.State==PitBear.BearState.WindUp,"Full three-second head start");
@@ -64,20 +67,24 @@ namespace Igruha.EditorTools
                 {
                     var player=target.GetComponent<PlayerController>();player.enabled=false;
                     int hits=0;bear.Caught+=(p,impulse)=>hits++;
-                    Reset(bear,0);player.transform.position=new Vector3(0,100.05f,2);
+                    Reset(bear,0);player.transform.position=new Vector3(0,100.05f,2.65f);
+                    player.transform.rotation=Quaternion.Euler(0,180,0);
+                    var playerAnimator=target.GetComponentInChildren<Animator>();
+                    playerAnimator.Rebind();playerAnimator.Play("Idle",0,.25f);playerAnimator.Update(0);
                     bear.Tick(.01f,player,false);Require(bear.State==PitBear.BearState.Attack,"Attack starts before impact");
                     var animator=copy.GetComponentInChildren<Animator>();animator.Rebind();
                     bear.ApplyNetworkState(PitBear.BearState.Patrol,0);bear.ApplyNetworkState(PitBear.BearState.Attack,0);animator.Update(.04f);
                     int strike=Animator.StringToHash("Strike");
                     Require(animator.GetCurrentAnimatorStateInfo(0).shortNameHash==strike || animator.GetNextAnimatorStateInfo(0).shortNameHash==strike,"Replicated Attack plays the swipe before the hit");
-                    bear.Tick(PitBear.ContactSeconds-.01f,player,false);Require(hits==0,"No damage during anticipation");
-                    bear.Tick(.02f,player,false);Require(hits==1,"One impact at authored contact");
-                    bear.Tick(.5f,null,true);Require(bear.State==PitBear.BearState.Attack && hits==1,"Follow-through survives target removal and taunt");
-                    bear.Tick(.6f,null,true);Require(bear.State==PitBear.BearState.Recovery,"Attack enters recovery");
+                    float elapsed=0;
+                    Step(bear,motion,animator,ref elapsed,PitBear.ContactSeconds-.01f,player);Require(hits==0,"No damage during anticipation");
+                    Step(bear,motion,animator,ref elapsed,.03f,player);Require(hits==1,"One impact from the current solved paw at authored contact");
+                    Step(bear,motion,animator,ref elapsed,.5f,null);Require(bear.State==PitBear.BearState.Attack && hits==1,"Follow-through survives target removal and taunt");
+                    Step(bear,motion,animator,ref elapsed,.6f,null);Require(bear.State==PitBear.BearState.Recovery,"Attack enters recovery");
                     Vector3 at=bear.transform.position;bear.Tick(.2f,null,false);
                     Require(bear.State==PitBear.BearState.Recovery && bear.transform.position==at,"Planted recovery pause");
-                    Reset(bear,0);player.transform.position=new Vector3(0,100.05f,2);bear.Tick(.01f,player,false);
-                    player.transform.position=new Vector3(4,100.05f,0);bear.Tick(.75f,player,false);
+                    Reset(bear,0);player.transform.position=new Vector3(0,100.05f,2.65f);bear.Tick(.01f,player,false);
+                    elapsed=0;player.transform.position=new Vector3(4,100.05f,0);Step(bear,motion,animator,ref elapsed,.75f,player);
                     Require(hits==1,"Sideways dodge avoids a committed attack");
                     Require(Quaternion.Angle(bear.transform.rotation,Quaternion.identity)<.001f,"Swipe does not home after the dodge");
                     bear.ApplyNetworkState(PitBear.BearState.Patrol,0);
@@ -97,6 +104,17 @@ namespace Igruha.EditorTools
 
         private static void Reset(PitBear bear,float delay=3)
         {bear.Configure(5.5f,2.1f,2.35f,delay,8,8.64f);bear.transform.SetPositionAndRotation(new Vector3(0,100,0),Quaternion.identity);}
+        private static void Step(PitBear bear,CircusBearMotion motion,Animator animator,ref float elapsed,float dt,PlayerController target)
+        {
+            elapsed+=dt;Set(bear,"visualAttackStartedAt",Time.time-elapsed);
+            bear.Tick(dt,target,true);
+            if(bear.State==PitBear.BearState.Attack){animator.Play("Strike",0,elapsed/PitBear.StrikeSeconds);animator.Update(0);}
+            Invoke(motion,"EvaluatePose",dt);
+            Invoke(bear,"LateUpdate");
+        }
+        private const BindingFlags PrivateInstance=BindingFlags.Instance|BindingFlags.NonPublic;
+        private static void Set(object target,string field,object value)=>target.GetType().GetField(field,PrivateInstance).SetValue(target,value);
+        private static void Invoke(object target,string method,params object[] arguments)=>target.GetType().GetMethod(method,PrivateInstance).Invoke(target,arguments);
         private static void Require(bool value,string message)
         {if(!value)throw new InvalidOperationException("Bruno audit: "+message);}
     }

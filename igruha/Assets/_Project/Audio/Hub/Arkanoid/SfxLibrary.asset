@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2574025c1373412bb9b8283feb02ca7, type: 3}
+  m_Name: SfxLibrary
+  m_EditorClassIdentifier: Igruha.Core::Igruha.Core.Audio.MinigameSfxLibrary
+  entries:
+  - Id: arcade.launch
+    Clip: {fileID: 8300000, guid: beb38e3a05a45da4fbf1d15a8696eed7, type: 3}
+    Variants: []
+    Volume: 0.38
+    Loop: 0
+    Spatial: 1
+  - Id: arcade.bounce
+    Clip: {fileID: 8300000, guid: f2fd41ac779760a48a17900ba33463e1, type: 3}
+    Variants: []
+    Volume: 0.25
+    Loop: 0
+    Spatial: 1
+  - Id: arcade.brick
+    Clip: {fileID: 8300000, guid: 7a99c831be2183e4faafdeaa6ee0cae9, type: 3}
+    Variants: []
+    Volume: 0.4
+    Loop: 0
+    Spatial: 1
+  - Id: arcade.life
+    Clip: {fileID: 8300000, guid: e0f3461a3258d734eade2252fcc971a7, type: 3}
+    Variants: []
+    Volume: 0.4
+    Loop: 0
+    Spatial: 1
+  - Id: arcade.level
+    Clip: {fileID: 8300000, guid: 9d3cf38996ad27645801e0b12c585dba, type: 3}
+    Variants: []
+    Volume: 0.42
+    Loop: 0
+    Spatial: 1
+  - Id: arcade.over
+    Clip: {fileID: 8300000, guid: 0194831523947f64e971659af2d3031e, type: 3}
+    Variants: []
+    Volume: 0.42
+    Loop: 0
+    Spatial: 1

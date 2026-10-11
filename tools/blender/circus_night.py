@@ -17,14 +17,14 @@ def mat(name,color,rough=.7,metal=0):
     m=bpy.data.materials.new(name);m.diffuse_color=(*color,1);m.use_nodes=True
     p=m.node_tree.nodes['Principled BSDF'];p.inputs['Base Color'].default_value=(*color,1);p.inputs['Roughness'].default_value=rough;p.inputs['Metallic'].default_value=metal
     materials.append(m);return len(materials)-1
-WOOD=mat('CN_Walnut',(.20,.095,.048));WOOD2=mat('CN_WalnutLight',(.32,.18,.09))
-RED=mat('CN_OxbloodVelvet',(.58,.028,.041),.95);TEAL=mat('CN_MidnightCanvas',(.045,.27,.30),.94)
-GOLD=mat('CN_AgedBrass',(.47,.30,.11),.40,.72);IRON=mat('CN_BlackIron',(.045,.059,.069),.48,.65)
+WOOD=mat('CN_Walnut',(0.23,0.085,0.033));WOOD2=mat('CN_WalnutLight',(0.36,0.17,0.065))
+RED=mat('CN_OxbloodVelvet',(0.65,0.012,0.024),.95);TEAL=mat('CN_MidnightCanvas',(0.025,0.35,0.34),.94)
+GOLD=mat('CN_AgedBrass',(0.58,0.34,0.09),.40,.72);IRON=mat('CN_BlackIron',(.045,.059,.069),.48,.65)
 STONE=mat('CN_PitStone',(.29,.27,.23),.96);TRIM=mat('CN_StoneEdge',(.39,.35,.27),.83)
-SAND=mat('CN_Sawdust',(.43,.30,.14),.96);BULB=mat('CN_WarmBulb',(1,.61,.22),.4)
+SAND=mat('CN_Sawdust',(0.48,0.29,0.1),.96);BULB=mat('CN_WarmBulb',(1,.61,.22),.4)
 CRACK=mat('CN_Seams',(.023,.022,.020),1);CREAM=mat('CN_Parchment',(.69,.52,.29),.8)
 TIN=mat('CN_TinPaint',(.93,.93,.93),.4);STEEL=mat('CN_TinSteel',(.52,.56,.59),.32,.8)
-STRIPE=mat('CN_CanvasRed',(.72,.045,.062),.93)
+STRIPE=mat('CN_CanvasRed',(0.8,0.018,0.035),.93)
 IVORY=mat('CN_CanvasIvory',(.92,.83,.65),.91)
 ROPE=mat('CN_HempRope',(.52,.37,.19),.98)
 bulb_shader=materials[BULB].node_tree.nodes['Principled BSDF']

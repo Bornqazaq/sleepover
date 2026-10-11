@@ -17,6 +17,9 @@ namespace Igruha.Tests
         private Igruha.Core.CameraSystems.FirstPersonCameraRig firstPersonRig;
         private OneBulletFirstPerson firstPerson;
         private bool checkedView;
+        private int crouchStage;
+        private float crouchStageAt;
+        private const float CrouchSettleSeconds = .3f, EyeTolerance = .02f;
         private float createdAt, nextLog;
         private double moveUntil;
         private Vector3 moveTarget;
@@ -76,11 +79,12 @@ namespace Igruha.Tests
             if(game==null||game.Phase!=MinigamePhase.Round||!game.LocalRosterReady)return;
             var local=game.Find(game.LocalId);if(local?.Motor==null||local.Dead)return;
             local.Input.EngageAutopilot();local.Input.DriveMove(Vector2.zero);
+            CheckCrouch(local);
             double now=NetworkClock.Now, t=now-game.Round.BeginsAt;
             int id=game.LocalId;
             // Keep idle test players away from all random weapon locations.
             if((id==0&&t<17)||(id>1&&t<20))
-                local.Motor.TeleportTo(new Vector3(-14.4f, .1f, id==0?-19.2f:-14.4f),Quaternion.identity);
+                local.Motor.TeleportTo(game.Storm.Layout.StandingPoint(id==0?42:50),Quaternion.identity);
             if(game.Round.Pickup>=0 && ((!missed && id==1 && t<17) || (id==0 && t>=17 && !movedToStage)))
             {
                 moveTarget=game.PickupPosition;moveUntil=now+.4;
@@ -101,7 +105,7 @@ namespace Igruha.Tests
                     UnityEngine.InputSystem.InputSystem.QueueStateEvent(mouse,new UnityEngine.InputSystem.LowLevel.MouseState().WithButton(UnityEngine.InputSystem.LowLevel.MouseButton.Right));
                 }
                 movedToStage=true;
-                local.Motor.TeleportTo(new Vector3(-19.2f,0.1f,-19.2f+(id==0?0:1.4f)),Quaternion.identity);
+                local.Motor.TeleportTo(game.Storm.Layout.StandingPoint(50)+Vector3.forward*(id==0?0:1.4f),Quaternion.identity);
                 if(id==0)
                     foreach(var target in game.Participants)
                     {
@@ -129,6 +133,38 @@ namespace Igruha.Tests
             }
             if(scenario!="timeout"&&id==0&&t>23&&!hit&&game.Round.Holder==0)
             {hit=true;game.HandlePushButton(local.Motor);}
+        }
+
+        private void CheckCrouch(OneBulletParticipant local)
+        {
+            if (crouchStage == 3 || !game.LocalArmed) return;
+            if (crouchStage == 0)
+            {
+                local.Motor.CrouchInputSuppressed = true;
+                local.Motor.SetCrouched(true);
+                crouchStage = 1;
+                crouchStageAt = Time.realtimeSinceStartup;
+                return;
+            }
+            if (Time.realtimeSinceStartup - crouchStageAt < CrouchSettleSeconds) return;
+            if (crouchStage == 1)
+            {
+                if (!local.Motor.IsCrouched) Debug.LogError("ONE_BULLET FAIL crouch did not engage");
+                firstPersonRig.enabled = false;
+                firstPersonRig.enabled = true;
+                crouchStage = 2;
+                crouchStageAt = Time.realtimeSinceStartup;
+                return;
+            }
+            float expected = local.Motor.transform.position.y + OneBulletFirstPerson.ViewEyeHeight(local.Capsule);
+            bool valid = local.Motor.IsCrouched && !local.Motor.IsKnockedDown &&
+                Mathf.Abs(firstPersonRig.transform.position.y - expected) < EyeTolerance &&
+                Mathf.Abs(Camera.main.transform.position.y - expected) < EyeTolerance;
+            Debug.Log("ONE_BULLET CROUCH valid=" + valid);
+            if (!valid) Debug.LogError("ONE_BULLET FAIL crouched view after camera rebind");
+            local.Motor.SetCrouched(false);
+            local.Motor.CrouchInputSuppressed = false;
+            crouchStage = 3;
         }
     }
 }

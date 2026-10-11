@@ -89,7 +89,10 @@ namespace Igruha.EditorTools
             BuildLighting(root,config);
             BuildAtmosphere(root);
             CircusCraftBuilder.Apply(root,arena,config);
+            ApplyNaturalLighting();
             if (PhysicsSignature(arena) != physicsBefore) throw new InvalidOperationException("The art pass changed arena collision geometry.");
+            CircusBearPairBuilder.ApplyActive();
+            CircusInterfaceBuilder.ApplyActive();
             EditorSceneManager.MarkSceneDirty(scene);
             AssetDatabase.SaveAssets();
             Debug.Log("Grand Chapiteau applied to " + scene.name + ": striped Blender tent, theatrical lighting and Bruno; gameplay colliders preserved.");
@@ -141,7 +144,7 @@ namespace Igruha.EditorTools
             light.spotAngle=cone;light.innerSpotAngle=cone*.55f;light.shadows=shadows?LightShadows.Soft:LightShadows.None;
             light.shadowStrength=.85f;light.shadowBias=.025f;light.shadowNormalBias=.12f;
             if(name.StartsWith("Bruno_"))
-            {light.shadowStrength=.9f;light.shadowBias=.015f;light.shadowNormalBias=.07f;light.shadowResolution=LightShadowResolution.High;}
+            {light.shadowStrength=.9f;light.shadowBias=.015f;light.shadowNormalBias=.07f;}
             if(shadows)go.AddComponent<UniversalAdditionalLightData>().usePipelineSettings=false;
             return light;
         }
@@ -211,33 +214,90 @@ namespace Igruha.EditorTools
                 data.antialiasingQuality=AntialiasingQuality.High;
                 camera.allowHDR=true;
             }
-            ApplyNaturalLighting();
             AssetDatabase.SaveAssets();
         }
 
         internal static void ApplyNaturalLighting()
         {
-            RenderSettings.ambientSkyColor=new Color(.62f,.65f,.69f);
-            RenderSettings.ambientEquatorColor=new Color(.34f,.35f,.37f);
-            RenderSettings.ambientGroundColor=new Color(.21f,.205f,.20f);
+            var scene=EditorSceneManager.GetActiveScene();
+            if(scene.name!="CansOrder" && scene.name!="Stopwatch")
+                throw new InvalidOperationException("Circus lighting requires CansOrder or Stopwatch.");
+
+            CircusNightAssets.RefreshSceneryColors();
+
+            // The roster keeps its usual rendering layer. Amber set lights illuminate
+            // the tent and Bruno, while the soft studio key/fill reveal the original skin
+            // and clothing textures. No player prefab or material is overridden.
+            const uint characterLightLayer=1u;
+            const uint sceneryLightLayer=2u;
+            const uint bearLightLayer=4u;
+            var lighting=GameObject.Find("_CircusNight/Lighting").transform;
+            var fill=lighting.Find("Bruno_SoftFill");
+            if(fill==null)
+                fill=Light(lighting,"Bruno_SoftFill",LightType.Directional,new Vector3(0,6,-4),Vector3.zero,
+                    new Color(.92f,.96f,1f),.95f,30).transform;
+            fill.rotation=Quaternion.Euler(25,155,0);
+            var playerFill=lighting.Find("Player_SoftFill");
+            if(playerFill==null)
+                playerFill=Light(lighting,"Player_SoftFill",LightType.Directional,new Vector3(0,6,-4),Vector3.zero,
+                    Color.white,.8f,30).transform;
+            playerFill.rotation=Quaternion.Euler(22,145,0);
+            foreach(var renderer in UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsInactive.Include,FindObjectsSortMode.None))
+            {
+                if(renderer.gameObject.scene!=scene || renderer.GetComponentInParent<Igruha.Core.Player.PlayerController>()!=null) continue;
+                renderer.renderingLayerMask|=sceneryLightLayer;
+                if(renderer.GetComponentInParent<PitBear>()!=null)renderer.renderingLayerMask|=bearLightLayer;
+                EditorUtility.SetDirty(renderer);
+                if(PrefabUtility.IsPartOfPrefabInstance(renderer)) PrefabUtility.RecordPrefabInstancePropertyModifications(renderer);
+            }
+            RenderSettings.ambientMode=AmbientMode.Trilight;
+            RenderSettings.ambientIntensity=1f;
+            RenderSettings.ambientSkyColor=new Color(.54f,.55f,.57f);
+            RenderSettings.ambientEquatorColor=new Color(.34f,.33f,.31f);
+            RenderSettings.ambientGroundColor=new Color(.17f,.16f,.145f);
             RenderSettings.fogColor=new Color(.255f,.265f,.28f);
             RenderSettings.customReflectionTexture=EnsureReflection();
             foreach(var light in UnityEngine.Object.FindObjectsByType<Light>(FindObjectsInactive.Include,FindObjectsSortMode.None))
             {
-                if(light.name=="CanvasBounce" || light.name.StartsWith("CagePool_") || light.name=="PitReadability")
-                    light.color=new Color(1f,.985f,.96f);
-                if(light.name=="Bruno_WarmKey") light.color=new Color(1f,.97f,.92f);
+                if(light.gameObject.scene!=scene) continue;
+                bool neutral=light.name=="CanvasBounce" || light.name.StartsWith("CagePool_") || light.name=="PitReadability" || light.name=="Player_SoftFill";
+                bool scenery=light.name.StartsWith("CupolaBounce_") || light.name.StartsWith("CanvasWash_")
+                    || light.name.StartsWith("FairgroundPool_") || light.name.StartsWith("LanternBounce_")
+                    || light.name.StartsWith("StallPractical_") || light.name=="MarqueeWarmth"
+                    || light.name=="Bruno_WarmKey" || light.name=="Bruno_Rim";
+                bool animalFill=light.name=="Bruno_SoftFill";
+                if(!neutral && !scenery && !animalFill) continue;
+                if(animalFill){light.intensity=.95f;light.color=new Color(.92f,.96f,1f);}
+                if(neutral) light.color=Color.white;
+                if(light.name=="Player_SoftFill"){light.intensity=.8f;light.shadows=LightShadows.None;}
+                if(light.name=="CanvasBounce")
+                {light.intensity=1.45f;light.color=new Color(1f,.95f,.87f);light.transform.rotation=Quaternion.Euler(48,328,0);}
+                if(light.name=="PitReadability") light.intensity=12f;
+                if(light.name.StartsWith("CagePool_")) light.intensity=55f;
+                if(light.name=="Bruno_WarmKey") light.color=new Color(1f,.89f,.72f);
                 if(light.name=="Bruno_Rim") light.color=new Color(.86f,.92f,1f);
-                if(light.name.StartsWith("LanternBounce_")) light.intensity=12f;
+                if(light.name.StartsWith("LanternBounce_")) light.intensity=28f;
+                var data=light.GetComponent<UniversalAdditionalLightData>();
+                if(data==null) data=light.gameObject.AddComponent<UniversalAdditionalLightData>();
+                data.renderingLayers=animalFill?bearLightLayer:scenery?sceneryLightLayer:characterLightLayer;
+                // Actors still cast shadows into coloured pools, although those pools
+                // do not tint them. Keeping a separate shadow mask also avoids making
+                // tent geometry transparent to the neutral character lights.
+                data.customShadowLayers=true;
+                data.shadowRenderingLayers=characterLightLayer|sceneryLightLayer|bearLightLayer;
+                EditorUtility.SetDirty(light);EditorUtility.SetDirty(data);
             }
             var profile=AssetDatabase.LoadAssetAtPath<VolumeProfile>(CircusNightAssets.Materials+"/CN_Grade.asset");
             if(profile!=null)
             {
                 var grade=Ensure<ColorAdjustments>(profile);
-                grade.postExposure.Override(0);grade.contrast.Override(0);grade.saturation.Override(0);
-                grade.colorFilter.Override(Color.white);
+                grade.postExposure.Override(.14f);grade.contrast.Override(2);grade.saturation.Override(8);
+                grade.colorFilter.Override(Color.white);grade.hueShift.Override(0);
+                Ensure<Tonemapping>(profile).mode.Override(TonemappingMode.ACES);
+                var balance=Ensure<WhiteBalance>(profile);balance.temperature.Override(0);balance.tint.Override(0);
                 EditorUtility.SetDirty(profile);
             }
+            DynamicGI.UpdateEnvironment();
         }
 
         private static T Ensure<T>(VolumeProfile profile) where T:VolumeComponent
@@ -254,7 +314,7 @@ namespace Igruha.EditorTools
             foreach(CubemapFace face in Enum.GetValues(typeof(CubemapFace)))
             {
                 if(face==CubemapFace.Unknown)continue;
-                Color tint=face==CubemapFace.PositiveY?new Color(.245f,.26f,.28f):new Color(.12f,.125f,.13f);
+                Color tint=face==CubemapFace.PositiveY?new Color(.26f,.26f,.26f):new Color(.125f,.125f,.125f);
                 for(int i=0;i<pixels.Length;i++)pixels[i]=tint;cube.SetPixels(pixels,face);
             }
             cube.Apply();if(created)AssetDatabase.CreateAsset(cube,path);else EditorUtility.SetDirty(cube);return cube;

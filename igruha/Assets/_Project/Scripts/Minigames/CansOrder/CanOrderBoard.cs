@@ -32,6 +32,7 @@ namespace Igruha.Minigames.CansOrder
 
         [SerializeField] private WorldScoreboard board;
         [SerializeField] private CansOrderConfig config;
+        [SerializeField] private Igruha.Minigames.Circus.CircusBoardView presentation;
         [Tooltip("Кассета расстановок под табло. Ставит билдер реквизита; пусто — расстановки печатаются строкой в подписи, как в блокауте")]
         [SerializeField] private CanOrderArrangementPanel panel;
         [Tooltip("Цвет счёта у того, кому остался один шаг до победы")]
@@ -64,6 +65,7 @@ namespace Igruha.Minigames.CansOrder
             board.BeginRows();
             board.EndRows();
             panel?.Clear();
+            presentation?.Task($"ПОРЯДОК БАНОК · РАУНД {roundNumber}", $"{canCount} БАНОК · ОДИН ВЕРНЫЙ ПОРЯДОК", true);
         }
 
         /// <summary>
@@ -84,6 +86,7 @@ namespace Igruha.Minigames.CansOrder
             }
 
             CollectEntries(game);
+            ShowCards(game);
 
             board.SetHeader($"РАУНД {game.Round.Round}", $"КРУГ {game.Round.Circle} · БАНОК: {game.Round.CanCount}");
             board.BeginRows();
@@ -219,8 +222,31 @@ namespace Igruha.Minigames.CansOrder
 
         public void Clear()
         {
+            presentation?.Clear();
             board?.Clear();
             panel?.Clear();
+        }
+
+        private void ShowCards(CansOrderMinigame game)
+        {
+            if (presentation == null) return;
+            int featured = 0;
+            for (int i = 0; i < ordered.Count && featured < Mathf.Min(3, config.BoardTopRows); i++)
+            {
+                var entry = ordered[i];
+                if (entry.Confirmed && !entry.Solved && game.TryGetSubmitted(IndexOf(game, entry.PlayerId), submitted)) featured++;
+            }
+            presentation.Header($"РАУНД {game.Round.Round} · КРУГ {game.Round.Circle}", "ЛУЧШИЕ ПОПЫТКИ · СОВПАДЕНИЯ / БАНКИ");
+            presentation.Begin(ordered.Count, featured, game.Round.CanCount);
+            int shown = 0;
+            for (int i = 0; i < ordered.Count && i < 8; i++)
+            {
+                var entry = ordered[i];
+                bool reveal = shown < featured && entry.Confirmed && !entry.Solved
+                    && game.TryGetSubmitted(IndexOf(game, entry.PlayerId), submitted);
+                presentation.CansRow(i, entry.PlayerId, names[i], reveal ? submitted : null, entry.Matches, entry.Confirmed, entry.Solved);
+                if (reveal) shown++;
+            }
         }
 
         /// <summary>

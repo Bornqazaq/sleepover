@@ -21,6 +21,7 @@ namespace Igruha.Minigames.Circus
     /// ступень перед вылетом — всегда нижняя, при любом лимите.
     /// </summary>
     [RequireComponent(typeof(RidePlatform))]
+    [DefaultExecutionOrder(80)] // Constrain the passenger after the normal player motor.
     public sealed class CageStation : MonoBehaviour
     {
         [Tooltip("Слот реквизита в центре клетки")]
@@ -45,6 +46,10 @@ namespace Igruha.Minigames.Circus
         private PlayerController occupant;
         private Transform previousRespawnPoint;
         private bool lockedByDescent;
+        private Collider closedFloor;
+        private Collider[] leafColliders = Array.Empty<Collider>();
+        private Rigidbody occupantBody;
+        private CapsuleCollider occupantCapsule;
 
         /// <summary>Детектор застревания пассажира и его состояние до посадки.</summary>
         private StuckDetector occupantStuckDetector;
@@ -87,6 +92,18 @@ namespace Igruha.Minigames.Circus
             platform.EaseScriptedMotion = true;
             platform.Arrived += HandleArrived;
             CacheCameraHiddenColliders();
+            var support = transform.Find("Floor/ClosedFloorSupport");
+            closedFloor = support != null ? support.GetComponent<Collider>() : null;
+            if (closedFloor != null)
+            {
+                var leaves = new List<Collider>();
+                foreach (string side in new[] { "Floor/DoorLeft", "Floor/DoorRight" })
+                {
+                    var door = transform.Find(side);
+                    if (door != null) leaves.AddRange(door.GetComponentsInChildren<Collider>(true));
+                }
+                leafColliders = leaves.ToArray();
+            }
 
             if (hatch == null)
             {
@@ -102,6 +119,7 @@ namespace Igruha.Minigames.Circus
 
         private void HandleHatchReleased(HingedFloorHatch _)
         {
+            if (closedFloor != null) closedFloor.enabled = false;
             LockOccupant(false);
             platform.SetPassenger(null);
             if (occupant != null && fallingClip != null)
@@ -209,6 +227,8 @@ namespace Igruha.Minigames.Circus
         public void SetOccupant(PlayerController player)
         {
             occupant = player;
+            occupantBody = player != null ? player.GetComponent<Rigidbody>() : null;
+            occupantCapsule = player != null ? player.GetComponent<CapsuleCollider>() : null;
             platform.SetPassenger(player);
 
             if (player == null || respawnPoint == null)
@@ -226,6 +246,25 @@ namespace Igruha.Minigames.Circus
             }
 
             SuspendStuckDetector(player);
+        }
+
+        private void FixedUpdate()
+        {
+            if (closedFloor == null || !closedFloor.enabled || occupant == null || !occupant.enabled ||
+                occupantBody == null || occupantBody.isKinematic || occupantCapsule == null) return;
+            // A changing crouch capsule can receive a downward ground-snap at
+            // the thin shelf/floor contact. A closed cage is a solid support
+            // plane: enforce it after the motor, only for its simulated passenger.
+            // No correction survives hatch release, and remote copies are untouched.
+            Bounds floor = closedFloor.bounds;
+            Vector3 position = occupantBody.position;
+            if (position.x < floor.min.x || position.x > floor.max.x || position.z < floor.min.z || position.z > floor.max.z) return;
+            Vector3 sole = occupant.transform.TransformVector(occupantCapsule.center - Vector3.up * (occupantCapsule.height * .5f));
+            float penetration = floor.max.y - (position.y + sole.y);
+            if (penetration <= .001f) return;
+            occupantBody.position = position + Vector3.up * penetration;
+            Vector3 velocity = occupantBody.linearVelocity;
+            if (velocity.y < 0) { velocity.y = 0; occupantBody.linearVelocity = velocity; }
         }
 
         public void SnapToLevel(int levelSteps)
@@ -409,6 +448,13 @@ namespace Igruha.Minigames.Circus
             SetCameraBlocking(false);
 
             hatch.CloseDoors();
+            if (closedFloor != null)
+            {
+                // One continuous support avoids ground-snap hits on the seam
+                // and an inclined collider squeezing the passenger downward.
+                closedFloor.enabled = true;
+                foreach (var collider in leafColliders) if (collider != null) collider.enabled = false;
+            }
             platform.SetPassenger(occupant);
         }
 

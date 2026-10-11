@@ -8,8 +8,13 @@ namespace Igruha.Minigames.OneBullet
     {
         [SerializeField] private OneBulletMinigame game;
         [SerializeField] private MinigameAudioPlayer audioPlayer;
-        private void OnEnable() { game.Shot += Shot; game.PickedUp += Pickup; game.Died += Death; }
-        private void OnDisable() { game.Shot -= Shot; game.PickedUp -= Pickup; game.Died -= Death; audioPlayer.StopAll(); }
+        private OneBulletDecoys decoys;
+        private OneBulletStorm storm;
+        private void Awake() { decoys = game.GetComponent<OneBulletDecoys>(); storm = game.GetComponent<OneBulletStorm>(); }
+        private void CanImpact(Vector3 point, float speed) => audioPlayer.PlayAt("ob_can_hit", point, Mathf.Clamp01(speed / 5f), game.Config.CanSoundRange);
+        private void StormChanged() { if (storm.State.Warning && game.GameplayActive) audioPlayer.Play("ob_storm_warning"); }
+        private void OnEnable() { game.Shot += Shot; game.PickedUp += Pickup; game.Died += Death; if (decoys != null) decoys.Impact += CanImpact; if (storm != null) storm.Changed += StormChanged; }
+        private void OnDisable() { game.Shot -= Shot; game.PickedUp -= Pickup; game.Died -= Death; if (decoys != null) decoys.Impact -= CanImpact; if (storm != null) storm.Changed -= StormChanged; audioPlayer.StopAll(); }
         private void Shot(Vector3 origin, Vector3 end, bool hit)
         {
             audioPlayer.PlayAt("ob_shot", origin);

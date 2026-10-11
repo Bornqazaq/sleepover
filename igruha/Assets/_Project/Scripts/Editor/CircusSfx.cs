@@ -94,7 +94,7 @@ namespace Igruha.EditorTools
         /// Клипы медведя — рёв, взмах, удар.
         ///
         /// <see cref="CircusBearFeedback"/> крутит их своим источником и своими
-        /// часами удара: взмах приходится на 0.47 с после начала замаха, и вынести
+        /// часами удара: взмах привязан к PitBear.SwipeSeconds, и вынести
         /// эту привязку в общий проигрыватель значило бы переложить туда же весь
         /// такт атаки. Поэтому здесь не привязка события к слоту, а раздача клипов
         /// из той же библиотеки — чтобы правда о том, чем звучит медведь, осталась
@@ -104,6 +104,12 @@ namespace Igruha.EditorTools
         /// привезла, и висящая ссылка на удалённый черновик — ровно то, из-за чего
         /// медведь молчал, выглядя озвученным.
         /// </summary>
+        internal static void RefreshBear(PitBear bear)
+        {
+            var library = AssetDatabase.LoadAssetAtPath<MinigameSfxLibrary>(LibraryPath);
+            if (library != null) WireBear(bear, library);
+        }
+
         private static void WireBear(PitBear bear, MinigameSfxLibrary library)
         {
             if (bear == null) return;
