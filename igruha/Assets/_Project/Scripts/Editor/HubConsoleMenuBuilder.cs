@@ -17,6 +17,41 @@ namespace Igruha.EditorTools
         private static readonly Color Cream = Hex("F4ECD9"), Muted = Hex("A4B8B5"), Accent = Hex("F4BE81");
         private static TMP_FontAsset regular, bold;
 
+        // The TV mesh is slightly wider than 16:9. Use its display surface for
+        // the world-space canvas; a separate guessed size spills over the bezel.
+        internal static void FitScreen()
+        {
+            var display = HubCompactPass.Require(HubCompactPass.RootName + "/Lounge/Television/HO_Screen").GetComponent<MeshFilter>();
+            if (display == null || display.sharedMesh == null)
+                throw new InvalidOperationException("Television display mesh is missing.");
+            var screen = HubCompactPass.Require("_Pit/TvScreen").GetComponent<RectTransform>();
+            Bounds bounds = display.sharedMesh.bounds;
+            Transform surface = display.transform;
+            // Local +Z faces the viewer. Keep UI just in front of the blue glass,
+            // behind the physical bezel, so the frame still occludes its corners.
+            Vector3 center = bounds.center;
+            center.z = bounds.max.z;
+            screen.SetPositionAndRotation(surface.TransformPoint(center) + surface.forward * .0005f,
+                surface.rotation * Quaternion.Euler(0, 180, 0));
+            screen.pivot = new Vector2(.5f, .5f);
+            screen.sizeDelta = new Vector2(1280, 720);
+            float width = surface.TransformVector(Vector3.right * bounds.size.x).magnitude;
+            float height = surface.TransformVector(Vector3.up * bounds.size.y).magnitude;
+            Vector3 parentScale = screen.parent != null ? screen.parent.lossyScale : Vector3.one;
+            screen.localScale = new Vector3(width / (1280f * parentScale.x), height / (720f * parentScale.y),
+                height / (720f * parentScale.z));
+            if (screen.GetComponent<RectMask2D>() == null) screen.gameObject.AddComponent<RectMask2D>();
+        }
+
+        [MenuItem("Igruha/Хаб/ТВ — подогнать меню под экран")]
+        public static void AlignScreen()
+        {
+            if (EditorApplication.isPlaying || EditorSceneManager.GetActiveScene().path != "Assets/_Project/Scenes/Hub.unity")
+                throw new InvalidOperationException("Open Hub outside Play Mode.");
+            HubConsoleCameraPass.Apply();
+            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+        }
+
         [MenuItem("Igruha/Хаб/ТВ — библиотека игр и камера")]
         public static void Rebuild()
         {
@@ -35,11 +70,8 @@ namespace Igruha.EditorTools
             regular = HubConsoleAssets.Font(false);
             bold = HubConsoleAssets.Font(true);
             var screen = HubCompactPass.Require("_Pit/TvScreen").GetComponent<RectTransform>();
+            FitScreen();
             foreach (Transform child in screen.Cast<Transform>().ToArray()) Object.DestroyImmediate(child.gameObject);
-            screen.rotation = Quaternion.identity;
-            screen.position = new Vector3(0, .97f, 2.735f);
-            screen.sizeDelta = new Vector2(1280, 720);
-            screen.localScale = Vector3.one * (3.12f / 1280f);
             var root = Rect(screen, "ConsoleLibrary", 0, 0, 1280, 720);
             var view = root.gameObject.AddComponent<ConsoleLibraryView>();
             Paint(root, Ink);

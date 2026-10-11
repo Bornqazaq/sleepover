@@ -64,18 +64,26 @@ namespace Igruha.EditorTools
             Label(root,title,p+q*new Vector3(0,.42f,-.065f),yaw,1.95f,new Vector2(.90f,.22f));
             Label(root,"SLEEPOVER SOCIAL CLUB",p+q*new Vector3(0,-.49f,-.065f),yaw,.57f,new Vector2(.83f,.12f));
         }
-        private static void Garland(Transform root)
+        internal static void Garland(Transform root)
         {
             var g=new HubOriginalGeometry();
             for(int side=0;side<4;side++)
             {
                 var q=Quaternion.Euler(0,side*90,0);
                 for(int i=0;i<100;i++)
-                {float x=-9.6f+i*.192f,n=x+.192f;g.Line(q*new Vector3(x,3.52f-.16f*Mathf.Sin((x+9.6f)*Mathf.PI/3.84f),9.55f),q*new Vector3(n,3.52f-.16f*Mathf.Sin((n+9.6f)*Mathf.PI/3.84f),9.55f),.011f,M("Ink"));}
+                {float x=-9.6f+i*.192f,n=x+.192f;if(GarlandGap((x+n)*.5f,side))continue;g.Line(q*new Vector3(x,GarlandHeight(x,side),9.55f),q*new Vector3(n,GarlandHeight(n,side),9.55f),.011f,M("Ink"));}
                 for(int i=0;i<26;i++)
-                {float x=-9.3f+i*.74f;var p=q*new Vector3(x,3.50f-.16f*Mathf.Sin((x+9.6f)*Mathf.PI/3.84f),9.55f);g.Box(p-Vector3.up*.035f,new Vector3(.035f,.07f,.035f),M("Ink"));g.Sphere(p-Vector3.up*.10f,.038f,M("Glow"));}
+                {float x=-9.3f+i*.74f;if(GarlandGap(x,side))continue;var p=q*new Vector3(x,GarlandHeight(x,side)-.02f,9.55f);g.Box(p-Vector3.up*.035f,new Vector3(.035f,.07f,.035f),M("Ink"));g.Sphere(p-Vector3.up*.10f,.038f,M("Glow"));}
             }
             g.Build(root,"StringLights");
+        }
+        private static float GarlandHeight(float x,int side)
+            => 3.52f+CeilingRaise-.16f*Mathf.Sin((x+9.6f)*Mathf.PI/3.84f);
+        private static bool GarlandGap(float x,int side)
+        {
+            if(side==2)return false;
+            var offsets=HubBasementWindowPass.WindowOffsets(side);
+            return Mathf.Min(Mathf.Abs(x-offsets[0]),Mathf.Abs(x-offsets[1]))<1.6f;
         }
         private static void Darts(Transform root)
         {

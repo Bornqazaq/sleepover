@@ -117,6 +117,22 @@ namespace Igruha.Core.Traps
         /// </summary>
         public void PlayFired() => Fired?.Invoke();
 
+        /// <summary>
+        /// Отыграть срабатывание, привязанное к общим сетевым часам.
+        ///
+        /// Большинству ловушек достаточно самого события. Ловушки с читаемой
+        /// подготовкой или каскадом переопределяют <see cref="OnRemoteFiredAt"/>,
+        /// чтобы хост и клиенты начали анимацию с одного момента, даже если RPC
+        /// пришёл к ним в разные кадры.
+        /// </summary>
+        public void PlayFired(double firedAt)
+        {
+            OnRemoteFiredAt(firedAt);
+            Fired?.Invoke();
+        }
+
+        protected virtual void OnRemoteFiredAt(double firedAt) { }
+
         /// <summary>Снять кулдаун и вернуть ловушку в исходное состояние. Для старта раунда.</summary>
         public virtual void ResetTrap()
         {

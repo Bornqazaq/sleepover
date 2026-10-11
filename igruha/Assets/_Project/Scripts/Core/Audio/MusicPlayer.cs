@@ -6,16 +6,18 @@ namespace Igruha.Core.Audio
     /// <summary>
     /// Музыка всей игры: одна тема на сцену, смена — перекрёстным затуханием.
     ///
-    /// <b>Поднимается сам и в сценах его нет.</b> Тот же приём, что у голоса:
+    /// <b>Поднимается сам.</b> Тот же приём, что у голоса:
     /// объект заводится из <see cref="RuntimeInitializeOnLoadMethod"/> и
     /// переживает смену сцен. Иначе пришлось бы класть источник в каждую из
     /// одиннадцати сцен, в том числе в чужую Duck Hunt, а правка чужой сцены
     /// ради подложки — это конфликт слияния на ровном месте.
     ///
-    /// <b>Два источника, а не один.</b> Переключение темы одним источником
+    /// <b>Две дорожки для перекрёстного затухания.</b> Переключение темы одним источником
     /// слышно как обрыв: хаб обрывается на полутакте, мини-игра начинается с
     /// тишины. Здесь старая тема гаснет, пока новая поднимается, и стык не
     /// слышен.
+    /// В сцене с SceneMusicEmitter тема звучит из двух физических колонок.
+    /// Каждая пара запускается синхронно; отдельной глобальной подложки нет.
     ///
     /// Музыка не ставится на паузу вместе с игрой (<c>ignoreListenerPause</c>):
     /// меню паузы — это те же полминуты в общей комнате, и тишина в них
@@ -29,12 +31,21 @@ namespace Igruha.Core.Audio
 
         /// <summary>За сколько секунд одна тема сменяет другую.</summary>
         private const float CrossfadeSeconds = 1.5f;
+        private const float StereoVoiceGain = .5f;
+        private const double SpeakerScheduleLeadSeconds = .075;
 
         public static MusicPlayer Instance { get; private set; }
 
         private MusicLibrary library;
         private AudioSource current;
         private AudioSource previous;
+        private AudioSource currentRight;
+        private AudioSource previousRight;
+        private SceneMusicEmitter currentEmitter;
+        private SceneMusicEmitter previousEmitter;
+        private float currentVoiceGain = 1f;
+        private float previousVoiceGain = 1f;
+        private float previousTrackVolume = 1f;
 
         /// <summary>Громкость темы, заданная библиотекой, — поверх общей громкости.</summary>
         private float trackVolume = 1f;
@@ -72,6 +83,8 @@ namespace Igruha.Core.Audio
 
             current = CreateSource("Music_A");
             previous = CreateSource("Music_B");
+            currentRight = CreateSource("Music_A_Right");
+            previousRight = CreateSource("Music_B_Right");
 
             SceneManager.activeSceneChanged += OnSceneChanged;
             Apply(SceneManager.GetActiveScene().name, immediate: true);
@@ -98,6 +111,8 @@ namespace Igruha.Core.Audio
             {
                 current.Stop();
                 previous.Stop();
+                currentRight.Stop();
+                previousRight.Stop();
                 playingScene = null;
                 return;
             }
@@ -144,35 +159,72 @@ namespace Igruha.Core.Audio
         private void Swap(AudioClip clip, float volume, bool immediate)
         {
             (current, previous) = (previous, current);
+            (currentRight, previousRight) = (previousRight, currentRight);
+            previousEmitter = currentEmitter;
+            previousVoiceGain = currentVoiceGain;
+            previousTrackVolume = trackVolume;
+            currentEmitter = FindEmitter(SceneManager.GetActiveScene());
+            currentVoiceGain = currentEmitter != null ? StereoVoiceGain : 1f;
+
+            current.Stop();
+            currentRight.Stop();
+            if (currentEmitter != null) currentEmitter.Configure(current, currentRight);
+            else current.spatialBlend = 0f;
 
             trackVolume = volume;
             current.clip = clip;
+            currentRight.clip = currentEmitter != null ? clip : null;
             current.volume = 0f;
+            currentRight.volume = 0f;
 
-            if (clip != null) current.Play();
+            if (clip != null)
+            {
+                if (currentEmitter == null) current.Play();
+                else
+                {
+                    double start = AudioSettings.dspTime + SpeakerScheduleLeadSeconds;
+                    current.PlayScheduled(start);
+                    currentRight.PlayScheduled(start);
+                }
+            }
 
             fade = immediate ? 1f : 0f;
             if (!immediate) return;
 
             previous.Stop();
+            previousRight.Stop();
             ApplyVolume();
+        }
+
+        private static SceneMusicEmitter FindEmitter(Scene scene)
+        {
+            foreach (var root in scene.GetRootGameObjects())
+            {
+                var emitter = root.GetComponentInChildren<SceneMusicEmitter>();
+                if (emitter != null && emitter.IsReady) return emitter;
+            }
+            return null;
         }
 
         private void Update()
         {
+            if (currentEmitter != null) currentEmitter.Follow(current, currentRight);
             if (fade >= 1f) return;
+            if (previousEmitter != null) previousEmitter.Follow(previous, previousRight);
 
             fade = Mathf.Min(1f, fade + Time.unscaledDeltaTime / CrossfadeSeconds);
             ApplyVolume();
 
-            if (fade >= 1f) previous.Stop();
+            if (fade >= 1f) { previous.Stop(); previousRight.Stop(); }
         }
 
         private void ApplyVolume()
         {
-            float target = MusicSettings.Enabled ? MusicSettings.Volume * trackVolume : 0f;
-            current.volume = target * fade;
-            previous.volume = target * (1f - fade);
+            float master = MusicSettings.Enabled ? MusicSettings.Volume : 0f;
+            current.volume = master * trackVolume * fade * currentVoiceGain;
+            currentRight.volume = current.volume;
+            previous.volume = master * previousTrackVolume * (1f - fade) * previousVoiceGain;
+            previousRight.volume = previous.volume;
         }
     }
 }

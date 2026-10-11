@@ -46,7 +46,15 @@ namespace Igruha.EditorTools
                 var mesh=new Mesh {name=name+"_"+pair.Key.name,indexFormat=pair.Value.V.Count>65535?IndexFormat.UInt32:IndexFormat.UInt16};
                 mesh.SetVertices(pair.Value.V);mesh.SetUVs(0,pair.Value.U);mesh.SetTriangles(pair.Value.T,0);mesh.RecalculateNormals();mesh.RecalculateBounds();
                 string path=HubOriginalAssets.Folder+"/Meshes/"+mesh.name+".asset";var saved=AssetDatabase.LoadAssetAtPath<Mesh>(path);
-                if(saved==null){AssetDatabase.CreateAsset(mesh,path);saved=mesh;}else{EditorUtility.CopySerialized(mesh,saved);Object.DestroyImmediate(mesh);EditorUtility.SetDirty(saved);}
+                if(saved==null){AssetDatabase.CreateAsset(mesh,path);saved=mesh;}else
+                {
+                    // Mesh setters refresh the native rendering buffers as well as the asset.
+                    // CopySerialized alone leaves the old wall/garland geometry on the GPU in the editor.
+                    saved.Clear();saved.indexFormat=mesh.indexFormat;
+                    saved.vertices=mesh.vertices;saved.uv=mesh.uv;saved.triangles=mesh.triangles;
+                    saved.normals=mesh.normals;saved.RecalculateBounds();
+                    Object.DestroyImmediate(mesh);EditorUtility.SetDirty(saved);
+                }
                 var go=new GameObject(saved.name);go.transform.SetParent(parent,false);go.AddComponent<MeshFilter>().sharedMesh=saved;var renderer=go.AddComponent<MeshRenderer>();renderer.sharedMaterial=pair.Key;renderer.shadowCastingMode=castShadows?ShadowCastingMode.On:ShadowCastingMode.Off;
                 GameObjectUtility.SetStaticEditorFlags(go,StaticEditorFlags.BatchingStatic);
                 if(cameraSolid){go.layer=LayerMask.NameToLayer("CameraOnly");var col=go.AddComponent<MeshCollider>();col.sharedMesh=saved;col.excludeLayers=~0;}
