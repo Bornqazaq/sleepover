@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
+using Igruha.Core.Minigame;
 using Igruha.Core.Session;
 
 namespace Igruha.Minigames.DuckHunt
@@ -536,14 +537,14 @@ namespace Igruha.Minigames.DuckHunt
                 return;
             }
 
-            TrapFiredRpc(index);
+            TrapFiredRpc(index, NetworkClock.Now);
         }
 
         /// <summary>Сервер уже отыграл срабатывание у себя, поэтому себе не шлём.</summary>
         [Rpc(SendTo.NotServer)]
-        private void TrapFiredRpc(int index)
+        private void TrapFiredRpc(int index, double firedAt)
         {
-            game?.ApplyNetworkTrapFired(index);
+            game?.ApplyNetworkTrapFired(index, firedAt);
         }
 
         private void OnTrapMaskChanged(uint previous, uint current)

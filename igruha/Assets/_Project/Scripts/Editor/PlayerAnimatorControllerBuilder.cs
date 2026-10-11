@@ -28,6 +28,7 @@ namespace Igruha.EditorTools
         public readonly string ControllerPath;
         public readonly string PlayerPrefabPath;
         public readonly string IdleClip;
+        public readonly string AlternateIdleClip;
         public readonly string RunClip;
         public readonly string JumpClip;
         public readonly string RunJumpClip;
@@ -55,12 +56,14 @@ namespace Igruha.EditorTools
             string runJumpClip = null,
             string[] danceClips = null,
             string crouchWalkClip = null,
-            float punchSpeedMultiplier = 1f)
+            float punchSpeedMultiplier = 1f,
+            string alternateIdleClip = null)
         {
             CharacterName = characterName;
             ControllerPath = controllerPath;
             PlayerPrefabPath = playerPrefabPath;
             IdleClip = idleClip;
+            AlternateIdleClip = alternateIdleClip;
             RunClip = runClip;
             JumpClip = jumpClip;
             RunJumpClip = runJumpClip;
@@ -152,10 +155,10 @@ namespace Igruha.EditorTools
                 runClip: "Karlan@Fast Run.fbx",
                 jumpClip: "Karlan(Fbx without color)@Unarmed Jump.fbx",
                 punchClip: "Karlan(Fbx without color)@Cross Punch.fbx",
-                flyBackClip: "Karlan(Fbx without color)@Flying Back Death.fbx",
-                standUpBackClip: "Karlan(Fbx without color)@Standing Up From Back.fbx",
-                fallForwardClip: "Karlan(Fbx without color)@Falling Forward Death.fbx",
-                standUpForwardClip: "Karlan(Fbx without color)@Stand Up From Forward.fbx",
+                flyBackClip: "Boss@fallBack.fbx",
+                standUpBackClip: "Boss@kipUp(back).fbx",
+                fallForwardClip: "Boss@fallForward.fbx",
+                standUpForwardClip: "Boss@standUp.fbx",
                 danceClips: SharedDanceClips,
                 crouchWalkClip: SharedCrouchWalkClip));
         }
@@ -170,7 +173,7 @@ namespace Igruha.EditorTools
                 idleClip: "Boss@idle.fbx",
                 runClip: "Boss@defaultRunning.fbx",
                 jumpClip: "Boss@Jumping.fbx",
-                punchClip: "Boss@Jab Cross.fbx",
+                punchClip: "Shlanga@cross.fbx",
                 flyBackClip: "Boss@fallBack.fbx",
                 standUpBackClip: "Boss@kipUp(back).fbx",
                 fallForwardClip: "Boss@fallForward.fbx",
@@ -270,13 +273,15 @@ namespace Igruha.EditorTools
                 controllerPath: "Assets/_Project/Art/Animations/MilezAnimator.controller",
                 playerPrefabPath: "Assets/_Project/Prefabs/Player/Milez.prefab",
                 idleClip: "Milez@idle.fbx",
+                alternateIdleClip: "Shlanga@idle.fbx",
                 runClip: "Milez@running.fbx",
                 jumpClip: "Milez@jump.fbx",
                 punchClip: "Milez@crossPunch.fbx",
                 flyBackClip: "Milez@fallBack.fbx",
-                standUpBackClip: "Milez@standUpBack.fbx",
+                // Имена двух FBX перепутаны: standUpForward начинается на спине.
+                standUpBackClip: "Milez@standUpForward.fbx",
                 fallForwardClip: "Milez@fallForward.fbx",
-                standUpForwardClip: "Milez@standUpForward.fbx",
+                standUpForwardClip: "Milez@standUpBack.fbx",
                 runJumpClip: "Milez@runJump.fbx",
                 danceClips: SharedDanceClips,
                 crouchWalkClip: SharedCrouchWalkClip));
@@ -308,9 +313,97 @@ namespace Igruha.EditorTools
                 punchSpeedMultiplier: 1.3f));
         }
 
+        [MenuItem("Igruha/Player/Apply Character Animation Polish")]
+        internal static void ApplyCharacterPolish()
+        {
+            if (!SharedCrouchClipBuilder.Build()) return;
+            foreach (string character in new[] { "Karlan", "Boss", "Shlanga", "Fat", "Milez", "MyBoy", "Aza", "Girl" })
+            {
+                string name = character == "Karlan" ? "Player" : character;
+                var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(AnimationsFolder + name + "Animator.controller");
+                if (controller == null) throw new System.InvalidOperationException("Нет контроллера " + name);
+                AnimatorStateMachine machine = controller.layers[0].stateMachine;
+                AnimationClip crouch = LoadClip(SharedCrouchClipBuilder.CharacterClipFile(character));
+                foreach (ChildAnimatorState child in machine.states)
+                {
+                    AnimatorState state = child.state;
+                    if (state.name == "CrouchIdle" || state.name == "CrouchWalk") state.motion = crouch;
+                    if (character == "Boss" && state.name == "Punch") state.motion = LoadClip("Shlanga@cross.fbx");
+                    if (character == "Karlan")
+                    {
+                        if (state.name == "FlyBack") state.motion = LoadClip("Boss@fallBack.fbx");
+                        if (state.name == "FallForward") state.motion = LoadClip("Boss@fallForward.fbx");
+                        if (state.name == "StandUpFromBack") state.motion = LoadClip("Boss@kipUp(back).fbx");
+                        if (state.name == "StandUpFromForward") state.motion = LoadClip("Boss@standUp.fbx");
+                    }
+                    if (character == "Milez" && state.name == "Idle")
+                        ConfigureIdleVariation(controller, state, LoadClip("Milez@idle.fbx"), LoadClip("Shlanga@idle.fbx"));
+                    EditorUtility.SetDirty(state);
+                }
+                EditorUtility.SetDirty(controller);
+                AssetDatabase.SaveAssetIfDirty(controller);
+            }
+            var set = new CharacterAnimationSet("Karlan", AnimationsFolder + "PlayerAnimator.controller",
+                "Assets/_Project/Prefabs/Player/Player.prefab", null, null, null, null, null, null, null, null);
+            SyncPrefabDurations(set,
+                (LoadClip("Boss@fallBack.fbx").length + LoadClip("Boss@kipUp(back).fbx").length) / KnockdownSpeed,
+                (LoadClip("Boss@fallForward.fbx").length + LoadClip("Boss@standUp.fbx").length) / KnockdownSpeed);
+            AssetDatabase.SaveAssets();
+            ApplyMilezRecoveryFix();
+            Debug.Log("PlayerAnimatorControllerBuilder: замены падений, удара, idle и приседа применены к существующим контроллерам.");
+        }
+
+        [MenuItem("Igruha/Player/Fix Milez Recovery Clips")]
+        internal static void ApplyMilezRecoveryFix()
+        {
+            var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(AnimationsFolder + "MilezAnimator.controller");
+            AnimationClip back = LoadClip("Milez@standUpForward.fbx");
+            AnimationClip forward = LoadClip("Milez@standUpBack.fbx");
+            if (controller == null || back == null || forward == null)
+                throw new System.InvalidOperationException("Не найдены контроллер или подъёмы Майлза");
+            foreach (ChildAnimatorState child in controller.layers[0].stateMachine.states)
+            {
+                if (child.state.name == "StandUpFromBack") child.state.motion = back;
+                else if (child.state.name == "StandUpFromForward") child.state.motion = forward;
+                else continue;
+                EditorUtility.SetDirty(child.state);
+            }
+            EditorUtility.SetDirty(controller);
+            AssetDatabase.SaveAssetIfDirty(controller);
+            var set = new CharacterAnimationSet("Milez", AnimationsFolder + "MilezAnimator.controller",
+                "Assets/_Project/Prefabs/Player/Milez.prefab", null, null, null, null, null, null, null, null);
+            SyncPrefabDurations(set, (LoadClip("Milez@fallBack.fbx").length + back.length) / KnockdownSpeed,
+                (LoadClip("Milez@fallForward.fbx").length + forward.length) / KnockdownSpeed);
+        }
+
+        private static void ConfigureIdleVariation(AnimatorController controller, AnimatorState state, AnimationClip idle, AnimationClip alternate)
+        {
+            bool hasParameter = false;
+            foreach (AnimatorControllerParameter parameter in controller.parameters)
+                if (parameter.name == CharacterAnimatorDriver.IdleVariationParameter) hasParameter = true;
+            if (!hasParameter) controller.AddParameter(CharacterAnimatorDriver.IdleVariationParameter, AnimatorControllerParameterType.Float);
+            BlendTree tree = state.motion as BlendTree;
+            if (tree == null)
+            {
+                tree = new BlendTree { name = "Idle Variations" };
+                AssetDatabase.AddObjectToAsset(tree, controller);
+            }
+            tree.blendType = BlendTreeType.Simple1D;
+            tree.blendParameter = CharacterAnimatorDriver.IdleVariationParameter;
+            tree.useAutomaticThresholds = false;
+            tree.children = new[]
+            {
+                new ChildMotion { motion = idle, threshold = 0f, timeScale = 1f },
+                new ChildMotion { motion = alternate, threshold = 1f, timeScale = 1f }
+            };
+            state.motion = tree;
+            EditorUtility.SetDirty(tree);
+        }
+
         private static void Build(CharacterAnimationSet set)
         {
             AnimationClip idle = LoadClip(set.IdleClip);
+            AnimationClip alternateIdle = string.IsNullOrEmpty(set.AlternateIdleClip) ? null : LoadClip(set.AlternateIdleClip);
             AnimationClip run = LoadClip(set.RunClip);
             AnimationClip jump = LoadClip(set.JumpClip);
             AnimationClip runJump = string.IsNullOrEmpty(set.RunJumpClip) ? null : LoadClip(set.RunJumpClip);
@@ -321,19 +414,20 @@ namespace Igruha.EditorTools
             AnimationClip standUpBack = LoadClip(set.StandUpBackClip);
             // Общий клип приседа — генерируемый ассет: если его ещё нет (свежий
             // клон репозитория), собираем на месте, а не роняем сборку контроллера.
-            if (!string.IsNullOrEmpty(set.CrouchWalkClip)
-                && AssetDatabase.LoadAssetAtPath<AnimationClip>(SharedCrouchClipBuilder.OutputClipPath) == null)
+            string crouchFile = set.CrouchWalkClip == SharedCrouchWalkClip
+                ? SharedCrouchClipBuilder.CharacterClipFile(set.CharacterName) : set.CrouchWalkClip;
+            if (set.CrouchWalkClip == SharedCrouchWalkClip && LoadClip(crouchFile) == null)
             {
                 SharedCrouchClipBuilder.Build();
             }
 
-            AnimationClip crouchWalk = string.IsNullOrEmpty(set.CrouchWalkClip) ? null : LoadClip(set.CrouchWalkClip);
+            AnimationClip crouchWalk = string.IsNullOrEmpty(crouchFile) ? null : LoadClip(crouchFile);
 
             bool missingRunJump = !string.IsNullOrEmpty(set.RunJumpClip) && runJump == null;
             bool missingCrouchWalk = !string.IsNullOrEmpty(set.CrouchWalkClip) && crouchWalk == null;
             if (idle == null || run == null || jump == null || punch == null ||
                 fallForward == null || flyBack == null || standUpForward == null || standUpBack == null ||
-                missingRunJump || missingCrouchWalk)
+                missingRunJump || missingCrouchWalk || (!string.IsNullOrEmpty(set.AlternateIdleClip) && alternateIdle == null))
             {
                 Debug.LogError($"PlayerAnimatorControllerBuilder ({set.CharacterName}): не найден один из клипов — проверь имена файлов в Art/Animations.");
                 return;
@@ -359,6 +453,7 @@ namespace Igruha.EditorTools
             AnimatorStateMachine machine = controller.layers[0].stateMachine;
 
             AnimatorState idleState = AddState(machine, "Idle", idle, 1f, new Vector3(300f, 0f, 0f));
+            if (alternateIdle != null) ConfigureIdleVariation(controller, idleState, idle, alternateIdle);
             AnimatorState runState = AddState(machine, "Run", run, 1f, new Vector3(300f, 120f, 0f));
             AnimatorState jumpState = AddState(machine, "Jump", jump, JumpSpeed, new Vector3(560f, 60f, 0f));
             AnimatorState punchState = AddState(machine, "Punch", punch, PunchSpeed * set.PunchSpeedMultiplier, new Vector3(560f, 180f, 0f));
