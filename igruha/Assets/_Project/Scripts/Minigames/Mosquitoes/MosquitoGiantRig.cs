@@ -93,7 +93,7 @@ namespace Igruha.Minigames.Mosquitoes
             c.includeLayers = 1 << 12; c.excludeLayers = ~(1 << 12); c.layerOverridePriority = 100;
             parts.Add(new Part { A = start, B = end, Radius = radius, Collider = c });
         }
-        public void SetSleeping(bool value, float duration = 0, Vector3? standingPosition = null, Quaternion? standingRotation = null)
+        public void SetSleeping(bool value, float duration = 0, Vector3? standingPosition = null, Quaternion? standingRotation = null, bool forcedWake = false)
         {
             if (model == null) return;
             if (sleeping == value)
@@ -162,7 +162,7 @@ namespace Igruha.Minigames.Mosquitoes
             }
             if (duration > 0)
             {
-                motion.Begin(from, motion.Capture(), sleeping);
+                motion.Begin(from, motion.Capture(), sleeping, forcedWake);
                 transitionElapsed = 0;
                 animator.enabled = false;
             }

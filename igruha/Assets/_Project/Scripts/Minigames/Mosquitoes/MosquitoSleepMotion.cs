@@ -7,14 +7,16 @@ namespace Igruha.Minigames.Mosquitoes
     // Pose endpoints are built once per transition; rendering allocates nothing.
     public sealed class MosquitoSleepMotion
     {
-        private const float SeatFraction = .32f, ReclineFraction = .72f;
-        private const float ReclineDegrees = 52f, FootLift = .48f;
+        private const float ReadyFraction = .18f, SeatFraction = .38f, ReclineFraction = .84f;
+        private const float ReclineDegrees = 22f, FootLift = .48f, StepLift = .10f;
+        private const float SupportRelease = .61f, HandLift = .06f;
+        private const float HeadSettleStart = .87f, NeckAnticipation = 12f;
         private readonly Transform model, hips, chest, neck, head;
         private readonly Quaternion uprightRotation;
         private readonly Transform[] bones;
         private readonly MosquitoPoseLimb[] limbs;
-        private Pose start, finish, seat, recline, rest;
-        private bool lyingDown;
+        private Pose start, finish, ready, seat, recline, rest;
+        private bool lyingDown, startled;
 
         public sealed class Pose
         {
@@ -60,13 +62,24 @@ namespace Igruha.Minigames.Mosquitoes
 
         public void SetRest() => rest = Capture();
 
-        public void Begin(Pose from, Pose to, bool sleeping)
+        public void Begin(Pose from, Pose to, bool sleeping, bool forcedWake = false)
         {
-            start = from; finish = to; lyingDown = sleeping;
+            start = from; finish = to; lyingDown = sleeping; startled = forcedWake;
             Pose standing = sleeping ? from : to;
             BuildSeat(standing);
+            BuildReady(standing);
             BuildRecline();
             Apply(start);
+        }
+
+        private void BuildReady(Pose standing)
+        {
+            Apply(standing);
+            model.rotation = uprightRotation;
+            Vector3 pelvis = new Vector3(seat.Hip.x, standing.Hip.y,
+                MosquitoRoomLayout.BedZ + MosquitoRoomLayout.BedSize.z * .5f + .45f);
+            model.position += pelvis - hips.position;
+            ready = Capture();
         }
 
         public void Apply(Pose pose)
@@ -128,21 +141,47 @@ namespace Igruha.Minigames.Mosquitoes
         public void Sample(float progress)
         {
             progress = Mathf.Clamp01(progress);
-            if (lyingDown)
+            float path = lyingDown ? progress : 1 - (startled ? Mathf.Pow(progress, .68f) : progress);
+            Pose standing = lyingDown ? start : finish;
+            Pose sleeping = lyingDown ? finish : start;
+            if (path < ReadyFraction) Blend(standing, ready, path / ReadyFraction);
+            else if (path < SeatFraction) Blend(ready, seat, Range(path, ReadyFraction, SeatFraction));
+            else if (path < ReclineFraction) Blend(seat, recline, Range(path, SeatFraction, ReclineFraction));
+            else Blend(recline, sleeping, Range(path, ReclineFraction, 1));
+
+            for (int i = 0; i < limbs.Length; i++)
             {
-                if (progress < SeatFraction) Blend(start, seat, progress / SeatFraction, 0);
-                else if (progress < ReclineFraction) Blend(seat, recline, (progress - SeatFraction) / (ReclineFraction - SeatFraction), FootLift);
-                else Blend(recline, finish, (progress - ReclineFraction) / (1 - ReclineFraction), .025f);
+                if (!limbs[i].Valid) continue;
+                if (i < 2)
+                {
+                    if (path < ReadyFraction)
+                        Reach(i, standing, ready, Range(path, i == 0 ? 0 : .07f, i == 0 ? .12f : ReadyFraction), StepLift);
+                    else if (path < SeatFraction)
+                        Reach(i, ready, seat, Range(path, ReadyFraction, SeatFraction), 0);
+                    else
+                        Reach(i, seat, sleeping, Range(path, i == 0 ? .38f : .56f, i == 0 ? .69f : .87f), FootLift);
+                }
+                else
+                {
+                    if (path < SeatFraction)
+                        Reach(i, standing, seat, Range(path, i == 2 ? .09f : .18f, SeatFraction), HandLift);
+                    else if (i == 2 && path < SupportRelease)
+                        Reach(i, seat, seat, 0, 0);
+                    else
+                        Reach(i, seat, sleeping, Range(path, i == 2 ? SupportRelease : .48f, i == 2 ? .96f : .88f), HandLift);
+                }
             }
-            else
+            // Shoulders arrive first; the head eases onto the pillow last.
+            if (neck != null)
             {
-                if (progress < .25f) Blend(start, recline, progress / .25f, .025f);
-                else if (progress < .65f) Blend(recline, seat, (progress - .25f) / .4f, FootLift);
-                else Blend(seat, finish, (progress - .65f) / .35f, 0);
+                float anticipation = Range(path, SeatFraction, ReclineFraction) * (1 - Range(path, HeadSettleStart, 1));
+                neck.rotation = Quaternion.AngleAxis(-NeckAnticipation * anticipation, Vector3.forward) * neck.rotation;
             }
         }
 
-        private void Blend(Pose a, Pose b, float t, float footLift)
+        private static float Range(float value, float from, float to) => Mathf.Clamp01((value - from) / (to - from));
+
+        private void Blend(Pose a, Pose b, float t)
         {
             float eased = Mathf.SmoothStep(0, 1, t);
             model.SetPositionAndRotation(Vector3.Lerp(a.Position, b.Position, eased), Quaternion.Slerp(a.Rotation, b.Rotation, eased));
@@ -152,14 +191,14 @@ namespace Igruha.Minigames.Mosquitoes
                 bones[i].localScale = Vector3.Lerp(a.Scales[i], b.Scales[i], eased);
             }
             model.position += Vector3.Lerp(a.Hip, b.Hip, eased) - hips.position;
-            for (int i = 0; i < limbs.Length; i++)
-            {
-                if (!limbs[i].Valid) continue;
-                float arc = i < 2 ? footLift : footLift == 0 ? .14f : .03f;
-                Vector3 target = Vector3.Lerp(a.Ends[i], b.Ends[i], eased) + Vector3.up * (Mathf.Sin(t * Mathf.PI) * arc);
-                Vector3 pole = limbs[i].Lower.position + (i < 2 ? Vector3.up * .35f : model.right * (i % 2 == 0 ? -.15f : .15f));
-                limbs[i].Reach(target, pole, Quaternion.Slerp(a.EndRotations[i], b.EndRotations[i], eased));
-            }
+        }
+
+        private void Reach(int i, Pose a, Pose b, float t, float lift)
+        {
+            float eased = Mathf.SmoothStep(0, 1, t);
+            Vector3 target = Vector3.Lerp(a.Ends[i], b.Ends[i], eased) + Vector3.up * (Mathf.Sin(t * Mathf.PI) * lift);
+            Vector3 pole = limbs[i].Lower.position + (i < 2 ? Vector3.up * .35f : model.right * (i % 2 == 0 ? -.15f : .15f));
+            limbs[i].Reach(target, pole, Quaternion.Slerp(a.EndRotations[i], b.EndRotations[i], eased));
         }
 
         public void Breathe(float time, float reaction, float side)

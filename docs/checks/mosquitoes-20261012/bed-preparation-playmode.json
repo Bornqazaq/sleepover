@@ -1,0 +1,149 @@
+{
+  "success": true,
+  "message": "Test job status retrieved.",
+  "error": null,
+  "data": {
+    "job_id": "037efe4f2aab49cf8b25cadb6bbdf9ab",
+    "status": "succeeded",
+    "mode": "PlayMode",
+    "started_unix_ms": 1791805300264,
+    "finished_unix_ms": 1791805525637,
+    "last_update_unix_ms": 1791805525637,
+    "progress": {
+      "completed": 12,
+      "total": 12,
+      "current_test_full_name": null,
+      "current_test_started_unix_ms": 1791805503259,
+      "last_finished_test_full_name": "Igruha.Tests.PlayMode.MosquitoesSceneTests.ThreePlayersMosquitoBitesSwatAndCleanup",
+      "last_finished_unix_ms": 1791805525629,
+      "stuck_suspected": false,
+      "editor_is_focused": false,
+      "blocked_reason": null,
+      "failures_so_far": [],
+      "failures_capped": false
+    },
+    "error": null,
+    "result": {
+      "mode": "PlayMode",
+      "summary": {
+        "total": 12,
+        "passed": 12,
+        "failed": 0,
+        "skipped": 0,
+        "durationSeconds": 218.1800981,
+        "resultState": "Passed"
+      },
+      "results": [
+        {
+          "name": "AllEightLiveGiantSpawnsStayInsideBed",
+          "fullName": "Igruha.Tests.PlayMode.MosquitoesSceneTests.AllEightLiveGiantSpawnsStayInsideBed",
+          "state": "Passed",
+          "durationSeconds": 48.3323165,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "BiteAcquisitionRejectsSkinAndFurnitureInThePath",
+          "fullName": "Igruha.Tests.PlayMode.MosquitoesSceneTests.BiteAcquisitionRejectsSkinAndFurnitureInThePath",
+          "state": "Passed",
+          "durationSeconds": 4.4791452,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "EightPlayersGiantBitesSwatAndCleanup",
+          "fullName": "Igruha.Tests.PlayMode.MosquitoesSceneTests.EightPlayersGiantBitesSwatAndCleanup",
+          "state": "Passed",
+          "durationSeconds": 22.4710556,
+          "message": null,
+          "stackTrace": null,
+          "output": "📊 итоги раунда Mosquitoes [8 на старте, одиночная]: 0:1:+7/0 1:8:+0/0 2:8:+0/0 3:8:+0/0 4:8:+0/0 5:8:+0/0 6:8:+0/0 7:8:+0/0\n📊 итоги раунда Mosquitoes [8 на старте, одиночная]: 0:1:+7/0 1:8:+0/0 2:8:+0/0 3:8:+0/0 4:8:+0/0 5:8:+0/0 6:8:+0/0 7:8:+0/0\n🎵 музыка: сцена «Hub» — тема MUS_Hub\n🎵 музыка: сцена «Hub» — тема MUS_Hub\n📊 итоги раунда Mosquitoes [8 на старте, одиночная]: 0:8:+0/0 1:1:+7/0 2:1:+7/0 3:1:+7/0 4:1:+7/0 5:1:+7/0 6:1:+7/0 7:1:+7/0\n📊 итоги раунда Mosquitoes [8 на старте, одиночная]: 0:8:+0/0 1:1:+7/0 2:1:+7/0 3:1:+7/0 4:1:+7/0 5:1:+7/0 6:1:+7/0 7:1:+7/0\n🎵 музыка: сцена «Hub» — тема MUS_Hub\n🎵 музыка: сцена «Hub» — тема MUS_Hub\n"
+        },
+        {
+          "name": "EightPlayersMosquitoBitesSwatAndCleanup",
+          "fullName": "Igruha.Tests.PlayMode.MosquitoesSceneTests.EightPlayersMosquitoBitesSwatAndCleanup",
+          "state": "Passed",
+          "durationSeconds": 22.9852002,
+          "message": null,
+          "stackTrace": null,
+          "output": "📊 итоги раунда Mosquitoes [8 на старте, одиночная]: 0:8:+0/0 1:8:+0/0 2:8:+0/0 3:8:+0/0 4:8:+0/0 5:8:+0/0 6:8:+0/0 7:1:+7/0\n📊 итоги раунда Mosquitoes [8 на старте, одиночная]: 0:8:+0/0 1:8:+0/0 2:8:+0/0 3:8:+0/0 4:8:+0/0 5:8:+0/0 6:8:+0/0 7:1:+7/0\n🎵 музыка: сцена «Hub» — тема MUS_Hub\n🎵 музыка: сцена «Hub» — тема MUS_Hub\n📊 итоги раунда Mosquitoes [8 на старте, одиночная]: 0:1:+7/0 1:1:+7/0 2:1:+7/0 3:1:+7/0 4:1:+7/0 5:1:+7/0 6:1:+7/0 7:8:+0/0\n📊 итоги раунда Mosquitoes [8 на старте, одиночная]: 0:1:+7/0 1:1:+7/0 2:1:+7/0 3:1:+7/0 4:1:+7/0 5:1:+7/0 6:1:+7/0 7:8:+0/0\n🎵 музыка: сцена «Hub» — тема MUS_Hub\n🎵 музыка: сцена «Hub» — тема MUS_Hub\n"
+        },
+        {
+          "name": "FlightBoundaryCorrectionRunsOnFixedStepAndUsesFarWall",
+          "fullName": "Igruha.Tests.PlayMode.MosquitoesSceneTests.FlightBoundaryCorrectionRunsOnFixedStepAndUsesFarWall",
+          "state": "Passed",
+          "durationSeconds": 3.8629822,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "FourPlayersGiantBitesSwatAndCleanup",
+          "fullName": "Igruha.Tests.PlayMode.MosquitoesSceneTests.FourPlayersGiantBitesSwatAndCleanup",
+          "state": "Passed",
+          "durationSeconds": 22.0733071,
+          "message": null,
+          "stackTrace": null,
+          "output": "📊 итоги раунда Mosquitoes [4 на старте, одиночная]: 0:1:+3/0 1:4:+0/0 2:4:+0/0 3:4:+0/0\n📊 итоги раунда Mosquitoes [4 на старте, одиночная]: 0:1:+3/0 1:4:+0/0 2:4:+0/0 3:4:+0/0\n🎵 музыка: сцена «Hub» — тема MUS_Hub\n🎵 музыка: сцена «Hub» — тема MUS_Hub\n📊 итоги раунда Mosquitoes [4 на старте, одиночная]: 0:4:+0/0 1:1:+3/0 2:1:+3/0 3:1:+3/0\n📊 итоги раунда Mosquitoes [4 на старте, одиночная]: 0:4:+0/0 1:1:+3/0 2:1:+3/0 3:1:+3/0\n🎵 музыка: сцена «Hub» — тема MUS_Hub\n🎵 музыка: сцена «Hub» — тема MUS_Hub\n"
+        },
+        {
+          "name": "FourPlayersMosquitoBitesSwatAndCleanup",
+          "fullName": "Igruha.Tests.PlayMode.MosquitoesSceneTests.FourPlayersMosquitoBitesSwatAndCleanup",
+          "state": "Passed",
+          "durationSeconds": 22.0490699,
+          "message": null,
+          "stackTrace": null,
+          "output": "📊 итоги раунда Mosquitoes [4 на старте, одиночная]: 0:4:+0/0 1:1:+3/0 2:4:+0/0 3:4:+0/0\n📊 итоги раунда Mosquitoes [4 на старте, одиночная]: 0:4:+0/0 1:1:+3/0 2:4:+0/0 3:4:+0/0\n🎵 музыка: сцена «Hub» — тема MUS_Hub\n🎵 музыка: сцена «Hub» — тема MUS_Hub\n📊 итоги раунда Mosquitoes [4 на старте, одиночная]: 0:1:+3/0 1:4:+0/0 2:1:+3/0 3:1:+3/0\n📊 итоги раунда Mosquitoes [4 на старте, одиночная]: 0:1:+3/0 1:4:+0/0 2:1:+3/0 3:1:+3/0\n🎵 музыка: сцена «Hub» — тема MUS_Hub\n🎵 музыка: сцена «Hub» — тема MUS_Hub\n"
+        },
+        {
+          "name": "GiantDisconnectEndsRoundForRemainingMosquitoes",
+          "fullName": "Igruha.Tests.PlayMode.MosquitoesSceneTests.GiantDisconnectEndsRoundForRemainingMosquitoes",
+          "state": "Passed",
+          "durationSeconds": 7.1267774,
+          "message": null,
+          "stackTrace": null,
+          "output": "📊 итоги раунда Mosquitoes [3 на старте, одиночная]: 0:3:+0/0 1:1:+2/0 2:1:+2/0\n📊 итоги раунда Mosquitoes [3 на старте, одиночная]: 0:3:+0/0 1:1:+2/0 2:1:+2/0\n"
+        },
+        {
+          "name": "MosquitoDisconnectKeepsMatchAliveUntilLastMosquitoLeaves",
+          "fullName": "Igruha.Tests.PlayMode.MosquitoesSceneTests.MosquitoDisconnectKeepsMatchAliveUntilLastMosquitoLeaves",
+          "state": "Passed",
+          "durationSeconds": 7.0508395,
+          "message": null,
+          "stackTrace": null,
+          "output": "📊 итоги раунда Mosquitoes [3 на старте, одиночная]: 0:1:+2/0 1:3:+0/0 2:3:+0/0\n📊 итоги раунда Mosquitoes [3 на старте, одиночная]: 0:1:+2/0 1:3:+0/0 2:3:+0/0\n"
+        },
+        {
+          "name": "OutsideSpawnWindowIngressOneWayAndFiveSecondDragonfly",
+          "fullName": "Igruha.Tests.PlayMode.MosquitoesSceneTests.OutsideSpawnWindowIngressOneWayAndFiveSecondDragonfly",
+          "state": "Passed",
+          "durationSeconds": 13.5177775,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "ThreePlayersGiantBitesSwatAndCleanup",
+          "fullName": "Igruha.Tests.PlayMode.MosquitoesSceneTests.ThreePlayersGiantBitesSwatAndCleanup",
+          "state": "Passed",
+          "durationSeconds": 21.8469054,
+          "message": null,
+          "stackTrace": null,
+          "output": "📊 итоги раунда Mosquitoes [3 на старте, одиночная]: 0:1:+2/0 1:3:+0/0 2:3:+0/0\n📊 итоги раунда Mosquitoes [3 на старте, одиночная]: 0:1:+2/0 1:3:+0/0 2:3:+0/0\n🎵 музыка: сцена «Hub» — тема MUS_Hub\n🎵 музыка: сцена «Hub» — тема MUS_Hub\n📊 итоги раунда Mosquitoes [3 на старте, одиночная]: 0:3:+0/0 1:1:+2/0 2:1:+2/0\n📊 итоги раунда Mosquitoes [3 на старте, одиночная]: 0:3:+0/0 1:1:+2/0 2:1:+2/0\n🎵 музыка: сцена «Hub» — тема MUS_Hub\n🎵 музыка: сцена «Hub» — тема MUS_Hub\n"
+        },
+        {
+          "name": "ThreePlayersMosquitoBitesSwatAndCleanup",
+          "fullName": "Igruha.Tests.PlayMode.MosquitoesSceneTests.ThreePlayersMosquitoBitesSwatAndCleanup",
+          "state": "Passed",
+          "durationSeconds": 22.3691058,
+          "message": null,
+          "stackTrace": null,
+          "output": "📊 итоги раунда Mosquitoes [3 на старте, одиночная]: 0:3:+0/0 1:1:+2/0 2:3:+0/0\n📊 итоги раунда Mosquitoes [3 на старте, одиночная]: 0:3:+0/0 1:1:+2/0 2:3:+0/0\n🎵 музыка: сцена «Hub» — тема MUS_Hub\n🎵 музыка: сцена «Hub» — тема MUS_Hub\n📊 итоги раунда Mosquitoes [3 на старте, одиночная]: 0:1:+2/0 1:3:+0/0 2:1:+2/0\n📊 итоги раунда Mosquitoes [3 на старте, одиночная]: 0:1:+2/0 1:3:+0/0 2:1:+2/0\n🎵 музыка: сцена «Hub» — тема MUS_Hub\n🎵 музыка: сцена «Hub» — тема MUS_Hub\n"
+        }
+      ]
+    }
+  },
+  "hint": null
+}

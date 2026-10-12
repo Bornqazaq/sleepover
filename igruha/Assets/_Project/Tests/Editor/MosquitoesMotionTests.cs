@@ -17,20 +17,32 @@ namespace Igruha.Tests
             try
             {
                 clone.transform.SetPositionAndRotation(MosquitoRoomLayout.BedExit, Quaternion.Euler(0, 180, 0));
-                var animator = clone.GetComponentInChildren<Animator>(); animator.Rebind(); animator.Update(0);
+                var animator = clone.GetComponentInChildren<Animator>();
+                animator.cullingMode = AnimatorCullingMode.AlwaysAnimate; animator.Rebind(); animator.Update(0);
                 var motion = new MosquitoSleepMotion(animator);
                 var standing = motion.Capture();
                 var rig = clone.AddComponent<MosquitoGiantRig>(); rig.Initialize(animator); rig.SetSleeping(true);
                 var sleeping = motion.Capture(); motion.SetRest();
-                foreach (bool down in new[] { true, false })
+                motion.Begin(standing, sleeping, true);
+                var leftHand = animator.GetBoneTransform(HumanBodyBones.LeftHand);
+                var leftFoot = animator.GetBoneTransform(HumanBodyBones.LeftFoot);
+                var rightFoot = animator.GetBoneTransform(HumanBodyBones.RightFoot);
+                motion.Sample(.38f);
+                Vector3 support = leftHand.position, firstFoot = leftFoot.position, secondFoot = rightFoot.position;
+                motion.Sample(.48f);
+                Assert.That(Vector3.Distance(leftHand.position, support), Is.LessThan(.035f), "support hand must stay planted: " + index);
+                Assert.That(leftFoot.position.y - firstFoot.y, Is.GreaterThan(.15f), "first foot lifts before the other: " + index);
+                Assert.That(Vector3.Distance(rightFoot.position, secondFoot), Is.LessThan(.035f), "second foot waits at the edge: " + index);
+                for (int transition = 0; transition < 3; transition++)
                 {
-                    motion.Begin(down ? standing : sleeping, down ? sleeping : standing, down);
+                    bool down = transition == 0;
+                    motion.Begin(down ? standing : sleeping, down ? sleeping : standing, down, transition == 2);
                     for (int frame = 0; frame <= 40; frame++)
                     {
                         motion.Sample(frame / 40f);
                         float lowest = LowestInteriorSkin(clone);
                         Assert.That(lowest, Is.GreaterThanOrEqualTo(MosquitoRoomLayout.MattressHeight - .035f),
-                            roster.Characters[index].DisplayName + " down=" + down + " frame=" + frame + " skin=" + lowest);
+                            roster.Characters[index].DisplayName + " transition=" + transition + " frame=" + frame + " skin=" + lowest);
                     }
                 }
             }

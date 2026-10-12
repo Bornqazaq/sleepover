@@ -355,7 +355,8 @@ namespace Igruha.Minigames.Mosquitoes
             Transform target = sleeping ? bed : bedExit;
             giantRig?.CaptureTransitionStart();
             if (HasAuthority || localId == giantId) giant.TeleportTo(target.position, target.rotation);
-            giantRig?.SetSleeping(sleeping, Sleep.TransitionRemaining, bedExit.position, bedExit.rotation);
+            giantRig?.SetSleeping(sleeping, Sleep.TransitionRemaining, bedExit.position, bedExit.rotation,
+                Sleep.ImmunityRemaining > config.WakeSeconds);
         }
 
         private void BindCamera()
