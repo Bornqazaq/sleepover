@@ -46,19 +46,25 @@ namespace Igruha.EditorTools
                 if (n == "Ceiling") { renderer.sharedMaterial = Mat("OakDark"); DressCeiling(renderer,art); continue; }
                 if (n == "Panel" && renderer.GetComponentInParent<DoorTrap>() != null)
                 { DressDoor(renderer); continue; }
-                if (n == "Section" && renderer.GetComponentInParent<CollapsingFloorTrap>() != null)
+                if ((n == "Section" || n.StartsWith("Section_")) && renderer.GetComponentInParent<CollapsingFloorTrap>() != null)
                 { DressCollapse(renderer); continue; }
+                if (n.StartsWith("CollapseWarning_")) { renderer.sharedMaterial = Mat("GlowRed"); continue; }
+                if (n.Contains("_VisualStep_")) { renderer.sharedMaterial = Mat("OakLight"); continue; }
+                if (n.Contains("_Curb_")) { renderer.sharedMaterial = Mat("Brass"); continue; }
+                if (n.StartsWith("CandyPendulum_")) { renderer.sharedMaterial = Mat("Rose"); continue; }
+                if (n == "CandyPendulumStem") { renderer.sharedMaterial = Mat("Cream"); continue; }
                 if (n == "Foot" || n == "ChestBand" || n == "ChestBandSmall" || n == "OnePersonFootprint") continue;
                 if (n.Contains("Wall") || n.StartsWith("ProtectedFront") || n == "ExitPartition" || n == "ExitHeader" || n == "SpawnShield" || n == "ArrivalGuard")
                 { CarnivalWall(renderer, art); continue; }
-                if (n.StartsWith("Link_") || n.StartsWith("ReturnLane_") || n == "TakeoffStripe")
-                { renderer.sharedMaterial = Mat(n.StartsWith("Link") ? "Red" : "Brass"); continue; }
-                if (n.StartsWith("PadSupport") || n.StartsWith("Rail_"))
+                if (n.StartsWith("ReturnLane_") || n == "TakeoffStripe")
+                { renderer.sharedMaterial = Mat("Brass"); continue; }
+                if (n.Contains("PadSupport") || n == "SplitDeckSupport" || n.StartsWith("Rail_"))
                 { renderer.sharedMaterial = Mat("Iron"); continue; }
                 if (n == "FinishPad") { renderer.sharedMaterial = Mat("TealLight"); continue; }
                 if (n == "Deck") continue; // Moving lift art stays on the moving platform.
                 if (renderer.GetComponent<BoxCollider>() != null)
-                    DressDeck(renderer, art, n.StartsWith("Parkour") || n == "RaisedFinishDeck");
+                    DressDeck(renderer, art,
+                        n.StartsWith("FastParkour") || n == "ParkourSplitDeck" || n == "RaisedFinishDeck");
             }
             foreach (Transform floor in arena.transform.Find("Tower"))
             {
@@ -75,7 +81,7 @@ namespace Igruha.EditorTools
             CarnivalRoof(art); FairgroundSurroundings(art, rides); Landscape(art); Lighting(art); CarnivalGrade(art);
             Combine(art, "Architecture");
             Physics.SyncTransforms();
-            Debug.Log("Duck Hunt carnival installed: original Blender fairground kit, protected start, five themed floors, 4/3/2/1 functional furnishings, exposed mechanical controls.");
+            Debug.Log("Duck Hunt carnival installed: original Blender fairground kit, protected start, five themed floors, 4/3/2/1 functional furnishings, sheltered mechanical controls.");
         }
 
         static Transform Group(Transform parent, string name)
@@ -119,7 +125,9 @@ namespace Igruha.EditorTools
                 {"Teal",new Color(.20f,.37f,.33f)}, {"TealLight",new Color(.26f,.44f,.37f)}, {"Cream",new Color(.88f,.79f,.58f)},
                 {"Iron",new Color(.105f,.14f,.14f)}, {"Brass",new Color(.78f,.54f,.24f)}, {"Red",new Color(.79f,.23f,.19f)},
                 {"Rose",new Color(.84f,.34f,.43f)}, {"Blue",new Color(.19f,.52f,.64f)}, {"Purple",new Color(.57f,.35f,.66f)}, {"Gold",new Color(.97f,.68f,.20f)},
-                {"Glow",new Color(1,.79f,.40f)}, {"Leaf",new Color(.19f,.32f,.235f)}, {"LeafLight",new Color(.32f,.43f,.25f)},
+                {"Glow",new Color(1,.79f,.40f)}, {"GlowRed",new Color(1,.20f,.16f)}, {"GlowBlue",new Color(.16f,.58f,1f)},
+                {"GlowGreen",new Color(.25f,1f,.44f)}, {"GlowPink",new Color(1f,.25f,.68f)},
+                {"Leaf",new Color(.19f,.32f,.235f)}, {"LeafLight",new Color(.32f,.43f,.25f)},
                 {"Stone",new Color(.39f,.42f,.36f)}, {"Ink",new Color(.035f,.075f,.072f)}, {"Earth",new Color(.32f,.34f,.20f)},
                 {"Sand",new Color(.60f,.52f,.38f)}, {"Gravel",new Color(.47f,.45f,.40f)}
             };
@@ -134,9 +142,9 @@ namespace Igruha.EditorTools
                 m.SetTexture("_BaseMap",null);
                 if (entry.Key.StartsWith("Oak") || entry.Key=="Red" || entry.Key=="Blue" || entry.Key=="Teal" || entry.Key=="Cream")
                 { m.SetTexture("_BaseMap", wood); m.SetTextureScale("_BaseMap", new Vector2(.65f, .65f)); }
-                if (entry.Key == "Glow")
+                if (entry.Key.StartsWith("Glow"))
                 {
-                    m.EnableKeyword("_EMISSION"); m.SetColor("_EmissionColor", new Color(1,.77f,.42f)*5.8f);
+                    m.EnableKeyword("_EMISSION"); m.SetColor("_EmissionColor", entry.Value * 5.8f);
                     // Без этого флага материал остаётся EmissiveIsBlack, Unity
                     // вычищает ключевое слово при сохранении, и лампы гаснут:
                     // ровно так свечение и пропало в прошлый раз.
@@ -303,29 +311,30 @@ namespace Igruha.EditorTools
 
         static void DressCollapse(MeshRenderer panel)
         {
-            Transform skin=Group(panel.transform,"CopperwoodHatch"); skin.position=Vector3.zero;skin.rotation=Quaternion.identity;
-            skin.localScale=new Vector3(1/panel.transform.lossyScale.x,1/panel.transform.lossyScale.y,1/panel.transform.lossyScale.z);
-            DressDeck(panel,skin,true);
-            Bounds hatch=panel.bounds;
-            // Three readable mechanical leaves inside the original floor trigger.
-            for(int section=0;section<3;section++)
+            // The trap now consists of several independently disappearing panels.
+            // Keep every skin local to its panel: combining world-space geometry
+            // into one shared mesh made all panels render on top of the final one.
+            panel.enabled=true;
+            panel.sharedMaterial=Mat("OakDark");
+            Transform skin=Group(panel.transform,"CopperwoodHatch");
+            skin.localPosition=Vector3.zero;skin.localRotation=Quaternion.identity;skin.localScale=Vector3.one;
+
+            float sx=Mathf.Abs(panel.transform.lossyScale.x);
+            float sy=Mathf.Abs(panel.transform.lossyScale.y);
+            float sz=Mathf.Abs(panel.transform.lossyScale.z);
+            float top=.5f+.018f/sy;
+
+            foreach(float z in new[]{-.49f,-1f/6f,1f/6f,.49f})
+                LocalSolid(skin,"Hatch transverse iron",new Vector3(0,top,z),
+                    new Vector3(.98f,.035f/sy,.065f/sz),"Iron");
+            foreach(float x in new[]{-.42f,.42f})
             {
-                float z0=hatch.min.z+section*hatch.size.z/3f,z1=z0+hatch.size.z/3f;
-                foreach(float z in new[]{z0+.035f,z1-.035f})
-                    Solid(skin,"Hatch transverse iron",new Vector3(hatch.center.x,hatch.max.y+.018f,z),new Vector3(hatch.size.x,.035f,.065f),"Iron");
-                foreach(float x in new[]{hatch.min.x+.10f,hatch.max.x-.10f})
-                {
-                    Solid(skin,"Leaf edge",new Vector3(x,hatch.max.y+.015f,(z0+z1)*.5f),new Vector3(.055f,.03f,z1-z0-.07f),"Brass");
-                    foreach(float z in new[]{z0+.38f,z1-.38f})
-                        Solid(skin,"Hatch hinge",new Vector3(x,hatch.max.y+.04f,z),new Vector3(.21f,.07f,.25f),"Iron");
-                }
+                LocalSolid(skin,"Leaf edge",new Vector3(x,top,0f),
+                    new Vector3(.055f/sx,.03f/sy,.94f),"Brass");
+                foreach(float z in new[]{-.34f,.34f})
+                    LocalSolid(skin,"Hatch hinge",new Vector3(x,top+.035f/sy,z),
+                        new Vector3(.21f/sx,.07f/sy,.25f/sz),"Iron");
             }
-            panel.enabled=false;
-            Combine(skin,"CollapseHatch");
-            var so=new SerializedObject(panel.GetComponentInParent<CollapsingFloorTrap>());
-            var renderers=skin.GetComponentsInChildren<Renderer>(); var list=so.FindProperty("floorRenderers");list.arraySize=renderers.Length;
-            for(int i=0;i<renderers.Length;i++)list.GetArrayElementAtIndex(i).objectReferenceValue=renderers[i];
-            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         static void DressLift(Transform shaft)
@@ -393,6 +402,13 @@ namespace Igruha.EditorTools
             Object.DestroyImmediate(go.GetComponent<Collider>());go.GetComponent<Renderer>().sharedMaterial=Mat(material);return go;
         }
 
+        static GameObject LocalSolid(Transform root,string name,Vector3 localPosition,Vector3 localScale,string material)
+        {
+            var go=GameObject.CreatePrimitive(PrimitiveType.Cube);go.name=name;go.transform.SetParent(root,false);
+            go.transform.localPosition=localPosition;go.transform.localRotation=Quaternion.identity;go.transform.localScale=localScale;
+            Object.DestroyImmediate(go.GetComponent<Collider>());go.GetComponent<Renderer>().sharedMaterial=Mat(material);return go;
+        }
+
         static void Label(Transform parent,string words,Vector3 p,float size,string material,Quaternion? rotation=null)
         {
             var go=new GameObject(words);go.transform.SetParent(parent,false);go.transform.position=p;go.transform.rotation=rotation??Quaternion.identity;
@@ -410,6 +426,14 @@ namespace Igruha.EditorTools
             light.type=LightType.Point;light.color=color;light.intensity=intensity;light.range=range;light.shadows=LightShadows.None;
         }
 
+        static void MovingSpotlight(Transform root,Vector3 p,Vector3 euler,Color color,float phase)
+        {
+            var go=Group(root,"Moving carnival spotlight");go.position=p;go.rotation=Quaternion.Euler(euler);
+            var light=go.gameObject.AddComponent<Light>();light.type=LightType.Spot;light.color=color;
+            light.intensity=5.2f;light.range=24f;light.spotAngle=27f;light.innerSpotAngle=15f;light.shadows=LightShadows.None;
+            Motion(go,Igruha.Core.Ambient.AmbientMotion.Mode.Sway,Vector3.up,28f,6.8f,phase);
+        }
+
         static void Lighting(Transform art)
         {
             foreach(var light in Object.FindObjectsByType<Light>(FindObjectsSortMode.None))
@@ -417,10 +441,10 @@ namespace Igruha.EditorTools
                 if(light.type!=LightType.Directional)continue;
                 // Low westward sun: in the front establishing view it sits to the
                 // left of the tower and is already half below the horizon.
-                light.transform.rotation=Quaternion.Euler(3,-112,0);light.color=new Color(1,.62f,.38f);light.intensity=1.05f;light.shadows=LightShadows.Soft;
+                light.transform.rotation=Quaternion.Euler(23,-112,0);light.color=new Color(1,.78f,.58f);light.intensity=1.45f;light.shadows=LightShadows.Soft;
             }
             RenderSettings.ambientMode=AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor=new Color(.57f,.68f,.72f);RenderSettings.ambientEquatorColor=new Color(.56f,.55f,.44f);RenderSettings.ambientGroundColor=new Color(.35f,.29f,.21f);
+            RenderSettings.ambientSkyColor=new Color(.72f,.80f,.84f);RenderSettings.ambientEquatorColor=new Color(.67f,.63f,.54f);RenderSettings.ambientGroundColor=new Color(.44f,.38f,.30f);
             // Туман отодвинут: сцена выросла с поляны до ярмарки с дорогой и окраиной
             // города, и на прежних 78..220 м всё дальше ворот тонуло в песочной пелене.
             RenderSettings.fog=true;RenderSettings.fogMode=FogMode.Linear;RenderSettings.fogColor=new Color(.78f,.66f,.52f);
@@ -429,16 +453,21 @@ namespace Igruha.EditorTools
             var sky=AssetDatabase.LoadAssetAtPath<Material>(skyPath);
             if(sky==null) { sky=new Material(Shader.Find("Skybox/Procedural"));AssetDatabase.CreateAsset(sky,skyPath); }
             sky.SetColor("_SkyTint",new Color(.59f,.55f,.57f));sky.SetColor("_GroundColor",new Color(.58f,.44f,.31f));
-            sky.SetFloat("_AtmosphereThickness",1.1f);sky.SetFloat("_Exposure",1.05f);RenderSettings.skybox=sky;EditorUtility.SetDirty(sky);
+            sky.SetFloat("_AtmosphereThickness",1.0f);sky.SetFloat("_Exposure",1.25f);RenderSettings.skybox=sky;EditorUtility.SetDirty(sky);
             // Emission alone does not light characters or floorboards.  These
             // compact real lamps follow the visible lantern/bulb rhythm without
             // turning every decoration into a shadow-casting cost.
             Transform illumination=Group(art,"Working illumination");
+            Color[] carnivalLights={new Color(1,.20f,.16f),new Color(.18f,.62f,1),new Color(.30f,1,.45f),new Color(1,.28f,.68f),new Color(1,.72f,.18f)};
             for(int floor=0;floor<5;floor++)
                 for(int bay=0;bay<3;bay++)
-                    PointLight(illumination,new Vector3(5.4f+bay*11.5f,floor*5.76f+3.75f,8.25f),new Color(1,.62f,.30f),2.0f,6.5f);
+                    PointLight(illumination,new Vector3(5.4f+bay*11.5f,floor*5.76f+3.75f,8.25f),carnivalLights[(floor+bay)%carnivalLights.Length],2.55f,7.2f);
             for(int i=0;i<7;i++)
-                PointLight(illumination,new Vector3(i*5.76f,29.45f,-.32f),new Color(1,.66f,.34f),1.65f,5.5f);
+                PointLight(illumination,new Vector3(i*5.76f,29.45f,-.32f),carnivalLights[i%carnivalLights.Length],2.1f,6.2f);
+            PointLight(illumination,new Vector3(8.7f,24.9f,7.1f),new Color(1,.18f,.12f),3.1f,8.5f);
+            PointLight(illumination,new Vector3(31.7f,19.1f,7.1f),new Color(1,.18f,.12f),3.1f,8.5f);
+            MovingSpotlight(illumination,new Vector3(7.5f,29.1f,-.7f),new Vector3(64f,18f,0),new Color(1,.18f,.62f),0f);
+            MovingSpotlight(illumination,new Vector3(28.2f,29.1f,-.7f),new Vector3(64f,-18f,0),new Color(.16f,.62f,1f),.43f);
             // Фонари аллеи и ворот: сами лампы входят в склеенный статический
             // меш, поэтому реальный свет им выдаётся отдельно и по новым местам.
             for(float x=-44f;x<=78f;x+=22f)

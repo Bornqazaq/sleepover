@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using Igruha.Core.Minigame;
 using Igruha.Core.Session;
 
 namespace Igruha.Core.Traps
@@ -24,24 +25,51 @@ namespace Igruha.Core.Traps
         [SerializeField] private Collider[] floorColliders;
         [Tooltip("Что перестаёт рисоваться вместе с опорой, чтобы на месте участка была видимая дыра")]
         [SerializeField] private Renderer[] floorRenderers;
+        [Tooltip("Независимые секции пола. Если заполнено, секции выключаются целиком вместе со всем декоративным оформлением")]
+        [SerializeField] private GameObject[] floorSections = Array.Empty<GameObject>();
+        [Tooltip("Сигнальные полосы секций. Горят во время предупреждения и гаснут перед падением своей секции")]
+        [SerializeField] private GameObject[] warningObjects = Array.Empty<GameObject>();
 
         [Header("Срабатывание")]
         [Tooltip("Сколько секунд участок остаётся провалившимся")]
         [SerializeField] private float openDuration = 3f;
+        [Tooltip("Сколько секунд пол предупреждает игрока перед первым провалом. Ноль сохраняет старое мгновенное поведение")]
+        [SerializeField] private float warningDuration;
+        [Tooltip("Задержка между соседними секциями. Ноль открывает весь пол одновременно")]
+        [SerializeField] private float sectionDelay;
 
         /// <summary>Пол исчез (true) или вернулся (false) — для звука и VFX.</summary>
         public event Action<bool> OpenChanged;
 
-        private float openTimer;
+        private double cycleStartedAt;
+        private bool cycleActive;
+        private bool anySectionOpen;
 
         /// <summary>Участок сейчас провален.</summary>
-        public bool IsOpen { get; private set; }
+        public bool IsOpen => anySectionOpen;
 
-        public override bool IsSprung => IsOpen;
+        public override bool IsSprung => cycleActive;
 
-        public override void ApplySprung(bool sprung) => SetOpen(sprung);
+        public override void ApplySprung(bool sprung)
+        {
+            if (!sprung)
+            {
+                EndCycle();
+                return;
+            }
 
-        protected override void OnActivated() => SetOpen(true);
+            // Событие с точным временем обычно приходит тем же сетевым тиком.
+            // Маска остаётся самодостаточной для позднего подключения: если RPC
+            // уже прошёл, начинаем цикл с текущей общей отметки.
+            if (!cycleActive)
+            {
+                BeginCycle(NetworkClock.Now);
+            }
+        }
+
+        protected override void OnActivated() => BeginCycle(NetworkClock.Now);
+
+        protected override void OnRemoteFiredAt(double firedAt) => BeginCycle(firedAt);
 
         /// <summary>
         /// Убрать или вернуть опору. Единственная точка смены состояния —
@@ -49,51 +77,135 @@ namespace Igruha.Core.Traps
         /// </summary>
         public void SetOpen(bool open)
         {
-            if (IsOpen == open)
+            if (open)
             {
+                BeginCycle(NetworkClock.Now - warningDuration -
+                    Mathf.Max(0, SectionCount - 1) * sectionDelay);
                 return;
             }
 
-            IsOpen = open;
-            openTimer = open ? openDuration : 0f;
-            ApplyState(open);
-            OpenChanged?.Invoke(open);
+            EndCycle();
         }
 
         protected override void Update()
         {
             base.Update();
 
-            // Возвращает пол тот же, кто его убрал: на клиенте отсчёт не идёт,
-            // иначе опора вернулась бы у него раньше серверной — и падающий
-            // встал бы на пол, которого на сервере ещё нет.
-            if (!IsOpen || !WorldAuthority.HasAuthority)
+            if (!cycleActive)
             {
                 return;
             }
 
-            openTimer -= Time.deltaTime;
-            if (openTimer <= 0f)
+            double elapsed = Math.Max(0d, NetworkClock.Now - cycleStartedAt);
+            ApplyTimeline((float)elapsed);
+
+            // Визуальное и физическое состояние на каждой машине считается от
+            // одних часов. Только авторитет завершает сетевое состояние: клиент
+            // ждёт снятия маски и не принимает игровое решение самостоятельно.
+            if (WorldAuthority.HasAuthority && elapsed >= TotalDuration)
             {
-                SetOpen(false);
+                EndCycle();
             }
         }
 
-        private void ApplyState(bool open)
+        private int SectionCount => floorSections != null && floorSections.Length > 0
+            ? floorSections.Length
+            : Mathf.Max(floorColliders?.Length ?? 0, floorRenderers?.Length ?? 0);
+
+        private float TotalDuration => warningDuration +
+            Mathf.Max(0, SectionCount - 1) * sectionDelay + openDuration;
+
+        private void BeginCycle(double startedAt)
         {
-            for (int i = 0; i < floorColliders.Length; i++)
+            cycleStartedAt = startedAt;
+            cycleActive = true;
+            ApplyTimeline((float)Math.Max(0d, NetworkClock.Now - cycleStartedAt));
+        }
+
+        private void EndCycle()
+        {
+            bool wasOpen = anySectionOpen;
+            cycleActive = false;
+            anySectionOpen = false;
+            ApplyAllClosed();
+            SetWarnings(false);
+            if (wasOpen)
             {
-                if (floorColliders[i] != null)
-                {
-                    floorColliders[i].enabled = !open;
-                }
+                OpenChanged?.Invoke(false);
+            }
+        }
+
+        private void ApplyTimeline(float elapsed)
+        {
+            bool wasOpen = anySectionOpen;
+            anySectionOpen = false;
+            int count = SectionCount;
+
+            for (int i = 0; i < count; i++)
+            {
+                float opensAt = warningDuration + i * sectionDelay;
+                bool open = elapsed >= opensAt && elapsed < TotalDuration;
+                bool warning = elapsed < opensAt;
+                ApplySection(i, open);
+                ApplyWarning(i, warning);
+                anySectionOpen |= open;
             }
 
-            for (int i = 0; i < floorRenderers.Length; i++)
+            if (wasOpen != anySectionOpen)
             {
-                if (floorRenderers[i] != null)
+                OpenChanged?.Invoke(anySectionOpen);
+            }
+        }
+
+        private void ApplySection(int index, bool open)
+        {
+            if (floorSections != null && floorSections.Length > 0)
+            {
+                if (index < floorSections.Length && floorSections[index] != null)
                 {
-                    floorRenderers[i].enabled = !open;
+                    floorSections[index].SetActive(!open);
+                }
+                return;
+            }
+
+            if (floorColliders != null && index < floorColliders.Length && floorColliders[index] != null)
+            {
+                floorColliders[index].enabled = !open;
+            }
+            if (floorRenderers != null && index < floorRenderers.Length && floorRenderers[index] != null)
+            {
+                floorRenderers[index].enabled = !open;
+            }
+        }
+
+        private void ApplyWarning(int index, bool visible)
+        {
+            if (warningObjects != null && index < warningObjects.Length && warningObjects[index] != null)
+            {
+                warningObjects[index].SetActive(cycleActive && visible);
+            }
+        }
+
+        private void ApplyAllClosed()
+        {
+            int count = SectionCount;
+            for (int i = 0; i < count; i++)
+            {
+                ApplySection(i, false);
+            }
+        }
+
+        private void SetWarnings(bool visible)
+        {
+            if (warningObjects == null)
+            {
+                return;
+            }
+            for (int i = 0; i < warningObjects.Length; i++)
+            {
+                if (warningObjects[i] != null)
+                {
+                    warningObjects[i].SetActive(visible);
                 }
             }
         }
@@ -102,7 +214,7 @@ namespace Igruha.Core.Traps
         public override void ResetTrap()
         {
             base.ResetTrap();
-            SetOpen(false);
+            EndCycle();
         }
     }
 }

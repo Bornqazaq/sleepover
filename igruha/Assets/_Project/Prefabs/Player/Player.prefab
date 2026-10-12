@@ -246,8 +246,8 @@ MonoBehaviour:
     m_Bits: 256
   cameraTransform: {fileID: 0}
   cameraTarget: {fileID: 2861971545640765274}
-  knockdownFrontDuration: 2.777778
-  knockdownBackDuration: 2.177778
+  knockdownFrontDuration: 2.3333335
+  knockdownBackDuration: 3.2444446
 --- !u!114 &5853460982915592438
 MonoBehaviour:
   m_ObjectHideFlags: 0

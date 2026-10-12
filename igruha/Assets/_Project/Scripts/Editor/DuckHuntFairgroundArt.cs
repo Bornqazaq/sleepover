@@ -27,7 +27,12 @@ namespace Igruha.EditorTools
         {
             float y=index*5.76f;
             // Shallow rear relief remains behind the circulation strip. None is a cover.
-            float[] bays=index%2==0?new[]{10.2f,15.3f,20.6f,25.8f}:new[]{8.6f,13.7f,19f,24.2f};
+            // Floor-standing displays stay on fixed slabs even while traps are open.
+            float[] bays=index==1?new[]{13.7f,17.4f,21.1f,24.8f}
+                :index==2?new[]{7.5f,11.2f,14.9f,18.6f}
+                :index==3?new[]{13.4f,17.3f,21.2f,25.1f}
+                :index%2==0?new[]{10.2f,15.3f,20.6f,25.8f}
+                :new[]{8.6f,13.7f,19f,24.2f};
             for(int i=0;i<bays.Length;i++)
             {
                 if(index==4 && (i==1 || i==2))continue; // Clear the GRAND PRIZE lettering.

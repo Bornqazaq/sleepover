@@ -1937,14 +1937,14 @@ namespace Igruha.Minigames.DuckHunt
         /// Состояние ловушки приезжает отдельно, маской: здесь только момент,
         /// под звук и вспышку.
         /// </summary>
-        public void ApplyNetworkTrapFired(int index)
+        public void ApplyNetworkTrapFired(int index, double firedAt)
         {
             if (index < 0 || index >= traps.Length)
             {
                 return;
             }
 
-            traps[index]?.PlayFired();
+            traps[index]?.PlayFired(firedAt);
         }
 
         /// <summary>Состояние ловушек, решённое сервером.</summary>
