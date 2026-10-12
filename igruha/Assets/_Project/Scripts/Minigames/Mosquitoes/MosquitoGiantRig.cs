@@ -14,6 +14,13 @@ namespace Igruha.Minigames.Mosquitoes
         private bool originalEnabled, sleeping;
         private AnimatorCullingMode originalCulling;
         private GameObject shell;
+        private readonly List<SleepContact> sleepContacts = new List<SleepContact>(10);
+        private Transform cameraTarget;
+        public const float SurfaceOffset = .14f;
+        private const float LandingClearance = .02f;
+        private readonly Vector3[] landingPoints = new Vector3[7];
+        private SphereCollider landingProbe;
+        private sealed class SleepContact { public MeshCollider Collider; public Mesh Mesh; public Vector3 LocalCenter; public Quaternion LocalRotation; }
         private readonly List<Part> parts = new List<Part>();
         private readonly List<Vector3> points = new List<Vector3>(1024);
         private SkinnedMeshRenderer[] skins;
@@ -32,6 +39,8 @@ namespace Igruha.Minigames.Mosquitoes
         public Bounds MeasureSkinBounds() { ReadSkin(); return SkinBounds; }
         public int ContactCount => parts.Count;
         public Vector3 BiteSurfacePoint { get; private set; }
+        public Transform CameraTarget => cameraTarget;
+        public bool OwnsContact(Collider collider) => shell != null && collider.transform.IsChildOf(shell.transform);
         private sealed class Part { public Transform A, B; public CapsuleCollider Collider; public float Radius; }
 
         public void Initialize(Animator value)
@@ -50,7 +59,14 @@ namespace Igruha.Minigames.Mosquitoes
             animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
             skins = model.GetComponentsInChildren<SkinnedMeshRenderer>(true);
             shell = new GameObject("MosquitoGiantContacts");
+            shell.hideFlags = HideFlags.DontSave;
+            if (Application.isPlaying) shell.hideFlags = HideFlags.None;
+            shell.transform.SetParent(transform, true);
             var rb = shell.AddComponent<Rigidbody>(); rb.isKinematic = true; rb.useGravity = false;
+            landingProbe = shell.AddComponent<SphereCollider>(); landingProbe.radius = .12f; landingProbe.enabled = false;
+            cameraTarget = new GameObject("MosquitoSleepCameraTarget").transform;
+            cameraTarget.gameObject.hideFlags = HideFlags.DontSave;
+            cameraTarget.SetParent(transform, false);
             ReadSkin();
             AddPart(HumanBodyBones.Hips, HumanBodyBones.Chest, .22f, .52f);
             AddPart(HumanBodyBones.Head, HumanBodyBones.Head, .17f, .34f);
@@ -102,7 +118,8 @@ namespace Igruha.Minigames.Mosquitoes
                 model.rotation = Quaternion.Euler(0, 90, 0) * Quaternion.Euler(-90, 0, 0) * originalRotation;
                 ReadSkin();
                 // The headward end of the actual skin stays inside the headboard for every roster size.
-                Vector3 shift = new Vector3(-2.97f - SkinBounds.min.x, .665f - SkinBounds.min.y, -1.1f - SkinBounds.center.z);
+                Vector3 shift = new Vector3(MosquitoRoomLayout.HeadSkinX - SkinBounds.min.x,
+                    MosquitoRoomLayout.MattressHeight - SkinBounds.min.y, MosquitoRoomLayout.BedZ - SkinBounds.center.z);
                 model.position += shift;
                 // Support the back/pelvis, not a finger or heel far below the torso.
                 ReadSkin();
@@ -115,17 +132,113 @@ namespace Igruha.Minigames.Mosquitoes
                 RestArm(HumanBodyBones.LeftUpperArm, HumanBodyBones.LeftLowerArm, HumanBodyBones.LeftHand, 2);
                 RestArm(HumanBodyBones.RightUpperArm, HumanBodyBones.RightLowerArm, HumanBodyBones.RightHand, 3);
                 RestHead();
+                ReadSkin();
+                model.position += Vector3.right * (MosquitoRoomLayout.HeadSkinX - SkinBounds.min.x);
                 ReadSkin(); BackContactHeight = BackHeight();
                 sleepingPosition = model.position; sleepingRotation = model.rotation;
                 ReadSkin();
-                Vector3 chest = animator.GetBoneTransform(HumanBodyBones.Chest).position;
-                float top = chest.y;
-                foreach (var p in points) if (Mathf.Abs(p.x - chest.x) < .22f && Mathf.Abs(p.z - chest.z) < .23f) top = Mathf.Max(top, p.y);
-                BiteSurfacePoint = new Vector3(chest.x, top + .025f, chest.z);
+                // The abdomen is clear of the head and shoulders on every roster shape.
+                Vector3 chest = Vector3.Lerp(animator.GetBoneTransform(HumanBodyBones.Chest).position,
+                    animator.GetBoneTransform(HumanBodyBones.Hips).position, .55f);
+                FitSleepingContacts();
+                RefreshContacts();
+                // ComputePenetration requires an enabled query shape. Disable it again
+                // synchronously, before the next physics step can simulate this helper.
+                landingProbe.enabled = true;
+                try
+                {
+                    for (int slot = 0; slot < landingPoints.Length; slot++)
+                        landingPoints[slot] = FindLanding(chest + ContactOffset(slot));
+                }
+                finally { landingProbe.enabled = false; }
+                BiteSurfacePoint = landingPoints[4] - Vector3.up * SurfaceOffset;
                 if (chestBone != null) sleepingChest = chestBone.localRotation;
                 for (int i = 0; i < poseBones.Count; i++) sleepingBones[i] = poseBones[i].localRotation;
             }
             RefreshContacts();
+        }
+        private void FitSleepingContacts()
+        {
+            foreach (var contact in sleepContacts)
+            {
+                contact.Collider.enabled = false;
+                if (Application.isPlaying) { Destroy(contact.Collider.gameObject); Destroy(contact.Mesh); }
+                else { DestroyImmediate(contact.Collider.gameObject); DestroyImmediate(contact.Mesh); }
+            }
+            sleepContacts.Clear();
+            // Cook small convex hulls from the existing skin probes once per sleep.
+            // A box around a curved torso makes an invisible roof beside the neck.
+            for (int group = 0; group < CharacterSkinProbes.GroupCount; group++)
+            {
+                int slices = group == 4 ? 2 : 1;
+                float min = float.PositiveInfinity, max = float.NegativeInfinity;
+                for (int i = 0; i < points.Count; i++) if (groups[i] == group)
+                { min = Mathf.Min(min, points[i].x); max = Mathf.Max(max, points[i].x); }
+                if (float.IsInfinity(min)) continue;
+                for (int slice = 0; slice < slices; slice++)
+                {
+                    float neck = animator.GetBoneTransform(HumanBodyBones.Neck).position.x;
+                    float left = slices == 1 || slice == 0 ? min : neck - .12f;
+                    float right = slices == 1 || slice == 1 ? max : neck + .12f;
+                    Bounds bounds = default; bool any = false;
+                    for (int i = 0; i < points.Count; i++)
+                    {
+                        if (groups[i] != group || points[i].x < left || points[i].x > right) continue;
+                        if (!any) { bounds = new Bounds(points[i], Vector3.zero); any = true; }
+                        else bounds.Encapsulate(points[i]);
+                    }
+                    if (!any) continue;
+                    var go = new GameObject("SleepingSkinContact"); go.hideFlags = HideFlags.DontSave;
+                    if (Application.isPlaying) go.hideFlags = HideFlags.None;
+                    go.layer = 12; go.transform.SetParent(shell.transform, true);
+                    var vertices = new List<Vector3>();
+                    for (int i = 0; i < points.Count; i++)
+                        if (groups[i] == group && points[i].x >= left && points[i].x <= right)
+                            vertices.Add(points[i] - bounds.center);
+                    if (vertices.Count < 4) { if (Application.isPlaying) Destroy(go); else DestroyImmediate(go); continue; }
+                    var mesh = new Mesh { name = "MosquitoSleepingSkin", hideFlags = HideFlags.DontSave };
+                    mesh.SetVertices(vertices);
+                    // Convex cooking builds the hull from these vertices; the source fan
+                    // merely references the point cloud without reading the million-vertex skin.
+                    var triangles = new int[(vertices.Count - 2) * 3];
+                    for (int i = 1; i < vertices.Count - 1; i++)
+                    { triangles[(i - 1) * 3] = 0; triangles[(i - 1) * 3 + 1] = i; triangles[(i - 1) * 3 + 2] = i + 1; }
+                    mesh.triangles = triangles;
+                    var collider = go.AddComponent<MeshCollider>(); collider.convex = true; collider.sharedMesh = mesh;
+                    collider.includeLayers = 1 << 12; collider.excludeLayers = ~(1 << 12); collider.layerOverridePriority = 100;
+                    sleepContacts.Add(new SleepContact { Collider = collider, Mesh = mesh,
+                        LocalCenter = model.InverseTransformPoint(bounds.center), LocalRotation = Quaternion.Inverse(model.rotation) });
+                }
+            }
+        }
+        public static Vector3 ContactOffset(int slot) => new Vector3((slot / 3 - 1) * .10f, 0, (slot % 3 - 1) * .12f);
+        public Vector3 LandingPoint(int slot) => landingPoints[Mathf.Clamp(slot, 0, landingPoints.Length - 1)];
+        private Vector3 FindLanding(Vector3 point)
+        {
+            float clear = SkinBounds.max.y + .3f;
+            for (float height = clear - .02f; height >= SkinBounds.min.y; height -= .02f)
+            {
+                point.y = height;
+                if (!OverlapsSkin(point)) { clear = height; continue; }
+                float blocked = height;
+                for (int pass = 0; pass < 8; pass++)
+                {
+                    point.y = (clear + blocked) * .5f;
+                    if (OverlapsSkin(point)) blocked = point.y; else clear = point.y;
+                }
+                point.y = clear + LandingClearance;
+                return point;
+            }
+            Debug.LogError("Mosquitoes: no sleeping skin below the landing point", this);
+            point.y = SkinBounds.max.y + SurfaceOffset;
+            return point;
+        }
+        private bool OverlapsSkin(Vector3 point)
+        {
+            foreach (var contact in sleepContacts)
+                if (Physics.ComputePenetration(landingProbe, point, Quaternion.identity, contact.Collider,
+                    contact.Collider.transform.position, contact.Collider.transform.rotation, out _, out _)) return true;
+            return false;
         }
         private void RestLeg(HumanBodyBones upper, HumanBodyBones lower, HumanBodyBones foot, float ankleHeight = .78f)
         {
@@ -228,18 +341,7 @@ namespace Igruha.Minigames.Mosquitoes
                 if (parts.Count == 0) return transform.position + Vector3.up;
                 var torso = parts[0];
                 if (!sleeping) return torso.B.position + transform.forward * (torso.Radius + .14f);
-                // Find the exposed upper surface of the entire shell at the chest, including
-                // neighbouring head/shoulder capsules. A point inside another capsule ejects the flyer.
-                Vector3 chest = torso.B.position; float top = chest.y;
-                foreach (var part in parts)
-                    for (int sample = 0; sample <= 16; sample++)
-                    {
-                        Vector3 center = Vector3.Lerp(part.A.position, part.B.position, sample / 16f);
-                        float dx = center.x - chest.x, dz = center.z - chest.z;
-                        float square = part.Radius * part.Radius - dx * dx - dz * dz;
-                        if (square >= 0) top = Mathf.Max(top, center.y + Mathf.Sqrt(square));
-                    }
-                return new Vector3(chest.x, top + .145f, chest.z);
+                return landingPoints[4];
             }
         }
         public void React() => reaction = .32f;
@@ -268,15 +370,22 @@ namespace Igruha.Minigames.Mosquitoes
                 for (int i = 0; i < poseBones.Count; i++) poseBones[i].localRotation = Quaternion.Slerp(transitionBones[i], poseBones[i].localRotation, t);
             }
             RefreshContacts();
+            if (cameraTarget != null && chestBone != null) cameraTarget.position = chestBone.position;
         }
         public void RefreshContacts()
         {
             foreach (var p in parts)
             {
+                p.Collider.enabled = !sleeping;
                 Vector3 axis = p.B.position - p.A.position;
                 p.Collider.transform.SetPositionAndRotation((p.A.position + p.B.position) * .5f,
                     axis.sqrMagnitude > .0001f ? Quaternion.FromToRotation(Vector3.up, axis) : Quaternion.identity);
                 p.Collider.radius = p.Radius; p.Collider.height = axis.magnitude + p.Radius * 2;
+            }
+            foreach (var p in sleepContacts)
+            {
+                p.Collider.enabled = sleeping;
+                p.Collider.transform.SetPositionAndRotation(model.TransformPoint(p.LocalCenter), model.rotation * p.LocalRotation);
             }
         }
         public void Restore()
@@ -287,7 +396,10 @@ namespace Igruha.Minigames.Mosquitoes
                 animator.enabled = originalEnabled; animator.cullingMode = originalCulling;
             }
             if (shell != null) { shell.SetActive(false); if (Application.isPlaying) Destroy(shell); else DestroyImmediate(shell); }
-            parts.Clear(); model = null;
+            if (cameraTarget != null) { if (Application.isPlaying) Destroy(cameraTarget.gameObject); else DestroyImmediate(cameraTarget.gameObject); }
+            foreach (var contact in sleepContacts)
+                if (Application.isPlaying) Destroy(contact.Mesh); else DestroyImmediate(contact.Mesh);
+            sleepContacts.Clear(); parts.Clear(); model = null;
         }
         private void OnDestroy() => Restore();
     }

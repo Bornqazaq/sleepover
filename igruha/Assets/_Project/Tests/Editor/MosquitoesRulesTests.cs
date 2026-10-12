@@ -25,8 +25,14 @@ namespace Igruha.Tests
             Assert.That(s.RegisterBite()); Assert.That(s.Phase, Is.EqualTo(GiantPhase.Waking));
             Assert.That(s.ImmunityRemaining, Is.EqualTo(2)); Assert.That(s.RegisterBite(), Is.False);
             s.Tick(.5f); Assert.That(s.CanSwat); Assert.That(s.Sleep, Is.EqualTo(3.99f - config.WakeSleepLoss).Within(.001f));
-            Assert.That(s.ToggleBed(), Is.False, "forced wake must leave a counterattack window");
-            s.Tick(config.ImmunitySeconds); Assert.That(s.ToggleBed(), Is.True);
+            Assert.That(s.LampOn, Is.True, "forced waking must reveal attackers in the lamp radius");
+            Assert.That(s.ToggleBed(), Is.True, "returning to bed must not be blocked by protection");
+            s.Tick(config.LieDownSeconds);
+            Assert.That(s.CanBite, Is.False, "protection gives actual sleep before the next bite");
+            float sleepBefore = s.Sleep;
+            s.Tick(config.ImmunitySeconds);
+            Assert.That(s.Sleep, Is.EqualTo(sleepBefore + config.ImmunitySeconds).Within(.001f));
+            Assert.That(s.CanBite, Is.True);
         }
         [Test] public void PairExpiresButLastSurvivorCanStillWake()
         {

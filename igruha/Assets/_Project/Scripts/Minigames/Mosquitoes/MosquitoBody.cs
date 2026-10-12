@@ -37,8 +37,6 @@ namespace Igruha.Minigames.Mosquitoes
         public readonly NetworkVariable<bool> Attached = new NetworkVariable<bool>();
         public readonly NetworkVariable<float> Cooldown = new NetworkVariable<float>();
         private readonly NetworkVariable<float> biteFill = new NetworkVariable<float>();
-        private readonly NetworkVariable<bool> steering = new NetworkVariable<bool>(false,
-            NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
         private MosquitoesMinigame game;
         private Rigidbody body;
         private ClientNetworkTransform flightTransform;
@@ -48,9 +46,9 @@ namespace Igruha.Minigames.Mosquitoes
         private InputAction move, rise, descend, slow, bite;
         private Transform cameraTransform;
         private Vector3 direction, previousPosition;
-        private float stalled;
         private float boundaryCorrectionIn;
         private bool local, bot, quiet, sentHold, lastAlive = true;
+        private bool biteSuppressed;
         private int offlineId = -1;
         private bool offlineAlive = true, offlineAttached;
         private float offlineCooldown;
@@ -187,13 +185,15 @@ namespace Igruha.Minigames.Mosquitoes
                 direction = Vector3.ClampMagnitude(forward * planar.y + right * planar.x +
                     Vector3.up * ((rise.IsPressed() ? 1 : 0) - (descend.IsPressed() ? 1 : 0)), 1f);
                 quiet = slow.IsPressed(); hold = bite.IsPressed();
+                if (!hold) biteSuppressed = false;
+                if (IsAttached && direction.sqrMagnitude > .01f) biteSuppressed = true;
+                hold &= !biteSuppressed;
             }
             if (sentHold != hold)
             {
                 sentHold = hold;
                 if (IsSpawned) HoldServerRpc(hold); else Holding = hold;
             }
-            if (IsSpawned && IsOwner) steering.Value = direction.sqrMagnitude > .1f;
         }
         private void FixedUpdate()
         {
@@ -204,7 +204,8 @@ namespace Igruha.Minigames.Mosquitoes
             bool drives = !IsSpawned || IsOwner;
             if (drives)
             {
-                bool attached = IsAttached && (bot ? Holding || sentHold : sentHold);
+                bool holding = bot ? Holding || sentHold : sentHold;
+                bool attached = holding && game.BiteAccess(this, Position) == MosquitoBiteAccess.Ready;
                 bool moving = game.ControlsAvailable && IsAlive && !attached;
                 Vector3 target = moving ? direction * (quiet ? game.Config.QuietSpeed : game.Config.MaxSpeed) : Vector3.zero;
                 body.linearVelocity = moving ? Vector3.MoveTowards(body.linearVelocity, target,
@@ -220,9 +221,14 @@ namespace Igruha.Minigames.Mosquitoes
                     if (body.position.y > ceiling + .01f)
                         body.position = new Vector3(body.position.x, ceiling, body.position.z);
                 }
-                if (attached) body.MovePosition(Vector3.MoveTowards(Position, game.BiteAnchor(Id), dt * 3));
+                if (attached)
+                {
+                    // Velocity goes through the physics solver: landing cannot pull through furniture.
+                    body.linearVelocity = Vector3.ClampMagnitude((game.BiteAnchor(Id) - Position) / dt, 2.8f);
+                    body.MoveRotation(Quaternion.RotateTowards(body.rotation, Quaternion.LookRotation(Vector3.left), dt * 540));
+                }
                 Vector3 planar = body.linearVelocity; planar.y = 0;
-                if (planar.sqrMagnitude > .03f) body.MoveRotation(Quaternion.RotateTowards(body.rotation, Quaternion.LookRotation(planar), dt * 540));
+                if (!attached && planar.sqrMagnitude > .03f) body.MoveRotation(Quaternion.RotateTowards(body.rotation, Quaternion.LookRotation(planar), dt * 540));
             }
             if ((!IsSpawned || IsServer) && IsAlive && HasEntered)
             {
@@ -235,16 +241,9 @@ namespace Igruha.Minigames.Mosquitoes
                         ResetPosition(game.FlightRecovery(Id));
                         boundaryCorrectionIn = BoundaryCorrectionRetrySeconds;
                     }
-                    stalled = 0;
                     return;
                 }
                 boundaryCorrectionIn = 0;
-                stalled = !IsAttached && Velocity.sqrMagnitude < .002f &&
-                    (IsSpawned ? steering.Value : direction.sqrMagnitude > .1f) ? stalled + dt : 0;
-                if (stalled >= game.Config.StuckSeconds)
-                {
-                    ResetPosition(game.FlightRecovery(Id)); stalled = 0;
-                }
             }
         }
         private void LateUpdate()
@@ -252,8 +251,9 @@ namespace Igruha.Minigames.Mosquitoes
             if (game == null) return;
             if (IsSpawned && shownCharacter != CharacterIndex.Value) ApplyCharacter(CharacterIndex.Value);
             bool visible = IsAlive && game.CanSeeMosquito(Position);
-            flightVisual?.Tick(Velocity, game.Config.MaxSpeed, IsAttached, Velocity.magnitude <= game.Config.QuietSpeed + .05f,
-                visible, game.BiteSurface(Id), Time.deltaTime);
+            bool contact = IsAttached && Vector3.Distance(Position, game.BiteAnchor(Id)) <= MosquitoesMinigame.BiteContactDistance;
+            flightVisual?.Tick(Velocity, game.Config.MaxSpeed, contact, Velocity.magnitude <= game.Config.QuietSpeed + .05f,
+                visible, Time.deltaTime);
             if (buzz != null)
             {
                 float volume = IsAlive && !IsAttached && game.ControlsAvailable ?

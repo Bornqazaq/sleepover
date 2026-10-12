@@ -21,7 +21,7 @@ namespace Igruha.Minigames.Mosquitoes
             root = new GameObject("MosquitoObjectives", typeof(RectTransform));
             var rect = root.transform as RectTransform;
             rect.SetParent(canvas, false); rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one; rect.offsetMin = rect.offsetMax = Vector2.zero;
-            sleepFill = Bar("Sleep", rect, new Vector2(.5f, 1), new Vector2(0, -98), new Vector2(310, 7), new Color(.45f, .73f, 1));
+            sleepFill = Bar("Sleep", rect, new Vector2(.5f, 1), new Vector2(0, -98), new Vector2(310, 12), new Color(.45f, .73f, 1));
             biteFill = Bar("Bite", rect, new Vector2(.5f, .5f), new Vector2(0, -62), new Vector2(100, 6), new Color(1, .64f, .35f));
             var markerObject = new GameObject("Target", typeof(RectTransform), typeof(TextMeshProUGUI));
             marker = markerObject.transform as RectTransform; marker.SetParent(rect, false); marker.sizeDelta = new Vector2(200, 54);
@@ -60,10 +60,12 @@ namespace Igruha.Minigames.Mosquitoes
             RectTransformUtility.ScreenPointToLocalPointInRectangle(canvas, screen,
                 owner.renderMode == RenderMode.ScreenSpaceOverlay ? null : owner.worldCamera, out Vector2 point);
             marker.anchoredPosition = point;
-            float distance = Vector3.Distance(body.Position, target);
+            ((RectTransform)biteFill.transform.parent).anchoredPosition = point + new Vector2(0, -34);
+            float distance = Vector3.Distance(body.Position, body.HasEntered ? game.BiteAnchor(body.Id) : target);
             if (!body.HasEntered) label.SetText("ОКНО\n{0:0} м", distance);
             else if (biting) label.SetText("");
-            else if (distance < game.Config.BiteDistance) label.SetText("ДЕРЖИ ЛКМ");
+            else if (game.BiteAccess(body, body.Position) == MosquitoBiteAccess.Blocked) label.SetText("ОБЛЕТИ ПРЕПЯТСТВИЕ");
+            else if (game.BiteAccess(body, body.Position) == MosquitoBiteAccess.Ready) label.SetText("ДЕРЖИ ЛКМ");
             else label.SetText("УКУС\n{0:0.0} м", distance);
         }
         public void Dispose() { if (root != null) Object.Destroy(root); }

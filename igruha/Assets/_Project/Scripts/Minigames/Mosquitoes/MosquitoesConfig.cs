@@ -11,7 +11,7 @@ namespace Igruha.Minigames.Mosquitoes
         [SerializeField, Min(0.01f)] private float wakeSeconds = 0.5f;
         [SerializeField, Min(0.01f)] private float lieDownSeconds = 1f;
         [SerializeField, Min(0f)] private float immunitySeconds = 2f;
-        [SerializeField, Min(0f)] private float wakeSleepLoss = 2.5f;
+        [SerializeField, Min(0f)] private float wakeSleepLoss = 1f;
         [SerializeField] private bool idleMosquitoPenalty;
         [Header("Укус и шлепок")]
         [SerializeField, Min(0.01f)] private float biteDistance = 0.55f;
@@ -26,9 +26,9 @@ namespace Igruha.Minigames.Mosquitoes
         [Header("Полёт")]
         [SerializeField, Min(0.01f)] private float maxSpeed = 4.8f;
         [SerializeField, Min(0f)] private float quietSpeed = 1.25f;
-        [SerializeField, Min(0.01f)] private float acceleration = 16f;
-        [SerializeField, Min(0.01f)] private float braking = 24f;
-        [SerializeField, Min(0.01f)] private float flightCeiling = 2.16f;
+        [SerializeField, Min(0.01f)] private float acceleration = 20f;
+        [SerializeField, Min(0.01f)] private float braking = 40f;
+        [SerializeField, Min(0.01f)] private float flightCeiling = 3.23f;
         [SerializeField, Min(0.01f)] private float bodyRadius = 0.12f;
         [SerializeField, Min(0.1f)] private float stuckSeconds = 3f;
         [SerializeField, Min(0.01f)] private float cameraRadius = 1.2f;

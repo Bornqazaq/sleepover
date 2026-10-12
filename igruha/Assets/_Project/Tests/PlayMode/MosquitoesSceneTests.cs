@@ -57,10 +57,10 @@ namespace Igruha.Tests.PlayMode
                 int character = -1;
                 foreach (var p in SessionScoreboard.Current.Players) if (p.Id == id) character = p.CharacterIndex;
                 seen.Add(character);
-                Assert.That(bounds.min.x, Is.GreaterThan(-3.02f), "live head clearance: " + character);
-                Assert.That(bounds.max.x, Is.LessThan(-.10f), "live feet clearance: " + character);
-                Assert.That(bounds.min.z, Is.GreaterThan(-2.01f), "live bed side: " + character);
-                Assert.That(bounds.max.z, Is.LessThan(-.19f), "live bed side: " + character);
+                Assert.That(bounds.min.x, Is.GreaterThan(-2.63f), "live head clearance: " + character);
+                Assert.That(bounds.max.x, Is.LessThan(-.38f), "live feet clearance: " + character);
+                Assert.That(bounds.min.z, Is.GreaterThan(-1.73f), "live bed side: " + character);
+                Assert.That(bounds.max.z, Is.LessThan(-.37f), "live bed side: " + character);
                 Assert.That(game.GiantRig.BackContactHeight, Is.InRange(.665f,.680f), "live back contact: " + character);
                 game.EndMinigame(); yield return null;
                 Assert.That(Object.FindObjectsByType<MosquitoGiantRig>(FindObjectsSortMode.None), Is.Empty);
@@ -171,6 +171,32 @@ namespace Igruha.Tests.PlayMode
             Assert.That(index, Is.GreaterThanOrEqualTo(0), "results must preserve the starting roster");
             return results.Entries[index].Place;
         }
+        [UnityTest] public IEnumerator BiteAcquisitionRejectsSkinAndFurnitureInThePath()
+        {
+            giantId = 0; requestedCount = 3; profile.Clear();
+            yield return SceneManager.LoadSceneAsync("Mosquitoes", LoadSceneMode.Single);
+            yield return new WaitForSeconds(3.3f);
+            var body = game.Bodies[0]; body.enabled = false; body.ConfirmEntry();
+            Vector3 anchor = game.BiteAnchor(body.Id);
+            Vector3 approach = anchor + Vector3.up * .35f;
+            Physics.SyncTransforms();
+            Assert.That(game.BiteAccess(body, approach), Is.EqualTo(MosquitoBiteAccess.Ready));
+            Assert.That(game.BiteAccess(body, anchor + Vector3.down * .15f), Is.EqualTo(MosquitoBiteAccess.Blocked), "a point inside skin cannot begin acquisition");
+            var obstacle = new GameObject("bite path obstacle");
+            try
+            {
+                obstacle.layer = LayerMask.NameToLayer("Cover");
+                obstacle.transform.position = anchor + Vector3.up * .175f;
+                obstacle.AddComponent<BoxCollider>().size = new Vector3(.3f, .025f, .3f);
+                Physics.SyncTransforms();
+                Assert.That(game.BiteAccess(body, approach), Is.EqualTo(MosquitoBiteAccess.Blocked));
+                body.ResetPosition(approach); body.Holding = true;
+                yield return new WaitForSeconds(.6f);
+                Assert.That(body.BiteProgress, Is.Zero, "holding through furniture cannot earn bite progress");
+                Assert.That(body.BiteCooldown, Is.Zero);
+            }
+            finally { Object.Destroy(obstacle); }
+        }
         [UnityTest] public IEnumerator ThreePlayersGiantBitesSwatAndCleanup() => Run(3, 0);
         [UnityTest] public IEnumerator ThreePlayersMosquitoBitesSwatAndCleanup() => Run(3, 1);
         [UnityTest] public IEnumerator FourPlayersGiantBitesSwatAndCleanup() => Run(4, 0);
@@ -185,8 +211,8 @@ namespace Igruha.Tests.PlayMode
             Assert.That(game.GiantId, Is.EqualTo(giant)); Assert.That(game.Bodies.Count, Is.EqualTo(count - 1));
             Assert.That(game.AliveCount, Is.EqualTo(count - 1)); Assert.That(game.ControlsAvailable);
             Assert.That(game.GiantRig.SkinBounds.size.z, Is.LessThan(1.25f), "live rigidbody spawn must align the body along the bed");
-            Assert.That(game.GiantRig.SkinBounds.min.x, Is.GreaterThan(-3.02f));
-            Assert.That(game.GiantRig.SkinBounds.max.x, Is.LessThan(-.10f));
+            Assert.That(game.GiantRig.SkinBounds.min.x, Is.GreaterThan(-2.63f));
+            Assert.That(game.GiantRig.SkinBounds.max.x, Is.LessThan(-.38f));
             Assert.That(GameObject.Find("Floor").GetComponent<BoxCollider>().bounds.size.x, Is.EqualTo(7.2f).Within(.01f));
             Assert.That(GameObject.Find("Floor").GetComponent<BoxCollider>().bounds.size.z, Is.EqualTo(6.4f).Within(.01f));
             Assert.That(GameObject.Find("_Arena/Ceiling").GetComponent<BoxCollider>().bounds.min.y, Is.EqualTo(3.4f).Within(.01f));
@@ -220,7 +246,7 @@ namespace Igruha.Tests.PlayMode
             Assert.That(game.TrySwat(giant), Is.False, "sleeping giant cannot swat");
             for (int i = 0; i < 2; i++)
             {
-                var b = game.Bodies[i]; b.SetBiteState(false, 0); b.ResetPosition(game.BiteTarget + Vector3.up * .16f + Vector3.forward * (i == 0 ? -.16f : .16f)); b.Holding = true;
+                var b = game.Bodies[i]; b.SetBiteState(false, 0); b.ResetPosition(game.BiteAnchor(b.Id)); b.Holding = true;
             }
             Physics.SyncTransforms();
             yield return new WaitForSeconds(.25f);
@@ -238,6 +264,7 @@ namespace Igruha.Tests.PlayMode
             foreach (var player in SessionScoreboard.Current.Players) if (player.Id == giant) avatar = player.Avatar;
             Assert.That(avatar, Is.Not.Null);
             var victim = game.Bodies[0];
+            foreach (var other in game.Bodies) if (other != victim) other.ResetPosition(new Vector3(1.4f, 1.6f, .4f));
             victim.ResetPosition(avatar.Position + Vector3.up * .9f + avatar.Facing * .7f); Physics.SyncTransforms();
             Assert.That(game.TrySwat(giant)); Assert.That(game.TrySwat(giant), Is.False, "server cooldown");
             yield return new WaitForSeconds(.35f); Assert.That(victim.IsAlive, Is.False, "blind swat must hit");

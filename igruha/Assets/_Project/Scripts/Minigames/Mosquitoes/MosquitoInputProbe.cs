@@ -13,13 +13,16 @@ namespace Igruha.Minigames.Mosquitoes
     /// <summary>Real action-map input in separate development players, without --bot.</summary>
     public sealed class MosquitoInputProbe : MonoBehaviour
     {
+        // Seven attackers may need four sleep cycles; early wake-ups cancel later holds.
+        private const float NavigationCheckSeconds = 35;
         private MosquitoesMinigame game;
         private Keyboard keyboard;
         private Mouse mouse;
         private Camera view;
         private Unity.Cinemachine.CinemachineCamera flightRig;
-        private bool navigation, entered, bit, woke, sleptAgain, reported;
+        private bool navigation, entered, bit, woke, sleptAgain, reported, lowApproach;
         private float interactIn;
+        private float diagnosticIn;
         private string captureFolder;
         private bool capturedEntry, capturedBite, capturedWake;
         private float elapsed, stepTime;
@@ -78,7 +81,7 @@ namespace Igruha.Minigames.Mosquitoes
             if (game.Phase != MinigamePhase.Round || !game.ControlsAvailable) return;
             elapsed += Time.deltaTime;
             if (navigation) TickNavigation();
-            if (elapsed > (navigation ? 25 : 8) && !finished)
+            if (elapsed > (navigation ? NavigationCheckSeconds : 8) && !finished)
             {
                 finished = true;
                 if (NetworkManager.Singleton.IsServer) game.GetComponent<RoundTimer>().StartTimer(.3f);
@@ -136,8 +139,16 @@ namespace Igruha.Minigames.Mosquitoes
             {
                 entered |= own.HasEntered; bit |= own.BiteCooldown > 0;
                 Vector3 target = own.HasEntered ? (bit || own.BiteCooldown > 0 || !game.Sleep.CanBite ? new Vector3(0, 1.8f, 0) : game.BiteAnchor(own.Id)) : MosquitoWindowEntry.Approach;
-                if (own.HasEntered && Vector2.Distance(new Vector2(own.Position.x, own.Position.z), new Vector2(target.x, target.z)) > .45f)
-                    target.y = game.Config.FlightCeiling - .08f;
+                if (own.HasEntered && !lowApproach)
+                {
+                    target = new Vector3(-.35f, 1.35f, .25f);
+                    lowApproach = Vector3.Distance(own.Position, target) < .35f;
+                }
+                var access = game.BiteAccess(own, own.Position);
+                // Follow the same "go around" prompt as a player: clear the shoulder
+                // before holding, rather than parking forever behind an obstruction.
+                if (lowApproach && !bit && access == MosquitoBiteAccess.Blocked)
+                    target.y = Mathf.Max(target.y, own.Position.y + .25f);
                 Vector3 delta = target - own.Position;
                 Vector3 forward = view != null ? view.transform.forward : Vector3.forward; forward.y = 0; forward.Normalize();
                 Vector3 right = Vector3.Cross(Vector3.up, forward);
@@ -146,16 +157,25 @@ namespace Igruha.Minigames.Mosquitoes
                 if (z > .12f) state.Press(Key.W); else if (z < -.12f) state.Press(Key.S);
                 if (delta.y > .10f) state.Press(Key.Space); else if (delta.y < -.10f) state.Press(Key.LeftCtrl);
                 if (delta.magnitude < 1.5f) state.Press(Key.LeftShift);
-                if (!bit && own.HasEntered && game.Sleep.CanBite && own.BiteCooldown <= 0 && Vector3.Distance(own.Position, game.BiteAnchor(own.Id)) < game.Config.BiteDistance * .95f)
-                    mouseState = new MouseState { buttons = 1 };
+                if (!bit && access == MosquitoBiteAccess.Ready)
+                {
+                    // Release steering during acquisition; movement is the deliberate abort command.
+                    state = new KeyboardState(); mouseState = new MouseState { buttons = 1 };
+                }
             }
             InputSystem.QueueStateEvent(keyboard, state); InputSystem.QueueStateEvent(mouse, mouseState);
-            if (elapsed > 24 && !reported)
+            diagnosticIn -= Time.deltaTime;
+            if (diagnosticIn <= 0 && own != null)
+            {
+                diagnosticIn = 3;
+                Debug.Log($"MOSQUITO_NAV STATE local={game.LocalId} focused={Application.isFocused} keyboard={keyboard.enabled} viewForward={(view != null ? view.transform.forward : Vector3.forward):F2} {own.InputDiagnostic}");
+            }
+            if (elapsed > NavigationCheckSeconds - 1 && !reported)
             {
                 reported = true;
                 bool cameraBound = own == null || flightRig != null && flightRig.Follow == own.CameraTarget && flightRig.LookAt == own.CameraTarget;
-                bool passed = (own == null ? woke && sleptAgain : entered && bit) && cameraBound;
-                Debug.Log($"MOSQUITO_NAV {(passed ? "PASS" : "FAIL")} local={game.LocalId} entered={entered} bit={bit} woke={woke} sleptAgain={sleptAgain} cameraBound={cameraBound}");
+                bool passed = (own == null ? woke && sleptAgain : entered && lowApproach && bit) && cameraBound;
+                Debug.Log($"MOSQUITO_NAV {(passed ? "PASS" : "FAIL")} local={game.LocalId} entered={entered} lowApproach={lowApproach} bit={bit} woke={woke} sleptAgain={sleptAgain} cameraBound={cameraBound}");
             }
         }
         private void Capture(string label)

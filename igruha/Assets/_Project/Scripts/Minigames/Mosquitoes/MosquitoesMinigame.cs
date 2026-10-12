@@ -11,6 +11,7 @@ using UnityEngine.InputSystem;
 
 namespace Igruha.Minigames.Mosquitoes
 {
+    public enum MosquitoBiteAccess { Unavailable, TooFar, Blocked, Ready }
     public sealed class MosquitoesMinigame : MinigameControllerBase, IPushButtonOverride
     {
         [SerializeField] private MosquitoesConfig config;
@@ -57,8 +58,11 @@ namespace Igruha.Minigames.Mosquitoes
         private bool customLookAtRestore;
         private int localId = -1, giantId = -1;
         private string hint;
-        private Vector3 receivedBiteTarget, receivedBiteSurface;
+        private MosquitoesSnapshot receivedPose;
         private bool hasBitePose;
+        private int furnitureMask, bitePathMask;
+        private readonly RaycastHit[] bitePathHits = new RaycastHit[32];
+        private readonly Collider[] biteOverlaps = new Collider[32];
         public MosquitoesConfig Config => config;
         public MosquitoesAudio Audio => audioPlayer;
         public GiantSleepState Sleep { get; private set; }
@@ -69,21 +73,40 @@ namespace Igruha.Minigames.Mosquitoes
         public bool Automated => LaunchArguments.BotEnabled;
         public float Countdown { get; private set; }
         public IReadOnlyList<MosquitoBody> Bodies => bodies;
-        public Vector3 BiteTarget => !HasAuthority && hasBitePose ? receivedBiteTarget : giantRig != null ? giantRig.BitePoint : giant != null ? giant.Position + Vector3.up : bed.position;
-        public Vector3 BiteSurfaceOrigin => !HasAuthority && hasBitePose ? receivedBiteSurface : giantRig != null ? giantRig.BiteSurfacePoint : BiteTarget;
+        public Vector3 BiteTarget => !HasAuthority && hasBitePose ? receivedPose.BiteTarget : giantRig != null ? giantRig.BitePoint : giant != null ? giant.Position + Vector3.up : bed.position;
+        public Vector3 BiteSurfaceOrigin => !HasAuthority && hasBitePose ? receivedPose.BiteSurface : giantRig != null ? giantRig.BiteSurfacePoint : BiteTarget;
         public float BiteHoldDuration => AliveCount == 1 ? config.SoloBiteHoldSeconds : config.BiteHoldSeconds;
-        public Vector3 BiteAnchor(int id) => BiteTarget + BiteOffset(id);
-        public Vector3 BiteSurface(int id) => BiteSurfaceOrigin + BiteOffset(id);
-        private Vector3 BiteOffset(int id)
+        public Vector3 BiteAnchor(int id) => BiteAnchorForSlot(FlightSlot(id));
+        public Vector3 BiteAnchorForSlot(int slot) => !HasAuthority && hasBitePose ? receivedPose.Anchor(slot) :
+            giantRig != null ? giantRig.LandingPoint(slot) : BiteTarget;
+        public Vector3 BiteSurface(int id) => BiteAnchor(id) - Vector3.up * MosquitoGiantRig.SurfaceOffset;
+        public const float BiteContactDistance = .10f;
+        public MosquitoBiteAccess BiteAccess(MosquitoBody body, Vector3 position)
         {
-            int slot = FlightSlot(id);
-            return new Vector3((slot / 3 - 1) * .10f, 0, (slot % 3 - 1) * .12f);
+            if (!ControlsAvailable || body == null || !body.IsAlive || !body.HasEntered ||
+                body.BiteCooldown > 0 || !Sleep.CanBite) return MosquitoBiteAccess.Unavailable;
+            Vector3 delta = BiteAnchor(body.Id) - position;
+            if (delta.sqrMagnitude > config.BiteDistance * config.BiteDistance) return MosquitoBiteAccess.TooFar;
+            int overlaps = Physics.OverlapSphereNonAlloc(position, config.BodyRadius, biteOverlaps, bitePathMask, QueryTriggerInteraction.Ignore);
+            if (overlaps == biteOverlaps.Length) return MosquitoBiteAccess.Blocked;
+            for (int i = 0; i < overlaps; i++) if (BlocksBite(biteOverlaps[i])) return MosquitoBiteAccess.Blocked;
+            if (delta.sqrMagnitude > .0001f)
+            {
+                int hits = Physics.SphereCastNonAlloc(position, config.BodyRadius, delta.normalized,
+                    bitePathHits, delta.magnitude, bitePathMask, QueryTriggerInteraction.Ignore);
+                if (hits == bitePathHits.Length) return MosquitoBiteAccess.Blocked;
+                for (int i = 0; i < hits; i++) if (BlocksBite(bitePathHits[i].collider)) return MosquitoBiteAccess.Blocked;
+            }
+            return MosquitoBiteAccess.Ready;
         }
+        private bool BlocksBite(Collider collider) => ((1 << collider.gameObject.layer) & furnitureMask) != 0 ||
+            giantRig != null && giantRig.OwnsContact(collider);
         public int AliveCount { get { int n = 0; foreach (var b in bodies) if (b != null && b.IsAlive && !departed.Contains(b.Id)) n++; return n; } }
 
         protected override void Awake()
         {
             base.Awake(); network = GetComponent<MosquitoesNetwork>();
+            furnitureMask = LayerMask.GetMask("Cover", "Ground"); bitePathMask = furnitureMask | (1 << 12);
             if (orbit != null) flightCamera = orbit.GetComponent<CinemachineCamera>();
             if (inputTemplate != null) sharedLook = inputTemplate.FindAction("Player/Look", true);
         }
@@ -161,7 +184,7 @@ namespace Igruha.Minigames.Mosquitoes
             giantRig = giant.gameObject.AddComponent<MosquitoGiantRig>(); giantRig.Initialize(giantAnimator);
             shownPhase = (GiantPhase)255;
             hint = localId == giantId ? "ВЕЛИКАН • E у кровати — встать / уснуть • ЛКМ — шлепок\nНакопи 60 секунд сна или поймай всех комаров" :
-                $"КОМАР • WASD — полёт • Space / Ctrl — высота • Shift — тихий полёт\nЗа {MosquitoWindowEntry.Deadline:0} секунд влети в окно! Обратно нельзя. Затем держи ЛКМ у груди 0,5 с";
+                $"КОМАР • WASD — полёт • Space / Ctrl — высота • Shift — тихий полёт\nЗа {MosquitoWindowEntry.Deadline:0} секунд влети в окно! Обратно нельзя. Затем держи ЛКМ у метки укуса 0,5 с";
             presentation?.SetRole(localId == giantId, hint);
             ApplyPose();
             RefreshTutorialInstructions();
@@ -172,9 +195,9 @@ namespace Igruha.Minigames.Mosquitoes
             bool human = localId == giantId;
             screen.SetRoleInstructions(human ? "ЧЕЛОВЕК" : "КОМАР",
                 human ? "Накопи 60 секунд сна или прихлопни всех комаров" : "Не дай человеку выспаться за 120 секунд",
-                human ? new[] { "E у кровати — уснуть / проснуться", "Два укуса будят и отнимают 2,5 секунды сна", "Включи лампу, чтобы видеть комаров, и бей ЛКМ" } :
+                human ? new[] { "E у кровати — уснуть / проснуться", "Два укуса будят и отнимают 1 секунду сна", "Проснулся — свет включён. ЛКМ — прихлопнуть комара" } :
                     new[] { "Влети в отмеченное окно за 10 секунд", "Два укуса за 4 секунды будят человека: атакуйте вместе", "После укуса отлетай. Последнему комару нужен один укус длиной 1 с" },
-                human ? new[] { "E — кровать / лампа", "ЛКМ — шлепок" } : new[] { "Space / Ctrl — высота", "Shift — тихо", "ЛКМ — держать укус" },
+                human ? new[] { "E — кровать / лампа", "ЛКМ — шлепок", "Space — прыжок" } : new[] { "Space / Ctrl — высота", "Shift — тихо", "ЛКМ — держать укус" },
                 human ? new[] { "WASD — ходить", "E — взаимодействовать", "ЛКМ — шлепок" } : new[] { "WASD — полёт", "Space / Ctrl — вверх / вниз", "Shift — тихий полёт", "ЛКМ — укус" });
         }
         public void RegisterBody(MosquitoBody body)
@@ -192,7 +215,7 @@ namespace Igruha.Minigames.Mosquitoes
         {
             if (HasAuthority || Sleep == null) return;
             giantId = snapshot.GiantId;
-            receivedBiteTarget = snapshot.BiteTarget; receivedBiteSurface = snapshot.BiteSurface; hasBitePose = true;
+            receivedPose = snapshot; hasBitePose = true;
             Sleep.ApplySnapshot((GiantPhase)snapshot.Phase, snapshot.Sleep, snapshot.Transition, snapshot.Immunity, snapshot.Lamp, snapshot.RecentBites, snapshot.BiteWindow);
             Countdown = snapshot.Countdown; EntryRemaining = snapshot.EntryRemaining;
             if (!cleaned && giant == null) BindRole();
@@ -261,11 +284,12 @@ namespace Igruha.Minigames.Mosquitoes
                 float cooldown = Mathf.Max(0, body.BiteCooldown - dt);
                 if (Sleep.LampOn && InsideLight(position)) body.Participated = true;
                 Vector3 anchor = BiteAnchor(body.Id);
-                bool valid = body.HasEntered && body.Holding && cooldown <= 0 && Sleep.CanBite &&
-                    Vector3.Distance(position, anchor) <= config.BiteDistance && ClearPath(position, anchor);
+                bool valid = body.Holding && BiteAccess(body, position) == MosquitoBiteAccess.Ready;
                 if (valid)
                 {
-                    body.BiteProgress += dt;
+                    // Acquisition steers to the skin; only actual contact earns a bite.
+                    if (Vector3.Distance(position, anchor) <= BiteContactDistance) body.BiteProgress += dt;
+                    else body.BiteProgress = 0;
                     if (body.BiteProgress >= BiteHoldDuration && Sleep.RegisterBite(AliveCount))
                     {
                         cooldown = config.BiteCooldown; body.BiteProgress = 0; valid = false; body.Participated = true;
@@ -320,7 +344,7 @@ namespace Igruha.Minigames.Mosquitoes
                 body.Kill(); network?.Effect(2, position);
             }
         }
-        private static bool ClearPath(Vector3 start, Vector3 end) => !Physics.Linecast(start, end, LayerMask.GetMask("Cover", "Ground"), QueryTriggerInteraction.Ignore);
+        private bool ClearPath(Vector3 start, Vector3 end) => !Physics.Linecast(start, end, furnitureMask, QueryTriggerInteraction.Ignore);
         private void ApplyPose()
         {
             giant.MovementLocked = Sleep.Phase != GiantPhase.Awake || Countdown > 0;
@@ -336,7 +360,17 @@ namespace Igruha.Minigames.Mosquitoes
         private void BindCamera()
         {
             if (cameraController == null) return;
-            if (localId == giantId) return;
+            if (localId == giantId)
+            {
+                Transform humanTarget = Sleep.Phase != GiantPhase.Awake && giantRig != null
+                    ? giantRig.CameraTarget : giant.CameraTarget;
+                if (humanTarget != null)
+                {
+                    if (cameraController.CurrentTarget != humanTarget) cameraController.Apply(CameraMode.ThirdPerson, humanTarget);
+                    if (flightCamera != null) flightCamera.LookAt = humanTarget;
+                }
+                return;
+            }
             MosquitoBody own = FindBody(localId);
             if (own == null) return;
             bool showCapture = !own.IsAlive && Time.unscaledTime < dragonflyCameraUntil;

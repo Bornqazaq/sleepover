@@ -16,7 +16,7 @@ namespace Igruha.Minigames.Mosquitoes
         public float ImmunityRemaining { get; private set; }
         public bool LampOn { get; private set; }
         public bool CanBite => ImmunityRemaining <= 0f && Phase == GiantPhase.Sleeping;
-        public bool CanSleep => Phase == GiantPhase.Awake && ImmunityRemaining <= 0f;
+        public bool CanSleep => Phase == GiantPhase.Awake;
         public int RecentBites => biteWindowRemaining > 0 ? bites : 0;
         public float BiteWindowRemaining => biteWindowRemaining;
         public bool CanSwat => Phase == GiantPhase.Awake;
@@ -30,6 +30,7 @@ namespace Igruha.Minigames.Mosquitoes
             if (!CanSleep) return false;
             Phase = GiantPhase.LyingDown;
             TransitionRemaining = config.LieDownSeconds;
+            ImmunityRemaining = config.LieDownSeconds + config.ImmunitySeconds;
             LampOn = false;
             bites = 0;
             biteWindowRemaining = 0f;
@@ -43,13 +44,12 @@ namespace Igruha.Minigames.Mosquitoes
             return true;
         }
 
-        // Awake darkness is intentional: forced waking does not switch the lamp.
-        // Voluntary E-waking does; this preserves blind swats with the existing E binding.
+        // Every waking gives the victim sight of nearby attackers and a chance to react.
         private void Wake(bool forced)
         {
             Phase = GiantPhase.Waking;
             TransitionRemaining = config.WakeSeconds;
-            if (!forced) LampOn = true;
+            LampOn = true;
             if (forced)
             {
                 ImmunityRemaining = config.ImmunitySeconds;

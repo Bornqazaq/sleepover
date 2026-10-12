@@ -12,15 +12,24 @@ namespace Igruha.Minigames.Mosquitoes
         public float Sleep, Transition, Immunity, Countdown, EntryRemaining, BiteWindow;
         public int RecentBites;
         public Vector3 BiteTarget, BiteSurface;
+        public Vector3 Bite0, Bite1, Bite2, Bite3, Bite5, Bite6;
+        public Vector3 Anchor(int slot)
+        {
+            switch (slot) { case 0: return Bite0; case 1: return Bite1; case 2: return Bite2;
+                case 3: return Bite3; case 5: return Bite5; case 6: return Bite6; default: return BiteTarget; }
+        }
         public void NetworkSerialize<T>(BufferSerializer<T> s) where T : IReaderWriter
         {
             s.SerializeValue(ref GiantId); s.SerializeValue(ref Phase); s.SerializeValue(ref Lamp);
             s.SerializeValue(ref Sleep); s.SerializeValue(ref Transition); s.SerializeValue(ref Immunity); s.SerializeValue(ref Countdown); s.SerializeValue(ref EntryRemaining);
             s.SerializeValue(ref RecentBites); s.SerializeValue(ref BiteWindow);
             s.SerializeValue(ref BiteTarget); s.SerializeValue(ref BiteSurface);
+            s.SerializeValue(ref Bite0); s.SerializeValue(ref Bite1); s.SerializeValue(ref Bite2);
+            s.SerializeValue(ref Bite3); s.SerializeValue(ref Bite5); s.SerializeValue(ref Bite6);
         }
         public bool Equals(MosquitoesSnapshot o) => GiantId == o.GiantId && Phase == o.Phase && Lamp == o.Lamp &&
-            Sleep == o.Sleep && Transition == o.Transition && Immunity == o.Immunity && Countdown == o.Countdown && EntryRemaining == o.EntryRemaining && RecentBites == o.RecentBites && BiteWindow == o.BiteWindow && BiteTarget == o.BiteTarget && BiteSurface == o.BiteSurface;
+            Sleep == o.Sleep && Transition == o.Transition && Immunity == o.Immunity && Countdown == o.Countdown && EntryRemaining == o.EntryRemaining && RecentBites == o.RecentBites && BiteWindow == o.BiteWindow && BiteTarget == o.BiteTarget && BiteSurface == o.BiteSurface && Bite0 == o.Bite0 && Bite1 == o.Bite1 && Bite2 == o.Bite2 &&
+            Bite3 == o.Bite3 && Bite5 == o.Bite5 && Bite6 == o.Bite6;
     }
     public sealed class MosquitoesNetwork : NetworkBehaviour
     {
@@ -59,7 +68,9 @@ namespace Igruha.Minigames.Mosquitoes
                 Lamp = game.Sleep.LampOn, Sleep = game.Sleep.Sleep, Transition = game.Sleep.TransitionRemaining,
                 Immunity = game.Sleep.ImmunityRemaining, Countdown = game.Countdown, EntryRemaining = game.EntryRemaining,
                 RecentBites = game.Sleep.RecentBites, BiteWindow = game.Sleep.BiteWindowRemaining,
-                BiteTarget = game.BiteTarget, BiteSurface = game.BiteSurfaceOrigin };
+                BiteTarget = game.BiteAnchorForSlot(4), BiteSurface = game.BiteSurfaceOrigin,
+                Bite0 = game.BiteAnchorForSlot(0), Bite1 = game.BiteAnchorForSlot(1), Bite2 = game.BiteAnchorForSlot(2),
+                Bite3 = game.BiteAnchorForSlot(3), Bite5 = game.BiteAnchorForSlot(5), Bite6 = game.BiteAnchorForSlot(6) };
             for (int i = Living.Count - 1; i >= 0; i--) if (!game.IsLiving(Living[i])) Living.RemoveAt(i);
             foreach (MosquitoBody body in game.Bodies) if (body != null && game.IsLiving(body.Id) && !Living.Contains(body.Id)) Living.Add(body.Id);
         }

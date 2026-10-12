@@ -34,7 +34,7 @@ namespace Igruha.Minigames.Mosquitoes
             get { int count = 0; foreach (var r in renderers) if (r != null && r.enabled) count++; return count; }
         }
         public void Bite() => recoil = 1;
-        public void Tick(Vector3 velocity, float maxSpeed, bool attached, bool quiet, bool visible, Vector3 surface, float dt)
+        public void Tick(Vector3 velocity, float maxSpeed, bool attached, bool quiet, bool visible, float dt)
         {
             foreach (var r in renderers) if (r != null) r.enabled = visible;
             float blend = 1 - Mathf.Exp(-FollowRate * dt);
@@ -45,10 +45,10 @@ namespace Igruha.Minigames.Mosquitoes
             Vector3 acceleration = root.parent.InverseTransformDirection(velocity - previousVelocity) / Mathf.Max(.001f, dt);
             previousVelocity = velocity;
             float bank = Mathf.Clamp(-acceleration.x * 1.4f, -22, 22);
-            Quaternion pose = Quaternion.Euler(Mathf.Lerp(speed * 24 + localVelocity.y * 2, 70, contact), 0, bank * (1 - contact));
+            Quaternion pose = Quaternion.Euler(Mathf.Lerp(speed * 24 + localVelocity.y * 2, 155, contact), 0, bank * (1 - contact));
             root.localRotation = Quaternion.Slerp(root.localRotation, pose, blend);
-            Vector3 hover = root.parent.position + Vector3.up * (Mathf.Sin(phase * .09f) * .009f + Mathf.Sin(recoil * Mathf.PI) * .03f);
-            root.position = Vector3.Lerp(hover, surface + Vector3.up * .075f, contact);
+            root.position = root.parent.position + Vector3.up *
+                ((1 - contact) * Mathf.Sin(phase * .09f) * .009f + Mathf.Sin(recoil * Mathf.PI) * .015f);
             root.localScale = scale;
             phase += dt * Mathf.PI * 2 * (quiet ? 9 : Mathf.Lerp(12, 17, speed));
             for (int i = 0; i < wings.Count; i++)
