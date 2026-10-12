@@ -62,6 +62,19 @@ namespace Igruha.Tests.PlayMode
                 Assert.That(bounds.min.z, Is.GreaterThan(-1.73f), "live bed side: " + character);
                 Assert.That(bounds.max.z, Is.LessThan(-.37f), "live bed side: " + character);
                 Assert.That(game.GiantRig.BackContactHeight, Is.InRange(.665f,.680f), "live back contact: " + character);
+                var animator = game.GiantRig.GetComponentInChildren<Animator>();
+                Assert.That(game.TryBed(id), Is.True);
+                yield return new WaitForSeconds(.65f);
+                Assert.That(game.Sleep.Phase, Is.EqualTo(GiantPhase.Awake));
+                Assert.That(animator.enabled, Is.True, "wake restores the shared animator: " + character);
+                var standingBounds = game.GiantRig.MeasureSkinBounds();
+                Assert.That(standingBounds.min.y, Is.InRange(-.08f, .20f), "feet return to the floor: " + character);
+                Assert.That(game.TryBed(id), Is.True);
+                yield return new WaitForSeconds(1.15f);
+                Assert.That(game.Sleep.Phase, Is.EqualTo(GiantPhase.Sleeping));
+                Assert.That(game.Sleep.CanBite, Is.True, "voluntary bed use cannot renew protection");
+                Assert.That(animator.enabled, Is.False, "only the local sleep performance drives the sleeping skeleton");
+                Assert.That(game.GiantRig.MeasureSkinBounds().min.y, Is.GreaterThan(.64f), "resleep contact: " + character);
                 game.EndMinigame(); yield return null;
                 Assert.That(Object.FindObjectsByType<MosquitoGiantRig>(FindObjectsSortMode.None), Is.Empty);
             }

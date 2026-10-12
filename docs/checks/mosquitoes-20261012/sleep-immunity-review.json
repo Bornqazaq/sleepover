@@ -1,0 +1,14 @@
+{
+  "kind": "rules-only review; not live input or network test",
+  "implementation": "e8aee71c",
+  "state": "GiantSleepState",
+  "config": "Assets/_Project/Settings/Gameplay/Minigames/MosquitoesConfig.asset",
+  "dt": 0.02,
+  "strategy": "ToggleBed at start; ToggleBed whenever Awake; while Sleeping voluntarily wake when ImmunityRemaining <= 0.12; tick state; count CanBite after tick.",
+  "sleep_target": 60,
+  "elapsed_seconds": 107.993889,
+  "wake_cycles": 32,
+  "can_bite_seconds": 0,
+  "reached_target": true,
+  "fixed": false
+}

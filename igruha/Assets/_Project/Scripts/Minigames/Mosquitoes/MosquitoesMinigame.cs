@@ -353,8 +353,9 @@ namespace Igruha.Minigames.Mosquitoes
             bool sleeping = shownPhase == GiantPhase.Sleeping || shownPhase == GiantPhase.LyingDown;
             if (sleeping) { punch?.CancelPendingPush(); swatImpact = -1; }
             Transform target = sleeping ? bed : bedExit;
+            giantRig?.CaptureTransitionStart();
             if (HasAuthority || localId == giantId) giant.TeleportTo(target.position, target.rotation);
-            giantRig?.SetSleeping(sleeping, shownPhase == GiantPhase.Waking ? config.WakeSeconds : shownPhase == GiantPhase.LyingDown ? config.LieDownSeconds : 0);
+            giantRig?.SetSleeping(sleeping, Sleep.TransitionRemaining, bedExit.position, bedExit.rotation);
         }
 
         private void BindCamera()
@@ -416,7 +417,7 @@ namespace Igruha.Minigames.Mosquitoes
             if (kind != 0) return;
             ConfirmedBiteEffects++;
             FindBody(attacker)?.ShowBiteSuccess();
-            giantRig?.React();
+            giantRig?.React(position);
             // A hit on the victim is visible to the victim; it never reveals a hidden attacker.
             MosquitoBiteFeedback.Show(position);
             if (Automated) Debug.Log($"[MosquitoBite] local={localId} attacker={attacker} confirmed={ConfirmedBiteEffects}");

@@ -1,0 +1,35 @@
+{
+  "success": true,
+  "message": "Test job status retrieved.",
+  "error": null,
+  "data": {
+    "job_id": "ac7eac5074854ffc99624b0adf210617",
+    "status": "succeeded",
+    "mode": "PlayMode",
+    "started_unix_ms": 1791799867369,
+    "finished_unix_ms": 1791800088191,
+    "last_update_unix_ms": 1791800088191,
+    "progress": {
+      "completed": 12,
+      "total": 12,
+      "current_test_full_name": null,
+      "current_test_started_unix_ms": 1791800066978,
+      "last_finished_test_full_name": "Igruha.Tests.PlayMode.MosquitoesSceneTests.ThreePlayersMosquitoBitesSwatAndCleanup",
+      "last_finished_unix_ms": 1791800088157,
+      "stuck_suspected": false,
+      "editor_is_focused": false,
+      "blocked_reason": null,
+      "failures_so_far": [],
+      "failures_capped": false
+    },
+    "error": null,
+    "result": null
+  },
+  "hint": null,
+  "captured_summary": {
+    "source": "get_test_job initial completion response",
+    "total": 12, "passed": 12, "failed": 0, "skipped": 0,
+    "durationSeconds": 211.316949, "resultState": "Passed",
+    "scope": "Before final bite pose and wing-mount refinement; final EditMode and standalone network runs verify that refinement."
+  }
+}

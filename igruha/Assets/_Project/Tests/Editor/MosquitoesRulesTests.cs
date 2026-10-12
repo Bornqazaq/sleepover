@@ -28,11 +28,47 @@ namespace Igruha.Tests
             Assert.That(s.LampOn, Is.True, "forced waking must reveal attackers in the lamp radius");
             Assert.That(s.ToggleBed(), Is.True, "returning to bed must not be blocked by protection");
             s.Tick(config.LieDownSeconds);
-            Assert.That(s.CanBite, Is.False, "protection gives actual sleep before the next bite");
+            Assert.That(s.CanBite, Is.False, "remaining wake protection is not renewed by bed use");
+            Assert.That(s.ImmunityRemaining, Is.EqualTo(.5f).Within(.001f));
             float sleepBefore = s.Sleep;
             s.Tick(config.ImmunitySeconds);
-            Assert.That(s.Sleep, Is.EqualTo(sleepBefore + config.ImmunitySeconds).Within(.001f));
+            Assert.That(s.Sleep, Is.EqualTo(sleepBefore + 1.5f).Within(.001f));
             Assert.That(s.CanBite, Is.True);
+        }
+        [Test]
+        public void RepeatedVoluntaryWakeCannotWinWithoutBeingBiteable()
+        {
+            var s = new GiantSleepState(config);
+            s.ToggleBed();
+            float vulnerableTime = 0;
+            for (int i = 0; i < 6000; i++)
+            {
+                if (s.CanSleep) s.ToggleBed();
+                if (s.Phase == GiantPhase.Sleeping && s.ImmunityRemaining <= .12f) s.ToggleBed();
+                s.Tick(.02f);
+                if (s.CanBite) vulnerableTime += .02f;
+            }
+            Assert.That(s.ReachedTarget, Is.False, "the previously winning E cycle must fail");
+            Assert.That(s.Sleep, Is.LessThanOrEqualTo(vulnerableTime + .001f));
+        }
+        [Test]
+        public void ReenteringBedCannotExtendForcedWakeProtection()
+        {
+            var s = new GiantSleepState(config);
+            s.RegisterBite(1); s.Tick(.5f); s.ToggleBed();
+            s.Tick(1); s.ToggleBed(); s.Tick(.5f); s.ToggleBed(); s.Tick(1);
+            Assert.That(s.ImmunityRemaining, Is.Zero);
+            Assert.That(s.CanBite, Is.True);
+        }
+        [Test]
+        public void LargeTickAndSmallTicksAgreeAcrossWakeAndProtection()
+        {
+            var a = new GiantSleepState(config); var b = new GiantSleepState(config);
+            a.RegisterBite(1); b.RegisterBite(1); a.Tick(.5f); b.Tick(.5f);
+            a.ToggleBed(); b.ToggleBed(); a.Tick(3);
+            for (int i = 0; i < 300; i++) b.Tick(.01f);
+            Assert.That(a.Sleep, Is.EqualTo(1.5f).Within(.001f));
+            Assert.That(b.Sleep, Is.EqualTo(a.Sleep).Within(.001f));
         }
         [Test] public void PairExpiresButLastSurvivorCanStillWake()
         {

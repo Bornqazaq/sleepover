@@ -24,7 +24,7 @@ namespace Igruha.Minigames.Mosquitoes
                 if (sleep.Phase == GiantPhase.Sleeping)
                 {
                     value = sleep.RecentBites; total = game.AliveCount == 1 ? 1 : game.Config.BitesToWake;
-                    if (sleep.ImmunityRemaining > 0) { value = sleep.ImmunityRemaining; return Summary + "СПИШЬ • ЗАЩИТА ОТ УКУСОВ {3:0.0} с"; }
+                    if (sleep.ImmunityRemaining > 0) { value = sleep.ImmunityRemaining; return Summary + "ЗАЩИТА {3:0.0} с • СОН ПОКА НЕ РАСТЁТ"; }
                     return sleep.RecentBites > 0 ? Summary + "ТЕБЯ КУСАЮТ • {3:0} / {4:0} • E — проснуться" : Summary + "СПИШЬ • E — проснуться";
                 }
                 if (sleep.Phase == GiantPhase.Waking) return Summary + "ПРОСЫПАЕШЬСЯ";

@@ -30,7 +30,7 @@ namespace Igruha.Minigames.Mosquitoes
             if (!CanSleep) return false;
             Phase = GiantPhase.LyingDown;
             TransitionRemaining = config.LieDownSeconds;
-            ImmunityRemaining = config.LieDownSeconds + config.ImmunitySeconds;
+            // Only a forced wake grants protection. Going back to bed cannot renew it.
             LampOn = false;
             bites = 0;
             biteWindowRemaining = 0f;
@@ -71,6 +71,7 @@ namespace Igruha.Minigames.Mosquitoes
         public void Tick(float dt)
         {
             dt = Mathf.Max(0f, dt);
+            float protectedTime = ImmunityRemaining;
             ImmunityRemaining = Mathf.Max(0f, ImmunityRemaining - dt);
             biteWindowRemaining = Mathf.Max(0f, biteWindowRemaining - dt);
             float sleepDelta = dt;
@@ -81,6 +82,9 @@ namespace Igruha.Minigames.Mosquitoes
                 if (TransitionRemaining <= 0f)
                     Phase = Phase == GiantPhase.Waking ? GiantPhase.Awake : GiantPhase.Sleeping;
             }
+            // Count only the intersection of sleeping and vulnerable time, including
+            // ticks that cross both the transition and protection deadlines.
+            sleepDelta = Mathf.Min(sleepDelta, Mathf.Max(0f, dt - protectedTime));
             if (Phase == GiantPhase.Sleeping && !LampOn) Sleep = Mathf.Min(config.SleepTarget, Sleep + sleepDelta);
         }
 

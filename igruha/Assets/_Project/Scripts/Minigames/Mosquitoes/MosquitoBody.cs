@@ -253,7 +253,7 @@ namespace Igruha.Minigames.Mosquitoes
             bool visible = IsAlive && game.CanSeeMosquito(Position);
             bool contact = IsAttached && Vector3.Distance(Position, game.BiteAnchor(Id)) <= MosquitoesMinigame.BiteContactDistance;
             flightVisual?.Tick(Velocity, game.Config.MaxSpeed, contact, Velocity.magnitude <= game.Config.QuietSpeed + .05f,
-                visible, Time.deltaTime);
+                visible, Time.deltaTime, BiteFraction);
             if (buzz != null)
             {
                 float volume = IsAlive && !IsAttached && game.ControlsAvailable ?
