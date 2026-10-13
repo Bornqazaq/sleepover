@@ -15,13 +15,13 @@ namespace Igruha.Core.UI
     {
         private const float Width=1920f, Height=1080f, EntranceSeconds=.28f;
         private const int PlayerSlots=8, StepSlots=3, HintSlots=3;
-        private static readonly Color Ink=MinigameUiStyle.Ink;
-        private static readonly Color Paper=MinigameUiStyle.Paper;
-        private static readonly Color Gold=MinigameUiStyle.Accent;
-        private static readonly Color Coral=new Color(1f,.40f,.27f,1f);
-        private static readonly Color Mint=new Color(.40f,.91f,.75f,1f);
-        private static readonly Color Muted=new Color(.66f,.75f,.78f,1f);
-        private static readonly Color[] PlayerColors={Coral,Mint,Gold,new Color(.61f,.60f,1f),
+        private Color Ink=MinigameUiStyle.Ink;
+        private Color Paper=MinigameUiStyle.Paper;
+        private Color Gold=MinigameUiStyle.Accent;
+        private Color Coral=new Color(1f,.40f,.27f,1f);
+        private Color Mint=new Color(.40f,.91f,.75f,1f);
+        private Color Muted=new Color(.66f,.75f,.78f,1f);
+        private readonly Color[] PlayerColors={new Color(1f,.40f,.27f),new Color(.40f,.91f,.75f),MinigameUiStyle.Accent,new Color(.61f,.60f,1f),
             new Color(.42f,.77f,1f),new Color(1f,.57f,.76f),new Color(.79f,.88f,.38f),new Color(.90f,.67f,.44f)};
         private TMP_FontAsset font;
         private RectTransform layout, content, brief, details, completedCard;
@@ -39,8 +39,14 @@ namespace Igruha.Core.UI
         private bool complete, expanded;
         private float appearedAt;
 
-        public void Build(TMP_FontAsset textFont, Action ready, Action toggleRules, Action retry)
+        public void Build(TMP_FontAsset textFont, Action ready, Action toggleRules, Action retry, bool compactDarkStyle=false)
         {
+            if(compactDarkStyle)
+            {
+                Ink=new Color(.075f,.095f,.14f);Paper=new Color(.95f,.97f,1f);
+                Gold=new Color(.40f,.89f,.86f);Coral=new Color(.66f,.61f,1f);
+                Mint=new Color(.43f,.90f,.68f);Muted=new Color(.59f,.67f,.78f);
+            }
             font=textFont;
             var canvas=gameObject.AddComponent<Canvas>();
             canvas.renderMode=RenderMode.ScreenSpaceOverlay;
@@ -124,7 +130,30 @@ namespace Igruha.Core.UI
             retryButton=MakeButton("Retry",827,551,330,57,Mint,retry);
             Text("RetryLabel","Ещё попытка",847,562,290,37,25,Ink,true,TextAlignmentOptions.Center);
             content=layout;
+            if(compactDarkStyle)ApplyCompactDarkStyle();
             SetExpanded(false);
+        }
+
+        private void ApplyCompactDarkStyle()
+        {
+            foreach(var panel in layout.GetComponentsInChildren<TutorialPanel>(true))
+                if(panel.name=="RulesCard" || panel.name=="DetailsCard" || panel.name=="CompleteCard")panel.color=Ink;
+            foreach(var text in layout.GetComponentsInChildren<TMP_Text>(true))
+                if(text.color==Ink && text.name!="PracticeLabel" && text.name!="ReadyLabel" && text.name!="RetryLabel" &&
+                    !text.name.StartsWith("StepNumber"))text.color=Paper;
+            var shadow=layout.Find("TitleShadow");if(shadow!=null)shadow.gameObject.SetActive(false);
+            title.fontSize=38;
+            brief.localScale=Vector3.one*.78f;
+            brief.anchoredPosition=new Vector2(9,-12);
+            var rules=(RectTransform)layout.Find("Rules");rules.anchoredPosition=new Vector2(44,-525);rules.sizeDelta=new Vector2(381,46);
+            var rulesShadow=(RectTransform)layout.Find("RulesShadow");rulesShadow.anchoredPosition=rules.anchoredPosition+new Vector2(0,-5);rulesShadow.sizeDelta=rules.sizeDelta;
+            rulesLabel.rectTransform.anchoredPosition=new Vector2(54,-531);rulesLabel.rectTransform.sizeDelta=new Vector2(361,34);rulesLabel.fontSize=20;
+            for(int i=0;i<HintSlots;i++)
+            {
+                var hint=(RectTransform)layout.Find("QuickHint"+i);hint.anchoredPosition=new Vector2(44+i*612,-846);hint.sizeDelta=new Vector2(596,42);
+                var hintShadow=(RectTransform)layout.Find("QuickHint"+i+"Shadow");hintShadow.anchoredPosition=hint.anchoredPosition+new Vector2(0,-6);hintShadow.sizeDelta=hint.sizeDelta;
+                quickHints[i].rectTransform.anchoredPosition=new Vector2(60+i*612,-851);quickHints[i].fontSize=19;
+            }
         }
 
         public void Show(MinigameDefinition definition)

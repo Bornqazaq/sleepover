@@ -39,6 +39,7 @@ namespace Igruha.Core.UI
         private Action restartPractice;
         private bool expanded;
         private bool practiceComplete;
+        [SerializeField] private bool compactDarkStyle;
         private TutorialView view;
         private float inputEnabledAt;
         private const float InputGuardSeconds = 0.3f;
@@ -72,7 +73,7 @@ namespace Igruha.Core.UI
                 UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(view.gameObject, gameObject.scene);
                 view.Build(definition != null && definition.TutorialFont != null
                     ? definition.TutorialFont : titleText != null ? titleText.font : TMP_Settings.defaultFontAsset,
-                    RequestReady, TogglePractice, RequestRestart);
+                    RequestReady, TogglePractice, RequestRestart, compactDarkStyle);
             }
             if (!visible)
             {
