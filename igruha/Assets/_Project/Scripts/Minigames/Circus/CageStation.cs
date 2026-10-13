@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Igruha.Core.Arena;
@@ -213,12 +212,7 @@ namespace Igruha.Minigames.Circus
                 return;
             }
 
-            // Потолок — верхняя ступень кольца, а не ступень лимита ошибок.
-            // Клетка стартует всё равно на ступени лимита (SnapToLevel ниже),
-            // но перед казнью её тянут на самый верх, и MoveTo зажимает цель
-            // по этим пределам: с потолком по лимиту в лобби на 6–8 человек
-            // (лимит 2) подъём обрезался бы на 6.48 м вместо 8.64 м.
-            platform.SetLimits(config.GetCageBottomHeight(0), config.ExecutionDropHeight);
+            platform.SetLimits(config.GetCageBottomHeight(0), config.GetCageBottomHeight(config.MaxLevelSteps));
             CloseDoors();
             SnapToLevel(errorLimit);
         }
@@ -365,81 +359,6 @@ namespace Igruha.Minigames.Circus
             SetCameraBlocking(true);
 
             hatch.OpenDoors(duration, elapsedSeconds);
-        }
-
-        /// <summary>
-        /// Казнь: лебёдка тянет клетку на верхнюю ступень и уже оттуда
-        /// распахивает дно.
-        ///
-        /// 🔴 <b>Зачем подъём вообще.</b> Ошибки опускают клетку, и к моменту
-        /// вылета она стоит на нижней ступени — 2.16 м над дном ямы. Падение
-        /// с такой высоты даёт у пола 11.3 м/с при пороге
-        /// <c>CharacterConfig.HardLandingSpeed</c> в 18 м/с, то есть персонаж
-        /// молча приземлялся на ноги, и всё падение читалось как шаг вниз.
-        /// С верхней ступени это 22.5 м/с — <c>PlayerController.TrackLanding</c>
-        /// роняет сам, дальше отыгрывается готовая пара «падение → подъём».
-        /// Своего кода на удар об пол здесь нет и не нужно.
-        ///
-        /// <b>Спуск по ошибкам это не ломает.</b> Клетка по-прежнему едет вниз
-        /// с каждой ошибкой, и напряжение «медведь всё ближе» остаётся; подъём
-        /// живёт ровно один раз, в момент вылета, и читается как отдельный
-        /// цирковой номер.
-        ///
-        /// <paramref name="startTime"/> — момент начала на общих часах, как
-        /// у <see cref="DescendTo(int, float, double)"/>. И подъём, и открытие
-        /// отсчитываются от него, поэтому машины сходятся сами, а опоздавшая
-        /// сразу застаёт нужную фазу вместо того, чтобы догонять.
-        /// </summary>
-        public void RaiseAndOpenDoors(float openDuration, double startTime)
-        {
-            if (config == null || DoorsOpen)
-            {
-                return;
-            }
-
-            float rise = config.ExecutionRiseSeconds;
-
-            // Уровень поднимается вместе с клеткой: он уезжает в сеть, и без
-            // этого чужая машина увидела бы расхождение «высота вверху,
-            // уровень внизу» и дёрнула бы клетку обратно вниз (см.
-            // ApplyNetworkCageLevel в правилах обеих игр).
-            Level = config.MaxLevelSteps;
-            LockOccupant(true);
-            if (Igruha.Core.Minigame.NetworkClock.Now - startTime >= rise)
-            {
-                // A client can receive DoorsOpen only after the server has finished
-                // raising the cage. Replaying the whole displacement in one physics
-                // step both carries and pushes its passenger, sometimes onto the roof.
-                // Place the cage and its local passenger once, before opening the floor.
-                platform.SnapTo(config.ExecutionDropHeight);
-                if (occupant != null && occupant.enabled && occupant.gameObject.activeInHierarchy)
-                {
-                    Vector3 position = occupant.Position;
-                    position.y = config.ExecutionDropHeight + .04f;
-                    occupant.TeleportTo(position, occupant.transform.rotation);
-                }
-                HandleArrived();
-                OpenDoors(openDuration, (float)(Igruha.Core.Minigame.NetworkClock.Now - startTime - rise));
-                return;
-            }
-            platform.MoveTo(config.ExecutionDropHeight, rise, startTime);
-
-            StartCoroutine(OpenWhenRaised(openDuration, startTime + rise));
-        }
-
-        /// <summary>
-        /// Дождаться конца подъёма по общим часам и распахнуть дно. Ждём именно
-        /// момент, а не <see cref="RidePlatform.Arrived"/>: опоздавшая машина
-        /// подъёма не застала вовсе, и по событию не дождалась бы ничего.
-        /// </summary>
-        private IEnumerator OpenWhenRaised(float openDuration, double openAt)
-        {
-            while (Igruha.Core.Minigame.NetworkClock.Now < openAt)
-            {
-                yield return null;
-            }
-
-            OpenDoors(openDuration, (float)(Igruha.Core.Minigame.NetworkClock.Now - openAt));
         }
 
         public void CloseDoors()

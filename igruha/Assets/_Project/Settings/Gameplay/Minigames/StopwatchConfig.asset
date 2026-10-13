@@ -51,7 +51,7 @@ MonoBehaviour:
   bearKnockbackSpeed: 8
   bearKnockdownDuration: 1.5
   bodyDespawnDelay: 1.5
-  bearPatrolSpeed: 2.1
+  bearPatrolSpeed: 0.85
   distractionFirstSubround: 3
   distractionRampSubrounds: 4
   tickPeriodRange: {x: 0.75, y: 1.35}

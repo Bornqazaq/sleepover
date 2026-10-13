@@ -1,0 +1,18 @@
+{
+  "Walk": {
+    "min_surface": -2.0587931714999286e-07,
+    "max_lowest_surface": 3.450499974633203e-08
+  },
+  "Run": {
+    "min_surface": -1.4325136987736187e-07,
+    "max_lowest_surface": 0.010786046274006367
+  },
+  "Strike": {
+    "min_surface": -1.6653865486659924e-07,
+    "max_lowest_surface": 3.565688757589669e-07
+  },
+  "Roar": {
+    "min_surface": -1.5978872625055374e-07,
+    "max_lowest_surface": 1.1148622292012078e-07
+  }
+}

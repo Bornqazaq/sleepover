@@ -1,0 +1,123 @@
+{
+  "Bruno_Body": {
+    "triangles": 31476,
+    "vertices": 15812,
+    "uv_layers": [
+      "UVMap"
+    ],
+    "unweighted": 0,
+    "max_influences": 4,
+    "max_weight_error": 4.470348358154297e-08,
+    "boundary_edges": 0,
+    "non_manifold_edges": 0,
+    "loose_vertices": 0,
+    "degenerate_triangles": 0,
+    "nonfinite_coordinates": 0
+  },
+  "Bruno_Coat": {
+    "triangles": 18000,
+    "vertices": 54000,
+    "uv_layers": [
+      "StrandFlow"
+    ],
+    "unweighted": 0,
+    "max_influences": 4,
+    "max_weight_error": 4.470348358154297e-08,
+    "boundary_edges": 54000,
+    "non_manifold_edges": 54000,
+    "loose_vertices": 0,
+    "degenerate_triangles": 0,
+    "nonfinite_coordinates": 0
+  },
+  "Bruno_Details": {
+    "triangles": 6888,
+    "vertices": 3532,
+    "uv_layers": [
+      "UVMap"
+    ],
+    "unweighted": 0,
+    "max_influences": 1,
+    "max_weight_error": 0.0,
+    "boundary_edges": 0,
+    "non_manifold_edges": 0,
+    "loose_vertices": 0,
+    "degenerate_triangles": 0,
+    "nonfinite_coordinates": 0
+  },
+  "animation_preservation": {
+    "Bruno_Idle": true,
+    "Bruno_Walk": true,
+    "Bruno_Run": true,
+    "Bruno_Alert": true,
+    "Bruno_Strike": true,
+    "Bruno_Roar": true
+  },
+  "roar_other_tracks_preserved": true,
+  "intentional_animation_changes": "None in v6; the earlier forelimb fix is preserved",
+  "skeleton_unchanged": true,
+  "bones": 31,
+  "mesh_preservation": {
+    "Bruno_Body": {
+      "uv_unchanged": true,
+      "topology_unchanged": true,
+      "weights_unchanged": true,
+      "changed_vertices": 7893
+    },
+    "Bruno_Coat": {
+      "uv_unchanged": true,
+      "topology_unchanged": true,
+      "weights_unchanged": false,
+      "changed_vertices": 54000
+    },
+    "Bruno_Details": {
+      "uv_unchanged": true,
+      "topology_unchanged": true,
+      "weights_unchanged": true,
+      "changed_vertices": 1450
+    }
+  },
+  "animation_bounds": {
+    "Bruno_Idle": {
+      "sample_step": 3,
+      "min_z": -0.0011166356271132827,
+      "max_z": 1.659773588180542
+    },
+    "Bruno_Walk": {
+      "sample_step": 3,
+      "min_z": -0.00010575017950031906,
+      "max_z": 1.6290160417556763
+    },
+    "Bruno_Run": {
+      "sample_step": 3,
+      "min_z": 0.00023364239314105362,
+      "max_z": 1.6102049350738525
+    },
+    "Bruno_Alert": {
+      "sample_step": 3,
+      "min_z": -0.001415473991073668,
+      "max_z": 1.6513737440109253
+    },
+    "Bruno_Strike": {
+      "sample_step": 3,
+      "min_z": -0.00897090882062912,
+      "max_z": 1.9030351638793945
+    },
+    "Bruno_Roar": {
+      "sample_step": 3,
+      "min_z": -1.4811575965723023e-07,
+      "max_z": 3.2836289405822754
+    }
+  },
+  "Bruno_Body_LOD1": {
+    "vertices": 7943,
+    "triangles": 15738
+  },
+  "Bruno_Coat_LOD1": {
+    "vertices": 27000,
+    "triangles": 9000
+  },
+  "Bruno_Details_LOD1": {
+    "vertices": 2154,
+    "triangles": 4132
+  }
+}

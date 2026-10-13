@@ -1,0 +1,88 @@
+{
+  "runs": [
+    {
+      "name": "playtest-circus-cans-20261013-152426",
+      "passed": true,
+      "peers": [
+        {
+          "log": "igruha/Builds/Autotest/logs/playtest-circus-cans-20261013-152426/client-1.log",
+          "passed": true,
+          "markers": [
+            "PLAYTEST_CHECK hatch maximumUpwardStep=0 finalHeights=2.76,2.76",
+            "PLAYTEST_CHECK circus floors=True,True fall=True,True caught=True,True chasePeak=6.64",
+            "PLAYTEST_CHECK PASS mode=circus-cans id=2"
+          ]
+        },
+        {
+          "log": "igruha/Builds/Autotest/logs/playtest-circus-cans-20261013-152426/client-2.log",
+          "passed": true,
+          "markers": [
+            "PLAYTEST_CHECK hatch maximumUpwardStep=0 finalHeights=2.76,2.76",
+            "PLAYTEST_CHECK circus floors=True,True fall=True,True caught=True,True chasePeak=6.65",
+            "PLAYTEST_CHECK PASS mode=circus-cans id=1"
+          ]
+        },
+        {
+          "log": "igruha/Builds/Autotest/logs/playtest-circus-cans-20261013-152426/client-3.log",
+          "passed": true,
+          "markers": [
+            "PLAYTEST_CHECK hatch maximumUpwardStep=0 finalHeights=2.76,2.76",
+            "PLAYTEST_CHECK circus floors=True,True fall=True,True caught=True,True chasePeak=6.67",
+            "PLAYTEST_CHECK PASS mode=circus-cans id=3"
+          ]
+        },
+        {
+          "log": "igruha/Builds/Autotest/logs/playtest-circus-cans-20261013-152426/host.log",
+          "passed": true,
+          "markers": [
+            "PLAYTEST_CHECK hatch maximumUpwardStep=0 finalHeights=2.76,2.76",
+            "PLAYTEST_CHECK circus floors=True,True fall=True,True caught=True,True chasePeak=6.73",
+            "PLAYTEST_CHECK PASS mode=circus-cans id=0"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "playtest-circus-stopwatch-20261013-152620",
+      "passed": true,
+      "peers": [
+        {
+          "log": "igruha/Builds/Autotest/logs/playtest-circus-stopwatch-20261013-152620/client-1.log",
+          "passed": true,
+          "markers": [
+            "PLAYTEST_CHECK hatch maximumUpwardStep=0 finalHeights=2.76,2.76",
+            "PLAYTEST_CHECK circus floors=True,True fall=True,True caught=True,True chasePeak=9.64",
+            "PLAYTEST_CHECK PASS mode=circus-stopwatch id=2"
+          ]
+        },
+        {
+          "log": "igruha/Builds/Autotest/logs/playtest-circus-stopwatch-20261013-152620/client-2.log",
+          "passed": true,
+          "markers": [
+            "PLAYTEST_CHECK hatch maximumUpwardStep=0 finalHeights=2.76,2.76",
+            "PLAYTEST_CHECK circus floors=True,True fall=True,True caught=True,True chasePeak=8.72",
+            "PLAYTEST_CHECK PASS mode=circus-stopwatch id=1"
+          ]
+        },
+        {
+          "log": "igruha/Builds/Autotest/logs/playtest-circus-stopwatch-20261013-152620/client-3.log",
+          "passed": true,
+          "markers": [
+            "PLAYTEST_CHECK hatch maximumUpwardStep=0 finalHeights=2.76,2.76",
+            "PLAYTEST_CHECK circus floors=True,True fall=True,True caught=True,True chasePeak=8.84",
+            "PLAYTEST_CHECK PASS mode=circus-stopwatch id=3"
+          ]
+        },
+        {
+          "log": "igruha/Builds/Autotest/logs/playtest-circus-stopwatch-20261013-152620/host.log",
+          "passed": true,
+          "markers": [
+            "PLAYTEST_CHECK hatch maximumUpwardStep=0 finalHeights=2.76,2.76",
+            "PLAYTEST_CHECK circus floors=True,True fall=True,True caught=True,True chasePeak=8.20",
+            "PLAYTEST_CHECK PASS mode=circus-stopwatch id=0"
+          ]
+        }
+      ]
+    }
+  ]
+}

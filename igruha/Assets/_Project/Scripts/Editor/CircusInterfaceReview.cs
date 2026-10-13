@@ -27,11 +27,11 @@ namespace Igruha.EditorTools
                 var cameraObject=new GameObject("Review camera");cameraObject.transform.SetParent(root.transform);
                 var camera=cameraObject.AddComponent<Camera>();camera.enabled=false;camera.transform.position=new Vector3(0,0,-10);
                 camera.orthographic=true;camera.orthographicSize=1.25f;camera.aspect=2.5f;camera.cullingMask=1<<31;
-                camera.backgroundColor=new Color(.045f,.015f,.024f);camera.clearFlags=CameraClearFlags.SolidColor;camera.targetTexture=target;
+                camera.backgroundColor=new Color(.032f,.043f,.067f);camera.clearFlags=CameraClearFlags.SolidColor;camera.targetTexture=target;
                 var roster=AssetDatabase.LoadAssetAtPath<CharacterRoster>("Assets/_Project/Settings/Gameplay/CharacterRoster.asset");
                 var portraits=roster.Characters.Select(c=>AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_Project/Art/UI/CharacterSelect/Portraits/"+c.DisplayName+"_Face.png")).ToArray();
                 var palette=AssetDatabase.LoadAssetAtPath<CansOrderConfig>("Assets/_Project/Settings/Gameplay/Minigames/CansOrderConfig.asset");
-                var view=canvas.AddComponent<CircusBoardView>();view.Construct(new[]{(RectTransform)canvas.transform},TMP_Settings.defaultFontAsset,portraits,palette);
+                var view=canvas.AddComponent<CircusBoardView>();view.Construct(new[]{(RectTransform)canvas.transform},UiFonts.SansMedium,portraits,palette);
                 view.Header("РАУНД 2 · КРУГ 3","ЛУЧШИЕ ПОПЫТКИ · СОВПАДЕНИЯ / БАНКИ");view.Begin(players,Mathf.Min(players,3));
                 var samples=new[]{new[]{0,4,3,2,1},new[]{1,0,4,2,3},new[]{4,3,2,1,0}};
                 for(int i=0;i<players;i++)view.CansRow(i,i,new[]{"Карло","Босс","ОченьДлинноеИмяИгрока","Фат","МойБой","Алиса","Майлз","Аза"}[i],i<3?samples[i]:null,Mathf.Max(0,3-i),i!=players-1 || players<=3,i==3);

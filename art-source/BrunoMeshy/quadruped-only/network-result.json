@@ -1,0 +1,118 @@
+[
+  {
+    "run": "playtest-circus-cans-20261013-135446",
+    "participant": "client-1",
+    "passed": true,
+    "failures": [],
+    "attention": [
+      "PLAYTEST_CHECK quadruped cage attention frames=408,151 rears=0"
+    ]
+  },
+  {
+    "run": "playtest-circus-cans-20261013-135446",
+    "participant": "client-2",
+    "passed": true,
+    "failures": [],
+    "attention": [
+      "PLAYTEST_CHECK quadruped cage attention frames=406,152 rears=0"
+    ]
+  },
+  {
+    "run": "playtest-circus-cans-20261013-135446",
+    "participant": "client-3",
+    "passed": true,
+    "failures": [],
+    "attention": [
+      "PLAYTEST_CHECK quadruped cage attention frames=404,152 rears=0"
+    ]
+  },
+  {
+    "run": "playtest-circus-cans-20261013-135446",
+    "participant": "host",
+    "passed": true,
+    "failures": [],
+    "attention": [
+      "PLAYTEST_CHECK quadruped cage attention frames=415,155 rears=0"
+    ]
+  },
+  {
+    "run": "playtest-circus-stopwatch-20261013-135639",
+    "participant": "client-1",
+    "passed": false,
+    "failures": [
+      "PLAYTEST_CHECK FAIL airborne pose not seen on both victims"
+    ],
+    "attention": [
+      "PLAYTEST_CHECK quadruped cage attention frames=289,301 rears=0"
+    ]
+  },
+  {
+    "run": "playtest-circus-stopwatch-20261013-135639",
+    "participant": "client-2",
+    "passed": false,
+    "failures": [
+      "PLAYTEST_CHECK FAIL airborne pose not seen on both victims"
+    ],
+    "attention": [
+      "PLAYTEST_CHECK quadruped cage attention frames=289,301 rears=0"
+    ]
+  },
+  {
+    "run": "playtest-circus-stopwatch-20261013-135639",
+    "participant": "client-3",
+    "passed": false,
+    "failures": [
+      "PLAYTEST_CHECK FAIL airborne pose not seen on both victims"
+    ],
+    "attention": [
+      "PLAYTEST_CHECK quadruped cage attention frames=290,303 rears=0"
+    ]
+  },
+  {
+    "run": "playtest-circus-stopwatch-20261013-135639",
+    "participant": "host",
+    "passed": false,
+    "failures": [
+      "PLAYTEST_CHECK FAIL airborne pose not seen on both victims"
+    ],
+    "attention": [
+      "PLAYTEST_CHECK quadruped cage attention frames=306,320 rears=0"
+    ]
+  },
+  {
+    "run": "playtest-circus-stopwatch-20261013-135941",
+    "participant": "client-1",
+    "passed": true,
+    "failures": [],
+    "attention": [
+      "PLAYTEST_CHECK quadruped cage attention frames=280,264 rears=0"
+    ]
+  },
+  {
+    "run": "playtest-circus-stopwatch-20261013-135941",
+    "participant": "client-2",
+    "passed": true,
+    "failures": [],
+    "attention": [
+      "PLAYTEST_CHECK quadruped cage attention frames=280,264 rears=0"
+    ]
+  },
+  {
+    "run": "playtest-circus-stopwatch-20261013-135941",
+    "participant": "client-3",
+    "passed": true,
+    "failures": [],
+    "attention": [
+      "PLAYTEST_CHECK quadruped cage attention frames=278,262 rears=0"
+    ]
+  },
+  {
+    "run": "playtest-circus-stopwatch-20261013-135941",
+    "participant": "host",
+    "passed": true,
+    "failures": [],
+    "attention": [
+      "PLAYTEST_CHECK quadruped cage attention frames=276,269 rears=0"
+    ]
+  }
+]

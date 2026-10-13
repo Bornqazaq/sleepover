@@ -1,0 +1,9 @@
+{
+  "Bruno_Idle": true,
+  "Bruno_Walk": true,
+  "Bruno_Run": true,
+  "Bruno_Alert": true,
+  "Bruno_Strike": true,
+  "Bruno_Roar": true,
+  "roar_comparison_excludes": "ForeUpper/ForeLower/ForePaw/ForeToes only"
+}

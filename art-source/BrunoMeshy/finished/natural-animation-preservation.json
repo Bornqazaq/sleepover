@@ -1,0 +1,26 @@
+[
+  {
+    "name": "Bruno_Idle",
+    "identical": true
+  },
+  {
+    "name": "Bruno_Walk",
+    "identical": true
+  },
+  {
+    "name": "Bruno_Run",
+    "identical": true
+  },
+  {
+    "name": "Bruno_Alert",
+    "identical": true
+  },
+  {
+    "name": "Bruno_Strike",
+    "identical": true
+  },
+  {
+    "name": "Bruno_Roar",
+    "identical": true
+  }
+]

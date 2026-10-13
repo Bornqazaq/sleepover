@@ -75,6 +75,7 @@ namespace Igruha.Minigames.Stopwatch
             public bool LocallyControlled;
         }
 
+        private readonly List<PlayerController> cageOccupants = new List<PlayerController>(8);
         private readonly List<Contestant> contestants = new List<Contestant>(8);
         private readonly List<StopwatchEntry> entries = new List<StopwatchEntry>(8);
         private readonly List<int> faulted = new List<int>(8);
@@ -647,11 +648,6 @@ namespace Igruha.Minigames.Stopwatch
         /// </summary>
         private void EnterHatch()
         {
-            // Момент начала стадии — общий для всех машин: от него и подъём,
-            // и открытие створок считаются одной формулой, поэтому клетка
-            // выбывшего идёт вверх синхронно у всех.
-            double startedAt = NetworkClock.Now;
-
             eliminatedThisSubround.Clear();
             for (int i = 0; i < contestants.Count; i++)
             {
@@ -667,7 +663,7 @@ namespace Igruha.Minigames.Stopwatch
                 if (c.LocallyControlled) attackPresentation?.BeginPit();
                 for (int b = 0; b < BearCount; b++) GetBear(b).RegisterFallen(c.Session.Avatar);
                 eliminatedThisSubround.Add(c.Session.Id);
-                c.Cage?.RaiseAndOpenDoors(config.HatchOpenSeconds, startedAt);
+                c.Cage?.OpenDoors(config.HatchOpenSeconds);
             }
 
             // Ушедшие делят группу с теми, кто выпал в этом же подраунде.
@@ -686,11 +682,8 @@ namespace Igruha.Minigames.Stopwatch
                 ranking.AddEliminationGroup(eliminatedThisSubround);
             }
 
-            // Стадия длиннее ровно на подъём: раньше она равнялась открытию
-            // створок, и с подъёмом следующий подраунд стартовал бы, пока
-            // выбывший ещё едет вверх.
             stageState.EnterStage(StageHatch,
-                eliminatedThisSubround.Count > 0 ? arenaConfig.ExecutionRiseSeconds + config.HatchOpenSeconds : 0f);
+                eliminatedThisSubround.Count > 0 ? config.HatchOpenSeconds : 0f);
         }
 
         /// <summary>
@@ -717,13 +710,20 @@ namespace Igruha.Minigames.Stopwatch
                 return;
             }
 
+            cageOccupants.Clear();
+            for (int i = 0; i < contestants.Count; i++)
+            {
+                Contestant c = contestants[i];
+                if (c.Alive && !c.InPit && c.Cage != null && c.Session.Avatar != null && c.Session.Avatar.gameObject.activeInHierarchy)
+                    cageOccupants.Add(c.Session.Avatar);
+            }
             bool lowest = SomeoneOnLowestCage();
             for (int bearIndex = 0; bearIndex < BearCount; bearIndex++)
             {
                 PitBear pursuer = GetBear(bearIndex);
-                pursuer.Tick(Time.deltaTime, FindNearestInPit(pursuer), lowest);
+                pursuer.Tick(Time.deltaTime, FindNearestInPit(pursuer), lowest, cageOccupants);
                 int targetId = -1;
-                var target = pursuer.AttackVictim != null ? pursuer.AttackVictim : pursuer.Target;
+                var target = pursuer.PresentationVictim;
                 for (int i = 0; i < contestants.Count; i++)
                     if (contestants[i].Session.Avatar == target && target != null) targetId = contestants[i].Session.Id;
                 pursuer.PresentationTargetId = targetId;
@@ -1170,15 +1170,6 @@ namespace Igruha.Minigames.Stopwatch
                 return;
             }
 
-            // В стадии люка высотой распоряжается RaiseAndOpenDoors: клетка
-            // едет вверх, а присланный уровень уже равен верхней ступени.
-            // Без этой отсечки поправка позднего подключения телепортировала
-            // бы клетку посреди подъёма.
-            if (stageState != null && stageState.Stage == StageHatch)
-            {
-                return;
-            }
-
             if (stageState != null && stageState.Stage == StageDescend)
             {
                 // Момент начала стадии: конец минус длительность. Считается
@@ -1208,11 +1199,12 @@ namespace Igruha.Minigames.Stopwatch
                 c.InPit = true;
                 CircusAnimationCullingScope.Bind(c.Session.Avatar);
                 if (c.LocallyControlled) attackPresentation?.BeginPit();
-                // Тот же номер, что у авторитета, и от того же момента: конец
-                // стадии минус её длительность. Опоздавшая машина застаёт
-                // подъём уже законченным и просто открывает дно.
-                c.Cage.RaiseAndOpenDoors(config.HatchOpenSeconds,
-                    stageState != null ? stageState.StageEndTime - stageState.StageDuration : NetworkClock.Now);
+                // The floor opens at the current level. Late snapshots finish the
+                // hatch animation without moving the cage or teleporting its passenger.
+                float elapsed = stageState != null && stageState.Stage == StageHatch
+                    ? (float)System.Math.Max(0, NetworkClock.Now - (stageState.StageEndTime - stageState.StageDuration))
+                    : config.HatchOpenSeconds;
+                c.Cage.OpenDoors(config.HatchOpenSeconds, elapsed);
             }
             else
             {

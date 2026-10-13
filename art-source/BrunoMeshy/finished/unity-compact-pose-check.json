@@ -1,0 +1,32 @@
+[
+  {
+    "title": "Idle",
+    "lowestVertex": -0.0009536743,
+    "highestVertex": 1.80838776,
+    "clipLength": 6.00000048
+  },
+  {
+    "title": "Walk",
+    "lowestVertex": -0.009895325,
+    "highestVertex": 1.74251556,
+    "clipLength": 1.2
+  },
+  {
+    "title": "Run",
+    "lowestVertex": -0.0249710083,
+    "highestVertex": 1.74571991,
+    "clipLength": 0.482926846
+  },
+  {
+    "title": "Strike",
+    "lowestVertex": -0.0106658936,
+    "highestVertex": 1.93587494,
+    "clipLength": 1.4000001
+  },
+  {
+    "title": "Roar",
+    "lowestVertex": -3.81469727E-05,
+    "highestVertex": 3.295517,
+    "clipLength": 3.20000029
+  }
+]

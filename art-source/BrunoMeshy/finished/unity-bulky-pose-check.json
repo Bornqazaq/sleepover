@@ -1,0 +1,52 @@
+[
+  {
+    "title": "Idle",
+    "meshes": {
+      "Bruno_Body": -0.001121521,
+      "Bruno_Coat": 0.0603714
+    },
+    "lowestVertex": -0.001121521,
+    "highestVertex": 1.80641937,
+    "clipLength": 6.00000048
+  },
+  {
+    "title": "Walk",
+    "meshes": {
+      "Bruno_Body": -0.00234985352,
+      "Bruno_Coat": 0.0564880371
+    },
+    "lowestVertex": -0.00234985352,
+    "highestVertex": 1.773735,
+    "clipLength": 1.2
+  },
+  {
+    "title": "Run",
+    "meshes": {
+      "Bruno_Body": -0.0150756836,
+      "Bruno_Coat": 0.005004883
+    },
+    "lowestVertex": -0.0150756836,
+    "highestVertex": 1.74908447,
+    "clipLength": 0.482926846
+  },
+  {
+    "title": "Strike",
+    "meshes": {
+      "Bruno_Body": -0.007209778,
+      "Bruno_Coat": -0.007484436
+    },
+    "lowestVertex": -0.007484436,
+    "highestVertex": 1.93712616,
+    "clipLength": 1.4000001
+  },
+  {
+    "title": "Roar",
+    "meshes": {
+      "Bruno_Body": -3.81469727E-05,
+      "Bruno_Coat": 0.06238556
+    },
+    "lowestVertex": -3.81469727E-05,
+    "highestVertex": 3.28905487,
+    "clipLength": 3.20000029
+  }
+]

@@ -122,6 +122,13 @@ namespace Igruha.EditorTools
 
         private static void ConfigureBearImport(ModelImporter importer)
         {
+            importer.bakeAxisConversion = true;
+            importer.importAnimation = true;
+            importer.animationType = ModelImporterAnimationType.Generic;
+            importer.importCameras = false;
+            importer.importLights = false;
+            importer.addCollider = false;
+            ConfigureBearMaterials(importer);
             importer.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
             importer.motionNodeName = "Root";
             importer.animationCompression = ModelImporterAnimationCompression.Off;
@@ -134,6 +141,53 @@ namespace Igruha.EditorTools
                 clip.lockRootRotation = true; clip.lockRootPositionXZ = true; clip.lockRootHeightY = true;
             }
             importer.clipAnimations = clips;
+        }
+
+        private static void ConfigureBearMaterials(ModelImporter importer)
+        {
+            if (!File.Exists(Art + "/Textures/CN_BrunoBody_BaseColor.png")) return;
+            var body = EnsureMaterial("CN_BrunoBody");
+            var coat = EnsureMaterial("CN_BrunoCoat");
+            body.SetColor("_BaseColor", Color.white);
+            body.SetTexture("_BaseMap", BearTexture("CN_BrunoBody_BaseColor", true));
+            body.SetTexture("_BumpMap", BearTexture("CN_BrunoBody_Normal", false, true));
+            body.SetFloat("_BumpScale", 1f);
+            body.EnableKeyword("_NORMALMAP");
+            body.SetTexture("_MetallicGlossMap", BearTexture("CN_BrunoBody_MetallicSmoothness", false));
+            body.SetFloat("_Metallic", 0f);
+            body.SetFloat("_Smoothness", 1f);
+            body.EnableKeyword("_METALLICSPECGLOSSMAP");
+            body.SetFloat("_Cull", 2f);
+            coat.SetColor("_BaseColor", Color.white);
+            coat.SetTexture("_BaseMap", BearTexture("CN_BrunoCoat_BaseColor", true));
+            coat.SetFloat("_Metallic", 0f);
+            coat.SetFloat("_Smoothness", .12f);
+            coat.SetFloat("_Cull", 0f);
+            foreach (var material in new[] { body, coat })
+            {
+                material.enableInstancing = true;
+                EditorUtility.SetDirty(material);
+                importer.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), material.name), material);
+            }
+        }
+
+        private static Texture2D BearTexture(string name, bool srgb, bool normal = false)
+        {
+            string path = Art + "/Textures/" + name + ".png";
+            var importer = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (importer == null) throw new InvalidOperationException("Missing bear texture: " + path);
+            var type = normal ? TextureImporterType.NormalMap : TextureImporterType.Default;
+            if (importer.textureType != type || importer.sRGBTexture != srgb ||
+                importer.textureCompression != TextureImporterCompression.Uncompressed)
+            {
+                importer.textureType = type;
+                importer.sRGBTexture = srgb;
+                importer.textureCompression = TextureImporterCompression.Uncompressed;
+                importer.mipmapEnabled = true;
+                importer.filterMode = FilterMode.Trilinear;
+                importer.SaveAndReimport();
+            }
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
         }
 
         internal static Material EnsureMaterial(string name)
@@ -189,19 +243,26 @@ namespace Igruha.EditorTools
             foreach (var old in AssetDatabase.LoadAllAssetsAtPath(Controller).OfType<BlendTree>()) UnityEngine.Object.DestroyImmediate(old,true);
             controller.AddParameter("Speed",AnimatorControllerParameterType.Float);
             controller.AddParameter("Strike",AnimatorControllerParameterType.Trigger);
-            controller.AddParameter("Roar",AnimatorControllerParameterType.Trigger);
             controller.AddParameter("Alert",AnimatorControllerParameterType.Trigger);
             var tree = new BlendTree { name="BearGait",blendType=BlendTreeType.Simple1D,blendParameter="Speed",useAutomaticThresholds=false };
-            AssetDatabase.AddObjectToAsset(tree,controller);tree.AddChild(clip("Idle"),0);tree.AddChild(clip("Walk"),2.1f);tree.AddChild(clip("Run"),8.2f);
-            var gaits=tree.children;gaits[2].timeScale=8.2f/6.6f;tree.children=gaits;
+            const float walkSpeed = .85f, briskWalkSpeed = 1.35f;
+            AssetDatabase.AddObjectToAsset(tree,controller);tree.AddChild(clip("Idle"),0);tree.AddChild(clip("Walk"),walkSpeed);
+            tree.AddChild(clip("Walk"),briskWalkSpeed);tree.AddChild(clip("Run"),8.2f);
+            var gaits=tree.children;
+            // The sampled Meshy gait is a heavy 1.2-second walk at 0.85 m/s.
+            // Keep the same gait when patrol changes pace; move the feet at the
+            // matching rate instead of blending toward the running pose early.
+            gaits[1].timeScale=1f;
+            gaits[2].timeScale=briskWalkSpeed/walkSpeed;
+            gaits[3].timeScale=8.2f/6.6f;tree.children=gaits;
             var idle = machine.AddState("Locomotion");idle.motion = tree;machine.defaultState = idle;
-            foreach (string title in new[] { "Strike", "Roar", "Alert" })
+            foreach (string title in new[] { "Strike", "Alert" })
             {
                 var state = machine.AddState(title);state.motion = clip(title);
                 var enter = machine.AddAnyStateTransition(state);enter.AddCondition(AnimatorConditionMode.If,0,title);
                 enter.hasExitTime=false;enter.duration=.10f;enter.canTransitionToSelf=false;
                 var exit = state.AddTransition(idle);exit.hasExitTime=true;exit.exitTime=1f;exit.duration=.12f;
-                if (title == "Roar" || title == "Alert")
+                if (title == "Alert")
                 {
                     // A newly fallen player interrupts the display, so the bear can start chasing.
                     var chase = state.AddTransition(idle);chase.hasExitTime=false;chase.duration=.15f;

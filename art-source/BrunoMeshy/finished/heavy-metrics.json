@@ -1,0 +1,14 @@
+{
+  "vertices": 276804,
+  "triangles": 220960,
+  "bones": 31,
+  "actions": [
+    "Bruno_Idle",
+    "Bruno_Walk",
+    "Bruno_Run",
+    "Bruno_Alert",
+    "Bruno_Strike",
+    "Bruno_Roar"
+  ],
+  "palette_mean_linear_error": 0.00038630494964309037
+}

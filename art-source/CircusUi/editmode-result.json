@@ -1,0 +1,16 @@
+{
+  "job_id": "c7a9b45af22a4d31b4e730215a9da030",
+  "mode": "EditMode",
+  "groups": [
+    "Igruha.Tests.Circus.*",
+    "Igruha.Tests.CansOrder.*",
+    "Igruha.Tests.Stopwatch.*",
+    "Igruha.Tests.TutorialReadinessTests.*"
+  ],
+  "total": 212,
+  "passed": 212,
+  "failed": 0,
+  "skipped": 0,
+  "durationSeconds": 19.1026856,
+  "resultState": "Passed"
+}

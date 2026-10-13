@@ -1,0 +1,82 @@
+{
+  "buildEndedAtUTC": "2026-10-13T09:38:51",
+  "scope": "Host + 3 clients, both circus games; final follow-up only aligns tutorial panel shadows and reruns EditMode tests",
+  "runs": [
+    {
+      "name": "playtest-circus-cans-20261013-143913",
+      "passed": true,
+      "peers": [
+        {
+          "log": "igruha/Builds/Autotest/logs/playtest-circus-cans-20261013-143913/client-1.log",
+          "passed": true,
+          "markers": [
+            "PLAYTEST_CHECK interface roundClockVisible=True cans=True",
+            "PLAYTEST_CHECK PASS mode=circus-cans id=1"
+          ]
+        },
+        {
+          "log": "igruha/Builds/Autotest/logs/playtest-circus-cans-20261013-143913/client-2.log",
+          "passed": true,
+          "markers": [
+            "PLAYTEST_CHECK interface roundClockVisible=True cans=True",
+            "PLAYTEST_CHECK PASS mode=circus-cans id=2"
+          ]
+        },
+        {
+          "log": "igruha/Builds/Autotest/logs/playtest-circus-cans-20261013-143913/client-3.log",
+          "passed": true,
+          "markers": [
+            "PLAYTEST_CHECK interface roundClockVisible=True cans=True",
+            "PLAYTEST_CHECK PASS mode=circus-cans id=3"
+          ]
+        },
+        {
+          "log": "igruha/Builds/Autotest/logs/playtest-circus-cans-20261013-143913/host.log",
+          "passed": true,
+          "markers": [
+            "PLAYTEST_CHECK interface roundClockVisible=True cans=True",
+            "PLAYTEST_CHECK PASS mode=circus-cans id=0"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "playtest-circus-stopwatch-20261013-144117",
+      "passed": true,
+      "peers": [
+        {
+          "log": "igruha/Builds/Autotest/logs/playtest-circus-stopwatch-20261013-144117/client-1.log",
+          "passed": true,
+          "markers": [
+            "PLAYTEST_CHECK interface roundClockVisible=False cans=False",
+            "PLAYTEST_CHECK PASS mode=circus-stopwatch id=1"
+          ]
+        },
+        {
+          "log": "igruha/Builds/Autotest/logs/playtest-circus-stopwatch-20261013-144117/client-2.log",
+          "passed": true,
+          "markers": [
+            "PLAYTEST_CHECK interface roundClockVisible=False cans=False",
+            "PLAYTEST_CHECK PASS mode=circus-stopwatch id=2"
+          ]
+        },
+        {
+          "log": "igruha/Builds/Autotest/logs/playtest-circus-stopwatch-20261013-144117/client-3.log",
+          "passed": true,
+          "markers": [
+            "PLAYTEST_CHECK interface roundClockVisible=False cans=False",
+            "PLAYTEST_CHECK PASS mode=circus-stopwatch id=3"
+          ]
+        },
+        {
+          "log": "igruha/Builds/Autotest/logs/playtest-circus-stopwatch-20261013-144117/host.log",
+          "passed": true,
+          "markers": [
+            "PLAYTEST_CHECK interface roundClockVisible=False cans=False",
+            "PLAYTEST_CHECK PASS mode=circus-stopwatch id=0"
+          ]
+        }
+      ]
+    }
+  ]
+}

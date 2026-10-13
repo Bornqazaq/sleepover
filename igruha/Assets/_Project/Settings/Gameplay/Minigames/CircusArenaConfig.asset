@@ -25,6 +25,7 @@ MonoBehaviour:
   cageLevelStep: 3
   maxLevelSteps: 3
   cageLevelStepDuration: 2
+  cageRimClearance: 0.6
   scoreboardHeight: 11
   scoreboardFaceWidth: 8
   scoreboardFaceHeight: 3

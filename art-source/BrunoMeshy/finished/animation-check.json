@@ -1,0 +1,9 @@
+{
+  "minimum_sole_z_m": -1.1066855165609013e-07,
+  "support_sole_min_m": -1.1066855165609013e-07,
+  "support_sole_max_m": 3.2737406741034647e-07,
+  "walk_scale_deviation": 5.960464477539062e-07,
+  "loop_matrix_error": 0.0,
+  "vertices": 18799,
+  "coat_vertices": 215236
+}

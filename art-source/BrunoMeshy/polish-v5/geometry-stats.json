@@ -1,0 +1,26 @@
+{
+  "Bruno_Body": {
+    "vertices": 15812,
+    "triangles": 31476
+  },
+  "Bruno_Coat": {
+    "vertices": 54000,
+    "triangles": 18000
+  },
+  "Bruno_Details": {
+    "vertices": 3532,
+    "triangles": 6888
+  },
+  "Bruno_Body_LOD1": {
+    "vertices": 7987,
+    "triangles": 15826
+  },
+  "Bruno_Coat_LOD1": {
+    "vertices": 27000,
+    "triangles": 9000
+  },
+  "Bruno_Details_LOD1": {
+    "vertices": 2154,
+    "triangles": 4132
+  }
+}

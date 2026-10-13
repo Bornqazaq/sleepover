@@ -1,0 +1,371 @@
+{
+  "source": "Meshy_AI_Bruno_Meshy_body_only_quadruped_model_Animation_Walking_withSkin.glb",
+  "sha256": "49eee0891d5f8ac682aa64066ce46e7ba17392923289a3023e4c526933ed522a",
+  "source_frames": [
+    0,
+    24
+  ],
+  "source_seconds": 0.8,
+  "retarget_seconds": 1.2,
+  "authored_speed": 0.85,
+  "tracks": {
+    "Fore.R": {
+      "meanx": -0.5595940684278806,
+      "lift": 0.0,
+      "land": 0.3,
+      "duration": 0.3,
+      "lo": 0.8247631192207336,
+      "hi": 1.9166300296783447,
+      "zlift": -1.1191238164901733,
+      "zland": -0.9410701394081116,
+      "peak": 0.10179616345299614,
+      "roll": -0.6178986621872707
+    },
+    "Fore.L": {
+      "meanx": 0.5491785918672879,
+      "lift": 0.4666666666666667,
+      "land": 0.8666666666666667,
+      "duration": 0.4,
+      "lo": 0.8697851896286011,
+      "hi": 1.9043430089950562,
+      "zlift": -1.1110484600067139,
+      "zland": -1.0806796550750732,
+      "peak": 0.2208141485850017,
+      "roll": -0.6428561463456989
+    },
+    "Hind.R": {
+      "meanx": -0.6220490316549937,
+      "lift": 0.8,
+      "land": 0.26666666666666666,
+      "duration": 0.46666666666666656,
+      "lo": -0.32076191902160645,
+      "hi": 0.5446801781654358,
+      "zlift": -1.0925956964492798,
+      "zland": -1.0944616794586182,
+      "peak": 0.20109818662915901,
+      "roll": -0.25683967199948554
+    },
+    "Hind.L": {
+      "meanx": 0.6050579731663068,
+      "lift": 0.3,
+      "land": 0.7666666666666667,
+      "duration": 0.46666666666666673,
+      "lo": -0.3207884728908539,
+      "hi": 0.5406908392906189,
+      "zlift": -1.075018286705017,
+      "zland": -1.0699599981307983,
+      "peak": 0.1788226025445121,
+      "roll": -0.20274035747506255
+    }
+  },
+  "samples": [
+    {
+      "frame": 1,
+      "source_frame": 0.0,
+      "stance": [
+        "Fore.L",
+        "Hind.L"
+      ]
+    },
+    {
+      "frame": 2,
+      "source_frame": 0.6666666666666666,
+      "stance": [
+        "Fore.L",
+        "Hind.L"
+      ]
+    },
+    {
+      "frame": 3,
+      "source_frame": 1.3333333333333333,
+      "stance": [
+        "Fore.L",
+        "Hind.L"
+      ]
+    },
+    {
+      "frame": 4,
+      "source_frame": 2.0,
+      "stance": [
+        "Fore.L",
+        "Hind.L"
+      ]
+    },
+    {
+      "frame": 5,
+      "source_frame": 2.6666666666666665,
+      "stance": [
+        "Fore.L",
+        "Hind.L"
+      ]
+    },
+    {
+      "frame": 6,
+      "source_frame": 3.3333333333333335,
+      "stance": [
+        "Fore.L",
+        "Hind.L"
+      ]
+    },
+    {
+      "frame": 7,
+      "source_frame": 4.0,
+      "stance": [
+        "Fore.L",
+        "Hind.L"
+      ]
+    },
+    {
+      "frame": 8,
+      "source_frame": 4.666666666666667,
+      "stance": [
+        "Fore.L",
+        "Hind.L"
+      ]
+    },
+    {
+      "frame": 9,
+      "source_frame": 5.333333333333333,
+      "stance": [
+        "Fore.L",
+        "Hind.L"
+      ]
+    },
+    {
+      "frame": 10,
+      "source_frame": 6.0,
+      "stance": [
+        "Fore.L",
+        "Hind.L"
+      ]
+    },
+    {
+      "frame": 11,
+      "source_frame": 6.666666666666667,
+      "stance": [
+        "Fore.L",
+        "Hind.R",
+        "Hind.L"
+      ]
+    },
+    {
+      "frame": 12,
+      "source_frame": 7.333333333333334,
+      "stance": [
+        "Fore.R",
+        "Fore.L",
+        "Hind.R"
+      ]
+    },
+    {
+      "frame": 13,
+      "source_frame": 8.0,
+      "stance": [
+        "Fore.R",
+        "Fore.L",
+        "Hind.R"
+      ]
+    },
+    {
+      "frame": 14,
+      "source_frame": 8.666666666666666,
+      "stance": [
+        "Fore.R",
+        "Fore.L",
+        "Hind.R"
+      ]
+    },
+    {
+      "frame": 15,
+      "source_frame": 9.333333333333334,
+      "stance": [
+        "Fore.R",
+        "Fore.L",
+        "Hind.R"
+      ]
+    },
+    {
+      "frame": 16,
+      "source_frame": 10.0,
+      "stance": [
+        "Fore.R",
+        "Fore.L",
+        "Hind.R"
+      ]
+    },
+    {
+      "frame": 17,
+      "source_frame": 10.666666666666666,
+      "stance": [
+        "Fore.R",
+        "Fore.L",
+        "Hind.R"
+      ]
+    },
+    {
+      "frame": 18,
+      "source_frame": 11.333333333333332,
+      "stance": [
+        "Fore.R",
+        "Hind.R"
+      ]
+    },
+    {
+      "frame": 19,
+      "source_frame": 12.0,
+      "stance": [
+        "Fore.R",
+        "Hind.R"
+      ]
+    },
+    {
+      "frame": 20,
+      "source_frame": 12.666666666666668,
+      "stance": [
+        "Fore.R",
+        "Hind.R"
+      ]
+    },
+    {
+      "frame": 21,
+      "source_frame": 13.333333333333334,
+      "stance": [
+        "Fore.R",
+        "Hind.R"
+      ]
+    },
+    {
+      "frame": 22,
+      "source_frame": 14.0,
+      "stance": [
+        "Fore.R",
+        "Hind.R"
+      ]
+    },
+    {
+      "frame": 23,
+      "source_frame": 14.666666666666668,
+      "stance": [
+        "Fore.R",
+        "Hind.R"
+      ]
+    },
+    {
+      "frame": 24,
+      "source_frame": 15.333333333333332,
+      "stance": [
+        "Fore.R",
+        "Hind.R"
+      ]
+    },
+    {
+      "frame": 25,
+      "source_frame": 16.0,
+      "stance": [
+        "Fore.R",
+        "Hind.R"
+      ]
+    },
+    {
+      "frame": 26,
+      "source_frame": 16.666666666666664,
+      "stance": [
+        "Fore.R",
+        "Hind.R"
+      ]
+    },
+    {
+      "frame": 27,
+      "source_frame": 17.333333333333332,
+      "stance": [
+        "Fore.R",
+        "Hind.R"
+      ]
+    },
+    {
+      "frame": 28,
+      "source_frame": 18.0,
+      "stance": [
+        "Fore.R",
+        "Hind.R"
+      ]
+    },
+    {
+      "frame": 29,
+      "source_frame": 18.666666666666668,
+      "stance": [
+        "Fore.R",
+        "Hind.R",
+        "Hind.L"
+      ]
+    },
+    {
+      "frame": 30,
+      "source_frame": 19.333333333333336,
+      "stance": [
+        "Fore.R",
+        "Hind.L"
+      ]
+    },
+    {
+      "frame": 31,
+      "source_frame": 20.0,
+      "stance": [
+        "Fore.R",
+        "Hind.L"
+      ]
+    },
+    {
+      "frame": 32,
+      "source_frame": 20.666666666666668,
+      "stance": [
+        "Fore.R",
+        "Hind.L"
+      ]
+    },
+    {
+      "frame": 33,
+      "source_frame": 21.333333333333332,
+      "stance": [
+        "Fore.R",
+        "Fore.L",
+        "Hind.L"
+      ]
+    },
+    {
+      "frame": 34,
+      "source_frame": 22.0,
+      "stance": [
+        "Fore.R",
+        "Fore.L",
+        "Hind.L"
+      ]
+    },
+    {
+      "frame": 35,
+      "source_frame": 22.666666666666664,
+      "stance": [
+        "Fore.R",
+        "Fore.L",
+        "Hind.L"
+      ]
+    },
+    {
+      "frame": 36,
+      "source_frame": 23.333333333333332,
+      "stance": [
+        "Fore.R",
+        "Fore.L",
+        "Hind.L"
+      ]
+    },
+    {
+      "frame": 37,
+      "source_frame": 0.0,
+      "stance": [
+        "Fore.L",
+        "Hind.L"
+      ]
+    }
+  ]
+}

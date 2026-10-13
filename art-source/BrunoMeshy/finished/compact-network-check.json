@@ -1,0 +1,54 @@
+{
+  "Stopwatch": {
+    "folder": "playtest-circus-stopwatch-20261009-143802",
+    "instances": {
+      "client-1.log": {
+        "pass": true,
+        "fail": false,
+        "exception": false
+      },
+      "client-2.log": {
+        "pass": true,
+        "fail": false,
+        "exception": false
+      },
+      "client-3.log": {
+        "pass": true,
+        "fail": false,
+        "exception": false
+      },
+      "host.log": {
+        "pass": true,
+        "fail": false,
+        "exception": false
+      }
+    },
+    "contact_camera_visual_review": "host-strike-150.png and host-strike-350.png; companion does not obscure subjects"
+  },
+  "CansOrder": {
+    "folder": "playtest-circus-cans-20261009-143905",
+    "instances": {
+      "client-1.log": {
+        "pass": true,
+        "fail": false,
+        "exception": false
+      },
+      "client-2.log": {
+        "pass": true,
+        "fail": false,
+        "exception": false
+      },
+      "client-3.log": {
+        "pass": true,
+        "fail": false,
+        "exception": false
+      },
+      "host.log": {
+        "pass": true,
+        "fail": false,
+        "exception": false
+      }
+    },
+    "contact_camera_visual_review": "host-strike-150.png and host-strike-350.png; companion does not obscure subjects"
+  }
+}

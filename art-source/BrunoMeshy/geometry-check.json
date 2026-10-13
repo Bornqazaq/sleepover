@@ -1,0 +1,43 @@
+{
+  "vertices": 18799,
+  "triangles": 37374,
+  "closed_components": 56,
+  "continuous_skin_vertices": 11866,
+  "nonmanifold_edges": 0,
+  "zero_area_faces": 0,
+  "loose_vertices": 0,
+  "skin_symmetry_max_m": 2.3844768293201923e-07,
+  "bounds_m": [
+    [
+      1.562160611152649,
+      3.8568687438964844,
+      2.1061110496520996
+    ]
+  ],
+  "fur_geometry": false,
+  "armatures": 0,
+  "animations": 0,
+  "ground_z_m": 1.0430813157658037e-10,
+  "validation_scope": "Static geometry, glTF and Blender round-trip. Meshy weights/walk untested.",
+  "glb_bytes": 1233812,
+  "glb_triangles": 37374,
+  "glb_materials": [
+    "BM_Body_vertex_colour.002",
+    "BM_Body_umber.003",
+    "BM_Paws_and_lips.003",
+    "BM_Eyes_dark.003",
+    "BM_Iris_amber.003",
+    "BM_Nose.003",
+    "BM_Mouth.003",
+    "BM_Muzzle_warm.003",
+    "BM_Gums.003",
+    "BM_Teeth_ivory.003",
+    "BM_Claws_horn.003"
+  ],
+  "roundtrip": {
+    "mesh_objects": 1,
+    "armatures": 0,
+    "triangles": 37374,
+    "bounds_delta_m": 0
+  }
+}

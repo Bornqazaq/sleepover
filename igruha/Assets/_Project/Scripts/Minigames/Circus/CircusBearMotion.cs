@@ -9,24 +9,26 @@ namespace Igruha.Minigames.Circus
     public sealed class CircusBearMotion : MonoBehaviour
     {
         private const float PawRadius = .18f;
+        private const float RestingLookDegrees = 8f;
+        private const float WalkingLookDegrees = 3f;
+        private const float RestingSpeed = .15f;
+        private const float LookFrequency = .73f;
+        private const float SecondaryLookFrequency = 1.17f;
+        private const float CageLookUpDegrees = 24f;
         [SerializeField] private PitBear bear;
         [SerializeField] private Transform neck;
         [SerializeField] private Transform head;
         [SerializeField] private Transform chest;
         [SerializeField] private Transform lumbar;
-        private sealed class Leg
-        {
-            internal Transform Upper, Lower, Paw, Toes;
-            internal Vector3 ContactOffset;
-            internal float UpperLength, LowerLength;
-        }
-        private readonly Leg[] legs = new Leg[4];
+        private readonly CircusBearLeg[] legs = new CircusBearLeg[4];
+        private readonly CircusBearTurnSteps turnSteps = new CircusBearTurnSteps();
         private readonly Transform[] lids = new Transform[2];
         private readonly Transform[] ears = new Transform[2];
         private readonly CircusBearContactShape contactShape = new CircusBearContactShape();
         private PlayerController fittedVictim;
         private Vector3 previousPosition, previousContact;
-        private float previousYaw, headTurn;
+        private Vector3 headForward;
+        private float previousYaw, headTurn, headPitch;
         private float lifeTime;
         private bool initialized, contactKnown;
         private Vector3 sampledSurface,sampledShoulder;
@@ -63,7 +65,7 @@ namespace Igruha.Minigames.Circus
                     }
                 }
             }
-            Leg leg=legs[1];
+            CircusBearLeg leg=legs[1];
             return "victim="+victim+" pose="+pose+" sampleAge="+sampledAge.ToString("F3")+
                 " surface="+sampledSurface.ToString("F3")+" shoulder="+sampledShoulder.ToString("F3")+
                 " reach="+sampledShoulderDistance.ToString("F3")+"/"+sampledReach.ToString("F3")+
@@ -82,7 +84,8 @@ namespace Igruha.Minigames.Circus
             Vector3 outside = pad - victim.Position; outside.y = 0;
             // Effective horizontal reach at the braced shoulder, including the
             // pad offset. A thin runner must not be swiped at a large body's gap.
-            return Mathf.Clamp(1.70f + outside.magnitude, 2.0f, 2.85f);
+            // Compact forelimbs need a closer approach before the committed swat.
+            return Mathf.Clamp(1.35f + outside.magnitude, 1.65f, 2.50f);
         }
 
         public bool HasBodyClearance(PlayerController victim)
@@ -103,6 +106,7 @@ namespace Igruha.Minigames.Circus
 
         private void Awake()
         {
+            if (head != null && bear != null) headForward = head.InverseTransformDirection(bear.PresentationRoot.forward);
             var bones = GetComponentsInChildren<Transform>(true);
             foreach (var bone in bones)
             {
@@ -116,7 +120,7 @@ namespace Igruha.Minigames.Circus
             for (int i = 0; i < legs.Length; i++)
             {
                 string suffix = i % 2 == 0 ? ".L" : ".R";
-                var leg = new Leg(); legs[i] = leg;
+                var leg = new CircusBearLeg(); legs[i] = leg;
                 foreach (var bone in bones)
                 {
                     if (bone.name == names[i] + "Upper" + suffix) leg.Upper = bone;
@@ -128,14 +132,15 @@ namespace Igruha.Minigames.Circus
                 leg.UpperLength = Vector3.Distance(leg.Upper.position, leg.Lower.position);
                 leg.LowerLength = Vector3.Distance(leg.Lower.position, leg.Paw.position);
                 leg.ContactOffset = leg.Toes != null ? leg.Paw.InverseTransformPoint(leg.Toes.position) * .65f : Vector3.zero;
+                turnSteps.Bind(i, leg, bear != null ? bear.PresentationRoot : transform);
             }
         }
 
-        private void OnEnable() { initialized = false; contactKnown = false; }
+        private void OnEnable() { initialized = false; contactKnown = false; turnSteps.Reset(); }
 
         public void ResetPresentationHistory()
         {
-            initialized=false;contactKnown=false;
+            initialized=false;contactKnown=false;turnSteps.Reset();
             ContactFrame=-1;ContactVictim=null;ContactDistance=float.PositiveInfinity;
         }
 
@@ -157,11 +162,13 @@ namespace Igruha.Minigames.Circus
             previousYaw = yaw; previousPosition = root.position; initialized = true;
             bool locomotion = bear.State == PitBear.BearState.Patrol || bear.State == PitBear.BearState.Chase;
             bool striking = bear.State == PitBear.BearState.Attack;
-            bool turning = Mathf.Abs(turn) > 8 && bear.State != PitBear.BearState.Taunt;
+            bool cageFocus = bear.PresentationVictim != null &&
+                bear.State == PitBear.BearState.CageApproach;
+            bool turning = Mathf.Abs(turn) > 8;
             lifeTime += dt;
             // Facial life continues during locomotion and pauses; it is not tied
             // to the short repeating walk cycle. The two animals have different phases.
-            if (!striking && bear.State != PitBear.BearState.Taunt)
+            if (!striking)
             {
                 float blink = Mathf.Max(0, 1 - Mathf.Abs(Mathf.Repeat(lifeTime, 4.9f) - 3.6f) / .095f);
                 for (int i = 0; i < 2; i++)
@@ -178,33 +185,56 @@ namespace Igruha.Minigames.Circus
                 if (head != null) head.localRotation *= Quaternion.Euler(.65f * Mathf.Sin(lifeTime * 2.15f), 0, 0);
             }
             float bearing = turn * .065f;
+            if (bear.PresentationVictim == null && bear.State == PitBear.BearState.Patrol)
+            {
+                float glance = Mathf.Sin(lifeTime * LookFrequency) + .35f * Mathf.Sin(lifeTime * SecondaryLookFrequency);
+                bearing += glance * (bear.AnimatorSpeed < RestingSpeed ? RestingLookDegrees : WalkingLookDegrees);
+            }
             if (bear.PresentationVictim != null)
             {
                 Vector3 toward = bear.PresentationVictim.Position - root.position; toward.y = 0;
                 if (toward.sqrMagnitude > .01f) bearing = Mathf.Clamp(Vector3.SignedAngle(root.forward, toward, Vector3.up), -18, 18);
             }
-            headTurn = Mathf.Lerp(headTurn, locomotion || turning ? bearing : 0, 1 - Mathf.Exp(-9 * dt));
-            if (locomotion || turning)
+            headTurn = Mathf.Lerp(headTurn, locomotion || turning || cageFocus ? bearing : 0, 1 - Mathf.Exp(-9 * dt));
+            if (locomotion || turning || cageFocus)
             {
                 if (neck != null) neck.rotation = Quaternion.AngleAxis(headTurn * .4f, Vector3.up) * neck.rotation;
                 if (head != null) head.rotation = Quaternion.AngleAxis(headTurn * .6f, Vector3.up) * head.rotation;
+            }
+            float pitch = 0;
+            if (cageFocus && head != null)
+            {
+                Vector3 look = bear.PresentationVictim.Position - head.position;
+                float elevation = Mathf.Atan2(look.y, new Vector2(look.x, look.z).magnitude) * Mathf.Rad2Deg;
+                // Add only the remaining upward gaze within the comfortable
+                // neck range; the body keeps its quadruped locomotion pose.
+                float authored = Mathf.Asin(Mathf.Clamp(head.TransformDirection(headForward).y, -1, 1)) * Mathf.Rad2Deg;
+                pitch = -Mathf.Clamp(elevation - Mathf.Max(0, authored), 0, CageLookUpDegrees);
+            }
+            headPitch = Mathf.Lerp(headPitch, pitch, 1 - Mathf.Exp(-5 * dt));
+            if (!striking && Mathf.Abs(headPitch) > .01f)
+            {
+                if (neck != null) neck.rotation = Quaternion.AngleAxis(headPitch * .35f, root.right) * neck.rotation;
+                if (head != null) head.rotation = Quaternion.AngleAxis(headPitch * .65f, root.right) * head.rotation;
             }
             if (bear.PresentationVictim != fittedVictim)
             {
                 fittedVictim = bear.PresentationVictim;
                 contactShape.Bind(fittedVictim); contactKnown = false;
             }
-            // Locomotion and support paws belong to the baked gait. Locking an
-            // animated paw to a second world-space anchor made it stretch, then
-            // snap loose at MaximumPlantOffset, especially during turns/blends.
-            // Only the striking forepaw adapts to the victim's actual surface.
-            Leg strikeLeg = legs[1];
+            // Ordinary travel uses the authored gait. Slow pivots use short lifted
+            // steps; both position and paw heading stay fixed during support.
+            if (teleported) turnSteps.Reset();
+            turnSteps.Evaluate(root, displacement / dt, turn, dt,
+                !teleported && !striking && bear.State != PitBear.BearState.Recovery,
+                chest, lumbar);
+            CircusBearLeg strikeLeg = legs[1];
             if (striking && strikeLeg != null && strikeLeg.Paw != null)
                 FitStrike(strikeLeg);
             if (!striking) { contactKnown = false; ContactDistance = float.PositiveInfinity; }
         }
 
-        private void FitStrike(Leg leg)
+        private void FitStrike(CircusBearLeg leg)
         {
             Vector3 animated = leg.Paw.TransformPoint(leg.ContactOffset);
             if (fittedVictim == null) { StrikePawCenter = animated; ContactDistance = float.PositiveInfinity; return; }
@@ -227,28 +257,12 @@ namespace Igruha.Minigames.Circus
             wanted = bear.ConstrainPawCenter(wanted);
             Quaternion rotation = leg.Paw.rotation;
             Vector3 ankle = wanted - leg.Paw.TransformVector(leg.ContactOffset);
-            Solve(leg, ankle, rotation);
+            leg.Solve(ankle, rotation);
             StrikePawCenter = leg.Paw.TransformPoint(leg.ContactOffset);
             ContactDistance = contactShape.SurfaceGap(StrikePawCenter, PawRadius);
             ContactFrame = Time.frameCount; ContactVersion++; ContactVictim = fittedVictim;
             previousContact = StrikePawCenter; contactKnown = true;
         }
 
-        private static void Solve(Leg leg, Vector3 target, Quaternion pawRotation)
-        {
-            Vector3 start = leg.Upper.position;
-            Vector3 direction = target - start;
-            float distance = Mathf.Clamp(direction.magnitude, .025f, leg.UpperLength + leg.LowerLength - .006f);
-            direction.Normalize();
-            Vector3 pole = leg.Lower.position - start;
-            pole -= direction * Vector3.Dot(pole, direction);
-            if (pole.sqrMagnitude < .00001f) pole = Vector3.Cross(direction, leg.Upper.right);
-            pole.Normalize();
-            float along = (leg.UpperLength * leg.UpperLength - leg.LowerLength * leg.LowerLength + distance * distance) / (2 * distance);
-            Vector3 joint = start + direction * along + pole * Mathf.Sqrt(Mathf.Max(0, leg.UpperLength * leg.UpperLength - along * along));
-            leg.Upper.rotation = Quaternion.FromToRotation(leg.Lower.position - start, joint - start) * leg.Upper.rotation;
-            leg.Lower.rotation = Quaternion.FromToRotation(leg.Paw.position - leg.Lower.position, start + direction * distance - leg.Lower.position) * leg.Lower.rotation;
-            leg.Paw.rotation = pawRotation;
-        }
     }
 }

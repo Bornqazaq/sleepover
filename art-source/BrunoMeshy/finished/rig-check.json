@@ -1,0 +1,10 @@
+{
+  "bones": 31,
+  "body_vertices": 18252,
+  "max_support_ankle_error": 0.04026374063954452,
+  "support_samples": 99,
+  "actions": [
+    "Bruno_Idle",
+    "Bruno_Walk"
+  ]
+}

@@ -159,6 +159,7 @@ namespace Igruha.Minigames.CansOrder
             public bool NetSeen;
         }
 
+        private readonly List<PlayerController> cageOccupants = new List<PlayerController>(8);
         private readonly List<Contestant> contestants = new List<Contestant>(8);
         private readonly EliminationRanking ranking = new EliminationRanking();
 
@@ -1727,13 +1728,20 @@ namespace Igruha.Minigames.CansOrder
                 return;
             }
 
+            cageOccupants.Clear();
+            for (int i = 0; i < contestants.Count; i++)
+            {
+                Contestant c = contestants[i];
+                if (c.Entry.Alive && !c.InPit && c.Cage != null && c.Session.Avatar != null && c.Session.Avatar.gameObject.activeInHierarchy)
+                    cageOccupants.Add(c.Session.Avatar);
+            }
             bool lowest = SomeoneOnLowestCage();
             for (int bearIndex = 0; bearIndex < BearCount; bearIndex++)
             {
                 PitBear pursuer = GetBear(bearIndex);
-                pursuer.Tick(Time.deltaTime, FindNearestInPit(pursuer), lowest);
+                pursuer.Tick(Time.deltaTime, FindNearestInPit(pursuer), lowest, cageOccupants);
                 int targetId = -1;
-                var target = pursuer.AttackVictim != null ? pursuer.AttackVictim : pursuer.Target;
+                var target = pursuer.PresentationVictim;
                 for (int i = 0; i < contestants.Count; i++)
                     if (contestants[i].Session.Avatar == target && target != null) targetId = contestants[i].Session.Id;
                 pursuer.PresentationTargetId = targetId;

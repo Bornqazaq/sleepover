@@ -89,7 +89,7 @@ namespace Igruha.Minigames.Stopwatch
         [Tooltip("Через сколько секунд после падения тело исчезает. Коллизия снимается сразу")]
         [SerializeField] private float bodyDespawnDelay = 1.5f;
         [Tooltip("Скорость патрулирования пустой ямы, м/с")]
-        [SerializeField] private float bearPatrolSpeed = 2.1f;
+        [SerializeField] private float bearPatrolSpeed = .85f;
 
         [Header("Отвлекалки")]
         [Tooltip("С какого подраунда включаются отвлекалки")]

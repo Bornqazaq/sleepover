@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: CircusBearConfig
   m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.Circus.CircusBearConfig
   chaseSpeed: 8.2
-  patrolSpeed: 2.1
+  patrolSpeed: 0.85
   firstAttackDelay: 0
   strikeRadius: 2.35
   knockbackSpeed: 8

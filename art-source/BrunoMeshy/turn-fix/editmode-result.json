@@ -1,0 +1,23 @@
+{
+  "job_id": "0d0d5ee7365c4e19a373b55db93dc4ca",
+  "status": "succeeded",
+  "mode": "EditMode",
+  "started_unix_ms": 1791809767517,
+  "finished_unix_ms": 1791809837651,
+  "last_update_unix_ms": 1791809837651,
+  "progress": {
+    "completed": 192,
+    "total": 192,
+    "current_test_full_name": null,
+    "current_test_started_unix_ms": 1791809836999,
+    "last_finished_test_full_name": "Igruha.Tests.CircusShotGeometryTests.VisibleOpenHatchBlocksTheShotAfterItsPhysicsColliderIsDisabled",
+    "last_finished_unix_ms": 1791809837009,
+    "stuck_suspected": false,
+    "editor_is_focused": false,
+    "blocked_reason": null,
+    "failures_so_far": [],
+    "failures_capped": false
+  },
+  "error": null,
+  "result": null
+}

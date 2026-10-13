@@ -15,6 +15,40 @@ namespace Igruha.Tests
     public sealed class CircusCageSafetyTests
     {
         [TestCase("CansOrder")][TestCase("Stopwatch")]
+        public void LowestClosedCageClearsTheActualMasonryAndOpensWithoutRising(string sceneName)
+        {
+            var scene=EditorSceneManager.OpenPreviewScene("Assets/_Project/Scenes/Minigames/"+sceneName+".unity");
+            try
+            {
+                var config=AssetDatabase.LoadAssetAtPath<CircusArenaConfig>("Assets/_Project/Settings/Gameplay/Minigames/CircusArenaConfig.asset");
+                var roots=scene.GetRootGameObjects();
+                float rim=roots.SelectMany(r=>r.GetComponentsInChildren<MeshRenderer>(true))
+                    .Where(r=>r.name=="CN_PitMasonry").Max(r=>r.bounds.max.y);
+                var cages=roots.SelectMany(r=>r.GetComponentsInChildren<CageStation>(true)).ToArray();
+                Assert.That(cages.Length,Is.EqualTo(8));
+                foreach(var station in cages)
+                {
+                    var platform=station.GetComponent<RidePlatform>();
+                    var hatch=station.GetComponent<HingedFloorHatch>();
+                    var flags=BindingFlags.Instance|BindingFlags.NonPublic;
+                    typeof(RidePlatform).GetMethod("Awake",flags).Invoke(platform,null);
+                    typeof(HingedFloorHatch).GetMethod("Awake",flags).Invoke(hatch,null);
+                    typeof(CageStation).GetMethod("Awake",flags).Invoke(station,null);
+                    station.Configure(config,0);
+                    float floor=station.GetComponentsInChildren<MeshRenderer>(true).Min(r=>r.bounds.min.y);
+                    Assert.That(floor-rim,Is.GreaterThan(.1f),"The visible frame and floor brackets need clearance above the art, not just the collider.");
+                    float height=station.transform.position.y;
+                    station.gameObject.SetActive(false);station.OpenDoors(.9f,.9f);
+                    Assert.That(station.DoorsOpen,Is.True);
+                    Assert.That(station.Descending,Is.False);
+                    Assert.That(station.transform.position.y,Is.EqualTo(height).Within(.001f));
+                    Assert.That(station.Level,Is.Zero);
+                }
+            }
+            finally { EditorSceneManager.ClosePreviewScene(scene); }
+        }
+
+        [TestCase("CansOrder")][TestCase("Stopwatch")]
         public void ContinuousFloorReleasesWithTheHatchAndReturnsWhenClosed(string sceneName)
         {
             var scene=EditorSceneManager.OpenPreviewScene("Assets/_Project/Scenes/Minigames/"+sceneName+".unity");

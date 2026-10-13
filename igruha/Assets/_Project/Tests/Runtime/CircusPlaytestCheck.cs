@@ -47,6 +47,11 @@ namespace Igruha.Tests
             if(cansPlacement ? moved>.04f : moved<.08f)fail("circus placement movement differs from rules: "+moved);
             yield return barrier.Wait(0);
             if (shelfProbe != null) yield return CheckShelfOcclusion((CansOrderMinigame)game, shelfProbe, barrier, fail);
+            var roundHud=UnityEngine.Object.FindFirstObjectByType<Igruha.Core.UI.RoundHud>();
+            var clock=roundHud!=null?Get(roundHud,"timerText") as TMPro.TMP_Text:null;
+            bool clockVisible=clock!=null && clock.isActiveAndEnabled;
+            if(!cansPlacement && clockVisible)fail("Stopwatch exposes the round clock while measuring");
+            Debug.Log("PLAYTEST_CHECK interface roundClockVisible="+clockVisible+" cans="+cansPlacement);
             Capture("character");
             // CaptureScreenshot renders at the end of the frame. Do not switch
             // the host to the hatch camera before this character frame is written.
@@ -55,6 +60,10 @@ namespace Igruha.Tests
             if(bears.Length!=2){fail("circus must have two bears");yield break;}
             if(bears.Select(b=>b.GetComponent<NetworkObject>().NetworkObjectId).Distinct().Count()!=2)
                 fail("bears do not have independent network identities");
+            // Give this opt-in observation its own time in the current stage;
+            // otherwise the normal round timer can open hatches before the fall probe starts.
+            if (NetworkManager.Singleton.IsServer) stage.EnterStage(stage.Stage, stage.StageRemaining + 21);
+            yield return CheckCageAttention(bears, players, fail);
             var bear = bears[0];
             using var bearProbe = new BearPresentationProbe(game,bear,local,fail);
             using var secondProbe = new BearPresentationProbe(game,bears[1],local,fail,false);
@@ -64,6 +73,8 @@ namespace Igruha.Tests
             var victims = players.Take(2).Select(p=>p.Avatar).ToArray();
             var cages = victims.Select(v=>UnityEngine.Object.FindObjectsByType<CageStation>(FindObjectsSortMode.None).Single(c=>c.Occupant==v)).ToArray();
             bool[] fell = new bool[2], caught = new bool[2], opened = new bool[2];
+            var cageHeights=cages.Select(c=>c.transform.position.y).ToArray();
+            float maximumCageRise=0;
             bool floorCaptured=false, fallCaptured=false;
             if(game is CansOrderMinigame cans)
                 yield return CheckCanTurns(cans,local,victims,fail);
@@ -108,6 +119,9 @@ namespace Igruha.Tests
                 for(int i=0;i<2;i++)
                 {
                     if(cages[i]==null || victims[i]==null) continue;
+                    float cageY=cages[i].transform.position.y;
+                    maximumCageRise=Mathf.Max(maximumCageRise,cageY-cageHeights[i]);
+                    cageHeights[i]=cageY;
                     bool doors=cages[i].DoorsOpen;
                     if(doors)
                     {
@@ -159,6 +173,8 @@ namespace Igruha.Tests
                 if(liftMax-liftMin>.05f)fail("lift passenger jitters on descent/ascent");
             }
             if(!opened.All(v=>v))fail("trapdoor collision/animation incomplete");
+            if(maximumCageRise>.03f)fail("elimination raised a cage instead of opening its floor: "+maximumCageRise);
+            Debug.Log("PLAYTEST_CHECK hatch maximumUpwardStep="+maximumCageRise+" finalHeights="+string.Join(",",cageHeights));
             if(!fell.All(v=>v))fail("airborne pose not seen on both victims");
             if(!caught.All(v=>v))fail("bear did not eliminate stationary and fleeing players within timeout");
             Debug.Log("PLAYTEST_CHECK circus floors="+string.Join(",",opened)+" fall="+string.Join(",",fell)+
@@ -194,6 +210,44 @@ namespace Igruha.Tests
                 fail("circus Results input lock survived return to hub");
             shelfProbe?.CheckFinished();
             bearProbe.CheckFinished();secondProbe.CheckFinished();
+        }
+
+        private static IEnumerator CheckCageAttention(PitBear[] bears, SessionPlayer[] players, Action<string> fail)
+        {
+            var seen = new bool[bears.Length];
+            var watchingFrames = new int[bears.Length];
+            var animators = bears.Select(b => b.GetComponentInChildren<Animator>()).ToArray();
+            int roarHash = Animator.StringToHash("Roar");
+            float until = Time.realtimeSinceStartup + 20;
+            while (Time.realtimeSinceStartup < until)
+            {
+                for (int i = 0; i < bears.Length; i++)
+                {
+                    PitBear source = bears[i];
+                    if (source.State == PitBear.BearState.Taunt)
+                        fail("removed rear state reached: " + source.name);
+                    Animator animator = animators[i];
+                    if (animator != null && (animator.GetCurrentAnimatorStateInfo(0).shortNameHash == roarHash ||
+                        (animator.IsInTransition(0) && animator.GetNextAnimatorStateInfo(0).shortNameHash == roarHash)))
+                        fail("removed rear animation played: " + source.name);
+                    if (source.State != PitBear.BearState.CageApproach) continue;
+                    var target = players.FirstOrDefault(p => p.Id == source.PresentationTargetId);
+                    if (target == null || target.Avatar == null)
+                        fail("cage attention has no replicated occupant target");
+                    else
+                    {
+                        Vector3 direction = target.Avatar.Position - source.PresentationRoot.position; direction.y = 0;
+                        if (Vector3.Angle(source.PresentationRoot.forward, direction) < 18)
+                        {
+                            seen[i] = true; watchingFrames[i]++;
+                        }
+                    }
+                }
+                yield return null;
+            }
+            for (int i = 0; i < bears.Length; i++)
+                if (!seen[i]) fail("bear never faced an occupied cage on four paws: " + bears[i].name);
+            Debug.Log("PLAYTEST_CHECK quadruped cage attention frames=" + string.Join(",", watchingFrames) + " rears=0");
         }
 
         private sealed class BearPresentationProbe : IDisposable

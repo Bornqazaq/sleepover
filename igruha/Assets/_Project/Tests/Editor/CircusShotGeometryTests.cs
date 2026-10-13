@@ -86,6 +86,30 @@ namespace Igruha.Tests
         }
 
         [Test]
+        public void CompanionBearBlocksTheLensAndViewWithoutBlockingTheAttackerItself()
+        {
+            var companion = Object.Instantiate(bear.gameObject, root.transform);
+            companion.name = "Second bear across contact camera";
+            companion.transform.position = new Vector3(5, 0, 0);
+            Bind();
+            Vector3 subject = new Vector3(0, 1.3f, 0);
+            Assert.That(Clear(new Vector3(8, 1.3f, 0), subject), Is.False,
+                "A companion between the lens and attacker must reject the shot.");
+            Assert.That(Clear(new Vector3(5, 1.3f, 0), subject), Is.False,
+                "A lens inside the companion's coat is not a usable view.");
+            Assert.That(Clear(new Vector3(-5, 1.3f, 0), subject), Is.True,
+                "The attacker's own silhouette remains the subject, not an obstacle.");
+            Assert.That(Clear(new Vector3(8, 3.8f, 0), new Vector3(0, 3.8f, 0)), Is.True);
+            companion.transform.position += Vector3.forward * 6; Refresh();
+            Assert.That(Clear(new Vector3(8, 1.3f, 0), subject), Is.True,
+                "Cached volumes must follow the moving companion.");
+            companion.transform.position -= Vector3.forward * 6; Refresh();
+            Assert.That(Clear(new Vector3(8, 1.3f, 0), subject), Is.False);
+            companion.SetActive(false); Refresh();
+            Assert.That(Clear(new Vector3(8, 1.3f, 0), subject), Is.True);
+        }
+
+        [Test]
         public void VisibleOpenHatchBlocksTheShotAfterItsPhysicsColliderIsDisabled()
         {
             var panel = Panel(new Vector3(20, 1, 0), new Vector3(2, 2, .08f), Quaternion.identity);

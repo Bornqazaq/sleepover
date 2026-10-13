@@ -1,0 +1,7 @@
+{
+  "result": "Succeeded",
+  "errors": 0,
+  "warnings": 2,
+  "endedAtUTC": "2026-10-13T10:23:57",
+  "warningsNote": "MCP websocket disconnected while the successful build was busy"
+}

@@ -25,8 +25,6 @@ namespace Igruha.Minigames.Stopwatch
         [SerializeField] private Color idleColor = new Color(0.85f, 0.87f, 0.92f);
         [SerializeField] private Color runningColor = new Color(1f, 0.28f, 0.2f);
         [SerializeField] private Color stoppedColor = new Color(0.55f, 0.85f, 0.55f);
-        [Tooltip("Частота мигания строки во время отсчёта, Гц")]
-        [SerializeField] private float blinkSpeed = 2.4f;
 
         private void Reset()
         {
@@ -62,12 +60,7 @@ namespace Igruha.Minigames.Stopwatch
             {
                 case CageButton.ButtonState.Running:
                     label.text = runningText;
-                    // Мигание, а не ровный свет: ровный теряется на сером фоне,
-                    // а «идёт прямо сейчас» должно читаться боковым зрением.
-                    // Дно мигания высокое: на низком строка проваливалась
-                    // в нечитаемую темноту ровно на половину периода.
-                    float t = 0.75f + 0.25f * Mathf.Sin(Time.time * blinkSpeed * Mathf.PI * 2f);
-                    label.color = runningColor * t;
+                    label.color = runningColor;
                     break;
                 case CageButton.ButtonState.Stopped:
                     label.text = stoppedText;

@@ -1,0 +1,29 @@
+{
+  "contact_and_gait_job": "6828f8477ec94cf5b184a07e1170309d",
+  "contact_and_gait_total": 99,
+  "contact_and_gait_passed": 99,
+  "extra_patrol_gait_job": "27a986708ddb4e7e86d455ce96f3e378",
+  "extra_patrol_results": {
+    "id": "2",
+    "testcasecount": "7",
+    "result": "Passed",
+    "total": "7",
+    "passed": "7",
+    "failed": "0",
+    "inconclusive": "0",
+    "skipped": "0",
+    "asserts": "0",
+    "engine-version": "3.5.0.0",
+    "clr-version": "4.0.30319.42000",
+    "start-time": "2026-10-09 09:24:05Z",
+    "end-time": "2026-10-09 09:24:07Z",
+    "duration": "1.7906251"
+  },
+  "shot_and_contact_presentation": {
+    "job_id": "a027fad89c4d43fc9d1f96b2c8840ecc",
+    "total": 31,
+    "passed": 31,
+    "failed": 0
+  },
+  "distinct_cases_passed": 131
+}

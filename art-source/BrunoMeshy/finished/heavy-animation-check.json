@@ -1,0 +1,19 @@
+{
+  "Walk": {
+    "frames": 40,
+    "lowest_sole_m": -8.575315746384149e-08,
+    "support_max_abs_m": 3.351957786890125e-07
+  },
+  "Run": {
+    "frames": 19,
+    "lowest_sole_m": 3.217368060859371e-08
+  },
+  "Strike": {
+    "frames": 43,
+    "lowest_sole_m": -4.881686876956337e-08
+  },
+  "Roar": {
+    "frames": 97,
+    "lowest_sole_m": -2.5611583964746387e-08
+  }
+}

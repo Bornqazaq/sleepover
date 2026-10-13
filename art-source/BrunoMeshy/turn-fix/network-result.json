@@ -1,0 +1,14 @@
+{
+  "playtest-circus-cans-20261012-175920": {
+    "client-3.log": true,
+    "client-2.log": true,
+    "host.log": true,
+    "client-1.log": true
+  },
+  "playtest-circus-stopwatch-20261012-180054": {
+    "client-3.log": true,
+    "client-2.log": true,
+    "host.log": true,
+    "client-1.log": true
+  }
+}

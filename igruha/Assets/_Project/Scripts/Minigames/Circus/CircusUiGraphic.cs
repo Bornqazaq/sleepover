@@ -7,7 +7,7 @@ namespace Igruha.Minigames.Circus
     [RequireComponent(typeof(CanvasRenderer))]
     public sealed class CircusUiGraphic : MaskableGraphic
     {
-        public enum Sign { Ticket, Can, Mouse, Swap, Ring, Check, Hourglass, Shield, Down, Cage, Star }
+        public enum Sign { Ticket, Can, Mouse, Swap, Ring, Check, Hourglass, Shield, Down, Cage, Star, Panel }
         [SerializeField] private Sign sign;
         [SerializeField] private int symbol;
         [SerializeField, Range(0,1)] private float amount = 1;
@@ -21,6 +21,7 @@ namespace Igruha.Minigames.Circus
             mesh.Clear();rect=GetPixelAdjustedRect();
             switch(sign)
             {
+                case Sign.Panel: RoundedPanel(mesh);break;
                 case Sign.Ticket:
                     Poly(mesh,color,new Vector2(.04f,0),new Vector2(.96f,0),new Vector2(1,.1f),new Vector2(1,.9f),new Vector2(.96f,1),new Vector2(.04f,1),new Vector2(0,.9f),new Vector2(0,.1f));break;
                 case Sign.Can:
@@ -64,6 +65,25 @@ namespace Igruha.Minigames.Circus
                     for(int i=0;i<4;i++)Quad(mesh,.15f+i*.22f,.16f,.2f+i*.22f,.88f,color);break;
                 case Sign.Star: SymbolShape(mesh,3,color);break;
             }
+        }
+        private void RoundedPanel(VertexHelper mesh)
+        {
+            const int cornerSteps=8;
+            float radius=Mathf.Min(9f,Mathf.Min(rect.width,rect.height)*.18f);
+            float rx=radius/Mathf.Max(1,rect.width),ry=radius/Mathf.Max(1,rect.height);
+            int start=mesh.currentVertCount;
+            Vertex(mesh,color,new Vector2(.5f,.5f));
+            for(int corner=0;corner<4;corner++)
+            {
+                float cx=corner==0||corner==3?1-rx:rx,cy=corner<2?1-ry:ry;
+                for(int step=0;step<=cornerSteps;step++)
+                {
+                    float angle=(corner*90f+step*90f/cornerSteps)*Mathf.Deg2Rad;
+                    Vertex(mesh,color,new Vector2(cx+Mathf.Cos(angle)*rx,cy+Mathf.Sin(angle)*ry));
+                }
+            }
+            int count=4*(cornerSteps+1);
+            for(int i=0;i<count;i++)mesh.AddTriangle(start,start+1+i,start+1+(i+1)%count);
         }
         private static Vector2 P(float angle,float r)=>new Vector2(.5f+Mathf.Cos(angle)*r,.5f+Mathf.Sin(angle)*r);
         private void SymbolShape(VertexHelper m,int id,Color c)

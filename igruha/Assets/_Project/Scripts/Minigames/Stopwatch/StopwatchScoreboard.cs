@@ -61,7 +61,7 @@ namespace Igruha.Minigames.Stopwatch
             }
 
             board.SetHeader($"ПОДРАУНД {subround} — {TypeNames[(int)type]}", $"ЦЕЛЬ: {target:0.0} с");
-            presentation?.Task($"{TypeNames[(int)type]} · {target:0.0} С", $"ПОДРАУНД {subround} · ЩИТЫ — ОСТАВШИЕСЯ ШАНСЫ", false);
+            presentation?.StopwatchTask(TypeNames[(int)type], target, subround);
         }
 
         /// <summary>
@@ -79,7 +79,7 @@ namespace Igruha.Minigames.Stopwatch
             }
 
             board.BeginRows();
-            presentation?.Begin(names.Count, 0);
+            presentation?.Begin(names.Count, 0, 5, showTimes);
             for (int i = 0; i < names.Count; i++)
             {
                 board.AddRow(names[i], FormatValue(times[i], completed[i], errors[i], alive[i], faulted[i], showTimes, errorLimit));

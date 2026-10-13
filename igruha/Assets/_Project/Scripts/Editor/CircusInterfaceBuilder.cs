@@ -49,7 +49,8 @@ namespace Igruha.EditorTools
                 "Assets/_Project/Art/UI/CharacterSelect/Portraits/" + c.DisplayName + "_Face.png")).ToArray();
             if (portraits.Any(p => p == null)) throw new InvalidOperationException("A roster portrait is missing.");
             var screens = board.GetComponentsInChildren<WorldScoreboardFace>(true).Select(f => (RectTransform)f.transform).ToList();
-            TMP_FontAsset font = TMP_Settings.defaultFontAsset;
+            UiFonts.EnsureAll();
+            TMP_FontAsset font = UiFonts.SansMedium;
             foreach (var screen in screens)
             {
                 Remove(screen, "CircusFace");
@@ -61,8 +62,8 @@ namespace Igruha.EditorTools
                 // Preserve the existing screen copy of Stopwatch's board, including its target.
                 var legacy = canvas.Find("StopwatchHud");
                 if (legacy != null) foreach (var graphic in legacy.GetComponentsInChildren<Graphic>(true)) graphic.enabled = false;
-                var screen = CircusUiLayout.Rect(canvas, "_CircusScreenBoard", 316, -145, 576, 230);
-                screen.anchorMin = screen.anchorMax = new Vector2(0, 1);
+                var screen = CircusUiLayout.Rect(canvas, "_CircusScreenBoard", 248, -24, 448, 280);
+                screen.anchorMin = screen.anchorMax = new Vector2(0, 1);screen.pivot=new Vector2(.5f,1);
                 screens.Add(screen);
             }
             var presentation = board.GetComponent<CircusBoardView>() ?? board.AddComponent<CircusBoardView>();
@@ -89,16 +90,7 @@ namespace Igruha.EditorTools
                 if (legacy != null) foreach (var graphic in legacy.GetComponentsInChildren<Graphic>(true)) graphic.enabled = false;
             }
             canvas.Find("_HudOverlay")?.SetAsLastSibling();
-            var timer = canvas.Find("_HudPlates/TimerPlate") as RectTransform;
-            if (timer != null)
-            {
-                timer.anchorMin = timer.anchorMax = new Vector2(1, 1);
-                timer.anchoredPosition = new Vector2(-142, -30);
-                var background = timer.GetComponent<Image>();
-                if (background != null) background.color = CircusUiLayout.Wine;
-                var caption = timer.Find("TimerCaption")?.GetComponent<TMP_Text>();
-                if (caption != null) caption.color = CircusUiLayout.Gold;
-            }
+            CircusInterfaceSkin.Apply(canvas,cans);
             EditorUtility.SetDirty(presentation);
             EditorUtility.SetDirty(hud);
             EditorSceneManager.MarkSceneDirty(scene);

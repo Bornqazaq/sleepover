@@ -1,0 +1,52 @@
+{
+  "Stopwatch": {
+    "folder": "playtest-circus-stopwatch-20261012-144242",
+    "instances": {
+      "client-3.log": {
+        "pass": true,
+        "fail": false,
+        "exception": false
+      },
+      "client-2.log": {
+        "pass": true,
+        "fail": false,
+        "exception": false
+      },
+      "host.log": {
+        "pass": true,
+        "fail": false,
+        "exception": false
+      },
+      "client-1.log": {
+        "pass": true,
+        "fail": false,
+        "exception": false
+      }
+    }
+  },
+  "CansOrder": {
+    "folder": "playtest-circus-cans-20261012-144346",
+    "instances": {
+      "client-3.log": {
+        "pass": true,
+        "fail": false,
+        "exception": false
+      },
+      "client-2.log": {
+        "pass": true,
+        "fail": false,
+        "exception": false
+      },
+      "host.log": {
+        "pass": true,
+        "fail": false,
+        "exception": false
+      },
+      "client-1.log": {
+        "pass": true,
+        "fail": false,
+        "exception": false
+      }
+    }
+  }
+}

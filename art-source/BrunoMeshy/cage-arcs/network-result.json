@@ -1,0 +1,86 @@
+{
+  "playtest-circus-cans-20261013-130414": {
+    "client-1.log": {
+      "pass": true,
+      "failures": [],
+      "attention": [
+        "PLAYTEST_CHECK cage attention rears=2,2 worstFacing=6.98"
+      ],
+      "pair": [
+        "PLAYTEST_CHECK bear pair secondChased=True travel=37.45 separation=4.804"
+      ]
+    },
+    "client-2.log": {
+      "pass": true,
+      "failures": [],
+      "attention": [
+        "PLAYTEST_CHECK cage attention rears=2,2 worstFacing=6.98"
+      ],
+      "pair": [
+        "PLAYTEST_CHECK bear pair secondChased=True travel=37.42 separation=4.804"
+      ]
+    },
+    "client-3.log": {
+      "pass": true,
+      "failures": [],
+      "attention": [
+        "PLAYTEST_CHECK cage attention rears=2,2 worstFacing=6.92"
+      ],
+      "pair": [
+        "PLAYTEST_CHECK bear pair secondChased=True travel=37.43 separation=4.804"
+      ]
+    },
+    "host.log": {
+      "pass": true,
+      "failures": [],
+      "attention": [
+        "PLAYTEST_CHECK cage attention rears=2,2 worstFacing=6.99"
+      ],
+      "pair": [
+        "PLAYTEST_CHECK bear pair secondChased=True travel=39.26 separation=4.800"
+      ]
+    }
+  },
+  "playtest-circus-stopwatch-20261013-130641": {
+    "client-1.log": {
+      "pass": true,
+      "failures": [],
+      "attention": [
+        "PLAYTEST_CHECK cage attention rears=2,2 worstFacing=0.52"
+      ],
+      "pair": [
+        "PLAYTEST_CHECK bear pair secondChased=True travel=13.07 separation=4.833"
+      ]
+    },
+    "client-2.log": {
+      "pass": true,
+      "failures": [],
+      "attention": [
+        "PLAYTEST_CHECK cage attention rears=2,2 worstFacing=0.43"
+      ],
+      "pair": [
+        "PLAYTEST_CHECK bear pair secondChased=True travel=13.07 separation=4.833"
+      ]
+    },
+    "client-3.log": {
+      "pass": true,
+      "failures": [],
+      "attention": [
+        "PLAYTEST_CHECK cage attention rears=2,2 worstFacing=0.67"
+      ],
+      "pair": [
+        "PLAYTEST_CHECK bear pair secondChased=True travel=13.08 separation=4.833"
+      ]
+    },
+    "host.log": {
+      "pass": true,
+      "failures": [],
+      "attention": [
+        "PLAYTEST_CHECK cage attention rears=2,2 worstFacing=0.03"
+      ],
+      "pair": [
+        "PLAYTEST_CHECK bear pair secondChased=True travel=13.16 separation=4.830"
+      ]
+    }
+  }
+}

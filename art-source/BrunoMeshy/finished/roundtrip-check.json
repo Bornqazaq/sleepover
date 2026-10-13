@@ -1,0 +1,14 @@
+{
+  "Bruno_Body": {
+    "samples": 13430,
+    "rest_nearest_error": 7.539457556049456e-07,
+    "deformation_max_error_m": 2.6365371990137043e-05,
+    "deformation_mean_error_m": 6.352224851721628e-07
+  },
+  "Bruno_Coat": {
+    "samples": 5105,
+    "rest_nearest_error": 7.539457556049456e-07,
+    "deformation_max_error_m": 2.2614312699239814e-05,
+    "deformation_mean_error_m": 5.107567669193787e-07
+  }
+}

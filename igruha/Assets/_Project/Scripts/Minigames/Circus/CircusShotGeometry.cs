@@ -13,6 +13,13 @@ namespace Igruha.Minigames.Circus
         private readonly List<Renderer> cageVisuals = new List<Renderer>();
         private readonly List<Transform> bearBones = new List<Transform>();
         private readonly List<Vector3> bearRadii = new List<Vector3>();
+        private sealed class CompanionVolume
+        {
+            public Transform Bone, Root;
+            public Vector3 Radius, Offset;
+            public Bounds Bounds;
+        }
+        private readonly List<CompanionVolume> companions = new List<CompanionVolume>();
         private struct Obstacle
         {
             public bool Active;
@@ -204,11 +211,30 @@ namespace Igruha.Minigames.Circus
         public void Bind(PitBear source, PlayerController victim)
         {
             player = victim; bear = source;
-            cageVisuals.Clear(); bearBones.Clear(); bearRadii.Clear(); bearHead = null;
+            cageVisuals.Clear(); bearBones.Clear(); bearRadii.Clear(); companions.Clear(); bearHead = null;
             skinBones = null; skinProbes = null; bindPoses = null; skinMatrices = null; usedBones = null;
             capsule = player != null ? player.GetComponent<CapsuleCollider>() : null;
             if (bear != null)
             {
+                // Both bears are visible, but only the attacker is a framing
+                // subject. Its companion must still obstruct camera candidates
+                // and blends, including when the lens starts inside its coat.
+                foreach (var other in bear.transform.root.GetComponentsInChildren<PitBear>(true))
+                {
+                    if (other == bear || other.VisualRoot == null) continue;
+                    foreach (var bone in other.VisualRoot.GetComponentsInChildren<Transform>(true))
+                    {
+                        Vector3 radius, offset = Vector3.zero;
+                        switch (bone.name)
+                        {
+                            case "Pelvis": radius = new Vector3(.78f, .62f, .60f); break;
+                            case "Lumbar": case "Spine": case "Chest": radius = new Vector3(.82f, .65f, .60f); break;
+                            case "Head": radius = new Vector3(.52f, .46f, .64f); offset = Vector3.forward * .5f; break;
+                            default: continue;
+                        }
+                        companions.Add(new CompanionVolume { Bone = bone, Root = other.PresentationRoot, Radius = radius, Offset = offset });
+                    }
+                }
                 foreach (var cage in bear.transform.root.GetComponentsInChildren<CageStation>(true))
                     foreach (var visual in cage.GetComponentsInChildren<Renderer>(true))
                         if (visual is MeshRenderer && visual.GetComponentInParent<PlayerController>() == null)
@@ -272,6 +298,12 @@ namespace Igruha.Minigames.Circus
 
         public void RefreshBounds()
         {
+            foreach (var volume in companions)
+            {
+                if (volume.Bone == null) continue;
+                volume.Bounds = new Bounds(volume.Bone.position + volume.Root.TransformDirection(volume.Offset),
+                    WorldRadii(volume.Root, volume.Radius) * 2);
+            }
             for (int i = 0; i < cageVisuals.Count; i++)
             {
                 Renderer renderer = cageVisuals[i];
@@ -314,8 +346,11 @@ namespace Igruha.Minigames.Circus
         }
 
         private Vector3 WorldRadii(Vector3 radius)
+            => WorldRadii(bear.PresentationRoot, radius);
+
+        private static Vector3 WorldRadii(Transform root, Vector3 radius)
         {
-            Vector3 right = bear.PresentationRoot.right, forward = bear.PresentationRoot.forward;
+            Vector3 right = root.right, forward = root.forward;
             return new Vector3(Mathf.Abs(right.x) * radius.x + Mathf.Abs(forward.x) * radius.z, radius.y,
                 Mathf.Abs(right.z) * radius.x + Mathf.Abs(forward.z) * radius.z);
         }
@@ -326,6 +361,14 @@ namespace Igruha.Minigames.Circus
             Vector3 segment = to - from; float distance = segment.magnitude;
             if (distance < .001f) return true;
             var ray = new Ray(from, segment / distance);
+            foreach (var volume in companions)
+            {
+                if (volume.Bone == null || !volume.Bone.gameObject.activeInHierarchy) continue;
+                var bounds = volume.Bounds; bounds.Expand(padding * 2);
+                if (!bounds.Contains(from) && (!bounds.IntersectRay(ray, out float hit) || hit >= distance)) continue;
+                LastObstruction = "companion bear/" + volume.Bone.name;
+                return false;
+            }
             foreach (var obstacle in obstacles)
             {
                 if (!obstacle.Active) continue;

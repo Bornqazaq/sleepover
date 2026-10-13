@@ -66,13 +66,13 @@ namespace Igruha.EditorTools
             try
             {
                 var bear=copy.GetComponent<PitBear>();var animator=copy.GetComponentInChildren<Animator>();
-                // Serialized scene bear is still in patrol, so this exercises the actual state transition.
+                // A low cage alone never launches an upright display.
                 Vector3 before=copy.transform.position;
-                for(int i=0;i<30;i++)bear.Tick(1f/30,null,true);
-                Require(Vector3.Distance(before,copy.transform.position)<.0001f,"Taunting bear stays planted");
-                Require(bear.State==PitBear.BearState.Taunt && Mathf.Approximately(bear.AnimatorSpeed,0),"Taunt speed matches replicated state");
-                for(int step=0;step<30;step++)bear.Tick(1f/30,null,false);Require(Vector3.Distance(before,copy.transform.position)>.01f,"Patrol resumes after taunt");
-                var clips=animator.runtimeAnimatorController.animationClips.Distinct().ToArray();Require(clips.Length==6,"Six original clips");
+                for(int i=0;i<60;i++)bear.Tick(1f/30,null,true);
+                Require(bear.State==PitBear.BearState.Patrol,"Empty low cage keeps normal patrol");
+                Require(Vector3.Distance(before,copy.transform.position)>.01f,"Patrol remains mobile");
+                var clips=animator.runtimeAnimatorController.animationClips.Distinct().ToArray();
+                Require(clips.Length==5 && !clips.Any(c=>c.name=="Bruno_Roar"),"Five active clips, no rearing animation");
                 var skin=copy.GetComponentInChildren<SkinnedMeshRenderer>();
                 var head=skin.bones.Single(b=>b.name=="Head");
                 var pelvis=skin.bones.Single(b=>b.name=="Pelvis");

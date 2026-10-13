@@ -15,32 +15,47 @@ namespace Igruha.Minigames.Circus
         private const float ContactStandOff = 2.6f;
         private const float MaximumLunge = 2.5f;
         private const float MaximumBackstep = 2.0f;
-        private const float ContactReach = 2.85f;
         private const float ContactWindow = .22f;
         // Fur, muzzle and lifted paws must fit even while the body turns.
         // The masonry's inner face is slightly inside the logical pit radius.
-        public const float BodyWallClearance = 2.5f;
+        // Compact mesh radius is 2.10 m through all authored poses, plus fur/padding.
+        public const float BodyWallClearance = 2.28f;
         public const float CompanionClearance = 4.8f;
         private const float CompanionLookAhead = 1.1f;
         private const float PawWallPadding = .55f;
         private const float WallBrakingDistance = .65f;
-        private const float TurnStrideRadius = .55f;
+        private const float PivotTurnSpeed = 55f;
+        private const float TurnAcceleration = 180f;
+        private const float PivotTravelSpeed = .65f;
+        private const float TurnDirectionHysteresis = 170f;
+        private const float CageFacingHoldSeconds = .4f;
+        private const float CageFacingDegrees = 4f;
+        private const float CageStoppedSpeed = .03f;
         private const float StrikeAlignment = .9999f;
         private const float ContactTolerance = .06f;
         private const float PursuitLeadSeconds = .45f;
         private const float RepositionInwardBias = .7f;
         private const float StrikePreparationDistance = 3.15f;
         private const float StrikePreparationReleaseDistance = 3.8f;
+        private const float PatrolArrivalDistance = .65f;
+        private const float PatrolBrakingDistance = 1.5f;
+        private const float PatrolGoalMargin = .45f;
+        private const float PatrolMinimumLeg = 2.4f;
+        private const int PatrolGoalAttempts = 12;
+        private const float PatrolPauseChance = .32f;
+        private static readonly Vector2 PatrolLegSeconds = new Vector2(3.5f, 7.5f);
+        private static readonly Vector2 PatrolPauseSeconds = new Vector2(.4f, 1.7f);
+        private static readonly Vector2 PatrolPaceRange = new Vector2(.85f, 1.45f);
         private static readonly int StrikeState = Animator.StringToHash("Strike");
         // Existing values are kept because the state is replicated as a byte.
-        public enum BearState { Patrol, WindUp, Chase, Taunt, Attack, Recovery, Watching }
+        // Taunt is reserved for old snapshots; gameplay no longer enters it.
+        public enum BearState { Patrol, WindUp, Chase, Taunt, Attack, Recovery, Watching, CageApproach }
 
         [Header("Original bear")]
         [SerializeField] private Transform visualRoot;
         [SerializeField] private Animator animator;
         [SerializeField] private string speedParameter = "Speed";
         [SerializeField] private string strikeParameter = "Strike";
-        [SerializeField] private string roarParameter = "Roar";
         [SerializeField] private string alertParameter = "Alert";
         [Header("Weight and steering")]
         [SerializeField] private float turnSpeed = 150f;
@@ -58,6 +73,7 @@ namespace Igruha.Minigames.Circus
         public BearState State => state;
         public PlayerController Target { get; private set; }
         public PlayerController AttackVictim => attackVictim;
+        public PlayerController CageTarget => cageAttention.Target;
         public int PresentationTargetId { get; set; } = -1;
         public Transform VisualRoot => visualRoot;
         public Transform PresentationRoot => visualRoot != null ? visualRoot : transform;
@@ -76,13 +92,17 @@ namespace Igruha.Minigames.Circus
             internal Vector3 PreviousPosition, Velocity;
             internal float SampleSeconds;
         }
+        private readonly CircusBearArcTurn arcTurn = new CircusBearArcTurn();
+        private readonly CircusBearCageAttention cageAttention = new CircusBearCageAttention();
         private readonly List<Runner> runners = new List<Runner>(8);
         private static readonly int FlyBack = Animator.StringToHash("FlyBack");
         private static readonly int FallForward = Animator.StringToHash("FallForward");
         private float chaseSpeed = 5.5f, patrolSpeed = 2.1f, strikeRadius = 2.35f;
         private float windUpDuration = 3f, knockbackSpeed = 8f, pitRadius = 8.64f;
-        private float windUpLeft, patrolAngle, currentSpeed, attackElapsed, recoveryLeft;
-        private float patrolPauseIn = 9f, patrolPauseLeft;
+        private float windUpLeft, currentSpeed, attackElapsed, recoveryLeft;
+        private float patrolLegLeft, patrolPauseLeft, patrolPace = 1;
+        private Vector3 patrolGoal;
+        private bool patrolGoalKnown;
         private bool hitEvaluated;
         private bool contactPending;
         private int contactPendingFrame;
@@ -93,7 +113,10 @@ namespace Igruha.Minigames.Circus
         private float plannedStandOff;
         private bool visualPositionKnown;
         private bool preparingStrike;
-        private float previousVisualYaw;
+        private float yawVelocity;
+        private float previousFacingYaw;
+        private bool facingKnown;
+        private float cageFacingHold;
         private float MovementRadius => Mathf.Max(.5f, pitRadius - Mathf.Max(wallMargin, BodyWallClearance));
         private BearState state = BearState.Patrol;
         private float visualAttackStartedAt;
@@ -115,8 +138,9 @@ namespace Igruha.Minigames.Circus
         {
             chaseSpeed=chase; patrolSpeed=patrol; strikeRadius=strike; windUpDuration=windUp;
             knockbackSpeed=knockback; pitRadius=pit; runners.Clear(); Target=null;
-            currentSpeed=0; windUpLeft=0; attackVictim=null; state=BearState.Patrol;preparingStrike=false;
-            patrolPauseIn=9; patrolPauseLeft=0; visualPositionKnown=false;
+            currentSpeed=0; yawVelocity=0; facingKnown=false; windUpLeft=0; attackVictim=null; state=BearState.Patrol;preparingStrike=false;
+            patrolLegLeft=0; patrolPauseLeft=0; patrolGoalKnown=false; visualPositionKnown=false;
+            arcTurn.Reset();cageAttention.Reset(0);cageFacingHold=0;
             presentationVictim=null;HasContact=false;contactPending=false;
             contactPresentation?.ResetPresentation();
         }
@@ -126,8 +150,8 @@ namespace Igruha.Minigames.Circus
         public void ConfigureCompanion(PitBear other, int slot)
         {
             Companion=other;
-            patrolAngle=Mathf.Atan2(transform.position.x,transform.position.z)*Mathf.Rad2Deg;
-            patrolPauseIn=7f+slot*3.5f;
+            cageAttention.Reset(slot);
+            patrolGoalKnown=false;
             if(animator!=null && animator.isInitialized)
                 animator.Play(0,0,slot*.43f);
         }
@@ -196,7 +220,8 @@ namespace Igruha.Minigames.Circus
         private static bool IsRecovery(int hash)=>hash==FlyBack || hash==FallForward;
 
         /// <summary>Only the authoritative minigame calls Tick; contact resolves after this frame's IK.</summary>
-        public void Tick(float deltaTime,PlayerController nearest,bool someoneOnLowestCage)
+        public void Tick(float deltaTime,PlayerController nearest,bool someoneOnLowestCage,
+            IReadOnlyList<PlayerController> cageOccupants = null)
         {
             if(deltaTime<=0)return;
             foreach(var runner in runners)
@@ -225,14 +250,16 @@ namespace Igruha.Minigames.Circus
                 for(int i=0;i<runners.Count;i++)
                     if(runners[i].Player!=null && !runners[i].Ready)
                     {
+                        cageAttention.Cancel();presentationVictim=runners[i].Player;
                         SetState(BearState.Watching);currentSpeed=0;
-                        FaceTowards(runners[i].Player.transform.position-transform.position,deltaTime);
+                        TurnToward(runners[i].Player.transform.position-transform.position,deltaTime);
                         return;
                     }
-                SetState(someoneOnLowestCage?BearState.Taunt:BearState.Patrol);
-                if(someoneOnLowestCage)currentSpeed=0;else Patrol(deltaTime);
+                if(TickCageAttention(deltaTime,cageOccupants,someoneOnLowestCage))return;
+                SetState(BearState.Patrol);Patrol(deltaTime);
                 return;
             }
+            cageAttention.Cancel();
             if(Target!=nearest)
             {
                 Target=nearest;preparingStrike=false;
@@ -245,7 +272,7 @@ namespace Igruha.Minigames.Circus
                 // target on a long frame must still grant the full head start.
                 if(windUpLeft>0)
                 {
-                    FaceTowards(nearest.transform.position-transform.position,deltaTime);
+                    TurnToward(nearest.transform.position-transform.position,deltaTime);
                     return;
                 }
             }
@@ -257,7 +284,7 @@ namespace Igruha.Minigames.Circus
             if(windUpLeft<=0 && TryMakeStrikeRoom(nearest,delta,targetVelocity,deltaTime))return;
             if(windUpLeft>0)
             {
-                FaceTowards(intercept,deltaTime);
+                TurnToward(intercept,deltaTime);
                 windUpLeft-=deltaTime;currentSpeed=0;
                 if(windUpLeft<=0)SetState(BearState.Chase);
                 return;
@@ -268,7 +295,7 @@ namespace Igruha.Minigames.Circus
             // away during the turn, producing a jittering, endless orbit.
             preparingStrike=delta.magnitude<=(preparingStrike?StrikePreparationReleaseDistance:Mathf.Max(strikeRadius,StrikePreparationDistance));
             bool inStrikeRange=preparingStrike;
-            if(inStrikeRange)FaceTowards(intercept,deltaTime);
+            if(inStrikeRange)TurnToward(intercept,deltaTime);
             if(inStrikeRange && Vector3.Dot(transform.forward,intercept.normalized)>StrikeAlignment)
             {
                 attackVictim=nearest;presentationVictim=nearest;attackDirection=transform.forward;attackElapsed=0;hitEvaluated=false;HasContact=false;contactPending=false;
@@ -278,7 +305,7 @@ namespace Igruha.Minigames.Circus
                 attackTravel=Mathf.Clamp(Vector3.Dot(expected,attackDirection)-standOff,-MaximumBackstep,MaximumLunge);
                 currentSpeed=0;preparingStrike=false;SetState(BearState.Attack);return;
             }
-            // Once there is room for a swipe, turn on planted feet before
+            // Once there is room for a swipe, turn with short support steps before
             // committing. Accelerating toward a close runner while still facing
             // sideways makes a tight orbit that never reaches attack alignment.
             if(inStrikeRange)
@@ -291,8 +318,47 @@ namespace Igruha.Minigames.Circus
             // gaining on them along the shorter inner circumference.
             float approach=motion!=null?motion.ApproachDistance(nearest):ContactStandOff;
             Vector3 route=AvoidCompanion(InsideApproachDirection(transform.position+intercept,approach));
+            if(TurnOnArc(route,deltaTime))return;
             FaceTowards(route,deltaTime);
             Steer(route,chaseSpeed,deltaTime);
+        }
+
+        private bool TickCageAttention(float dt,IReadOnlyList<PlayerController> occupants,bool lowCage)
+        {
+            cageAttention.Tick(dt,occupants,this,lowCage);
+            presentationVictim=cageAttention.Target;
+            if(cageAttention.Target==null){cageFacingHold=0;return false;}
+            if(cageAttention.Watching){currentSpeed=0;return true;}
+            SetState(BearState.CageApproach);
+            Vector3 direction=cageAttention.Target.Position-transform.position;direction.y=0;
+            if(TurnOnArc(direction,dt)){cageFacingHold=0;return true;}
+            FaceTowards(direction,dt);
+            Steer(transform.forward,0,dt);
+            // Finish the last step before a short, quadruped look towards the cage.
+            bool ready=currentSpeed<CageStoppedSpeed && Vector3.Angle(transform.forward,direction)<CageFacingDegrees;
+            cageFacingHold=ready?cageFacingHold+dt:0;
+            if(cageFacingHold>=CageFacingHoldSeconds)
+            {
+                currentSpeed=0;cageFacingHold=0;arcTurn.Reset();cageAttention.BeginWatch();
+            }
+            return true;
+        }
+
+        private void TurnToward(Vector3 direction,float dt)
+        {
+            if(!TurnOnArc(direction,dt))FaceTowards(direction,dt);
+        }
+
+        private bool TurnOnArc(Vector3 direction,float dt)
+        {
+            Transform other=Companion!=null && Companion.isActiveAndEnabled?Companion.transform:null;
+            if(!arcTurn.Advance(transform,direction,dt,MovementRadius,other,state==BearState.Chase,out Vector3 step,out float yaw))return false;
+            // The planner has checked both clearances. Translation and rotation
+            // are one circular step, never a yaw applied to a wall-clamped body.
+            transform.position+=step;
+            transform.rotation=Quaternion.AngleAxis(yaw,Vector3.up)*transform.rotation;
+            currentSpeed=step.magnitude/dt;yawVelocity=yaw/dt;facingKnown=false;
+            return true;
         }
 
         private Vector3 InsideApproachDirection(Vector3 target,float standOff)
@@ -305,7 +371,9 @@ namespace Igruha.Minigames.Circus
 
         private bool TryMakeStrikeRoom(PlayerController victim,Vector3 delta,Vector3 targetVelocity,float dt)
         {
-            if(motion==null || delta.sqrMagnitude>ContactReach*ContactReach || delta.sqrMagnitude<.0001f)return false;
+            // Validate the landing position before the preparation distance can start
+            // a swipe; shorter forelimbs cannot bridge a wall-clamped diagonal lunge.
+            if(motion==null || delta.sqrMagnitude>StrikePreparationReleaseDistance*StrikePreparationReleaseDistance || delta.sqrMagnitude<.0001f)return false;
             float standOff=motion.ApproachDistance(victim);
             Vector3 away=-delta.normalized;
             Vector3 retreat=victim.Position+away*standOff;
@@ -330,6 +398,7 @@ namespace Igruha.Minigames.Circus
             SetState(BearState.Chase);
             currentSpeed=Mathf.Min(currentSpeed,repositionSpeed);
             side=AvoidCompanion(side);
+            if(TurnOnArc(side,dt))return true;
             FaceTowards(side,dt);
             Steer(side,repositionSpeed,dt);
             return true;
@@ -403,7 +472,7 @@ namespace Igruha.Minigames.Circus
             visualAttackStartedAt=Time.time-elapsed;
             if(animator!=null)
             {
-                animator.ResetTrigger(roarParameter);animator.ResetTrigger(alertParameter);animator.ResetTrigger(strikeParameter);
+                animator.ResetTrigger(alertParameter);animator.ResetTrigger(strikeParameter);
                 animator.CrossFadeInFixedTime(StrikeState,.065f,0,Mathf.Min(elapsed,attackDuration));
             }
             feedback?.Attack(elapsed);
@@ -435,14 +504,63 @@ namespace Igruha.Minigames.Circus
 
         private void Patrol(float dt)
         {
-            if(patrolPauseLeft>0){patrolPauseLeft-=dt;currentSpeed=0;return;}
-            patrolPauseIn-=dt;
-            if(patrolPauseIn<=0){patrolPauseLeft=1.2f;patrolPauseIn=9f;currentSpeed=0;return;}
-            float radius=Mathf.Max(1,MovementRadius-.6f);
-            patrolAngle+=patrolSpeed/radius*dt*Mathf.Rad2Deg;
-            float variedRadius=radius-.3f+.3f*Mathf.Sin(patrolAngle*Mathf.Deg2Rad*1.7f);
-            Vector3 target=Quaternion.Euler(0,patrolAngle+18,0)*Vector3.forward*variedRadius;
-            Vector3 delta=target-transform.position;delta.y=0;delta=AvoidCompanion(delta);FaceTowards(delta,dt);Steer(delta,patrolSpeed,dt);
+            if(patrolPauseLeft>0)
+            {
+                patrolPauseLeft-=dt;
+                Steer(transform.forward,0,dt);
+                return;
+            }
+            Vector3 delta=patrolGoal-transform.position;delta.y=0;
+            patrolLegLeft-=dt;
+            if(!patrolGoalKnown || patrolLegLeft<=0 || delta.sqrMagnitude<PatrolArrivalDistance*PatrolArrivalDistance)
+            {
+                bool pause=patrolGoalKnown && UnityEngine.Random.value<PatrolPauseChance;
+                ChoosePatrolGoal();
+                if(pause)
+                {
+                    patrolPauseLeft=UnityEngine.Random.Range(PatrolPauseSeconds.x,PatrolPauseSeconds.y);
+                    Steer(transform.forward,0,dt);
+                    return;
+                }
+                delta=patrolGoal-transform.position;delta.y=0;
+            }
+            float arrival=Mathf.Clamp01(delta.magnitude/PatrolBrakingDistance);
+            Vector3 route=AvoidCompanion(delta);
+            if(TurnOnArc(route,dt))return;
+            FaceTowards(route,dt);
+            Steer(route,patrolSpeed*patrolPace*arrival,dt);
+        }
+
+        // Tick is driven only by the authority. Clients receive the resulting
+        // transform/state, so they never make a second random route choice.
+        private void ChoosePatrolGoal()
+        {
+            float radius=Mathf.Max(.5f,MovementRadius-PatrolGoalMargin);
+            Vector3 position=transform.position;
+            Vector3 best=-position;best.y=position.y;
+            float bestScore=float.NegativeInfinity;
+            for(int attempt=0;attempt<PatrolGoalAttempts;attempt++)
+            {
+                Vector2 point=UnityEngine.Random.insideUnitCircle*radius;
+                Vector3 candidate=new Vector3(point.x,position.y,point.y);
+                Vector3 delta=candidate-position;
+                float length=delta.magnitude;
+                if(length<PatrolMinimumLeg)continue;
+                float score=Vector3.Dot(transform.forward,delta/length);
+                if(Companion!=null && Companion.isActiveAndEnabled)
+                {
+                    Vector3 other=Companion.transform.position;other.y=position.y;
+                    float separation=Vector3.Distance(candidate,other);
+                    if(separation<CompanionClearance+PatrolGoalMargin)continue;
+                    Vector3 closest=position+delta*Mathf.Clamp01(Vector3.Dot(other-position,delta)/delta.sqrMagnitude);
+                    score-=Mathf.Max(0,CompanionClearance+PatrolGoalMargin-Vector3.Distance(closest,other));
+                }
+                if(score<=bestScore)continue;
+                bestScore=score;best=candidate;
+            }
+            patrolGoal=best;patrolGoalKnown=true;
+            patrolLegLeft=UnityEngine.Random.Range(PatrolLegSeconds.x,PatrolLegSeconds.y);
+            patrolPace=UnityEngine.Random.Range(PatrolPaceRange.x,PatrolPaceRange.y);
         }
         private Vector3 AvoidCompanion(Vector3 direction)
         {
@@ -455,6 +573,12 @@ namespace Igruha.Minigames.Circus
             if(entering<=0)return direction;
             float avoid=Mathf.InverseLerp(CompanionClearance+CompanionLookAhead,CompanionClearance,distance);
             Vector3 tangent=Vector3.Cross(Vector3.up,toward);
+            Vector3 radial=new Vector3(transform.position.x,0,transform.position.z);
+            // The default passing side can lead outside the pit when both bears
+            // converge on one cage. Choose the inward side before wall braking
+            // turns that route into a permanent standstill.
+            if(radial.magnitude>MovementRadius-CompanionLookAhead && Vector3.Dot(tangent,radial)>0)
+                tangent=-tangent;
             return Vector3.Lerp(direction.normalized,(tangent-toward*.3f).normalized,avoid);
         }
         private void Steer(Vector3 direction,float speed,float dt)
@@ -488,15 +612,41 @@ namespace Igruha.Minigames.Circus
         private void FaceTowards(Vector3 direction,float dt)
         {
             direction.y=0;if(direction.sqrMagnitude<.0001f)return;
-            transform.rotation=Quaternion.RotateTowards(transform.rotation,Quaternion.LookRotation(direction),turnSpeed*dt);
+            // Moving pursuit already follows a running arc. Preserve its response:
+            // slow pivot acceleration must not make an inner-lane intercept orbit forever.
+            if(currentSpeed>PivotTravelSpeed)
+            {
+                Quaternion before=transform.rotation;
+                transform.rotation=Quaternion.RotateTowards(before,Quaternion.LookRotation(direction),turnSpeed*dt);
+                yawVelocity=Vector3.SignedAngle(before*Vector3.forward,transform.forward,Vector3.up)/dt;
+                facingKnown=false;
+                return;
+            }
+            float facing=Mathf.Atan2(direction.x,direction.z)*Mathf.Rad2Deg;
+            float headingStep=facingKnown?Mathf.DeltaAngle(previousFacingYaw,facing):0;
+            previousFacingYaw=facing;facingKnown=true;
+            // Follow a continuously moving target without accumulating aim lag.
+            // A new patrol goal is a discontinuity, not target angular velocity.
+            float headingRate=Mathf.Abs(headingStep)<=turnSpeed*dt*2?headingStep/dt:0;
+            float error=Vector3.SignedAngle(transform.forward,direction,Vector3.up);
+            // Keep the chosen side when a target crosses directly behind us.
+            if(Mathf.Abs(error)>TurnDirectionHysteresis && Mathf.Abs(yawVelocity)>1)
+                error=Mathf.Abs(error)*Mathf.Sign(yawVelocity);
+            float limit=Mathf.Max(PivotTurnSpeed,Mathf.Min(turnSpeed,Mathf.Abs(headingRate)+PivotTurnSpeed));
+            float wanted=Mathf.Clamp(headingRate+Mathf.Sign(error)*Mathf.Sqrt(2*TurnAcceleration*Mathf.Abs(error)),-limit,limit);
+            yawVelocity=Mathf.MoveTowards(yawVelocity,wanted,TurnAcceleration*dt);
+            float step=yawVelocity*dt;
+            if(Mathf.Sign(step)==Mathf.Sign(error) && Mathf.Abs(step)>=Mathf.Abs(error))
+            { step=error; yawVelocity=headingRate; }
+            transform.rotation=Quaternion.AngleAxis(step,Vector3.up)*transform.rotation;
         }
         private void SetState(BearState next,float elapsed=0)
         {
-            if(state==next)return;state=next;Trace("State "+next);
-            if(next==BearState.Taunt)Trigger(roarParameter);
+            if(state==next)return;state=next;yawVelocity=0;facingKnown=false;Trace("State "+next);
+            if(next==BearState.Attack || next==BearState.Recovery)arcTurn.Reset();
             if(next==BearState.WindUp)Trigger(alertParameter);
             if(next==BearState.Attack)PlayStrike(elapsed);
-            if(next==BearState.Patrol)patrolAngle=Mathf.Atan2(transform.position.x,transform.position.z)*Mathf.Rad2Deg;
+            if(next==BearState.Patrol){patrolGoalKnown=false;patrolPauseLeft=0;}
         }
         private void LateUpdate()
         {
@@ -508,13 +658,12 @@ namespace Igruha.Minigames.Circus
             if(animator==null || Time.deltaTime<=0)return;
             Transform root=PresentationRoot;
             float distance=Vector3.Distance(root.position,previousPosition);
-            float yaw=root.eulerAngles.y;
             bool continuous=visualPositionKnown && distance<2f;
             float speed=continuous ? distance/Time.deltaTime : 0;
-            float turnSpeedForFeet=continuous ? Mathf.Abs(Mathf.DeltaAngle(previousVisualYaw,yaw))*Mathf.Deg2Rad/Time.deltaTime*TurnStrideRadius : 0;
-            previousPosition=root.position;previousVisualYaw=yaw;visualPositionKnown=true;
+            previousPosition=root.position;visualPositionKnown=true;
             if(state==BearState.Attack || state==BearState.Recovery || state==BearState.Taunt)speed=0;
-            else speed=Mathf.Max(speed,Mathf.Min(turnSpeedForFeet,patrolSpeed));
+            // A stationary turn has its own planted support steps in CircusBearMotion.
+            // Feeding yaw into a forward walk made every paw slide around the root.
             animator.SetFloat(speedParameter,Mathf.Min(speed,chaseSpeed),.13f,Time.deltaTime);
         }
         [System.Diagnostics.Conditional("UNITY_EDITOR"),System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]

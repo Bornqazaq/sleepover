@@ -12,6 +12,41 @@ namespace Igruha.Tests
 {
     public sealed class CircusBearPairTests
     {
+        [TestCase(757)] [TestCase(43)] [TestCase(912)]
+        public void PatrolExploresTheArenaWithIndependentPausesWithoutCollisions(int seed)
+        {
+            var savedRandom=Random.state;
+            var a=new GameObject("First bear").AddComponent<PitBear>();
+            var b=new GameObject("Second bear").AddComponent<PitBear>();
+            try
+            {
+                Random.InitState(seed);
+                a.transform.position=Vector3.left*5;b.transform.position=Vector3.right*5;
+                a.Configure(8.2f,.85f,2.35f,0,8,8.64f);b.Configure(8.2f,.85f,2.35f,0,8,8.64f);
+                a.ConfigureCompanion(b,0);b.ConfigureCompanion(a,1);
+                float travelA=0,travelB=0,minRadius=10,maxRadius=0;
+                int independentPauseFrames=0;
+                for(int frame=0;frame<7200;frame++)
+                {
+                    Vector3 beforeA=a.transform.position,beforeB=b.transform.position;
+                    a.Tick(1f/60,null,false);b.Tick(1f/60,null,false);
+                    travelA+=Vector3.Distance(beforeA,a.transform.position);
+                    travelB+=Vector3.Distance(beforeB,b.transform.position);
+                    minRadius=Mathf.Min(minRadius,a.transform.position.magnitude);
+                    maxRadius=Mathf.Max(maxRadius,a.transform.position.magnitude);
+                    if((a.AnimatorSpeed<.1f && b.AnimatorSpeed>.4f) || (b.AnimatorSpeed<.1f && a.AnimatorSpeed>.4f))independentPauseFrames++;
+                    Assert.That(Vector3.Distance(a.transform.position,b.transform.position),Is.GreaterThanOrEqualTo(PitBear.CompanionClearance-.001f));
+                    Assert.That(a.transform.position.magnitude,Is.LessThanOrEqualTo(8.64f-PitBear.BodyWallClearance+.001f));
+                    Assert.That(b.transform.position.magnitude,Is.LessThanOrEqualTo(8.64f-PitBear.BodyWallClearance+.001f));
+                }
+                Assert.That(travelA,Is.GreaterThan(55),"First bear must not stall behind its companion.");
+                Assert.That(travelB,Is.GreaterThan(55),"Second bear must not stall behind its companion.");
+                Assert.That(maxRadius-minRadius,Is.GreaterThan(2),"Patrol must explore inside, not repeat the outer circle.");
+                Assert.That(independentPauseFrames,Is.GreaterThan(60),"The bears must not stop and restart in lockstep.");
+            }
+            finally { Random.state=savedRandom;Object.DestroyImmediate(a.gameObject);Object.DestroyImmediate(b.gameObject); }
+        }
+
         [TestCase("CansOrder")]
         [TestCase("Stopwatch")]
         public void ShippingSceneHasTwoWiredAndIndependentlyReplicatedBears(string sceneName)
