@@ -1,0 +1,91 @@
+{
+  "codeCommit": "ed6de69db60c090b45d8ffca5463783309a14bc4",
+  "hostPlusClients": 3,
+  "visibleHostAndClient": true,
+  "games": [
+    {
+      "logDirectory": "igruha/Builds/Autotest/logs/playtest-circus-cans-20261013-160329",
+      "players": [
+        {
+          "log": "client-1.log",
+          "passed": true,
+          "checks": [
+            "PLAYTEST_CHECK interface roundClockVisible=True cans=True",
+            "PLAYTEST_CHECK hatch maximumUpwardStep=0 finalHeights=2.76,2.76",
+            "PLAYTEST_CHECK PASS mode=circus-cans id=2"
+          ]
+        },
+        {
+          "log": "client-2.log",
+          "passed": true,
+          "checks": [
+            "PLAYTEST_CHECK interface roundClockVisible=True cans=True",
+            "PLAYTEST_CHECK hatch maximumUpwardStep=0 finalHeights=2.76,2.76",
+            "PLAYTEST_CHECK PASS mode=circus-cans id=1"
+          ]
+        },
+        {
+          "log": "client-3.log",
+          "passed": true,
+          "checks": [
+            "PLAYTEST_CHECK interface roundClockVisible=True cans=True",
+            "PLAYTEST_CHECK hatch maximumUpwardStep=0 finalHeights=2.76,2.76",
+            "PLAYTEST_CHECK PASS mode=circus-cans id=3"
+          ]
+        },
+        {
+          "log": "host.log",
+          "passed": true,
+          "checks": [
+            "PLAYTEST_CHECK interface roundClockVisible=True cans=True",
+            "PLAYTEST_CHECK hatch maximumUpwardStep=0 finalHeights=2.76,2.76",
+            "PLAYTEST_CHECK PASS mode=circus-cans id=0"
+          ]
+        }
+      ],
+      "passed": true
+    },
+    {
+      "logDirectory": "igruha/Builds/Autotest/logs/playtest-circus-stopwatch-20261013-160525",
+      "players": [
+        {
+          "log": "client-1.log",
+          "passed": true,
+          "checks": [
+            "PLAYTEST_CHECK interface roundClockVisible=False cans=False",
+            "PLAYTEST_CHECK hatch maximumUpwardStep=0 finalHeights=2.76,2.76",
+            "PLAYTEST_CHECK PASS mode=circus-stopwatch id=2"
+          ]
+        },
+        {
+          "log": "client-2.log",
+          "passed": true,
+          "checks": [
+            "PLAYTEST_CHECK interface roundClockVisible=False cans=False",
+            "PLAYTEST_CHECK hatch maximumUpwardStep=0 finalHeights=2.76,2.76",
+            "PLAYTEST_CHECK PASS mode=circus-stopwatch id=1"
+          ]
+        },
+        {
+          "log": "client-3.log",
+          "passed": true,
+          "checks": [
+            "PLAYTEST_CHECK interface roundClockVisible=False cans=False",
+            "PLAYTEST_CHECK hatch maximumUpwardStep=0 finalHeights=2.76,2.76",
+            "PLAYTEST_CHECK PASS mode=circus-stopwatch id=3"
+          ]
+        },
+        {
+          "log": "host.log",
+          "passed": true,
+          "checks": [
+            "PLAYTEST_CHECK interface roundClockVisible=False cans=False",
+            "PLAYTEST_CHECK hatch maximumUpwardStep=0 finalHeights=2.76,2.76",
+            "PLAYTEST_CHECK PASS mode=circus-stopwatch id=0"
+          ]
+        }
+      ],
+      "passed": true
+    }
+  ]
+}
