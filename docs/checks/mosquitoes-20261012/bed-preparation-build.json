@@ -1,0 +1,15 @@
+{
+  "result": "Succeeded",
+  "totalErrors": 0,
+  "totalWarnings": 2,
+  "duration": "00:00:40.7565000",
+  "target": "macOS Development",
+  "warnings": [
+    "MCP-for-Unity WebSocket keep-alive failed during build",
+    "MCP-for-Unity WebSocket connection closed during build"
+  ],
+  "editor_console": [
+    "Known Addressables ProfileValueReference: GetValue called with empty id."
+  ],
+  "scope": "Autotest build only; distribution ZIP and Windows build not produced."
+}

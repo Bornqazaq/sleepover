@@ -1,0 +1,356 @@
+{
+  "success": true,
+  "message": "Test job status retrieved.",
+  "error": null,
+  "data": {
+    "job_id": "1bd1c98e05304b9d8583251978fcb3b7",
+    "status": "succeeded",
+    "mode": "EditMode",
+    "started_unix_ms": 1791800572397,
+    "finished_unix_ms": 1791800582361,
+    "last_update_unix_ms": 1791800582361,
+    "progress": {
+      "completed": 35,
+      "total": 35,
+      "current_test_full_name": null,
+      "current_test_started_unix_ms": 1791800582015,
+      "last_finished_test_full_name": "Igruha.Tests.MosquitoesRulesTests.VignetteFadesBackToExactlyZero",
+      "last_finished_unix_ms": 1791800582017,
+      "stuck_suspected": false,
+      "editor_is_focused": false,
+      "blocked_reason": null,
+      "failures_so_far": [],
+      "failures_capped": false
+    },
+    "error": null,
+    "result": {
+      "mode": "EditMode",
+      "summary": {
+        "total": 35,
+        "passed": 35,
+        "failed": 0,
+        "skipped": 0,
+        "durationSeconds": 2.3953934,
+        "resultState": "Passed"
+      },
+      "results": [
+        {
+          "name": "AllEightVariantsKeepOriginalMeshesMaterialsAndIsolateGameplay",
+          "fullName": "Igruha.Tests.MosquitoesAvatarTests.AllEightVariantsKeepOriginalMeshesMaterialsAndIsolateGameplay",
+          "state": "Passed",
+          "durationSeconds": 0.1064869,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "CoincidentImportedWingPivotsStillFlapInOppositeDirections",
+          "fullName": "Igruha.Tests.MosquitoesAvatarTests.CoincidentImportedWingPivotsStillFlapInOppositeDirections",
+          "state": "Passed",
+          "durationSeconds": 0.0775648,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "EveryGiantFitsMattressAndRestoresOriginalModelTransform",
+          "fullName": "Igruha.Tests.MosquitoesAvatarTests.EveryGiantFitsMattressAndRestoresOriginalModelTransform",
+          "state": "Passed",
+          "durationSeconds": 0.2693959,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "BedTransitionsKeepSkinOutOfMattress(0)",
+          "fullName": "Igruha.Tests.MosquitoesMotionTests.BedTransitionsKeepSkinOutOfMattress(0)",
+          "state": "Passed",
+          "durationSeconds": 0.0285233,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "BedTransitionsKeepSkinOutOfMattress(1)",
+          "fullName": "Igruha.Tests.MosquitoesMotionTests.BedTransitionsKeepSkinOutOfMattress(1)",
+          "state": "Passed",
+          "durationSeconds": 0.0194327,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "BedTransitionsKeepSkinOutOfMattress(2)",
+          "fullName": "Igruha.Tests.MosquitoesMotionTests.BedTransitionsKeepSkinOutOfMattress(2)",
+          "state": "Passed",
+          "durationSeconds": 0.0158095,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "BedTransitionsKeepSkinOutOfMattress(3)",
+          "fullName": "Igruha.Tests.MosquitoesMotionTests.BedTransitionsKeepSkinOutOfMattress(3)",
+          "state": "Passed",
+          "durationSeconds": 0.0155498,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "BedTransitionsKeepSkinOutOfMattress(4)",
+          "fullName": "Igruha.Tests.MosquitoesMotionTests.BedTransitionsKeepSkinOutOfMattress(4)",
+          "state": "Passed",
+          "durationSeconds": 0.0156797,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "BedTransitionsKeepSkinOutOfMattress(5)",
+          "fullName": "Igruha.Tests.MosquitoesMotionTests.BedTransitionsKeepSkinOutOfMattress(5)",
+          "state": "Passed",
+          "durationSeconds": 0.0135444,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "BedTransitionsKeepSkinOutOfMattress(6)",
+          "fullName": "Igruha.Tests.MosquitoesMotionTests.BedTransitionsKeepSkinOutOfMattress(6)",
+          "state": "Passed",
+          "durationSeconds": 0.0157531,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "BedTransitionsKeepSkinOutOfMattress(7)",
+          "fullName": "Igruha.Tests.MosquitoesMotionTests.BedTransitionsKeepSkinOutOfMattress(7)",
+          "state": "Passed",
+          "durationSeconds": 0.0214259,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "BiteBendsLimbsWithoutInvertingTheWholeCharacterAndReleases(0)",
+          "fullName": "Igruha.Tests.MosquitoesMotionTests.BiteBendsLimbsWithoutInvertingTheWholeCharacterAndReleases(0)",
+          "state": "Passed",
+          "durationSeconds": 0.0021448,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "BiteBendsLimbsWithoutInvertingTheWholeCharacterAndReleases(1)",
+          "fullName": "Igruha.Tests.MosquitoesMotionTests.BiteBendsLimbsWithoutInvertingTheWholeCharacterAndReleases(1)",
+          "state": "Passed",
+          "durationSeconds": 0.00131,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "BiteBendsLimbsWithoutInvertingTheWholeCharacterAndReleases(2)",
+          "fullName": "Igruha.Tests.MosquitoesMotionTests.BiteBendsLimbsWithoutInvertingTheWholeCharacterAndReleases(2)",
+          "state": "Passed",
+          "durationSeconds": 0.0012915,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "BiteBendsLimbsWithoutInvertingTheWholeCharacterAndReleases(3)",
+          "fullName": "Igruha.Tests.MosquitoesMotionTests.BiteBendsLimbsWithoutInvertingTheWholeCharacterAndReleases(3)",
+          "state": "Passed",
+          "durationSeconds": 0.0011618,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "BiteBendsLimbsWithoutInvertingTheWholeCharacterAndReleases(4)",
+          "fullName": "Igruha.Tests.MosquitoesMotionTests.BiteBendsLimbsWithoutInvertingTheWholeCharacterAndReleases(4)",
+          "state": "Passed",
+          "durationSeconds": 0.0010868,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "BiteBendsLimbsWithoutInvertingTheWholeCharacterAndReleases(5)",
+          "fullName": "Igruha.Tests.MosquitoesMotionTests.BiteBendsLimbsWithoutInvertingTheWholeCharacterAndReleases(5)",
+          "state": "Passed",
+          "durationSeconds": 0.0009826,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "BiteBendsLimbsWithoutInvertingTheWholeCharacterAndReleases(6)",
+          "fullName": "Igruha.Tests.MosquitoesMotionTests.BiteBendsLimbsWithoutInvertingTheWholeCharacterAndReleases(6)",
+          "state": "Passed",
+          "durationSeconds": 0.001146,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "BiteBendsLimbsWithoutInvertingTheWholeCharacterAndReleases(7)",
+          "fullName": "Igruha.Tests.MosquitoesMotionTests.BiteBendsLimbsWithoutInvertingTheWholeCharacterAndReleases(7)",
+          "state": "Passed",
+          "durationSeconds": 0.0012962,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "AwakeAndTransitionsDoNotSpendAccumulatedSleep",
+          "fullName": "Igruha.Tests.MosquitoesRulesTests.AwakeAndTransitionsDoNotSpendAccumulatedSleep",
+          "state": "Passed",
+          "durationSeconds": 0.0115092,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "BitesDuringLyingDownDoNotPreloadWakePair",
+          "fullName": "Igruha.Tests.MosquitoesRulesTests.BitesDuringLyingDownDoNotPreloadWakePair",
+          "state": "Passed",
+          "durationSeconds": 0.0007964,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "LargeTickAndSmallTicksAgreeAcrossWakeAndProtection",
+          "fullName": "Igruha.Tests.MosquitoesRulesTests.LargeTickAndSmallTicksAgreeAcrossWakeAndProtection",
+          "state": "Passed",
+          "durationSeconds": 0.0007748,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "PairExpiresButLastSurvivorCanStillWake",
+          "fullName": "Igruha.Tests.MosquitoesRulesTests.PairExpiresButLastSurvivorCanStillWake",
+          "state": "Passed",
+          "durationSeconds": 0.0006055,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "ParkingKeepsNetworkRootAliveAndRestoresVisibilityAndColliders",
+          "fullName": "Igruha.Tests.MosquitoesRulesTests.ParkingKeepsNetworkRootAliveAndRestoresVisibilityAndColliders",
+          "state": "Passed",
+          "durationSeconds": 0.002149,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "ParkingRestoresOriginalStateAndIsIdempotent(True,False)",
+          "fullName": "Igruha.Tests.MosquitoesRulesTests.ParkingRestoresOriginalStateAndIsIdempotent(True,False)",
+          "state": "Passed",
+          "durationSeconds": 0.0044354,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "ParkingRestoresOriginalStateAndIsIdempotent(False,True)",
+          "fullName": "Igruha.Tests.MosquitoesRulesTests.ParkingRestoresOriginalStateAndIsIdempotent(False,True)",
+          "state": "Passed",
+          "durationSeconds": 0.0009276,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "ReenteringBedCannotExtendForcedWakeProtection",
+          "fullName": "Igruha.Tests.MosquitoesRulesTests.ReenteringBedCannotExtendForcedWakeProtection",
+          "state": "Passed",
+          "durationSeconds": 0.0007315,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "RepeatedVoluntaryWakeCannotWinWithoutBeingBiteable",
+          "fullName": "Igruha.Tests.MosquitoesRulesTests.RepeatedVoluntaryWakeCannotWinWithoutBeingBiteable",
+          "state": "Passed",
+          "durationSeconds": 0.002894,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "ReplicatedBiteWindowShowsTheSameTeamOpportunity",
+          "fullName": "Igruha.Tests.MosquitoesRulesTests.ReplicatedBiteWindowShowsTheSameTeamOpportunity",
+          "state": "Passed",
+          "durationSeconds": 0.0013684,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "SleepClampsAtTarget",
+          "fullName": "Igruha.Tests.MosquitoesRulesTests.SleepClampsAtTarget",
+          "state": "Passed",
+          "durationSeconds": 0.0005739,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "TeamResultsPreserveOriginalRosterAndDisconnectedMosquitoTeamPlace(3)",
+          "fullName": "Igruha.Tests.MosquitoesRulesTests.TeamResultsPreserveOriginalRosterAndDisconnectedMosquitoTeamPlace(3)",
+          "state": "Passed",
+          "durationSeconds": 0.0014742,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "TeamResultsPreserveOriginalRosterAndDisconnectedMosquitoTeamPlace(4)",
+          "fullName": "Igruha.Tests.MosquitoesRulesTests.TeamResultsPreserveOriginalRosterAndDisconnectedMosquitoTeamPlace(4)",
+          "state": "Passed",
+          "durationSeconds": 0.0002656,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "TeamResultsPreserveOriginalRosterAndDisconnectedMosquitoTeamPlace(8)",
+          "fullName": "Igruha.Tests.MosquitoesRulesTests.TeamResultsPreserveOriginalRosterAndDisconnectedMosquitoTeamPlace(8)",
+          "state": "Passed",
+          "durationSeconds": 0.0003175,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "TwoTimelyBitesWakeAndGrantImmunity",
+          "fullName": "Igruha.Tests.MosquitoesRulesTests.TwoTimelyBitesWakeAndGrantImmunity",
+          "state": "Passed",
+          "durationSeconds": 0.0015851,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        },
+        {
+          "name": "VignetteFadesBackToExactlyZero",
+          "fullName": "Igruha.Tests.MosquitoesRulesTests.VignetteFadesBackToExactlyZero",
+          "state": "Passed",
+          "durationSeconds": 0.0020663,
+          "message": null,
+          "stackTrace": null,
+          "output": ""
+        }
+      ]
+    }
+  },
+  "hint": null
+}

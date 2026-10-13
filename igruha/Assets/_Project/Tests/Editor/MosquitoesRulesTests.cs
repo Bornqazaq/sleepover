@@ -24,18 +24,74 @@ namespace Igruha.Tests
             var s = new GiantSleepState(config); Assert.That(s.RegisterBite()); s.Tick(3.99f);
             Assert.That(s.RegisterBite()); Assert.That(s.Phase, Is.EqualTo(GiantPhase.Waking));
             Assert.That(s.ImmunityRemaining, Is.EqualTo(2)); Assert.That(s.RegisterBite(), Is.False);
-            s.Tick(.5f); Assert.That(s.CanSwat); Assert.That(s.Sleep, Is.EqualTo(3.99f).Within(.001f));
+            s.Tick(.5f); Assert.That(s.CanSwat); Assert.That(s.Sleep, Is.EqualTo(3.99f - config.WakeSleepLoss).Within(.001f));
+            Assert.That(s.LampOn, Is.True, "forced waking must reveal attackers in the lamp radius");
+            Assert.That(s.ToggleBed(), Is.True, "returning to bed must not be blocked by protection");
+            s.Tick(config.LieDownSeconds);
+            Assert.That(s.CanBite, Is.False, "remaining wake protection is not renewed by bed use");
+            Assert.That(s.ImmunityRemaining, Is.EqualTo(.5f).Within(.001f));
+            float sleepBefore = s.Sleep;
+            s.Tick(config.ImmunitySeconds);
+            Assert.That(s.Sleep, Is.EqualTo(sleepBefore + 1.5f).Within(.001f));
+            Assert.That(s.CanBite, Is.True);
         }
-        [Test] public void OneMosquitoCannotWakeWithFiveSecondCooldown()
+        [Test]
+        public void RepeatedVoluntaryWakeCannotWinWithoutBeingBiteable()
+        {
+            var s = new GiantSleepState(config);
+            s.ToggleBed();
+            float vulnerableTime = 0;
+            for (int i = 0; i < 6000; i++)
+            {
+                if (s.CanSleep) s.ToggleBed();
+                if (s.Phase == GiantPhase.Sleeping && s.ImmunityRemaining <= .12f) s.ToggleBed();
+                s.Tick(.02f);
+                if (s.CanBite) vulnerableTime += .02f;
+            }
+            Assert.That(s.ReachedTarget, Is.False, "the previously winning E cycle must fail");
+            Assert.That(s.Sleep, Is.LessThanOrEqualTo(vulnerableTime + .001f));
+        }
+        [Test]
+        public void ReenteringBedCannotExtendForcedWakeProtection()
+        {
+            var s = new GiantSleepState(config);
+            s.RegisterBite(1); s.Tick(.5f); s.ToggleBed();
+            s.Tick(1); s.ToggleBed(); s.Tick(.5f); s.ToggleBed(); s.Tick(1);
+            Assert.That(s.ImmunityRemaining, Is.Zero);
+            Assert.That(s.CanBite, Is.True);
+        }
+        [Test]
+        public void LargeTickAndSmallTicksAgreeAcrossWakeAndProtection()
+        {
+            var a = new GiantSleepState(config); var b = new GiantSleepState(config);
+            a.RegisterBite(1); b.RegisterBite(1); a.Tick(.5f); b.Tick(.5f);
+            a.ToggleBed(); b.ToggleBed(); a.Tick(3);
+            for (int i = 0; i < 300; i++) b.Tick(.01f);
+            Assert.That(a.Sleep, Is.EqualTo(1.5f).Within(.001f));
+            Assert.That(b.Sleep, Is.EqualTo(a.Sleep).Within(.001f));
+        }
+        [Test] public void PairExpiresButLastSurvivorCanStillWake()
         {
             var s = new GiantSleepState(config); s.RegisterBite(); s.Tick(config.BiteCooldown); s.RegisterBite();
             Assert.That(s.Phase, Is.EqualTo(GiantPhase.Sleeping));
+            s.Tick(config.BiteCooldown); Assert.That(s.RegisterBite(1), Is.True);
+            Assert.That(s.Phase, Is.EqualTo(GiantPhase.Waking));
         }
         [Test] public void BitesDuringLyingDownDoNotPreloadWakePair()
         {
             var s = new GiantSleepState(config); s.ToggleBed(); s.Tick(.5f); s.ToggleBed();
-            Assert.That(s.RegisterBite()); Assert.That(s.RegisterBite()); Assert.That(s.Phase, Is.EqualTo(GiantPhase.LyingDown));
+            Assert.That(s.RegisterBite(), Is.False); Assert.That(s.RegisterBite(), Is.False); Assert.That(s.Phase, Is.EqualTo(GiantPhase.LyingDown));
             s.Tick(1); s.RegisterBite(); Assert.That(s.Phase, Is.EqualTo(GiantPhase.Sleeping));
+        }
+        [Test] public void ReplicatedBiteWindowShowsTheSameTeamOpportunity()
+        {
+            var server = new GiantSleepState(config); server.RegisterBite(); server.Tick(1);
+            var client = new GiantSleepState(config);
+            client.ApplySnapshot(server.Phase, server.Sleep, server.TransitionRemaining, server.ImmunityRemaining, server.LampOn,
+                server.RecentBites, server.BiteWindowRemaining);
+            Assert.That(client.RecentBites, Is.EqualTo(1));
+            Assert.That(client.BiteWindowRemaining, Is.EqualTo(3).Within(.001f));
+            server.Tick(4); Assert.That(server.RecentBites, Is.Zero);
         }
         [TestCase(3)] [TestCase(4)] [TestCase(8)] public void TeamResultsPreserveOriginalRosterAndDisconnectedMosquitoTeamPlace(int n)
         {

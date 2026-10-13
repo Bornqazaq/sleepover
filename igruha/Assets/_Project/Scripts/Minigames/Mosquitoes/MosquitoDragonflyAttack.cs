@@ -50,7 +50,12 @@ namespace Igruha.Minigames.Mosquitoes
                 transform.position = prey + escape * Mathf.Pow((age - .16f) / .85f, 1.2f);
                 transform.rotation = Quaternion.LookRotation(escape);
             }
-            for (int i = 0; i < wings.Count; i++) wings[i].localRotation = wingRotations[i] * Quaternion.Euler(0, 0, Mathf.Sin(age * 140) * 24);
+            for (int i = 0; i < wings.Count; i++)
+            {
+                float side = wings[i].name.StartsWith("DragonflyWing-1_") ? -1 : 1;
+                Vector3 axis = wings[i].parent.InverseTransformDirection(transform.forward);
+                wings[i].localRotation = Quaternion.AngleAxis(Mathf.Sin(age * 100 + i % 2 * .35f) * 30 * side, axis) * wingRotations[i];
+            }
             if (age > 1.1f) Destroy(gameObject);
         }
     }

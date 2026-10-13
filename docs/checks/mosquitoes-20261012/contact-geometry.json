@@ -1,0 +1,28 @@
+{
+  "scene": "Mosquitoes",
+  "unity": "6000.3.11f1",
+  "main_base": "086b4129",
+  "branch": "codex/mosquitoes-contact-20261012",
+  "root_orphan_contact_shells_after_rebuild": 0,
+  "bed": {
+    "center": [-1.55, 0.3325, -1.05],
+    "collider_size": [2.45, 0.665, 1.45],
+    "art_scale": [0.7852564, 1, 0.7435897],
+    "wake_exit": [-1.7, 0.05, 0.08]
+  },
+  "wardrobe_door": {
+    "collider_center": [-0.79, 1.36, 2.54],
+    "local_size": [0.94, 2.43, 0.038],
+    "yaw_degrees": 110
+  },
+  "flight_ceiling": 3.23,
+  "landing": {
+    "avatars_checked": 8,
+    "slots_per_avatar": 7,
+    "sphere_radius": 0.12,
+    "surface_clearance": 0.02,
+    "checks": ["no penetration at landing", "skin reached within 0.04 downward", "wake-up swat distance below 1.42"]
+  },
+  "evidence": ["contact-editmode.xml", "contact-playmode.xml"],
+  "limits": "Editor geometry and automated local physics checks; not a human Tailscale playtest."
+}

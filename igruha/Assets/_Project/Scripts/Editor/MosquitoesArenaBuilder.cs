@@ -33,6 +33,8 @@ namespace Igruha.EditorTools
             if (AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath) == null)
                 AssetDatabase.CopyAsset("Assets/_Project/Scenes/MinigameTemplate.unity", ScenePath);
             EditorSceneManager.OpenScene(ScenePath);
+            foreach (var root in EditorSceneManager.GetActiveScene().GetRootGameObjects())
+                if (root.name == "MosquitoGiantContacts") Object.DestroyImmediate(root);
             arena = GameObject.Find("_Arena").transform; Clear(arena);
             foreach (string root in new[] { "_Bounds", "_Traps", "_Pickups" }) { var go = GameObject.Find(root); if (go != null) Clear(go.transform); }
             var wood = Material("Walnut", "#4A3626"); var wall = Material("Midnight", "#2A3550");
@@ -50,32 +52,39 @@ namespace Igruha.EditorTools
             Block("EastWallNorth", new Vector3(3.75f, 2.03f, 2.58f), new Vector3(.3f, 2.02f, 1.24f), wall, "Ground");
             Block("NorthWall", new Vector3(0, 1.7f, 3.35f), new Vector3(7.2f, 3.4f, .3f), wall, "Ground");
             Block("SouthWall", new Vector3(0, 1.7f, -3.35f), new Vector3(7.2f, 3.4f, .3f), wall, "Ground");
-            Block("BedCollider", new Vector3(-1.6f, .3325f, -1.1f), new Vector3(3.12f, .665f, 1.95f), ivory, "Cover");
-            Block("HeadboardCollider", new Vector3(-3.17f, .87f, -1.1f), new Vector3(.16f, 1.48f, 2.05f), wood, "Cover");
+            Block("BedCollider", MosquitoRoomLayout.BedCenter, MosquitoRoomLayout.BedSize, ivory, "Cover");
+            Block("HeadboardCollider", new Vector3(-2.783f, .87f, MosquitoRoomLayout.BedZ), new Vector3(.126f, 1.48f, 1.525f), wood, "Cover");
             Block("NightstandCollider", new Vector3(-2.85f, .45f, -2.63f), new Vector3(1.02f, .9f, .93f), wood, "Cover");
             Block("WardrobeCollider", new Vector3(-1.93f, 1.35f, 2.61f), new Vector3(2.06f, 2.62f, 1.07f), wood, "Cover");
-            Block("WardrobeDoorCollider", new Vector3(-.79f, 1.36f, 1.73f), new Vector3(.91f, 2.43f, .11f), wood, "Cover");
-            GameObject.Find("WardrobeDoorCollider").transform.rotation = Quaternion.Euler(0, 62, 0);
+            Block("WardrobeDoorCollider", new Vector3(-.79f, 1.36f, 2.54f), new Vector3(.94f, 2.43f, .038f), wood, "Cover");
+            GameObject.Find("WardrobeDoorCollider").transform.rotation = Quaternion.Euler(0, 110, 0);
             Block("DeskCollider", new Vector3(1.52f, .84f, 2.62f), new Vector3(2.45f, .12f, 1f), wood, "Cover");
             Block("DeskLegL", new Vector3(.43f, .41f, 2.62f), new Vector3(.13f, .82f, .84f), wood, "Cover");
             Block("DeskCabinetCollider", new Vector3(2.18f, .46f, 2.65f), new Vector3(.73f, .75f, .81f), wood, "Cover");
-            Block("ChairCollider", new Vector3(1.41f, .76f, 1.57f), new Vector3(.82f, 1.5f, .8f), wood, "Cover");
+            Block("ChairSeatCollider", new Vector3(1.41f, .49f, 1.57f), new Vector3(.66f, .12f, .58f), wood, "Cover");
+            Block("ChairBackCollider", new Vector3(1.41f, 1.03f, 1.85f), new Vector3(.62f, .90f, .12f), wood, "Cover");
+            Block("ChairStemCollider", new Vector3(1.41f, .24f, 1.57f), new Vector3(.12f, .48f, .12f), wood, "Cover");
             for (int i = 0; i < 2; i++) Block("ShelfCollider" + i, new Vector3(1.45f, 1.85f + i * .6f, 2.95f), new Vector3(2.5f, .075f, .43f), wood, "Cover");
             Block("BoxStackCollider", new Vector3(2.90f, .67f, -1.05f), new Vector3(.70f, 1.33f, .70f), wood, "Cover");
             Block("SmallBoxCollider", new Vector3(2.94f, .28f, -1.74f), new Vector3(.56f, .56f, .56f), wood, "Cover");
             Block("BackpackCollider", new Vector3(.57f, .45f, -2.12f), new Vector3(.60f, .90f, .50f), teal, "Cover");
-            var bed = Point("BedPose", new Vector3(-2.40f, .68f, -1.1f));
+            var bed = Point("BedPose", MosquitoRoomLayout.BedPose);
             bed.rotation = Quaternion.Euler(0, 90, 0);
-            var exit = Point("BedExit", new Vector3(-1.70f, .05f, .45f));
+            var exit = Point("BedExit", MosquitoRoomLayout.BedExit);
             exit.rotation = Quaternion.Euler(0, 180, 0);
             var lampPoint = Point("LampCenter", new Vector3(-3.02f, 1.48f, -2.47f));
             var config = Asset<MosquitoesConfig>(Settings + "/MosquitoesConfig.asset");
+            Set(config, "maxSpeed", 4.8f); Set(config, "quietSpeed", 1.25f);
+            Set(config, "acceleration", 20f); Set(config, "braking", 40f);
+            Set(config, "flightCeiling", 3.23f);
+            Set(config, "quietThreshold", 1.25f); Set(config, "loudThreshold", 4.8f);
+            Set(config, "wakeSleepLoss", 1f); Set(config, "soloBiteHoldSeconds", 1f); Set(config, "swatCooldown", 1f);
             var definition = Asset<MinigameDefinition>(Settings + "/Mosquitoes.asset");
             Set(definition, "displayName", "Комары"); Set(definition, "sceneName", "Mosquitoes");
             Set(definition, "category", (int)MinigameCategory.Asymmetric); Set(definition, "cameraMode", (int)CameraMode.ThirdPerson);
             Set(definition, "roundDuration", 120f); Set(definition, "minPlayers", 3); Set(definition, "maxPlayers", 8);
             Set(definition, "objective", "Великан: накопи 60 секунд сна. Комары: не дай ему выспаться за 120 секунд.");
-            Set(definition, "controlHints", new[] { "Великан: E у кровати — уснуть / встать, ЛКМ — шлепок", "Комар: WASD, Space / Ctrl — полёт, Shift — тихо", "Зажми ЛКМ у груди на 0,5 с. Два укуса за 4 с будят великана" });
+            Set(definition, "controlHints", new[] { "Великан: E у кровати — уснуть / встать, ЛКМ — шлепок", "Комар: WASD, Space / Ctrl — полёт, Shift — тихо", "Зажми ЛКМ у метки укуса на 0,5 с. Два укуса за 4 с будят великана" });
             Set(definition, "tutorialSteps", new[] { "Проверь свою роль и управление на арене", "Сон копится только в темноте. Свет выдаёт комаров", "Комары: атакуйте вместе, затем отходите на 5 секунд" });
             Set(definition, "tutorialQuickHints", new[] { "E — кровать", "ЛКМ — шлепок / укус", "F1 — правила, F2 — готов" });
             Transform spawns = GameObject.Find("_Spawns").transform;
@@ -105,7 +114,9 @@ namespace Igruha.EditorTools
             var ui = new GameObject("MosquitoesOverlay", typeof(RectTransform)); ui.transform.SetParent(canvas, false); Stretch(ui.GetComponent<RectTransform>());
             var vg = new GameObject("SleepVignette", typeof(RectTransform), typeof(Image), typeof(ScreenVignette)); vg.transform.SetParent(ui.transform, false); Stretch(vg.GetComponent<RectTransform>());
             ui.transform.SetAsFirstSibling();
-            var status = Label(ui.transform, "Status", new Vector2(.5f, .87f), new Vector2(650, 90), 26);
+            var statusPlate = HudPlate(ui.transform, "StatusPlate", new Vector2(.5f, .87f), new Vector2(700, 82));
+            var controlsPlate = HudPlate(ui.transform, "ControlsPlate", new Vector2(.5f, .10f), new Vector2(1120, 54));
+            var status = Label(ui.transform, "Status", new Vector2(.5f, .87f), new Vector2(680, 90), 26);
             var hints = Label(ui.transform, "RoleControls", new Vector2(.5f, .10f), new Vector2(1120, 95), 22);
             hints.text = ""; status.text = "";
             var lighting = GameObject.Find("_Lighting"); if (lighting != null) Clear(lighting.transform);
@@ -120,6 +131,7 @@ namespace Igruha.EditorTools
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat; RenderSettings.ambientLight = new Color(.10f, .13f, .20f);
             Set(presentation, "config", config); Set(presentation, "bedsideLight", lamp); Set(presentation, "windowLight", window); Set(presentation, "fillLight", fill);
             Set(presentation, "vignette", vg.GetComponent<ScreenVignette>()); Set(presentation, "status", status); Set(presentation, "instructions", hints);
+            Set(presentation, "statusPlate", statusPlate); Set(presentation, "instructionsPlate", controlsPlate);
             Set(presentation, "biteFlash", Burst("BiteFlash", new Color(1f, .5f, .25f), .04f, 5));
             Set(presentation, "deathPuff", Burst("DeathPuff", new Color(.7f, .75f, .8f), .08f, 12));
             Set(game, "definition", definition); Set(game, "roundTimer", manager.GetComponent<RoundTimer>());
@@ -146,7 +158,7 @@ namespace Igruha.EditorTools
             Set(d, "objective", giant ? "Накопи 60 секунд сна. Сон растёт только лёжа в темноте. Два укуса за 4 секунды разбудят тебя. Уничтожь всех комаров, чтобы победить раньше." : "Не дай великану выспаться за 120 секунд. Два укуса за 4 секунды разбудят его. После укуса перерыв 5 секунд — нападайте вместе. После шлепка ты наблюдатель до конца раунда.");
             Set(d, "tutorialSteps", giant ? new[] { "E у кровати — лечь / встать", "E у тумбочки — лампа", "ЛКМ — шлепок. Слушай жужжание" } : new[] { $"За {MosquitoWindowEntry.Deadline:0} секунд влети в окно — иначе стрекоза съест тебя", "Зажми ЛКМ на 0,5 секунды", "Улетай в темноту на 5 секунд" });
             Set(d, "tutorialQuickHints", giant ? new[] { "WASD — бег", "E — кровать / лампа", "ЛКМ — шлепок" } : new[] { "WASD + Space / Ctrl — полёт", "Shift — тихо", "ЛКМ — держать укус" });
-            Set(d, "controlHints", giant ? new[] { "WASD — бег, Space — прыжок", "E — ближайшая кровать / лампа", "ЛКМ — удар, Ctrl — присесть", "В темноте комаров слышно, но не видно" } : new[] { "WASD — полёт, Space / Ctrl — вверх / вниз", "Shift — тихий полёт", "ЛКМ — держать у груди 0,5 секунды", "В окно можно влететь только один раз. Назад пути нет" });
+            Set(d, "controlHints", giant ? new[] { "WASD — бег, Space — прыжок", "E — ближайшая кровать / лампа", "ЛКМ — удар, Ctrl — присесть", "В темноте комаров слышно, но не видно" } : new[] { "WASD — полёт, Space / Ctrl — вверх / вниз", "Shift — тихий полёт", "ЛКМ — держать у метки укуса 0,5 секунды", "В окно можно влететь только один раз. Назад пути нет" });
             return d;
         }
         private static GameObject SetupPrefab(InputActionAsset input, Material teal)
@@ -186,7 +198,9 @@ namespace Igruha.EditorTools
             if (arena == null) arena = GameObject.Find("_Arena").transform;
             var old = arena.Find("BedroomArt"); if (old != null) Object.DestroyImmediate(old.gameObject);
             var instance = (GameObject)PrefabUtility.InstantiatePrefab(model); instance.name = "BedroomArt"; instance.transform.SetParent(arena, false);
+            PrefabUtility.UnpackPrefabInstance(instance, PrefabUnpackMode.OutermostRoot, InteractionMode.AutomatedAction);
             RemapMaterials(instance);
+            FitBedArt(instance.transform);
             var glow = new List<Renderer>();
             foreach (Renderer renderer in instance.GetComponentsInChildren<Renderer>())
                 if (renderer.name == "LampShade" || renderer.name == "WarmBulb")
@@ -206,6 +220,21 @@ namespace Igruha.EditorTools
             var data = new SerializedObject(motion); var array = data.FindProperty("curtains"); array.arraySize = curtains.Count;
             for (int i = 0; i < curtains.Count; i++) array.GetArrayElementAtIndex(i).objectReferenceValue = curtains[i]; data.ApplyModifiedPropertiesWithoutUndo();
             foreach (Transform child in arena) if (child != instance.transform) foreach (Renderer renderer in child.GetComponentsInChildren<Renderer>()) renderer.enabled = false;
+        }
+        private static void FitBedArt(Transform room)
+        {
+            var group = new GameObject("BedAssembly").transform;
+            group.SetParent(room, true); group.position = new Vector3(-1.6f, 0, -1.1f);
+            var all = room.GetComponentsInChildren<Transform>();
+            string[] prefixes = { "BedFrame", "BedLeg", "Mattress", "Headboard", "Pillow", "RumpledDuvet", "FoldedThrow", "DuvetFinishing", "DuvetBorder", "TurnedDownDuvetCorner" };
+            foreach (var item in all)
+            {
+                if (item == room || item == group || item.IsChildOf(group)) continue;
+                foreach (string prefix in prefixes)
+                    if (item.name.StartsWith(prefix)) { item.SetParent(group, true); break; }
+            }
+            group.localScale = new Vector3(MosquitoRoomLayout.BedSize.x / 3.12f, 1, MosquitoRoomLayout.BedSize.z / 1.95f);
+            group.position = new Vector3(MosquitoRoomLayout.BedCenter.x, 0, MosquitoRoomLayout.BedZ);
         }
         // Reimports presentation only; preserves the running rules, colliders and scene references.
         public static void RefreshPresentation()
@@ -365,8 +394,22 @@ namespace Igruha.EditorTools
             ColorUtility.TryParseHtmlString(hex, out Color color); material.color = color; material.SetFloat("_Smoothness", .12f); EditorUtility.SetDirty(material); return material;
         }
         private static Light Light(string name, Vector3 p, LightType type, float intensity, Color color, Transform root)
-        { var go = new GameObject(name); go.transform.SetParent(root); go.transform.position = p; var light = go.AddComponent<Light>(); light.type = type; light.color = color; light.intensity = intensity; light.shadows = LightShadows.Soft; return light; }
+        {
+            var go = new GameObject(name); go.transform.SetParent(root); go.transform.position = p;
+            var light = go.AddComponent<Light>(); light.type = type; light.color = color; light.intensity = intensity; light.shadows = LightShadows.Soft;
+            var data = go.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalLightData>() ?? go.AddComponent<UnityEngine.Rendering.Universal.UniversalAdditionalLightData>();
+            Set(data, "m_AdditionalLightsShadowResolutionTier", type == LightType.Point ? 0 : 1);
+            return light;
+        }
         private static void Stretch(RectTransform rect) { rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one; rect.offsetMin = rect.offsetMax = Vector2.zero; }
+        private static GameObject HudPlate(Transform parent, string name, Vector2 anchor, Vector2 size)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(Image)); go.transform.SetParent(parent, false);
+            var rect = go.GetComponent<RectTransform>(); rect.anchorMin = rect.anchorMax = anchor; rect.sizeDelta = size;
+            var image = go.GetComponent<Image>(); image.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(UiSpriteBaker.Card);
+            image.type = Image.Type.Sliced; image.color = MinigameUiStyle.HudSurface; image.raycastTarget = false;
+            return go;
+        }
         private static TextMeshProUGUI Label(Transform parent, string name, Vector2 anchor, Vector2 size, float font)
         {
             var go = new GameObject(name, typeof(RectTransform)); go.transform.SetParent(parent, false);
