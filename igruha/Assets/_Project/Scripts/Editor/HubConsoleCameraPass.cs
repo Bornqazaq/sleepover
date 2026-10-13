@@ -12,6 +12,7 @@ namespace Igruha.EditorTools
 
         public static void Apply()
         {
+            HubConsoleMenuBuilder.FitScreen();
             Transform pit = HubCompactPass.Require("_Pit").transform;
             RectTransform screen = pit.Find("TvScreen").GetComponent<RectTransform>();
             Transform focus = pit.Find("TvCameraFocus");

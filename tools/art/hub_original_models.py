@@ -2,7 +2,7 @@
 Coordinates passed to helpers are Unity metres (X right, Y up, Z forward).
 Exports evaluated geometry with explicit Unity coordinates and UVs for the editor importer.
 """
-import bpy, math, random, json, gzip
+import bpy, bmesh, math, random, json, gzip
 from pathlib import Path
 from mathutils import Vector
 # Set HUB_PROJECT_ROOT to the checkout root in the Blender MCP call.
@@ -61,6 +61,36 @@ def lathe(pos,profile,mat):
     me=bpy.data.meshes.new(current);me.from_pydata(vs,[],fs);me.update();o=bpy.data.objects.new(current,me);COLL.objects.link(o)
     for poly in me.polygons:poly.use_smooth=True
     me.materials.append(MATS[mat]);ASSETS[current].append(o);return o
+
+def planter(pos,mat):
+    # Closed ceramic cross-section: underside, foot, tapered wall, rounded lip,
+    # inner wall and a raised inner floor. The old open lathe faced inward.
+    profile=[(0,0),(0,.195),(.009,.215),(.025,.220),(.055,.224),
+             (.397,.282),(.407,.282),(.412,.303),(.424,.309),
+             (.453,.309),(.467,.300),(.472,.277),(.464,.260),
+             (.442,.256),(.080,.195),(.060,.181),(.060,0)]
+    vs=[];rings=[];faces=[];segments=48
+    for height,radius in profile:
+        ring=[]
+        for i in range(1 if radius==0 else segments):
+            angle=i*math.tau/segments
+            ring.append(len(vs))
+            vs.append(p((pos[0]+radius*math.cos(angle),pos[1]+height,pos[2]+radius*math.sin(angle))))
+        rings.append(ring)
+    for a,b in zip(rings,rings[1:]):
+        for i in range(segments):
+            j=(i+1)%segments
+            if len(a)==1: faces.append((a[0],b[i],b[j]))
+            elif len(b)==1: faces.append((a[i],b[0],a[j]))
+            else: faces.append((a[i],b[i],b[j],a[j]))
+    mesh=bpy.data.meshes.new(current+'_ClosedPot');mesh.from_pydata(vs,[],faces);mesh.update()
+    bm=bmesh.new();bm.from_mesh(mesh);bmesh.ops.recalc_face_normals(bm,faces=list(bm.faces))
+    assert all(e.is_manifold for e in bm.edges), 'The planter must have no open edges'
+    assert bm.calc_volume(signed=True)>0, 'The planter must face outward'
+    bm.to_mesh(mesh);bm.free()
+    for poly in mesh.polygons: poly.use_smooth=abs(poly.normal.z)<.995
+    obj=bpy.data.objects.new(current+'_ClosedPot',mesh);COLL.objects.link(obj)
+    mesh.materials.append(MATS[mat]);ASSETS[current].append(obj);return obj
 
 def torus(pos,r,t,mat,rot=(0,0,0)):
     bpy.ops.mesh.primitive_torus_add(major_segments=40,minor_segments=8,location=p(pos),major_radius=r,minor_radius=t);o=bpy.context.object;o.rotation_euler=tuple(math.radians(a) for a in (rot[0],-rot[2],rot[1]));return own(o,mat)
@@ -163,7 +193,7 @@ for x,z in [(.15,.2),(.26,.2),(.20,.31),(.31,.31)]:cylinder((x,1.104,z),.026,.01
 box((0,.72,.39),(.25,.13,.013),'Ink',.01)
 # an original graphic pattern visible on the actual screen
 for j in range(6):box((-.21+j*.085,1.40+(.04 if j%2 else 0),.178),(.052,.035,.01),'Glow',.003)
-start('Plant');lathe((0,0,0),[(0,.20),(.04,.23),(.43,.29),(.45,.30),(.46,.26)],'Terracotta');cylinder((0,.425,0),.255,.012,'Walnut')
+start('Plant');planter((0,0,0),'Terracotta');cylinder((0,.425,0),.255,.012,'Walnut')
 for i in range(13):
     a=i*2.4;y=.60+(i%5)*.18;r=.30+(i%3)*.10;x=math.cos(a)*r;z=math.sin(a)*r
     line((0,.41,0),(x*.7,y,z*.7),.012,'Leaf');o=sphere((x,y,z),(.14,.045,.31),'LeafLight' if i%3==0 else 'Leaf');o.rotation_euler[2]=a;o.rotation_euler[0]=.45

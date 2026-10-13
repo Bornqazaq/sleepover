@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="12" result="Passed" total="12" passed="12" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-10-12 08:30:38Z" end-time="2026-10-12 08:33:56Z" duration="198.248887">
+  <test-suite type="TestSuite" id="1216" name="sleepover" fullname="sleepover" runstate="Runnable" testcasecount="173" result="Passed" start-time="2026-10-12 08:30:38Z" end-time="2026-10-12 08:33:56Z" duration="198.248887" total="12" passed="12" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <test-suite type="Assembly" id="1209" name="Igruha.PlayMode.Tests.dll" fullname="/Users/aemsolutions/sleepover/igruha/Library/ScriptAssemblies/Igruha.PlayMode.Tests.dll" runstate="Runnable" testcasecount="173" result="Passed" start-time="2026-10-12 08:30:38Z" end-time="2026-10-12 08:33:56Z" duration="198.241131" total="12" passed="12" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="67568" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <test-suite type="TestSuite" id="1210" name="Igruha" fullname="Igruha" runstate="Runnable" testcasecount="173" result="Passed" start-time="2026-10-12 08:30:38Z" end-time="2026-10-12 08:33:56Z" duration="198.237783" total="12" passed="12" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1211" name="Tests" fullname="Igruha.Tests" runstate="Runnable" testcasecount="173" result="Passed" start-time="2026-10-12 08:30:38Z" end-time="2026-10-12 08:33:56Z" duration="198.235252" total="12" passed="12" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="1212" name="PlayMode" fullname="Igruha.Tests.PlayMode" runstate="Runnable" testcasecount="166" result="Passed" start-time="2026-10-12 08:30:38Z" end-time="2026-10-12 08:33:56Z" duration="198.232292" total="12" passed="12" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestFixture" id="1180" name="MosquitoesSceneTests" fullname="Igruha.Tests.PlayMode.MosquitoesSceneTests" classname="Igruha.Tests.PlayMode.MosquitoesSceneTests" runstate="Runnable" testcasecount="12" result="Passed" start-time="2026-10-12 08:30:38Z" end-time="2026-10-12 08:33:56Z" duration="198.227062" total="12" passed="12" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1181" name="AllEightLiveGiantSpawnsStayInsideBed" fullname="Igruha.Tests.PlayMode.MosquitoesSceneTests.AllEightLiveGiantSpawnsStayInsideBed" methodname="AllEightLiveGiantSpawnsStayInsideBed" classname="Igruha.Tests.PlayMode.MosquitoesSceneTests" runstate="Runnable" seed="1823164201" result="Passed" start-time="2026-10-12 08:30:38Z" end-time="2026-10-12 08:31:09Z" duration="31.037601" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1186" name="BiteAcquisitionRejectsSkinAndFurnitureInThePath" fullname="Igruha.Tests.PlayMode.MosquitoesSceneTests.BiteAcquisitionRejectsSkinAndFurnitureInThePath" methodname="BiteAcquisitionRejectsSkinAndFurnitureInThePath" classname="Igruha.Tests.PlayMode.MosquitoesSceneTests" runstate="Runnable" seed="966581659" result="Passed" start-time="2026-10-12 08:31:09Z" end-time="2026-10-12 08:31:13Z" duration="4.256543" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1191" name="EightPlayersGiantBitesSwatAndCleanup" fullname="Igruha.Tests.PlayMode.MosquitoesSceneTests.EightPlayersGiantBitesSwatAndCleanup" methodname="EightPlayersGiantBitesSwatAndCleanup" classname="Igruha.Tests.PlayMode.MosquitoesSceneTests" runstate="Runnable" seed="521709189" result="Passed" start-time="2026-10-12 08:31:13Z" end-time="2026-10-12 08:31:35Z" duration="21.801009" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[📊 итоги раунда Mosquitoes [8 на старте, одиночная]: 0:1:+7/0 1:8:+0/0 2:8:+0/0 3:8:+0/0 4:8:+0/0 5:8:+0/0 6:8:+0/0 7:8:+0/0
+🎵 музыка: сцена «Hub» — тема MUS_Hub
+📊 итоги раунда Mosquitoes [8 на старте, одиночная]: 0:8:+0/0 1:1:+7/0 2:1:+7/0 3:1:+7/0 4:1:+7/0 5:1:+7/0 6:1:+7/0 7:1:+7/0
+🎵 музыка: сцена «Hub» — тема MUS_Hub
+]]></output>
+              </test-case>
+              <test-case id="1192" name="EightPlayersMosquitoBitesSwatAndCleanup" fullname="Igruha.Tests.PlayMode.MosquitoesSceneTests.EightPlayersMosquitoBitesSwatAndCleanup" methodname="EightPlayersMosquitoBitesSwatAndCleanup" classname="Igruha.Tests.PlayMode.MosquitoesSceneTests" runstate="Runnable" seed="1401617656" result="Passed" start-time="2026-10-12 08:31:35Z" end-time="2026-10-12 08:31:58Z" duration="22.524384" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[📊 итоги раунда Mosquitoes [8 на старте, одиночная]: 0:8:+0/0 1:8:+0/0 2:8:+0/0 3:8:+0/0 4:8:+0/0 5:8:+0/0 6:8:+0/0 7:1:+7/0
+🎵 музыка: сцена «Hub» — тема MUS_Hub
+📊 итоги раунда Mosquitoes [8 на старте, одиночная]: 0:1:+7/0 1:1:+7/0 2:1:+7/0 3:1:+7/0 4:1:+7/0 5:1:+7/0 6:1:+7/0 7:8:+0/0
+🎵 музыка: сцена «Hub» — тема MUS_Hub
+]]></output>
+              </test-case>
+              <test-case id="1185" name="FlightBoundaryCorrectionRunsOnFixedStepAndUsesFarWall" fullname="Igruha.Tests.PlayMode.MosquitoesSceneTests.FlightBoundaryCorrectionRunsOnFixedStepAndUsesFarWall" methodname="FlightBoundaryCorrectionRunsOnFixedStepAndUsesFarWall" classname="Igruha.Tests.PlayMode.MosquitoesSceneTests" runstate="Runnable" seed="657755289" result="Passed" start-time="2026-10-12 08:31:58Z" end-time="2026-10-12 08:32:01Z" duration="3.830962" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1189" name="FourPlayersGiantBitesSwatAndCleanup" fullname="Igruha.Tests.PlayMode.MosquitoesSceneTests.FourPlayersGiantBitesSwatAndCleanup" methodname="FourPlayersGiantBitesSwatAndCleanup" classname="Igruha.Tests.PlayMode.MosquitoesSceneTests" runstate="Runnable" seed="1723123081" result="Passed" start-time="2026-10-12 08:32:01Z" end-time="2026-10-12 08:32:23Z" duration="21.495768" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[📊 итоги раунда Mosquitoes [4 на старте, одиночная]: 0:1:+3/0 1:4:+0/0 2:4:+0/0 3:4:+0/0
+🎵 музыка: сцена «Hub» — тема MUS_Hub
+📊 итоги раунда Mosquitoes [4 на старте, одиночная]: 0:4:+0/0 1:1:+3/0 2:1:+3/0 3:1:+3/0
+🎵 музыка: сцена «Hub» — тема MUS_Hub
+]]></output>
+              </test-case>
+              <test-case id="1190" name="FourPlayersMosquitoBitesSwatAndCleanup" fullname="Igruha.Tests.PlayMode.MosquitoesSceneTests.FourPlayersMosquitoBitesSwatAndCleanup" methodname="FourPlayersMosquitoBitesSwatAndCleanup" classname="Igruha.Tests.PlayMode.MosquitoesSceneTests" runstate="Runnable" seed="380875231" result="Passed" start-time="2026-10-12 08:32:23Z" end-time="2026-10-12 08:32:45Z" duration="22.498188" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[📊 итоги раунда Mosquitoes [4 на старте, одиночная]: 0:4:+0/0 1:1:+3/0 2:4:+0/0 3:4:+0/0
+🎵 музыка: сцена «Hub» — тема MUS_Hub
+📊 итоги раунда Mosquitoes [4 на старте, одиночная]: 0:1:+3/0 1:4:+0/0 2:1:+3/0 3:1:+3/0
+🎵 музыка: сцена «Hub» — тема MUS_Hub
+]]></output>
+              </test-case>
+              <test-case id="1183" name="GiantDisconnectEndsRoundForRemainingMosquitoes" fullname="Igruha.Tests.PlayMode.MosquitoesSceneTests.GiantDisconnectEndsRoundForRemainingMosquitoes" methodname="GiantDisconnectEndsRoundForRemainingMosquitoes" classname="Igruha.Tests.PlayMode.MosquitoesSceneTests" runstate="Runnable" seed="849531378" result="Passed" start-time="2026-10-12 08:32:45Z" end-time="2026-10-12 08:32:52Z" duration="7.066107" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[📊 итоги раунда Mosquitoes [3 на старте, одиночная]: 0:3:+0/0 1:1:+2/0 2:1:+2/0
+]]></output>
+              </test-case>
+              <test-case id="1184" name="MosquitoDisconnectKeepsMatchAliveUntilLastMosquitoLeaves" fullname="Igruha.Tests.PlayMode.MosquitoesSceneTests.MosquitoDisconnectKeepsMatchAliveUntilLastMosquitoLeaves" methodname="MosquitoDisconnectKeepsMatchAliveUntilLastMosquitoLeaves" classname="Igruha.Tests.PlayMode.MosquitoesSceneTests" runstate="Runnable" seed="878998662" result="Passed" start-time="2026-10-12 08:32:53Z" end-time="2026-10-12 08:33:00Z" duration="7.234570" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[📊 итоги раунда Mosquitoes [3 на старте, одиночная]: 0:1:+2/0 1:3:+0/0 2:3:+0/0
+]]></output>
+              </test-case>
+              <test-case id="1182" name="OutsideSpawnWindowIngressOneWayAndFiveSecondDragonfly" fullname="Igruha.Tests.PlayMode.MosquitoesSceneTests.OutsideSpawnWindowIngressOneWayAndFiveSecondDragonfly" methodname="OutsideSpawnWindowIngressOneWayAndFiveSecondDragonfly" classname="Igruha.Tests.PlayMode.MosquitoesSceneTests" runstate="Runnable" seed="1162741745" result="Passed" start-time="2026-10-12 08:33:00Z" end-time="2026-10-12 08:33:13Z" duration="13.471798" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1187" name="ThreePlayersGiantBitesSwatAndCleanup" fullname="Igruha.Tests.PlayMode.MosquitoesSceneTests.ThreePlayersGiantBitesSwatAndCleanup" methodname="ThreePlayersGiantBitesSwatAndCleanup" classname="Igruha.Tests.PlayMode.MosquitoesSceneTests" runstate="Runnable" seed="622007830" result="Passed" start-time="2026-10-12 08:33:13Z" end-time="2026-10-12 08:33:35Z" duration="21.687434" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[📊 итоги раунда Mosquitoes [3 на старте, одиночная]: 0:1:+2/0 1:3:+0/0 2:3:+0/0
+🎵 музыка: сцена «Hub» — тема MUS_Hub
+📊 итоги раунда Mosquitoes [3 на старте, одиночная]: 0:3:+0/0 1:1:+2/0 2:1:+2/0
+🎵 музыка: сцена «Hub» — тема MUS_Hub
+]]></output>
+              </test-case>
+              <test-case id="1188" name="ThreePlayersMosquitoBitesSwatAndCleanup" fullname="Igruha.Tests.PlayMode.MosquitoesSceneTests.ThreePlayersMosquitoBitesSwatAndCleanup" methodname="ThreePlayersMosquitoBitesSwatAndCleanup" classname="Igruha.Tests.PlayMode.MosquitoesSceneTests" runstate="Runnable" seed="1218972991" result="Passed" start-time="2026-10-12 08:33:35Z" end-time="2026-10-12 08:33:56Z" duration="21.285539" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[📊 итоги раунда Mosquitoes [3 на старте, одиночная]: 0:3:+0/0 1:1:+2/0 2:3:+0/0
+🎵 музыка: сцена «Hub» — тема MUS_Hub
+📊 итоги раунда Mosquitoes [3 на старте, одиночная]: 0:1:+2/0 1:3:+0/0 2:1:+2/0
+🎵 музыка: сцена «Hub» — тема MUS_Hub
+<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+Saving results to: /Users/aemsolutions/Library/Application Support/Dauqara/sleepover/TestResults.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

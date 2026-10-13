@@ -62,7 +62,7 @@ namespace Igruha.EditorTools
         private const string MyBoyModelPath = "Assets/_Project/Art/Animations/MyBoy@Old Man Idle.fbx";
         private const string MyBoyIdleClipPath = MyBoyModelPath;
         private const string MyBoyControllerPath = "Assets/_Project/Art/Animations/MyBoyAnimator.controller";
-        private const float MyBoyHeightMeters = 1.75f;
+        private const float MyBoyHeightMeters = 1.82f;
 
         private const string GirlPrefabPath = "Assets/_Project/Prefabs/Player/Girl.prefab";
         // См. комментарий у ShlangaModelPath — та же схема: визуал из анимационного
@@ -70,7 +70,7 @@ namespace Igruha.EditorTools
         private const string GirlModelPath = "Assets/_Project/Art/Animations/Girl@idle.fbx";
         private const string GirlIdleClipPath = GirlModelPath;
         private const string GirlControllerPath = "Assets/_Project/Art/Animations/GirlAnimator.controller";
-        private const float GirlHeightMeters = 1.70f;
+        private const float GirlHeightMeters = 1.72f;
 
         private const string MilezPrefabPath = "Assets/_Project/Prefabs/Player/Milez.prefab";
         // См. комментарий у ShlangaModelPath — та же схема: визуал из анимационного
@@ -87,7 +87,7 @@ namespace Igruha.EditorTools
         private const string AzaModelPath = "Assets/_Project/Art/Animations/Aza@Happy Idle.fbx";
         private const string AzaIdleClipPath = AzaModelPath;
         private const string AzaControllerPath = "Assets/_Project/Art/Animations/AzaAnimator.controller";
-        private const float AzaHeightMeters = 1.72f;
+        private const float AzaHeightMeters = 1.83f;
 
         /// <summary>
         /// Высота точки привязки камеры — доля от роста персонажа (грудь/плечи),
@@ -123,6 +123,32 @@ namespace Igruha.EditorTools
         // only its multiplier so rebuilding either prefab cannot restore the
         // toy-like gloss. All other characters keep the original multiplier.
         private const float MatteCharacterSmoothness = 0.1f;
+
+        [MenuItem("Igruha/Player/Apply Character Height Polish")]
+        internal static void ApplyHeightPolish()
+        {
+            ResizeExisting(MyBoyPrefabPath, MyBoyHeightMeters);
+            ResizeExisting(AzaPrefabPath, AzaHeightMeters);
+            ResizeExisting(GirlPrefabPath, GirlHeightMeters);
+        }
+
+        private static void ResizeExisting(string path, float targetHeight)
+        {
+            GameObject contents = PrefabUtility.LoadPrefabContents(path);
+            try
+            {
+                CapsuleCollider capsule = contents.GetComponent<CapsuleCollider>();
+                Animator animator = contents.GetComponentInChildren<Animator>();
+                float ratio = targetHeight / capsule.height;
+                animator.transform.localScale *= ratio;
+                animator.transform.localPosition *= ratio;
+                capsule.height = targetHeight;
+                capsule.center = new Vector3(capsule.center.x, targetHeight * 0.5f, capsule.center.z);
+                BindCameraTarget(contents, EnsureCameraTarget(contents, targetHeight));
+                PrefabUtility.SaveAsPrefabAsset(contents, path);
+            }
+            finally { PrefabUtility.UnloadPrefabContents(contents); }
+        }
 
         [MenuItem("Igruha/Player/Resize Karlan (Base Prefab)")]
         private static void ResizeKarlan()

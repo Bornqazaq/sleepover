@@ -1,0 +1,53 @@
+{
+  "scenario": "input",
+  "players": 3,
+  "giant": 1,
+  "one_way_delay_ms": 90,
+  "jitter_ms": 30,
+  "passed": true,
+  "peers": [
+    {
+      "player": 0,
+      "passed": true,
+      "checks": [
+        "MOSQUITO_SPAWN PASS local=0 position=(7.20, 1.50, -0.31) expected=(7.20, 1.50, -0.31)",
+        "MOSQUITO_INPUT PASS local=0 step=0 delta=(0.00, 5.14, 0.00) speed=4.80 owner=True kinematic=False",
+        "MOSQUITO_INPUT STATE input=True enabled=True rise=True move=(0.00, 0.00) keyboard=True direction=(0.00, 1.00, 0.00) pointer=False paused=False bot=False local=True game=52898 controls=True active=True",
+        "MOSQUITO_INPUT PASS local=0 step=1 delta=(-4.52, 0.77, 1.87) speed=4.80 owner=True kinematic=False",
+        "MOSQUITO_INPUT STATE input=True enabled=True rise=False move=(0.00, 1.00) keyboard=False direction=(-0.92, 0.00, 0.38) pointer=False paused=False bot=False local=True game=52898 controls=True active=True",
+        "MOSQUITO_INPUT PASS local=0 step=2 delta=(-0.22, 0.00, 0.09) speed=0.00 owner=True kinematic=False",
+        "MOSQUITO_INPUT STATE input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52898 controls=True active=True",
+        "[MosquitoResults] local=0 places=0:1 1:3 2:1 restored=3 bodies=0",
+        "MOSQUITO_INPUT RESULTS local=0 bodies=0"
+      ]
+    },
+    {
+      "player": 1,
+      "passed": true,
+      "checks": [
+        "[MosquitoResults] local=1 places=0:1 1:3 2:1 restored=3 bodies=0",
+        "MOSQUITO_INPUT RESULTS local=1 bodies=0"
+      ]
+    },
+    {
+      "player": 2,
+      "passed": true,
+      "checks": [
+        "MOSQUITO_SPAWN PASS local=2 position=(7.20, 1.85, 0.94) expected=(7.20, 1.85, 0.94)",
+        "MOSQUITO_INPUT PASS local=2 step=0 delta=(0.00, 5.04, 0.00) speed=4.80 owner=True kinematic=False",
+        "MOSQUITO_INPUT STATE input=True enabled=True rise=True move=(0.00, 0.00) keyboard=True direction=(0.00, 1.00, 0.00) pointer=False paused=False bot=False local=True game=52898 controls=True active=True",
+        "MOSQUITO_INPUT PASS local=2 step=1 delta=(0.36, 0.86, 4.88) speed=4.80 owner=True kinematic=False",
+        "MOSQUITO_INPUT STATE input=True enabled=True rise=False move=(0.00, 1.00) keyboard=False direction=(0.07, 0.00, 1.00) pointer=False paused=False bot=False local=True game=52898 controls=True active=True",
+        "MOSQUITO_INPUT PASS local=2 step=2 delta=(0.02, 0.00, 0.24) speed=0.00 owner=True kinematic=False",
+        "MOSQUITO_INPUT STATE input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52898 controls=True active=True",
+        "[MosquitoResults] local=2 places=0:1 1:3 2:1 restored=3 bodies=0",
+        "MOSQUITO_INPUT RESULTS local=2 bodies=0"
+      ]
+    }
+  ],
+  "results": [
+    "0:1 1:3 2:1",
+    "0:1 1:3 2:1",
+    "0:1 1:3 2:1"
+  ]
+}

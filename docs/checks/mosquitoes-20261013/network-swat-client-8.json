@@ -1,0 +1,92 @@
+{
+  "scenario": "swat",
+  "players": 8,
+  "giant": 1,
+  "one_way_delay_ms": 90,
+  "jitter_ms": 30,
+  "passed": true,
+  "peers": [
+    {
+      "player": 0,
+      "passed": true,
+      "checks": [
+        "MOSQUITO_SWAT PASS local=0 confirmed=2 starts=2 gesture=True reaction=True victimDead=True alive=6",
+        "[MosquitoResults] local=0 places=0:1 1:8 2:1 3:1 4:1 5:1 6:1 7:1 restored=8 bodies=0",
+        "MOSQUITO_INPUT RESULTS local=0 bodies=0"
+      ]
+    },
+    {
+      "player": 1,
+      "passed": true,
+      "checks": [
+        "MOSQUITO_SWAT PASS local=1 confirmed=2 starts=2 gesture=True reaction=True victimDead=True alive=6",
+        "[MosquitoResults] local=1 places=0:1 1:8 2:1 3:1 4:1 5:1 6:1 7:1 restored=8 bodies=0",
+        "MOSQUITO_INPUT RESULTS local=1 bodies=0"
+      ]
+    },
+    {
+      "player": 2,
+      "passed": true,
+      "checks": [
+        "MOSQUITO_SWAT PASS local=2 confirmed=2 starts=2 gesture=True reaction=True victimDead=True alive=6",
+        "[MosquitoResults] local=2 places=0:1 1:8 2:1 3:1 4:1 5:1 6:1 7:1 restored=8 bodies=0",
+        "MOSQUITO_INPUT RESULTS local=2 bodies=0"
+      ]
+    },
+    {
+      "player": 3,
+      "passed": true,
+      "checks": [
+        "MOSQUITO_SWAT PASS local=3 confirmed=2 starts=2 gesture=True reaction=True victimDead=True alive=6",
+        "[MosquitoResults] local=3 places=0:1 1:8 2:1 3:1 4:1 5:1 6:1 7:1 restored=8 bodies=0",
+        "MOSQUITO_INPUT RESULTS local=3 bodies=0"
+      ]
+    },
+    {
+      "player": 4,
+      "passed": true,
+      "checks": [
+        "MOSQUITO_SWAT PASS local=4 confirmed=2 starts=2 gesture=True reaction=True victimDead=True alive=6",
+        "[MosquitoResults] local=4 places=0:1 1:8 2:1 3:1 4:1 5:1 6:1 7:1 restored=8 bodies=0",
+        "MOSQUITO_INPUT RESULTS local=4 bodies=0"
+      ]
+    },
+    {
+      "player": 5,
+      "passed": true,
+      "checks": [
+        "MOSQUITO_SWAT PASS local=5 confirmed=2 starts=2 gesture=True reaction=True victimDead=True alive=6",
+        "[MosquitoResults] local=5 places=0:1 1:8 2:1 3:1 4:1 5:1 6:1 7:1 restored=8 bodies=0",
+        "MOSQUITO_INPUT RESULTS local=5 bodies=0"
+      ]
+    },
+    {
+      "player": 6,
+      "passed": true,
+      "checks": [
+        "MOSQUITO_SWAT PASS local=6 confirmed=2 starts=2 gesture=True reaction=True victimDead=True alive=6",
+        "[MosquitoResults] local=6 places=0:1 1:8 2:1 3:1 4:1 5:1 6:1 7:1 restored=8 bodies=0",
+        "MOSQUITO_INPUT RESULTS local=6 bodies=0"
+      ]
+    },
+    {
+      "player": 7,
+      "passed": true,
+      "checks": [
+        "MOSQUITO_SWAT PASS local=7 confirmed=2 starts=2 gesture=True reaction=True victimDead=True alive=6",
+        "[MosquitoResults] local=7 places=0:1 1:8 2:1 3:1 4:1 5:1 6:1 7:1 restored=8 bodies=0",
+        "MOSQUITO_INPUT RESULTS local=7 bodies=0"
+      ]
+    }
+  ],
+  "results": [
+    "0:1 1:8 2:1 3:1 4:1 5:1 6:1 7:1",
+    "0:1 1:8 2:1 3:1 4:1 5:1 6:1 7:1",
+    "0:1 1:8 2:1 3:1 4:1 5:1 6:1 7:1",
+    "0:1 1:8 2:1 3:1 4:1 5:1 6:1 7:1",
+    "0:1 1:8 2:1 3:1 4:1 5:1 6:1 7:1",
+    "0:1 1:8 2:1 3:1 4:1 5:1 6:1 7:1",
+    "0:1 1:8 2:1 3:1 4:1 5:1 6:1 7:1",
+    "0:1 1:8 2:1 3:1 4:1 5:1 6:1 7:1"
+  ]
+}

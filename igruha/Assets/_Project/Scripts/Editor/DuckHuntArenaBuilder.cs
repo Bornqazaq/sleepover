@@ -136,7 +136,7 @@ namespace Igruha.EditorTools
         private const float MastThickness = 0.16f;
         /// <summary>Сторона фонаря на мачте, ШП.</summary>
         private const float MastLampSize = 0.6f;
-        private const float CollapseStart = 34f;
+        private const float CollapseStart = 31.5f;
         private const float CollapseEnd = 40f;
         private const float GeyserStart = 33f;
         private const float GeyserEnd = 38f;

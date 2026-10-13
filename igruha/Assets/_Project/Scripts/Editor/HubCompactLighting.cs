@@ -26,7 +26,7 @@ namespace Igruha.EditorTools
             Make(lights,"FridgeGlow",new Vector3(-8.26f,1.35f,4.37f),LightType.Point,"B9E4E3",.8f,2.1f);
             foreach(float x in new[]{-5.2f,5.2f})
             {
-                var bounce=Make(lights,"CeilingBounce",new Vector3(x,1.9f,0),LightType.Spot,"E7CBA2",6f,11);bounce.transform.rotation=Quaternion.Euler(-90,0,0);bounce.spotAngle=145;bounce.innerSpotAngle=95;
+                var bounce=Make(lights,"CeilingBounce",new Vector3(x,1.9f+CeilingRaise,0),LightType.Spot,"E7CBA2",6f,11);bounce.transform.rotation=Quaternion.Euler(-90,0,0);bounce.spotAngle=145;bounce.innerSpotAngle=95;
             }
             foreach(var entry in new[]{new Vector3(0,2.75f,6.9f),new Vector3(-7.4f,2.75f,1),new Vector3(7.2f,2.75f,0),new Vector3(1,2.75f,-7.1f)})
             {
@@ -34,9 +34,7 @@ namespace Igruha.EditorTools
                 var target=Mathf.Abs(entry.z)>6?new Vector3(entry.x,1.6f,Mathf.Sign(entry.z)*9.7f):new Vector3(Mathf.Sign(entry.x)*9.7f,1.6f,entry.z);
                 wash.transform.rotation=Quaternion.LookRotation(target-entry);wash.spotAngle=145;wash.innerSpotAngle=100;
             }
-            RenderSettings.ambientMode=AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor=HubCozyMaterials.Hex("898A82");RenderSettings.ambientEquatorColor=HubCozyMaterials.Hex("817968");RenderSettings.ambientGroundColor=HubCozyMaterials.Hex("51504A");RenderSettings.ambientIntensity=1;
-            RenderSettings.reflectionIntensity=.35f;RenderSettings.sun=fill;DynamicGI.UpdateEnvironment();
+            ApplyRoomAmbient(root);
             var camera=Require("_Camera/Main Camera").GetComponent<Camera>();
             var data=camera.GetComponent<UniversalAdditionalCameraData>()??camera.gameObject.AddComponent<UniversalAdditionalCameraData>();
             data.renderPostProcessing=true;data.antialiasing=AntialiasingMode.SubpixelMorphologicalAntiAliasing;data.antialiasingQuality=AntialiasingQuality.High;camera.allowHDR=true;
@@ -47,11 +45,27 @@ namespace Igruha.EditorTools
             var bloom=Effect<Bloom>(profile);bloom.threshold.Override(1.05f);bloom.intensity.Override(.16f);bloom.scatter.Override(.55f);
             var volume=Group(root,"WarmAtmosphere").gameObject.AddComponent<Volume>();volume.isGlobal=true;volume.priority=1;volume.sharedProfile=profile;
             EditorUtility.SetDirty(profile);
+            HubBasementYardBuilder.ApplyDuskLighting();
+        }
+        internal static void ApplyRoomAmbient(Transform root)
+        {
+            var fill=root.Find("Lighting/RoomFill")?.GetComponent<Light>();
+            if(fill!=null)
+            {
+                fill.color=HubCozyMaterials.Hex("BDCEDD");fill.intensity=.20f;
+                fill.transform.rotation=Quaternion.Euler(52,-26,0);fill.shadows=LightShadows.None;
+                fill.shadowStrength=1;fill.shadowBias=.05f;fill.shadowNormalBias=.4f;
+                EditorUtility.SetDirty(fill);
+            }
+            RenderSettings.ambientMode=AmbientMode.Trilight;
+            RenderSettings.ambientSkyColor=HubCozyMaterials.Hex("898A82");RenderSettings.ambientEquatorColor=HubCozyMaterials.Hex("817968");RenderSettings.ambientGroundColor=HubCozyMaterials.Hex("51504A");RenderSettings.ambientIntensity=1;
+            RenderSettings.reflectionIntensity=.35f;RenderSettings.sun=fill;
         }
         private static T Effect<T>(VolumeProfile profile) where T:VolumeComponent
         {if(profile.TryGet<T>(out var effect))return effect;effect=profile.Add<T>(true);AssetDatabase.AddObjectToAsset(effect,profile);return effect;}
         private static void Pendant(Transform root,string name,Vector3 position,float intensity,bool shadows)
         {
+            position += Vector3.up * CeilingRaise;
             var shade=HubOriginalAssets.Prop(root,"Pendant",position);
             // The broad shade is a camera obstacle, with no physical contacts against players.
             var obstacle=Group(shade.transform,"ShadeCameraObstacle").gameObject;obstacle.layer=LayerMask.NameToLayer("CameraOnly");

@@ -27,6 +27,16 @@ namespace Igruha.Core.Player
         private static readonly int EmoteStopHash = Animator.StringToHash("EmoteStop");
         private static readonly int FireParameterHash = Animator.StringToHash("Fire");
         private static readonly int PunchStateHash = Animator.StringToHash("Punch");
+        private static readonly int IdleStateHash = Animator.StringToHash("Idle");
+        public const string IdleVariationParameter = "IdleVariation";
+        private static readonly int IdleVariationHash = Animator.StringToHash(IdleVariationParameter);
+        private const float IdleHoldMinSeconds = 4f;
+        private const float IdleHoldMaxSeconds = 9f;
+        private const float IdleBlendSeconds = 0.8f;
+        private bool hasIdleVariation;
+        private bool wasIdle;
+        private float idleHoldRemaining;
+        private float idleVariationTarget;
         /// <summary>На сколько продлевать стойку каждый кадр удара: чуть больше кадра, чтобы она кончилась вместе с клипом.</summary>
         private const float PunchPlantHold = 0.1f;
 
@@ -88,6 +98,18 @@ namespace Igruha.Core.Player
 
             AttachArmClearance();
             AttachFootGrounding();
+
+            if (animator != null)
+            {
+                foreach (AnimatorControllerParameter parameter in animator.parameters)
+                {
+                    if (parameter.nameHash == IdleVariationHash && parameter.type == AnimatorControllerParameterType.Float)
+                    {
+                        hasIdleVariation = true;
+                        break;
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -188,6 +210,45 @@ namespace Igruha.Core.Player
             }
 
             UpdateCrouchSquash();
+            UpdateIdleVariation();
+        }
+
+        // Параметр меняет только локальный драйвер владельца; чужие копии
+        // получают тот же blend через существующий OwnerNetworkAnimator.
+        private void UpdateIdleVariation()
+        {
+            if (!hasIdleVariation || animator == null || motor == null)
+            {
+                return;
+            }
+
+            bool idle = animator.GetCurrentAnimatorStateInfo(0).shortNameHash == IdleStateHash
+                && !animator.IsInTransition(0) && !motor.IsCrouched && !motor.IsKnockedDown
+                && motor.NormalizedSpeed < 0.1f
+                && (ResolveRifleLayer() == NoLayer || animator.GetLayerWeight(rifleLayer) <= 0f)
+                && (ResolveSitLayer() == NoLayer || animator.GetLayerWeight(sitLayer) <= 0f);
+            if (!idle)
+            {
+                wasIdle = false;
+                return;
+            }
+
+            if (!wasIdle)
+            {
+                idleHoldRemaining = Random.Range(IdleHoldMinSeconds, IdleHoldMaxSeconds);
+                wasIdle = true;
+            }
+
+            idleHoldRemaining -= Time.deltaTime;
+            if (idleHoldRemaining <= 0f)
+            {
+                idleVariationTarget = 1f - idleVariationTarget;
+                idleHoldRemaining = Random.Range(IdleHoldMinSeconds, IdleHoldMaxSeconds);
+            }
+
+            float blend = Mathf.MoveTowards(animator.GetFloat(IdleVariationHash), idleVariationTarget,
+                Time.deltaTime / IdleBlendSeconds);
+            animator.SetFloat(IdleVariationHash, blend);
         }
 
         /// <summary>

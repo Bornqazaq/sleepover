@@ -69,6 +69,15 @@ namespace Igruha.EditorTools
             Vector3 axis=b-a;
             var rotation=Quaternion.LookRotation(Vector3.Cross(axis,Vector3.up).normalized,Vector3.up);
             Model("Garland",art,(a+b)*.5f,new Vector3(axis.magnitude/6,sagScale,1),rotation);
+            string[] colours={"GlowRed","Glow","GlowBlue","GlowGreen","GlowPink"};
+            for(int i=1;i<9;i++)
+            {
+                float t=i/9f;
+                Vector3 p=Vector3.Lerp(a,b,t)+Vector3.down*(Mathf.Sin(t*Mathf.PI)*.22f*sagScale);
+                var bulb=Model("Bulb",art,p,Vector3.one*.48f);
+                int colourIndex=Mathf.Abs(i+Mathf.RoundToInt(a.x+a.y))%colours.Length;
+                Retint(bulb,"Glow",colours[colourIndex]);
+            }
         }
 
         static void Marquee(Transform art,string text,Vector3 p,Vector2 size,float textSize)
@@ -134,20 +143,23 @@ namespace Igruha.EditorTools
                 Furnishing(floor,index,"SnackBar",23,3.10f,9);
                 Furnishing(floor,index,"WheelStand",30,5.30f,19);
                 Furnishing(floor,index,"PopcornCart",19,4.20f,-12);
-                Furnishing(floor,index,"TicketStand",36,7.15f,-10);
+                Furnishing(floor,index,"TicketStand",16,7.15f,-10);
             }
             if(index==2)
             {
                 Furnishing(floor,index,"PrizeCart",18,3.20f,-11);
-                Furnishing(floor,index,"SnackBar",31,5.45f,18);
+                Furnishing(floor,index,"SnackBar",14,7.10f,18);
                 Furnishing(floor,index,"PrizeRack",25,4.10f,14);
-                Furnishing(floor,index,"WheelStand",9,7.20f,-12);
+                // Clear the arrival partition and leave the rear doorway open.
+                Furnishing(floor,index,"WheelStand",11,4.20f,-12);
             }
             if(index==3)
             {
                 Furnishing(floor,index,"PrizeCart",17,4.10f,-17);
                 Furnishing(floor,index,"PopcornCart",27,3.50f,-18);
-                Furnishing(floor,index,"SnackBar",31,7.10f,10);
+                // Keep the entire stand and its stool on the fixed run before
+                // the collapse, including their rotated visual bounds.
+                Furnishing(floor,index,"SnackBar",20,7.10f,10);
             }
         }
 
@@ -208,7 +220,7 @@ namespace Igruha.EditorTools
         {
             Transform pedestal=lever.transform.Find("Pedestal"),handle=lever.transform.Find("Handle");
             Vector3 p=pedestal.position;p.y=floor*5.76f;
-            // Small asymmetric placement, still beside the tested exposed central interaction station.
+            // Small asymmetric placement inside the sheltered arrival bay.
             Vector3 shift=floor==2?new Vector3(-.42f,0,.15f):new Vector3(.30f,0,-.25f);
             p+=shift;pedestal.position=p+Vector3.up*.39f;pedestal.localScale=new Vector3(.62f,.78f,.59f);
             pedestal.GetComponent<Renderer>().enabled=false;
@@ -291,8 +303,8 @@ namespace Igruha.EditorTools
             var profile=AssetDatabase.LoadAssetAtPath<VolumeProfile>(path);
             if(profile==null){profile=ScriptableObject.CreateInstance<VolumeProfile>();AssetDatabase.CreateAsset(profile,path);}
             GradeEffect<Tonemapping>(profile).mode.Override(TonemappingMode.ACES);
-            var grade=GradeEffect<ColorAdjustments>(profile);grade.postExposure.Override(.10f);grade.contrast.Override(5);grade.saturation.Override(-4);
-            var bloom=GradeEffect<Bloom>(profile);bloom.threshold.Override(.9f);bloom.intensity.Override(.28f);bloom.scatter.Override(.62f);
+            var grade=GradeEffect<ColorAdjustments>(profile);grade.postExposure.Override(.48f);grade.contrast.Override(7);grade.saturation.Override(9);
+            var bloom=GradeEffect<Bloom>(profile);bloom.threshold.Override(.78f);bloom.intensity.Override(.48f);bloom.scatter.Override(.68f);
             var volume=Group(art,"Midway atmosphere").gameObject.AddComponent<Volume>();volume.isGlobal=true;volume.priority=5;volume.sharedProfile=profile;
             foreach(var camera in Object.FindObjectsByType<Camera>(FindObjectsSortMode.None))
             {

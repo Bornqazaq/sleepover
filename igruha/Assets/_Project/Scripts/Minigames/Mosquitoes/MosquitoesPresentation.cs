@@ -12,6 +12,7 @@ namespace Igruha.Minigames.Mosquitoes
         [SerializeField] private Light lampWallPool;
         [SerializeField] private ScreenVignette vignette;
         [SerializeField] private TMP_Text status, instructions;
+        [SerializeField] private GameObject statusPlate, instructionsPlate;
         [SerializeField] private MosquitoesAudio audioPlayer;
         [SerializeField] private ParticleSystem biteFlash, deathPuff;
         [SerializeField] private Renderer[] lampGlow;
@@ -22,6 +23,9 @@ namespace Igruha.Minigames.Mosquitoes
         private float ambientIntensity, reflection, lampIntensity, windowIntensity, fillIntensity;
         private bool active, giant, warned;
         private GiantPhase lastPhase = (GiantPhase)255;
+        private MosquitoObjectiveView objectives;
+        private MosquitoesMinigame objectiveGame;
+        private MosquitoBody objectiveBody;
         public void Begin()
         {
             if (active) return; active = true; warned = false; lastPhase = (GiantPhase)255;
@@ -34,6 +38,8 @@ namespace Igruha.Minigames.Mosquitoes
             fillIntensity = fillLight != null ? fillLight.intensity : 0;
             if (status != null) status.gameObject.SetActive(true);
             if (instructions != null) instructions.gameObject.SetActive(true);
+            if (statusPlate != null) statusPlate.SetActive(true);
+            if (instructionsPlate != null) instructionsPlate.SetActive(true);
             audioPlayer?.Begin();
         }
         public void SetRole(bool isGiant, string text)
@@ -54,6 +60,7 @@ namespace Igruha.Minigames.Mosquitoes
         {
             if (!active) return;
             if (instructions != null) instructions.gameObject.SetActive(!practice);
+            if (instructionsPlate != null) instructionsPlate.SetActive(!practice);
             if (lastPhase != state.Phase)
             {
                 if (lastPhase != (GiantPhase)255 && (state.Phase == GiantPhase.LyingDown || state.Phase == GiantPhase.Waking))
@@ -66,7 +73,17 @@ namespace Igruha.Minigames.Mosquitoes
             vignette?.SetAmount(giant && state.Phase == GiantPhase.Sleeping ? config.SleepVignette : 0);
             if (!warned && state.Sleep >= config.SleepTarget - 10) { warned = true; audioPlayer?.LastTenSeconds(); }
         }
-        public void SetStatus(string text) { if (status != null) status.text = text; }
+        public void PaintHud(MosquitoesMinigame game, MosquitoBody body, bool eaten)
+        {
+            if (status != null) MosquitoesHud.PaintStatus(status, game, body, eaten);
+            if (instructions != null) instructions.SetText(MosquitoesHud.Instructions(game, body));
+            if (objectives == null && status != null) objectives = new MosquitoObjectiveView(status);
+            objectiveGame = game; objectiveBody = body;
+        }
+        private void LateUpdate()
+        {
+            if (active && objectiveGame != null) objectives?.Paint(objectiveGame, objectiveBody);
+        }
         private void SetLampGlow(bool on)
         {
             if (lampGlow == null) return;
@@ -83,6 +100,7 @@ namespace Igruha.Minigames.Mosquitoes
         public void End()
         {
             if (!active) return; active = false;
+            objectives?.Dispose(); objectives = null;
             RenderSettings.ambientMode = ambientMode; RenderSettings.ambientLight = ambient;
             RenderSettings.ambientProbe = ambientProbe;
             RenderSettings.ambientSkyColor = ambientSky; RenderSettings.ambientEquatorColor = ambientEquator; RenderSettings.ambientGroundColor = ambientGround;
@@ -95,6 +113,8 @@ namespace Igruha.Minigames.Mosquitoes
             vignette?.SetImmediate(0);
             if (status != null) status.gameObject.SetActive(false);
             if (instructions != null) instructions.gameObject.SetActive(false);
+            if (statusPlate != null) statusPlate.SetActive(false);
+            if (instructionsPlate != null) instructionsPlate.SetActive(false);
             audioPlayer?.End();
             if (biteFlash != null) biteFlash.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             if (deathPuff != null) deathPuff.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);

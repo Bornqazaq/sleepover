@@ -12,6 +12,7 @@ namespace Igruha.EditorTools
     {
         internal const string RootName = "_HubOriginal";
         internal const float RoomSize = 20, InnerWall = 9.8f;
+        internal const float CeilingRaise = .60f, RoomHeight = 4f + CeilingRaise;
         private const string ScenePath = "Assets/_Project/Scenes/Hub.unity";
         internal static Transform Root;
         internal static Material M(string name) => HubOriginalAssets.Mat(name);
@@ -45,11 +46,11 @@ namespace Igruha.EditorTools
             TransformShape("_Room/Floor_S",new Vector3(0,-.1f,-6.75f),new Vector3(20,.2f,6.5f));
             TransformShape("_Room/Floor_W",new Vector3(-7,-.1f,0),new Vector3(6,.2f,7));
             TransformShape("_Room/Floor_E",new Vector3(7,-.1f,0),new Vector3(6,.2f,7));
-            TransformShape("_Room/Wall_N",new Vector3(0,2,10),new Vector3(20,4,.4f));
-            TransformShape("_Room/Wall_S",new Vector3(0,2,-10),new Vector3(20,4,.4f));
-            TransformShape("_Room/Wall_W",new Vector3(-10,2,0),new Vector3(.4f,4,20));
-            TransformShape("_Room/Wall_E",new Vector3(10,2,0),new Vector3(.4f,4,20));
-            TransformShape("_Room/Ceiling",new Vector3(0,4,0),new Vector3(20,.2f,20));
+            TransformShape("_Room/Wall_N",new Vector3(0,RoomHeight*.5f,10),new Vector3(20,RoomHeight,.4f));
+            TransformShape("_Room/Wall_S",new Vector3(0,RoomHeight*.5f,-10),new Vector3(20,RoomHeight,.4f));
+            TransformShape("_Room/Wall_W",new Vector3(-10,RoomHeight*.5f,0),new Vector3(.4f,RoomHeight,20));
+            TransformShape("_Room/Wall_E",new Vector3(10,RoomHeight*.5f,0),new Vector3(.4f,RoomHeight,20));
+            TransformShape("_Room/Ceiling",new Vector3(0,RoomHeight,0),new Vector3(20,.2f,20));
             foreach(var r in Require("_Room").GetComponentsInChildren<MeshRenderer>())r.sharedMaterial=M(r.name=="Ceiling"?"Cream":"Walnut");
             foreach(var r in Require("_Pit").GetComponentsInChildren<MeshRenderer>())
                 if(r.name.StartsWith("Pit")||r.name.StartsWith("Ramp"))r.sharedMaterial=M("Walnut");

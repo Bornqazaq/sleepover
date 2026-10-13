@@ -1,0 +1,176 @@
+{
+  "scenario": "navigation",
+  "players": 8,
+  "giant": 1,
+  "one_way_delay_ms": 90,
+  "jitter_ms": 30,
+  "passed": true,
+  "peers": [
+    {
+      "player": 0,
+      "passed": true,
+      "checks": [
+        "MOSQUITO_NAV STATE local=0 focused=True keyboard=True viewForward=(-0.92, -0.15, 0.37) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=0 focused=True keyboard=True viewForward=(-0.92, -0.15, 0.37) input=True enabled=True rise=False move=(0.00, 1.00) keyboard=False direction=(-0.93, 0.00, 0.38) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=0 focused=True keyboard=True viewForward=(-0.92, -0.15, 0.37) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=0 focused=True keyboard=True viewForward=(-0.92, -0.15, 0.37) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=0 focused=True keyboard=True viewForward=(-0.92, -0.15, 0.37) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=0 focused=True keyboard=True viewForward=(-0.92, -0.15, 0.37) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=0 focused=True keyboard=True viewForward=(-0.92, -0.15, 0.37) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=0 focused=True keyboard=True viewForward=(-0.92, -0.15, 0.37) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=0 focused=True keyboard=True viewForward=(-0.92, -0.15, 0.37) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=0 focused=True keyboard=True viewForward=(-0.92, -0.15, 0.37) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=0 focused=True keyboard=True viewForward=(-0.92, -0.15, 0.37) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=0 focused=True keyboard=True viewForward=(-0.92, -0.15, 0.37) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV PASS local=0 entered=True lowApproach=True bit=True woke=True sleptAgain=True cameraBound=True",
+        "[MosquitoResults] local=0 places=0:1 1:8 2:1 3:1 4:1 5:1 6:1 7:1 restored=8 bodies=0",
+        "MOSQUITO_INPUT RESULTS local=0 bodies=0"
+      ]
+    },
+    {
+      "player": 1,
+      "passed": true,
+      "checks": [
+        "MOSQUITO_NAV PASS local=1 entered=False lowApproach=False bit=False woke=True sleptAgain=True cameraBound=True",
+        "[MosquitoResults] local=1 places=0:1 1:8 2:1 3:1 4:1 5:1 6:1 7:1 restored=8 bodies=0",
+        "MOSQUITO_INPUT RESULTS local=1 bodies=0"
+      ]
+    },
+    {
+      "player": 2,
+      "passed": true,
+      "checks": [
+        "MOSQUITO_NAV STATE local=2 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=2 focused=True keyboard=True viewForward=(0.05, -0.15, 0.99) input=True enabled=True rise=False move=(-1.00, 0.00) keyboard=False direction=(-1.00, 0.00, 0.05) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=2 focused=True keyboard=True viewForward=(0.09, -0.15, 0.98) input=True enabled=True rise=False move=(1.00, 0.00) keyboard=False direction=(1.00, 0.00, -0.09) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=2 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=2 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=2 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=2 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=2 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=2 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=2 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=2 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=2 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV PASS local=2 entered=True lowApproach=True bit=True woke=True sleptAgain=True cameraBound=True",
+        "[MosquitoResults] local=2 places=0:1 1:8 2:1 3:1 4:1 5:1 6:1 7:1 restored=8 bodies=0",
+        "MOSQUITO_INPUT RESULTS local=2 bodies=0"
+      ]
+    },
+    {
+      "player": 3,
+      "passed": true,
+      "checks": [
+        "MOSQUITO_NAV STATE local=3 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=3 focused=True keyboard=True viewForward=(0.05, -0.16, 0.99) input=True enabled=True rise=False move=(-1.00, 0.00) keyboard=False direction=(-1.00, 0.00, 0.05) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=3 focused=True keyboard=True viewForward=(0.09, -0.15, 0.98) input=True enabled=True rise=False move=(1.00, 0.00) keyboard=False direction=(1.00, 0.00, -0.09) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=3 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=3 focused=True keyboard=True viewForward=(0.08, -0.15, 0.99) input=True enabled=True rise=False move=(0.71, 0.71) keyboard=False direction=(0.77, 0.00, 0.64) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=3 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=3 focused=True keyboard=True viewForward=(0.10, -0.10, 0.99) input=True enabled=True rise=False move=(0.71, 0.71) keyboard=False direction=(0.77, 0.00, 0.64) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=3 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=3 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=3 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=3 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=3 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV PASS local=3 entered=True lowApproach=True bit=True woke=True sleptAgain=True cameraBound=True",
+        "[MosquitoResults] local=3 places=0:1 1:8 2:1 3:1 4:1 5:1 6:1 7:1 restored=8 bodies=0",
+        "MOSQUITO_INPUT RESULTS local=3 bodies=0"
+      ]
+    },
+    {
+      "player": 4,
+      "passed": true,
+      "checks": [
+        "MOSQUITO_NAV STATE local=4 focused=True keyboard=True viewForward=(-0.94, -0.15, 0.29) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=4 focused=True keyboard=True viewForward=(-0.94, -0.16, 0.29) input=True enabled=True rise=False move=(0.71, 0.71) keyboard=False direction=(-0.47, 0.00, 0.88) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=4 focused=True keyboard=True viewForward=(-0.94, -0.15, 0.31) input=True enabled=True rise=False move=(1.00, 0.00) keyboard=False direction=(0.32, 0.00, 0.95) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=4 focused=True keyboard=True viewForward=(-0.94, -0.15, 0.30) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=4 focused=True keyboard=True viewForward=(-0.94, -0.16, 0.31) input=True enabled=True rise=False move=(0.71, -0.71) keyboard=False direction=(0.89, 0.00, 0.45) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=4 focused=True keyboard=True viewForward=(-0.94, -0.15, 0.30) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=4 focused=True keyboard=True viewForward=(-0.94, -0.15, 0.30) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=4 focused=True keyboard=True viewForward=(-0.94, -0.15, 0.30) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=4 focused=True keyboard=True viewForward=(-0.94, -0.15, 0.30) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=4 focused=True keyboard=True viewForward=(-0.94, -0.15, 0.30) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=4 focused=True keyboard=True viewForward=(-0.94, -0.15, 0.30) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=4 focused=True keyboard=True viewForward=(-0.94, -0.15, 0.30) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV PASS local=4 entered=True lowApproach=True bit=True woke=True sleptAgain=True cameraBound=True",
+        "[MosquitoResults] local=4 places=0:1 1:8 2:1 3:1 4:1 5:1 6:1 7:1 restored=8 bodies=0",
+        "MOSQUITO_INPUT RESULTS local=4 bodies=0"
+      ]
+    },
+    {
+      "player": 5,
+      "passed": true,
+      "checks": [
+        "MOSQUITO_NAV STATE local=5 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=5 focused=True keyboard=True viewForward=(0.04, -0.17, 0.98) input=True enabled=True rise=False move=(-1.00, 0.00) keyboard=False direction=(-1.00, 0.00, 0.04) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=5 focused=True keyboard=True viewForward=(0.09, -0.15, 0.98) input=True enabled=True rise=False move=(1.00, 0.00) keyboard=False direction=(1.00, 0.00, -0.09) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=5 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=5 focused=True keyboard=True viewForward=(0.09, -0.15, 0.99) input=True enabled=True rise=False move=(0.71, 0.71) keyboard=False direction=(0.77, 0.00, 0.64) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=5 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=5 focused=True keyboard=True viewForward=(0.10, -0.07, 0.99) input=True enabled=True rise=False move=(0.71, 0.71) keyboard=False direction=(0.78, 0.00, 0.63) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=5 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=5 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=5 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=5 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=5 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV PASS local=5 entered=True lowApproach=True bit=True woke=True sleptAgain=True cameraBound=True",
+        "[MosquitoResults] local=5 places=0:1 1:8 2:1 3:1 4:1 5:1 6:1 7:1 restored=8 bodies=0",
+        "MOSQUITO_INPUT RESULTS local=5 bodies=0"
+      ]
+    },
+    {
+      "player": 6,
+      "passed": true,
+      "checks": [
+        "MOSQUITO_NAV STATE local=6 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=6 focused=True keyboard=True viewForward=(0.06, -0.16, 0.99) input=True enabled=True rise=False move=(-1.00, 0.00) keyboard=False direction=(-0.71, -0.71, 0.04) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=6 focused=True keyboard=True viewForward=(0.09, -0.15, 0.98) input=True enabled=True rise=False move=(1.00, 0.00) keyboard=False direction=(1.00, 0.00, -0.09) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=6 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=6 focused=True keyboard=True viewForward=(0.08, -0.16, 0.98) input=True enabled=True rise=False move=(0.71, 0.71) keyboard=False direction=(0.76, 0.00, 0.65) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=6 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=6 focused=True keyboard=True viewForward=(0.10, -0.08, 0.99) input=True enabled=True rise=False move=(0.71, 0.71) keyboard=False direction=(0.55, -0.71, 0.45) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=6 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=6 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=6 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=6 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=6 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV PASS local=6 entered=True lowApproach=True bit=True woke=True sleptAgain=True cameraBound=True",
+        "[MosquitoResults] local=6 places=0:1 1:8 2:1 3:1 4:1 5:1 6:1 7:1 restored=8 bodies=0",
+        "MOSQUITO_INPUT RESULTS local=6 bodies=0"
+      ]
+    },
+    {
+      "player": 7,
+      "passed": true,
+      "checks": [
+        "MOSQUITO_NAV STATE local=7 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=7 focused=True keyboard=True viewForward=(0.06, -0.11, 0.99) input=True enabled=True rise=False move=(-0.71, 0.71) keyboard=False direction=(-0.66, 0.00, 0.75) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=7 focused=True keyboard=True viewForward=(0.08, -0.15, 0.99) input=True enabled=True rise=False move=(0.71, 0.71) keyboard=False direction=(0.76, 0.00, 0.64) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=7 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=7 focused=True keyboard=True viewForward=(0.08, -0.18, 0.98) input=True enabled=True rise=False move=(0.71, 0.71) keyboard=False direction=(0.54, -0.71, 0.46) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=7 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=7 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=7 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=7 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=7 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=7 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV STATE local=7 focused=True keyboard=True viewForward=(0.07, -0.15, 0.99) input=True enabled=True rise=False move=(0.00, 0.00) keyboard=False direction=(0.00, 0.00, 0.00) pointer=False paused=False bot=False local=True game=52940 controls=True active=True",
+        "MOSQUITO_NAV PASS local=7 entered=True lowApproach=True bit=True woke=True sleptAgain=True cameraBound=True",
+        "[MosquitoResults] local=7 places=0:1 1:8 2:1 3:1 4:1 5:1 6:1 7:1 restored=8 bodies=0",
+        "MOSQUITO_INPUT RESULTS local=7 bodies=0"
+      ]
+    }
+  ],
+  "results": [
+    "0:1 1:8 2:1 3:1 4:1 5:1 6:1 7:1",
+    "0:1 1:8 2:1 3:1 4:1 5:1 6:1 7:1",
+    "0:1 1:8 2:1 3:1 4:1 5:1 6:1 7:1",
+    "0:1 1:8 2:1 3:1 4:1 5:1 6:1 7:1",
+    "0:1 1:8 2:1 3:1 4:1 5:1 6:1 7:1",
+    "0:1 1:8 2:1 3:1 4:1 5:1 6:1 7:1",
+    "0:1 1:8 2:1 3:1 4:1 5:1 6:1 7:1",
+    "0:1 1:8 2:1 3:1 4:1 5:1 6:1 7:1"
+  ]
+}

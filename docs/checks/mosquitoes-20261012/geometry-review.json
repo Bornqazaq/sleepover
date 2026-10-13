@@ -1,0 +1,131 @@
+{
+  "date": "2026-10-12",
+  "revision": "b9cc85e8",
+  "kind": "review, no gameplay changes",
+  "scene": "Assets/_Project/Scenes/Minigames/Mosquitoes.unity",
+  "saved_orphan_shells": 8,
+  "orphan_capsules": 80,
+  "runtime_shells_including_current": 9,
+  "max_orphan_overlap_at_current_bite_anchor_m": 0.449,
+  "current_shell_overlaps_at_same_anchor": 0,
+  "mosquito_ignores_default_player_capsule": true,
+  "interaction_candidates": 99,
+  "interaction_buffer_capacity": 24,
+  "interaction_worked_at_observed_position": true,
+  "wardrobe_door": {
+    "visual_center": [
+      -0.79,
+      1.36,
+      2.54
+    ],
+    "collider_center": [
+      -0.79,
+      1.36,
+      1.73
+    ]
+  },
+  "room_size_m": [
+    7.2,
+    6.4,
+    3.4
+  ],
+  "flight_ceiling_y": 2.16,
+  "bed_size_m": [
+    3.12,
+    1.95
+  ],
+  "roster_preview_measurements": [
+    {
+      "name": "Karlan",
+      "standing_height_m": 1.63,
+      "lying_length_m": 1.41,
+      "lying_width_m": 0.58,
+      "physics_bite_to_skin_m": 0.082
+    },
+    {
+      "name": "Boss",
+      "standing_height_m": 1.72,
+      "lying_length_m": 1.85,
+      "lying_width_m": 1.01,
+      "physics_bite_to_skin_m": 0.29
+    },
+    {
+      "name": "Shlanga",
+      "standing_height_m": 2,
+      "lying_length_m": 1.94,
+      "lying_width_m": 0.58,
+      "physics_bite_to_skin_m": 0.227
+    },
+    {
+      "name": "Fat",
+      "standing_height_m": 1.8,
+      "lying_length_m": 1.73,
+      "lying_width_m": 0.85,
+      "physics_bite_to_skin_m": 0.22
+    },
+    {
+      "name": "MyBoy",
+      "standing_height_m": 1.74,
+      "lying_length_m": 1.75,
+      "lying_width_m": 0.91,
+      "physics_bite_to_skin_m": 0.346
+    },
+    {
+      "name": "Girl",
+      "standing_height_m": 1.7,
+      "lying_length_m": 1.74,
+      "lying_width_m": 0.71,
+      "physics_bite_to_skin_m": 0.258
+    },
+    {
+      "name": "Milez",
+      "standing_height_m": 1.75,
+      "lying_length_m": 1.71,
+      "lying_width_m": 0.82,
+      "physics_bite_to_skin_m": 0.42
+    },
+    {
+      "name": "Aza",
+      "standing_height_m": 1.7,
+      "lying_length_m": 1.62,
+      "lying_width_m": 0.71,
+      "physics_bite_to_skin_m": 0.305
+    }
+  ],
+  "sleep_camera": {
+    "target": [
+      -2.4,
+      2.07,
+      -1.1
+    ],
+    "posed_chest": [
+      -2.19,
+      0.89,
+      -1.09
+    ],
+    "offset_m": 1.2
+  },
+  "post_wake_swat": {
+    "distance_to_pre_wake_bite_target_m": 1.67751431,
+    "effective_radius_m": 1.42,
+    "wake_delay_s": 0.5
+  },
+  "idealized_pressure_simulation": {
+    "conditions": "constant access to bite, earliest legal sleep, no movement, light action, swats or latency; not live balance evidence",
+    "duration_s": 120,
+    "sleep_s_by_living_mosquitoes": {
+      "1": 11.29,
+      "2": 0.98,
+      "3": 0,
+      "7": 0.32
+    }
+  },
+  "other_findings": [
+    "HUD readiness uses surface distance, server uses physical anchor and line-of-sight",
+    "Visual attachment moves independently of rigidbody and camera",
+    "Normal-speed stopping distance ~0.48 m, bite radius 0.55 m",
+    "Navigation probe approaches from flight ceiling; does not cover direct low approach",
+    "Seven game-specific audio slots unavailable; darkness depends on missing buzz",
+    "Early permanent elimination at 10-second window entry is a design risk for beginners"
+  ]
+}

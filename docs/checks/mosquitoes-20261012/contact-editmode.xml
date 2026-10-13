@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="16" result="Passed" total="16" passed="16" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-10-12 08:24:58Z" end-time="2026-10-12 08:25:00Z" duration="2.1986712">
+  <test-suite type="TestSuite" id="1000" name="sleepover" fullname="sleepover" runstate="Runnable" testcasecount="682" result="Passed" start-time="2026-10-12 08:24:58Z" end-time="2026-10-12 08:25:00Z" duration="2.198671" total="16" passed="16" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1793" name="Igruha.Camera.Tests.dll" fullname="/Users/aemsolutions/sleepover/igruha/Library/ScriptAssemblies/Igruha.Camera.Tests.dll" runstate="Runnable" testcasecount="681" result="Passed" start-time="2026-10-12 08:24:58Z" end-time="2026-10-12 08:25:00Z" duration="2.091502" total="16" passed="16" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="67568" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="1794" name="Igruha" fullname="Igruha" runstate="Runnable" testcasecount="668" result="Passed" start-time="2026-10-12 08:24:58Z" end-time="2026-10-12 08:25:00Z" duration="1.906990" total="16" passed="16" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1795" name="Tests" fullname="Igruha.Tests" runstate="Runnable" testcasecount="668" result="Passed" start-time="2026-10-12 08:24:58Z" end-time="2026-10-12 08:25:00Z" duration="1.708902" total="16" passed="16" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestFixture" id="1494" name="MosquitoesAvatarTests" fullname="Igruha.Tests.MosquitoesAvatarTests" classname="Igruha.Tests.MosquitoesAvatarTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-10-12 08:24:58Z" end-time="2026-10-12 08:25:00Z" duration="1.105054" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1497" name="AllEightVariantsKeepOriginalMeshesMaterialsAndIsolateGameplay" fullname="Igruha.Tests.MosquitoesAvatarTests.AllEightVariantsKeepOriginalMeshesMaterialsAndIsolateGameplay" methodname="AllEightVariantsKeepOriginalMeshesMaterialsAndIsolateGameplay" classname="Igruha.Tests.MosquitoesAvatarTests" runstate="Runnable" seed="605384345" result="Passed" start-time="2026-10-12 08:24:59Z" end-time="2026-10-12 08:24:59Z" duration="0.571445" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1495" name="CoincidentImportedWingPivotsStillFlapInOppositeDirections" fullname="Igruha.Tests.MosquitoesAvatarTests.CoincidentImportedWingPivotsStillFlapInOppositeDirections" methodname="CoincidentImportedWingPivotsStillFlapInOppositeDirections" classname="Igruha.Tests.MosquitoesAvatarTests" runstate="Runnable" seed="1591264690" result="Passed" start-time="2026-10-12 08:24:59Z" end-time="2026-10-12 08:24:59Z" duration="0.049603" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1496" name="EveryGiantFitsMattressAndRestoresOriginalModelTransform" fullname="Igruha.Tests.MosquitoesAvatarTests.EveryGiantFitsMattressAndRestoresOriginalModelTransform" methodname="EveryGiantFitsMattressAndRestoresOriginalModelTransform" classname="Igruha.Tests.MosquitoesAvatarTests" runstate="Runnable" seed="732624559" result="Passed" start-time="2026-10-12 08:24:59Z" end-time="2026-10-12 08:25:00Z" duration="0.278081" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+          </test-suite>
+          <test-suite type="TestFixture" id="1498" name="MosquitoesRulesTests" fullname="Igruha.Tests.MosquitoesRulesTests" classname="Igruha.Tests.MosquitoesRulesTests" runstate="Runnable" testcasecount="13" result="Passed" start-time="2026-10-12 08:25:00Z" end-time="2026-10-12 08:25:00Z" duration="0.502060" total="13" passed="13" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1499" name="AwakeAndTransitionsDoNotSpendAccumulatedSleep" fullname="Igruha.Tests.MosquitoesRulesTests.AwakeAndTransitionsDoNotSpendAccumulatedSleep" methodname="AwakeAndTransitionsDoNotSpendAccumulatedSleep" classname="Igruha.Tests.MosquitoesRulesTests" runstate="Runnable" seed="570578073" result="Passed" start-time="2026-10-12 08:25:00Z" end-time="2026-10-12 08:25:00Z" duration="0.002903" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1502" name="BitesDuringLyingDownDoNotPreloadWakePair" fullname="Igruha.Tests.MosquitoesRulesTests.BitesDuringLyingDownDoNotPreloadWakePair" methodname="BitesDuringLyingDownDoNotPreloadWakePair" classname="Igruha.Tests.MosquitoesRulesTests" runstate="Runnable" seed="561189749" result="Passed" start-time="2026-10-12 08:25:00Z" end-time="2026-10-12 08:25:00Z" duration="0.000332" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1501" name="PairExpiresButLastSurvivorCanStillWake" fullname="Igruha.Tests.MosquitoesRulesTests.PairExpiresButLastSurvivorCanStillWake" methodname="PairExpiresButLastSurvivorCanStillWake" classname="Igruha.Tests.MosquitoesRulesTests" runstate="Runnable" seed="1775285783" result="Passed" start-time="2026-10-12 08:25:00Z" end-time="2026-10-12 08:25:00Z" duration="0.000174" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1513" name="ParkingKeepsNetworkRootAliveAndRestoresVisibilityAndColliders" fullname="Igruha.Tests.MosquitoesRulesTests.ParkingKeepsNetworkRootAliveAndRestoresVisibilityAndColliders" methodname="ParkingKeepsNetworkRootAliveAndRestoresVisibilityAndColliders" classname="Igruha.Tests.MosquitoesRulesTests" runstate="Runnable" seed="1849583958" result="Passed" start-time="2026-10-12 08:25:00Z" end-time="2026-10-12 08:25:00Z" duration="0.003146" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-suite type="ParameterizedMethod" id="1511" name="ParkingRestoresOriginalStateAndIsIdempotent" fullname="Igruha.Tests.MosquitoesRulesTests.ParkingRestoresOriginalStateAndIsIdempotent" classname="Igruha.Tests.MosquitoesRulesTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-10-12 08:25:00Z" end-time="2026-10-12 08:25:00Z" duration="0.192866" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1509" name="ParkingRestoresOriginalStateAndIsIdempotent(True,False)" fullname="Igruha.Tests.MosquitoesRulesTests.ParkingRestoresOriginalStateAndIsIdempotent(True,False)" methodname="ParkingRestoresOriginalStateAndIsIdempotent" classname="Igruha.Tests.MosquitoesRulesTests" runstate="Runnable" seed="929395024" result="Passed" start-time="2026-10-12 08:25:00Z" end-time="2026-10-12 08:25:00Z" duration="0.005198" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1510" name="ParkingRestoresOriginalStateAndIsIdempotent(False,True)" fullname="Igruha.Tests.MosquitoesRulesTests.ParkingRestoresOriginalStateAndIsIdempotent(False,True)" methodname="ParkingRestoresOriginalStateAndIsIdempotent" classname="Igruha.Tests.MosquitoesRulesTests" runstate="Runnable" seed="917280977" result="Passed" start-time="2026-10-12 08:25:00Z" end-time="2026-10-12 08:25:00Z" duration="0.001011" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-case id="1503" name="ReplicatedBiteWindowShowsTheSameTeamOpportunity" fullname="Igruha.Tests.MosquitoesRulesTests.ReplicatedBiteWindowShowsTheSameTeamOpportunity" methodname="ReplicatedBiteWindowShowsTheSameTeamOpportunity" classname="Igruha.Tests.MosquitoesRulesTests" runstate="Runnable" seed="1309702298" result="Passed" start-time="2026-10-12 08:25:00Z" end-time="2026-10-12 08:25:00Z" duration="0.001467" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1508" name="SleepClampsAtTarget" fullname="Igruha.Tests.MosquitoesRulesTests.SleepClampsAtTarget" methodname="SleepClampsAtTarget" classname="Igruha.Tests.MosquitoesRulesTests" runstate="Runnable" seed="1959662788" result="Passed" start-time="2026-10-12 08:25:00Z" end-time="2026-10-12 08:25:00Z" duration="0.000529" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-suite type="ParameterizedMethod" id="1507" name="TeamResultsPreserveOriginalRosterAndDisconnectedMosquitoTeamPlace" fullname="Igruha.Tests.MosquitoesRulesTests.TeamResultsPreserveOriginalRosterAndDisconnectedMosquitoTeamPlace" classname="Igruha.Tests.MosquitoesRulesTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-10-12 08:25:00Z" end-time="2026-10-12 08:25:00Z" duration="0.194017" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1504" name="TeamResultsPreserveOriginalRosterAndDisconnectedMosquitoTeamPlace(3)" fullname="Igruha.Tests.MosquitoesRulesTests.TeamResultsPreserveOriginalRosterAndDisconnectedMosquitoTeamPlace(3)" methodname="TeamResultsPreserveOriginalRosterAndDisconnectedMosquitoTeamPlace" classname="Igruha.Tests.MosquitoesRulesTests" runstate="Runnable" seed="16554316" result="Passed" start-time="2026-10-12 08:25:00Z" end-time="2026-10-12 08:25:00Z" duration="0.002096" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1505" name="TeamResultsPreserveOriginalRosterAndDisconnectedMosquitoTeamPlace(4)" fullname="Igruha.Tests.MosquitoesRulesTests.TeamResultsPreserveOriginalRosterAndDisconnectedMosquitoTeamPlace(4)" methodname="TeamResultsPreserveOriginalRosterAndDisconnectedMosquitoTeamPlace" classname="Igruha.Tests.MosquitoesRulesTests" runstate="Runnable" seed="159224622" result="Passed" start-time="2026-10-12 08:25:00Z" end-time="2026-10-12 08:25:00Z" duration="0.000496" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1506" name="TeamResultsPreserveOriginalRosterAndDisconnectedMosquitoTeamPlace(8)" fullname="Igruha.Tests.MosquitoesRulesTests.TeamResultsPreserveOriginalRosterAndDisconnectedMosquitoTeamPlace(8)" methodname="TeamResultsPreserveOriginalRosterAndDisconnectedMosquitoTeamPlace" classname="Igruha.Tests.MosquitoesRulesTests" runstate="Runnable" seed="1631454505" result="Passed" start-time="2026-10-12 08:25:00Z" end-time="2026-10-12 08:25:00Z" duration="0.000341" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-case id="1500" name="TwoTimelyBitesWakeAndGrantImmunity" fullname="Igruha.Tests.MosquitoesRulesTests.TwoTimelyBitesWakeAndGrantImmunity" methodname="TwoTimelyBitesWakeAndGrantImmunity" classname="Igruha.Tests.MosquitoesRulesTests" runstate="Runnable" seed="768610190" result="Passed" start-time="2026-10-12 08:25:00Z" end-time="2026-10-12 08:25:00Z" duration="0.001100" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1512" name="VignetteFadesBackToExactlyZero" fullname="Igruha.Tests.MosquitoesRulesTests.VignetteFadesBackToExactlyZero" methodname="VignetteFadesBackToExactlyZero" classname="Igruha.Tests.MosquitoesRulesTests" runstate="Runnable" seed="291338256" result="Passed" start-time="2026-10-12 08:25:00Z" end-time="2026-10-12 08:25:00Z" duration="0.002566" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+Saving results to: /Users/aemsolutions/Library/Application Support/Dauqara/sleepover/TestResults.xml
+]]></output>
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>
