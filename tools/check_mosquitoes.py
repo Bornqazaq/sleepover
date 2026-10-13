@@ -39,7 +39,7 @@ def main():
                 command += ['--mosquito-capture', str(logs / 'captures'), '-screen-fullscreen', '0', '-screen-width', '1280', '-screen-height', '720']
             else:
                 command += ['-batchmode', '-nographics']
-            command += ['--mosquito-input-check', args.scenario] if args.scenario in ('input', 'navigation') else ['--bot']
+            command += ['--mosquito-input-check', args.scenario] if args.scenario in ('input', 'navigation', 'swat') else ['--bot']
             if i == 0:
                 command += ['--autostart', 'Mosquitoes', '--wait-players', str(args.players)]
             else:
@@ -65,7 +65,7 @@ def main():
         peers = []
         for i, path in enumerate(sorted(logs.glob('*.log'))):
             content = path.read_text(errors='replace')
-            lines = [line for line in content.splitlines() if line.startswith(('MOSQUITO_INPUT', 'MOSQUITO_SPAWN', 'MOSQUITO_NAV', '[MosquitoResults]', '[MosquitoBoundary]'))]
+            lines = [line for line in content.splitlines() if line.startswith(('MOSQUITO_INPUT', 'MOSQUITO_SPAWN', 'MOSQUITO_NAV', 'MOSQUITO_SWAT', '[MosquitoResults]', '[MosquitoBoundary]'))]
             passed = '[MosquitoResults]' in content and 'Exception:' not in content and 'MOSQUITO_INPUT FAIL' not in content and 'MOSQUITO_SPAWN FAIL' not in content
             if leaves(i):
                 passed = '[MosquitoFixture] graceful leave' in content and 'Exception:' not in content
@@ -77,6 +77,8 @@ def main():
                 passed &= 'server failed to correct' not in content
             if args.scenario == 'navigation':
                 passed &= 'MOSQUITO_NAV PASS' in content and 'MOSQUITO_NAV FAIL' not in content
+            if args.scenario == 'swat':
+                passed &= 'MOSQUITO_SWAT PASS' in content and 'MOSQUITO_SWAT FAIL' not in content
             for line in lines:
                 if line.startswith('[MosquitoResults]'):
                     results.append(line.split(' places=')[1].split(' restored=')[0])

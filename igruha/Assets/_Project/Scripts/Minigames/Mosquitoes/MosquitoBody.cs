@@ -20,6 +20,8 @@ namespace Igruha.Minigames.Mosquitoes
         private int shownCharacter = -1;
         private MosquitoFlightVisual flightVisual;
         public void ShowBiteSuccess() => flightVisual?.Bite();
+        public void ShowSwatted(Vector3 direction) => flightVisual?.Swat(direction);
+        public bool ShowingSwatReaction => flightVisual != null && flightVisual.ShowingHit;
         public int VisualCharacterIndex => shownCharacter;
         [SerializeField] private Transform cameraTarget;
         [SerializeField] private AudioSource buzz;
@@ -250,7 +252,7 @@ namespace Igruha.Minigames.Mosquitoes
         {
             if (game == null) return;
             if (IsSpawned && shownCharacter != CharacterIndex.Value) ApplyCharacter(CharacterIndex.Value);
-            bool visible = IsAlive && game.CanSeeMosquito(Position);
+            bool visible = (IsAlive || flightVisual != null && flightVisual.ShowingHit) && game.CanSeeMosquito(Position);
             bool contact = IsAttached && Vector3.Distance(Position, game.BiteAnchor(Id)) <= MosquitoesMinigame.BiteContactDistance;
             flightVisual?.Tick(Velocity, game.Config.MaxSpeed, contact, Velocity.magnitude <= game.Config.QuietSpeed + .05f,
                 visible, Time.deltaTime, BiteFraction);

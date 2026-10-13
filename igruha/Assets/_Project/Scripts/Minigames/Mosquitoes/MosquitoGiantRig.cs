@@ -29,6 +29,10 @@ namespace Igruha.Minigames.Mosquitoes
         private float reaction;
         private float transitionElapsed, transitionDuration;
         private MosquitoSleepMotion motion;
+        private MosquitoSwatMotion swat;
+        public bool Swatting => swat != null && swat.Active;
+        public int SwatStarts => swat != null ? swat.Starts : 0;
+        public void PlaySwat(float impactDelay) { if (!sleeping) swat?.Begin(impactDelay); }
         private MosquitoSleepMotion.Pose originalPose, capturedStart;
         private float reactionSide = 1;
         private Transform chestBone;
@@ -48,6 +52,7 @@ namespace Igruha.Minigames.Mosquitoes
             chestBone = animator.GetBoneTransform(HumanBodyBones.Chest);
             motion = new MosquitoSleepMotion(animator);
             originalPose = motion.Capture();
+            swat = new MosquitoSwatMotion(animator, transform);
             originalPosition = model.localPosition; originalRotation = model.localRotation;
             originalEnabled = animator.enabled; originalCulling = animator.cullingMode;
             animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
@@ -96,6 +101,7 @@ namespace Igruha.Minigames.Mosquitoes
         public void SetSleeping(bool value, float duration = 0, Vector3? standingPosition = null, Quaternion? standingRotation = null, bool forcedWake = false)
         {
             if (model == null) return;
+            if (value) swat?.Cancel();
             if (sleeping == value)
             {
                 capturedStart = null;
@@ -362,6 +368,9 @@ namespace Igruha.Minigames.Mosquitoes
             reaction = .42f;
             reactionSide = contact.z < MosquitoRoomLayout.BedZ ? -1 : 1;
         }
+        // Release last frame's additive pose before Animator evaluates, including bones
+        // not keyed by an idle clip (otherwise wrists retain the previous swat).
+        private void Update() => swat?.RestoreAnimationPose();
         private void LateUpdate()
         {
             if (model == null) return;
@@ -377,6 +386,7 @@ namespace Igruha.Minigames.Mosquitoes
                 float flinch = Mathf.Sin(Mathf.Clamp01(reaction / .42f) * Mathf.PI);
                 motion.Breathe(Time.time, flinch, reactionSide);
             }
+            else swat?.Tick(Time.deltaTime);
             RefreshContacts();
             if (cameraTarget != null && chestBone != null) cameraTarget.position = chestBone.position;
         }
@@ -404,6 +414,7 @@ namespace Igruha.Minigames.Mosquitoes
         }
         public void Restore()
         {
+            swat?.Cancel();
             if (model != null)
             {
                 motion.Apply(originalPose);

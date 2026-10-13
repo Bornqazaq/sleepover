@@ -20,7 +20,7 @@ namespace Igruha.Minigames.Mosquitoes
         private readonly Dictionary<int, Vector3> entryPrevious = new Dictionary<int, Vector3>();
         public float EntryRemaining { get; private set; }
         public int DragonflyKills { get; private set; }
-        private float dragonflyCameraUntil, dragonflyFinishAt;
+        private float dragonflyCameraUntil, deathFeedbackUntil;
         private bool eatenLocally;
         [SerializeField] private Transform bed, bedExit, lampCenter;
         [SerializeField] private MinigameCameraController cameraController;
@@ -46,6 +46,9 @@ namespace Igruha.Minigames.Mosquitoes
         private MosquitoGiantRig giantRig;
         public MosquitoGiantRig GiantRig => giantRig;
         public int ConfirmedBiteEffects { get; private set; }
+        public int ConfirmedSwatEffects { get; private set; }
+        private int predictedSwat;
+        private float nextLocalSwat;
         private bool previousLock, previousRootMotion, cleaned = true, winnerGiant, spectating;
         private float previousAnimatorSpeed, radius, swatCooldown, swatImpact = -1, hudIn, botIn;
         private GiantPhase shownPhase = (GiantPhase)255;
@@ -121,8 +124,9 @@ namespace Igruha.Minigames.Mosquitoes
             Sleep = new GiantSleepState(config); Countdown = config.CountdownSeconds;
             hasBitePose = false;
             swatCooldown = 0; swatImpact = -1; hudIn = 0; botIn = 0; ConfirmedBiteEffects = 0;
+            ConfirmedSwatEffects = 0; predictedSwat = 0; nextLocalSwat = 0;
             EntryRemaining = MosquitoWindowEntry.Deadline; DragonflyKills = 0; entryPrevious.Clear();
-            dragonflyCameraUntil = dragonflyFinishAt = 0; eatenLocally = false;
+            dragonflyCameraUntil = deathFeedbackUntil = 0; eatenLocally = false;
             cleaned = false; winnerGiant = false; spectating = false; departed.Clear(); participated.Clear();
             presentation?.Begin();
             if (cameraController != null) { cameraRestore = cameraController.CurrentTarget; cameraModeRestore = cameraController.CurrentMode; }
@@ -174,7 +178,7 @@ namespace Igruha.Minigames.Mosquitoes
             if (punch != null)
             {
                 previousPunchOverride = punch.ButtonOverride; previousPunchCooldown = punch.CooldownOverride;
-                punch.ButtonOverride = this; punch.CooldownOverride = config.SwatCooldown; punch.PunchStarted += PunchStarted;
+                punch.ButtonOverride = this; punch.CooldownOverride = config.SwatCooldown;
             }
             giantAnimator = giant.GetComponentInChildren<Animator>();
             if (giantAnimator != null) { previousAnimatorSpeed = giantAnimator.speed; previousRootMotion = giantAnimator.applyRootMotion; }
@@ -272,7 +276,7 @@ namespace Igruha.Minigames.Mosquitoes
                     }
                     else if (EntryRemaining <= 0)
                     {
-                        Vector3 caught = body.Position; body.Kill(); DragonflyKills++; dragonflyFinishAt = Time.unscaledTime + 1.1f;
+                        Vector3 caught = body.Position; body.Kill(); DragonflyKills++; deathFeedbackUntil = Time.unscaledTime + 1.1f;
                         network?.Effect(3, caught, body.Id);
                         if (Automated) Debug.Log($"[MosquitoDragonfly] id={body.Id} deadline={MosquitoWindowEntry.Deadline:0} alive={body.IsAlive}");
                         continue;
@@ -300,7 +304,7 @@ namespace Igruha.Minigames.Mosquitoes
                 body.SetBiteState(valid, cooldown);
                 if (body.Participated) participated.Add(body.Id);
             }
-            if (Sleep.ReachedTarget || AliveCount == 0 && Time.unscaledTime >= dragonflyFinishAt) { winnerGiant = true; EndMinigame(); }
+            if (Sleep.ReachedTarget || AliveCount == 0 && Time.unscaledTime >= deathFeedbackUntil) { winnerGiant = true; EndMinigame(); }
         }
         public bool TryBed(int sender)
         {
@@ -319,12 +323,23 @@ namespace Igruha.Minigames.Mosquitoes
             if (changed) { network?.Effect(1, lampCenter.position); network?.Publish(); }
             return changed;
         }
-        public bool HandlePushButton(PlayerController player) => !ControlsAvailable || Sleep == null || !Sleep.CanSwat || swatCooldown > 0;
-        private void PunchStarted() { if (localId == giantId) network?.RequestSwat(); }
-        public bool TrySwat(int sender)
+        public bool HandlePushButton(PlayerController player)
+        {
+            // Consume the shared punch; this role has a separate, immediately predicted gesture.
+            if (player != giant || localId != giantId || !ControlsAvailable || Sleep == null ||
+                !Sleep.CanSwat || swatCooldown > 0 || Time.time < nextLocalSwat) return true;
+            nextLocalSwat = Time.time + config.SwatCooldown;
+            predictedSwat++;
+            giant.PlantFeet(giant.Config.PunchPlantDuration, giant.Config.PunchBrakeMultiplier);
+            giantRig?.PlaySwat(giant.Config.PunchImpactDelay);
+            network?.RequestSwat(predictedSwat);
+            return true;
+        }
+        public bool TrySwat(int sender, int request = 0)
         {
             if (!HasAuthority || !ControlsAvailable || sender != giantId || !Sleep.CanSwat || swatCooldown > 0) return false;
             swatCooldown = config.SwatCooldown; swatImpact = giant.Config.PunchImpactDelay;
+            network?.Effect(4, Vector3.zero, request);
             return true;
         }
         private void ResolveSwat()
@@ -341,8 +356,10 @@ namespace Igruha.Minigames.Mosquitoes
                 Vector3 horizontal = delta; horizontal.y = 0;
                 if (horizontal.sqrMagnitude > .0001f && Vector3.Dot(giant.Facing, horizontal.normalized) < angleCos) continue;
                 if (!ClearPath(center, position)) continue;
-                body.Kill(); network?.Effect(2, position);
+                body.Kill(); network?.Effect(2, position, body.Id);
             }
+            // Let the final hit read before cleanup removes the victim's visual.
+            if (AliveCount == 0) deathFeedbackUntil = Time.unscaledTime + MosquitoFlightVisual.HitDuration;
         }
         private bool ClearPath(Vector3 start, Vector3 end) => !Physics.Linecast(start, end, furnitureMask, QueryTriggerInteraction.Ignore);
         private void ApplyPose()
@@ -407,6 +424,16 @@ namespace Igruha.Minigames.Mosquitoes
         public void BodyDied(MosquitoBody body) { }
         public void PlayEffect(byte kind, Vector3 position, int attacker = -1)
         {
+            if (cleaned) return;
+            if (kind == 4)
+            {
+                ConfirmedSwatEffects++;
+                // The owner's confirmation must not rewind a gesture already underway.
+                if (localId != giantId || attacker <= 0 || attacker > predictedSwat)
+                    giantRig?.PlaySwat(giant.Config.PunchImpactDelay);
+                if (Automated) Debug.Log($"[MosquitoSwat] local={localId} confirmed={ConfirmedSwatEffects}");
+                return;
+            }
             if (kind == 3)
             {
                 if (attacker == localId) { eatenLocally = true; dragonflyCameraUntil = Time.unscaledTime + .85f; }
@@ -415,6 +442,7 @@ namespace Igruha.Minigames.Mosquitoes
                 return;
             }
             presentation?.Effect(kind, position, kind != 2 || CanSeeMosquito(position));
+            if (kind == 2) FindBody(attacker)?.ShowSwatted(giant != null ? giant.Facing : Vector3.forward);
             if (kind != 0) return;
             ConfirmedBiteEffects++;
             FindBody(attacker)?.ShowBiteSuccess();
@@ -467,7 +495,7 @@ namespace Igruha.Minigames.Mosquitoes
         private void Cleanup()
         {
             if (cleaned) return; cleaned = true;
-            if (punch != null) { punch.CancelPendingPush(); punch.PunchStarted -= PunchStarted; punch.ButtonOverride = previousPunchOverride; punch.CooldownOverride = previousPunchCooldown; }
+            if (punch != null) { punch.CancelPendingPush(); punch.ButtonOverride = previousPunchOverride; punch.CooldownOverride = previousPunchCooldown; }
             if (giant != null) giant.MovementLocked = previousLock;
             if (giantRig != null) { giantRig.Restore(); Destroy(giantRig); giantRig = null; }
             if (giantAnimator != null) { giantAnimator.speed = previousAnimatorSpeed; giantAnimator.applyRootMotion = previousRootMotion; }

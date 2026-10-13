@@ -9,6 +9,10 @@ namespace Igruha.Minigames.Mosquitoes
     {
         private const float FollowRate = 14f;
         private const float ContactPitch = 32f;
+        private const float VelocityFollow = 9f, AccelerationFollow = 6f;
+        private const float FlightPitch = 30f, BrakePitch = 10f, MaxBank = 24f;
+        public const float HitDuration = .32f;
+        private const float HitTravel = .24f;
         private readonly Transform root;
         private readonly Vector3 scale;
         private readonly List<Transform> wings = new List<Transform>(4);
@@ -16,7 +20,11 @@ namespace Igruha.Minigames.Mosquitoes
         private readonly List<float> side = new List<float>(4);
         private readonly Renderer[] renderers;
         private float phase, contact, recoil;
-        private Vector3 previousVelocity;
+        private Vector3 previousVelocity, smoothVelocity, smoothAcceleration, hitDirection;
+        private float airTime, hitRemaining;
+        private bool velocityInitialized;
+        private Quaternion flightRotation = Quaternion.identity;
+        private readonly MosquitoAirPose airPose;
         private readonly List<Transform> bones = new List<Transform>();
         private readonly List<Quaternion> flightBones = new List<Quaternion>();
         private readonly List<Quaternion> landingBones = new List<Quaternion>();
@@ -25,7 +33,7 @@ namespace Igruha.Minigames.Mosquitoes
 
         public MosquitoFlightVisual(Transform root, int seed)
         {
-            this.root = root; scale = root.localScale; phase = seed * 1.7f;
+            this.root = root; scale = root.localScale; phase = seed * 1.7f; airTime = seed * .73f;
             renderers = root.GetComponentsInChildren<Renderer>(true);
             foreach (Transform child in root.GetComponentsInChildren<Transform>(true))
             {
@@ -36,6 +44,7 @@ namespace Igruha.Minigames.Mosquitoes
                 side.Add(child.name.StartsWith("WingPivot_-1_") ? -1 : 1);
             }
             BuildLandingPose();
+            airPose = new MosquitoAirPose(root, root.GetComponentInChildren<Animator>(true));
         }
         private void BuildLandingPose()
         {
@@ -110,21 +119,37 @@ namespace Igruha.Minigames.Mosquitoes
             get { int count = 0; foreach (var r in renderers) if (r != null && r.enabled) count++; return count; }
         }
         public void Bite() => recoil = 1;
+        public bool ShowingHit => hitRemaining > 0;
+        public void Swat(Vector3 direction)
+        {
+            hitRemaining = HitDuration;
+            hitDirection = direction.sqrMagnitude > .001f ? direction.normalized : Vector3.forward;
+        }
         public void Tick(Vector3 velocity, float maxSpeed, bool attached, bool quiet, bool visible, float dt, float biteFraction = 0)
         {
             foreach (var r in renderers) if (r != null) r.enabled = visible;
             float blend = 1 - Mathf.Exp(-FollowRate * dt);
             contact = Mathf.MoveTowards(contact, attached ? 1 : 0, dt * (attached ? 7 : 5));
             recoil = Mathf.MoveTowards(recoil, 0, dt * 3);
-            float speed = Mathf.Clamp01(velocity.magnitude / maxSpeed);
-            Vector3 localVelocity = root.parent.InverseTransformDirection(velocity);
-            Vector3 acceleration = root.parent.InverseTransformDirection(velocity - previousVelocity) / Mathf.Max(.001f, dt);
+            maxSpeed = Mathf.Max(.01f, maxSpeed);
+            if (!velocityInitialized) { previousVelocity = velocity; smoothVelocity = velocity; velocityInitialized = true; }
+            smoothVelocity = Vector3.Lerp(smoothVelocity, velocity, 1 - Mathf.Exp(-VelocityFollow * dt));
+            Vector3 rawAcceleration = (velocity - previousVelocity) / Mathf.Max(.001f, dt);
+            smoothAcceleration = Vector3.Lerp(smoothAcceleration, Vector3.ClampMagnitude(rawAcceleration, 40), 1 - Mathf.Exp(-AccelerationFollow * dt));
             previousVelocity = velocity;
-            float bank = Mathf.Clamp(-acceleration.x * 1.4f, -22, 22);
-            Quaternion pose = Quaternion.Euler(Mathf.Lerp(speed * 24 + localVelocity.y * 2, ContactPitch, contact), 0, bank * (1 - contact));
-            root.localRotation = Quaternion.Slerp(root.localRotation, pose, blend);
+            float speed = Mathf.Clamp01(smoothVelocity.magnitude / maxSpeed);
+            Vector3 localVelocity = root.parent.InverseTransformDirection(smoothVelocity) / maxSpeed;
+            Vector3 acceleration = root.parent.InverseTransformDirection(smoothAcceleration) / 20;
+            float pitch = Mathf.Clamp(localVelocity.z * FlightPitch + acceleration.z * BrakePitch + localVelocity.y * 5, -24, 40);
+            float bank = Mathf.Clamp(-localVelocity.x * 15 - acceleration.x * 12, -MaxBank, MaxBank);
+            Quaternion pose = Quaternion.Euler(Mathf.Lerp(pitch, ContactPitch, contact), 0, bank * (1 - contact));
+            flightRotation = Quaternion.Slerp(flightRotation, pose, blend);
+            root.localRotation = flightRotation;
             float settled = Mathf.SmoothStep(0, 1, contact);
-            for (int i = 0; i < bones.Count; i++) bones[i].localRotation = Quaternion.Slerp(flightBones[i], landingBones[i], settled);
+            for (int i = 0; i < bones.Count; i++) bones[i].localRotation = flightBones[i];
+            airTime += dt;
+            airPose.Apply(localVelocity, acceleration, airTime, pitch);
+            for (int i = 0; i < bones.Count; i++) bones[i].localRotation = Quaternion.Slerp(bones[i].localRotation, landingBones[i], settled);
             if (neck != null && attached) Bend(neck, Mathf.Sin(biteFraction * Mathf.PI) * 3 * settled);
             root.position = root.parent.position + root.parent.TransformVector(landingOffset * settled) + Vector3.up *
                 ((1 - contact) * Mathf.Sin(phase * .09f) * .009f + Mathf.Sin(recoil * Mathf.PI) * .015f);
@@ -139,6 +164,14 @@ namespace Igruha.Minigames.Mosquitoes
                 float angle = Mathf.Lerp(flap, 58, settled) * side[i];
                 wings[i].localRotation = Quaternion.AngleAxis(angle, axis) * rest[i];
             }
+            if (hitRemaining <= 0) return;
+            hitRemaining = Mathf.Max(0, hitRemaining - dt);
+            float hit = 1 - hitRemaining / HitDuration;
+            root.position += hitDirection * (HitTravel * hit) + Vector3.down * (.20f * hit * hit);
+            root.localRotation *= Quaternion.Euler(65 * hit, 0, 140 * hit);
+            float size = 1 - Mathf.SmoothStep(0, 1, Mathf.InverseLerp(.5f, 1, hit));
+            root.localScale = Vector3.Scale(scale, Vector3.Lerp(new Vector3(1.3f, .55f, 1.3f), Vector3.one, Mathf.Clamp01(hit * 5))) * size;
+            if (hitRemaining <= 0) foreach (var r in renderers) if (r != null) r.enabled = false;
         }
     }
 }

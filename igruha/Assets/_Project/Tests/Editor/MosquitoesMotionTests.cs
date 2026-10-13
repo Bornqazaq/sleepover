@@ -85,13 +85,75 @@ namespace Igruha.Tests
                 var leg = animator.GetBoneTransform(HumanBodyBones.LeftUpperLeg);
                 Quaternion armRest = arm.localRotation, legRest = leg.localRotation;
                 var motion = new MosquitoFlightVisual(visual.transform, index);
-                for (int i = 0; i < 30; i++) motion.Tick(Vector3.zero, 4.8f, true, false, true, 1f / 60, i / 30f);
+                var control = Object.Instantiate(prefab, body.transform);
+                var controlAnimator = control.GetComponentInChildren<Animator>();
+                var freeFlight = new MosquitoFlightVisual(control.transform, index);
+                for (int i = 0; i < 30; i++)
+                {
+                    motion.Tick(Vector3.zero, 4.8f, true, false, true, 1f / 60, i / 30f);
+                    freeFlight.Tick(Vector3.zero, 4.8f, false, false, true, 1f / 60);
+                }
                 Assert.That(Vector3.Dot(visual.transform.up, Vector3.up), Is.GreaterThan(.35f));
                 Assert.That(Quaternion.Angle(armRest, arm.localRotation), Is.GreaterThan(10));
                 Assert.That(Quaternion.Angle(legRest, leg.localRotation), Is.GreaterThan(10));
-                for (int i = 0; i < 40; i++) motion.Tick(Vector3.forward, 4.8f, false, false, true, 1f / 60);
-                Assert.That(Quaternion.Angle(armRest, arm.localRotation), Is.LessThan(.1f));
-                Assert.That(Quaternion.Angle(legRest, leg.localRotation), Is.LessThan(.1f));
+                for (int i = 0; i < 40; i++)
+                {
+                    motion.Tick(Vector3.forward, 4.8f, false, false, true, 1f / 60);
+                    freeFlight.Tick(Vector3.forward, 4.8f, false, false, true, 1f / 60);
+                }
+                Assert.That(Quaternion.Angle(controlAnimator.GetBoneTransform(HumanBodyBones.LeftUpperArm).localRotation, arm.localRotation), Is.LessThan(.1f));
+                Assert.That(Quaternion.Angle(controlAnimator.GetBoneTransform(HumanBodyBones.LeftUpperLeg).localRotation, leg.localRotation), Is.LessThan(.1f));
+            }
+            finally { Object.DestroyImmediate(body); }
+        }
+
+        [TestCase(0)] [TestCase(1)] [TestCase(2)] [TestCase(3)]
+        [TestCase(4)] [TestCase(5)] [TestCase(6)] [TestCase(7)]
+        public void SwatHasAnticipationForwardContactAndReturnsToAnimator(int index)
+        {
+            var roster = AssetDatabase.LoadAssetAtPath<CharacterRoster>("Assets/_Project/Settings/Gameplay/CharacterRoster.asset");
+            var clone = Object.Instantiate(roster.Characters[index].Prefab);
+            try
+            {
+                var animator = clone.GetComponentInChildren<Animator>(); animator.Rebind(); animator.Update(0);
+                var controller = animator.runtimeAnimatorController;
+                var hand = animator.GetBoneTransform(HumanBodyBones.RightHand);
+                var shoulder = animator.GetBoneTransform(HumanBodyBones.RightUpperArm);
+                var elbow = animator.GetBoneTransform(HumanBodyBones.RightLowerArm);
+                float reach = Vector3.Distance(shoulder.position, elbow.position) + Vector3.Distance(elbow.position, hand.position);
+                Quaternion rest = hand.localRotation;
+                var swat = new MosquitoSwatMotion(animator, clone.transform);
+                swat.Begin(.25f); swat.Tick(.12f); Vector3 windup = hand.position;
+                swat.RestoreAnimationPose(); animator.Update(0); swat.Tick(.13f);
+                Assert.That(swat.Active, Is.True);
+                Assert.That(Vector3.Distance(hand.position, windup), Is.GreaterThan(reach * .5f));
+                Assert.That(Vector3.Dot(hand.position - shoulder.position, clone.transform.forward), Is.GreaterThan(reach * .4f));
+                swat.RestoreAnimationPose(); animator.Update(0); swat.Tick(.5f);
+                Assert.That(swat.Active, Is.False);
+                Assert.That(Quaternion.Angle(rest, hand.localRotation), Is.LessThan(.1f));
+                Assert.That(animator.runtimeAnimatorController, Is.SameAs(controller));
+                swat.Begin(.25f); swat.Cancel(); Assert.That(swat.Active, Is.False);
+            }
+            finally { Object.DestroyImmediate(clone); }
+        }
+
+        [Test] public void FlightLeansInSignedDirectionAndHitReactionExpires()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Prefabs/Minigames/Mosquitoes/Characters/Karlan.prefab");
+            var body = new GameObject("Flight direction test");
+            try
+            {
+                var visual = Object.Instantiate(prefab, body.transform);
+                var motion = new MosquitoFlightVisual(visual.transform, 0);
+                for (int i = 0; i < 120; i++) motion.Tick(Vector3.forward * 4.8f, 4.8f, false, false, true, 1f / 60);
+                Assert.That(visual.transform.forward.y, Is.LessThan(-.35f));
+                for (int i = 0; i < 120; i++) motion.Tick(Vector3.back * 4.8f, 4.8f, false, false, true, 1f / 60);
+                Assert.That(visual.transform.forward.y, Is.GreaterThan(.3f));
+                motion.Swat(Vector3.right);
+                motion.Tick(Vector3.zero, 4.8f, false, false, true, .1f);
+                Assert.That(motion.ShowingHit, Is.True); Assert.That(motion.VisibleCount, Is.GreaterThan(0));
+                motion.Tick(Vector3.zero, 4.8f, false, false, true, .25f);
+                Assert.That(motion.ShowingHit, Is.False); Assert.That(motion.VisibleCount, Is.Zero);
             }
             finally { Object.DestroyImmediate(body); }
         }

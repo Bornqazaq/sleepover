@@ -1,0 +1,31 @@
+{
+  "result": {
+    "success": true,
+    "message": "Test job status retrieved.",
+    "error": null,
+    "data": {
+      "job_id": "581d5bf6281b470bb0c1f42d35868bd8",
+      "status": "succeeded",
+      "mode": "PlayMode",
+      "started_unix_ms": 1791878739374,
+      "finished_unix_ms": 1791878965122,
+      "last_update_unix_ms": 1791878965122,
+      "progress": {
+        "completed": 12,
+        "total": 12,
+        "current_test_full_name": null,
+        "current_test_started_unix_ms": 1791878942509,
+        "last_finished_test_full_name": "Igruha.Tests.PlayMode.MosquitoesSceneTests.ThreePlayersMosquitoBitesSwatAndCleanup",
+        "last_finished_unix_ms": 1791878965045,
+        "stuck_suspected": false,
+        "editor_is_focused": false,
+        "blocked_reason": null,
+        "failures_so_far": [],
+        "failures_capped": false
+      },
+      "error": null,
+      "result": null
+    },
+    "hint": null
+  }
+}

@@ -21,6 +21,8 @@ namespace Igruha.Minigames.Mosquitoes
         private Camera view;
         private Unity.Cinemachine.CinemachineCamera flightRig;
         private bool navigation, entered, bit, woke, sleptAgain, reported, lowApproach;
+        private bool swatCheck, swatPlaced, sawSwat, sawHit;
+        private int capturedSwat;
         private float interactIn;
         private float diagnosticIn;
         private string captureFolder;
@@ -50,6 +52,7 @@ namespace Igruha.Minigames.Mosquitoes
             view = Camera.main;
             flightRig = FindFirstObjectByType<Unity.Cinemachine.CinemachineCamera>();
             navigation = LaunchArguments.TryGetValue("--mosquito-input-check", out var mode) && mode == "navigation";
+            swatCheck = mode == "swat";
             if (LaunchArguments.TryGetValue("--mosquito-capture", out captureFolder)) System.IO.Directory.CreateDirectory(captureFolder);
             game.ResultsReported += Results;
         }
@@ -80,6 +83,7 @@ namespace Igruha.Minigames.Mosquitoes
             }
             if (game.Phase != MinigamePhase.Round || !game.ControlsAvailable) return;
             elapsed += Time.deltaTime;
+            if (swatCheck) { TickSwat(); return; }
             if (navigation) TickNavigation();
             if (elapsed > (navigation ? NavigationCheckSeconds : 8) && !finished)
             {
@@ -107,6 +111,39 @@ namespace Igruha.Minigames.Mosquitoes
             Debug.Log($"MOSQUITO_INPUT {(passed ? "PASS" : "FAIL")} local={game.LocalId} step={step} delta={delta:F2} speed={own.Velocity.magnitude:F2} owner={own.IsOwner} kinematic={own.FlightKinematic}");
             Debug.Log("MOSQUITO_INPUT STATE " + own.InputDiagnostic);
             step++; stepTime = 0; sampled = false;
+        }
+        private void TickSwat()
+        {
+            // Fixture only: position one target and a survivor, then use the real mouse
+            // action map. Authority, impact, cooldown and RPCs remain production paths.
+            bool server = NetworkManager.Singleton.IsServer;
+            int victimId = game.GiantId == 0 ? 1 : 0;
+            var victim = game.FindBody(victimId);
+            var own = game.FindBody(game.LocalId);
+            Igruha.Core.Player.PlayerController giant = null;
+            foreach (var player in SessionScoreboard.Current.Players) if (player.Id == game.GiantId) giant = player.Avatar;
+            if (giant == null || victim == null) return;
+            if (server && elapsed < 2) foreach (var body in game.Bodies) body.ConfirmEntry();
+            if (server && !swatPlaced && elapsed > 2 && game.Sleep.CanSwat)
+            {
+                swatPlaced = true;
+                foreach (var body in game.Bodies)
+                    body.ResetPosition(body.Id == victimId ? giant.Position + Vector3.up * .9f + giant.Facing * .8f : new Vector3(1.5f, 2, 1.5f));
+            }
+            InputSystem.QueueStateEvent(keyboard, own == null && elapsed > .5f && elapsed < 1.7f ? new KeyboardState(Key.E) : new KeyboardState());
+            bool press = own == null && (elapsed > 4 && elapsed < 4.18f || elapsed > 4.4f && elapsed < 4.55f || elapsed > 6 && elapsed < 6.18f);
+            InputSystem.QueueStateEvent(mouse, new MouseState { buttons = press ? (ushort)1 : (ushort)0 });
+            sawSwat |= game.GiantRig != null && game.GiantRig.Swatting;
+            sawHit |= victim.ShowingSwatReaction;
+            if (captureFolder != null && capturedSwat < 3 && elapsed > 4.1f + capturedSwat * .13f)
+                Capture("swat-" + capturedSwat++);
+            if (elapsed > 8 && !reported)
+            {
+                reported = true;
+                bool passed = game.ConfirmedSwatEffects == 2 && game.GiantRig.SwatStarts == 2 && sawSwat && sawHit && !victim.IsAlive && game.AliveCount == game.Bodies.Count - 1;
+                Debug.Log($"MOSQUITO_SWAT {(passed ? "PASS" : "FAIL")} local={game.LocalId} confirmed={game.ConfirmedSwatEffects} starts={game.GiantRig.SwatStarts} gesture={sawSwat} reaction={sawHit} victimDead={!victim.IsAlive} alive={game.AliveCount}");
+            }
+            if (elapsed > 9 && !finished) { finished = true; if (server) game.GetComponent<RoundTimer>().StartTimer(.3f); }
         }
         private void TickNavigation()
         {

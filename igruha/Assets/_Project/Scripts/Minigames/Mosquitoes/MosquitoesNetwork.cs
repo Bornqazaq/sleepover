@@ -78,12 +78,12 @@ namespace Igruha.Minigames.Mosquitoes
         {
             if (!IsSpawned) game.TryBed(game.LocalId); else BedServerRpc();
         }
-        public void RequestSwat()
+        public void RequestSwat(int request = 0)
         {
-            if (!IsSpawned) game.TrySwat(game.LocalId); else SwatServerRpc();
+            if (!IsSpawned) game.TrySwat(game.LocalId, request); else SwatServerRpc(request);
         }
         [ServerRpc(RequireOwnership = false)] private void BedServerRpc(ServerRpcParams rpc = default) => game.TryBed((int)rpc.Receive.SenderClientId);
-        [ServerRpc(RequireOwnership = false)] private void SwatServerRpc(ServerRpcParams rpc = default) => game.TrySwat((int)rpc.Receive.SenderClientId);
+        [ServerRpc(RequireOwnership = false)] private void SwatServerRpc(int request, ServerRpcParams rpc = default) => game.TrySwat((int)rpc.Receive.SenderClientId, request);
         private void Disconnected(ulong id) => pendingDepartures.Add((int)id);
         public void Effect(byte kind, Vector3 position, int attacker = -1)
         {

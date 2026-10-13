@@ -279,7 +279,14 @@ namespace Igruha.Tests.PlayMode
             var victim = game.Bodies[0];
             foreach (var other in game.Bodies) if (other != victim) other.ResetPosition(new Vector3(1.4f, 1.6f, .4f));
             victim.ResetPosition(avatar.Position + Vector3.up * .9f + avatar.Facing * .7f); Physics.SyncTransforms();
-            Assert.That(game.TrySwat(giant)); Assert.That(game.TrySwat(giant), Is.False, "server cooldown");
+            int sharedPunches = 0;
+            avatar.GetComponent<PlayerPushAbility>().PunchStarted += () => sharedPunches++;
+            if (giant == game.LocalId) Assert.That(game.HandlePushButton(avatar), Is.True);
+            else Assert.That(game.TrySwat(giant));
+            Assert.That(game.TrySwat(giant), Is.False, "server cooldown");
+            Assert.That(game.ConfirmedSwatEffects, Is.EqualTo(1));
+            Assert.That(game.GiantRig.Swatting, Is.True, "owner and bot roles have the local gesture");
+            Assert.That(sharedPunches, Is.Zero, "minigame gesture must consume the ordinary punch");
             yield return new WaitForSeconds(.35f); Assert.That(victim.IsAlive, Is.False, "blind swat must hit");
             var survivor = game.Bodies[game.Bodies.Count - 1];
             foreach (var b in game.Bodies) if (b != survivor) b.Kill();
