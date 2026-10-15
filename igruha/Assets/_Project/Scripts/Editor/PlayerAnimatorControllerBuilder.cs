@@ -191,7 +191,7 @@ namespace Igruha.EditorTools
                 controllerPath: "Assets/_Project/Art/Animations/ShlangaAnimator.controller",
                 playerPrefabPath: "Assets/_Project/Prefabs/Player/Shlanga.prefab",
                 idleClip: "Shlanga@idle.fbx",
-                runClip: "Shlanga@run.fbx",
+                runClip: "Boss@defaultRunning.fbx",
                 jumpClip: "Shlanga@jump.fbx",
                 punchClip: "Shlanga@cross.fbx",
                 flyBackClip: "Shlanga@fall_Back.fbx",
