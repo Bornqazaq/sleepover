@@ -53,7 +53,7 @@ namespace Igruha.EditorTools
             var station = seat.gameObject.AddComponent<ArkanoidStation>();
             Set(station, "standPoint", stand); Set(station, "activityName", "арканоид");
             Set(station, "takeRadius", 2f); Set(station, "leaveRadius", 2.2f);
-            var camera = root.gameObject.AddComponent<ArkanoidCamera>();
+            var camera = root.gameObject.AddComponent<ArcadeScreenCamera>();
             Set(camera, "station", station); Set(station, "localCamera", camera);
 
             var screen = new GameObject("ArcadeScreen", typeof(RectTransform), typeof(Canvas));
@@ -123,6 +123,8 @@ namespace Igruha.EditorTools
             Debug.Log("Arkanoid: middle cabinet, world screen, local blend camera, one network station and six spatial sound slots.");
         }
 
+        internal static void PrepareFont() => font = MakeFont();
+
         private static TMP_FontAsset MakeFont()
         {
             string path = Folder + "/ArcadeFont.asset";
@@ -140,22 +142,22 @@ namespace Igruha.EditorTools
             return result;
         }
 
-        private static Transform Child(Transform parent, string name)
+        internal static Transform Child(Transform parent, string name)
         {
             var t = new GameObject(name).transform; t.SetParent(parent, false); return t;
         }
-        private static RectTransform ChildRect(Transform parent, string name)
+        internal static RectTransform ChildRect(Transform parent, string name)
         {
             var t = (RectTransform)new GameObject(name, typeof(RectTransform)).transform;
             t.SetParent(parent, false); return t;
         }
-        private static RectTransform Rect(Transform parent, string name, Vector2 position, Vector2 size, Color color)
+        internal static RectTransform Rect(Transform parent, string name, Vector2 position, Vector2 size, Color color)
         {
             var rect = ChildRect(parent, name); rect.anchoredPosition = position; rect.sizeDelta = size;
             var image = rect.gameObject.AddComponent<Image>(); image.color = color; image.raycastTarget = false;
             return rect;
         }
-        private static void Label(Transform parent, string name, Vector2 position, Vector2 size, float pointSize,
+        internal static void Label(Transform parent, string name, Vector2 position, Vector2 size, float pointSize,
             string value, Color color, out TMP_Text text)
         {
             var rect = ChildRect(parent, name); rect.anchoredPosition = position; rect.sizeDelta = size;
@@ -163,17 +165,17 @@ namespace Igruha.EditorTools
             text.text = value; text.color = color; text.alignment = TextAlignmentOptions.Center;
             text.textWrappingMode = TextWrappingModes.NoWrap; text.raycastTarget = false;
         }
-        private static void Set(Object target, string property, Object value)
+        internal static void Set(Object target, string property, Object value)
         {
             var so = new SerializedObject(target); so.FindProperty(property).objectReferenceValue = value;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
-        private static void Set(Object target, string property, string value)
+        internal static void Set(Object target, string property, string value)
         {
             var so = new SerializedObject(target); so.FindProperty(property).stringValue = value;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
-        private static void Set(Object target, string property, float value)
+        internal static void Set(Object target, string property, float value)
         {
             var so = new SerializedObject(target); so.FindProperty(property).floatValue = value;
             so.ApplyModifiedPropertiesWithoutUndo();

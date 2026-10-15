@@ -15,7 +15,7 @@ namespace Igruha.Core.Hub.Activities
         [SerializeField] private GameObject panel;
         [SerializeField] private MinigameAudioPlayer audioPlayer;
         private ArkanoidState previous;
-        private bool initialized, wasOccupied;
+        private bool initialized, wasOccupied, wasPaused;
         private float receivedAt;
         private static readonly string[] SoundSlots = { null, "arcade.launch", "arcade.bounce", "arcade.brick",
             "arcade.life", "arcade.level", "arcade.over" };
@@ -23,6 +23,7 @@ namespace Igruha.Core.Hub.Activities
         private void Update()
         {
             ArkanoidState state = station.State;
+            bool paused = station.IsArcadePaused;
             bool occupied = station.Occupant != HubActivityStation.NoOccupant;
             if (!initialized || state.Tick != previous.Tick || state.Session != previous.Session) receivedAt = Time.unscaledTime;
             if (!initialized || state.Score != previous.Score) score.SetText("СЧЁТ {0:00000}", state.Score);
@@ -30,10 +31,11 @@ namespace Igruha.Core.Hub.Activities
             if (!initialized || state.Level != previous.Level) level.SetText("LV {0}", state.Level);
             if (!initialized || state.Bricks != previous.Bricks)
                 for (int i = 0; i < bricks.Length; i++) bricks[i].SetActive((state.Bricks & (1UL << i)) != 0);
-            if (!initialized || state.Phase != previous.Phase || occupied != wasOccupied || state.Level != previous.Level)
+            if (!initialized || state.Phase != previous.Phase || occupied != wasOccupied || paused != wasPaused || state.Level != previous.Level)
             {
-                panel.SetActive(state.Phase != ArkanoidPhase.Playing);
-                if (!occupied)
+                panel.SetActive(paused || state.Phase != ArkanoidPhase.Playing);
+                if (paused) { title.text = "ПАУЗА"; button.text = "ИГРОК В МЕНЮ"; hint.text = "ЖДЁМ ПРОДОЛЖЕНИЯ"; }
+                else if (!occupied)
                 {
                     title.text = "АРКАНОИД"; button.text = "ЗАЖМИ E"; hint.text = "РАЗБЕЙ ВСЕ КИРПИЧИ";
                 }
@@ -52,7 +54,7 @@ namespace Igruha.Core.Hub.Activities
             paddle.anchoredPosition = new Vector2(shownPaddle, ArkanoidRules.PaddleY) * PixelsPerUnit;
             Vector2 shownBall = state.Ball;
             if (state.Phase == ArkanoidPhase.Ready) shownBall.x = shownPaddle;
-            else if (state.Phase == ArkanoidPhase.Playing)
+            else if (!paused && state.Phase == ArkanoidPhase.Playing)
             {
                 // Bound prediction to one snapshot interval; never simulate a client-side hit.
                 shownBall += state.Velocity * Mathf.Min(Time.unscaledTime - receivedAt, 1f / 30f);
@@ -66,6 +68,7 @@ namespace Igruha.Core.Hub.Activities
                 audioPlayer.PlayAt(SoundSlots[(int)state.Event], transform.position);
             previous = state;
             wasOccupied = occupied;
+            wasPaused = paused;
             initialized = true;
         }
     }

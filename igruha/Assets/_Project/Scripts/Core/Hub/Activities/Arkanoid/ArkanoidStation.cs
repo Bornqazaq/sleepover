@@ -5,9 +5,9 @@ using UnityEngine;
 namespace Igruha.Core.Hub.Activities
 {
     /// <summary>One cabinet, one owner. Clients send paddle intent; outcomes remain on the host.</summary>
-    public sealed class ArkanoidStation : HubActivityStation
+    public sealed class ArkanoidStation : ArcadeStation
     {
-        [SerializeField] private ArkanoidCamera localCamera;
+        [SerializeField] private ArcadeScreenCamera localCamera;
         [SerializeField] private float mouseSensitivity = .003f;
         private const float InputInterval = 1f / 30f, SnapshotInterval = 1f / 30f;
         private readonly NetworkVariable<ArkanoidState> replicated = new NetworkVariable<ArkanoidState>();
@@ -26,6 +26,7 @@ namespace Igruha.Core.Hub.Activities
         public Vector3 StandPosition => StandPoint.position;
         public Quaternion StandRotation => StandPoint.rotation;
         protected override bool UsesChargeInput => false;
+        protected override uint ArcadeSession => State.Session;
 
         public override void OnNetworkSpawn()
         {
@@ -38,6 +39,7 @@ namespace Igruha.Core.Hub.Activities
 
         protected override void OnTaken(PlayerController player)
         {
+            ResetArcadePause();
             seatedBody = player;
             simulation = ArkanoidRules.NewGame(simulation.Session + 1, true);
             target = 0;
@@ -48,6 +50,7 @@ namespace Igruha.Core.Hub.Activities
 
         protected override void ResetActivity()
         {
+            ResetArcadePause();
             seatedBody = null;
             simulation = ArkanoidRules.NewGame(simulation.Session + 1, false);
             target = 0;
@@ -62,6 +65,7 @@ namespace Igruha.Core.Hub.Activities
         private void FixedUpdate()
         {
             if (!HasAuthority || Occupant == NoOccupant) return;
+            if (IsArcadePaused) return;
             uint eventId = simulation.EventId;
             ArkanoidRules.Step(ref simulation, target, Time.fixedDeltaTime);
             simulation.Tick++;
@@ -77,6 +81,7 @@ namespace Igruha.Core.Hub.Activities
         protected override void OnLocalAiming(PlayerController player, PlayerInputReader input)
         {
             localInput = input;
+            bool menuPaused = UpdateLocalPause();
             localBody = player;
             if (player.IsKnockedDown)
             {
@@ -92,7 +97,7 @@ namespace Igruha.Core.Hub.Activities
                 LocalPaddle = State.Paddle;
                 sentSequence = 0;
             }
-            if (input.Suspended || localCamera != null && !localCamera.ReadyForInput) return;
+            if (menuPaused || input.Suspended || localCamera != null && !localCamera.ReadyForInput) return;
             float movement = input.LookDelta.x * mouseSensitivity + input.MoveInput.x * ArkanoidRules.PaddleSpeed * Time.deltaTime;
             LocalPaddle = Mathf.MoveTowards(LocalPaddle,
                 Mathf.Clamp(LocalPaddle + movement, -ArkanoidRules.PaddleLimit, ArkanoidRules.PaddleLimit),
@@ -106,7 +111,7 @@ namespace Igruha.Core.Hub.Activities
 
         public override bool HandlePushButton(PlayerController player)
         {
-            if (!IsLocal || localInput == null || localInput.Suspended ||
+            if (IsArcadePaused || !IsLocal || localInput == null || localInput.Suspended ||
                 localCamera != null && !localCamera.ReadyForInput) return true;
             if (IsSpawned) PlayRpc(LocalPaddle, State.Session);
             else AcceptPlay(LocalPaddle, State.Session, Occupant);
@@ -119,7 +124,7 @@ namespace Igruha.Core.Hub.Activities
 
         private void AcceptInput(float paddle, uint session, uint sequence, ulong sender)
         {
-            if (!ValidInput(paddle, session, sender) || sequence <= acceptedSequence) return;
+            if (IsArcadePaused || !ValidInput(paddle, session, sender) || sequence <= acceptedSequence) return;
             acceptedSequence = sequence;
             target = Mathf.Clamp(paddle, -ArkanoidRules.PaddleLimit, ArkanoidRules.PaddleLimit);
         }
@@ -130,7 +135,7 @@ namespace Igruha.Core.Hub.Activities
 
         private void AcceptPlay(float paddle, uint session, ulong sender)
         {
-            if (!ValidInput(paddle, session, sender) || Time.unscaledTime < nextLaunch) return;
+            if (IsArcadePaused || !ValidInput(paddle, session, sender) || Time.unscaledTime < nextLaunch) return;
             nextLaunch = Time.unscaledTime + .2f;
             target = Mathf.Clamp(paddle, -ArkanoidRules.PaddleLimit, ArkanoidRules.PaddleLimit);
             ArkanoidRules.Launch(ref simulation);

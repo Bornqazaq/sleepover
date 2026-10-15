@@ -8,9 +8,9 @@ using UnityEngine;
 namespace Igruha.Core.Hub.Activities
 {
     /// <summary>Local, reversible screen view. Shared camera rig assets are never modified.</summary>
-    public sealed class ArkanoidCamera : MonoBehaviour
+    public sealed class ArcadeScreenCamera : MonoBehaviour
     {
-        [SerializeField] private ArkanoidStation station;
+        [SerializeField] private HubActivityStation station;
         [SerializeField] private CinemachineCamera screenRig;
         [SerializeField] private CinemachineBrain brain;
         [SerializeField] private MinigameCameraController cameraController;
@@ -19,14 +19,14 @@ namespace Igruha.Core.Hub.Activities
         private int overrideId = -1;
         private float blend;
         public bool IsActive => overrideId >= 0;
-        public bool ReadyForInput => IsActive && blend >= .99f && station.IsLocal;
+        public bool ReadyForInput => IsActive && blend >= .99f && station.IsLocalOccupant;
 
         private void Update()
         {
             if (brain == null || screenRig == null || station == null ||
                 cameraController != null && cameraController.CurrentMode != CameraMode.ThirdPerson)
             { ReleaseView(); return; }
-            bool occupied = station.IsLocal;
+            bool occupied = station.IsLocalOccupant;
             if (occupied && overrideId < 0)
             {
                 screenRig.enabled = true;
@@ -60,7 +60,7 @@ namespace Igruha.Core.Hub.Activities
 
         private void HideOwnModel()
         {
-            var own = SessionScoreboard.Current?.LocalPlayer?.Avatar ?? station.LocalPlayer;
+            var own = SessionScoreboard.Current?.LocalPlayer?.Avatar ?? station.LocalOccupant;
             if (own == null) return;
             own.GetComponentsInChildren(true, hidden);
             for (int i = hidden.Count - 1; i >= 0; i--)
