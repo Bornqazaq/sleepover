@@ -11,17 +11,17 @@ namespace Igruha.Minigames.DuckHunt
         private const float TakeoffMarginWidths = .8f;
         private const float LandingMarginWidths = 3.8f;
         private const float RecoveryDepthWidths = 1.8f;
-        private const float RecoveryEntryWidths = 8.1f;
+        private const float RecoveryEntryWidths = 14.5f;
         // x = progress, y = height above floor, z = depth; matches the blockout pads.
         private static readonly Vector3[] FinalRoute =
         {
-            new Vector3(8.5f, .3f, 12.3f), new Vector3(14.5f, 3, 11.5f),
-            new Vector3(15.1f, 3, 11.5f), new Vector3(19.4f, 3, 9.5f),
-            new Vector3(20.1f, 3, 9.5f), new Vector3(24.4f, 3, 7),
-            new Vector3(25.1f, 3, 7), new Vector3(29.4f, 3, 5.5f),
-            new Vector3(30.1f, 3, 5.5f), new Vector3(34.4f, 3, 7.5f),
-            new Vector3(35.1f, 3, 7.5f), new Vector3(39.4f, 3, 9.5f),
-            new Vector3(40.1f, 3, 9.5f), new Vector3(44.4f, 3, 11)
+            new Vector3(11.8f,0,12.3f),new Vector3(11.8f,0,3),
+            new Vector3(14.5f,0,3),new Vector3(14.5f,3,11.5f),
+            new Vector3(15.5f,3,11.0f),new Vector3(19.1f,3,10.3f),
+            new Vector3(21.7f,3,10.3f),new Vector3(25.3f,3.35f,9.1f),
+            new Vector3(27.9f,3.35f,9.1f),new Vector3(31.5f,3,10.1f),
+            new Vector3(34.5f,3,10.1f),new Vector3(38.1f,3.25f,10.9f),
+            new Vector3(40.7f,3.25f,10.9f),new Vector3(44.3f,3,11)
         };
 
         private readonly DuckHuntArena arena;
@@ -56,7 +56,7 @@ namespace Igruha.Minigames.DuckHunt
                 return true;
             }
 
-            if (finalStep >= 2 && motor.IsGrounded && motor.Position.y < arena.GetFloorBaseY(floor) + HeightTolerance)
+            if (finalStep >= 4 && motor.IsGrounded && motor.Position.y < arena.GetFloorBaseY(floor) + HeightTolerance)
             {
                 finalStep = 0;
                 recoveryStep = 0;
@@ -65,15 +65,15 @@ namespace Igruha.Minigames.DuckHunt
             {
                 target = arena.GetWorldPoint(floor,
                     recoveryStep == 0 ? progress.Progress : RecoveryEntryWidths,
-                    recoveryStep < 2 ? RecoveryDepthWidths : 11.5f);
-                if (Reached(target) && ++recoveryStep > 2) recoveryStep = -1;
+                    recoveryStep < 2 ? RecoveryDepthWidths : 3f);
+                if (Reached(target) && ++recoveryStep > 2) { recoveryStep = -1; finalStep = 2; }
                 return true;
             }
 
             Vector3 point = FinalRoute[finalStep];
             target = arena.GetWorldPoint(floor, point.x, point.z, point.y);
             if (!Reached(target) || finalStep == FinalRoute.Length - 1) return true;
-            if (finalStep >= 2 && finalStep % 2 == 0) input.DriveJump();
+            if (finalStep >= 4 && finalStep % 2 == 0) input.DriveJump();
             point = FinalRoute[++finalStep];
             target = arena.GetWorldPoint(floor, point.x, point.z, point.y);
             return true;

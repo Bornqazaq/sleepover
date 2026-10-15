@@ -38,9 +38,20 @@ namespace Igruha.EditorTools
             Preflight(); SetupMaterials();
             // Called after the authoritative layout rebuild, not over arbitrary user objects.
             Transform art = Group(arena.transform, "CopperwoodArt");
+            Transform surroundings = art;
+            var shells = new Dictionary<Transform,Transform>();
             var original = arena.GetComponentsInChildren<MeshRenderer>().ToArray();
             foreach (var renderer in original)
             {
+                // A world-sized combined mesh selects the wrong local lights in URP Forward.
+                // Keep the five storeys in separate batches so each receives its own lamps.
+                Transform owner=renderer.transform;
+                while(owner!=null&&!owner.name.StartsWith("Floor_"))owner=owner.parent;
+                art=surroundings;
+                if(owner!=null)
+                {
+                    if(!shells.TryGetValue(owner,out art)){art=Group(owner,"PavilionShell");shells.Add(owner,art);}
+                }
                 if (renderer.transform.GetComponentInParent<TrapLever>() != null || renderer.name.StartsWith("Cover_")) continue;
                 string n = renderer.name;
                 if (n == "Ceiling") { renderer.sharedMaterial = Mat("OakDark"); DressCeiling(renderer,art); continue; }
@@ -58,14 +69,16 @@ namespace Igruha.EditorTools
                 { CarnivalWall(renderer, art); continue; }
                 if (n.StartsWith("ReturnLane_") || n == "TakeoffStripe")
                 { renderer.sharedMaterial = Mat("Brass"); continue; }
-                if (n.Contains("PadSupport") || n == "SplitDeckSupport" || n.StartsWith("Rail_"))
+                if (n.Contains("PadSupport") || n.StartsWith("ParkourSupport_") || n == "SplitDeckSupport" || n.StartsWith("Rail_"))
                 { renderer.sharedMaterial = Mat("Iron"); continue; }
                 if (n == "FinishPad") { renderer.sharedMaterial = Mat("TealLight"); continue; }
                 if (n == "Deck") continue; // Moving lift art stays on the moving platform.
                 if (renderer.GetComponent<BoxCollider>() != null)
                     DressDeck(renderer, art,
-                        n.StartsWith("FastParkour") || n == "ParkourSplitDeck" || n == "RaisedFinishDeck");
+                        n.StartsWith("ParkourPad_") || n.StartsWith("FastParkour") || n == "ParkourSplitDeck" || n == "RaisedFinishDeck");
             }
+            foreach(var shell in shells)Combine(shell.Value,"PavilionShell_"+shell.Key.name);
+            art=surroundings;
             foreach (Transform floor in arena.transform.Find("Tower"))
             {
                 if (!floor.name.StartsWith("Floor_")) continue;
@@ -79,7 +92,7 @@ namespace Igruha.EditorTools
             // отдельно, своим вызовом Combine.
             Transform rides = Group(arena.transform, "FairgroundRides");
             CarnivalRoof(art); FairgroundSurroundings(art, rides); Landscape(art); Lighting(art); CarnivalGrade(art);
-            Combine(art, "Architecture");
+            CombineSpatial(art, "Architecture", 18f);
             Physics.SyncTransforms();
             Debug.Log("Duck Hunt carnival installed: original Blender fairground kit, protected start, five themed floors, 4/3/2/1 functional furnishings, sheltered mechanical controls.");
         }
@@ -123,13 +136,18 @@ namespace Igruha.EditorTools
             {
                 {"Oak", new Color(.79f,.63f,.43f)}, {"OakLight",new Color(.85f,.70f,.50f)}, {"OakDark",new Color(.43f,.30f,.18f)},
                 {"Teal",new Color(.20f,.37f,.33f)}, {"TealLight",new Color(.26f,.44f,.37f)}, {"Cream",new Color(.88f,.79f,.58f)},
-                {"Iron",new Color(.105f,.14f,.14f)}, {"Brass",new Color(.78f,.54f,.24f)}, {"Red",new Color(.79f,.23f,.19f)},
-                {"Rose",new Color(.84f,.34f,.43f)}, {"Blue",new Color(.19f,.52f,.64f)}, {"Purple",new Color(.57f,.35f,.66f)}, {"Gold",new Color(.97f,.68f,.20f)},
+                {"Iron",new Color(.105f,.14f,.14f)}, {"Brass",new Color(.78f,.54f,.24f)}, {"Red",new Color(.43f,.075f,.06f)},
+                {"Rose",new Color(.84f,.34f,.43f)}, {"Blue",new Color(.075f,.26f,.27f)}, {"Purple",new Color(.26f,.13f,.31f)}, {"Gold",new Color(.66f,.38f,.10f)},
                 {"Glow",new Color(1,.79f,.40f)}, {"GlowRed",new Color(1,.20f,.16f)}, {"GlowBlue",new Color(.16f,.58f,1f)},
                 {"GlowGreen",new Color(.25f,1f,.44f)}, {"GlowPink",new Color(1f,.25f,.68f)},
                 {"Leaf",new Color(.19f,.32f,.235f)}, {"LeafLight",new Color(.32f,.43f,.25f)},
                 {"Stone",new Color(.39f,.42f,.36f)}, {"Ink",new Color(.035f,.075f,.072f)}, {"Earth",new Color(.32f,.34f,.20f)},
-                {"Sand",new Color(.60f,.52f,.38f)}, {"Gravel",new Color(.47f,.45f,.40f)}
+                {"Sand",new Color(.60f,.52f,.38f)}, {"Gravel",new Color(.47f,.45f,.40f)},
+                {"CityIvory",new Color(.78f,.78f,.71f)}, {"CityBrick",new Color(.42f,.24f,.19f)},
+                {"CitySlate",new Color(.17f,.24f,.31f)}, {"CityGlass",new Color(.075f,.16f,.23f)},
+                {"CityConcrete",new Color(.42f,.46f,.49f)}, {"CityWindowWarm",new Color(1,.63f,.28f)},
+                {"RoadAsphalt",new Color(.22f,.25f,.27f)},
+                {"CityWindowCool",new Color(.40f,.66f,.88f)}
             };
             Texture wood = AssetDatabase.LoadAssetAtPath<Texture>("Assets/_Project/Art/Hub/Lounge/Textures/HL_OakGrain.png");
             foreach (var entry in colors)
@@ -149,6 +167,14 @@ namespace Igruha.EditorTools
                     // вычищает ключевое слово при сохранении, и лампы гаснут:
                     // ровно так свечение и пропало в прошлый раз.
                     m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+                }
+                if(entry.Key.StartsWith("City"))
+                {
+                    m.EnableKeyword("_EMISSION");
+                    float glow=entry.Key.StartsWith("CityWindow")?2.2f:entry.Key=="CityGlass"?.10f:.24f;
+                    m.SetColor("_EmissionColor",entry.Value*glow);
+                    m.globalIlluminationFlags=MaterialGlobalIlluminationFlags.RealtimeEmissive;
+                    m.SetFloat("_Smoothness",entry.Key=="CityGlass"?.65f:.25f);
                 }
                 EditorUtility.SetDirty(m); Materials.Add(entry.Key,m);
             }
@@ -337,22 +363,7 @@ namespace Igruha.EditorTools
             }
         }
 
-        static void DressLift(Transform shaft)
-        {
-            Transform platform=shaft.Find("Platform"), moving=Group(platform,"CopperwoodLift");
-            var deck=platform.Find("Deck").GetComponent<MeshRenderer>(); DressDeck(deck,moving,true);
-            Vector3 p=platform.position;
-            // Keep guide rails and mechanism behind the hunter/camera, never across the gun sight.
-            Model("Hoist",moving,p+new Vector3(0,1.45f,-2.15f),Vector3.one);
-            Beam(moving,p+new Vector3(-1.3f,.2f,-1.65f),p+new Vector3(1.3f,.2f,-1.65f),.20f,"OakLight");
-            Transform frame=Group(shaft,"CopperwoodGantry");
-            for(int side=-1;side<=1;side+=2)
-                Model("Timber",frame,new Vector3(17.28f+side*1.8f,-2,-14.6f),new Vector3(2,37,2));
-            Beam(frame,new Vector3(15,35,-14.6f),new Vector3(19.55f,35,-14.6f),.40f,"OakDark");
-            Model("Hoist",frame,new Vector3(17.28f,34.5f,-14.6f),Vector3.one*1.2f);
-            Beam(frame,new Vector3(17.28f,-1.7f,-14.8f),new Vector3(17.28f,34.4f,-14.8f),.033f,"Iron");
-            Combine(moving,"MovingLift");Combine(frame,"Gantry");
-        }
+        static void DressLift(Transform shaft) => CraftedHunterLift(shaft);
 
         static void Roof(Transform art)
         {
@@ -439,43 +450,33 @@ namespace Igruha.EditorTools
             foreach(var light in Object.FindObjectsByType<Light>(FindObjectsSortMode.None))
             {
                 if(light.type!=LightType.Directional)continue;
-                // Low westward sun: in the front establishing view it sits to the
-                // left of the tower and is already half below the horizon.
-                light.transform.rotation=Quaternion.Euler(23,-112,0);light.color=new Color(1,.78f,.58f);light.intensity=1.45f;light.shadows=LightShadows.Soft;
+                light.transform.rotation=Quaternion.Euler(8,-112,0);light.color=new Color(.49f,.62f,1f);light.intensity=.32f;light.shadows=LightShadows.Soft;
             }
             RenderSettings.ambientMode=AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor=new Color(.72f,.80f,.84f);RenderSettings.ambientEquatorColor=new Color(.67f,.63f,.54f);RenderSettings.ambientGroundColor=new Color(.44f,.38f,.30f);
-            // Туман отодвинут: сцена выросла с поляны до ярмарки с дорогой и окраиной
-            // города, и на прежних 78..220 м всё дальше ворот тонуло в песочной пелене.
-            RenderSettings.fog=true;RenderSettings.fogMode=FogMode.Linear;RenderSettings.fogColor=new Color(.78f,.66f,.52f);
-            RenderSettings.fogStartDistance=115;RenderSettings.fogEndDistance=430;
+            RenderSettings.ambientSkyColor=new Color(.18f,.24f,.38f);RenderSettings.ambientEquatorColor=new Color(.13f,.16f,.23f);RenderSettings.ambientGroundColor=new Color(.065f,.052f,.04f);
+            RenderSettings.fog=true;RenderSettings.fogMode=FogMode.Linear;RenderSettings.fogColor=new Color(.045f,.075f,.14f);RenderSettings.fogStartDistance=100;RenderSettings.fogEndDistance=350;
             string skyPath=Root+"/Materials/DHB_Sky.mat";
             var sky=AssetDatabase.LoadAssetAtPath<Material>(skyPath);
-            if(sky==null) { sky=new Material(Shader.Find("Skybox/Procedural"));AssetDatabase.CreateAsset(sky,skyPath); }
-            sky.SetColor("_SkyTint",new Color(.59f,.55f,.57f));sky.SetColor("_GroundColor",new Color(.58f,.44f,.31f));
-            sky.SetFloat("_AtmosphereThickness",1.0f);sky.SetFloat("_Exposure",1.25f);RenderSettings.skybox=sky;EditorUtility.SetDirty(sky);
-            // Emission alone does not light characters or floorboards.  These
-            // compact real lamps follow the visible lantern/bulb rhythm without
-            // turning every decoration into a shadow-casting cost.
-            Transform illumination=Group(art,"Working illumination");
-            Color[] carnivalLights={new Color(1,.20f,.16f),new Color(.18f,.62f,1),new Color(.30f,1,.45f),new Color(1,.28f,.68f),new Color(1,.72f,.18f)};
+            if(sky==null){sky=new Material(Shader.Find("Skybox/Procedural"));AssetDatabase.CreateAsset(sky,skyPath);}
+            sky.SetFloat("_SunDisk",0);sky.SetColor("_SkyTint",new Color(.12f,.20f,.40f));sky.SetColor("_GroundColor",new Color(.035f,.05f,.09f));sky.SetFloat("_AtmosphereThickness",.7f);sky.SetFloat("_Exposure",.35f);RenderSettings.skybox=sky;EditorUtility.SetDirty(sky);
+            Transform illumination=Group(art,"Pavilion warm illumination");Color warm=new Color(1,.65f,.32f);
             for(int floor=0;floor<5;floor++)
-                for(int bay=0;bay<3;bay++)
-                    PointLight(illumination,new Vector3(5.4f+bay*11.5f,floor*5.76f+3.75f,8.25f),carnivalLights[(floor+bay)%carnivalLights.Length],2.55f,7.2f);
-            for(int i=0;i<7;i++)
-                PointLight(illumination,new Vector3(i*5.76f,29.45f,-.32f),carnivalLights[i%carnivalLights.Length],2.1f,6.2f);
-            PointLight(illumination,new Vector3(8.7f,24.9f,7.1f),new Color(1,.18f,.12f),3.1f,8.5f);
-            PointLight(illumination,new Vector3(31.7f,19.1f,7.1f),new Color(1,.18f,.12f),3.1f,8.5f);
-            MovingSpotlight(illumination,new Vector3(7.5f,29.1f,-.7f),new Vector3(64f,18f,0),new Color(1,.18f,.62f),0f);
-            MovingSpotlight(illumination,new Vector3(28.2f,29.1f,-.7f),new Vector3(64f,-18f,0),new Color(.16f,.62f,1f),.43f);
-            // Фонари аллеи и ворот: сами лампы входят в склеенный статический
-            // меш, поэтому реальный свет им выдаётся отдельно и по новым местам.
-            for(float x=-44f;x<=78f;x+=22f)
-                foreach(int side in new[]{-1,1})
-                    PointLight(illumination,new Vector3(x,1.3f,PromenadeZ+side*(PromenadeHalf+.9f)),new Color(1,.58f,.26f),2.1f,9f);
-            foreach(int side in new[]{-1,1})
-                PointLight(illumination,new Vector3(FairCentre.x+side*5.6f,1.6f,GateZ-.9f),new Color(1,.62f,.32f),2.4f,10f);
+            {
+                float y=floor*5.76f;
+                for(int bay=0;bay<5;bay++)
+                {
+                    float x=3+bay*7.1f;
+                    PointLight(illumination,new Vector3(x,y+3.8f,7.8f),warm,12f,9.0f);
+                    PointLight(illumination,new Vector3(x,y+3.6f,-1.0f),new Color(1,.80f,.58f),14f,10.0f);
+                }
+                var pendant=Group(illumination,"Pendant pool "+floor);pendant.position=new Vector3(17.28f,y+(floor==4?5.7f:4.4f),5.5f);pendant.rotation=Quaternion.Euler(90,0,0);
+                var key=pendant.gameObject.AddComponent<Light>();key.type=LightType.Spot;key.color=new Color(1,.80f,.55f);key.intensity=20;key.range=10;key.spotAngle=125;key.innerSpotAngle=85;key.shadows=LightShadows.Soft;key.shadowCustomResolution=512;key.shadowBias=.035f;key.shadowNormalBias=.15f;
+            }
+            for(int i=0;i<6;i++)PointLight(illumination,new Vector3(3+i*5.7f,30.7f,-.6f),warm,2.6f,6.2f);
+            for(float x=-44f;x<=78f;x+=22f)foreach(int side in new[]{-1,1})PointLight(illumination,new Vector3(x,1.3f,PromenadeZ+side*(PromenadeHalf+.9f)),warm,3f,10f);
+            foreach(int side in new[]{-1,1})PointLight(illumination,new Vector3(FairCentre.x+side*5.6f,1.6f,GateZ-.9f),warm,3.1f,10f);
         }
+
 
         static void Combine(Transform group,string name)
         {

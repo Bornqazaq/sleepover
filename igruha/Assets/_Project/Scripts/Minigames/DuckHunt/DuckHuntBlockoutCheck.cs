@@ -29,7 +29,8 @@ namespace Igruha.Minigames.DuckHunt
             // Explicit local MPPM opt-in, shared by the host and virtual editor. Off by default.
             if(!UnityEditor.EditorPrefs.GetBool("Igruha.DuckHunt.NetworkQA",false))
 #endif
-            if (Array.IndexOf(Environment.GetCommandLineArgs(), "--duck-hunt-check") < 0) return;
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "--duck-hunt-check") < 0
+                && Array.IndexOf(Environment.GetCommandLineArgs(), "--duck-pavilion-check") < 0) return;
             SceneManager.sceneLoaded += OnSceneLoaded;
             OnSceneLoaded(SceneManager.GetActiveScene(), LoadSceneMode.Single);
         }
@@ -43,7 +44,7 @@ namespace Igruha.Minigames.DuckHunt
         {
             arena = FindFirstObjectByType<DuckHuntArena>();
             var door = FindFirstObjectByType<DoorTrap>();
-            var floor = FindFirstObjectByType<CollapsingFloorTrap>();
+            var floor = arena.transform.Find("Tower/Floor_4/CollapseTrap").GetComponent<CollapsingFloorTrap>();
             door.ClosedChanged += value => { doorClosed |= value; doorReopened |= !value && doorClosed; Log("door=" + value); };
             floor.OpenChanged += value => { floorOpened |= value; floorReturned |= !value && floorOpened; Log("collapse=" + value); };
             float deadline = Time.realtimeSinceStartup + 90;
@@ -64,7 +65,7 @@ namespace Igruha.Minigames.DuckHunt
                 hunter.SetElevatorAxis(0);
                 Log("hunter elevator=" + actor.Position.y);
                 hunter.TryFire(actor.Position + Vector3.up, Vector3.back);
-                yield return new WaitForSeconds(24);
+                yield return new WaitForSeconds(34);
                 CheckStates();
                 yield break;
             }
@@ -77,11 +78,13 @@ namespace Igruha.Minigames.DuckHunt
                 yield return VerifyFinalCourse();
                 yield break;
             }
-            actor.TeleportTo(arena.GetWorldPoint(2, 24, 7.7f, .05f), Quaternion.identity);
+            var doorPedestal=arena.transform.Find("Tower/Floor_3/Lever_Door/Pedestal");
+            actor.TeleportTo(new Vector3(doorPedestal.position.x+.9f,arena.GetFloorBaseY(2)+.05f,doorPedestal.position.z), Quaternion.identity);
             yield return new WaitForSeconds(1);
             input.DriveInteract(); Log("door E sent");
             yield return new WaitForSeconds(6);
-            actor.TeleportTo(arena.GetWorldPoint(3, 24, 7.7f, .05f), Quaternion.identity);
+            var floorPedestal=arena.transform.Find("Tower/Floor_4/Lever_Collapse/Pedestal");
+            actor.TeleportTo(new Vector3(floorPedestal.position.x-.9f,arena.GetFloorBaseY(3)+.05f,floorPedestal.position.z), Quaternion.identity);
             yield return new WaitForSeconds(1);
             input.DriveInteract(); Log("collapse E sent");
             yield return new WaitForSeconds(.6f);
@@ -93,6 +96,11 @@ namespace Igruha.Minigames.DuckHunt
             yield return new WaitForSeconds(2);
             CheckStates();
             if (failed) yield break;
+            if(Array.IndexOf(Environment.GetCommandLineArgs(),"--duck-pavilion-check")>=0)
+            {
+                yield return VerifyFinalCourse();
+                yield break;
+            }
             // Each spawn leaves through the same real L-shaped exit, using the normal motor.
             foreach(Transform spawn in GameObject.Find("_Spawns/Ducks").transform)
             {
@@ -155,16 +163,36 @@ namespace Igruha.Minigames.DuckHunt
             if (actor.GetComponent<DuckProgress>().Finished) Fail("finish accepted from recovery deck");
             else Log("finish from below rejected PASS");
             yield return WalkTo(arena.GetWorldPoint(4, 45.5f, 1.8f));
-            yield return WalkTo(arena.GetWorldPoint(4, 8.5f, 1.8f));
-            yield return WalkTo(arena.GetWorldPoint(4, 8.1f, 11.5f));
+            yield return WalkTo(arena.GetWorldPoint(4, 14.5f, 1.8f));
+            yield return WalkTo(arena.GetWorldPoint(4, 14.5f, 3));
             yield return WalkTo(arena.GetWorldPoint(4, 14.5f, 11.5f, 3));
-            float[] p = { 13, 18, 23, 28, 33, 38, 43 };
-            float[] z = { 11.5f, 9.5f, 7, 5.5f, 7.5f, 9.5f, 11 };
-            for (int i = 0; i < p.Length - 1 && !failed; i++)
+            float[] takeoff = { 15.5f, 21.7f, 27.9f, 34.5f, 40.7f };
+            float[] landing = { 19.1f, 26.5f, 31.5f, 39.3f, 44.3f };
+            float[] z = { 11f, 10.3f, 9.1f, 10.1f, 10.9f, 11f };
+            float[] heights = { 3f, 3f, 3.35f, 3f, 3.25f, 3f };
+            for (int i = 0; i < takeoff.Length && !failed; i++)
             {
-                yield return WalkTo(arena.GetWorldPoint(4, p[i] + 2.1f, z[i], 3));
+                yield return WalkTo(arena.GetWorldPoint(4, takeoff[i], z[i], heights[i]));
+                if(i==1||i==3)
+                {
+                    var swings=arena.GetComponentsInChildren<PendulumSwing>();
+                    PendulumSwing nearest=null;float best=float.MaxValue;
+                    Vector3 destination=arena.GetWorldPoint(4,landing[i],z[i+1],heights[i+1]);
+                    foreach(var swing in swings)if(Mathf.Abs(swing.transform.position.x-destination.x)<best){nearest=swing;best=Mathf.Abs(swing.transform.position.x-destination.x);}
+                    float until=Time.realtimeSinceStartup+8;
+                    while(nearest!=null&&Time.realtimeSinceStartup<until)
+                    {
+                        float offset=nearest.transform.position.z-destination.z;
+                        // Jump while the bob moves away from our approach side.
+                        // Either outgoing half-wave is not equivalent: on the near side
+                        // it can meet the avatar's upper body during the jump arc.
+                        float away = i == 1 ? -1f : 1f;
+                        if(offset*away>.7f&&offset*away<1.4f&&nearest.Velocity.z*away>0)break;
+                        yield return new WaitForFixedUpdate();
+                    }
+                }
                 input.DriveJump();
-                yield return WalkTo(arena.GetWorldPoint(4, p[i + 1] + 1.4f, z[i + 1], 3));
+                yield return WalkTo(arena.GetWorldPoint(4, landing[i], z[i + 1], heights[i+1]));
                 if (!failed) Log("final jump=" + (i + 1) + " reached=" + actor.Position);
             }
             if (failed) yield break;

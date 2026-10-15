@@ -149,7 +149,7 @@ namespace Igruha.EditorTools
                 // The partition meets the underside of the floor above; its
                 // existing rear opening still provides the route out.
                 RouteBox(root, "ArrivalGuard", floor, wallMaterial, 7.7f, 8,
-                    y, y + (floor >= 1 && floor <= 3 ? 7 : 2), 0, 11);
+                    y, y + (floor == 4 ? 9 : 7), 0, 11);
             }
 
             if (floor == 4)
@@ -191,11 +191,18 @@ namespace Igruha.EditorTools
             RouteBox(root, "BackWall", floor, wallMaterial, 0, 48, wallBottom, y + height, 14, 14.4f);
             RouteBox(root, "EndWallA", floor, wallMaterial, -.4f, 0, wallBottom, y + height, 0, 14);
             RouteBox(root, "EndWallB", floor, wallMaterial, 48, 48.4f, wallBottom, y + height, 0, 14);
-            // Floor five has no outgoing stair room, so it needs its own front
-            // arrival wall. Besides closing the shell, this is the real support
-            // for the 05 marker instead of leaving the number floating in space.
-            if (floor == 4)
-                RouteBox(root, "TopArrivalFrontWall", floor, wallMaterial, 0, 8, y, y + height, 0, .4f);
+            // Every arrival bay needs protection above the previous stair room.
+            // ProtectedFront ends at this floor's slab; without this wall the
+            // upper flight and arrival landing are exposed to the hunter.
+            if (floor > 0)
+            {
+                RouteBox(root, floor == 4 ? "TopArrivalFrontWall" : "ArrivalFrontWall",
+                    floor, wallMaterial, 0, 8, y, y + height, 0, .4f);
+                // A short return closes oblique shots through the rear doorway.
+                // The 2.9-width passage behind it remains open for the route.
+                RouteBox(root, "ArrivalReturnWall", floor, wallMaterial,
+                    7.7f, 11, y, y + (floor == 4 ? height : config.FloorStepWidths - 1), 10.7f, 11.1f);
+            }
             var barrier = RouteBox(root, "BulletTransparentBoundary", floor, null, 0, 48, y, y + height, -.4f, 0, barrierLayer);
             Object.DestroyImmediate(barrier.GetComponent<MeshRenderer>());
             Object.DestroyImmediate(barrier.GetComponent<MeshFilter>());
@@ -233,85 +240,76 @@ namespace Igruha.EditorTools
 
         private static void BuildFinalParkour(Transform root, float y)
         {
-            // The run is 2.16 m above a continuous SAME-floor recovery deck.
-            // Too high to jump onto from below; the only normal entry is the start ramp.
+            // Four deliberate jumps over the same-floor recovery deck. Dimensions in character widths.
             var ramp = GameObject.CreatePrimitive(PrimitiveType.Cube);
             ramp.name = "FinalStartRamp"; ramp.layer = groundLayer; ramp.transform.SetParent(root, false);
-            Vector3 from = ToWorld(8, y, 11.5f), to = ToWorld(13, y + 3, 11.5f);
+            Vector3 from = ToWorld(14.5f, y, 3), to = ToWorld(14.5f, y + 3, 9.5f);
             Quaternion rotation = Quaternion.LookRotation(to - from, Vector3.up);
             ramp.transform.rotation = rotation;
             ramp.transform.position = (from + to) * .5f - rotation * Vector3.up * .1f;
-            ramp.transform.localScale = new Vector3(config.ToUnits(3), .2f, Vector3.Distance(from, to));
+            ramp.transform.localScale = new Vector3(config.ToUnits(2.5f), .2f, Vector3.Distance(from, to));
             ramp.GetComponent<Renderer>().sharedMaterial = platformMaterial;
-            // Короткая центральная ветка: меньше прыжков, но два синхронных
-            // маятника выбивают зазевавшегося на recovery deck этого же этажа.
-            RouteBox(root, "ParkourSplitDeck", 4, platformMaterial, 13, 16,
-                y + 2.6f, y + 3, 9.5f, 14);
-            RouteBox(root, "SplitDeckSupport", 4, metalMaterial, 14.2f, 14.8f,
-                y, y + 2.6f, 11.5f, 12.1f);
-
-            float[] fastP = { 19, 25, 31, 37 };
-            float[] fastZ = { 6.5f, 3.5f, 6f, 9f };
-            for (int i = 0; i < fastP.Length; i++)
+            // Direct entrance from the protected stair arrival; front ramp remains the recovery route.
+            var entrance = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            entrance.name = "FinalStairEntryRamp"; entrance.layer = groundLayer;
+            entrance.transform.SetParent(root,false);
+            entrance.AddComponent<Igruha.Core.Player.WalkableRamp>();
+            Vector3 entryFrom=ToWorld(7.4f,y,12.25f),entryTo=ToWorld(13f,y+3f,12.25f);
+            var entryRotation=Quaternion.LookRotation(entryTo-entryFrom,Vector3.up);
+            entrance.transform.SetPositionAndRotation((entryFrom+entryTo)*.5f-entryRotation*Vector3.up*.10f,entryRotation);
+            entrance.transform.localScale=new Vector3(config.ToUnits(2.25f),.2f,Vector3.Distance(entryFrom,entryTo));
+            entrance.GetComponent<Renderer>().sharedMaterial=platformMaterial;
+            RouteBox(root,"ParkourSplitDeck",4,platformMaterial,13,16,y+2.6f,y+3,9.5f,14);
+            float[] begin={18.4f,24.6f,30.8f,37.4f};
+            float[] width={3.8f,3.8f,4.2f,3.8f};
+            float[] depth={8.4f,7.2f,8.2f,9.0f};
+            float[] height={3.0f,3.35f,3.0f,3.25f};
+            for(int i=0;i<4;i++)
             {
-                RouteBox(root, $"FastParkourPad_{i + 1}", 4, platformMaterial, fastP[i], fastP[i] + 3,
-                    y + 2.6f, y + 3, fastZ[i], fastZ[i] + 3);
-                RouteBox(root, $"FastPadSupport_{i + 1}", 4, metalMaterial, fastP[i] + 1.2f, fastP[i] + 1.8f,
-                    y, y + 2.6f, fastZ[i] + 1.2f, fastZ[i] + 1.8f);
+                RouteBox(root,$"ParkourPad_{i+1}",4,platformMaterial,begin[i],begin[i]+width[i],y+height[i]-.4f,y+height[i],depth[i],depth[i]+3.8f);
+                // Solid posts support the visible trestles without creating intermediate footholds.
+                foreach(float p in new[]{begin[i]+.35f,begin[i]+width[i]-.35f})
+                    foreach(float z in new[]{depth[i]+.35f,depth[i]+3.45f})
+                        RouteBox(root,$"ParkourSupport_{i}_{p}_{z}",4,metalMaterial,p-.15f,p+.15f,y,y+height[i]-.4f,z-.15f,z+.15f);
             }
-
-            // Длинная ветка у задней стены: площадок больше, зато они шире и
-            // без маятников. Восемь игроков могут разойтись по двум маршрутам,
-            // а не закупорить одну цепочку.
-            float[] safeP = { 17, 21, 25, 29, 33, 37, 41 };
-            float[] safeZ = { 10, 11, 10, 11, 10, 11, 10 };
-            for (int i = 0; i < safeP.Length; i++)
+            BuildFinalPendulum(root,y,24.9f,9.1f,0f);
+            BuildFinalPendulum(root,y,37.7f,10.9f,1.55f);
+            RouteBox(root,"RaisedFinishDeck",4,platformMaterial,43.6f,48,y+2.6f,y+3,8,14);
+            for(int p0=12;p0<=42;p0+=6)
             {
-                RouteBox(root, $"SafeParkourPad_{i + 1}", 4, floorMaterial, safeP[i], safeP[i] + 2.8f,
-                    y + 1.8f, y + 2.2f, safeZ[i], Mathf.Min(14, safeZ[i] + 4));
-                RouteBox(root, $"SafePadSupport_{i + 1}", 4, metalMaterial, safeP[i] + 1.15f, safeP[i] + 1.65f,
-                    y, y + 1.8f, safeZ[i] + 1.7f, safeZ[i] + 2.3f);
-            }
-
-            BuildFinalPendulum(root, y, 25.7f, 5.2f, 0f);
-            BuildFinalPendulum(root, y, 34.0f, 7.4f, 1.55f);
-            RouteBox(root, "RaisedFinishDeck", 4, platformMaterial, 43, 48, y + 2.6f, y + 3, 8, 14);
-            // Low paint arrows indicate the walk back without shielding against bullets.
-            for (int p0 = 12; p0 <= 42; p0 += 6)
-            {
-                var stripe = RouteBox(root, $"ReturnLane_{p0}", 4, platformMaterial, p0, p0 + 1,
-                    y + .003f, y + .02f, 1.3f, 1.55f);
+                var stripe=RouteBox(root,$"ReturnLane_{p0}",4,platformMaterial,p0,p0+1,y+.003f,y+.02f,1.3f,1.55f);
                 Object.DestroyImmediate(stripe.GetComponent<Collider>());
             }
         }
 
+
         private static void BuildFinalPendulum(Transform root, float y, float progress, float depth, float phase)
         {
             Transform pivot = ResetGroup(root, $"CandyPendulumPivot_{progress:0}");
-            pivot.position = ToWorld(GetX(4, progress), y + 7.1f, depth);
+            pivot.position = ToWorld(GetX(4, progress), y + 8.55f, depth);
 
             var head = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             head.name = $"CandyPendulum_{progress:0}";
             head.layer = groundLayer;
             head.transform.SetParent(root, false);
-            head.transform.position = pivot.position - Vector3.up * config.ToUnits(3.05f);
-            head.transform.localScale = Vector3.one * config.ToUnits(1.25f);
+            head.transform.position = pivot.position - Vector3.up * config.ToUnits(4.15f);
+            head.transform.localScale = Vector3.one;
             var sphere = head.GetComponent<SphereCollider>();
-            sphere.isTrigger = true;
+            sphere.isTrigger = true; sphere.radius = .54f;
             head.GetComponent<Renderer>().sharedMaterial = trapMaterial;
 
             var stem = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             stem.name = "CandyPendulumStem";
             stem.transform.SetParent(head.transform, false);
-            stem.transform.localPosition = Vector3.up * config.ToUnits(1.52f);
-            stem.transform.localScale = new Vector3(.12f, config.ToUnits(1.52f), .12f);
+            stem.transform.localPosition = Vector3.up * config.ToUnits(4.15f) * .5f;
+            stem.transform.localScale = new Vector3(.085f, config.ToUnits(4.15f) * .5f, .085f);
             Object.DestroyImmediate(stem.GetComponent<Collider>());
             stem.GetComponent<Renderer>().sharedMaterial = metalMaterial;
 
             var swing = head.AddComponent<PendulumSwing>();
             var so = new SerializedObject(swing);
             so.FindProperty("pivot").objectReferenceValue = pivot;
-            so.FindProperty("length").floatValue = config.ToUnits(3.05f);
+            so.FindProperty("length").floatValue = config.ToUnits(4.15f);
             so.FindProperty("amplitudeDegrees").floatValue = 52f;
             so.FindProperty("period").floatValue = 3.4f;
             so.FindProperty("phaseOffset").floatValue = phase;

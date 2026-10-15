@@ -33,21 +33,28 @@ namespace Igruha.EditorTools
 
         static void StripedWall(Transform art,Vector3 origin,float width,float height,Quaternion rotation,int floor)
         {
-            int n=Mathf.CeilToInt(width/.72f);
+            string color=FloorColors[Mathf.Clamp(floor,0,4)];
+            int n=Mathf.CeilToInt(width/.38f);
             for(int i=0;i<n;i++)
             {
-                var piece=Model("PaintedBoard",art,origin+rotation*new Vector3(-width/2+(i+.5f)*width/n,0,0),new Vector3(width/n,height,1),rotation);
-                string color=i%2==0?FloorColors[Mathf.Clamp(floor,0,4)]:"Cream";
-                Retint(piece,"Teal",color);Retint(piece,"TealLight",color);
+                Vector3 p=origin+rotation*new Vector3(-width/2+(i+.5f)*width/n,height*.5f,0);
+                var board=Solid(art,"Cream tongue and groove",p,new Vector3(width/n-.009f,height,.055f),"Cream");board.transform.rotation=rotation;
             }
-            for(int i=0;i<=Mathf.CeilToInt(width/5.76f);i++)
+            int bays=Mathf.Max(1,Mathf.CeilToInt(width/2.7f));
+            for(int i=0;i<bays;i++)
             {
-                float x=Mathf.Min(width,i*5.76f)-width/2;
-                Beam(art,origin+rotation*new Vector3(x,0,-.07f),origin+rotation*new Vector3(x,height,-.07f),.18f,"OakDark");
+                float x=-width/2+(i+.5f)*width/bays;
+                var panel=Solid(art,"Painted lower panel",origin+rotation*new Vector3(x,.63f,-.045f),new Vector3(width/bays-.12f,1.1f,.065f),color);panel.transform.rotation=rotation;
+                foreach(float h in new[]{.18f,1.10f})Beam(art,origin+rotation*new Vector3(x-width/bays*.5f+.13f,h,-.09f),origin+rotation*new Vector3(x+width/bays*.5f-.13f,h,-.09f),.035f,"Brass");
             }
-            foreach(float h in new[]{.16f,height-.16f})
-                Beam(art,origin+rotation*new Vector3(-width/2,h,-.045f),origin+rotation*new Vector3(width/2,h,-.045f),.14f,"OakLight");
+            for(int i=0;i<=bays;i++)
+            {
+                float x=-width/2+i*width/bays;
+                Beam(art,origin+rotation*new Vector3(x,0,-.09f),origin+rotation*new Vector3(x,height,-.09f),.16f,color);
+            }
+            foreach(float h in new[]{.10f,1.25f,height-.12f})Beam(art,origin+rotation*new Vector3(-width/2,h,-.11f),origin+rotation*new Vector3(width/2,h,-.11f),.13f,"OakDark");
         }
+
 
         static void CarnivalWall(MeshRenderer old,Transform art)
         {
@@ -59,26 +66,27 @@ namespace Igruha.EditorTools
             // Задняя грань обшивается и снаружи. Раньше её пропускали, и со
             // стороны хозяйственного двора башня показывала глухую доску во
             // всю высоту — пока вокруг был пустой лес, это не бросалось в глаза.
-            else if(old.name=="StartFrontWall"||old.name=="BackWall")
+            else if(old.name=="StartFrontWall"||old.name=="BackWall"||old.name.EndsWith("ArrivalFrontWall")||old.name=="ArrivalReturnWall")
                 StripedWall(art,new Vector3(b.center.x,b.min.y,b.max.z+.015f),b.size.x,b.size.y,Quaternion.Euler(0,180,0),
                     Mathf.RoundToInt(b.min.y/5.76f));
         }
 
         static void Garland(Transform art,Vector3 a,Vector3 b,float sagScale=1)
         {
-            Vector3 axis=b-a;
-            var rotation=Quaternion.LookRotation(Vector3.Cross(axis,Vector3.up).normalized,Vector3.up);
-            Model("Garland",art,(a+b)*.5f,new Vector3(axis.magnitude/6,sagScale,1),rotation);
-            string[] colours={"GlowRed","Glow","GlowBlue","GlowGreen","GlowPink"};
-            for(int i=1;i<9;i++)
+            // A real cable and solid, double-faced pennants. No one-sided imported ribbon.
+            Rope(art,a,b,.22f*sagScale,"Iron");
+            for(int i=1;i<12;i++)
             {
-                float t=i/9f;
-                Vector3 p=Vector3.Lerp(a,b,t)+Vector3.down*(Mathf.Sin(t*Mathf.PI)*.22f*sagScale);
-                var bulb=Model("Bulb",art,p,Vector3.one*.48f);
-                int colourIndex=Mathf.Abs(i+Mathf.RoundToInt(a.x+a.y))%colours.Length;
-                Retint(bulb,"Glow",colours[colourIndex]);
+                float t=i/12f;Vector3 p=Vector3.Lerp(a,b,t)+Vector3.down*(Mathf.Sin(t*Mathf.PI)*.22f*sagScale);
+                Model("Bulb",art,p,Vector3.one*.52f);
+                if(i%2==0)
+                {
+                    var flag=Solid(art,"Two sided fabric pennant",p+Vector3.down*.20f,new Vector3(.22f,.32f,.026f),i%4==0?"Red":"Cream");
+                    flag.transform.rotation=Quaternion.Euler(0,0,i%4==0?12:-12);
+                }
             }
         }
+
 
         static void Marquee(Transform art,string text,Vector3 p,Vector2 size,float textSize)
         {
@@ -93,37 +101,9 @@ namespace Igruha.EditorTools
 
         static void CarnivalFloor(Transform floor,Transform art,int index)
         {
-            float y=index*5.76f;
-            // EndWallA/EndWallB are already dressed by CarnivalWall. A second
-            // striped skin here used to occupy the same plane and shimmer.
-            foreach(Transform slot in floor.Cast<Transform>().Where(t=>t.name.StartsWith("SingleCover_")).ToArray())
-                Object.DestroyImmediate(slot.gameObject);
-            FurnishPlayableFloor(floor,index);
-            FairgroundFloorDressing(floor,art,index);
-            // Elevation trim, bulbs and cloth read from both roles, without a chest-height front barrier.
-            Beam(art,new Vector3(0,y-.25f,-.08f),new Vector3(34.56f,y-.25f,-.08f),.37f,"OakDark");
-            Beam(art,new Vector3(0,y-.11f,-.30f),new Vector3(34.56f,y-.11f,-.30f),.10f,"Brass");
-            for(int segment=0;segment<6;segment++)
-            {
-                if(index!=4 || (segment!=2 && segment!=3))
-                    Garland(art,new Vector3(segment*5.76f,y+5.33f,.06f),new Vector3((segment+1)*5.76f,y+5.33f,.06f),.78f);
-                // Keep bunting on the facade. Long transverse strings cut
-                // through ceiling beams, signs and rear display modules.
-            }
-            if(index<4)
-            {
-                float stairX=index%2==0?31.68f:2.88f;
-                Label(art,(index+1).ToString("00"),new Vector3(stairX,y+3.1f,-.17f),1.6f,"Cream");
-                Label(art,"NEXT FLOOR",new Vector3(stairX,y+1.84f,-.17f),.23f,"Cream");
-            }
-            foreach(var lever in floor.GetComponentsInChildren<TrapLever>())CarnivalControl(lever,index);
-            if(index==4)
-            {
-                Marquee(art,"GRAND\nPRIZE",new Vector3(17.3f,y+4.05f,9.68f),new Vector2(7.8f,3.4f),1.4f);
-                Marquee(art,"FINISH",new Vector3(32.4f,y+4.65f,7.97f),new Vector2(3.4f,1.08f),.36f);
-                Label(art,"BACK TO START",new Vector3(17.28f,y+.035f,1.0f),.24f,"Brass",Quaternion.Euler(90,0,0));
-            }
+            PavilionFloor(floor,index);
         }
+
 
         // These are actual pieces of a midway, not boxes with a cosmetic skin.
         // Progress follows the snake route; depth and facing deliberately vary.
@@ -240,24 +220,12 @@ namespace Igruha.EditorTools
         static void CarnivalLift(Transform shaft)
         {
             DressLift(shaft);
-            Transform decor=Group(shaft,"MidwayLiftTrim");
-            for(int side=-1;side<=1;side+=2)
-            {
-                float x=17.28f+side*2.0f;
-                Beam(decor,new Vector3(x,-2,-14.65f),new Vector3(x,35,-14.65f),.24f,"Red");
-                for(int j=0;j<9;j++)
-                {
-                    float y=-1+j*4;
-                    Beam(decor,new Vector3(15.3f,y,-14.63f),new Vector3(19.25f,y+4,-14.63f),.15f,side<0?"Cream":"Red");
-                    Beam(decor,new Vector3(19.25f,y,-14.65f),new Vector3(15.3f,y+4,-14.65f),.15f,"Cream");
-                }
-            }
             Transform platform=shaft.Find("Platform");var canopy=Group(platform,"StripedHunterCanopy");Vector3 p=platform.position;
             // Above head/camera; never across the aim ray.
             for(int i=0;i<10;i++)Solid(canopy,"Awning stripe",p+new Vector3(-1.8f+i*.4f,3.0f,-.1f),new Vector3(.395f,.13f,3.7f),i%2==0?"Red":"Cream");
             Garland(canopy,p+new Vector3(-2,2.95f,1.77f),p+new Vector3(2,2.95f,1.77f),.65f);
             foreach(int side in new[]{-1,1})Beam(canopy,p+new Vector3(side*1.75f,.1f,-1.7f),p+new Vector3(side*1.75f,3,-1.7f),.105f,"Brass");
-            Combine(decor,"CarnivalGantry");Combine(canopy,"HunterCanopy");
+            Combine(canopy,"HunterCanopy");
         }
 
         static void CarnivalRoof(Transform art)
@@ -303,8 +271,8 @@ namespace Igruha.EditorTools
             var profile=AssetDatabase.LoadAssetAtPath<VolumeProfile>(path);
             if(profile==null){profile=ScriptableObject.CreateInstance<VolumeProfile>();AssetDatabase.CreateAsset(profile,path);}
             GradeEffect<Tonemapping>(profile).mode.Override(TonemappingMode.ACES);
-            var grade=GradeEffect<ColorAdjustments>(profile);grade.postExposure.Override(.48f);grade.contrast.Override(7);grade.saturation.Override(9);
-            var bloom=GradeEffect<Bloom>(profile);bloom.threshold.Override(.78f);bloom.intensity.Override(.48f);bloom.scatter.Override(.68f);
+            var grade=GradeEffect<ColorAdjustments>(profile);grade.postExposure.Override(.15f);grade.contrast.Override(12);grade.saturation.Override(3);
+            var bloom=GradeEffect<Bloom>(profile);bloom.threshold.Override(.78f);bloom.intensity.Override(.36f);bloom.scatter.Override(.68f);
             var volume=Group(art,"Midway atmosphere").gameObject.AddComponent<Volume>();volume.isGlobal=true;volume.priority=5;volume.sharedProfile=profile;
             foreach(var camera in Object.FindObjectsByType<Camera>(FindObjectsSortMode.None))
             {
