@@ -1,0 +1,55 @@
+{
+  "success": true,
+  "message": "Retrieved 7 log entries.",
+  "data": [
+    {
+      "type": "Warning",
+      "message": "Leak Detected : Persistent allocates 24 individual allocations. To find out more please enable 'Settings > Jobs > Leak Detection Level > Enabled With Stack Trace' and reproduce the leak again.\n",
+      "file": "",
+      "line": 0,
+      "stackTrace": null
+    },
+    {
+      "type": "Exception",
+      "message": "MissingReferenceException: The object of type 'Igruha.Minigames.CansOrder.CansOrderDebugBot' has been destroyed but you are still trying to access it.",
+      "file": "Assets/_Project/Scripts/Minigames/CansOrder/CansOrderDebugBot.cs",
+      "line": 67,
+      "stackTrace": null
+    },
+    {
+      "type": "Warning",
+      "message": "[MinigameAudioPlayer] В библиотеке нет слота «board_reveal» или у него пустой клип.",
+      "file": "Assets/_Project/Scripts/Core/Audio/MinigameAudioPlayer.cs",
+      "line": 314,
+      "stackTrace": null
+    },
+    {
+      "type": "Exception",
+      "message": "MissingReferenceException: The object of type 'Igruha.Minigames.CansOrder.CansOrderDebugBot' has been destroyed but you are still trying to access it.",
+      "file": "Assets/_Project/Scripts/Minigames/CansOrder/CansOrderDebugBot.cs",
+      "line": 67,
+      "stackTrace": null
+    },
+    {
+      "type": "Warning",
+      "message": "Executing IPrebuildSetup for: Unity.PerformanceTesting.Editor.TestRunBuilder.",
+      "file": "./Library/PackageCache/com.unity.test-framework@0b7a23ab2e1d/UnityEditor.TestRunner/TestRun/Tasks/BuildActionTaskBase.cs",
+      "line": 48,
+      "stackTrace": null
+    },
+    {
+      "type": "Exception",
+      "message": "Saving results to: /Users/azamatyessimkhanuly/Library/Application Support/Dauqara/sleepover/TestResults.xml\n",
+      "file": "./Runtime/Export/Debug/Debug.bindings.h",
+      "line": 40,
+      "stackTrace": null
+    },
+    {
+      "type": "Warning",
+      "message": "Executing IPostBuildCleanup for: Unity.PerformanceTesting.Editor.TestRunBuilder.",
+      "file": "./Library/PackageCache/com.unity.test-framework@0b7a23ab2e1d/UnityEditor.TestRunner/TestRun/Tasks/BuildActionTaskBase.cs",
+      "line": 48,
+      "stackTrace": null
+    }
+  ]
+}

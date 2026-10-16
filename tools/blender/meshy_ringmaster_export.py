@@ -9,6 +9,7 @@ for ob in [o for o in s.objects if o.type=='MESH' and o.data.shape_keys]:
     for k in ob.data.shape_keys.key_blocks:k.value=0
 # Save editable painted source before collapsing material slots/UVs for the engine.
 bpy.ops.wm.save_as_mainfile(filepath=str(OUT/'HorseRingmaster_Painted.blend'))
+reference_surface_vertices=len(body.data.vertices)
 bpy.ops.object.select_all(action='DESELECT')
 for ob in list(s.objects):
     if ob.type=='MESH' and not ob.name.startswith('UpperLid.'):ob.select_set(True)
@@ -24,6 +25,9 @@ for i,ob in enumerate(meshes):
         else:uv.uv.x=.945+uv.uv.x*.05;uv.uv.y=.01+(i-1)*.5+uv.uv.y*.48
 import runpy
 atlas=runpy.run_path(str(ROOT/'tools/blender/meshy_reference_atlas.py'))['bake'](meshes,GAME/'CN_Mascot_Albedo.png')
+runpy.run_path(str(ROOT/'tools/blender/meshy_ringmaster_facepaint.py'))['repair'](body,GAME/'CN_Mascot_Albedo.png',reference_surface_vertices)
+bpy.data.images.remove(atlas)
+atlas=bpy.data.images.load(str(GAME/'CN_Mascot_Albedo.png'),check_existing=False);atlas.pack()
 mat=bpy.data.materials.new('HorseRingmaster_Atlas');mat.use_nodes=True
 p=next(n for n in mat.node_tree.nodes if n.type=='BSDF_PRINCIPLED');p.inputs['Roughness'].default_value=.72
 tex=mat.node_tree.nodes.new('ShaderNodeTexImage');tex.image=atlas;mat.node_tree.links.new(tex.outputs['Color'],p.inputs['Base Color'])

@@ -1,0 +1,24 @@
+[
+  {
+    "scene": "CansOrder",
+    "bodyRenderers": 1,
+    "captures": [
+      "front",
+      "right",
+      "left"
+    ],
+    "blinkWeightAtSample": 99.99997,
+    "animationVerification": "Existing CircusMascotTests, 15/15 passed; no FBX, prefab, animation or runtime code changes."
+  },
+  {
+    "scene": "Stopwatch",
+    "bodyRenderers": 1,
+    "captures": [
+      "front",
+      "right",
+      "left"
+    ],
+    "blinkWeightAtSample": 99.99997,
+    "animationVerification": "Existing CircusMascotTests, 15/15 passed; no FBX, prefab, animation or runtime code changes."
+  }
+]
