@@ -1,0 +1,2212 @@
+{
+  "result": {
+    "success": true,
+    "message": "Test job status retrieved.",
+    "error": null,
+    "data": {
+      "job_id": "8ae2d8b3f40341cf8a9909b38d7a9500",
+      "status": "succeeded",
+      "mode": "EditMode",
+      "started_unix_ms": 1792149250397,
+      "finished_unix_ms": 1792149393505,
+      "last_update_unix_ms": 1792149393505,
+      "progress": {
+        "completed": 241,
+        "total": 241,
+        "current_test_full_name": null,
+        "current_test_started_unix_ms": 1792149393278,
+        "last_finished_test_full_name": "Igruha.Tests.StopwatchHandSkinTests.EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin(\"Aza\")",
+        "last_finished_unix_ms": 1792149393300,
+        "stuck_suspected": false,
+        "editor_is_focused": false,
+        "blocked_reason": null,
+        "failures_so_far": [],
+        "failures_capped": false
+      },
+      "error": null,
+      "result": {
+        "mode": "EditMode",
+        "summary": {
+          "total": 241,
+          "passed": 241,
+          "failed": 0,
+          "skipped": 0,
+          "durationSeconds": 135.342976,
+          "resultState": "Passed"
+        },
+        "results": [
+          {
+            "name": "BlocksRealJumpAndPunchAndRestoresThemOnExit",
+            "fullName": "Igruha.Tests.CircusActionRestrictionTests.BlocksRealJumpAndPunchAndRestoresThemOnExit",
+            "state": "Passed",
+            "durationSeconds": 0.1360169,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "RestoresPreExistingRestrictionsAndCancelsPendingPunch",
+            "fullName": "Igruha.Tests.CircusActionRestrictionTests.RestoresPreExistingRestrictionsAndCancelsPendingPunch",
+            "state": "Passed",
+            "durationSeconds": 0.0011904,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "DestroyingOnlyTheCircusScopeRestoresTheSurvivingCharacter",
+            "fullName": "Igruha.Tests.CircusAnimationCullingScopeTests.DestroyingOnlyTheCircusScopeRestoresTheSurvivingCharacter",
+            "state": "Passed",
+            "durationSeconds": 0.0039199,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "DisableRestoresAndNextRoundCapturesTheNewPolicy",
+            "fullName": "Igruha.Tests.CircusAnimationCullingScopeTests.DisableRestoresAndNextRoundCapturesTheNewPolicy",
+            "state": "Passed",
+            "durationSeconds": 0.0010083,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "RepeatedPitEntryKeepsOriginalModeUntilRoundEnd(CullUpdateTransforms)",
+            "fullName": "Igruha.Tests.CircusAnimationCullingScopeTests.RepeatedPitEntryKeepsOriginalModeUntilRoundEnd(CullUpdateTransforms)",
+            "state": "Passed",
+            "durationSeconds": 0.0037398,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "RepeatedPitEntryKeepsOriginalModeUntilRoundEnd(CullCompletely)",
+            "fullName": "Igruha.Tests.CircusAnimationCullingScopeTests.RepeatedPitEntryKeepsOriginalModeUntilRoundEnd(CullCompletely)",
+            "state": "Passed",
+            "durationSeconds": 0.001389,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "RepeatedPitEntryKeepsOriginalModeUntilRoundEnd(AlwaysAnimate)",
+            "fullName": "Igruha.Tests.CircusAnimationCullingScopeTests.RepeatedPitEntryKeepsOriginalModeUntilRoundEnd(AlwaysAnimate)",
+            "state": "Passed",
+            "durationSeconds": 0.0012194,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "HalfTurnTravelsAnArcAndNeverRotatesAgainstTheWall(180,60,False)",
+            "fullName": "Igruha.Tests.CircusBearAttentionTests.HalfTurnTravelsAnArcAndNeverRotatesAgainstTheWall(180,60,False)",
+            "state": "Passed",
+            "durationSeconds": 0.0245312,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "HalfTurnTravelsAnArcAndNeverRotatesAgainstTheWall(-179,30,False)",
+            "fullName": "Igruha.Tests.CircusBearAttentionTests.HalfTurnTravelsAnArcAndNeverRotatesAgainstTheWall(-179,30,False)",
+            "state": "Passed",
+            "durationSeconds": 0.0034398,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "HalfTurnTravelsAnArcAndNeverRotatesAgainstTheWall(180,60,True)",
+            "fullName": "Igruha.Tests.CircusBearAttentionTests.HalfTurnTravelsAnArcAndNeverRotatesAgainstTheWall(180,60,True)",
+            "state": "Passed",
+            "durationSeconds": 0.0055242,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "OccupiedCageGetsRepeatedQuadrupedAttentionAtEveryHeight(3.6f)",
+            "fullName": "Igruha.Tests.CircusBearAttentionTests.OccupiedCageGetsRepeatedQuadrupedAttentionAtEveryHeight(3.6f)",
+            "state": "Passed",
+            "durationSeconds": 0.0589546,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State CageApproach\n[CircusBear 0.00] State Patrol\n[CircusBear 0.00] State CageApproach\n[CircusBear 0.00] State Patrol\n[CircusBear 0.00] State CageApproach\n[CircusBear 0.00] State Patrol\n[CircusBear 0.00] State CageApproach\n[CircusBear 0.00] State Patrol\n[CircusBear 0.00] State CageApproach\nlooks=4 watching seconds=9.6\n[CircusBear 0.00] State Patrol\n"
+          },
+          {
+            "name": "OccupiedCageGetsRepeatedQuadrupedAttentionAtEveryHeight(8.64f)",
+            "fullName": "Igruha.Tests.CircusBearAttentionTests.OccupiedCageGetsRepeatedQuadrupedAttentionAtEveryHeight(8.64f)",
+            "state": "Passed",
+            "durationSeconds": 0.032151,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State CageApproach\n[CircusBear 0.00] State Patrol\n[CircusBear 0.00] State CageApproach\n[CircusBear 0.00] State Patrol\n[CircusBear 0.00] State CageApproach\n[CircusBear 0.00] State Patrol\n[CircusBear 0.00] State CageApproach\n[CircusBear 0.00] State Patrol\n[CircusBear 0.00] State CageApproach\nlooks=4 watching seconds=9.6\n[CircusBear 0.00] State Patrol\n"
+          },
+          {
+            "name": "PairWatchesDifferentOccupantsAndGroundRunnerTakesPriority",
+            "fullName": "Igruha.Tests.CircusBearAttentionTests.PairWatchesDifferentOccupantsAndGroundRunnerTakesPriority",
+            "state": "Passed",
+            "durationSeconds": 0.0949593,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State CageApproach\n[CircusBear 0.00] State CageApproach\n[CircusBear 0.00] State Patrol\n[CircusBear 0.00] State Patrol\n[CircusBear 0.00] State CageApproach\n[CircusBear 0.00] State CageApproach\n[CircusBear 0.00] State Patrol\n[CircusBear 0.00] State Patrol\n[CircusBear 0.00] State CageApproach\n[CircusBear 0.00] State CageApproach\n[CircusBear 0.00] State Patrol\n[CircusBear 0.00] State Patrol\n[CircusBear 0.00] State CageApproach\n[CircusBear 0.00] State CageApproach\n[CircusBear 0.00] State Patrol\n[CircusBear 0.00] State Patrol\n[CircusBear 0.00] State CageApproach\n[CircusBear 0.00] State CageApproach\n[CircusBear 0.00] State Patrol\n[CircusBear 0.00] State WindUp\n"
+          },
+          {
+            "name": "PursuitPassesInsideACompanionInsteadOfBrakingIntoTheRim",
+            "fullName": "Igruha.Tests.CircusBearAttentionTests.PursuitPassesInsideACompanionInsteadOfBrakingIntoTheRim",
+            "state": "Passed",
+            "durationSeconds": 0.0055774,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n"
+          },
+          {
+            "name": "TurnEscapesWhenCompanionBlocksTheBackwardStepAtTheRim",
+            "fullName": "Igruha.Tests.CircusBearAttentionTests.TurnEscapesWhenCompanionBlocksTheBackwardStepAtTheRim",
+            "state": "Passed",
+            "durationSeconds": 0.0082773,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "ResetOrDisableRestoresAuthoredLocalPose(False)",
+            "fullName": "Igruha.Tests.CircusBearContactPresentationTests.ResetOrDisableRestoresAuthoredLocalPose(False)",
+            "state": "Passed",
+            "durationSeconds": 0.0060109,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "ResetOrDisableRestoresAuthoredLocalPose(True)",
+            "fullName": "Igruha.Tests.CircusBearContactPresentationTests.ResetOrDisableRestoresAuthoredLocalPose(True)",
+            "state": "Passed",
+            "durationSeconds": 0.0003443,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "SnapshotHoldsVisualWorldPoseWithoutMovingNetworkRootAndRejoinsWithoutJump",
+            "fullName": "Igruha.Tests.CircusBearContactPresentationTests.SnapshotHoldsVisualWorldPoseWithoutMovingNetworkRootAndRejoinsWithoutJump",
+            "state": "Passed",
+            "durationSeconds": 0.0009089,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "EnvelopeFollowsInstanceScaleAndTeleport(\"Player\")",
+            "fullName": "Igruha.Tests.CircusBearContactShapeTests.EnvelopeFollowsInstanceScaleAndTeleport(\"Player\")",
+            "state": "Passed",
+            "durationSeconds": 0.1860281,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "EnvelopeFollowsInstanceScaleAndTeleport(\"Boss\")",
+            "fullName": "Igruha.Tests.CircusBearContactShapeTests.EnvelopeFollowsInstanceScaleAndTeleport(\"Boss\")",
+            "state": "Passed",
+            "durationSeconds": 0.0315241,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "EnvelopeFollowsInstanceScaleAndTeleport(\"Shlanga\")",
+            "fullName": "Igruha.Tests.CircusBearContactShapeTests.EnvelopeFollowsInstanceScaleAndTeleport(\"Shlanga\")",
+            "state": "Passed",
+            "durationSeconds": 0.0317212,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "EnvelopeFollowsInstanceScaleAndTeleport(\"Fat\")",
+            "fullName": "Igruha.Tests.CircusBearContactShapeTests.EnvelopeFollowsInstanceScaleAndTeleport(\"Fat\")",
+            "state": "Passed",
+            "durationSeconds": 0.03745,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "EnvelopeFollowsInstanceScaleAndTeleport(\"MyBoy\")",
+            "fullName": "Igruha.Tests.CircusBearContactShapeTests.EnvelopeFollowsInstanceScaleAndTeleport(\"MyBoy\")",
+            "state": "Passed",
+            "durationSeconds": 0.0325738,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "EnvelopeFollowsInstanceScaleAndTeleport(\"Girl\")",
+            "fullName": "Igruha.Tests.CircusBearContactShapeTests.EnvelopeFollowsInstanceScaleAndTeleport(\"Girl\")",
+            "state": "Passed",
+            "durationSeconds": 0.0324799,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "EnvelopeFollowsInstanceScaleAndTeleport(\"Milez\")",
+            "fullName": "Igruha.Tests.CircusBearContactShapeTests.EnvelopeFollowsInstanceScaleAndTeleport(\"Milez\")",
+            "state": "Passed",
+            "durationSeconds": 0.0335975,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "EnvelopeFollowsInstanceScaleAndTeleport(\"Aza\")",
+            "fullName": "Igruha.Tests.CircusBearContactShapeTests.EnvelopeFollowsInstanceScaleAndTeleport(\"Aza\")",
+            "state": "Passed",
+            "durationSeconds": 0.0355315,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "PawEnvelopeClearsTheActualAnimatedTorso(\"Player\")",
+            "fullName": "Igruha.Tests.CircusBearContactShapeTests.PawEnvelopeClearsTheActualAnimatedTorso(\"Player\")",
+            "state": "Passed",
+            "durationSeconds": 0.3039438,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "PawEnvelopeClearsTheActualAnimatedTorso(\"Boss\")",
+            "fullName": "Igruha.Tests.CircusBearContactShapeTests.PawEnvelopeClearsTheActualAnimatedTorso(\"Boss\")",
+            "state": "Passed",
+            "durationSeconds": 0.2868295,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "PawEnvelopeClearsTheActualAnimatedTorso(\"Shlanga\")",
+            "fullName": "Igruha.Tests.CircusBearContactShapeTests.PawEnvelopeClearsTheActualAnimatedTorso(\"Shlanga\")",
+            "state": "Passed",
+            "durationSeconds": 0.2729327,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "PawEnvelopeClearsTheActualAnimatedTorso(\"Fat\")",
+            "fullName": "Igruha.Tests.CircusBearContactShapeTests.PawEnvelopeClearsTheActualAnimatedTorso(\"Fat\")",
+            "state": "Passed",
+            "durationSeconds": 0.3958911,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "PawEnvelopeClearsTheActualAnimatedTorso(\"MyBoy\")",
+            "fullName": "Igruha.Tests.CircusBearContactShapeTests.PawEnvelopeClearsTheActualAnimatedTorso(\"MyBoy\")",
+            "state": "Passed",
+            "durationSeconds": 0.3650982,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "PawEnvelopeClearsTheActualAnimatedTorso(\"Girl\")",
+            "fullName": "Igruha.Tests.CircusBearContactShapeTests.PawEnvelopeClearsTheActualAnimatedTorso(\"Girl\")",
+            "state": "Passed",
+            "durationSeconds": 0.2324176,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "PawEnvelopeClearsTheActualAnimatedTorso(\"Milez\")",
+            "fullName": "Igruha.Tests.CircusBearContactShapeTests.PawEnvelopeClearsTheActualAnimatedTorso(\"Milez\")",
+            "state": "Passed",
+            "durationSeconds": 0.2828016,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "PawEnvelopeClearsTheActualAnimatedTorso(\"Aza\")",
+            "fullName": "Igruha.Tests.CircusBearContactShapeTests.PawEnvelopeClearsTheActualAnimatedTorso(\"Aza\")",
+            "state": "Passed",
+            "durationSeconds": 0.2736656,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "AdaptedStrikeSkinStaysInsideMasonryAndAboveTheFloor(\"Player\",0.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.AdaptedStrikeSkinStaysInsideMasonryAndAboveTheFloor(\"Player\",0.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.2426725,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Miss root=(0.000, 0.000, 6.360) yaw=0.00 standOff=1.783 lunge=0.867 wallRadius=6.360 radial=6.360 victim=Player(Clone) transform=(0.000, 0.000, 8.450) physics=(0.000, 0.000, 8.450) yaw=180.00 pose=Happy Idle:0.250 transition=False culling=AlwaysAnimate model=(0.000, 0.006, 0.000) scale=(1.704, 1.704, 1.704) visible=False hips=(-0.004, 0.678, 8.438) chest=(-0.003, 0.855, 8.446) sampleAge=0.583 surface=(0.000, 0.956, 8.017) shoulder=(-0.555, 1.493, 6.955) reach=1.313/1.208 lengths=0.462+0.416 reachable=False pad=(-0.059, 1.050, 7.680) gap=0.3509\nSolved skin radius=8.442595 floor=-0.008353055\n"
+          },
+          {
+            "name": "AdaptedStrikeSkinStaysInsideMasonryAndAboveTheFloor(\"Boss\",90.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.AdaptedStrikeSkinStaysInsideMasonryAndAboveTheFloor(\"Boss\",90.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.2248603,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Miss root=(6.338, 0.000, 0.531) yaw=12.00 standOff=2.104 lunge=0.546 wallRadius=6.360 radial=6.360 victim=Boss(Clone) transform=(8.450, 0.000, 0.000) physics=(8.450, 0.000, 0.000) yaw=270.00 pose=idle:0.250 transition=False culling=AlwaysAnimate model=(0.000, 0.007, 0.000) scale=(2.427, 2.427, 2.427) visible=False hips=(8.486, 0.817, 0.007) chest=(8.469, 1.047, 0.001) sampleAge=0.583 surface=(7.898, 0.989, 0.147) shoulder=(5.918, 1.493, 1.229) reach=2.312/1.208 lengths=0.462+0.416 reachable=False pad=(6.555, 1.050, 1.835) gap=1.9833\nSolved skin radius=7.513271 floor=-0.008353055\n"
+          },
+          {
+            "name": "AdaptedStrikeSkinStaysInsideMasonryAndAboveTheFloor(\"Fat\",180.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.AdaptedStrikeSkinStaysInsideMasonryAndAboveTheFloor(\"Fat\",180.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.2406474,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Miss root=(-0.022, 0.000, -5.660) yaw=0.00 standOff=1.949 lunge=0.701 wallRadius=6.360 radial=5.660 victim=Fat(Clone) transform=(0.000, 0.000, -8.450) physics=(0.000, 0.000, -8.450) yaw=0.00 pose=Neutral Idle:0.250 transition=False culling=AlwaysAnimate model=(0.000, 0.013, 0.000) scale=(2.364, 2.364, 2.364) visible=False hips=(-0.003, 0.638, -8.437) chest=(-0.013, 0.931, -8.476) sampleAge=0.583 surface=(0.001, 1.105, -7.836) shoulder=(-0.578, 1.493, -5.065) reach=2.857/1.208 lengths=0.462+0.416 reachable=False pad=(-0.081, 1.050, -4.340) gap=3.4329\nSolved skin radius=7.995525 floor=-0.008353114\n"
+          },
+          {
+            "name": "AdaptedStrikeSkinStaysInsideMasonryAndAboveTheFloor(\"MyBoy\",270.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.AdaptedStrikeSkinStaysInsideMasonryAndAboveTheFloor(\"MyBoy\",270.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.222986,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Miss root=(-6.335, 0.000, 0.567) yaw=348.00 standOff=2.067 lunge=0.583 wallRadius=6.360 radial=6.360 victim=MyBoy(Clone) transform=(-8.450, 0.000, 0.000) physics=(-8.450, 0.000, 0.000) yaw=90.00 pose=Old Man Idle:0.250 transition=False culling=AlwaysAnimate model=(0.000, 0.004, 0.000) scale=(2.540, 2.540, 2.540) visible=False hips=(-8.556, 0.884, 0.031) chest=(-8.489, 1.086, 0.005) sampleAge=0.583 surface=(-7.493, 0.994, 0.057) shoulder=(-7.001, 1.493, 1.033) reach=1.202/1.208 lengths=0.462+0.416 reachable=True pad=(-7.258, 1.010, 0.566) gap=0.4423\nSolved skin radius=7.693387 floor=-0.008353114\n"
+          },
+          {
+            "name": "CloseRunnerGetsABackstepBeforeRealPawContact(\"Player\")",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.CloseRunnerGetsABackstepBeforeRealPawContact(\"Player\")",
+            "state": "Passed",
+            "durationSeconds": 0.0963712,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Player(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "CloseRunnerGetsABackstepBeforeRealPawContact(\"Boss\")",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.CloseRunnerGetsABackstepBeforeRealPawContact(\"Boss\")",
+            "state": "Passed",
+            "durationSeconds": 0.0857025,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Boss(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "CloseRunnerGetsABackstepBeforeRealPawContact(\"Shlanga\")",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.CloseRunnerGetsABackstepBeforeRealPawContact(\"Shlanga\")",
+            "state": "Passed",
+            "durationSeconds": 0.1088016,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Shlanga(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "CloseRunnerGetsABackstepBeforeRealPawContact(\"Fat\")",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.CloseRunnerGetsABackstepBeforeRealPawContact(\"Fat\")",
+            "state": "Passed",
+            "durationSeconds": 0.0848052,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Fat(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "CloseRunnerGetsABackstepBeforeRealPawContact(\"MyBoy\")",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.CloseRunnerGetsABackstepBeforeRealPawContact(\"MyBoy\")",
+            "state": "Passed",
+            "durationSeconds": 0.0906597,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact MyBoy(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "CloseRunnerGetsABackstepBeforeRealPawContact(\"Girl\")",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.CloseRunnerGetsABackstepBeforeRealPawContact(\"Girl\")",
+            "state": "Passed",
+            "durationSeconds": 0.0980491,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Girl(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "CloseRunnerGetsABackstepBeforeRealPawContact(\"Milez\")",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.CloseRunnerGetsABackstepBeforeRealPawContact(\"Milez\")",
+            "state": "Passed",
+            "durationSeconds": 0.0896202,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Milez(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "CloseRunnerGetsABackstepBeforeRealPawContact(\"Aza\")",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.CloseRunnerGetsABackstepBeforeRealPawContact(\"Aza\")",
+            "state": "Passed",
+            "durationSeconds": 0.1044162,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Aza(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "ExactStopwatchMissPoseMustReach(0.643f,False)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.ExactStopwatchMissPoseMustReach(0.643f,False)",
+            "state": "Passed",
+            "durationSeconds": 0.0497725,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Player(Clone) at 0.40 s\nphase=0.643 pipeline=False standOff=1.7868\nt=0.2667 visual=0.2667 gap=0.1427 root=(-0.4680, 0.0000, 6.3024) paw=(-1.2367, 0.7967, 7.4068) surface=(-0.9059, 0.8991, 7.5856) targetGap=0.3897 prior=(-1.3949, 0.5735, 7.2459) sweepGap=0.0000 pending=False\nt=0.3000 visual=0.3000 gap=0.0000 root=(-0.4688, 0.0000, 6.3048) paw=(-1.0726, 0.9202, 7.5311) surface=(-0.9059, 0.8991, 7.5856) targetGap=0.1766 prior=(-1.2367, 0.7967, 7.4068) sweepGap=0.0000 pending=False\nt=0.3333 visual=0.3333 gap=0.0000 root=(-0.4694, 0.0000, 6.3065) paw=(-1.0620, 0.9199, 7.5316) surface=(-0.9059, 0.8991, 7.5856) targetGap=0.1665 prior=(-1.0726, 0.9202, 7.5311) sweepGap=0.1626 pending=False\nt=0.3667 visual=0.3667 gap=0.0000 root=(-0.4697, 0.0000, 6.3074) paw=(-1.0489, 0.9178, 7.5331) surface=(-0.9059, 0.8991, 7.5856) targetGap=0.1535 prior=(-1.0620, 0.9199, 7.5316) sweepGap=0.1532 pending=False\nt=0.4000 visual=0.4000 gap=0.0000 root=(-0.4698, 0.0000, 6.3075) paw=(-1.0367, 0.9157, 7.5350) surface=(-0.9059, 0.8991, 7.5856) targetGap=0.1412 prior=(-1.0489, 0.9178, 7.5331) sweepGap=0.1412 pending=True\nt=0.4333 visual=0.4333 gap=0.0000 root=(-0.4698, 0.0000, 6.3075) paw=(-1.0254, 0.9138, 7.5371) surface=(-0.9059, 0.8991, 7.5856) targetGap=0.1298 prior=(-1.0367, 0.9157, 7.5350) sweepGap=0.1298 pending=False\nt=0.4667 visual=0.4667 gap=0.0000 root=(-0.4698, 0.0000, 6.3075) paw=(-1.0151, 0.9122, 7.5394) surface=(-0.9059, 0.8991, 7.5856) targetGap=0.1193 prior=(-1.0254, 0.9138, 7.5371) sweepGap=0.1193 pending=False\nt=0.5000 visual=0.5000 gap=0.0000 root=(-0.4698, 0.0000, 6.3075) paw=(-1.0057, 0.9107, 7.5418) surface=(-0.9059, 0.8991, 7.5856) targetGap=0.1096 prior=(-1.0151, 0.9122, 7.5394) sweepGap=0.1096 pending=False\nt=0.5333 visual=0.5333 gap=0.0000 root=(-0.4698, 0.0000, 6.3075) paw=(-0.9971, 0.9097, 7.5441) surface=(-0.9059, 0.8991, 7.5856) targetGap=0.1008 prior=(-1.0057, 0.9107, 7.5418) sweepGap=0.1006 pending=False\nt=0.5667 visual=0.5667 gap=0.0000 root=(-0.4698, 0.0000, 6.3075) paw=(-0.9829, 0.9118, 7.5476) surface=(-0.9059, 0.8991, 7.5856) targetGap=0.0868 prior=(-0.9971, 0.9097, 7.5441) sweepGap=0.0925 pending=False\nt=0.6000 visual=0.6000 gap=0.0000 root=(-0.4698, 0.0000, 6.3075) paw=(-0.9731, 0.9196, 7.5488) surface=(-0.9059, 0.8991, 7.5856) targetGap=0.0793 prior=(-0.9829, 0.9118, 7.5476) sweepGap=0.0725 pending=False\nt=0.6333 visual=0.6333 gap=0.0049 root=(-0.4698, 0.0000, 6.3075) paw=(-0.9410, 1.0004, 7.5479) surface=(-0.9059, 0.8991, 7.5856) targetGap=0.1136 prior=(-0.9731, 0.9196, 7.5488) sweepGap=0.0662 pending=False\nt=0.6667 visual=0.6667 gap=0.0139 root=(-0.4698, 0.0000, 6.3075) paw=(-0.9521, 1.0327, 7.5359) surface=(-0.9059, 0.8991, 7.5856) targetGap=0.1498 prior=(-0.9410, 1.0004, 7.5479) sweepGap=0.0664 pending=False\n\nvictim=Player(Clone) transform=(-1.080, 0.000, 8.050) physics=(-1.080, 0.000, 8.050) yaw=276.17 pose=Happy Idle:0.643 transition=False culling=AlwaysAnimate model=(0.000, 0.006, 0.000) scale=(1.704, 1.704, 1.704) visible=False hips=(-1.089, 0.677, 8.049) chest=(-1.085, 0.855, 8.051) sampleAge=1.000 surface=(-0.906, 0.899, 7.586) shoulder=(-1.227, 1.332, 6.593) reach=1.129/1.208 lengths=0.462+0.416 reachable=True pad=(-0.991, 0.784, 7.424) gap=0.1250\n"
+          },
+          {
+            "name": "ExactStopwatchMissPoseMustReach(0.643f,True)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.ExactStopwatchMissPoseMustReach(0.643f,True)",
+            "state": "Passed",
+            "durationSeconds": 0.0534309,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Player(Clone) at 0.40 s\nphase=0.643 pipeline=True standOff=1.7868\nt=0.2667 visual=0.2667 gap=0.1427 root=(-0.4680, 0.0000, 6.3024) paw=(-1.2367, 0.7967, 7.4068) surface=(-0.9059, 0.8991, 7.5856) targetGap=0.3897 prior=(-1.3949, 0.5735, 7.2459) sweepGap=0.0000 pending=False\nt=0.3000 visual=0.3000 gap=0.0000 root=(-0.4688, 0.0000, 6.3048) paw=(-1.0726, 0.9202, 7.5311) surface=(-0.9059, 0.8991, 7.5856) targetGap=0.1766 prior=(-1.2367, 0.7967, 7.4068) sweepGap=0.0000 pending=False\nt=0.3333 visual=0.3333 gap=0.0000 root=(-0.4694, 0.0000, 6.3065) paw=(-1.0620, 0.9199, 7.5316) surface=(-0.9059, 0.8991, 7.5856) targetGap=0.1665 prior=(-1.0726, 0.9202, 7.5311) sweepGap=0.1626 pending=False\nt=0.3667 visual=0.3667 gap=0.0000 root=(-0.4697, 0.0000, 6.3074) paw=(-1.0489, 0.9178, 7.5331) surface=(-0.9059, 0.8991, 7.5856) targetGap=0.1535 prior=(-1.0620, 0.9199, 7.5316) sweepGap=0.1532 pending=False\nt=0.4000 visual=0.4000 gap=0.0000 root=(-0.4698, 0.0000, 6.3075) paw=(-1.0367, 0.9157, 7.5350) surface=(-0.9059, 0.8991, 7.5856) targetGap=0.1412 prior=(-1.0489, 0.9178, 7.5331) sweepGap=0.1412 pending=True\nt=0.4333 visual=0.4333 gap=0.0000 root=(-0.4698, 0.0000, 6.3075) paw=(-1.0254, 0.9138, 7.5371) surface=(-0.9059, 0.8991, 7.5856) targetGap=0.1298 prior=(-1.0367, 0.9157, 7.5350) sweepGap=0.1298 pending=False\nt=0.4667 visual=0.4667 gap=0.0000 root=(-0.4698, 0.0000, 6.3075) paw=(-1.0151, 0.9122, 7.5394) surface=(-0.9059, 0.8991, 7.5856) targetGap=0.1193 prior=(-1.0254, 0.9138, 7.5371) sweepGap=0.1193 pending=False\nt=0.5000 visual=0.5000 gap=0.0000 root=(-0.4698, 0.0000, 6.3075) paw=(-1.0057, 0.9107, 7.5418) surface=(-0.9059, 0.8991, 7.5856) targetGap=0.1096 prior=(-1.0151, 0.9122, 7.5394) sweepGap=0.1096 pending=False\nt=0.5333 visual=0.5333 gap=0.0000 root=(-0.4698, 0.0000, 6.3075) paw=(-0.9971, 0.9097, 7.5441) surface=(-0.9059, 0.8991, 7.5856) targetGap=0.1008 prior=(-1.0057, 0.9107, 7.5418) sweepGap=0.1006 pending=False\nt=0.5667 visual=0.5667 gap=0.0000 root=(-0.4698, 0.0000, 6.3075) paw=(-0.9829, 0.9118, 7.5476) surface=(-0.9059, 0.8991, 7.5856) targetGap=0.0868 prior=(-0.9971, 0.9097, 7.5441) sweepGap=0.0925 pending=False\nt=0.6000 visual=0.6000 gap=0.0000 root=(-0.4698, 0.0000, 6.3075) paw=(-0.9731, 0.9196, 7.5488) surface=(-0.9059, 0.8991, 7.5856) targetGap=0.0793 prior=(-0.9829, 0.9118, 7.5476) sweepGap=0.0725 pending=False\nt=0.6333 visual=0.6333 gap=0.0049 root=(-0.4698, 0.0000, 6.3075) paw=(-0.9410, 1.0004, 7.5479) surface=(-0.9059, 0.8991, 7.5856) targetGap=0.1136 prior=(-0.9731, 0.9196, 7.5488) sweepGap=0.0662 pending=False\nt=0.6667 visual=0.6667 gap=0.0139 root=(-0.4698, 0.0000, 6.3075) paw=(-0.9521, 1.0327, 7.5359) surface=(-0.9059, 0.8991, 7.5856) targetGap=0.1498 prior=(-0.9410, 1.0004, 7.5479) sweepGap=0.0664 pending=False\n\nvictim=Player(Clone) transform=(-1.080, 0.000, 8.050) physics=(-1.080, 0.000, 8.050) yaw=276.17 pose=Happy Idle:0.643 transition=False culling=AlwaysAnimate model=(0.000, 0.006, 0.000) scale=(1.704, 1.704, 1.704) visible=False hips=(-1.089, 0.677, 8.049) chest=(-1.085, 0.855, 8.051) sampleAge=1.000 surface=(-0.906, 0.899, 7.586) shoulder=(-1.227, 1.332, 6.593) reach=1.129/1.208 lengths=0.462+0.416 reachable=True pad=(-0.991, 0.784, 7.424) gap=0.1250\n"
+          },
+          {
+            "name": "ExactStopwatchMissPoseMustReach(0.032f,False)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.ExactStopwatchMissPoseMustReach(0.032f,False)",
+            "state": "Passed",
+            "durationSeconds": 0.0467278,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Player(Clone) at 0.40 s\nphase=0.032 pipeline=False standOff=1.7919\nt=0.2667 visual=0.2667 gap=0.1576 root=(-0.4668, 0.0000, 6.2961) paw=(-1.2354, 0.7837, 7.4006) surface=(-0.9055, 0.8627, 7.5789) targetGap=0.3833 prior=(-1.3935, 0.5687, 7.2402) sweepGap=0.0000 pending=False\nt=0.3000 visual=0.3000 gap=0.0000 root=(-0.4676, 0.0000, 6.2983) paw=(-1.0715, 0.8969, 7.5211) surface=(-0.9055, 0.8627, 7.5789) targetGap=0.1791 prior=(-1.2354, 0.7837, 7.4006) sweepGap=0.0000 pending=False\nt=0.3333 visual=0.3333 gap=0.0000 root=(-0.4681, 0.0000, 6.2999) paw=(-1.0609, 0.8959, 7.5217) surface=(-0.9055, 0.8627, 7.5789) targetGap=0.1689 prior=(-1.0715, 0.8969, 7.5211) sweepGap=0.1650 pending=False\nt=0.3667 visual=0.3667 gap=0.0000 root=(-0.4684, 0.0000, 6.3007) paw=(-1.0479, 0.8928, 7.5234) surface=(-0.9055, 0.8627, 7.5789) targetGap=0.1558 prior=(-1.0609, 0.8959, 7.5217) sweepGap=0.1555 pending=False\nt=0.4000 visual=0.4000 gap=0.0000 root=(-0.4685, 0.0000, 6.3008) paw=(-1.0357, 0.8897, 7.5254) surface=(-0.9055, 0.8627, 7.5789) targetGap=0.1433 prior=(-1.0479, 0.8928, 7.5234) sweepGap=0.1433 pending=True\nt=0.4333 visual=0.4333 gap=0.0000 root=(-0.4685, 0.0000, 6.3008) paw=(-1.0245, 0.8869, 7.5277) surface=(-0.9055, 0.8627, 7.5789) targetGap=0.1318 prior=(-1.0357, 0.8897, 7.5254) sweepGap=0.1318 pending=False\nt=0.4667 visual=0.4667 gap=0.0000 root=(-0.4685, 0.0000, 6.3008) paw=(-1.0142, 0.8844, 7.5302) surface=(-0.9055, 0.8627, 7.5789) targetGap=0.1211 prior=(-1.0245, 0.8869, 7.5277) sweepGap=0.1211 pending=False\nt=0.5000 visual=0.5000 gap=0.0000 root=(-0.4685, 0.0000, 6.3008) paw=(-1.0048, 0.8822, 7.5327) surface=(-0.9055, 0.8627, 7.5789) targetGap=0.1113 prior=(-1.0142, 0.8844, 7.5302) sweepGap=0.1113 pending=False\nt=0.5333 visual=0.5333 gap=0.0000 root=(-0.4685, 0.0000, 6.3008) paw=(-0.9963, 0.8805, 7.5352) surface=(-0.9055, 0.8627, 7.5789) targetGap=0.1023 prior=(-1.0048, 0.8822, 7.5327) sweepGap=0.1022 pending=False\nt=0.5667 visual=0.5667 gap=0.0000 root=(-0.4685, 0.0000, 6.3008) paw=(-0.9819, 0.8823, 7.5387) surface=(-0.9055, 0.8627, 7.5789) targetGap=0.0885 prior=(-0.9963, 0.8805, 7.5352) sweepGap=0.0939 pending=False\nt=0.6000 visual=0.6000 gap=0.0000 root=(-0.4685, 0.0000, 6.3008) paw=(-0.9718, 0.8914, 7.5396) surface=(-0.9055, 0.8627, 7.5789) targetGap=0.0822 prior=(-0.9819, 0.8823, 7.5387) sweepGap=0.0739 pending=False\nt=0.6333 visual=0.6333 gap=0.0000 root=(-0.4685, 0.0000, 6.3008) paw=(-0.9687, 0.8993, 7.5388) surface=(-0.9055, 0.8627, 7.5789) targetGap=0.0834 prior=(-0.9718, 0.8914, 7.5396) sweepGap=0.0686 pending=False\nt=0.6667 visual=0.6667 gap=0.0000 root=(-0.4685, 0.0000, 6.3008) paw=(-0.9653, 0.9208, 7.5360) surface=(-0.9055, 0.8627, 7.5789) targetGap=0.0937 prior=(-0.9687, 0.8993, 7.5388) sweepGap=0.0696 pending=False\n\nvictim=Player(Clone) transform=(-1.080, 0.000, 8.050) physics=(-1.080, 0.000, 8.050) yaw=276.17 pose=Happy Idle:0.032 transition=False culling=AlwaysAnimate model=(0.000, 0.006, 0.000) scale=(1.704, 1.704, 1.704) visible=False hips=(-1.088, 0.677, 8.056) chest=(-1.083, 0.855, 8.048) sampleAge=1.000 surface=(-0.905, 0.863, 7.579) shoulder=(-1.225, 1.332, 6.587) reach=1.143/1.208 lengths=0.462+0.416 reachable=True pad=(-0.989, 0.784, 7.418) gap=0.1326\n"
+          },
+          {
+            "name": "ExactStopwatchMissPoseMustReach(0.032f,True)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.ExactStopwatchMissPoseMustReach(0.032f,True)",
+            "state": "Passed",
+            "durationSeconds": 0.0488144,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Player(Clone) at 0.40 s\nphase=0.032 pipeline=True standOff=1.7919\nt=0.2667 visual=0.2667 gap=0.1576 root=(-0.4668, 0.0000, 6.2961) paw=(-1.2354, 0.7837, 7.4006) surface=(-0.9055, 0.8627, 7.5789) targetGap=0.3833 prior=(-1.3935, 0.5687, 7.2402) sweepGap=0.0000 pending=False\nt=0.3000 visual=0.3000 gap=0.0000 root=(-0.4676, 0.0000, 6.2983) paw=(-1.0715, 0.8969, 7.5211) surface=(-0.9055, 0.8627, 7.5789) targetGap=0.1791 prior=(-1.2354, 0.7837, 7.4006) sweepGap=0.0000 pending=False\nt=0.3333 visual=0.3333 gap=0.0000 root=(-0.4681, 0.0000, 6.2999) paw=(-1.0609, 0.8959, 7.5217) surface=(-0.9055, 0.8627, 7.5789) targetGap=0.1689 prior=(-1.0715, 0.8969, 7.5211) sweepGap=0.1650 pending=False\nt=0.3667 visual=0.3667 gap=0.0000 root=(-0.4684, 0.0000, 6.3007) paw=(-1.0479, 0.8928, 7.5234) surface=(-0.9055, 0.8627, 7.5789) targetGap=0.1558 prior=(-1.0609, 0.8959, 7.5217) sweepGap=0.1555 pending=False\nt=0.4000 visual=0.4000 gap=0.0000 root=(-0.4685, 0.0000, 6.3008) paw=(-1.0357, 0.8897, 7.5254) surface=(-0.9055, 0.8627, 7.5789) targetGap=0.1433 prior=(-1.0479, 0.8928, 7.5234) sweepGap=0.1433 pending=True\nt=0.4333 visual=0.4333 gap=0.0000 root=(-0.4685, 0.0000, 6.3008) paw=(-1.0245, 0.8869, 7.5277) surface=(-0.9055, 0.8627, 7.5789) targetGap=0.1318 prior=(-1.0357, 0.8897, 7.5254) sweepGap=0.1318 pending=False\nt=0.4667 visual=0.4667 gap=0.0000 root=(-0.4685, 0.0000, 6.3008) paw=(-1.0142, 0.8844, 7.5302) surface=(-0.9055, 0.8627, 7.5789) targetGap=0.1211 prior=(-1.0245, 0.8869, 7.5277) sweepGap=0.1211 pending=False\nt=0.5000 visual=0.5000 gap=0.0000 root=(-0.4685, 0.0000, 6.3008) paw=(-1.0048, 0.8822, 7.5327) surface=(-0.9055, 0.8627, 7.5789) targetGap=0.1113 prior=(-1.0142, 0.8844, 7.5302) sweepGap=0.1113 pending=False\nt=0.5333 visual=0.5333 gap=0.0000 root=(-0.4685, 0.0000, 6.3008) paw=(-0.9963, 0.8805, 7.5352) surface=(-0.9055, 0.8627, 7.5789) targetGap=0.1023 prior=(-1.0048, 0.8822, 7.5327) sweepGap=0.1022 pending=False\nt=0.5667 visual=0.5667 gap=0.0000 root=(-0.4685, 0.0000, 6.3008) paw=(-0.9819, 0.8823, 7.5387) surface=(-0.9055, 0.8627, 7.5789) targetGap=0.0885 prior=(-0.9963, 0.8805, 7.5352) sweepGap=0.0939 pending=False\nt=0.6000 visual=0.6000 gap=0.0000 root=(-0.4685, 0.0000, 6.3008) paw=(-0.9718, 0.8914, 7.5396) surface=(-0.9055, 0.8627, 7.5789) targetGap=0.0822 prior=(-0.9819, 0.8823, 7.5387) sweepGap=0.0739 pending=False\nt=0.6333 visual=0.6333 gap=0.0000 root=(-0.4685, 0.0000, 6.3008) paw=(-0.9687, 0.8993, 7.5388) surface=(-0.9055, 0.8627, 7.5789) targetGap=0.0834 prior=(-0.9718, 0.8914, 7.5396) sweepGap=0.0686 pending=False\nt=0.6667 visual=0.6667 gap=0.0000 root=(-0.4685, 0.0000, 6.3008) paw=(-0.9653, 0.9208, 7.5360) surface=(-0.9055, 0.8627, 7.5789) targetGap=0.0937 prior=(-0.9687, 0.8993, 7.5388) sweepGap=0.0696 pending=False\n\nvictim=Player(Clone) transform=(-1.080, 0.000, 8.050) physics=(-1.080, 0.000, 8.050) yaw=276.17 pose=Happy Idle:0.032 transition=False culling=AlwaysAnimate model=(0.000, 0.006, 0.000) scale=(1.704, 1.704, 1.704) visible=False hips=(-1.088, 0.677, 8.056) chest=(-1.083, 0.855, 8.048) sampleAge=1.000 surface=(-0.905, 0.863, 7.579) shoulder=(-1.225, 1.332, 6.587) reach=1.143/1.208 lengths=0.462+0.416 reachable=True pad=(-0.989, 0.784, 7.418) gap=0.1326\n"
+          },
+          {
+            "name": "FirstSwipeAfterDiagonalPursuitReachesStationaryPlayerNearPitWall(0.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeAfterDiagonalPursuitReachesStationaryPlayerNearPitWall(0.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0480994,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Player(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeAfterDiagonalPursuitReachesStationaryPlayerNearPitWall(90.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeAfterDiagonalPursuitReachesStationaryPlayerNearPitWall(90.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0429587,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Player(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeAfterDiagonalPursuitReachesStationaryPlayerNearPitWall(180.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeAfterDiagonalPursuitReachesStationaryPlayerNearPitWall(180.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0437243,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Player(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeAfterDiagonalPursuitReachesStationaryPlayerNearPitWall(270.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeAfterDiagonalPursuitReachesStationaryPlayerNearPitWall(270.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0432655,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Player(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeReachesAllStandingFacings(\"Player\",0.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeReachesAllStandingFacings(\"Player\",0.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0492055,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Player(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeReachesAllStandingFacings(\"Player\",90.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeReachesAllStandingFacings(\"Player\",90.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0476825,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Player(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeReachesAllStandingFacings(\"Player\",180.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeReachesAllStandingFacings(\"Player\",180.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0478588,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Player(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeReachesAllStandingFacings(\"Player\",270.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeReachesAllStandingFacings(\"Player\",270.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0479931,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Player(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeReachesAllStandingFacings(\"Boss\",0.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeReachesAllStandingFacings(\"Boss\",0.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0487787,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Boss(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeReachesAllStandingFacings(\"Boss\",90.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeReachesAllStandingFacings(\"Boss\",90.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0512092,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Boss(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeReachesAllStandingFacings(\"Boss\",180.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeReachesAllStandingFacings(\"Boss\",180.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0646927,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Boss(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeReachesAllStandingFacings(\"Boss\",270.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeReachesAllStandingFacings(\"Boss\",270.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0521904,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Boss(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeReachesAllStandingFacings(\"Shlanga\",0.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeReachesAllStandingFacings(\"Shlanga\",0.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.054451,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Shlanga(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeReachesAllStandingFacings(\"Shlanga\",90.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeReachesAllStandingFacings(\"Shlanga\",90.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0525509,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Shlanga(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeReachesAllStandingFacings(\"Shlanga\",180.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeReachesAllStandingFacings(\"Shlanga\",180.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.048787,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Shlanga(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeReachesAllStandingFacings(\"Shlanga\",270.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeReachesAllStandingFacings(\"Shlanga\",270.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0474743,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Shlanga(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeReachesAllStandingFacings(\"Fat\",0.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeReachesAllStandingFacings(\"Fat\",0.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0455957,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Fat(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeReachesAllStandingFacings(\"Fat\",90.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeReachesAllStandingFacings(\"Fat\",90.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0435482,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Fat(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeReachesAllStandingFacings(\"Fat\",180.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeReachesAllStandingFacings(\"Fat\",180.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0445385,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Fat(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeReachesAllStandingFacings(\"Fat\",270.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeReachesAllStandingFacings(\"Fat\",270.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.044276,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Fat(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeReachesAllStandingFacings(\"MyBoy\",0.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeReachesAllStandingFacings(\"MyBoy\",0.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0448068,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact MyBoy(Clone) at 0.40 s\nMyBoy/30\nfacing=0 standOff=1.8046\nt=0.2667 visual=0.2667 gap=0.2843 root=(0.0000, 0.0000, 0.7174) paw=(-0.5667, 0.7398, 1.9808) surface=(0.0823, 1.3708, 2.2025) targetGap=0.9319 prior=(-0.6505, 0.5238, 1.8180) sweepGap=0.4008 pending=False\nt=0.3000 visual=0.3000 gap=0.0000 root=(0.0000, 0.0000, 0.7783) paw=(-0.1735, 1.2016, 2.0998) surface=(0.0825, 1.3708, 2.2025) targetGap=0.3236 prior=(-0.5667, 0.7398, 1.9808) sweepGap=0.4739 pending=False\nt=0.3333 visual=0.3333 gap=0.0000 root=(0.0000, 0.0000, 0.8215) paw=(-0.1581, 1.2153, 2.1025) surface=(0.0827, 1.3707, 2.2025) targetGap=0.3036 prior=(-0.1735, 1.2016, 2.0998) sweepGap=0.2984 pending=False\nt=0.3667 visual=0.3667 gap=0.0000 root=(0.0000, 0.0000, 0.8433) paw=(-0.1396, 1.2304, 2.1059) surface=(0.0829, 1.3707, 2.2025) targetGap=0.2802 prior=(-0.1581, 1.2153, 2.1025) sweepGap=0.2799 pending=False\nt=0.4000 visual=0.4000 gap=0.0000 root=(0.0000, 0.0000, 0.8454) paw=(-0.1218, 1.2436, 2.1106) surface=(0.0829, 1.3707, 2.2025) targetGap=0.2578 prior=(-0.1396, 1.2304, 2.1059) sweepGap=0.2578 pending=True\nt=0.4333 visual=0.4333 gap=0.0000 root=(0.0000, 0.0000, 0.8454) paw=(-0.1051, 1.2549, 2.1166) surface=(0.0829, 1.3707, 2.2025) targetGap=0.2368 prior=(-0.1218, 1.2436, 2.1106) sweepGap=0.2368 pending=False\nt=0.4667 visual=0.4667 gap=0.0000 root=(0.0000, 0.0000, 0.8454) paw=(-0.0741, 1.2755, 2.1279) surface=(0.0829, 1.3707, 2.2025) targetGap=0.1982 prior=(-0.1051, 1.2549, 2.1166) sweepGap=0.1982 pending=False\nt=0.5000 visual=0.5000 gap=0.0000 root=(0.0000, 0.0000, 0.8454) paw=(-0.0613, 1.2845, 2.1318) surface=(0.0829, 1.3707, 2.2025) targetGap=0.1823 prior=(-0.0741, 1.2755, 2.1279) sweepGap=0.1823 pending=False\nt=0.5333 visual=0.5333 gap=0.0000 root=(0.0000, 0.0000, 0.8454) paw=(-0.0496, 1.2920, 2.1360) surface=(0.0829, 1.3707, 2.2025) targetGap=0.1678 prior=(-0.0613, 1.2845, 2.1318) sweepGap=0.1675 pending=False\nt=0.5667 visual=0.5667 gap=0.0000 root=(0.0000, 0.0000, 0.8454) paw=(-0.0313, 1.2988, 2.1409) surface=(0.0829, 1.3707, 2.2025) targetGap=0.1483 prior=(-0.0496, 1.2920, 2.1360) sweepGap=0.1401 pending=False\nt=0.6000 visual=0.6000 gap=0.0000 root=(0.0000, 0.0000, 0.8454) paw=(-0.0210, 1.2927, 2.1371) surface=(0.0829, 1.3707, 2.2025) targetGap=0.1454 prior=(-0.0313, 1.2988, 2.1409) sweepGap=0.0866 pending=False\nt=0.6333 visual=0.6333 gap=0.0000 root=(0.0000, 0.0000, 0.8454) paw=(-0.0193, 1.2732, 2.1259) surface=(0.0829, 1.3707, 2.2025) targetGap=0.1606 prior=(-0.0210, 1.2927, 2.1371) sweepGap=0.0607 pending=False\nt=0.6667 visual=0.6667 gap=0.0000 root=(0.0000, 0.0000, 0.8454) paw=(-0.0241, 1.2459, 2.1104) surface=(0.0829, 1.3707, 2.2025) targetGap=0.1884 prior=(-0.0193, 1.2732, 2.1259) sweepGap=0.1475 pending=False\n\n"
+          },
+          {
+            "name": "FirstSwipeReachesAllStandingFacings(\"MyBoy\",90.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeReachesAllStandingFacings(\"MyBoy\",90.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0484479,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact MyBoy(Clone) at 0.40 s\nMyBoy/30\nfacing=90 standOff=2.0670\nt=0.2667 visual=0.2667 gap=0.2586 root=(0.0000, 0.0000, 0.4947) paw=(-0.3965, 0.8529, 1.8226) surface=(-0.0901, 1.0566, 1.9386) targetGap=0.3858 prior=(-0.6505, 0.5238, 1.6187) sweepGap=0.0000 pending=False\nt=0.3000 visual=0.3000 gap=0.0720 root=(0.0000, 0.0000, 0.5367) paw=(-0.2261, 1.0174, 1.9246) surface=(-0.0895, 1.0563, 1.9385) targetGap=0.1427 prior=(-0.3965, 0.8529, 1.8226) sweepGap=0.0000 pending=False\nt=0.3333 visual=0.3333 gap=0.0000 root=(0.0000, 0.0000, 0.5665) paw=(-0.1250, 1.0602, 1.9480) surface=(-0.0890, 1.0561, 1.9384) targetGap=0.0374 prior=(-0.2261, 1.0174, 1.9246) sweepGap=0.0000 pending=False\nt=0.3667 visual=0.3667 gap=0.0000 root=(0.0000, 0.0000, 0.5816) paw=(-0.0913, 1.0572, 1.9387) surface=(-0.0888, 1.0560, 1.9384) targetGap=0.0028 prior=(-0.1250, 1.0602, 1.9480) sweepGap=0.0000 pending=False\nt=0.4000 visual=0.4000 gap=0.0000 root=(0.0000, 0.0000, 0.5830) paw=(-0.0888, 1.0560, 1.9384) surface=(-0.0888, 1.0560, 1.9384) targetGap=0.0000 prior=(-0.0913, 1.0572, 1.9387) sweepGap=0.0000 pending=True\nt=0.4333 visual=0.4333 gap=0.0000 root=(0.0000, 0.0000, 0.5830) paw=(-0.0888, 1.0560, 1.9384) surface=(-0.0888, 1.0560, 1.9384) targetGap=0.0000 prior=(-0.0888, 1.0560, 1.9384) sweepGap=0.0000 pending=False\nt=0.4667 visual=0.4667 gap=0.0000 root=(0.0000, 0.0000, 0.5830) paw=(-0.0888, 1.0560, 1.9384) surface=(-0.0888, 1.0560, 1.9384) targetGap=0.0000 prior=(-0.0888, 1.0560, 1.9384) sweepGap=0.0000 pending=False\nt=0.5000 visual=0.5000 gap=0.0000 root=(0.0000, 0.0000, 0.5830) paw=(-0.0888, 1.0560, 1.9384) surface=(-0.0888, 1.0560, 1.9384) targetGap=0.0000 prior=(-0.0888, 1.0560, 1.9384) sweepGap=0.0000 pending=False\nt=0.5333 visual=0.5333 gap=0.0000 root=(0.0000, 0.0000, 0.5830) paw=(-0.0889, 1.0564, 1.9383) surface=(-0.0888, 1.0560, 1.9384) targetGap=0.0004 prior=(-0.0888, 1.0560, 1.9384) sweepGap=0.0000 pending=False\nt=0.5667 visual=0.5667 gap=0.0034 root=(0.0000, 0.0000, 0.5830) paw=(-0.0849, 1.0562, 1.9338) surface=(-0.0888, 1.0560, 1.9384) targetGap=0.0060 prior=(-0.0889, 1.0564, 1.9383) sweepGap=0.0000 pending=False\nt=0.6000 visual=0.6000 gap=0.0137 root=(0.0000, 0.0000, 0.5830) paw=(-0.0748, 1.0518, 1.9218) surface=(-0.0888, 1.0560, 1.9384) targetGap=0.0221 prior=(-0.0849, 1.0562, 1.9338) sweepGap=0.0000 pending=False\nt=0.6333 visual=0.6333 gap=0.0231 root=(0.0000, 0.0000, 0.5830) paw=(-0.0656, 1.0490, 1.9110) surface=(-0.0888, 1.0560, 1.9384) targetGap=0.0366 prior=(-0.0748, 1.0518, 1.9218) sweepGap=0.0000 pending=False\nt=0.6667 visual=0.6667 gap=0.0309 root=(0.0000, 0.0000, 0.5830) paw=(-0.0582, 1.0468, 1.9023) surface=(-0.0888, 1.0560, 1.9384) targetGap=0.0482 prior=(-0.0656, 1.0490, 1.9110) sweepGap=0.0000 pending=False\n\n"
+          },
+          {
+            "name": "FirstSwipeReachesAllStandingFacings(\"MyBoy\",180.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeReachesAllStandingFacings(\"MyBoy\",180.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0465044,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact MyBoy(Clone) at 0.40 s\nMyBoy/30\nfacing=180 standOff=2.3017\nt=0.2667 visual=0.2667 gap=0.1854 root=(0.0000, 0.0000, 0.2956) paw=(-0.3847, 0.8327, 1.6093) surface=(-0.0572, 1.0000, 1.6998) targetGap=0.3788 prior=(-0.5720, 0.5868, 1.4748) sweepGap=0.0000 pending=False\nt=0.3000 visual=0.3000 gap=0.0118 root=(0.0000, 0.0000, 0.3207) paw=(-0.2060, 0.9827, 1.6945) surface=(-0.0570, 1.0000, 1.6997) targetGap=0.1501 prior=(-0.3847, 0.8327, 1.6093) sweepGap=0.0000 pending=False\nt=0.3333 visual=0.3333 gap=0.0000 root=(0.0000, 0.0000, 0.3385) paw=(-0.0952, 1.0133, 1.6983) surface=(-0.0569, 1.0000, 1.6997) targetGap=0.0406 prior=(-0.2060, 0.9827, 1.6945) sweepGap=0.0000 pending=False\nt=0.3667 visual=0.3667 gap=0.0000 root=(0.0000, 0.0000, 0.3475) paw=(-0.0597, 1.0022, 1.7001) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0037 prior=(-0.0952, 1.0133, 1.6983) sweepGap=0.0000 pending=False\nt=0.4000 visual=0.4000 gap=0.0000 root=(0.0000, 0.0000, 0.3483) paw=(-0.0568, 1.0000, 1.6997) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0000 prior=(-0.0597, 1.0022, 1.7001) sweepGap=0.0000 pending=True\nt=0.4333 visual=0.4333 gap=0.0000 root=(0.0000, 0.0000, 0.3483) paw=(-0.0568, 1.0000, 1.6997) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0000 prior=(-0.0568, 1.0000, 1.6997) sweepGap=0.0000 pending=False\nt=0.4667 visual=0.4667 gap=0.0000 root=(0.0000, 0.0000, 0.3483) paw=(-0.0568, 1.0000, 1.6997) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0000 prior=(-0.0568, 1.0000, 1.6997) sweepGap=0.0000 pending=False\nt=0.5000 visual=0.5000 gap=0.0000 root=(0.0000, 0.0000, 0.3483) paw=(-0.0568, 1.0000, 1.6997) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0000 prior=(-0.0568, 1.0000, 1.6997) sweepGap=0.0000 pending=False\nt=0.5333 visual=0.5333 gap=0.0000 root=(0.0000, 0.0000, 0.3483) paw=(-0.0574, 1.0013, 1.6997) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0014 prior=(-0.0568, 1.0000, 1.6997) sweepGap=0.0000 pending=False\nt=0.5667 visual=0.5667 gap=0.0033 root=(0.0000, 0.0000, 0.3483) paw=(-0.0583, 1.0095, 1.6958) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0104 prior=(-0.0574, 1.0013, 1.6997) sweepGap=0.0000 pending=False\nt=0.6000 visual=0.6000 gap=0.0129 root=(0.0000, 0.0000, 0.3483) paw=(-0.0561, 1.0191, 1.6848) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0242 prior=(-0.0583, 1.0095, 1.6958) sweepGap=0.0000 pending=False\nt=0.6333 visual=0.6333 gap=0.0219 root=(0.0000, 0.0000, 0.3483) paw=(-0.0557, 1.0317, 1.6751) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0401 prior=(-0.0561, 1.0191, 1.6848) sweepGap=0.0000 pending=False\nt=0.6667 visual=0.6667 gap=0.0295 root=(0.0000, 0.0000, 0.3483) paw=(-0.0553, 1.0418, 1.6673) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0529 prior=(-0.0557, 1.0317, 1.6751) sweepGap=0.0000 pending=False\n\n"
+          },
+          {
+            "name": "FirstSwipeReachesAllStandingFacings(\"MyBoy\",270.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeReachesAllStandingFacings(\"MyBoy\",270.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0495157,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact MyBoy(Clone) at 0.40 s\nMyBoy/30\nfacing=270 standOff=2.0790\nt=0.2667 visual=0.2667 gap=0.2741 root=(0.0000, 0.0000, 0.4845) paw=(-0.3952, 0.9160, 1.8113) surface=(-0.0864, 1.2334, 1.9254) targetGap=0.4572 prior=(-0.6505, 0.5238, 1.6095) sweepGap=0.0000 pending=False\nt=0.3000 visual=0.3000 gap=0.0472 root=(0.0000, 0.0000, 0.5257) paw=(-0.2246, 1.1266, 1.9123) surface=(-0.0870, 1.2331, 1.9254) targetGap=0.1744 prior=(-0.3952, 0.9160, 1.8113) sweepGap=0.0000 pending=False\nt=0.3333 visual=0.3333 gap=0.0000 root=(0.0000, 0.0000, 0.5548) paw=(-0.1247, 1.2122, 1.9280) surface=(-0.0875, 1.2328, 1.9254) targetGap=0.0426 prior=(-0.2246, 1.1266, 1.9123) sweepGap=0.0000 pending=False\nt=0.3667 visual=0.3667 gap=0.0000 root=(0.0000, 0.0000, 0.5696) paw=(-0.0900, 1.2322, 1.9255) surface=(-0.0877, 1.2327, 1.9254) targetGap=0.0023 prior=(-0.1247, 1.2122, 1.9280) sweepGap=0.0000 pending=False\nt=0.4000 visual=0.4000 gap=0.0000 root=(0.0000, 0.0000, 0.5710) paw=(-0.0877, 1.2327, 1.9254) surface=(-0.0877, 1.2327, 1.9254) targetGap=0.0000 prior=(-0.0900, 1.2322, 1.9255) sweepGap=0.0000 pending=True\nt=0.4333 visual=0.4333 gap=0.0000 root=(0.0000, 0.0000, 0.5710) paw=(-0.0877, 1.2327, 1.9254) surface=(-0.0877, 1.2327, 1.9254) targetGap=0.0000 prior=(-0.0877, 1.2327, 1.9254) sweepGap=0.0000 pending=False\nt=0.4667 visual=0.4667 gap=0.0000 root=(0.0000, 0.0000, 0.5710) paw=(-0.0877, 1.2327, 1.9254) surface=(-0.0877, 1.2327, 1.9254) targetGap=0.0000 prior=(-0.0877, 1.2327, 1.9254) sweepGap=0.0000 pending=False\nt=0.5000 visual=0.5000 gap=0.0000 root=(0.0000, 0.0000, 0.5710) paw=(-0.0877, 1.2327, 1.9254) surface=(-0.0877, 1.2327, 1.9254) targetGap=0.0000 prior=(-0.0877, 1.2327, 1.9254) sweepGap=0.0000 pending=False\nt=0.5333 visual=0.5333 gap=0.0000 root=(0.0000, 0.0000, 0.5710) paw=(-0.0878, 1.2304, 1.9250) surface=(-0.0877, 1.2327, 1.9254) targetGap=0.0023 prior=(-0.0877, 1.2327, 1.9254) sweepGap=0.0000 pending=False\nt=0.5667 visual=0.5667 gap=0.0000 root=(0.0000, 0.0000, 0.5710) paw=(-0.0840, 1.2034, 1.9209) surface=(-0.0877, 1.2327, 1.9254) targetGap=0.0298 prior=(-0.0878, 1.2304, 1.9250) sweepGap=0.0000 pending=False\nt=0.6000 visual=0.6000 gap=0.0094 root=(0.0000, 0.0000, 0.5710) paw=(-0.0741, 1.1548, 1.9092) surface=(-0.0877, 1.2327, 1.9254) targetGap=0.0807 prior=(-0.0840, 1.2034, 1.9209) sweepGap=0.0000 pending=False\nt=0.6333 visual=0.6333 gap=0.0250 root=(0.0000, 0.0000, 0.5710) paw=(-0.0652, 1.1038, 1.8987) surface=(-0.0877, 1.2327, 1.9254) targetGap=0.1335 prior=(-0.0741, 1.1548, 1.9092) sweepGap=0.0000 pending=False\nt=0.6667 visual=0.6667 gap=0.0422 root=(0.0000, 0.0000, 0.5710) paw=(-0.0581, 1.0628, 1.8902) surface=(-0.0877, 1.2327, 1.9254) targetGap=0.1760 prior=(-0.0652, 1.1038, 1.8987) sweepGap=0.0000 pending=False\n\n"
+          },
+          {
+            "name": "FirstSwipeReachesAllStandingFacings(\"Girl\",0.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeReachesAllStandingFacings(\"Girl\",0.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.061174,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Girl(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeReachesAllStandingFacings(\"Girl\",90.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeReachesAllStandingFacings(\"Girl\",90.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.045437,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Girl(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeReachesAllStandingFacings(\"Girl\",180.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeReachesAllStandingFacings(\"Girl\",180.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0460986,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Girl(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeReachesAllStandingFacings(\"Girl\",270.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeReachesAllStandingFacings(\"Girl\",270.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0444626,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Girl(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeReachesAllStandingFacings(\"Milez\",0.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeReachesAllStandingFacings(\"Milez\",0.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0482698,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Milez(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeReachesAllStandingFacings(\"Milez\",90.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeReachesAllStandingFacings(\"Milez\",90.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0524752,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Milez(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeReachesAllStandingFacings(\"Milez\",180.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeReachesAllStandingFacings(\"Milez\",180.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0532845,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Milez(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeReachesAllStandingFacings(\"Milez\",270.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeReachesAllStandingFacings(\"Milez\",270.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0537352,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Milez(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeReachesAllStandingFacings(\"Aza\",0.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeReachesAllStandingFacings(\"Aza\",0.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0541857,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Aza(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeReachesAllStandingFacings(\"Aza\",90.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeReachesAllStandingFacings(\"Aza\",90.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0551256,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Aza(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeReachesAllStandingFacings(\"Aza\",180.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeReachesAllStandingFacings(\"Aza\",180.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.054829,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Aza(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeReachesAllStandingFacings(\"Aza\",270.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeReachesAllStandingFacings(\"Aza\",270.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0562296,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Aza(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Player\",15)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Player\",15)",
+            "state": "Passed",
+            "durationSeconds": 0.0463972,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Player(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Player\",30)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Player\",30)",
+            "state": "Passed",
+            "durationSeconds": 0.0554626,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Player(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Player\",60)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Player\",60)",
+            "state": "Passed",
+            "durationSeconds": 0.0835356,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Player(Clone) at 0.38 s\n"
+          },
+          {
+            "name": "FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Boss\",15)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Boss\",15)",
+            "state": "Passed",
+            "durationSeconds": 0.0461492,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Boss(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Boss\",30)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Boss\",30)",
+            "state": "Passed",
+            "durationSeconds": 0.0541072,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Boss(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Boss\",60)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Boss\",60)",
+            "state": "Passed",
+            "durationSeconds": 0.0589874,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Boss(Clone) at 0.38 s\n"
+          },
+          {
+            "name": "FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Shlanga\",15)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Shlanga\",15)",
+            "state": "Passed",
+            "durationSeconds": 0.0486317,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Shlanga(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Shlanga\",30)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Shlanga\",30)",
+            "state": "Passed",
+            "durationSeconds": 0.0845958,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Shlanga(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Shlanga\",60)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Shlanga\",60)",
+            "state": "Passed",
+            "durationSeconds": 0.0657059,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Shlanga(Clone) at 0.38 s\n"
+          },
+          {
+            "name": "FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Fat\",15)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Fat\",15)",
+            "state": "Passed",
+            "durationSeconds": 0.0410328,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Fat(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Fat\",30)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Fat\",30)",
+            "state": "Passed",
+            "durationSeconds": 0.0483028,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Fat(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Fat\",60)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Fat\",60)",
+            "state": "Passed",
+            "durationSeconds": 0.0591268,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Fat(Clone) at 0.38 s\n"
+          },
+          {
+            "name": "FirstSwipeTouchesAStandingCharacterExactlyOnce(\"MyBoy\",15)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeTouchesAStandingCharacterExactlyOnce(\"MyBoy\",15)",
+            "state": "Passed",
+            "durationSeconds": 0.0402017,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact MyBoy(Clone) at 0.40 s\nMyBoy/15\nfacing=180 standOff=2.3017\nt=0.2667 visual=0.2667 gap=0.1854 root=(0.0000, 0.0000, 0.2956) paw=(-0.3847, 0.8327, 1.6093) surface=(-0.0572, 1.0000, 1.6998) targetGap=0.3788 prior=(-0.6893, 0.4073, 1.3567) sweepGap=0.0000 pending=False\nt=0.3333 visual=0.3333 gap=0.0000 root=(0.0000, 0.0000, 0.3385) paw=(-0.0952, 1.0133, 1.6983) surface=(-0.0569, 1.0000, 1.6997) targetGap=0.0406 prior=(-0.3847, 0.8327, 1.6093) sweepGap=0.0000 pending=False\nt=0.4000 visual=0.4000 gap=0.0000 root=(0.0000, 0.0000, 0.3483) paw=(-0.0568, 1.0000, 1.6997) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0000 prior=(-0.0952, 1.0133, 1.6983) sweepGap=0.0000 pending=True\nt=0.4667 visual=0.4667 gap=0.0000 root=(0.0000, 0.0000, 0.3483) paw=(-0.0568, 1.0000, 1.6997) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0000 prior=(-0.0568, 1.0000, 1.6997) sweepGap=0.0000 pending=False\nt=0.5333 visual=0.5333 gap=0.0000 root=(0.0000, 0.0000, 0.3483) paw=(-0.0574, 1.0013, 1.6997) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0014 prior=(-0.0568, 1.0000, 1.6997) sweepGap=0.0000 pending=False\nt=0.6000 visual=0.6000 gap=0.0129 root=(0.0000, 0.0000, 0.3483) paw=(-0.0561, 1.0191, 1.6848) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0242 prior=(-0.0574, 1.0013, 1.6997) sweepGap=0.0000 pending=False\nt=0.6667 visual=0.6667 gap=0.0295 root=(0.0000, 0.0000, 0.3483) paw=(-0.0553, 1.0418, 1.6673) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0529 prior=(-0.0561, 1.0191, 1.6848) sweepGap=0.0000 pending=False\n\n"
+          },
+          {
+            "name": "FirstSwipeTouchesAStandingCharacterExactlyOnce(\"MyBoy\",30)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeTouchesAStandingCharacterExactlyOnce(\"MyBoy\",30)",
+            "state": "Passed",
+            "durationSeconds": 0.0487474,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact MyBoy(Clone) at 0.40 s\nMyBoy/30\nfacing=180 standOff=2.3017\nt=0.2667 visual=0.2667 gap=0.1854 root=(0.0000, 0.0000, 0.2956) paw=(-0.3847, 0.8327, 1.6093) surface=(-0.0572, 1.0000, 1.6998) targetGap=0.3788 prior=(-0.5720, 0.5868, 1.4748) sweepGap=0.0000 pending=False\nt=0.3000 visual=0.3000 gap=0.0118 root=(0.0000, 0.0000, 0.3207) paw=(-0.2060, 0.9827, 1.6945) surface=(-0.0570, 1.0000, 1.6997) targetGap=0.1501 prior=(-0.3847, 0.8327, 1.6093) sweepGap=0.0000 pending=False\nt=0.3333 visual=0.3333 gap=0.0000 root=(0.0000, 0.0000, 0.3385) paw=(-0.0952, 1.0133, 1.6983) surface=(-0.0569, 1.0000, 1.6997) targetGap=0.0406 prior=(-0.2060, 0.9827, 1.6945) sweepGap=0.0000 pending=False\nt=0.3667 visual=0.3667 gap=0.0000 root=(0.0000, 0.0000, 0.3475) paw=(-0.0597, 1.0022, 1.7001) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0037 prior=(-0.0952, 1.0133, 1.6983) sweepGap=0.0000 pending=False\nt=0.4000 visual=0.4000 gap=0.0000 root=(0.0000, 0.0000, 0.3483) paw=(-0.0568, 1.0000, 1.6997) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0000 prior=(-0.0597, 1.0022, 1.7001) sweepGap=0.0000 pending=True\nt=0.4333 visual=0.4333 gap=0.0000 root=(0.0000, 0.0000, 0.3483) paw=(-0.0568, 1.0000, 1.6997) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0000 prior=(-0.0568, 1.0000, 1.6997) sweepGap=0.0000 pending=False\nt=0.4667 visual=0.4667 gap=0.0000 root=(0.0000, 0.0000, 0.3483) paw=(-0.0568, 1.0000, 1.6997) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0000 prior=(-0.0568, 1.0000, 1.6997) sweepGap=0.0000 pending=False\nt=0.5000 visual=0.5000 gap=0.0000 root=(0.0000, 0.0000, 0.3483) paw=(-0.0568, 1.0000, 1.6997) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0000 prior=(-0.0568, 1.0000, 1.6997) sweepGap=0.0000 pending=False\nt=0.5333 visual=0.5333 gap=0.0000 root=(0.0000, 0.0000, 0.3483) paw=(-0.0574, 1.0013, 1.6997) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0014 prior=(-0.0568, 1.0000, 1.6997) sweepGap=0.0000 pending=False\nt=0.5667 visual=0.5667 gap=0.0033 root=(0.0000, 0.0000, 0.3483) paw=(-0.0583, 1.0095, 1.6958) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0104 prior=(-0.0574, 1.0013, 1.6997) sweepGap=0.0000 pending=False\nt=0.6000 visual=0.6000 gap=0.0129 root=(0.0000, 0.0000, 0.3483) paw=(-0.0561, 1.0191, 1.6848) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0242 prior=(-0.0583, 1.0095, 1.6958) sweepGap=0.0000 pending=False\nt=0.6333 visual=0.6333 gap=0.0219 root=(0.0000, 0.0000, 0.3483) paw=(-0.0557, 1.0317, 1.6751) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0401 prior=(-0.0561, 1.0191, 1.6848) sweepGap=0.0000 pending=False\nt=0.6667 visual=0.6667 gap=0.0295 root=(0.0000, 0.0000, 0.3483) paw=(-0.0553, 1.0418, 1.6673) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0529 prior=(-0.0557, 1.0317, 1.6751) sweepGap=0.0000 pending=False\n\n"
+          },
+          {
+            "name": "FirstSwipeTouchesAStandingCharacterExactlyOnce(\"MyBoy\",60)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeTouchesAStandingCharacterExactlyOnce(\"MyBoy\",60)",
+            "state": "Passed",
+            "durationSeconds": 0.0584349,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact MyBoy(Clone) at 0.38 s\nMyBoy/60\nfacing=180 standOff=2.3017\nt=0.2667 visual=0.2667 gap=0.1854 root=(0.0000, 0.0000, 0.2956) paw=(-0.3847, 0.8327, 1.6093) surface=(-0.0572, 1.0000, 1.6998) targetGap=0.3788 prior=(-0.4826, 0.7150, 1.5463) sweepGap=0.0000 pending=False\nt=0.2833 visual=0.2833 gap=0.0771 root=(0.0000, 0.0000, 0.3090) paw=(-0.2896, 0.9213, 1.6607) surface=(-0.0571, 1.0000, 1.6997) targetGap=0.2486 prior=(-0.3847, 0.8327, 1.6093) sweepGap=0.0000 pending=False\nt=0.3000 visual=0.3000 gap=0.0118 root=(0.0000, 0.0000, 0.3207) paw=(-0.2060, 0.9827, 1.6945) surface=(-0.0570, 1.0000, 1.6997) targetGap=0.1501 prior=(-0.2896, 0.9213, 1.6607) sweepGap=0.0000 pending=False\nt=0.3167 visual=0.3167 gap=0.0000 root=(0.0000, 0.0000, 0.3306) paw=(-0.1417, 1.0063, 1.6972) surface=(-0.0569, 1.0000, 1.6997) targetGap=0.0850 prior=(-0.2060, 0.9827, 1.6945) sweepGap=0.0000 pending=False\nt=0.3333 visual=0.3333 gap=0.0000 root=(0.0000, 0.0000, 0.3385) paw=(-0.0952, 1.0133, 1.6983) surface=(-0.0569, 1.0000, 1.6997) targetGap=0.0406 prior=(-0.1417, 1.0063, 1.6972) sweepGap=0.0000 pending=False\nt=0.3500 visual=0.3500 gap=0.0000 root=(0.0000, 0.0000, 0.3442) paw=(-0.0699, 1.0091, 1.7014) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0161 prior=(-0.0952, 1.0133, 1.6983) sweepGap=0.0000 pending=False\nt=0.3667 visual=0.3667 gap=0.0000 root=(0.0000, 0.0000, 0.3475) paw=(-0.0597, 1.0022, 1.7001) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0037 prior=(-0.0699, 1.0091, 1.7014) sweepGap=0.0000 pending=False\nt=0.3833 visual=0.3833 gap=0.0000 root=(0.0000, 0.0000, 0.3483) paw=(-0.0568, 1.0000, 1.6997) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0000 prior=(-0.0597, 1.0022, 1.7001) sweepGap=0.0000 pending=True\nt=0.4000 visual=0.4000 gap=0.0000 root=(0.0000, 0.0000, 0.3483) paw=(-0.0568, 1.0000, 1.6997) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0000 prior=(-0.0568, 1.0000, 1.6997) sweepGap=0.0000 pending=False\nt=0.4167 visual=0.4167 gap=0.0000 root=(0.0000, 0.0000, 0.3483) paw=(-0.0568, 1.0000, 1.6997) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0000 prior=(-0.0568, 1.0000, 1.6997) sweepGap=0.0000 pending=False\nt=0.4333 visual=0.4333 gap=0.0000 root=(0.0000, 0.0000, 0.3483) paw=(-0.0568, 1.0000, 1.6997) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0000 prior=(-0.0568, 1.0000, 1.6997) sweepGap=0.0000 pending=False\nt=0.4500 visual=0.4500 gap=0.0000 root=(0.0000, 0.0000, 0.3483) paw=(-0.0568, 1.0000, 1.6997) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0000 prior=(-0.0568, 1.0000, 1.6997) sweepGap=0.0000 pending=False\nt=0.4667 visual=0.4667 gap=0.0000 root=(0.0000, 0.0000, 0.3483) paw=(-0.0568, 1.0000, 1.6997) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0000 prior=(-0.0568, 1.0000, 1.6997) sweepGap=0.0000 pending=False\nt=0.4833 visual=0.4833 gap=0.0000 root=(0.0000, 0.0000, 0.3483) paw=(-0.0568, 1.0000, 1.6997) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0000 prior=(-0.0568, 1.0000, 1.6997) sweepGap=0.0000 pending=False\nt=0.5000 visual=0.5000 gap=0.0000 root=(0.0000, 0.0000, 0.3483) paw=(-0.0568, 1.0000, 1.6997) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0000 prior=(-0.0568, 1.0000, 1.6997) sweepGap=0.0000 pending=False\nt=0.5167 visual=0.5167 gap=0.0000 root=(0.0000, 0.0000, 0.3483) paw=(-0.0568, 1.0000, 1.6997) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0000 prior=(-0.0568, 1.0000, 1.6997) sweepGap=0.0000 pending=False\nt=0.5333 visual=0.5333 gap=0.0000 root=(0.0000, 0.0000, 0.3483) paw=(-0.0574, 1.0013, 1.6997) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0014 prior=(-0.0568, 1.0000, 1.6997) sweepGap=0.0000 pending=False\nt=0.5500 visual=0.5500 gap=0.0005 root=(0.0000, 0.0000, 0.3483) paw=(-0.0583, 1.0051, 1.6990) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0054 prior=(-0.0574, 1.0013, 1.6997) sweepGap=0.0000 pending=False\nt=0.5667 visual=0.5667 gap=0.0033 root=(0.0000, 0.0000, 0.3483) paw=(-0.0583, 1.0095, 1.6958) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0104 prior=(-0.0583, 1.0051, 1.6990) sweepGap=0.0000 pending=False\nt=0.5833 visual=0.5833 gap=0.0077 root=(0.0000, 0.0000, 0.3483) paw=(-0.0573, 1.0141, 1.6907) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0168 prior=(-0.0583, 1.0095, 1.6958) sweepGap=0.0000 pending=False\nt=0.6000 visual=0.6000 gap=0.0129 root=(0.0000, 0.0000, 0.3483) paw=(-0.0561, 1.0191, 1.6848) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0242 prior=(-0.0573, 1.0141, 1.6907) sweepGap=0.0000 pending=False\nt=0.6167 visual=0.6167 gap=0.0178 root=(0.0000, 0.0000, 0.3483) paw=(-0.0555, 1.0251, 1.6795) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0323 prior=(-0.0561, 1.0191, 1.6848) sweepGap=0.0000 pending=False\nt=0.6333 visual=0.6333 gap=0.0219 root=(0.0000, 0.0000, 0.3483) paw=(-0.0557, 1.0317, 1.6751) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0401 prior=(-0.0555, 1.0251, 1.6795) sweepGap=0.0000 pending=False\nt=0.6500 visual=0.6500 gap=0.0261 root=(0.0000, 0.0000, 0.3483) paw=(-0.0555, 1.0373, 1.6708) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0472 prior=(-0.0557, 1.0317, 1.6751) sweepGap=0.0000 pending=False\nt=0.6667 visual=0.6667 gap=0.0295 root=(0.0000, 0.0000, 0.3483) paw=(-0.0553, 1.0418, 1.6673) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0529 prior=(-0.0555, 1.0373, 1.6708) sweepGap=0.0000 pending=False\nt=0.6833 visual=0.6833 gap=0.0323 root=(0.0000, 0.0000, 0.3483) paw=(-0.0555, 1.0448, 1.6645) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0570 prior=(-0.0553, 1.0418, 1.6673) sweepGap=0.0000 pending=False\nt=0.7000 visual=0.7000 gap=0.0327 root=(0.0000, 0.0000, 0.3483) paw=(-0.0552, 1.0459, 1.6641) surface=(-0.0568, 1.0000, 1.6997) targetGap=0.0581 prior=(-0.0555, 1.0448, 1.6645) sweepGap=0.0000 pending=False\n\n"
+          },
+          {
+            "name": "FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Girl\",15)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Girl\",15)",
+            "state": "Passed",
+            "durationSeconds": 0.0438108,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Girl(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Girl\",30)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Girl\",30)",
+            "state": "Passed",
+            "durationSeconds": 0.0611476,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Girl(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Girl\",60)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Girl\",60)",
+            "state": "Passed",
+            "durationSeconds": 0.0584242,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Girl(Clone) at 0.38 s\n"
+          },
+          {
+            "name": "FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Milez\",15)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Milez\",15)",
+            "state": "Passed",
+            "durationSeconds": 0.0436016,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Milez(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Milez\",30)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Milez\",30)",
+            "state": "Passed",
+            "durationSeconds": 0.0487853,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Milez(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Milez\",60)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Milez\",60)",
+            "state": "Passed",
+            "durationSeconds": 0.0597434,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Milez(Clone) at 0.38 s\n"
+          },
+          {
+            "name": "FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Aza\",15)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Aza\",15)",
+            "state": "Passed",
+            "durationSeconds": 0.0424933,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Aza(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Aza\",30)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Aza\",30)",
+            "state": "Passed",
+            "durationSeconds": 0.0488133,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Aza(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Aza\",60)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FirstSwipeTouchesAStandingCharacterExactlyOnce(\"Aza\",60)",
+            "state": "Passed",
+            "durationSeconds": 0.0638788,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Aza(Clone) at 0.38 s\n"
+          },
+          {
+            "name": "FreshContactDuringSwipeFollowThroughStillCounts(15)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FreshContactDuringSwipeFollowThroughStillCounts(15)",
+            "state": "Passed",
+            "durationSeconds": 0.005624,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Player(Clone) at 0.55 s\n"
+          },
+          {
+            "name": "FreshContactDuringSwipeFollowThroughStillCounts(30)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FreshContactDuringSwipeFollowThroughStillCounts(30)",
+            "state": "Passed",
+            "durationSeconds": 0.0056355,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Player(Clone) at 0.51 s\n"
+          },
+          {
+            "name": "FreshContactDuringSwipeFollowThroughStillCounts(60)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.FreshContactDuringSwipeFollowThroughStillCounts(60)",
+            "state": "Passed",
+            "durationSeconds": 0.0072414,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Player(Clone) at 0.50 s\n"
+          },
+          {
+            "name": "MissingFreshIkAndSkippingTheEntireWindowCannotInventContact",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.MissingFreshIkAndSkippingTheEntireWindowCannotInventContact",
+            "state": "Passed",
+            "durationSeconds": 0.004986,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Miss root=(0.000, 0.000, 0.867) yaw=0.00 standOff=1.783 lunge=0.867 wallRadius=6.360 radial=0.867 victim=Player(Clone) transform=(0.000, 0.000, 2.650) physics=(0.000, 0.000, 2.650) yaw=180.00 pose=Happy Idle:0.250 transition=False culling=AlwaysAnimate model=(0.000, 0.006, 0.000) scale=(1.704, 1.704, 1.704) visible=False hips=(-0.004, 0.678, 2.638) chest=(-0.003, 0.855, 2.646) sampleAge=0.370 surface=(0.000, 0.956, 2.217) shoulder=(-0.557, 1.445, 1.458) reach=1.061/1.208 lengths=0.462+0.416 reachable=True pad=(-0.002, 0.958, 2.218) gap=0.0000\n"
+          },
+          {
+            "name": "NearlyAlignedRunnerGetsASwipeWithoutWaitingForPerfectAim",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.NearlyAlignedRunnerGetsASwipeWithoutWaitingForPerfectAim",
+            "state": "Passed",
+            "durationSeconds": 0.0305699,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Player(Clone) at 0.38 s\n"
+          },
+          {
+            "name": "PlayerLeavingAfterThePreviousPoseDoesNotReceiveAStaleHit(15)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.PlayerLeavingAfterThePreviousPoseDoesNotReceiveAStaleHit(15)",
+            "state": "Passed",
+            "durationSeconds": 0.0104405,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Miss root=(0.000, 0.000, 0.867) yaw=0.00 standOff=1.783 lunge=0.867 wallRadius=6.360 radial=0.867 victim=Player(Clone) transform=(1.200, 0.000, 2.650) physics=(1.200, 0.000, 2.650) yaw=180.00 pose=Happy Idle:0.250 transition=False culling=AlwaysAnimate model=(0.000, 0.006, 0.000) scale=(1.704, 1.704, 1.704) visible=False hips=(1.196, 0.678, 2.638) chest=(1.197, 0.855, 2.646) sampleAge=0.570 surface=(0.949, 0.956, 2.282) shoulder=(-0.555, 1.493, 1.462) reach=1.795/1.208 lengths=0.462+0.416 reachable=False pad=(-0.064, 1.055, 2.193) gap=0.8718\n"
+          },
+          {
+            "name": "PlayerLeavingAfterThePreviousPoseDoesNotReceiveAStaleHit(30)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.PlayerLeavingAfterThePreviousPoseDoesNotReceiveAStaleHit(30)",
+            "state": "Passed",
+            "durationSeconds": 0.0153423,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Miss root=(0.000, 0.000, 0.867) yaw=0.00 standOff=1.783 lunge=0.867 wallRadius=6.360 radial=0.867 victim=Player(Clone) transform=(1.200, 0.000, 2.650) physics=(1.200, 0.000, 2.650) yaw=180.00 pose=Happy Idle:0.250 transition=False culling=AlwaysAnimate model=(0.000, 0.006, 0.000) scale=(1.704, 1.704, 1.704) visible=False hips=(1.196, 0.678, 2.638) chest=(1.197, 0.855, 2.646) sampleAge=0.570 surface=(0.949, 0.956, 2.282) shoulder=(-0.555, 1.493, 1.462) reach=1.795/1.208 lengths=0.462+0.416 reachable=False pad=(-0.064, 1.055, 2.193) gap=0.8718\n"
+          },
+          {
+            "name": "PlayerLeavingAfterThePreviousPoseDoesNotReceiveAStaleHit(60)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.PlayerLeavingAfterThePreviousPoseDoesNotReceiveAStaleHit(60)",
+            "state": "Passed",
+            "durationSeconds": 0.0282926,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Miss root=(0.000, 0.000, 0.867) yaw=0.00 standOff=1.783 lunge=0.867 wallRadius=6.360 radial=0.867 victim=Player(Clone) transform=(1.200, 0.000, 2.650) physics=(1.200, 0.000, 2.650) yaw=180.00 pose=Happy Idle:0.250 transition=False culling=AlwaysAnimate model=(0.000, 0.006, 0.000) scale=(1.704, 1.704, 1.704) visible=False hips=(1.196, 0.678, 2.638) chest=(1.197, 0.855, 2.646) sampleAge=0.587 surface=(0.949, 0.956, 2.282) shoulder=(-0.555, 1.493, 1.462) reach=1.795/1.208 lengths=0.462+0.416 reachable=False pad=(-0.058, 1.049, 2.186) gap=0.8682\n"
+          },
+          {
+            "name": "RunnerChargingIntoTheSwipingPawReceivesTheFirstVisibleContact(15)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.RunnerChargingIntoTheSwipingPawReceivesTheFirstVisibleContact(15)",
+            "state": "Passed",
+            "durationSeconds": 0.0069711,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Boss(Clone) at 0.41 s\n"
+          },
+          {
+            "name": "RunnerChargingIntoTheSwipingPawReceivesTheFirstVisibleContact(30)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.RunnerChargingIntoTheSwipingPawReceivesTheFirstVisibleContact(30)",
+            "state": "Passed",
+            "durationSeconds": 0.0084213,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Boss(Clone) at 0.41 s\n"
+          },
+          {
+            "name": "RunnerChargingIntoTheSwipingPawReceivesTheFirstVisibleContact(60)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.RunnerChargingIntoTheSwipingPawReceivesTheFirstVisibleContact(60)",
+            "state": "Passed",
+            "durationSeconds": 0.0136343,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Boss(Clone) at 0.39 s\n"
+          },
+          {
+            "name": "RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane(1.0f,0.0f,-4.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane(1.0f,0.0f,-4.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0233908,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Boss(Clone) at 0.38 s\nRim intercept seconds=1.68 attacks=1\n"
+          },
+          {
+            "name": "RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane(-1.0f,0.0f,-4.0f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane(-1.0f,0.0f,-4.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0194885,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Boss(Clone) at 0.38 s\nRim intercept seconds=1.68 attacks=1\n"
+          },
+          {
+            "name": "RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane(1.0f,45.0f,5.5f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane(1.0f,45.0f,5.5f)",
+            "state": "Passed",
+            "durationSeconds": 0.0941531,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Boss(Clone) at 0.38 s\nRim intercept seconds=11.08 attacks=1\n"
+          },
+          {
+            "name": "RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane(-1.0f,45.0f,5.5f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane(-1.0f,45.0f,5.5f)",
+            "state": "Passed",
+            "durationSeconds": 0.0239158,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Boss(Clone) at 0.38 s\nRim intercept seconds=1.00 attacks=1\n"
+          },
+          {
+            "name": "RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane(1.0f,0.0f,5.5f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane(1.0f,0.0f,5.5f)",
+            "state": "Passed",
+            "durationSeconds": 0.128554,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Miss root=(0.035, 0.000, 5.707) yaw=12.00 standOff=2.090 lunge=0.210 wallRadius=6.360 radial=5.707 victim=Boss(Clone) transform=(3.740, 0.000, 6.845) physics=(3.740, 0.000, 6.845) yaw=118.65 pose=idle:0.250 transition=False culling=AlwaysAnimate model=(0.000, 0.007, 0.000) scale=(2.427, 2.427, 2.427) visible=False hips=(3.705, 0.817, 6.856) chest=(3.723, 1.047, 6.853) sampleAge=0.583 surface=(3.057, 1.224, 6.684) shoulder=(-0.385, 1.493, 6.404) reach=3.464/1.208 lengths=0.462+0.416 reachable=False pad=(0.252, 1.050, 7.010) gap=2.7863\n[CircusBear 0.00] State Recovery\n[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Boss(Clone) at 0.38 s\nRim intercept seconds=10.47 attacks=2\n"
+          },
+          {
+            "name": "RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane(-1.0f,0.0f,5.5f)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane(-1.0f,0.0f,5.5f)",
+            "state": "Passed",
+            "durationSeconds": 0.102485,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Miss root=(-0.032, 0.000, 5.692) yaw=348.00 standOff=2.104 lunge=0.196 wallRadius=6.360 radial=5.693 victim=Boss(Clone) transform=(-3.740, 0.000, 6.845) physics=(-3.740, 0.000, 6.845) yaw=241.35 pose=idle:0.250 transition=False culling=AlwaysAnimate model=(0.000, 0.007, 0.000) scale=(2.427, 2.427, 2.427) visible=False hips=(-3.712, 0.817, 6.869) chest=(-3.724, 1.047, 6.855) sampleAge=0.583 surface=(-3.083, 1.198, 6.691) shoulder=(-0.699, 1.493, 6.159) reach=2.461/1.208 lengths=0.462+0.416 reachable=False pad=(-0.364, 1.050, 6.971) gap=2.6696\n[CircusBear 0.00] State Recovery\n[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Boss(Clone) at 0.38 s\nRim intercept seconds=10.47 attacks=2\n"
+          },
+          {
+            "name": "SmallSideStepDuringLiftIsTrackedButRunningDodgeStillEscapes(15)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.SmallSideStepDuringLiftIsTrackedButRunningDodgeStillEscapes(15)",
+            "state": "Passed",
+            "durationSeconds": 0.0193227,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Player(Clone) at 0.40 s\n[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Miss root=(0.100, 0.000, 0.861) yaw=7.67 standOff=1.783 lunge=0.867 wallRadius=6.360 radial=0.867 victim=Player(Clone) transform=(3.575, 0.000, 2.650) physics=(3.575, 0.000, 2.650) yaw=180.00 pose=Happy Idle:0.250 transition=False culling=AlwaysAnimate model=(0.000, 0.006, 0.000) scale=(1.704, 1.704, 1.704) visible=False hips=(3.571, 0.678, 2.638) chest=(3.572, 0.855, 2.646) sampleAge=0.533 surface=(2.753, 0.944, 2.426) shoulder=(-0.371, 1.493, 1.524) reach=3.297/1.208 lengths=0.462+0.416 reachable=False pad=(0.190, 1.085, 2.221) gap=2.4623\n"
+          },
+          {
+            "name": "SmallSideStepDuringLiftIsTrackedButRunningDodgeStillEscapes(30)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.SmallSideStepDuringLiftIsTrackedButRunningDodgeStillEscapes(30)",
+            "state": "Passed",
+            "durationSeconds": 0.0306116,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Player(Clone) at 0.40 s\n[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Miss root=(0.115, 0.000, 0.858) yaw=10.42 standOff=1.783 lunge=0.867 wallRadius=6.360 radial=0.865 victim=Player(Clone) transform=(3.575, 0.000, 2.650) physics=(3.575, 0.000, 2.650) yaw=180.00 pose=Happy Idle:0.250 transition=False culling=AlwaysAnimate model=(0.000, 0.006, 0.000) scale=(1.704, 1.704, 1.704) visible=False hips=(3.571, 0.678, 2.638) chest=(3.572, 0.855, 2.646) sampleAge=0.567 surface=(2.963, 0.943, 2.436) shoulder=(-0.323, 1.493, 1.543) reach=3.450/1.208 lengths=0.462+0.416 reachable=False pad=(0.291, 1.057, 2.176) gap=2.5740\n"
+          },
+          {
+            "name": "SmallSideStepDuringLiftIsTrackedButRunningDodgeStillEscapes(60)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.SmallSideStepDuringLiftIsTrackedButRunningDodgeStillEscapes(60)",
+            "state": "Passed",
+            "durationSeconds": 0.0539251,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Player(Clone) at 0.38 s\n[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Miss root=(0.096, 0.000, 0.860) yaw=9.33 standOff=1.783 lunge=0.867 wallRadius=6.360 radial=0.865 victim=Player(Clone) transform=(3.575, 0.000, 2.650) physics=(3.575, 0.000, 2.650) yaw=180.00 pose=Happy Idle:0.250 transition=False culling=AlwaysAnimate model=(0.000, 0.006, 0.000) scale=(1.704, 1.704, 1.704) visible=False hips=(3.571, 0.678, 2.638) chest=(3.572, 0.855, 2.646) sampleAge=0.583 surface=(3.067, 0.943, 2.441) shoulder=(-0.355, 1.493, 1.537) reach=3.582/1.208 lengths=0.462+0.416 reachable=False pad=(0.252, 1.050, 2.172) gap=2.7161\n"
+          },
+          {
+            "name": "StrikeLiftKeepsElbowBelowShoulderAndLimbLengthsRigid(30)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.StrikeLiftKeepsElbowBelowShoulderAndLimbLengthsRigid(30)",
+            "state": "Passed",
+            "durationSeconds": 0.0074937,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n"
+          },
+          {
+            "name": "StrikeLiftKeepsElbowBelowShoulderAndLimbLengthsRigid(60)",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.StrikeLiftKeepsElbowBelowShoulderAndLimbLengthsRigid(60)",
+            "state": "Passed",
+            "durationSeconds": 0.0085422,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n"
+          },
+          {
+            "name": "WallBlockedRetreatWalksAroundThenReachesTheCloseRunner",
+            "fullName": "Igruha.Tests.CircusBearContactTimingTests.WallBlockedRetreatWalksAroundThenReachesTheCloseRunner",
+            "state": "Passed",
+            "durationSeconds": 0.1512932,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\n[CircusBear 0.00] State Attack\n[CircusBear 0.00] Contact Boss(Clone) at 0.40 s\n"
+          },
+          {
+            "name": "AnimatedPawsRemainContinuousThroughStepsAndTurns(0.85f,0.0f)",
+            "fullName": "Igruha.Tests.CircusBearGaitTests.AnimatedPawsRemainContinuousThroughStepsAndTurns(0.85f,0.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.2300112,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\nMaximum paw travel in one 60 Hz frame: 0.06471588\n"
+          },
+          {
+            "name": "AnimatedPawsRemainContinuousThroughStepsAndTurns(0.85f,90.0f)",
+            "fullName": "Igruha.Tests.CircusBearGaitTests.AnimatedPawsRemainContinuousThroughStepsAndTurns(0.85f,90.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.2241056,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\nMaximum paw travel in one 60 Hz frame: 0.1246548\n"
+          },
+          {
+            "name": "AnimatedPawsRemainContinuousThroughStepsAndTurns(2.1f,0.0f)",
+            "fullName": "Igruha.Tests.CircusBearGaitTests.AnimatedPawsRemainContinuousThroughStepsAndTurns(2.1f,0.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.2235308,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\nMaximum paw travel in one 60 Hz frame: 0.119322\n"
+          },
+          {
+            "name": "AnimatedPawsRemainContinuousThroughStepsAndTurns(4.5f,45.0f)",
+            "fullName": "Igruha.Tests.CircusBearGaitTests.AnimatedPawsRemainContinuousThroughStepsAndTurns(4.5f,45.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.2276605,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\nMaximum paw travel in one 60 Hz frame: 0.188841\n"
+          },
+          {
+            "name": "AnimatedPawsRemainContinuousThroughStepsAndTurns(8.2f,0.0f)",
+            "fullName": "Igruha.Tests.CircusBearGaitTests.AnimatedPawsRemainContinuousThroughStepsAndTurns(8.2f,0.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.2345703,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Chase\nMaximum paw travel in one 60 Hz frame: 0.2906118\n"
+          },
+          {
+            "name": "CageAttentionKeepsAllFourPawsLowWithTheActualAnimator",
+            "fullName": "Igruha.Tests.CircusBearGaitTests.CageAttentionKeepsAllFourPawsLowWithTheActualAnimator",
+            "state": "Passed",
+            "durationSeconds": 0.2351262,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State CageApproach\n[CircusBear 0.00] State Patrol\n[CircusBear 0.00] State CageApproach\n"
+          },
+          {
+            "name": "EveryAuthoredPoseFitsInsideTheWallClearance",
+            "fullName": "Igruha.Tests.CircusBearGaitTests.EveryAuthoredPoseFitsInsideTheWallClearance",
+            "state": "Passed",
+            "durationSeconds": 0.4294806,
+            "message": null,
+            "stackTrace": null,
+            "output": "Animated fur/muzzle/paw envelope: 2.098796\n"
+          },
+          {
+            "name": "HalfTurnLiftsEveryPawAndKeepsSupportingPawsStill(180.0f,60)",
+            "fullName": "Igruha.Tests.CircusBearGaitTests.HalfTurnLiftsEveryPawAndKeepsSupportingPawsStill(180.0f,60)",
+            "state": "Passed",
+            "durationSeconds": 0.2049766,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Watching\nTurn 180: slide=0.00318, step=0.0794, yaw/frame=0.917; lift=0.09473449,0.09473467,0.09473479,0.09473455; supports=85,80,89,85\n"
+          },
+          {
+            "name": "HalfTurnLiftsEveryPawAndKeepsSupportingPawsStill(-179.0f,60)",
+            "fullName": "Igruha.Tests.CircusBearGaitTests.HalfTurnLiftsEveryPawAndKeepsSupportingPawsStill(-179.0f,60)",
+            "state": "Passed",
+            "durationSeconds": 0.195222,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Watching\nTurn -179: slide=0.00318, step=0.0794, yaw/frame=0.917; lift=0.09473449,0.09473467,0.09473479,0.09473455; supports=85,80,89,85\n"
+          },
+          {
+            "name": "HalfTurnLiftsEveryPawAndKeepsSupportingPawsStill(180.0f,30)",
+            "fullName": "Igruha.Tests.CircusBearGaitTests.HalfTurnLiftsEveryPawAndKeepsSupportingPawsStill(180.0f,30)",
+            "state": "Passed",
+            "durationSeconds": 0.188764,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusBear 0.00] State Watching\nTurn 180: slide=0.00356, step=0.1628, yaw/frame=1.834; lift=0.09473437,0.09570724,0.09473443,0.09473455; supports=43,39,44,43\n"
+          },
+          {
+            "name": "PatrolStaysInsideTheSafeRegionForAFullLap",
+            "fullName": "Igruha.Tests.CircusBearGaitTests.PatrolStaysInsideTheSafeRegionForAFullLap",
+            "state": "Passed",
+            "durationSeconds": 0.1977117,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "PivotCanResumeWalkingWithoutAnAnchorSnapOrLimbStretch",
+            "fullName": "Igruha.Tests.CircusBearGaitTests.PivotCanResumeWalkingWithoutAnAnchorSnapOrLimbStretch",
+            "state": "Passed",
+            "durationSeconds": 0.1947868,
+            "message": null,
+            "stackTrace": null,
+            "output": "Pivot to walk: max paw step=0.1015286, segment length fraction=1.936088E-06\n"
+          },
+          {
+            "name": "ProductionControllerHasNoRearingStateTriggerOrClip",
+            "fullName": "Igruha.Tests.CircusBearGaitTests.ProductionControllerHasNoRearingStateTriggerOrClip",
+            "state": "Passed",
+            "durationSeconds": 0.1791944,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "TurningLimbsKeepRigidLengthsAndDoNotFlipTheirJoints(0.0f,55.0f,60)",
+            "fullName": "Igruha.Tests.CircusBearGaitTests.TurningLimbsKeepRigidLengthsAndDoNotFlipTheirJoints(0.0f,55.0f,60)",
+            "state": "Passed",
+            "durationSeconds": 0.1809912,
+            "message": null,
+            "stackTrace": null,
+            "output": "Rigid turn speed=0: length error=1.219018E-06, joint/frame=7.680656\n"
+          },
+          {
+            "name": "TurningLimbsKeepRigidLengthsAndDoNotFlipTheirJoints(1.05f,46.0f,60)",
+            "fullName": "Igruha.Tests.CircusBearGaitTests.TurningLimbsKeepRigidLengthsAndDoNotFlipTheirJoints(1.05f,46.0f,60)",
+            "state": "Passed",
+            "durationSeconds": 0.1876761,
+            "message": null,
+            "stackTrace": null,
+            "output": "Rigid turn speed=1.05: length error=1.290725E-06, joint/frame=18.96287\n"
+          },
+          {
+            "name": "TurningLimbsKeepRigidLengthsAndDoNotFlipTheirJoints(0.55f,-37.0f,30)",
+            "fullName": "Igruha.Tests.CircusBearGaitTests.TurningLimbsKeepRigidLengthsAndDoNotFlipTheirJoints(0.55f,-37.0f,30)",
+            "state": "Passed",
+            "durationSeconds": 0.185955,
+            "message": null,
+            "stackTrace": null,
+            "output": "Rigid turn speed=0.55: length error=1.240003E-06, joint/frame=17.55919\n"
+          },
+          {
+            "name": "BearsCanPassHeadOnWithoutCrossingOrLeavingThePit",
+            "fullName": "Igruha.Tests.CircusBearPairTests.BearsCanPassHeadOnWithoutCrossingOrLeavingThePit",
+            "state": "Passed",
+            "durationSeconds": 0.0051116,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "PatrolExploresTheArenaWithIndependentPausesWithoutCollisions(757)",
+            "fullName": "Igruha.Tests.CircusBearPairTests.PatrolExploresTheArenaWithIndependentPausesWithoutCollisions(757)",
+            "state": "Passed",
+            "durationSeconds": 0.1102292,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "PatrolExploresTheArenaWithIndependentPausesWithoutCollisions(43)",
+            "fullName": "Igruha.Tests.CircusBearPairTests.PatrolExploresTheArenaWithIndependentPausesWithoutCollisions(43)",
+            "state": "Passed",
+            "durationSeconds": 0.0775846,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "PatrolExploresTheArenaWithIndependentPausesWithoutCollisions(912)",
+            "fullName": "Igruha.Tests.CircusBearPairTests.PatrolExploresTheArenaWithIndependentPausesWithoutCollisions(912)",
+            "state": "Passed",
+            "durationSeconds": 0.0782422,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "ShippingSceneHasTwoWiredAndIndependentlyReplicatedBears(\"CansOrder\")",
+            "fullName": "Igruha.Tests.CircusBearPairTests.ShippingSceneHasTwoWiredAndIndependentlyReplicatedBears(\"CansOrder\")",
+            "state": "Passed",
+            "durationSeconds": 0.1868225,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "ShippingSceneHasTwoWiredAndIndependentlyReplicatedBears(\"Stopwatch\")",
+            "fullName": "Igruha.Tests.CircusBearPairTests.ShippingSceneHasTwoWiredAndIndependentlyReplicatedBears(\"Stopwatch\")",
+            "state": "Passed",
+            "durationSeconds": 1.1230636,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "ContinuousFloorReleasesWithTheHatchAndReturnsWhenClosed(\"CansOrder\")",
+            "fullName": "Igruha.Tests.CircusCageSafetyTests.ContinuousFloorReleasesWithTheHatchAndReturnsWhenClosed(\"CansOrder\")",
+            "state": "Passed",
+            "durationSeconds": 0.4304388,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "ContinuousFloorReleasesWithTheHatchAndReturnsWhenClosed(\"Stopwatch\")",
+            "fullName": "Igruha.Tests.CircusCageSafetyTests.ContinuousFloorReleasesWithTheHatchAndReturnsWhenClosed(\"Stopwatch\")",
+            "state": "Passed",
+            "durationSeconds": 1.0750534,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "CrouchCapsuleCannotCrossClosedSupportButCanFallAfterRelease",
+            "fullName": "Igruha.Tests.CircusCageSafetyTests.CrouchCapsuleCannotCrossClosedSupportButCanFallAfterRelease",
+            "state": "Passed",
+            "durationSeconds": 0.220135,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "LowestClosedCageClearsTheActualMasonryAndOpensWithoutRising(\"CansOrder\")",
+            "fullName": "Igruha.Tests.CircusCageSafetyTests.LowestClosedCageClearsTheActualMasonryAndOpensWithoutRising(\"CansOrder\")",
+            "state": "Passed",
+            "durationSeconds": 0.1709104,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "LowestClosedCageClearsTheActualMasonryAndOpensWithoutRising(\"Stopwatch\")",
+            "fullName": "Igruha.Tests.CircusCageSafetyTests.LowestClosedCageClearsTheActualMasonryAndOpensWithoutRising(\"Stopwatch\")",
+            "state": "Passed",
+            "durationSeconds": 0.1560135,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "OpenLeafIsHiddenOnlyForTheObstructedLocalCameraAndRestoredAfterRendering",
+            "fullName": "Igruha.Tests.CircusCageSafetyTests.OpenLeafIsHiddenOnlyForTheObstructedLocalCameraAndRestoredAfterRendering",
+            "state": "Passed",
+            "durationSeconds": 0.0028693,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "RunningIntoShelfCannotPushPlayerThroughClosedFloor(\"Player\")",
+            "fullName": "Igruha.Tests.CircusCageSafetyTests.RunningIntoShelfCannotPushPlayerThroughClosedFloor(\"Player\")",
+            "state": "Passed",
+            "durationSeconds": 0.1815868,
+            "message": null,
+            "stackTrace": null,
+            "output": "Player root y=-1.788139E-07..0.006075978 support=-3.72529E-08\n"
+          },
+          {
+            "name": "RunningIntoShelfCannotPushPlayerThroughClosedFloor(\"Boss\")",
+            "fullName": "Igruha.Tests.CircusCageSafetyTests.RunningIntoShelfCannotPushPlayerThroughClosedFloor(\"Boss\")",
+            "state": "Passed",
+            "durationSeconds": 0.1737723,
+            "message": null,
+            "stackTrace": null,
+            "output": "Boss root y=-1.788139E-07..0.006075978 support=-2.235174E-08\n"
+          },
+          {
+            "name": "RunningIntoShelfCannotPushPlayerThroughClosedFloor(\"Fat\")",
+            "fullName": "Igruha.Tests.CircusCageSafetyTests.RunningIntoShelfCannotPushPlayerThroughClosedFloor(\"Fat\")",
+            "state": "Passed",
+            "durationSeconds": 0.1769591,
+            "message": null,
+            "stackTrace": null,
+            "output": "Fat root y=-1.192093E-07..0.006075978 support=-3.72529E-08\n"
+          },
+          {
+            "name": "RunningIntoShelfCannotPushPlayerThroughClosedFloor(\"MyBoy\")",
+            "fullName": "Igruha.Tests.CircusCageSafetyTests.RunningIntoShelfCannotPushPlayerThroughClosedFloor(\"MyBoy\")",
+            "state": "Passed",
+            "durationSeconds": 0.1739898,
+            "message": null,
+            "stackTrace": null,
+            "output": "MyBoy root y=-1.490116E-07..0.006075978 support=-3.72529E-08\n"
+          },
+          {
+            "name": "RunningIntoShelfCannotPushPlayerThroughClosedFloor(\"Girl\")",
+            "fullName": "Igruha.Tests.CircusCageSafetyTests.RunningIntoShelfCannotPushPlayerThroughClosedFloor(\"Girl\")",
+            "state": "Passed",
+            "durationSeconds": 0.1747196,
+            "message": null,
+            "stackTrace": null,
+            "output": "Girl root y=-1.788139E-07..0.006075978 support=-1.117587E-08\n"
+          },
+          {
+            "name": "RunningIntoShelfCannotPushPlayerThroughClosedFloor(\"Milez\")",
+            "fullName": "Igruha.Tests.CircusCageSafetyTests.RunningIntoShelfCannotPushPlayerThroughClosedFloor(\"Milez\")",
+            "state": "Passed",
+            "durationSeconds": 0.505796,
+            "message": null,
+            "stackTrace": null,
+            "output": "Milez root y=-1.788139E-07..0.006075978 support=-1.117587E-08\n"
+          },
+          {
+            "name": "RunningIntoShelfCannotPushPlayerThroughClosedFloor(\"Aza\")",
+            "fullName": "Igruha.Tests.CircusCageSafetyTests.RunningIntoShelfCannotPushPlayerThroughClosedFloor(\"Aza\")",
+            "state": "Passed",
+            "durationSeconds": 1.8923296,
+            "message": null,
+            "stackTrace": null,
+            "output": "Aza root y=-1.788139E-07..0.006075978 support=2.980232E-08\n"
+          },
+          {
+            "name": "RunningIntoShelfCannotPushPlayerThroughClosedFloor(\"Shlanga\")",
+            "fullName": "Igruha.Tests.CircusCageSafetyTests.RunningIntoShelfCannotPushPlayerThroughClosedFloor(\"Shlanga\")",
+            "state": "Passed",
+            "durationSeconds": 1.2842699,
+            "message": null,
+            "stackTrace": null,
+            "output": "Shlanga root y=-2.384186E-07..0.006076038 support=-3.72529E-08\n"
+          },
+          {
+            "name": "DelayedHitDeliversPhaseThenIndependentPayloadInEitherPacketOrder(False)",
+            "fullName": "Igruha.Tests.CircusFinaleGateTests.DelayedHitDeliversPhaseThenIndependentPayloadInEitherPacketOrder(False)",
+            "state": "Passed",
+            "durationSeconds": 0.0077515,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "DelayedHitDeliversPhaseThenIndependentPayloadInEitherPacketOrder(True)",
+            "fullName": "Igruha.Tests.CircusFinaleGateTests.DelayedHitDeliversPhaseThenIndependentPayloadInEitherPacketOrder(True)",
+            "state": "Passed",
+            "durationSeconds": 0.0002799,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "DisableResetOrNewPhaseDiscardsQueuedResults(False)",
+            "fullName": "Igruha.Tests.CircusFinaleGateTests.DisableResetOrNewPhaseDiscardsQueuedResults(False)",
+            "state": "Passed",
+            "durationSeconds": 0.0040001,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "DisableResetOrNewPhaseDiscardsQueuedResults(True)",
+            "fullName": "Igruha.Tests.CircusFinaleGateTests.DisableResetOrNewPhaseDiscardsQueuedResults(True)",
+            "state": "Passed",
+            "durationSeconds": 0.0007114,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "NoLocalPresentationDeliversBothMessagesImmediately",
+            "fullName": "Igruha.Tests.CircusFinaleGateTests.NoLocalPresentationDeliversBothMessagesImmediately",
+            "state": "Passed",
+            "durationSeconds": 0.0017993,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "StalledKnockoutCannotHoldResultsLongerThanTwoRealtimeSeconds",
+            "fullName": "Igruha.Tests.CircusFinaleGateTests.StalledKnockoutCannotHoldResultsLongerThanTwoRealtimeSeconds",
+            "state": "Passed",
+            "durationSeconds": 0.0017271,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "StopwatchCannotReactivateItsRoundClockOnRestart",
+            "fullName": "Igruha.Tests.CircusInterfacePresentationTests.StopwatchCannotReactivateItsRoundClockOnRestart",
+            "state": "Passed",
+            "durationSeconds": 1.2291552,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "StopwatchScreenShowsStaticTargetAndRevealsTimesOnlyWithResults(2)",
+            "fullName": "Igruha.Tests.CircusInterfacePresentationTests.StopwatchScreenShowsStaticTargetAndRevealsTimesOnlyWithResults(2)",
+            "state": "Passed",
+            "durationSeconds": 0.1180971,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "StopwatchScreenShowsStaticTargetAndRevealsTimesOnlyWithResults(8)",
+            "fullName": "Igruha.Tests.CircusInterfacePresentationTests.StopwatchScreenShowsStaticTargetAndRevealsTimesOnlyWithResults(8)",
+            "state": "Passed",
+            "durationSeconds": 0.1297231,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "ConfirmedUnsolvedAttemptRevealsOnlyItsOwnSnapshot",
+            "fullName": "Igruha.Tests.CircusInterfacePrivacyTests.ConfirmedUnsolvedAttemptRevealsOnlyItsOwnSnapshot",
+            "state": "Passed",
+            "durationSeconds": 0.012141,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "CurrentScoreAndOrderRemainHiddenUntilReveal",
+            "fullName": "Igruha.Tests.CircusInterfacePrivacyTests.CurrentScoreAndOrderRemainHiddenUntilReveal",
+            "state": "Passed",
+            "durationSeconds": 0.0021509,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "MissingConfirmationDoesNotBecomeZeroMatches",
+            "fullName": "Igruha.Tests.CircusInterfacePrivacyTests.MissingConfirmationDoesNotBecomeZeroMatches",
+            "state": "Passed",
+            "durationSeconds": 0.0012931,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "PreviousRoundNeverLeaksIntoNewRoundTicket",
+            "fullName": "Igruha.Tests.CircusInterfacePrivacyTests.PreviousRoundNeverLeaksIntoNewRoundTicket",
+            "state": "Passed",
+            "durationSeconds": 0.0013535,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "WinningOrderIsNeverPrintedInResultTicket",
+            "fullName": "Igruha.Tests.CircusInterfacePrivacyTests.WinningOrderIsNeverPrintedInResultTicket",
+            "state": "Passed",
+            "durationSeconds": 0.0014733,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "OppositeRemoteFacingCannotChangeServerFallOrRemotePhysics(0.0f,180.0f,True)",
+            "fullName": "Igruha.Tests.CircusKnockoutContactTests.OppositeRemoteFacingCannotChangeServerFallOrRemotePhysics(0.0f,180.0f,True)",
+            "state": "Passed",
+            "durationSeconds": 0.015138,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusKnockout 0.00] Remote contact avatar: Contact; collapse begins, local motor=False; type=FlyBack; yaw=0.0\n"
+          },
+          {
+            "name": "OppositeRemoteFacingCannotChangeServerFallOrRemotePhysics(90.0f,-90.0f,True)",
+            "fullName": "Igruha.Tests.CircusKnockoutContactTests.OppositeRemoteFacingCannotChangeServerFallOrRemotePhysics(90.0f,-90.0f,True)",
+            "state": "Passed",
+            "durationSeconds": 0.0020993,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusKnockout 0.00] Remote contact avatar: Contact; collapse begins, local motor=False; type=FlyBack; yaw=90.0\n"
+          },
+          {
+            "name": "OppositeRemoteFacingCannotChangeServerFallOrRemotePhysics(0.0f,180.0f,False)",
+            "fullName": "Igruha.Tests.CircusKnockoutContactTests.OppositeRemoteFacingCannotChangeServerFallOrRemotePhysics(0.0f,180.0f,False)",
+            "state": "Passed",
+            "durationSeconds": 0.0018873,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusKnockout 0.00] Remote contact avatar: Contact; collapse begins, local motor=False; type=FallForward; yaw=0.0\n"
+          },
+          {
+            "name": "OppositeRemoteFacingCannotChangeServerFallOrRemotePhysics(179.9f,-1.0f,False)",
+            "fullName": "Igruha.Tests.CircusKnockoutContactTests.OppositeRemoteFacingCannotChangeServerFallOrRemotePhysics(179.9f,-1.0f,False)",
+            "state": "Passed",
+            "durationSeconds": 0.0036151,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusKnockout 0.00] Remote contact avatar: Contact; collapse begins, local motor=False; type=FallForward; yaw=179.9\n"
+          },
+          {
+            "name": "OwnerContactCorrectsPhysicsAndRenderTransformTogetherAndRestoresInterpolation(1.0f)",
+            "fullName": "Igruha.Tests.CircusKnockoutContactTests.OwnerContactCorrectsPhysicsAndRenderTransformTogetherAndRestoresInterpolation(1.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0058078,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusKnockout 0.00] Owner contact avatar: Contact; collapse begins, local motor=True; type=FallForward; yaw=32.0\n"
+          },
+          {
+            "name": "OwnerContactCorrectsPhysicsAndRenderTransformTogetherAndRestoresInterpolation(6.0f)",
+            "fullName": "Igruha.Tests.CircusKnockoutContactTests.OwnerContactCorrectsPhysicsAndRenderTransformTogetherAndRestoresInterpolation(6.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0027341,
+            "message": null,
+            "stackTrace": null,
+            "output": "[CircusKnockout 0.00] Owner contact avatar: Contact; collapse begins, local motor=True; type=FallForward; yaw=32.0\n"
+          },
+          {
+            "name": "AngerBeginsWithLaughterAndFullyDisappearsAfterwards",
+            "fullName": "Igruha.Tests.CircusMascotTests.AngerBeginsWithLaughterAndFullyDisappearsAfterwards",
+            "state": "Passed",
+            "durationSeconds": 0.000687,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar(\"Karlan\")",
+            "fullName": "Igruha.Tests.CircusMascotTests.AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar(\"Karlan\")",
+            "state": "Passed",
+            "durationSeconds": 18.846005,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar(\"Boss\")",
+            "fullName": "Igruha.Tests.CircusMascotTests.AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar(\"Boss\")",
+            "state": "Passed",
+            "durationSeconds": 2.787146,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar(\"Shlanga\")",
+            "fullName": "Igruha.Tests.CircusMascotTests.AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar(\"Shlanga\")",
+            "state": "Passed",
+            "durationSeconds": 18.8709791,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar(\"Fat\")",
+            "fullName": "Igruha.Tests.CircusMascotTests.AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar(\"Fat\")",
+            "state": "Passed",
+            "durationSeconds": 7.7811208,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar(\"MyBoy\")",
+            "fullName": "Igruha.Tests.CircusMascotTests.AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar(\"MyBoy\")",
+            "state": "Passed",
+            "durationSeconds": 12.5234744,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar(\"Girl\")",
+            "fullName": "Igruha.Tests.CircusMascotTests.AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar(\"Girl\")",
+            "state": "Passed",
+            "durationSeconds": 18.3356012,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar(\"Milez\")",
+            "fullName": "Igruha.Tests.CircusMascotTests.AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar(\"Milez\")",
+            "state": "Passed",
+            "durationSeconds": 11.9689476,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar(\"Aza\")",
+            "fullName": "Igruha.Tests.CircusMascotTests.AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar(\"Aza\")",
+            "state": "Passed",
+            "durationSeconds": 15.1293818,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "HorsePopsAtFullSizeAndLeavesItsCloudAlive",
+            "fullName": "Igruha.Tests.CircusMascotTests.HorsePopsAtFullSizeAndLeavesItsCloudAlive",
+            "state": "Passed",
+            "durationSeconds": 0.124493,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "LaughterAndBlinkMoveTheRenderedFacialMesh",
+            "fullName": "Igruha.Tests.CircusMascotTests.LaughterAndBlinkMoveTheRenderedFacialMesh",
+            "state": "Passed",
+            "durationSeconds": 0.2018415,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "MascotUsesActualFingerAndEyelidRig(0.8f,1.4f)",
+            "fullName": "Igruha.Tests.CircusMascotTests.MascotUsesActualFingerAndEyelidRig(0.8f,1.4f)",
+            "state": "Passed",
+            "durationSeconds": 0.001739,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "MascotUsesActualFingerAndEyelidRig(1.7f,1.0f)",
+            "fullName": "Igruha.Tests.CircusMascotTests.MascotUsesActualFingerAndEyelidRig(1.7f,1.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0004741,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "MascotUsesActualFingerAndEyelidRig(2.6f,1.9f)",
+            "fullName": "Igruha.Tests.CircusMascotTests.MascotUsesActualFingerAndEyelidRig(2.6f,1.9f)",
+            "state": "Passed",
+            "durationSeconds": 0.0003472,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "SuppliedLaughFitsTheEntirePresentationAtOriginalPitch",
+            "fullName": "Igruha.Tests.CircusMascotTests.SuppliedLaughFitsTheEntirePresentationAtOriginalPitch",
+            "state": "Passed",
+            "durationSeconds": 0.0126893,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "AnimatedSilhouettesFitRealCameraProjection(1.333333f,0,0.0f)",
+            "fullName": "Igruha.Tests.CircusShotGeometryTests.AnimatedSilhouettesFitRealCameraProjection(1.333333f,0,0.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0124561,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "AnimatedSilhouettesFitRealCameraProjection(1.333333f,0,70.0f)",
+            "fullName": "Igruha.Tests.CircusShotGeometryTests.AnimatedSilhouettesFitRealCameraProjection(1.333333f,0,70.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0013704,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "AnimatedSilhouettesFitRealCameraProjection(1.333333f,1,0.0f)",
+            "fullName": "Igruha.Tests.CircusShotGeometryTests.AnimatedSilhouettesFitRealCameraProjection(1.333333f,1,0.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0021975,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "AnimatedSilhouettesFitRealCameraProjection(1.333333f,1,70.0f)",
+            "fullName": "Igruha.Tests.CircusShotGeometryTests.AnimatedSilhouettesFitRealCameraProjection(1.333333f,1,70.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0026722,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "AnimatedSilhouettesFitRealCameraProjection(1.333333f,2,0.0f)",
+            "fullName": "Igruha.Tests.CircusShotGeometryTests.AnimatedSilhouettesFitRealCameraProjection(1.333333f,2,0.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0021239,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "AnimatedSilhouettesFitRealCameraProjection(1.333333f,2,70.0f)",
+            "fullName": "Igruha.Tests.CircusShotGeometryTests.AnimatedSilhouettesFitRealCameraProjection(1.333333f,2,70.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0021795,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "AnimatedSilhouettesFitRealCameraProjection(1.777778f,0,0.0f)",
+            "fullName": "Igruha.Tests.CircusShotGeometryTests.AnimatedSilhouettesFitRealCameraProjection(1.777778f,0,0.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0017594,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "AnimatedSilhouettesFitRealCameraProjection(1.777778f,0,70.0f)",
+            "fullName": "Igruha.Tests.CircusShotGeometryTests.AnimatedSilhouettesFitRealCameraProjection(1.777778f,0,70.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0013929,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "AnimatedSilhouettesFitRealCameraProjection(1.777778f,1,0.0f)",
+            "fullName": "Igruha.Tests.CircusShotGeometryTests.AnimatedSilhouettesFitRealCameraProjection(1.777778f,1,0.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0012697,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "AnimatedSilhouettesFitRealCameraProjection(1.777778f,1,70.0f)",
+            "fullName": "Igruha.Tests.CircusShotGeometryTests.AnimatedSilhouettesFitRealCameraProjection(1.777778f,1,70.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0013172,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "AnimatedSilhouettesFitRealCameraProjection(1.777778f,2,0.0f)",
+            "fullName": "Igruha.Tests.CircusShotGeometryTests.AnimatedSilhouettesFitRealCameraProjection(1.777778f,2,0.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.00133,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "AnimatedSilhouettesFitRealCameraProjection(1.777778f,2,70.0f)",
+            "fullName": "Igruha.Tests.CircusShotGeometryTests.AnimatedSilhouettesFitRealCameraProjection(1.777778f,2,70.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0012772,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "AnimatedSilhouettesFitRealCameraProjection(2.333333f,0,0.0f)",
+            "fullName": "Igruha.Tests.CircusShotGeometryTests.AnimatedSilhouettesFitRealCameraProjection(2.333333f,0,0.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0012776,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "AnimatedSilhouettesFitRealCameraProjection(2.333333f,0,70.0f)",
+            "fullName": "Igruha.Tests.CircusShotGeometryTests.AnimatedSilhouettesFitRealCameraProjection(2.333333f,0,70.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0012512,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "AnimatedSilhouettesFitRealCameraProjection(2.333333f,1,0.0f)",
+            "fullName": "Igruha.Tests.CircusShotGeometryTests.AnimatedSilhouettesFitRealCameraProjection(2.333333f,1,0.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0012276,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "AnimatedSilhouettesFitRealCameraProjection(2.333333f,1,70.0f)",
+            "fullName": "Igruha.Tests.CircusShotGeometryTests.AnimatedSilhouettesFitRealCameraProjection(2.333333f,1,70.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0013405,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "AnimatedSilhouettesFitRealCameraProjection(2.333333f,2,0.0f)",
+            "fullName": "Igruha.Tests.CircusShotGeometryTests.AnimatedSilhouettesFitRealCameraProjection(2.333333f,2,0.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0012204,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "AnimatedSilhouettesFitRealCameraProjection(2.333333f,2,70.0f)",
+            "fullName": "Igruha.Tests.CircusShotGeometryTests.AnimatedSilhouettesFitRealCameraProjection(2.333333f,2,70.0f)",
+            "state": "Passed",
+            "durationSeconds": 0.0012608,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "ARendererOnlyPanelCanOccludeAnActorWithoutTouchingTheCamera",
+            "fullName": "Igruha.Tests.CircusShotGeometryTests.ARendererOnlyPanelCanOccludeAnActorWithoutTouchingTheCamera",
+            "state": "Passed",
+            "durationSeconds": 0.0052904,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "CachedDoorGeometryFollowsMovementVisibilityAndParentScale",
+            "fullName": "Igruha.Tests.CircusShotGeometryTests.CachedDoorGeometryFollowsMovementVisibilityAndParentScale",
+            "state": "Passed",
+            "durationSeconds": 0.0013883,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "CombinedHollowCageUsesItsActualSurfacesInsteadOfFillingItsOpening",
+            "fullName": "Igruha.Tests.CircusShotGeometryTests.CombinedHollowCageUsesItsActualSurfacesInsteadOfFillingItsOpening",
+            "state": "Passed",
+            "durationSeconds": 0.0025241,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "CompanionBearBlocksTheLensAndViewWithoutBlockingTheAttackerItself",
+            "fullName": "Igruha.Tests.CircusShotGeometryTests.CompanionBearBlocksTheLensAndViewWithoutBlockingTheAttackerItself",
+            "state": "Passed",
+            "durationSeconds": 0.0016418,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "EnteringFromInsideTheActualBearMuzzleRequiresAnImpactCut",
+            "fullName": "Igruha.Tests.CircusShotGeometryTests.EnteringFromInsideTheActualBearMuzzleRequiresAnImpactCut",
+            "state": "Passed",
+            "durationSeconds": 0.0011774,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "OneThinCageRailDoesNotCancelAnOtherwiseReadableContactShot",
+            "fullName": "Igruha.Tests.CircusShotGeometryTests.OneThinCageRailDoesNotCancelAnOtherwiseReadableContactShot",
+            "state": "Passed",
+            "durationSeconds": 0.0012082,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "RotatedThinPanelDoesNotTurnItsEmptyWorldBoundsIntoAWall",
+            "fullName": "Igruha.Tests.CircusShotGeometryTests.RotatedThinPanelDoesNotTurnItsEmptyWorldBoundsIntoAWall",
+            "state": "Passed",
+            "durationSeconds": 0.0011664,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "StationaryContactCameraFramesTheAnticipatedMovingSilhouette(1.333333f)",
+            "fullName": "Igruha.Tests.CircusShotGeometryTests.StationaryContactCameraFramesTheAnticipatedMovingSilhouette(1.333333f)",
+            "state": "Passed",
+            "durationSeconds": 0.0032988,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "StationaryContactCameraFramesTheAnticipatedMovingSilhouette(1.777778f)",
+            "fullName": "Igruha.Tests.CircusShotGeometryTests.StationaryContactCameraFramesTheAnticipatedMovingSilhouette(1.777778f)",
+            "state": "Passed",
+            "durationSeconds": 0.0007213,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "VisibleOpenHatchBlocksTheShotAfterItsPhysicsColliderIsDisabled",
+            "fullName": "Igruha.Tests.CircusShotGeometryTests.VisibleOpenHatchBlocksTheShotAfterItsPhysicsColliderIsDisabled",
+            "state": "Passed",
+            "durationSeconds": 0.0008428,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "DescentReleasesButtonMovementLockBeforeTheNextLateUpdate",
+            "fullName": "Igruha.Tests.StopwatchHandSkinTests.DescentReleasesButtonMovementLockBeforeTheNextLateUpdate",
+            "state": "Passed",
+            "durationSeconds": 0.0053382,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin(\"Karlan\")",
+            "fullName": "Igruha.Tests.StopwatchHandSkinTests.EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin(\"Karlan\")",
+            "state": "Passed",
+            "durationSeconds": 0.0203724,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin(\"Boss\")",
+            "fullName": "Igruha.Tests.StopwatchHandSkinTests.EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin(\"Boss\")",
+            "state": "Passed",
+            "durationSeconds": 0.0231871,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin(\"Shlanga\")",
+            "fullName": "Igruha.Tests.StopwatchHandSkinTests.EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin(\"Shlanga\")",
+            "state": "Passed",
+            "durationSeconds": 0.0170355,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin(\"Fat\")",
+            "fullName": "Igruha.Tests.StopwatchHandSkinTests.EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin(\"Fat\")",
+            "state": "Passed",
+            "durationSeconds": 0.0178258,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin(\"MyBoy\")",
+            "fullName": "Igruha.Tests.StopwatchHandSkinTests.EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin(\"MyBoy\")",
+            "state": "Passed",
+            "durationSeconds": 0.0174697,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin(\"Girl\")",
+            "fullName": "Igruha.Tests.StopwatchHandSkinTests.EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin(\"Girl\")",
+            "state": "Passed",
+            "durationSeconds": 0.0161306,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin(\"Milez\")",
+            "fullName": "Igruha.Tests.StopwatchHandSkinTests.EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin(\"Milez\")",
+            "state": "Passed",
+            "durationSeconds": 0.0202134,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin(\"Aza\")",
+            "fullName": "Igruha.Tests.StopwatchHandSkinTests.EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin(\"Aza\")",
+            "state": "Passed",
+            "durationSeconds": 0.0217605,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          }
+        ]
+      }
+    },
+    "hint": null
+  }
+}
