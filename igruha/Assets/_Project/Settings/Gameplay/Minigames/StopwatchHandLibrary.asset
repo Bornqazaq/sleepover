@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 207eb68a3d29f4dd9a84948e272b219b, type: 3}
+  m_Name: StopwatchHandLibrary
+  m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.Stopwatch.StopwatchHandLibrary
+  entries:
+  - character: Karlan
+    sourceMesh: {fileID: 4111288081708817414, guid: 2b441780a3044d74fae9fdc643bf32fb, type: 3}
+    hand: {fileID: 4122038150777122187, guid: ed6e2f95f3ba64c96910d2108e348ed0, type: 3}
+  - character: Boss
+    sourceMesh: {fileID: -4732297964077508377, guid: 29170d1c8e5867845a770f496965696c, type: 3}
+    hand: {fileID: 8462433807993425237, guid: c4e3a00f7f1714ea4b1591485d5f3303, type: 3}
+  - character: Shlanga
+    sourceMesh: {fileID: 6402961464619234872, guid: 737af398c38b7d948af857e7d3ce8a60, type: 3}
+    hand: {fileID: 3421077956701744716, guid: 92460f3fd0f274efaa1f6bf136223bbf, type: 3}
+  - character: Fat
+    sourceMesh: {fileID: -8889964121841698168, guid: 14e37d99f42300a43b34d4f9e9553fc8, type: 3}
+    hand: {fileID: 3440839150566399711, guid: b1df26914475c4f1ca76ab065c976fdd, type: 3}
+  - character: MyBoy
+    sourceMesh: {fileID: 8980185973765492123, guid: f41ee9d4fe6eae7449eccd30199bee9e, type: 3}
+    hand: {fileID: 994572755374621601, guid: f78697493031842b492bd3abbac3e409, type: 3}
+  - character: Girl
+    sourceMesh: {fileID: 7158796146257112550, guid: 46320299878b7ce4c92497e1e578a3b7, type: 3}
+    hand: {fileID: 4443036661779717714, guid: 7dde3729309da415dbcb7060f5e5b17d, type: 3}
+  - character: Milez
+    sourceMesh: {fileID: 7158796146257112550, guid: b38673c3da537b44c8612d8d3b797bb8, type: 3}
+    hand: {fileID: 755836829294524127, guid: 24c8e2ae8ce1f422197a3e681a09cfc5, type: 3}
+  - character: Aza
+    sourceMesh: {fileID: 173348269101531870, guid: 4a61f4d55012e01449632b5d799dcb0f, type: 3}
+    hand: {fileID: 959154231865247548, guid: f802da75ea94549389c96b27d51eed44, type: 3}

@@ -1,0 +1,25 @@
+{
+  "meshes": 3,
+  "vertices": 33178,
+  "triangles": 65876,
+  "actions": [
+    "Mascot_Idle",
+    "Mascot_Taunt"
+  ],
+  "blendshapes": {
+    "MascotSkin": [
+      "Basis",
+      "LaughSmile",
+      "LaughOpen"
+    ],
+    "UpperLid.L": [
+      "Basis",
+      "Blink"
+    ],
+    "UpperLid.R": [
+      "Basis",
+      "Blink"
+    ]
+  },
+  "atlas": "2048x2048"
+}

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="4" result="Passed" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-10-15 11:20:11Z" end-time="2026-10-15 11:20:11Z" duration="0.1532179">
+  <test-suite type="TestSuite" id="1000" name="sleepover" fullname="sleepover" runstate="Runnable" testcasecount="764" result="Passed" start-time="2026-10-15 11:20:11Z" end-time="2026-10-15 11:20:11Z" duration="0.153218" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1895" name="Igruha.Camera.Tests.dll" fullname="/Users/azamatyessimkhanuly/Dev/projects/sleepover/igruha/Library/ScriptAssemblies/Igruha.Camera.Tests.dll" runstate="Runnable" testcasecount="763" result="Passed" start-time="2026-10-15 11:20:11Z" end-time="2026-10-15 11:20:11Z" duration="0.140833" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="18671" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="1896" name="Igruha" fullname="Igruha" runstate="Runnable" testcasecount="750" result="Passed" start-time="2026-10-15 11:20:11Z" end-time="2026-10-15 11:20:11Z" duration="0.134522" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1897" name="Tests" fullname="Igruha.Tests" runstate="Runnable" testcasecount="750" result="Passed" start-time="2026-10-15 11:20:11Z" end-time="2026-10-15 11:20:11Z" duration="0.122125" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestFixture" id="1280" name="CircusMascotTests" fullname="Igruha.Tests.CircusMascotTests" classname="Igruha.Tests.CircusMascotTests" runstate="Runnable" testcasecount="13" result="Passed" start-time="2026-10-15 11:20:11Z" end-time="2026-10-15 11:20:11Z" duration="0.110320" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1294" name="LaughterAndBlinkMoveTheRenderedFacialMesh" fullname="Igruha.Tests.CircusMascotTests.LaughterAndBlinkMoveTheRenderedFacialMesh" methodname="LaughterAndBlinkMoveTheRenderedFacialMesh" classname="Igruha.Tests.CircusMascotTests" runstate="Runnable" seed="1901797121" result="Passed" start-time="2026-10-15 11:20:11Z" end-time="2026-10-15 11:20:11Z" duration="0.062259" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-suite type="ParameterizedMethod" id="1293" name="MascotUsesActualFingerAndEyelidRig" fullname="Igruha.Tests.CircusMascotTests.MascotUsesActualFingerAndEyelidRig" classname="Igruha.Tests.CircusMascotTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-10-15 11:20:11Z" end-time="2026-10-15 11:20:11Z" duration="0.040865" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1290" name="MascotUsesActualFingerAndEyelidRig(0.8f,1.4f)" fullname="Igruha.Tests.CircusMascotTests.MascotUsesActualFingerAndEyelidRig(0.8f,1.4f)" methodname="MascotUsesActualFingerAndEyelidRig" classname="Igruha.Tests.CircusMascotTests" runstate="Runnable" seed="78693705" result="Passed" start-time="2026-10-15 11:20:11Z" end-time="2026-10-15 11:20:11Z" duration="0.035885" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1291" name="MascotUsesActualFingerAndEyelidRig(1.7f,1.0f)" fullname="Igruha.Tests.CircusMascotTests.MascotUsesActualFingerAndEyelidRig(1.7f,1.0f)" methodname="MascotUsesActualFingerAndEyelidRig" classname="Igruha.Tests.CircusMascotTests" runstate="Runnable" seed="828978817" result="Passed" start-time="2026-10-15 11:20:11Z" end-time="2026-10-15 11:20:11Z" duration="0.000555" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1292" name="MascotUsesActualFingerAndEyelidRig(2.6f,1.9f)" fullname="Igruha.Tests.CircusMascotTests.MascotUsesActualFingerAndEyelidRig(2.6f,1.9f)" methodname="MascotUsesActualFingerAndEyelidRig" classname="Igruha.Tests.CircusMascotTests" runstate="Runnable" seed="1904440221" result="Passed" start-time="2026-10-15 11:20:11Z" end-time="2026-10-15 11:20:11Z" duration="0.000393" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+Saving results to: /Users/azamatyessimkhanuly/Library/Application Support/Dauqara/sleepover/TestResults.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

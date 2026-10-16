@@ -1,0 +1,115 @@
+{
+  "date": "2026-10-16",
+  "editmode": {
+    "actions": {
+      "result": "Passed",
+      "total": "2",
+      "passed": "2",
+      "failed": "0",
+      "skipped": "0"
+    },
+    "bear-contact": {
+      "result": "Passed",
+      "total": "19",
+      "passed": "19",
+      "failed": "0",
+      "skipped": "0"
+    }
+  },
+  "network": {
+    "circus-cans": [
+      {
+        "log": "igruha/Builds/Autotest/logs/playtest-circus-cans-20261016-144258/client-1.log",
+        "peer_id": 2,
+        "passed": true,
+        "grounded_action_attempts": 351,
+        "jumps": 0,
+        "punches": 0,
+        "restored_in_hub": true,
+        "both_victims_caught": true
+      },
+      {
+        "log": "igruha/Builds/Autotest/logs/playtest-circus-cans-20261016-144258/client-2.log",
+        "peer_id": 1,
+        "passed": true,
+        "grounded_action_attempts": 403,
+        "jumps": 0,
+        "punches": 0,
+        "restored_in_hub": true,
+        "both_victims_caught": true
+      },
+      {
+        "log": "igruha/Builds/Autotest/logs/playtest-circus-cans-20261016-144258/client-3.log",
+        "peer_id": 3,
+        "passed": true,
+        "grounded_action_attempts": 430,
+        "jumps": 0,
+        "punches": 0,
+        "restored_in_hub": true,
+        "both_victims_caught": true
+      },
+      {
+        "log": "igruha/Builds/Autotest/logs/playtest-circus-cans-20261016-144258/host.log",
+        "peer_id": 0,
+        "passed": true,
+        "grounded_action_attempts": 170,
+        "jumps": 0,
+        "punches": 0,
+        "restored_in_hub": true,
+        "both_victims_caught": true
+      }
+    ],
+    "circus-stopwatch": [
+      {
+        "log": "igruha/Builds/Autotest/logs/playtest-circus-stopwatch-20261016-144457/client-1.log",
+        "peer_id": 2,
+        "passed": true,
+        "grounded_action_attempts": 783,
+        "jumps": 0,
+        "punches": 0,
+        "restored_in_hub": true,
+        "both_victims_caught": true
+      },
+      {
+        "log": "igruha/Builds/Autotest/logs/playtest-circus-stopwatch-20261016-144457/client-2.log",
+        "peer_id": 1,
+        "passed": true,
+        "grounded_action_attempts": 656,
+        "jumps": 0,
+        "punches": 0,
+        "restored_in_hub": true,
+        "both_victims_caught": true
+      },
+      {
+        "log": "igruha/Builds/Autotest/logs/playtest-circus-stopwatch-20261016-144457/client-3.log",
+        "peer_id": 3,
+        "passed": true,
+        "grounded_action_attempts": 676,
+        "jumps": 0,
+        "punches": 0,
+        "restored_in_hub": true,
+        "both_victims_caught": true
+      },
+      {
+        "log": "igruha/Builds/Autotest/logs/playtest-circus-stopwatch-20261016-144457/host.log",
+        "peer_id": 0,
+        "passed": true,
+        "grounded_action_attempts": 330,
+        "jumps": 0,
+        "punches": 0,
+        "restored_in_hub": true,
+        "both_victims_caught": true
+      }
+    ]
+  },
+  "network_scope": "Host + 3 localhost clients in each game, 2 graphical processes and 2 headless",
+  "unity_editor": {
+    "scene": "Stopwatch",
+    "playing": false,
+    "dirty": false,
+    "compiling": false,
+    "known_console_message": "ProfileValueReference: GetValue called with empty id."
+  },
+  "linear": "unavailable; unchanged",
+  "manual_balance_review": "not performed"
+}

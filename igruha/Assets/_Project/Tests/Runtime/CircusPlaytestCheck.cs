@@ -9,6 +9,7 @@ using Igruha.Core.Player;
 using Igruha.Core.Session;
 using Igruha.Minigames.Circus;
 using Igruha.Minigames.CansOrder;
+using Igruha.Minigames.Stopwatch;
 using Unity.Netcode;
 using Unity.Collections;
 using UnityEngine;
@@ -30,13 +31,16 @@ namespace Igruha.Tests
             var local = SessionScoreboard.Current.LocalPlayer.Avatar;
             var input = local.GetComponent<PlayerInputReader>();
             input.EngageAutopilot(); input.DriveMove(Vector2.zero);
+            using var travelProbe = new CageTravelProbe(local, input, fail);
+            using var actionProbe = new ActionRestrictionProbe(local, input, fail);
+            using var mascotProbe = new MascotProbe(game, local, fail);
             var stage = game.GetComponent<MinigameStageState>();
             float deadline = Time.realtimeSinceStartup + 155;
             if(game is CansOrderMinigame) yield return CheckInitialShelfRush(local,input,stage,fail);
             while (stage.Stage != 2 && Time.realtimeSinceStartup < deadline) yield return null;
             yield return new WaitForSeconds(.5f);
             bool cansPlacement=game is CansOrderMinigame;
-            if (!local.enabled || local.MovementLocked != cansPlacement || input.Suspended || !input.enabled)
+            if (!local.enabled || !local.MovementLocked || input.Suspended || !input.enabled)
                 fail("circus local movement lock differs from placement rules");
             if (!local.GetComponentsInChildren<SkinnedMeshRenderer>().Any(r=>r.enabled && !r.forceRenderingOff))
                 fail("circus own character hidden");
@@ -44,9 +48,10 @@ namespace Igruha.Tests
             Vector3 before = local.Position;
             input.DriveMove(Vector2.right); yield return new WaitForSeconds(.3f); input.DriveMove(Vector2.zero);
             float moved=Vector3.Distance(before,local.Position);
-            if(cansPlacement ? moved>.04f : moved<.08f)fail("circus placement movement differs from rules: "+moved);
+            if(moved>.04f)fail("circus close-up movement is not held: "+moved);
             yield return barrier.Wait(0);
             if (shelfProbe != null) yield return CheckShelfOcclusion((CansOrderMinigame)game, shelfProbe, barrier, fail);
+            if(game is StopwatchMinigame stopwatch) yield return CheckButtonHands(stopwatch,local,input,players,barrier,fail);
             var roundHud=UnityEngine.Object.FindFirstObjectByType<Igruha.Core.UI.RoundHud>();
             var clock=roundHud!=null?Get(roundHud,"timerText") as TMPro.TMP_Text:null;
             bool clockVisible=clock!=null && clock.isActiveAndEnabled;
@@ -77,7 +82,7 @@ namespace Igruha.Tests
             float maximumCageRise=0;
             bool floorCaptured=false, fallCaptured=false;
             if(game is CansOrderMinigame cans)
-                yield return CheckCanTurns(cans,local,victims,fail);
+                yield return CheckCanTurns(cans,local,victims,travelProbe,fail);
             else if (NetworkManager.Singleton.IsServer)
             {
                 var contestants = (IList)Get(game,"contestants");
@@ -96,6 +101,8 @@ namespace Igruha.Tests
             var localCage=UnityEngine.Object.FindObjectsByType<CageStation>(FindObjectsSortMode.None).FirstOrDefault(c=>c.Occupant==local);
             while (Time.realtimeSinceStartup<deadline && !caught.All(v=>v))
             {
+                actionProbe.Sample(game.Phase == MinigamePhase.Round);
+                travelProbe.Sample();
                 bearProbe.Sample();secondProbe.Sample();
                 if(bears[0]!=null && bears[1]!=null)
                 {
@@ -170,7 +177,7 @@ namespace Igruha.Tests
             if(liftMax>=liftMin)
             {
                 Debug.Log("PLAYTEST_CHECK lift relativeOffsetRange="+(liftMax-liftMin));
-                if(liftMax-liftMin>.05f)fail("lift passenger jitters on descent/ascent");
+                if(liftMax-liftMin>.05f)fail("walking passenger loses the moving cage floor");
             }
             if(!opened.All(v=>v))fail("trapdoor collision/animation incomplete");
             if(maximumCageRise>.03f)fail("elimination raised a cage instead of opening its floor: "+maximumCageRise);
@@ -210,6 +217,238 @@ namespace Igruha.Tests
                 fail("circus Results input lock survived return to hub");
             shelfProbe?.CheckFinished();
             bearProbe.CheckFinished();secondProbe.CheckFinished();
+            travelProbe.CheckFinished(victims.Contains(SessionScoreboard.Current.LocalPlayer.Avatar));
+            mascotProbe.CheckFinished();
+            actionProbe.CheckFinished();
+        }
+
+        private sealed class ActionRestrictionProbe : IDisposable
+        {
+            private readonly PlayerController player;
+            private readonly PlayerInputReader input;
+            private readonly PlayerPushAbility push;
+            private readonly Action<string> fail;
+            private int groundedAttempts, jumps, punches;
+            public ActionRestrictionProbe(PlayerController player, PlayerInputReader input, Action<string> fail)
+            {
+                this.player=player; this.input=input; this.fail=fail;
+                push=player.GetComponent<PlayerPushAbility>();
+                player.Jumped+=OnJump; push.PunchStarted+=OnPunch;
+                if(!player.JumpInputSuppressed || !push.InputSuppressed) fail("circus actions were not restricted at setup");
+            }
+            private void OnJump() { jumps++; fail("jump fired during circus"); }
+            private void OnPunch() { punches++; fail("punch fired during circus"); }
+            public void Sample(bool inRound)
+            {
+                if(!inRound || player==null || player.MovementLocked || player.IsKnockedDown) return;
+                if(!player.JumpInputSuppressed || !push.InputSuppressed) fail("circus action restriction disappeared in the pit");
+                if(player.IsGrounded) groundedAttempts++;
+                input.DriveJump(); push.RequestPush();
+            }
+            public void CheckFinished()
+            {
+                if(player!=null && (player.JumpInputSuppressed || push.InputSuppressed)) fail("circus action restriction survived return to Hub");
+                Debug.Log("PLAYTEST_CHECK circus actions groundedAttempts="+groundedAttempts+" jumps="+jumps+" punches="+punches+" restored=True");
+            }
+            public void Dispose()
+            { if(player!=null)player.Jumped-=OnJump; if(push!=null)push.PunchStarted-=OnPunch; }
+        }
+
+        private sealed class MascotProbe : IDisposable
+        {
+            private readonly MinigameControllerBase game;
+            private readonly PlayerController local;
+            private readonly Action<string> fail;
+            private readonly CageStation[] cages;
+            private readonly CircusCageMascot[] reactions;
+            private readonly bool[] wasPresenting;
+            private int completedLaughs;
+            private float shortestPresentation = float.MaxValue;
+            private readonly CircusMascotProbeSampler sampling;
+            private int events, frames, hotFrames, steamFrames, screenshots;
+            private int motionFrame, fullLengthFrames, exitCloudFrames;
+            private CircusCageMascot motionReaction;
+            private double motionStartedAt;
+            private float latestAudioTime;
+            private float nextMotion;
+            private readonly bool captureMotion = LaunchArguments.HasFlag("--circus-motion-review");
+            private float blinkMin = 100, blinkMax, worstAim = 1, smileMin = 100, smileMax;
+            private bool failed;
+
+            public MascotProbe(MinigameControllerBase game, PlayerController local, Action<string> fail)
+            {
+                this.game = game; this.local = local; this.fail = fail;
+                cages = UnityEngine.Object.FindObjectsByType<CageStation>(FindObjectsSortMode.None);
+                reactions = cages.Select(c => c.GetComponent<CircusCageMascot>()).ToArray();
+                wasPresenting = new bool[reactions.Length];
+                if (reactions.Any(r => r == null)) Fail("circus cage is missing mascot presentation");
+                foreach (var cage in cages) cage.DescentStarted += OnDescent;
+                sampling = game.gameObject.AddComponent<CircusMascotProbeSampler>();
+                sampling.Tick = Sample;
+            }
+
+            private void OnDescent(CageStation cage, double time, float duration)
+            {
+                events++;
+                var reaction = cage.GetComponent<CircusCageMascot>();
+                if (reaction == null || !reaction.IsPresenting || reaction.Target != cage.Occupant || Math.Abs(reaction.StartedAt - time) > .001)
+                    Fail("mascot did not follow the replicated cage descent and its actual occupant");
+                Debug.Log("PLAYTEST_CHECK mascot begin cage=" + cage.name + " owner=" + cage.Occupant.name + " start=" + time.ToString("F3"));
+            }
+
+            private void Sample()
+            {
+                if (game != null)
+                {
+                    for (int i = 0; i < reactions.Length; i++)
+                    {
+                        var reaction = reactions[i]; if (reaction == null) continue;
+                        if (motionReaction == null && reaction.Target == local) { motionReaction = reaction; motionStartedAt = reaction.StartedAt; }
+                        if (captureMotion && reaction == motionReaction && Math.Abs(reaction.StartedAt - motionStartedAt) < .001 && reaction.Actor != null && reaction.Actor.gameObject.activeSelf && motionFrame < 72 && Time.time >= nextMotion)
+                        {
+                            nextMotion = Time.time + 1f / 12f;
+                            string frame = "mascot-motion-" + (motionFrame++).ToString("D4");
+                            Capture(frame);
+                            if (LaunchArguments.TryGetValue("--playtest-screenshots", out string path))
+                                System.IO.File.AppendAllText(path + "-mascot-motion.csv", frame + "," + reaction.Elapsed.ToString("F4", System.Globalization.CultureInfo.InvariantCulture) + "," + reaction.IsPresenting + "\n");
+                        }
+                        if (!reaction.IsPresenting)
+                        {
+                            if (wasPresenting[i])
+                            {
+                                wasPresenting[i] = false;
+                                shortestPresentation = Mathf.Min(shortestPresentation, reaction.Elapsed);
+                                if (reaction.Elapsed < CircusCageMascot.ShowSeconds - .02f)
+                                    Fail("mascot ended early at " + reaction.Elapsed.ToString("F3") + " seconds");
+                                else completedLaughs++;
+                            }
+                            if (reaction.Actor != null && !reaction.Actor.IsVisible && reaction.Actor.PuffParticleCount > 0) exitCloudFrames++;
+                            if (reaction.Anger != null && (reaction.Anger.Heat > 0 || reaction.Anger.OverlayCount > 0 || reaction.Anger.ParticleCount > 0))
+                                Fail("anger survived the end of its mascot reaction");
+                            continue;
+                        }
+                        wasPresenting[i] = true;
+                        frames++;
+                        if (reaction.Target != cages[i].Occupant || cages[i].DoorsOpen) Fail("mascot mocked a released occupant");
+                        if (reaction.Actor == null || reaction.Anger == null) { Fail("mascot presentation has missing actors"); continue; }
+                        if (!reaction.Actor.IsVisible || Mathf.Abs(reaction.Actor.transform.Find("Model").localScale.x - .42f) > .001f)
+                            Fail("mascot grew or shrank instead of popping at full size");
+                        var laugh = reaction.Actor.GetComponent<AudioSource>();
+                        if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null)
+                        {
+                            latestAudioTime = Mathf.Max(latestAudioTime, laugh.time);
+                            if (reaction.Elapsed > 4.6f && reaction.Elapsed < 4.85f && !laugh.isPlaying)
+                                Fail("mascot laugh ended before the supplied recording finished");
+                        }
+                        if (reaction.Elapsed > 4.9f) fullLengthFrames++;
+                        blinkMin = Mathf.Min(blinkMin, reaction.Actor.BlinkWeight); blinkMax = Mathf.Max(blinkMax, reaction.Actor.BlinkWeight);
+                        smileMin = Mathf.Min(smileMin, reaction.Actor.SmileWeight); smileMax = Mathf.Max(smileMax, reaction.Actor.SmileWeight);
+                        Vector3 anchor = cages[i].transform.InverseTransformPoint(reaction.Actor.transform.position);
+                        if (Mathf.Abs(anchor.x) > .05f || anchor.z < 1.65f) Fail("mascot is not in front of the open cage window");
+                        if (reaction.Elapsed > 1.2f && reaction.Elapsed < 2.9f)
+                        {
+                            if (reaction.Anger.Heat > .9f) hotFrames++;
+                            if (reaction.Anger.ParticleCount > 0) steamFrames++;
+                            if (reaction.Anger.OverlayCount == 0) Fail("loser has no head tint skin");
+                            if (reaction.Anger.SteamSourceCount != 3) Fail("anger is missing ear or nose steam emitters");
+                            float dot = Vector3.Dot(reaction.Actor.PointDirection, (reaction.Anger.HeadPosition - reaction.Actor.PointOrigin).normalized);
+                            worstAim = Mathf.Min(worstAim, dot);
+                            if (dot < .8f) Fail("mascot finger lost its moving target: " + dot);
+                            if (reaction.Target == local && screenshots < 2)
+                            {
+                                Capture("mascot-" + screenshots++);
+                            }
+                        }
+                    }
+                }
+            }
+
+            public void CheckFinished()
+            {
+                bool rendered = SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null;
+                if (completedLaughs < 1 || (rendered && (exitCloudFrames < 1 || latestAudioTime < 4.8f)))
+                    Fail("mascot did not finish its five-second laugh and exit cloud");
+                if (events < 2 || frames < 10 || hotFrames < 5 || (rendered && steamFrames < 5) || blinkMin > 5 || blinkMax < 50 || smileMin > 50 || smileMax < 60)
+                    Fail("mascot laughter, blinking and anger were not exercised on this peer");
+                Debug.Log("PLAYTEST_CHECK mascot events=" + events + " frames=" + frames + " hot=" + hotFrames + " steam=" + steamFrames +
+                    " blink=" + blinkMin + ".." + blinkMax + " smile=" + smileMin + ".." + smileMax + " pointDot=" + worstAim + " completedLaughs=" + completedLaughs + " shortestPresentation=" + shortestPresentation + " fullLengthFrames=" + fullLengthFrames + " exitCloudFrames=" + exitCloudFrames + " audioTime=" + latestAudioTime);
+            }
+            private void Fail(string message) { if (failed) return; failed = true; fail(message); }
+            public void Dispose()
+            {
+                if (sampling != null) { sampling.Tick = null; UnityEngine.Object.Destroy(sampling); }
+                foreach (var cage in cages) if (cage != null) cage.DescentStarted -= OnDescent;
+            }
+        }
+
+        private static IEnumerator CheckButtonHands(StopwatchMinigame game,PlayerController local,
+            PlayerInputReader input,SessionPlayer[] players,ProbeBarrier barrier,Action<string> fail)
+        {
+            var presentation=game.GetComponent<StopwatchButtonPresentation>();
+            var button=game.LocalButton;
+            var cameras=UnityEngine.Object.FindFirstObjectByType<MinigameCameraController>();
+            if(presentation==null || !presentation.IsActive || presentation.Hand==null)
+            { fail("Stopwatch owner has no first-person hand");yield break; }
+            int rendered=0;bool privacy=true,framed=true;
+            var body=local.GetComponentsInChildren<Renderer>();
+            var arm=presentation.Hand.GetComponentsInChildren<Renderer>();
+            var output=Camera.main;
+            void Observe(ScriptableRenderContext context,Camera camera)
+            {
+                if(camera!=output || !presentation.IsCloseUp)return;
+                rendered++;
+                privacy &= body.All(r=>r.forceRenderingOff) && arm.All(r=>!r.forceRenderingOff);
+                privacy &= players.Where(p=>p.Avatar!=local).All(p=>p.Avatar.GetComponentsInChildren<SkinnedMeshRenderer>().Any(r=>!r.forceRenderingOff));
+                if(presentation.PressAmount>.99f)
+                {
+                    var point=camera.WorldToViewportPoint(presentation.Hand.ContactPosition);
+                    framed &= point.z>0 && point.x>.15f && point.x<.85f && point.y>.2f && point.y<.8f;
+                }
+            }
+            RenderPipelineManager.beginCameraRendering+=Observe;
+            try
+            {
+                Capture("button-ready");
+                yield return new WaitForSeconds(.2f);
+                double start=Time.realtimeSinceStartupAsDouble;
+                input.DriveInteractHold(true);
+                yield return new WaitForSeconds(.45f);
+                if(button.State!=CageButton.ButtonState.Running || presentation.PressAmount<.99f)
+                    fail("Stopwatch E does not hold the finger down");
+                Vector3 surface=button.PressSurface.bounds.center+Vector3.up*button.PressSurface.bounds.extents.y;
+                if(Vector3.Distance(surface,presentation.Hand.ContactPosition)>.003f)
+                    fail("Stopwatch finger does not contact the cap");
+                Capture("button-held");
+                yield return new WaitForSeconds(.8f);
+                // One player keeps holding so early completion cannot end this observation.
+                bool release=local!=players[players.Length-1].Avatar;
+                if(release)
+                {
+                    input.DriveInteractHold(false);
+                    double held=Time.realtimeSinceStartupAsDouble-start;
+                    yield return new WaitForSeconds(.08f);
+                    if(!button.Completed)fail("Stopwatch release did not stop measurement");
+                    // Clients predict Stopped but receive the numeric result only at reveal.
+                    if(NetworkManager.Singleton.IsServer && Math.Abs(button.Measured-held)>.10)
+                        fail("Stopwatch animation delayed the measured interval");
+                    Capture("button-release");
+                    yield return new WaitForSeconds(.9f);
+                    if(presentation.IsActive || local.MovementLocked || cameras.CurrentMode!=CameraMode.ThirdPerson ||
+                        local.GetComponent<Igruha.Core.Interaction.PlayerInteractor>().ButtonOverride!=null)
+                        fail("Stopwatch release did not restore camera/movement/interaction");
+                    Vector3 before=local.Position;
+                    input.DriveMove(Vector2.right);yield return new WaitForSeconds(.2f);input.DriveMove(Vector2.zero);
+                    if(Vector3.Distance(before,local.Position)<.05f)fail("Stopwatch cannot walk after releasing E");
+                    Capture("button-returned");
+                }
+                else yield return new WaitForSeconds(1.2f);
+                if(!framed)fail("Stopwatch held button is outside the owner's camera frame");
+                if(!privacy || (output!=null && SystemInfo.graphicsDeviceType!=GraphicsDeviceType.Null && rendered==0))
+                    fail("Stopwatch owner-only hand visibility failed");
+                Debug.Log("PLAYTEST_CHECK stopwatch hand contact, held input, privacy="+privacy+" framed="+framed+" rendered="+rendered+" released="+release);
+            }
+            finally { RenderPipelineManager.beginCameraRendering-=Observe; }
+            yield return barrier.Wait(1);
         }
 
         private static IEnumerator CheckCageAttention(PitBear[] bears, SessionPlayer[] players, Action<string> fail)
@@ -689,7 +928,7 @@ namespace Igruha.Tests
                 RenderPipelineManager.endCameraRendering-=End;
             }
         }
-        private static IEnumerator CheckCanTurns(CansOrderMinigame cans,PlayerController local,PlayerController[] victims,Action<string> fail)
+        private static IEnumerator CheckCanTurns(CansOrderMinigame cans,PlayerController local,PlayerController[] victims,CageTravelProbe travelProbe,Action<string> fail)
         {
             int count=cans.Round.CanCount;
             var solution=Enumerable.Range(0,count).ToList();
@@ -709,6 +948,7 @@ namespace Igruha.Tests
             bool victim=victims.Contains(local);
             while(cans!=null && Time.realtimeSinceStartup<limit)
             {
+                travelProbe.Sample();
                 if(cage.Descending && victim && cans.Stage==3)
                 {
                     float offset=local.transform.position.y-cage.transform.position.y;
@@ -736,7 +976,7 @@ namespace Igruha.Tests
                     Debug.Log("PLAYTEST_CHECK cans circle="+circle+" height="+entry.HeightFraction+" chances="+entry.BottomChances);
                     if(circle==5)
                     {
-                        if(maxOffset-minOffset>.04f)fail("cage passenger jitter="+(maxOffset-minOffset));
+                        if(maxOffset-minOffset>.04f)fail("walking cage passenger loses support="+(maxOffset-minOffset));
                         if(victim)Debug.Log("PLAYTEST_CHECK cage relativeOffsetRange="+(maxOffset-minOffset));
                         yield break;
                     }
@@ -744,6 +984,69 @@ namespace Igruha.Tests
                 yield return null;
             }
             fail("five cans turns did not complete");
+        }
+
+        /// <summary>Exercises live input and animation while the game's own replicated descent runs.</summary>
+        private sealed class CageTravelProbe : IDisposable
+        {
+            private readonly PlayerController player;
+            private readonly PlayerInputReader input;
+            private readonly CageStation cage;
+            private readonly Rigidbody body;
+            private readonly Animator animator;
+            private readonly Action<string> fail;
+            private readonly bool previousCrouchSuppressed;
+            private Vector3 previousPosition;
+            private float seconds, travel, minFloor=float.MaxValue, maxFloor=float.MinValue;
+            private int frames, animatedFrames, crouchedFrames;
+            private bool driving, failed;
+
+            public CageTravelProbe(PlayerController player,PlayerInputReader input,Action<string> fail)
+            {
+                this.player=player;this.input=input;this.fail=fail;
+                cage=UnityEngine.Object.FindObjectsByType<CageStation>(FindObjectsSortMode.None).Single(c=>c.Occupant==player);
+                body=player.GetComponent<Rigidbody>();animator=player.GetComponentInChildren<Animator>();
+                previousCrouchSuppressed=player.CrouchInputSuppressed;
+            }
+
+            public void Sample()
+            {
+                if(cage==null || player==null || !cage.Descending || cage.DoorsOpen)
+                { StopInput();return; }
+                if(!driving)previousPosition=player.Position;
+                driving=true;frames++;seconds+=Time.deltaTime;
+                if(!player.enabled || player.MovementLocked || body.isKinematic)
+                    Fail("cage descent freezes the live player motor");
+                player.SetCameraReference(null);
+                player.CrouchInputSuppressed=true;
+                player.SetCrouched(seconds%1.6f>.9f);
+                if(player.IsCrouched)crouchedFrames++;
+                Vector3 direction=cage.transform.right*(seconds%.7f<.35f?1f:-1f);
+                input.DriveMove(new Vector2(direction.x,direction.z));
+                Vector3 step=player.Position-previousPosition;step.y=0;travel+=step.magnitude;previousPosition=player.Position;
+                float floor=player.transform.position.y-cage.transform.position.y;
+                minFloor=Mathf.Min(minFloor,floor);maxFloor=Mathf.Max(maxFloor,floor);
+                if(animator!=null && animator.enabled && animator.speed>0 && animator.GetFloat("Speed")>.1f)animatedFrames++;
+            }
+
+            public void CheckFinished(bool expectedToDescend)
+            {
+                if(expectedToDescend && (frames<10 || travel<.35f || animatedFrames<5 || crouchedFrames<3))
+                    Fail("descent never exercised walking, crouching and animation: frames="+frames+" travel="+travel+" animated="+animatedFrames+" crouched="+crouchedFrames);
+                if(frames>0 && (minFloor<-.04f || maxFloor>.04f))Fail("walking on descending cage lost floor contact: "+minFloor+".."+maxFloor);
+                Debug.Log("PLAYTEST_CHECK free cage movement frames="+frames+" metres="+travel.ToString("F2")+
+                    " animated="+animatedFrames+" crouched="+crouchedFrames+" floor="+minFloor+".."+maxFloor);
+            }
+
+            private void StopInput()
+            {
+                if(!driving)return;
+                driving=false;
+                if(input!=null)input.DriveMove(Vector2.zero);
+                if(player!=null){player.SetCrouched(false);player.CrouchInputSuppressed=previousCrouchSuppressed;}
+            }
+            private void Fail(string message){if(failed)return;failed=true;fail(message);}
+            public void Dispose()=>StopInput();
         }
 
         private static bool RevealSnapshotCommitted(CansOrderNetwork network)

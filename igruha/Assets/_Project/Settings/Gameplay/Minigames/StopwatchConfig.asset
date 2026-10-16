@@ -45,7 +45,7 @@ MonoBehaviour:
     errorLimit: 2
     worstPerSubround: 2
   twoPlayerTieThreshold: 0.05
-  bearSpeed: 8.2
+  bearSpeed: 8.8
   bearFirstAttackDelay: 0
   bearStrikeRadius: 2.35
   bearKnockbackSpeed: 8

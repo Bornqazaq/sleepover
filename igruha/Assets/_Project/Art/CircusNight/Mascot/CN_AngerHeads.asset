@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9d6fe469a116429bbd332e22a425416, type: 3}
+  m_Name: CN_AngerHeads
+  m_EditorClassIdentifier: Igruha.Minigames::Igruha.Minigames.Circus.CircusAngerLibrary
+  entries:
+  - character: Karlan
+    sourceMesh: {fileID: 4111288081708817414, guid: 2b441780a3044d74fae9fdc643bf32fb, type: 3}
+    headMesh: {fileID: 1, guid: 5a27b940483064b999aa633c0f4ef65e, type: 2}
+  - character: Boss
+    sourceMesh: {fileID: -4732297964077508377, guid: 29170d1c8e5867845a770f496965696c, type: 3}
+    headMesh: {fileID: 1, guid: 5862aa359c19b41fc8305ba6108aa4fe, type: 2}
+  - character: Shlanga
+    sourceMesh: {fileID: 6402961464619234872, guid: 737af398c38b7d948af857e7d3ce8a60, type: 3}
+    headMesh: {fileID: 1, guid: 82907da1a30a540ff84ff1256e3514b9, type: 2}
+  - character: Fat
+    sourceMesh: {fileID: -8889964121841698168, guid: 14e37d99f42300a43b34d4f9e9553fc8, type: 3}
+    headMesh: {fileID: 1, guid: d3421e7bb51a240f1a7daf5f48fa3338, type: 2}
+  - character: MyBoy
+    sourceMesh: {fileID: 8980185973765492123, guid: f41ee9d4fe6eae7449eccd30199bee9e, type: 3}
+    headMesh: {fileID: 1, guid: 187fe265b2fc64810b6c9e766f947340, type: 2}
+  - character: Girl
+    sourceMesh: {fileID: 7158796146257112550, guid: 46320299878b7ce4c92497e1e578a3b7, type: 3}
+    headMesh: {fileID: 1, guid: ae4665e67909f4273946134b7afacec3, type: 2}
+  - character: Milez
+    sourceMesh: {fileID: 7158796146257112550, guid: b38673c3da537b44c8612d8d3b797bb8, type: 3}
+    headMesh: {fileID: 1, guid: 0b3a3fde08ee04c898ee85bf0d4f6f5c, type: 2}
+  - character: Aza
+    sourceMesh: {fileID: 173348269101531870, guid: 4a61f4d55012e01449632b5d799dcb0f, type: 3}
+    headMesh: {fileID: 1, guid: d4d120f2623e14ab4a0f12427ad49381, type: 2}

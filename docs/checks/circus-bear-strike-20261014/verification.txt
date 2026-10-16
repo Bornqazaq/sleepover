@@ -1,0 +1,44 @@
+2026-10-14 — circus bear strike repair
+Branch: fix/circus-bear-strike-shape. Earlier uncommitted circus/hand work retained.
+Synty: 8198/8198 prefab paths and GUIDs verified before editor launch.
+
+Blender: corrected forearm/shoulder skin and complete connected fur locks;
+re-authored only ForeUpper.R / ForeLower.R / ForePaw.R tracks in Bruno_Strike.
+Low shoulder-relative lift, downward elbow pole, relaxed wrist.
+Source validation: original vertex positions, topology, UV, skeleton, all other
+clips and non-foreleg Strike curves unchanged. At most four normalized weights.
+Production FBX and editable blend updated; rebuild scripts preserve repairs.
+
+Server aim follows during the first 0.18 s, capped at 12 degrees and 80 deg/s.
+Contact time/window, paw radius, contact tolerance unchanged.
+At 15/30/60 FPS, a 40 cm shuffle is caught; a continuous 6.5 m/s dodge escapes.
+The body stops steering before the swipe. Tests exercise the actual imported
+Animator, skin contact and production IK, including all 8 standing characters.
+The diagnostic CSV compares the same new pose with steering enabled/disabled;
+it is a controlled isolated side-step probe, not a human difficulty rating.
+
+245/245 EditMode PASS (editmode.xml), including five new strike/dodge cases.
+After the stage-transition fix: 9/9 hand/transition checks PASS
+(button-transition.xml), including one new test. 246 distinct passing cases.
+Final macOS Development build: Succeeded, 0 errors, 0 warnings,
+2026-10-14 11:18:23 UTC / 16:18:23 Asia/Almaty.
+
+Host + three clients, actual input, two visible windows:
+CansOrder: playtest-circus-cans-20261014-161121, 4/4 PASS.
+Stopwatch final: playtest-circus-stopwatch-20261014-161838, 4/4 PASS.
+Initial Stopwatch run 161318 exposed one frame of the button movement lock
+remaining at forced descent on client 2. Fixed by releasing on StageStarted,
+not waiting for LateUpdate. Failed-run evidence retained alongside the rerun.
+Pursuit, skin contact, knockout, spectator, result, hub return and free cage
+movement pass. Hand hold/release and owner-only visibility pass in Stopwatch.
+
+Visual evidence: docs/art/circus-bear-strike/.
+before-after.mp4: identical isolated camera/lighting, actual Animator + IK skin,
+left before, right after, 2x slow motion. gameplay.mp4: real final network host
+frames at the timestamps from host-motion.csv. Still images show impact/release.
+
+No C# compile errors. Existing Addressables ProfileValueReference empty-id
+message remains in Editor after build. Existing Cinemachine ManualUpdate warning
+in the attack camera is unrelated and unchanged. No new runtime exceptions.
+No Windows/Tailscale/human balance acceptance claimed. Linear unavailable;
+no ticket statuses changed. No commit/merge/push in this task.

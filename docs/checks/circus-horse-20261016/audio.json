@@ -1,0 +1,13 @@
+{
+  "channels": 1,
+  "sample_rate": 22050,
+  "frames": 110849,
+  "duration": 5.027165532879819,
+  "source_name": "creepy-laugh-single-male-aspic-long.mp3",
+  "source_sha256": "baf3dcfd38a0364a431e02ae23f676f5ca0f3c923c5fb4d0d0aa1ce5de5cafc5",
+  "wav_sha256": "cc8732be248b683bf54fdeeb3ce55dc18b715735466d7051004ca2471e54a9ee",
+  "conversion": "ffmpeg decode to PCM16, no trim, gain, speed change or resampling",
+  "pitch": 1,
+  "volume": 0.7,
+  "show_seconds": 5.1
+}

@@ -91,6 +91,7 @@ namespace Igruha.EditorTools
             }
             canvas.Find("_HudOverlay")?.SetAsLastSibling();
             CircusInterfaceSkin.Apply(canvas,cans);
+            if (!cans) StopwatchButtonHandsBuilder.ApplyActive();
             EditorUtility.SetDirty(presentation);
             EditorUtility.SetDirty(hud);
             EditorSceneManager.MarkSceneDirty(scene);

@@ -27,7 +27,7 @@ namespace Igruha.Minigames.Circus
     {
         [Header("Погоня")]
         [Tooltip("Скорость погони, м/с. Медведь догоняет бегущего по прямой; от удара спасает уход в сторону от объявленного рывка")]
-        [SerializeField] private float chaseSpeed = 8.2f;
+        [SerializeField] private float chaseSpeed = 8.8f;
         [Tooltip("Скорость патрулирования пустой ямы, м/с")]
         [SerializeField] private float patrolSpeed = .85f;
         [Tooltip("Фора после приземления и завершения подъёма. Всё это время медведь наблюдает и не приближается")]

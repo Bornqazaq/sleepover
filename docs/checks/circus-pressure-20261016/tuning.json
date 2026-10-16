@@ -1,0 +1,76 @@
+{
+  "chase_speed": {
+    "before": 8.2,
+    "after": 8.8
+  },
+  "acceleration": {
+    "before": 12,
+    "after": 14
+  },
+  "turn_speed": {
+    "before": 220,
+    "after": 240
+  },
+  "attack_recovery": {
+    "before": 0.18,
+    "after": 0.12
+  },
+  "strike_alignment_degrees": {
+    "before": 0.81,
+    "after": 5
+  },
+  "prediction_seconds": {
+    "normal": 0.55,
+    "second_bear_same_target": 0.8
+  },
+  "contact_seconds": 0.38,
+  "tracking_seconds": 0.18,
+  "tracking_degrees": 12,
+  "damage_shape": "unchanged actual paw contact",
+  "rim_intercepts": [
+    {
+      "case": "RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane(1.0f,0.0f,-4.0f)",
+      "seconds": 1.68,
+      "attacks": 1
+    },
+    {
+      "case": "RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane(-1.0f,0.0f,-4.0f)",
+      "seconds": 1.68,
+      "attacks": 1
+    },
+    {
+      "case": "RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane(1.0f,45.0f,5.5f)",
+      "seconds": 11.08,
+      "attacks": 1
+    },
+    {
+      "case": "RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane(-1.0f,45.0f,5.5f)",
+      "seconds": 1.0,
+      "attacks": 1
+    },
+    {
+      "case": "RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane(1.0f,0.0f,5.5f)",
+      "seconds": 10.47,
+      "attacks": 2
+    },
+    {
+      "case": "RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane(-1.0f,0.0f,5.5f)",
+      "seconds": 10.47,
+      "attacks": 2
+    }
+  ],
+  "restrictions": [
+    "jump",
+    "push/punch"
+  ],
+  "preserved": [
+    "walk",
+    "crouch",
+    "interaction"
+  ],
+  "scope": "Stopwatch and CansOrder only; previous state restored on round end/disable",
+  "tests": {
+    "actions": 2,
+    "bear_contact": 19
+  }
+}

@@ -16,6 +16,7 @@ namespace Igruha.Minigames.Stopwatch
         [SerializeField] private StopwatchMinigame game;
         [SerializeField] private TMP_Text label;
         [SerializeField] private Igruha.Minigames.Circus.CircusHudView presentation;
+        [SerializeField] private StopwatchButtonHud buttonHud;
         [Tooltip("Пока кнопку можно зажать")]
         [SerializeField] private string idleText = "ЗАЖМИ E";
         [Tooltip("Пока кнопку держат")]
@@ -33,6 +34,12 @@ namespace Igruha.Minigames.Stopwatch
 
         private void Update()
         {
+            if (buttonHud != null)
+            {
+                presentation?.Hide();
+                buttonHud.Render(game != null ? game.LocalButton : null, game != null && game.IsPractice);
+                return;
+            }
             if (presentation != null)
             {
                 presentation.RenderStopwatch(game != null ? game.LocalButton : null);
@@ -73,6 +80,6 @@ namespace Igruha.Minigames.Stopwatch
             }
         }
 
-        private void OnDisable() => presentation?.Hide();
+        private void OnDisable() { presentation?.Hide(); buttonHud?.Hide(); }
     }
 }

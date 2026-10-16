@@ -1,0 +1,37 @@
+{
+  "downloadPreservedByteForByte": true,
+  "editmodeInitial": {
+    "passed": 13,
+    "failed": 0
+  },
+  "editmodeFinalFace": {
+    "passed": 4,
+    "failed": 0
+  },
+  "network": {
+    "players": 4,
+    "cans": "PASS",
+    "stopwatch": "PASS",
+    "logs": [
+      "playtest-circus-cans-20261015-162415",
+      "playtest-circus-stopwatch-20261015-162609"
+    ]
+  },
+  "sceneAnchors": {
+    "Stopwatch": 8,
+    "CansOrder": 8,
+    "localPosition": [
+      0,
+      0.55,
+      2.05
+    ]
+  },
+  "visualReview": [
+    "cans-player-view.png",
+    "stopwatch-player-view.png",
+    "horse-idle.png",
+    "horse-taunt.png"
+  ],
+  "knownUnrelatedConsole": "ProfileValueReference: GetValue called with empty id",
+  "notTested": "separate computers/Tailscale; user art acceptance"
+}

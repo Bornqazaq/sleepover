@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="19" result="Passed" total="19" passed="19" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-10-16 09:38:23Z" end-time="2026-10-16 09:38:38Z" duration="15.1530066">
+  <test-suite type="TestSuite" id="1000" name="sleepover" fullname="sleepover" runstate="Runnable" testcasecount="769" result="Passed" start-time="2026-10-16 09:38:23Z" end-time="2026-10-16 09:38:38Z" duration="15.153007" total="19" passed="19" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1902" name="Igruha.Camera.Tests.dll" fullname="/Users/azamatyessimkhanuly/Dev/projects/sleepover/igruha/Library/ScriptAssemblies/Igruha.Camera.Tests.dll" runstate="Runnable" testcasecount="768" result="Passed" start-time="2026-10-16 09:38:24Z" end-time="2026-10-16 09:38:38Z" duration="14.913049" total="19" passed="19" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="18671" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="1903" name="Igruha" fullname="Igruha" runstate="Runnable" testcasecount="755" result="Passed" start-time="2026-10-16 09:38:24Z" end-time="2026-10-16 09:38:38Z" duration="14.799399" total="19" passed="19" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1904" name="Tests" fullname="Igruha.Tests" runstate="Runnable" testcasecount="755" result="Passed" start-time="2026-10-16 09:38:24Z" end-time="2026-10-16 09:38:38Z" duration="14.699996" total="19" passed="19" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestFixture" id="1097" name="CircusBearContactTimingTests" fullname="Igruha.Tests.CircusBearContactTimingTests" classname="Igruha.Tests.CircusBearContactTimingTests" runstate="Runnable" testcasecount="99" result="Passed" start-time="2026-10-16 09:38:24Z" end-time="2026-10-16 09:38:38Z" duration="14.309171" total="19" passed="19" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="ParameterizedMethod" id="1161" name="FirstSwipeAfterDiagonalPursuitReachesStationaryPlayerNearPitWall" fullname="Igruha.Tests.CircusBearContactTimingTests.FirstSwipeAfterDiagonalPursuitReachesStationaryPlayerNearPitWall" classname="Igruha.Tests.CircusBearContactTimingTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-10-16 09:38:30Z" end-time="2026-10-16 09:38:33Z" duration="3.308416" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1157" name="FirstSwipeAfterDiagonalPursuitReachesStationaryPlayerNearPitWall(0.0f)" fullname="Igruha.Tests.CircusBearContactTimingTests.FirstSwipeAfterDiagonalPursuitReachesStationaryPlayerNearPitWall(0.0f)" methodname="FirstSwipeAfterDiagonalPursuitReachesStationaryPlayerNearPitWall" classname="Igruha.Tests.CircusBearContactTimingTests" runstate="Runnable" seed="1550846253" result="Passed" start-time="2026-10-16 09:38:30Z" end-time="2026-10-16 09:38:32Z" duration="1.893295" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[CircusBear 0.00] State Chase
+[CircusBear 0.00] State Attack
+[CircusBear 0.00] Contact Player(Clone) at 0.40 s
+]]></output>
+              </test-case>
+              <test-case id="1158" name="FirstSwipeAfterDiagonalPursuitReachesStationaryPlayerNearPitWall(90.0f)" fullname="Igruha.Tests.CircusBearContactTimingTests.FirstSwipeAfterDiagonalPursuitReachesStationaryPlayerNearPitWall(90.0f)" methodname="FirstSwipeAfterDiagonalPursuitReachesStationaryPlayerNearPitWall" classname="Igruha.Tests.CircusBearContactTimingTests" runstate="Runnable" seed="382030501" result="Passed" start-time="2026-10-16 09:38:32Z" end-time="2026-10-16 09:38:32Z" duration="0.280977" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[CircusBear 0.00] State Chase
+[CircusBear 0.00] State Attack
+[CircusBear 0.00] Contact Player(Clone) at 0.40 s
+]]></output>
+              </test-case>
+              <test-case id="1159" name="FirstSwipeAfterDiagonalPursuitReachesStationaryPlayerNearPitWall(180.0f)" fullname="Igruha.Tests.CircusBearContactTimingTests.FirstSwipeAfterDiagonalPursuitReachesStationaryPlayerNearPitWall(180.0f)" methodname="FirstSwipeAfterDiagonalPursuitReachesStationaryPlayerNearPitWall" classname="Igruha.Tests.CircusBearContactTimingTests" runstate="Runnable" seed="630608770" result="Passed" start-time="2026-10-16 09:38:32Z" end-time="2026-10-16 09:38:33Z" duration="0.346169" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[CircusBear 0.00] State Chase
+[CircusBear 0.00] State Attack
+[CircusBear 0.00] Contact Player(Clone) at 0.40 s
+]]></output>
+              </test-case>
+              <test-case id="1160" name="FirstSwipeAfterDiagonalPursuitReachesStationaryPlayerNearPitWall(270.0f)" fullname="Igruha.Tests.CircusBearContactTimingTests.FirstSwipeAfterDiagonalPursuitReachesStationaryPlayerNearPitWall(270.0f)" methodname="FirstSwipeAfterDiagonalPursuitReachesStationaryPlayerNearPitWall" classname="Igruha.Tests.CircusBearContactTimingTests" runstate="Runnable" seed="1235145136" result="Passed" start-time="2026-10-16 09:38:33Z" end-time="2026-10-16 09:38:33Z" duration="0.683946" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[CircusBear 0.00] State Chase
+[CircusBear 0.00] State Attack
+[CircusBear 0.00] Contact Player(Clone) at 0.40 s
+]]></output>
+              </test-case>
+            </test-suite>
+            <test-suite type="ParameterizedMethod" id="1123" name="FirstSwipeTouchesAStandingCharacterExactlyOnce" fullname="Igruha.Tests.CircusBearContactTimingTests.FirstSwipeTouchesAStandingCharacterExactlyOnce" classname="Igruha.Tests.CircusBearContactTimingTests" runstate="Runnable" testcasecount="24" result="Passed" start-time="2026-10-16 09:38:33Z" end-time="2026-10-16 09:38:34Z" duration="1.177475" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1099" name="FirstSwipeTouchesAStandingCharacterExactlyOnce(&quot;Player&quot;,15)" fullname="Igruha.Tests.CircusBearContactTimingTests.FirstSwipeTouchesAStandingCharacterExactlyOnce(&quot;Player&quot;,15)" methodname="FirstSwipeTouchesAStandingCharacterExactlyOnce" classname="Igruha.Tests.CircusBearContactTimingTests" runstate="Runnable" seed="1603578322" result="Passed" start-time="2026-10-16 09:38:33Z" end-time="2026-10-16 09:38:34Z" duration="0.274921" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[CircusBear 0.00] State Chase
+[CircusBear 0.00] State Attack
+[CircusBear 0.00] Contact Player(Clone) at 0.40 s
+]]></output>
+              </test-case>
+              <test-case id="1100" name="FirstSwipeTouchesAStandingCharacterExactlyOnce(&quot;Player&quot;,30)" fullname="Igruha.Tests.CircusBearContactTimingTests.FirstSwipeTouchesAStandingCharacterExactlyOnce(&quot;Player&quot;,30)" methodname="FirstSwipeTouchesAStandingCharacterExactlyOnce" classname="Igruha.Tests.CircusBearContactTimingTests" runstate="Runnable" seed="484320096" result="Passed" start-time="2026-10-16 09:38:34Z" end-time="2026-10-16 09:38:34Z" duration="0.391067" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[CircusBear 0.00] State Chase
+[CircusBear 0.00] State Attack
+[CircusBear 0.00] Contact Player(Clone) at 0.40 s
+]]></output>
+              </test-case>
+              <test-case id="1101" name="FirstSwipeTouchesAStandingCharacterExactlyOnce(&quot;Player&quot;,60)" fullname="Igruha.Tests.CircusBearContactTimingTests.FirstSwipeTouchesAStandingCharacterExactlyOnce(&quot;Player&quot;,60)" methodname="FirstSwipeTouchesAStandingCharacterExactlyOnce" classname="Igruha.Tests.CircusBearContactTimingTests" runstate="Runnable" seed="439397698" result="Passed" start-time="2026-10-16 09:38:34Z" end-time="2026-10-16 09:38:34Z" duration="0.396178" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[CircusBear 0.00] State Chase
+[CircusBear 0.00] State Attack
+[CircusBear 0.00] Contact Player(Clone) at 0.38 s
+]]></output>
+              </test-case>
+            </test-suite>
+            <test-case id="1098" name="NearlyAlignedRunnerGetsASwipeWithoutWaitingForPerfectAim" fullname="Igruha.Tests.CircusBearContactTimingTests.NearlyAlignedRunnerGetsASwipeWithoutWaitingForPerfectAim" methodname="NearlyAlignedRunnerGetsASwipeWithoutWaitingForPerfectAim" classname="Igruha.Tests.CircusBearContactTimingTests" runstate="Runnable" seed="252952585" result="Passed" start-time="2026-10-16 09:38:34Z" end-time="2026-10-16 09:38:35Z" duration="0.327830" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[[CircusBear 0.00] State Chase
+[CircusBear 0.00] State Attack
+[CircusBear 0.00] Contact Player(Clone) at 0.38 s
+]]></output>
+            </test-case>
+            <test-suite type="ParameterizedMethod" id="1191" name="RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane" fullname="Igruha.Tests.CircusBearContactTimingTests.RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane" classname="Igruha.Tests.CircusBearContactTimingTests" runstate="Runnable" testcasecount="6" result="Passed" start-time="2026-10-16 09:38:35Z" end-time="2026-10-16 09:38:37Z" duration="2.440041" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1185" name="RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane(1.0f,0.0f,-4.0f)" fullname="Igruha.Tests.CircusBearContactTimingTests.RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane(1.0f,0.0f,-4.0f)" methodname="RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane" classname="Igruha.Tests.CircusBearContactTimingTests" runstate="Runnable" seed="492180977" result="Passed" start-time="2026-10-16 09:38:35Z" end-time="2026-10-16 09:38:35Z" duration="0.380834" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[CircusBear 0.00] State Chase
+[CircusBear 0.00] State Attack
+[CircusBear 0.00] Contact Boss(Clone) at 0.38 s
+Rim intercept seconds=1.68 attacks=1
+]]></output>
+              </test-case>
+              <test-case id="1186" name="RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane(-1.0f,0.0f,-4.0f)" fullname="Igruha.Tests.CircusBearContactTimingTests.RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane(-1.0f,0.0f,-4.0f)" methodname="RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane" classname="Igruha.Tests.CircusBearContactTimingTests" runstate="Runnable" seed="1945025217" result="Passed" start-time="2026-10-16 09:38:35Z" end-time="2026-10-16 09:38:35Z" duration="0.130362" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[CircusBear 0.00] State Chase
+[CircusBear 0.00] State Attack
+[CircusBear 0.00] Contact Boss(Clone) at 0.38 s
+Rim intercept seconds=1.68 attacks=1
+]]></output>
+              </test-case>
+              <test-case id="1187" name="RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane(1.0f,45.0f,5.5f)" fullname="Igruha.Tests.CircusBearContactTimingTests.RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane(1.0f,45.0f,5.5f)" methodname="RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane" classname="Igruha.Tests.CircusBearContactTimingTests" runstate="Runnable" seed="2096348637" result="Passed" start-time="2026-10-16 09:38:35Z" end-time="2026-10-16 09:38:36Z" duration="0.391932" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[CircusBear 0.00] State Chase
+[CircusBear 0.00] State Attack
+[CircusBear 0.00] Contact Boss(Clone) at 0.38 s
+Rim intercept seconds=11.08 attacks=1
+]]></output>
+              </test-case>
+              <test-case id="1188" name="RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane(-1.0f,45.0f,5.5f)" fullname="Igruha.Tests.CircusBearContactTimingTests.RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane(-1.0f,45.0f,5.5f)" methodname="RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane" classname="Igruha.Tests.CircusBearContactTimingTests" runstate="Runnable" seed="1217708061" result="Passed" start-time="2026-10-16 09:38:36Z" end-time="2026-10-16 09:38:36Z" duration="0.101309" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[CircusBear 0.00] State Chase
+[CircusBear 0.00] State Attack
+[CircusBear 0.00] Contact Boss(Clone) at 0.38 s
+Rim intercept seconds=1.00 attacks=1
+]]></output>
+              </test-case>
+              <test-case id="1189" name="RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane(1.0f,0.0f,5.5f)" fullname="Igruha.Tests.CircusBearContactTimingTests.RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane(1.0f,0.0f,5.5f)" methodname="RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane" classname="Igruha.Tests.CircusBearContactTimingTests" runstate="Runnable" seed="2133786769" result="Passed" start-time="2026-10-16 09:38:36Z" end-time="2026-10-16 09:38:36Z" duration="0.611092" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[CircusBear 0.00] State Chase
+[CircusBear 0.00] State Attack
+[CircusBear 0.00] Miss root=(0.035, 0.000, 5.707) yaw=12.00 standOff=2.090 lunge=0.210 wallRadius=6.360 radial=5.707 victim=Boss(Clone) transform=(3.740, 0.000, 6.845) physics=(3.740, 0.000, 6.845) yaw=118.65 pose=idle:0.250 transition=False culling=AlwaysAnimate model=(0.000, 0.007, 0.000) scale=(2.427, 2.427, 2.427) visible=False hips=(3.705, 0.817, 6.856) chest=(3.723, 1.047, 6.853) sampleAge=0.583 surface=(3.057, 1.224, 6.684) shoulder=(-0.385, 1.493, 6.404) reach=3.464/1.208 lengths=0.462+0.416 reachable=False pad=(0.252, 1.050, 7.010) gap=2.7863
+[CircusBear 0.00] State Recovery
+[CircusBear 0.00] State Chase
+[CircusBear 0.00] State Attack
+[CircusBear 0.00] Contact Boss(Clone) at 0.38 s
+Rim intercept seconds=10.47 attacks=2
+]]></output>
+              </test-case>
+              <test-case id="1190" name="RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane(-1.0f,0.0f,5.5f)" fullname="Igruha.Tests.CircusBearContactTimingTests.RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane(-1.0f,0.0f,5.5f)" methodname="RunnerFollowingTheRimCanBeInterceptedFromTheInsideLane" classname="Igruha.Tests.CircusBearContactTimingTests" runstate="Runnable" seed="1100030581" result="Passed" start-time="2026-10-16 09:38:36Z" end-time="2026-10-16 09:38:37Z" duration="0.773573" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[CircusBear 0.00] State Chase
+[CircusBear 0.00] State Attack
+[CircusBear 0.00] Miss root=(-0.032, 0.000, 5.692) yaw=348.00 standOff=2.104 lunge=0.196 wallRadius=6.360 radial=5.693 victim=Boss(Clone) transform=(-3.740, 0.000, 6.845) physics=(-3.740, 0.000, 6.845) yaw=241.35 pose=idle:0.250 transition=False culling=AlwaysAnimate model=(0.000, 0.007, 0.000) scale=(2.427, 2.427, 2.427) visible=False hips=(-3.712, 0.817, 6.869) chest=(-3.724, 1.047, 6.855) sampleAge=0.583 surface=(-3.083, 1.198, 6.691) shoulder=(-0.699, 1.493, 6.159) reach=2.461/1.208 lengths=0.462+0.416 reachable=False pad=(-0.364, 1.050, 6.971) gap=2.6696
+[CircusBear 0.00] State Recovery
+[CircusBear 0.00] State Chase
+[CircusBear 0.00] State Attack
+[CircusBear 0.00] Contact Boss(Clone) at 0.38 s
+Rim intercept seconds=10.47 attacks=2
+]]></output>
+              </test-case>
+            </test-suite>
+            <test-suite type="ParameterizedMethod" id="1200" name="SmallSideStepDuringLiftIsTrackedButRunningDodgeStillEscapes" fullname="Igruha.Tests.CircusBearContactTimingTests.SmallSideStepDuringLiftIsTrackedButRunningDodgeStillEscapes" classname="Igruha.Tests.CircusBearContactTimingTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-10-16 09:38:37Z" end-time="2026-10-16 09:38:38Z" duration="0.870523" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1197" name="SmallSideStepDuringLiftIsTrackedButRunningDodgeStillEscapes(15)" fullname="Igruha.Tests.CircusBearContactTimingTests.SmallSideStepDuringLiftIsTrackedButRunningDodgeStillEscapes(15)" methodname="SmallSideStepDuringLiftIsTrackedButRunningDodgeStillEscapes" classname="Igruha.Tests.CircusBearContactTimingTests" runstate="Runnable" seed="1286409068" result="Passed" start-time="2026-10-16 09:38:37Z" end-time="2026-10-16 09:38:37Z" duration="0.106577" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[CircusBear 0.00] State Chase
+[CircusBear 0.00] State Attack
+[CircusBear 0.00] Contact Player(Clone) at 0.40 s
+[CircusBear 0.00] State Chase
+[CircusBear 0.00] State Attack
+[CircusBear 0.00] Miss root=(0.100, 0.000, 0.861) yaw=7.67 standOff=1.783 lunge=0.867 wallRadius=6.360 radial=0.867 victim=Player(Clone) transform=(3.575, 0.000, 2.650) physics=(3.575, 0.000, 2.650) yaw=180.00 pose=Happy Idle:0.250 transition=False culling=AlwaysAnimate model=(0.000, 0.006, 0.000) scale=(1.704, 1.704, 1.704) visible=False hips=(3.571, 0.678, 2.638) chest=(3.572, 0.855, 2.646) sampleAge=0.533 surface=(2.753, 0.944, 2.426) shoulder=(-0.371, 1.493, 1.524) reach=3.297/1.208 lengths=0.462+0.416 reachable=False pad=(0.190, 1.085, 2.221) gap=2.4623
+]]></output>
+              </test-case>
+              <test-case id="1198" name="SmallSideStepDuringLiftIsTrackedButRunningDodgeStillEscapes(30)" fullname="Igruha.Tests.CircusBearContactTimingTests.SmallSideStepDuringLiftIsTrackedButRunningDodgeStillEscapes(30)" methodname="SmallSideStepDuringLiftIsTrackedButRunningDodgeStillEscapes" classname="Igruha.Tests.CircusBearContactTimingTests" runstate="Runnable" seed="447294852" result="Passed" start-time="2026-10-16 09:38:37Z" end-time="2026-10-16 09:38:38Z" duration="0.261759" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[CircusBear 0.00] State Chase
+[CircusBear 0.00] State Attack
+[CircusBear 0.00] Contact Player(Clone) at 0.40 s
+[CircusBear 0.00] State Chase
+[CircusBear 0.00] State Attack
+[CircusBear 0.00] Miss root=(0.115, 0.000, 0.858) yaw=10.42 standOff=1.783 lunge=0.867 wallRadius=6.360 radial=0.865 victim=Player(Clone) transform=(3.575, 0.000, 2.650) physics=(3.575, 0.000, 2.650) yaw=180.00 pose=Happy Idle:0.250 transition=False culling=AlwaysAnimate model=(0.000, 0.006, 0.000) scale=(1.704, 1.704, 1.704) visible=False hips=(3.571, 0.678, 2.638) chest=(3.572, 0.855, 2.646) sampleAge=0.567 surface=(2.963, 0.943, 2.436) shoulder=(-0.323, 1.493, 1.543) reach=3.450/1.208 lengths=0.462+0.416 reachable=False pad=(0.291, 1.057, 2.176) gap=2.5740
+]]></output>
+              </test-case>
+              <test-case id="1199" name="SmallSideStepDuringLiftIsTrackedButRunningDodgeStillEscapes(60)" fullname="Igruha.Tests.CircusBearContactTimingTests.SmallSideStepDuringLiftIsTrackedButRunningDodgeStillEscapes(60)" methodname="SmallSideStepDuringLiftIsTrackedButRunningDodgeStillEscapes" classname="Igruha.Tests.CircusBearContactTimingTests" runstate="Runnable" seed="1701414087" result="Passed" start-time="2026-10-16 09:38:38Z" end-time="2026-10-16 09:38:38Z" duration="0.368017" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[CircusBear 0.00] State Chase
+[CircusBear 0.00] State Attack
+[CircusBear 0.00] Contact Player(Clone) at 0.38 s
+[CircusBear 0.00] State Chase
+[CircusBear 0.00] State Attack
+[CircusBear 0.00] Miss root=(0.096, 0.000, 0.860) yaw=9.33 standOff=1.783 lunge=0.867 wallRadius=6.360 radial=0.865 victim=Player(Clone) transform=(3.575, 0.000, 2.650) physics=(3.575, 0.000, 2.650) yaw=180.00 pose=Happy Idle:0.250 transition=False culling=AlwaysAnimate model=(0.000, 0.006, 0.000) scale=(1.704, 1.704, 1.704) visible=False hips=(3.571, 0.678, 2.638) chest=(3.572, 0.855, 2.646) sampleAge=0.583 surface=(3.067, 0.943, 2.441) shoulder=(-0.355, 1.493, 1.537) reach=3.582/1.208 lengths=0.462+0.416 reachable=False pad=(0.252, 1.050, 2.172) gap=2.7161
+]]></output>
+              </test-case>
+            </test-suite>
+            <test-suite type="ParameterizedMethod" id="1203" name="StrikeLiftKeepsElbowBelowShoulderAndLimbLengthsRigid" fullname="Igruha.Tests.CircusBearContactTimingTests.StrikeLiftKeepsElbowBelowShoulderAndLimbLengthsRigid" classname="Igruha.Tests.CircusBearContactTimingTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-10-16 09:38:38Z" end-time="2026-10-16 09:38:38Z" duration="0.235595" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1201" name="StrikeLiftKeepsElbowBelowShoulderAndLimbLengthsRigid(30)" fullname="Igruha.Tests.CircusBearContactTimingTests.StrikeLiftKeepsElbowBelowShoulderAndLimbLengthsRigid(30)" methodname="StrikeLiftKeepsElbowBelowShoulderAndLimbLengthsRigid" classname="Igruha.Tests.CircusBearContactTimingTests" runstate="Runnable" seed="878544419" result="Passed" start-time="2026-10-16 09:38:38Z" end-time="2026-10-16 09:38:38Z" duration="0.064727" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[CircusBear 0.00] State Chase
+[CircusBear 0.00] State Attack
+]]></output>
+              </test-case>
+              <test-case id="1202" name="StrikeLiftKeepsElbowBelowShoulderAndLimbLengthsRigid(60)" fullname="Igruha.Tests.CircusBearContactTimingTests.StrikeLiftKeepsElbowBelowShoulderAndLimbLengthsRigid(60)" methodname="StrikeLiftKeepsElbowBelowShoulderAndLimbLengthsRigid" classname="Igruha.Tests.CircusBearContactTimingTests" runstate="Runnable" seed="385209946" result="Passed" start-time="2026-10-16 09:38:38Z" end-time="2026-10-16 09:38:38Z" duration="0.154551" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[CircusBear 0.00] State Chase
+[CircusBear 0.00] State Attack
+<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+Saving results to: /Users/azamatyessimkhanuly/Library/Application Support/Dauqara/sleepover/TestResults.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

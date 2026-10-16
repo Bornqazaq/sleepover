@@ -74,3 +74,9 @@ MonoBehaviour:
     Volume: 1
     Loop: 0
     Spatial: 1
+  - Id: mascot_laugh
+    Clip: {fileID: 8300000, guid: 01c8f6ebc142d4591b30cad00f754be5, type: 3}
+    Variants: []
+    Volume: 0.7
+    Loop: 0
+    Spatial: 1

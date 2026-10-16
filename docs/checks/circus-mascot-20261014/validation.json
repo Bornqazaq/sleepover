@@ -1,0 +1,62 @@
+{
+  "cans": {
+    "host_plus_clients": 3,
+    "all_pass": true,
+    "same_targets_and_start_timestamps": true,
+    "peers": [
+      {
+        "peer": "client-1.log",
+        "pass": true,
+        "mascot": "PLAYTEST_CHECK mascot events=6 frames=1056 hot=446 steam=446 blink=0..98.90518 pointDot=0.982035"
+      },
+      {
+        "peer": "client-2.log",
+        "pass": true,
+        "mascot": "PLAYTEST_CHECK mascot events=6 frames=1438 hot=606 steam=0 blink=0..99.51553 pointDot=0.9958754"
+      },
+      {
+        "peer": "client-3.log",
+        "pass": true,
+        "mascot": "PLAYTEST_CHECK mascot events=6 frames=1438 hot=608 steam=0 blink=0..99.4229 pointDot=0.9965544"
+      },
+      {
+        "peer": "host.log",
+        "pass": true,
+        "mascot": "PLAYTEST_CHECK mascot events=6 frames=914 hot=380 steam=380 blink=0..98.85273 pointDot=0.9017095"
+      }
+    ]
+  },
+  "stopwatch": {
+    "host_plus_clients": 3,
+    "all_pass": true,
+    "same_targets_and_start_timestamps": true,
+    "peers": [
+      {
+        "peer": "client-1.log",
+        "pass": true,
+        "mascot": "PLAYTEST_CHECK mascot events=2 frames=532 hot=220 steam=220 blink=0..99.59522 pointDot=0.9998067"
+      },
+      {
+        "peer": "client-2.log",
+        "pass": true,
+        "mascot": "PLAYTEST_CHECK mascot events=2 frames=204 hot=98 steam=0 blink=0..98.69695 pointDot=0.9998921"
+      },
+      {
+        "peer": "client-3.log",
+        "pass": true,
+        "mascot": "PLAYTEST_CHECK mascot events=2 frames=202 hot=98 steam=0 blink=0..96.64616 pointDot=0.9998264"
+      },
+      {
+        "peer": "host.log",
+        "pass": true,
+        "mascot": "PLAYTEST_CHECK mascot events=2 frames=50 hot=22 steam=22 blink=0..98.17267 pointDot=0.9998969"
+      }
+    ]
+  },
+  "editmode": {
+    "regression": 272,
+    "failed": 0,
+    "final_asset_recheck": 12
+  },
+  "roster_visual_review": 8
+}
