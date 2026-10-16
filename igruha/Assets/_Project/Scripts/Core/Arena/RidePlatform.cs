@@ -122,6 +122,11 @@ namespace Igruha.Core.Arena
 
         public float CurrentY => body != null ? body.position.y : transform.position.y;
 
+        /// <summary>Scheduled displacement for the next physics step. A dynamic
+        /// passenger can use the matching support velocity after its own motor,
+        /// without becoming kinematic or being teleported through the old floor.</summary>
+        public float PendingVerticalDelta { get; private set; }
+
         private float ClampedNetworkY => Mathf.Clamp(networkY, minY, maxY);
 
         private void Awake()
@@ -265,6 +270,7 @@ namespace Igruha.Core.Arena
             }
 
             float delta = nextY - currentY;
+            PendingVerticalDelta = delta;
             if (Mathf.Approximately(delta, 0f))
             {
                 return;
@@ -374,6 +380,10 @@ namespace Igruha.Core.Arena
             if (passenger != null) passenger.enabled = passengerWasEnabled;
         }
 
-        private void OnDisable() => RestorePassenger();
+        private void OnDisable()
+        {
+            PendingVerticalDelta = 0f;
+            RestorePassenger();
+        }
     }
 }
