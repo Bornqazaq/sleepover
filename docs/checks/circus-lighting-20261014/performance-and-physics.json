@@ -1,0 +1,41 @@
+{
+  "method": "Two seven-second Editor samples in the same gameplay view; first second discarded. Original light intensities/shadow modes versus six moving spots. New scene grading/fog kept in both samples. CPU frame duration, not a dedicated GPU benchmark.",
+  "originalLights": {
+    "frames": 833,
+    "meanMs": 7.209,
+    "p95Ms": 23.081
+  },
+  "movingSpots": {
+    "frames": 737,
+    "meanMs": 8.169,
+    "p95Ms": 22.349
+  },
+  "dynamicShadows": 2,
+  "spotlights": 6,
+  "manualPhysicsProbes": {
+    "fastDescent": {
+      "heightMetres": 6,
+      "durationSeconds": 2,
+      "horizontalTravelMetres": 7.042779,
+      "minimumFloorOffsetMetres": 4.410744e-05,
+      "maximumFloorOffsetMetres": 0.005018234,
+      "sampledFrames": 265
+    },
+    "jumpDuringDescent": {
+      "peakFloorOffsetMetres": 1.266417,
+      "landingFloorOffsetMetres": 0.003033161,
+      "groundedAfterLanding": true
+    }
+  },
+  "scenePhysicsAudit": {
+    "originalCansObjectsUnchanged": 220,
+    "originalStopwatchObjectsUnchanged": 212
+  },
+  "video": {
+    "path": "docs/art/circus-lighting/Circus_Spotlights_Overview.mp4",
+    "camera": "Temporary review camera; gameplay camera settings unchanged.",
+    "frames": 96,
+    "fps": 8,
+    "seconds": 12
+  }
+}

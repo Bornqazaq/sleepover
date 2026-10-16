@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-16",
+  "branch": "feat/circus-mascot-reactions",
+  "editmode": {
+    "passed": 15,
+    "total": 15
+  },
+  "network": {
+    "players": 4,
+    "stopwatch": "PASS",
+    "cans": "PASS",
+    "peer_passes": 8,
+    "failures": 0,
+    "metrics": [
+      "PLAYTEST_CHECK mascot events=2 frames=1430 hot=456 steam=456 blink=0..99.98856 smile=0.05025347..99.99992 pointDot=0.9998229 completedLaughs=2 shortestPresentation=5.102369 fullLengthFrames=68 exitCloudFrames=204 audioTime=5.027165",
+      "PLAYTEST_CHECK mascot events=2 frames=570 hot=202 steam=0 blink=0..99.71342 smile=0.0243297..99.99997 pointDot=0.9999664 completedLaughs=2 shortestPresentation=5.113271 fullLengthFrames=24 exitCloudFrames=102 audioTime=0",
+      "PLAYTEST_CHECK mascot events=2 frames=566 hot=204 steam=0 blink=0..99.96972 smile=0.5740256..99.9998 pointDot=0.9998583 completedLaughs=2 shortestPresentation=5.100077 fullLengthFrames=24 exitCloudFrames=102 audioTime=0",
+      "PLAYTEST_CHECK mascot events=2 frames=134 hot=44 steam=44 blink=0..93.34049 smile=0..99.98775 pointDot=0.9999015 completedLaughs=2 shortestPresentation=5.111104 fullLengthFrames=6 exitCloudFrames=36 audioTime=4.93873",
+      "PLAYTEST_CHECK mascot events=6 frames=1144 hot=392 steam=392 blink=0..99.4185 smile=0..99.99646 pointDot=0.9974425 completedLaughs=6 shortestPresentation=5.114758 fullLengthFrames=52 exitCloudFrames=222 audioTime=5.027165",
+      "PLAYTEST_CHECK mascot events=6 frames=1788 hot=614 steam=0 blink=0..99.23837 smile=0..99.99998 pointDot=0.9990763 completedLaughs=6 shortestPresentation=5.104948 fullLengthFrames=72 exitCloudFrames=306 audioTime=0",
+      "PLAYTEST_CHECK mascot events=6 frames=1786 hot=614 steam=0 blink=0..99.86231 smile=0..99.99822 pointDot=0.9990693 completedLaughs=6 shortestPresentation=5.114216 fullLengthFrames=72 exitCloudFrames=306 audioTime=0",
+      "PLAYTEST_CHECK mascot events=6 frames=988 hot=328 steam=328 blink=0..99.73583 smile=0..99.99957 pointDot=0.9976489 completedLaughs=6 shortestPresentation=5.108714 fullLengthFrames=36 exitCloudFrames=188 audioTime=5.012018"
+    ]
+  },
+  "appearance": {
+    "base_color": 0.7,
+    "emission": 0.85,
+    "urp_keyword": "_EMISSION",
+    "gi_flag": "BakedEmissive",
+    "show_seconds": 5.1,
+    "full_size_pop": true,
+    "exit_cloud_lifetime": 0.85
+  },
+  "preview": {
+    "folder": "docs/art/circus-mascot/horse-20261016",
+    "video_audio": "silent gameplay capture; CSV preserves actual sample timestamps"
+  },
+  "limitations": [
+    "localhost only; separate machines/Tailscale not checked",
+    "Live user listening assessment pending"
+  ],
+  "initial_checks": "Initial stopwatch probe required a sample in the last 0.2 s; replaced with observation of actual presentation completion, robust to skipped frames. Initial material emission was stripped by URP validation; fixed GI flags and added a validator regression check.",
+  "notes": [
+    "Addressables emits its pre-existing empty profile id message after building.",
+    "Test cleanup initially overlapped BuildMac and reported generated Assets/AddressableAssetsData/link.xml. Final isolated tests were rerun after all build work."
+  ]
+}

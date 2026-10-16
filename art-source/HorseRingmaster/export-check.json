@@ -1,0 +1,30 @@
+{
+  "source": "Meshy_Source.blend supplied by user",
+  "bones": 44,
+  "vertices": 54876,
+  "triangles": 109565,
+  "actions": [
+    "Mascot_Idle",
+    "Mascot_Taunt"
+  ],
+  "blendshapes": {
+    "Horse_Meshy_Skin": [
+      "Basis",
+      "LaughSmile"
+    ],
+    "UpperLid.L": [
+      "Basis",
+      "Blink"
+    ],
+    "UpperLid.R": [
+      "Basis",
+      "Blink"
+    ]
+  },
+  "atlas": "4096x4096",
+  "adaptations": [
+    "lip seam and mouth interior",
+    "articulated glove fingers",
+    "upper eyelid surfaces"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "success": true,
+  "message": "Code executed successfully.",
+  "data": {
+    "result": {
+      "result": "Succeeded",
+      "errors": 0,
+      "warnings": 2,
+      "seconds": 42.219584,
+      "output": "/Users/azamatyessimkhanuly/Dev/projects/sleepover/igruha/Builds/Autotest/sleepover.app",
+      "reportedBuildStart": "2026-10-16T12:02:02.32663",
+      "dateTimeKind": "Unspecified"
+    },
+    "compiler": "codedom"
+  }
+}

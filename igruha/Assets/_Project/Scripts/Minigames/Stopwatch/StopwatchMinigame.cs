@@ -77,6 +77,7 @@ namespace Igruha.Minigames.Stopwatch
 
         private readonly List<PlayerController> cageOccupants = new List<PlayerController>(8);
         private readonly List<Contestant> contestants = new List<Contestant>(8);
+        private readonly CircusActionRestrictions actionRestrictions = new CircusActionRestrictions();
         private readonly List<StopwatchEntry> entries = new List<StopwatchEntry>(8);
         private readonly List<int> faulted = new List<int>(8);
         private readonly List<int> eliminatedThisSubround = new List<int>(8);
@@ -214,6 +215,7 @@ namespace Igruha.Minigames.Stopwatch
 
         protected override void OnPlayersReady()
         {
+            actionRestrictions.Dispose();
             finaleGate?.Cancel();
             if (config == null || arenaConfig == null)
             {
@@ -292,6 +294,7 @@ namespace Igruha.Minigames.Stopwatch
                 };
 
                 PlayerController avatar = Players[i].Avatar;
+                actionRestrictions.Bind(avatar);
                 cage.SetOccupant(avatar);
                 if (avatar != null && cage.PropSlot != null)
                 {
@@ -376,6 +379,7 @@ namespace Igruha.Minigames.Stopwatch
 
         protected override void OnRoundEnded()
         {
+            actionRestrictions.Dispose();
             // Всё, что мини-игра навесила на игрока, она обязана снять сама:
             // персонаж переезжает между сценами живым, и незакрытая роль
             // уезжает в хаб вместе с ним.
@@ -638,7 +642,7 @@ namespace Igruha.Minigames.Stopwatch
                 anyDescends = true;
             }
 
-            stageState.EnterStage(StageDescend, anyDescends ? config.CageDescendSeconds : 0f);
+            stageState.EnterStage(StageDescend, anyDescends ? Mathf.Max(config.CageDescendSeconds, CircusCageMascot.ShowSeconds) : 0f);
         }
 
         /// <summary>

@@ -1,0 +1,8 @@
+{
+  "success": true,
+  "message": "Code executed successfully.",
+  "data": {
+    "result": "Stopwatch: spots=12; wired=True; afterRebuild=12; shadowLights=2; rigColliders=0; physicsUnchanged=True\nCansOrder: spots=12; wired=True; afterRebuild=12; shadowLights=2; rigColliders=0; physicsUnchanged=True\nIgruha/Circus/SpotlightBeam: supported=True; errors=0\nIgruha/Circus/BeamDust: supported=True; errors=0",
+    "compiler": "codedom"
+  }
+}

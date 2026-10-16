@@ -187,6 +187,7 @@ namespace Igruha.Networking
         [Rpc(SendTo.Server, RequireOwnership = true)]
         private void RequestPushRpc(NetworkObjectReference targetReference)
         {
+            if (pushAbility != null && pushAbility.InputSuppressed) return;
             if (inputReader != null && inputReader.Suspended) return;
             if (!targetReference.TryGet(out NetworkObject targetObject))
             {

@@ -1,0 +1,61 @@
+{
+  "mesh_objects": 39,
+  "vertices": 104952,
+  "bones": 54,
+  "deform_bones": 45,
+  "max_influences": 4,
+  "max_weight_error": 4.842877388000488e-08,
+  "unweighted_vertices": 0,
+  "unity_imported": false,
+  "animation": "Sandbox \u2022 wave, bend, fingers, jaw and blink",
+  "sampled_frames": [
+    1,
+    25,
+    34,
+    49,
+    65,
+    85,
+    110,
+    120
+  ],
+  "finite_deformed_vertices": true,
+  "max_vertex_radius_m": 4.135806384708671,
+  "uv_objects": 39,
+  "skin_modifiers": 39,
+  "ik": {
+    "Arm_IK_L": {
+      "pole_angle": -0.4417864680290222,
+      "rest_joint_error_m": 2.980591055756927e-05,
+      "target_error_m": 1.2605580922729247e-07
+    },
+    "Leg_IK_L": {
+      "pole_angle": -0.9817476868629456,
+      "rest_joint_error_m": 0.00022750784696293165,
+      "target_error_m": 1.1076084336130698e-07
+    },
+    "Arm_IK_R": {
+      "pole_angle": -2.6998062133789062,
+      "rest_joint_error_m": 2.980591055756927e-05,
+      "target_error_m": 1.2731557704981462e-07
+    },
+    "Leg_IK_R": {
+      "pole_angle": -2.1598448753356934,
+      "rest_joint_error_m": 0.00022750784696293165,
+      "target_error_m": 1.1076084336130698e-07
+    }
+  },
+  "closed_primary_meshes": {
+    "SpongeBody \u2022 rounded porous skin": true,
+    "ArmSkin.L": true,
+    "ArmSkin.R": true,
+    "LegSkin.L": true,
+    "LegSkin.R": true,
+    "Long hooked nose": true
+  },
+  "connected_limb_meshes": {
+    "ArmSkin.L": 1,
+    "ArmSkin.R": 1,
+    "LegSkin.L": 1,
+    "LegSkin.R": 1
+  }
+}

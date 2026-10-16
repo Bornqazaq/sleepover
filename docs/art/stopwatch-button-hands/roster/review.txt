@@ -1,0 +1,9 @@
+Play Mode: real PlayerInputReader → PlayerInteractor → CageButton.
+Karlan: PASS; contact=0.000000 m; input interval=1.222 s; measured=1.226 s
+Boss: PASS; contact=0.000000 m; input interval=1.209 s; measured=1.206 s
+Shlanga: PASS; contact=0.000000 m; input interval=1.216 s; measured=1.227 s
+Fat: PASS; contact=0.000000 m; input interval=1.216 s; measured=1.216 s
+MyBoy: PASS; contact=0.000000 m; input interval=1.204 s; measured=1.202 s
+Girl: PASS; contact=0.000000 m; input interval=1.219 s; measured=1.220 s
+Milez: PASS; contact=0.000000 m; input interval=1.205 s; measured=1.203 s
+Aza: PASS; contact=0.000000 m; input interval=1.208 s; measured=1.212 s

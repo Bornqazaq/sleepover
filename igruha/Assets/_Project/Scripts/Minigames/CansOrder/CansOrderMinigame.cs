@@ -161,6 +161,7 @@ namespace Igruha.Minigames.CansOrder
 
         private readonly List<PlayerController> cageOccupants = new List<PlayerController>(8);
         private readonly List<Contestant> contestants = new List<Contestant>(8);
+        private readonly CircusActionRestrictions actionRestrictions = new CircusActionRestrictions();
         private readonly EliminationRanking ranking = new EliminationRanking();
 
         /// <summary>Группа вылета текущего раунда. Переиспользуется между раундами.</summary>
@@ -357,6 +358,7 @@ namespace Igruha.Minigames.CansOrder
 
         protected override void OnPlayersReady()
         {
+            actionRestrictions.Dispose();
             finaleGate?.Cancel();
             shelfVisibility?.Dispose();
             if (config == null || arenaConfig == null)
@@ -455,6 +457,7 @@ namespace Igruha.Minigames.CansOrder
                 };
 
                 PlayerController avatar = Players[i].Avatar;
+                actionRestrictions.Bind(avatar);
                 cage.SetOccupant(avatar);
                 if (avatar != null && cage.PropSlot != null)
                 {
@@ -552,6 +555,7 @@ namespace Igruha.Minigames.CansOrder
 
         protected override void OnRoundEnded()
         {
+            actionRestrictions.Dispose();
             shelfVisibility?.SetActive(false);
             SetShelfMovementLock(false);
             attackPresentation?.ResetPresentation();
@@ -1220,7 +1224,12 @@ namespace Igruha.Minigames.CansOrder
 
                 case StagePlacement:
                     ResolveCircle();
-                    stageState.EnterStage(StageReveal, config.ResultsSeconds);
+                    // Let the mascot finish before another turn can open a bottom cage.
+                    float revealSeconds = config.ResultsSeconds;
+                    foreach (var contestant in contestants)
+                        if (contestant.Entry.Penalty == CansOrderPenalty.Descended)
+                            revealSeconds = Mathf.Max(revealSeconds, CircusCageMascot.ShowSeconds);
+                    stageState.EnterStage(StageReveal, revealSeconds);
                     break;
 
                 case StageReveal:

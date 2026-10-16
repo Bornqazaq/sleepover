@@ -1,0 +1,29 @@
+{
+  "meshes": {
+    "Bruno_Body": {
+      "vertices": 18252,
+      "positions_unchanged": true,
+      "topology_unchanged": true,
+      "uv_unchanged": true,
+      "max_influences": 4,
+      "weight_error": 4.470348358154297e-08
+    },
+    "Bruno_Coat": {
+      "vertices": 258552,
+      "positions_unchanged": true,
+      "topology_unchanged": true,
+      "uv_unchanged": true,
+      "max_influences": 4,
+      "weight_error": 4.840876499656588e-08
+    }
+  },
+  "actions": {
+    "Idle": true,
+    "Walk": true,
+    "Run": true,
+    "Alert": true,
+    "Strike_except_strike_foreleg": true,
+    "Roar": true
+  },
+  "skeleton_unchanged": true
+}

@@ -69,6 +69,11 @@ exec(compile(natural_path.read_text(),str(natural_path),'exec'),natural)
 rear_path=ROOT/'tools/blender/bruno_rear_motion.py'
 exec(compile(rear_path.read_text(),str(rear_path),'exec'),{'__name__':'__main__','__file__':str(rear_path)})
 
+# Keep the shoulder skin and the low, downward-elbow swat on a full rebuild.
+for filename in ('bruno_strike_skin.py', 'bruno_strike_motion.py'):
+    strike_path=ROOT/'tools/blender'/filename
+    exec(compile(strike_path.read_text(),str(strike_path),'exec'),{'__name__':'__main__','__file__':str(strike_path)})
+
 backup=ROOT/'art-source/BrunoMeshy/production-before-IGR757';backup.mkdir(exist_ok=True)
 for original in [ART/'Models/CN_Bruno.fbx',SOURCE/'Bruno.blend']:
     if original.exists() and not (backup/original.name).exists():shutil.copy2(original,backup/original.name)

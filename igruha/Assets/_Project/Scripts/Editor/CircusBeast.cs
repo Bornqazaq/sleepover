@@ -36,12 +36,12 @@ namespace Igruha.EditorTools
             var serialized=new SerializedObject(bear);
             serialized.FindProperty("visualRoot").objectReferenceValue=visual;
             serialized.FindProperty("animator").objectReferenceValue=animator;
-            serialized.FindProperty("turnSpeed").floatValue=220f;
+            serialized.FindProperty("turnSpeed").floatValue=240f;
             serialized.FindProperty("wallMargin").floatValue=PitBear.BodyWallClearance;
-            serialized.FindProperty("acceleration").floatValue=12f;
+            serialized.FindProperty("acceleration").floatValue=14f;
             serialized.FindProperty("attackContactTime").floatValue=PitBear.ContactSeconds;
             serialized.FindProperty("attackDuration").floatValue=PitBear.StrikeSeconds;
-            serialized.FindProperty("attackRecovery").floatValue=.18f;
+            serialized.FindProperty("attackRecovery").floatValue=.12f;
             serialized.FindProperty("alertParameter").stringValue="Alert";
             serialized.ApplyModifiedPropertiesWithoutUndo();
             CircusBearPolishBuilder.Dress(bear,animator);

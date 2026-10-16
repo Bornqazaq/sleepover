@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="9" result="Passed" total="9" passed="9" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-10-14 11:17:47Z" end-time="2026-10-14 11:17:49Z" duration="2.1552016">
+  <test-suite type="TestSuite" id="1000" name="sleepover" fullname="sleepover" runstate="Runnable" testcasecount="751" result="Passed" start-time="2026-10-14 11:17:47Z" end-time="2026-10-14 11:17:49Z" duration="2.155202" total="9" passed="9" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1879" name="Igruha.Camera.Tests.dll" fullname="/Users/azamatyessimkhanuly/Dev/projects/sleepover/igruha/Library/ScriptAssemblies/Igruha.Camera.Tests.dll" runstate="Runnable" testcasecount="750" result="Passed" start-time="2026-10-14 11:17:47Z" end-time="2026-10-14 11:17:49Z" duration="1.957177" total="9" passed="9" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="13731" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="1880" name="Igruha" fullname="Igruha" runstate="Runnable" testcasecount="737" result="Passed" start-time="2026-10-14 11:17:47Z" end-time="2026-10-14 11:17:49Z" duration="1.866008" total="9" passed="9" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1881" name="Tests" fullname="Igruha.Tests" runstate="Runnable" testcasecount="737" result="Passed" start-time="2026-10-14 11:17:47Z" end-time="2026-10-14 11:17:49Z" duration="1.664778" total="9" passed="9" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestFixture" id="1750" name="StopwatchHandSkinTests" fullname="Igruha.Tests.StopwatchHandSkinTests" classname="Igruha.Tests.StopwatchHandSkinTests" runstate="Runnable" testcasecount="9" result="Passed" start-time="2026-10-14 11:17:48Z" end-time="2026-10-14 11:17:49Z" duration="1.573164" total="9" passed="9" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1751" name="DescentReleasesButtonMovementLockBeforeTheNextLateUpdate" fullname="Igruha.Tests.StopwatchHandSkinTests.DescentReleasesButtonMovementLockBeforeTheNextLateUpdate" methodname="DescentReleasesButtonMovementLockBeforeTheNextLateUpdate" classname="Igruha.Tests.StopwatchHandSkinTests" runstate="Runnable" seed="1080418503" result="Passed" start-time="2026-10-14 11:17:48Z" end-time="2026-10-14 11:17:48Z" duration="0.131611" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-suite type="ParameterizedMethod" id="1760" name="EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin" fullname="Igruha.Tests.StopwatchHandSkinTests.EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin" classname="Igruha.Tests.StopwatchHandSkinTests" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-10-14 11:17:48Z" end-time="2026-10-14 11:17:49Z" duration="1.337588" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1752" name="EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin(&quot;Karlan&quot;)" fullname="Igruha.Tests.StopwatchHandSkinTests.EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin(&quot;Karlan&quot;)" methodname="EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin" classname="Igruha.Tests.StopwatchHandSkinTests" runstate="Runnable" seed="1727672791" result="Passed" start-time="2026-10-14 11:17:48Z" end-time="2026-10-14 11:17:49Z" duration="1.145924" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1753" name="EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin(&quot;Boss&quot;)" fullname="Igruha.Tests.StopwatchHandSkinTests.EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin(&quot;Boss&quot;)" methodname="EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin" classname="Igruha.Tests.StopwatchHandSkinTests" runstate="Runnable" seed="1437479993" result="Passed" start-time="2026-10-14 11:17:49Z" end-time="2026-10-14 11:17:49Z" duration="0.020776" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1754" name="EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin(&quot;Shlanga&quot;)" fullname="Igruha.Tests.StopwatchHandSkinTests.EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin(&quot;Shlanga&quot;)" methodname="EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin" classname="Igruha.Tests.StopwatchHandSkinTests" runstate="Runnable" seed="610664069" result="Passed" start-time="2026-10-14 11:17:49Z" end-time="2026-10-14 11:17:49Z" duration="0.016639" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1755" name="EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin(&quot;Fat&quot;)" fullname="Igruha.Tests.StopwatchHandSkinTests.EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin(&quot;Fat&quot;)" methodname="EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin" classname="Igruha.Tests.StopwatchHandSkinTests" runstate="Runnable" seed="1763443203" result="Passed" start-time="2026-10-14 11:17:49Z" end-time="2026-10-14 11:17:49Z" duration="0.017410" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1756" name="EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin(&quot;MyBoy&quot;)" fullname="Igruha.Tests.StopwatchHandSkinTests.EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin(&quot;MyBoy&quot;)" methodname="EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin" classname="Igruha.Tests.StopwatchHandSkinTests" runstate="Runnable" seed="1342302827" result="Passed" start-time="2026-10-14 11:17:49Z" end-time="2026-10-14 11:17:49Z" duration="0.016103" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1757" name="EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin(&quot;Girl&quot;)" fullname="Igruha.Tests.StopwatchHandSkinTests.EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin(&quot;Girl&quot;)" methodname="EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin" classname="Igruha.Tests.StopwatchHandSkinTests" runstate="Runnable" seed="1254576213" result="Passed" start-time="2026-10-14 11:17:49Z" end-time="2026-10-14 11:17:49Z" duration="0.015675" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1758" name="EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin(&quot;Milez&quot;)" fullname="Igruha.Tests.StopwatchHandSkinTests.EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin(&quot;Milez&quot;)" methodname="EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin" classname="Igruha.Tests.StopwatchHandSkinTests" runstate="Runnable" seed="2010369303" result="Passed" start-time="2026-10-14 11:17:49Z" end-time="2026-10-14 11:17:49Z" duration="0.018986" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1759" name="EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin(&quot;Aza&quot;)" fullname="Igruha.Tests.StopwatchHandSkinTests.EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin(&quot;Aza&quot;)" methodname="EachAvatarUsesItsOwnMaterialsAndTouchesWithActualFingerSkin" classname="Igruha.Tests.StopwatchHandSkinTests" runstate="Runnable" seed="121630204" result="Passed" start-time="2026-10-14 11:17:49Z" end-time="2026-10-14 11:17:49Z" duration="0.021517" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+Saving results to: /Users/azamatyessimkhanuly/Library/Application Support/Dauqara/sleepover/TestResults.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

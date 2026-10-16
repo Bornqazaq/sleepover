@@ -77,6 +77,9 @@ namespace Igruha.Minigames.Stopwatch
 
         private MaterialPropertyBlock block;
         private PlayerController owner;
+        public PlayerController Owner => owner;
+        public Renderer PressSurface => lamp;
+        public bool HasLocalPresentation { get; set; }
         private double startedAt;
         private float measured;
 
@@ -120,7 +123,7 @@ namespace Igruha.Minigames.Stopwatch
         /// <summary>Успел ли хозяин закрыть отсчёт в этом подраунде.</summary>
         public bool Completed => State == ButtonState.Stopped;
 
-        public string InteractionPrompt => State switch
+        public string InteractionPrompt => HasLocalPresentation ? string.Empty : State switch
         {
             ButtonState.Idle => InteractionPromptText.Hold + "держать кнопку",
             ButtonState.Running => InteractionPromptText.Release + "остановить отсчёт",
@@ -317,13 +320,14 @@ namespace Igruha.Minigames.Stopwatch
                 return;
             }
 
-            // Пульсирует только своя кнопка и только пока идёт отсчёт: это
-            // единственный признак «мой отсчёт пошёл», других в игре нет.
+            // В крупном плане нажатие показывают рука и HUD. Ровный свет
+            // не превращает увеличенную кнопку в метроном.
             if (ViewedByOwner)
             {
                 if (State == ButtonState.Running)
                 {
-                    float pulse = 1f - pulseAmount * 0.5f * (1f + Mathf.Sin(Time.time * pulseSpeed * Mathf.PI * 2f));
+                    float pulse = HasLocalPresentation ? 1f :
+                        1f - pulseAmount * 0.5f * (1f + Mathf.Sin(Time.time * pulseSpeed * Mathf.PI * 2f));
                     ApplyColor(ownRunningColor * pulse);
                 }
 
@@ -364,7 +368,8 @@ namespace Igruha.Minigames.Stopwatch
             if (lit)
             {
                 beacon.color = color;
-                beacon.intensity = beaconIntensity * Mathf.Max(color.r, Mathf.Max(color.g, color.b));
+                beacon.intensity = beaconIntensity * Mathf.Max(color.r, Mathf.Max(color.g, color.b)) *
+                    (HasLocalPresentation ? .35f : 1f);
             }
         }
     }

@@ -1,0 +1,138 @@
+{
+  "baseCommit": "6af08b6a0fdd07233ec62d098837c326f8eefc3d",
+  "workingTreeChanges": true,
+  "branch": "fix/circus-cage-motion-lighting",
+  "hostPlusClients": 3,
+  "visibleHostAndClient": true,
+  "transport": "localhost",
+  "games": [
+    {
+      "logDirectory": "igruha/Builds/Autotest/logs/playtest-circus-cans-20261014-132029",
+      "players": [
+        {
+          "log": "client-1.log",
+          "passed": true,
+          "errors": [],
+          "checks": [
+            "PLAYTEST_CHECK shelf rush movingFrames=77 crouchedFrames=26 minimumFloorOffset=-9.536743E-07 minimumSkinOffset=-0.02000046",
+            "PLAYTEST_CHECK interface roundClockVisible=True cans=True",
+            "PLAYTEST_CHECK hatch maximumUpwardStep=0 finalHeights=2.76,2.76",
+            "PLAYTEST_CHECK circus floors=True,True fall=True,True caught=True,True chasePeak=2.17",
+            "PLAYTEST_CHECK bear pair secondChased=True travel=4.73 separation=7.410",
+            "PLAYTEST_CHECK circus Results observed=True inputBlocked=True",
+            "PLAYTEST_CHECK free cage movement frames=0 metres=0.00 animated=0 crouched=0 floor=3.402823E+38..-3.402823E+38",
+            "PLAYTEST_CHECK PASS mode=circus-cans id=2"
+          ]
+        },
+        {
+          "log": "client-2.log",
+          "passed": true,
+          "errors": [],
+          "checks": [
+            "PLAYTEST_CHECK shelf rush movingFrames=119 crouchedFrames=38 minimumFloorOffset=-9.536743E-07 minimumSkinOffset=0.003292084",
+            "PLAYTEST_CHECK interface roundClockVisible=True cans=True",
+            "PLAYTEST_CHECK hatch maximumUpwardStep=0 finalHeights=2.76,2.76",
+            "PLAYTEST_CHECK circus floors=True,True fall=True,True caught=True,True chasePeak=2.09",
+            "PLAYTEST_CHECK bear pair secondChased=True travel=4.71 separation=7.411",
+            "PLAYTEST_CHECK circus Results observed=True inputBlocked=True",
+            "PLAYTEST_CHECK free cage movement frames=363 metres=16.19 animated=319 crouched=146 floor=0..0.004993677",
+            "PLAYTEST_CHECK PASS mode=circus-cans id=1"
+          ]
+        },
+        {
+          "log": "client-3.log",
+          "passed": true,
+          "errors": [],
+          "checks": [
+            "PLAYTEST_CHECK shelf rush movingFrames=119 crouchedFrames=39 minimumFloorOffset=0 minimumSkinOffset=0.002923965",
+            "PLAYTEST_CHECK interface roundClockVisible=True cans=True",
+            "PLAYTEST_CHECK hatch maximumUpwardStep=0 finalHeights=2.76,2.76",
+            "PLAYTEST_CHECK circus floors=True,True fall=True,True caught=True,True chasePeak=2.11",
+            "PLAYTEST_CHECK bear pair secondChased=True travel=4.68 separation=7.411",
+            "PLAYTEST_CHECK circus Results observed=True inputBlocked=True",
+            "PLAYTEST_CHECK free cage movement frames=0 metres=0.00 animated=0 crouched=0 floor=3.402823E+38..-3.402823E+38",
+            "PLAYTEST_CHECK PASS mode=circus-cans id=3"
+          ]
+        },
+        {
+          "log": "host.log",
+          "passed": true,
+          "errors": [],
+          "checks": [
+            "PLAYTEST_CHECK shelf rush movingFrames=80 crouchedFrames=27 minimumFloorOffset=0 minimumSkinOffset=-0.02000046",
+            "PLAYTEST_CHECK interface roundClockVisible=True cans=True",
+            "PLAYTEST_CHECK hatch maximumUpwardStep=0 finalHeights=2.76,2.76",
+            "PLAYTEST_CHECK circus floors=True,True fall=True,True caught=True,True chasePeak=3.29",
+            "PLAYTEST_CHECK bear pair secondChased=True travel=5.06 separation=7.473",
+            "PLAYTEST_CHECK circus Results observed=True inputBlocked=True",
+            "PLAYTEST_CHECK free cage movement frames=294 metres=16.27 animated=261 crouched=119 floor=0..0.004995584",
+            "PLAYTEST_CHECK PASS mode=circus-cans id=0"
+          ]
+        }
+      ],
+      "passed": true
+    },
+    {
+      "logDirectory": "igruha/Builds/Autotest/logs/playtest-circus-stopwatch-20261014-132223",
+      "players": [
+        {
+          "log": "client-1.log",
+          "passed": true,
+          "errors": [],
+          "checks": [
+            "PLAYTEST_CHECK interface roundClockVisible=False cans=False",
+            "PLAYTEST_CHECK hatch maximumUpwardStep=0 finalHeights=2.76,2.76",
+            "PLAYTEST_CHECK circus floors=True,True fall=True,True caught=True,True chasePeak=2.79",
+            "PLAYTEST_CHECK bear pair secondChased=True travel=16.74 separation=4.813",
+            "PLAYTEST_CHECK circus Results observed=True inputBlocked=True",
+            "PLAYTEST_CHECK free cage movement frames=0 metres=0.00 animated=0 crouched=0 floor=3.402823E+38..-3.402823E+38",
+            "PLAYTEST_CHECK PASS mode=circus-stopwatch id=2"
+          ]
+        },
+        {
+          "log": "client-2.log",
+          "passed": true,
+          "errors": [],
+          "checks": [
+            "PLAYTEST_CHECK interface roundClockVisible=False cans=False",
+            "PLAYTEST_CHECK hatch maximumUpwardStep=0 finalHeights=2.76,2.76",
+            "PLAYTEST_CHECK circus floors=True,True fall=True,True caught=True,True chasePeak=2.81",
+            "PLAYTEST_CHECK bear pair secondChased=True travel=16.75 separation=4.815",
+            "PLAYTEST_CHECK circus Results observed=True inputBlocked=True",
+            "PLAYTEST_CHECK free cage movement frames=121 metres=5.28 animated=93 crouched=42 floor=0..0.004992723",
+            "PLAYTEST_CHECK PASS mode=circus-stopwatch id=1"
+          ]
+        },
+        {
+          "log": "client-3.log",
+          "passed": true,
+          "errors": [],
+          "checks": [
+            "PLAYTEST_CHECK interface roundClockVisible=False cans=False",
+            "PLAYTEST_CHECK hatch maximumUpwardStep=0 finalHeights=2.76,2.76",
+            "PLAYTEST_CHECK circus floors=True,True fall=True,True caught=True,True chasePeak=2.83",
+            "PLAYTEST_CHECK bear pair secondChased=True travel=16.71 separation=4.815",
+            "PLAYTEST_CHECK circus Results observed=True inputBlocked=True",
+            "PLAYTEST_CHECK free cage movement frames=0 metres=0.00 animated=0 crouched=0 floor=3.402823E+38..-3.402823E+38",
+            "PLAYTEST_CHECK PASS mode=circus-stopwatch id=3"
+          ]
+        },
+        {
+          "log": "host.log",
+          "passed": true,
+          "errors": [],
+          "checks": [
+            "PLAYTEST_CHECK interface roundClockVisible=False cans=False",
+            "PLAYTEST_CHECK hatch maximumUpwardStep=0 finalHeights=2.76,2.76",
+            "PLAYTEST_CHECK circus floors=True,True fall=True,True caught=True,True chasePeak=3.82",
+            "PLAYTEST_CHECK bear pair secondChased=True travel=17.65 separation=4.800",
+            "PLAYTEST_CHECK circus Results observed=True inputBlocked=True",
+            "PLAYTEST_CHECK free cage movement frames=86 metres=5.28 animated=66 crouched=28 floor=0..0.005012035",
+            "PLAYTEST_CHECK PASS mode=circus-stopwatch id=0"
+          ]
+        }
+      ],
+      "passed": true
+    }
+  ]
+}
