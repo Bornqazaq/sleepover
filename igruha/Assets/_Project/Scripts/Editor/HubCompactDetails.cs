@@ -23,7 +23,8 @@ namespace Igruha.EditorTools
             var g=new HubOriginalGeometry();Rug(g,new Vector3(0,-.675f,-.56f),new Vector2(6.55f,4.4f),mat);
             Rug(g,new Vector3(6.85f,.025f,-6.95f),new Vector2(4.45f,3.45f),M("Sage"));
             Rug(g,new Vector3(-6.3f,.025f,1.27f),new Vector2(1.13f,4.62f),M("Terracotta"));
-            Rug(g,new Vector3(-7.3f,.025f,-3.72f),new Vector2(3.5f,2.6f),M("Sage"));
+            // Leave a clear gap in front of the south-facing entry stairs.
+            Rug(g,new Vector3(-7.3f,.025f,-3.22f),new Vector2(3.5f,2.6f),M("Sage"));
             g.Build(root,"Rugs",castShadows:false);
         }
         private static void Rug(HubOriginalGeometry g,Vector3 p,Vector2 size,Material mat)

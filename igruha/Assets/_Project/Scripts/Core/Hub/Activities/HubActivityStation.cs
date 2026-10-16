@@ -88,6 +88,8 @@ namespace Igruha.Core.Hub.Activities
 
         public ulong Occupant => IsSpawned ? occupant.Value : offlineOccupant;
         public HubActivityPhase Phase => IsSpawned ? phase.Value : offlinePhase;
+        public bool IsLocalOccupant => IsOccupiedByLocalPlayer();
+        public PlayerController LocalOccupant => IsLocalOccupant ? ResolveLocalPlayer() : null;
         /// <summary>Сила, набранная прямо сейчас: 0…1. Локальная, по сети не идёт.</summary>
         public float Power { get; private set; }
 

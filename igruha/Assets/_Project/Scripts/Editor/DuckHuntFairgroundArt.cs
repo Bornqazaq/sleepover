@@ -62,11 +62,6 @@ namespace Igruha.EditorTools
                 foreach(int s in new[]{-1,1})Beam(art,new Vector3(1.63f,.023f,z+s*.14f),new Vector3(1.83f,.023f,z),.025f,"Brass");
             }
             PointLight(art,new Vector3(3,3.6f,4.7f),new Color(1,.74f,.43f),4,9);
-            for(int i=0;i<4;i++)
-            {
-                Model("Wheel",art,new Vector3(.65f+i*1.35f,1.5f,-.20f),Vector3.one*.35f);
-                Model("Duck",art,new Vector3(.65f+i*1.35f,1.35f,-.42f),Vector3.one*.30f);
-            }
         }
 
         static void DressFinalStage(Transform floor,Transform art)
@@ -157,7 +152,7 @@ namespace Igruha.EditorTools
 
         static bool OnFairApron(float x,float z)=>x>-61f && x<95f && z>-62f && z<30f;
 
-        static bool InTownCorridor(float x,float z)=>z<-58f && x>-104f && x<148f;
+        static bool InTownCorridor(float x,float z)=>z<-54f;
 
         // ---------------------------------------------------------------------
         // Рельеф
@@ -169,9 +164,10 @@ namespace Igruha.EditorTools
         /// </summary>
         static float FlatMask(float x,float z)
         {
+            if(z<=-54f)return 0f; // The entire city-facing half-plane is graded flat.
             float dx=Mathf.Max(Mathf.Max(-84f-x,x-126f),0f);
             float dz=Mathf.Max(Mathf.Max(-212f-z,z-34f),0f);
-            return Mathf.SmoothStep(0f,1f,Mathf.Clamp01(Mathf.Sqrt(dx*dx+dz*dz)/64f));
+            return Mathf.SmoothStep(0f,1f,Mathf.Clamp01(Mathf.Sqrt(dx*dx+dz*dz)/64f))*Mathf.SmoothStep(0f,1f,Mathf.InverseLerp(-54,-12,z));
         }
 
         static float HillHeight(float x,float z)
@@ -191,7 +187,7 @@ namespace Igruha.EditorTools
             return h*mask;
         }
 
-        static float TerrainY(float x,float z)=>Ground+HillHeight(x,z);
+        static float TerrainY(float x,float z)=>Ground-.35f+HillHeight(x,z);
 
         static void FairgroundTerrain(Transform art)
         {
@@ -247,12 +243,17 @@ namespace Igruha.EditorTools
             FairApron(art);
             Promenade(art);
             Forecourt(art);
+            FairApproaches(art);
             EntranceGate(art,rides);
             RideZone(art,rides);
             GameZone(art,rides);
             ServiceYard(art);
             Dressing(art,rides);
-            TownEdge(art);
+            ApproachRoad(art);
+            CarPark(art);
+            LivingCity(art,rides);
+            LightFairground(art);
+            AttractionSignSupports(art);
             Treeline(art);
             AuditFairgroundSpacing(art);
         }
@@ -309,7 +310,8 @@ namespace Igruha.EditorTools
         {
             // Утоптанная земля с собственной границей: у ярмарки появляется
             // территория, и башня перестаёт выглядеть поставленной в поле.
-            Solid(art,"Fair ground",new Vector3(17,Ground-.49f,-16),new Vector3(156,1,92),"Sand");
+            for(int x=0;x<13;x++)for(int z=0;z<8;z++)
+                Solid(art,"Fair ground tile",new Vector3(-61+(x+.5f)*12,Ground-.49f,-62+(z+.5f)*11.5f),new Vector3(12,1,11.5f),"Sand");
             Solid(art,"Fair ground edge",new Vector3(17,Ground-.62f,-16),new Vector3(160,1,96),"Gravel");
             PerimeterFence(art);
         }
@@ -339,11 +341,11 @@ namespace Igruha.EditorTools
         {
             // Главная аллея вдоль фасада и поперечная от ворот к башне.
             // Обе лежат за z = -17, то есть вне сектора огня.
-            Solid(art,"Promenade",new Vector3(17,Ground+.03f,PromenadeZ),new Vector3(130,.14f,PromenadeHalf*2),"Oak");
+            SurfaceTiles(art,"Promenade",new Vector3(17,Ground+.12f,PromenadeZ),130,PromenadeHalf*2,"Oak");
             foreach(int side in new[]{-1,1})
                 Solid(art,"Promenade kerb",new Vector3(17,Ground+.08f,PromenadeZ+side*(PromenadeHalf+.25f)),
                     new Vector3(130,.24f,.5f),"OakDark");
-            Solid(art,"Gate avenue",new Vector3(FairCentre.x,Ground+.03f,-33.5f),new Vector3(11,.14f,28),"Oak");
+            // Gate paths now branch around the ship and connect each boarding platform.
 
             // Фонарные столбы с гирляндами между ними задают ритм аллеи.
             for(float x=-44f;x<=78f;x+=11f)
@@ -436,24 +438,19 @@ namespace Igruha.EditorTools
 
         static void RideZone(Transform art,Transform rides)
         {
-            FerrisWheel(art,rides,new Vector3(-44,Ground+16.5f,-8f),15.5f);
-            Carousel(art,rides,new Vector3(-27,Ground,PromenadeZ),1.55f);
-            DropTower(art,rides,new Vector3(-57,Ground,-36f),22f,"Blue");
-            DropTower(art,rides,new Vector3(-14,Ground,-45f),18f,"Red");
-            // Палатки стоят двумя рядами вдоль аллеи с проверенным зазором:
-            // шатёр 6.75 м в поперечнике, значит шаг ряда — от 9 м, а не «на глаз».
-            for(int i=0;i<4;i++)
-                Model("Tent",art,new Vector3(-52+i*9f,Ground,-36.5f),Vector3.one*1.15f,Quaternion.Euler(0,i%2==0?8:-9,0));
-            for(int i=0;i<3;i++)
-                Model("Tent",art,new Vector3(-46+i*10f,Ground,-11f),Vector3.one*1.25f,Quaternion.Euler(0,180+(i%2==0?-7:6),0));
-            Model("Booth",art,new Vector3(-14,Ground,-34f),Vector3.one*1.8f,Quaternion.Euler(0,14,0));
-            Model("PopcornCart",art,new Vector3(-10.5f,Ground,-31f),Vector3.one*1.4f,Quaternion.Euler(0,-24,0));
-            Model("Balloons",art,new Vector3(-8.2f,Ground,-29.6f),Vector3.one*1.25f);
-            foreach(float x in new[]{-35f,-21f,-8f})
-            {
-                Model("Bench",art,new Vector3(x,Ground,PromenadeZ+6.6f),Vector3.one*1.2f,Quaternion.Euler(0,180,0));
-                Model("Barrel",art,new Vector3(x+2.4f,Ground,PromenadeZ+6.6f),Vector3.one*.85f);
-            }
+            FerrisWheel(art,rides,new Vector3(-34,Ground+18f,-44f),15.5f);
+            Carousel(art,rides,HorseSite,1.55f);
+            DropTower(art,rides,new Vector3(-51,Ground,-26f),22f,"Blue");
+            DropTower(art,rides,RedTowerSite,18f,"Red");
+            SwingCarousel(art,rides,SwingSite);
+            TeaCupRide(art,rides,TeaSite);
+            PirateShipRide(art,rides,ShipSite);
+            OrbiterRide(art,rides,OrbiterSite);
+            foreach(float x in new[]{-48f,-34f,-20f})
+                Model("Tent",art,new Vector3(x,Ground,18f),Vector3.one*1.15f);
+            Model("Booth",art,new Vector3(-48,Ground,7f),Vector3.one*1.5f);
+            Model("PopcornCart",art,new Vector3(-26,Ground,5f),Vector3.one*1.3f);
+            Model("Balloons",art,new Vector3(-24,Ground,5f),Vector3.one);
         }
 
         static void FerrisWheel(Transform art,Transform rides,Vector3 centre,float radius)
@@ -475,12 +472,12 @@ namespace Igruha.EditorTools
                 }
             }
             Solid(art,"Wheel hub housing",centre,new Vector3(1.7f,1.7f,7f),"Iron");
-            Solid(art,"Wheel platform",new Vector3(centre.x,Ground+.18f,centre.z-radius-1.4f),new Vector3(9,.36f,5),"Oak");
-            Model("TicketStand",art,new Vector3(centre.x+3.4f,Ground+.36f,centre.z-radius-1.6f),Vector3.one*1.4f,Quaternion.Euler(0,180,0));
+            Solid(art,"Wheel platform",new Vector3(centre.x,Ground+.18f,centre.z+5.4f),new Vector3(9,.36f,5),"Oak");
+            Model("TicketStand",art,new Vector3(centre.x+3.4f,Ground+.36f,centre.z+5.6f),Vector3.one*1.4f,Quaternion.Euler(0,180,0));
 
             Transform wheel=Ride(rides,"FerrisWheel",centre);
             Transform rim=Group(wheel,"Rim");
-            const int arcs=32;
+            const int arcs=96;
             for(int i=0;i<arcs;i++)
             {
                 float a=i*Mathf.PI*2/arcs,b=(i+1)*Mathf.PI*2/arcs;
@@ -489,9 +486,13 @@ namespace Igruha.EditorTools
                 foreach(float dz in new[]{-1.55f,1.55f})
                 {
                     Beam(rim,v+Vector3.forward*dz,w+Vector3.forward*dz,.20f,"Cream");
-                    if(i%2==0)Beam(rim,centre+Vector3.forward*dz*.5f,v+Vector3.forward*dz,.11f,"Brass");
+                    if(i%6==0)
+                    {
+                        Beam(rim,centre+Vector3.forward*dz*.5f,v+Vector3.forward*dz,.11f,"Brass");
+                        for(int k=1;k<10;k++)Solid(rim,"Spoke light",Vector3.Lerp(centre,v,k/10f)+Vector3.forward*(dz+.10f),Vector3.one*.13f,i%12==0?"Glow":"GlowBlue");
+                    }
+                    Solid(rim,"Wheel rim lamp",v+Vector3.forward*(dz*1.06f),Vector3.one*.21f,i%12<6?"Glow":"GlowPink");
                 }
-                if(i%2==0)Model("Bulb",rim,v,Vector3.one*1.1f);
             }
             Combine(rim,"FerrisRim");
 
@@ -500,12 +501,15 @@ namespace Igruha.EditorTools
             {
                 float a=i*Mathf.PI*2/cars;
                 Vector3 hang=centre+new Vector3(Mathf.Cos(a)*radius,Mathf.Sin(a)*radius,0);
-                Transform car=Group(wheel,"Gondola");car.position=hang-Vector3.up*1.45f;
+                Transform car=Group(wheel,"Gondola");car.position=hang;
+                Vector3 body=hang-Vector3.up*1.45f;
                 string colour=i%3==0?"Red":i%3==1?"Blue":"Gold";
-                Solid(car,"Gondola body",car.position,new Vector3(1.7f,1.05f,2.2f),colour);
-                Solid(car,"Gondola floor",car.position-Vector3.up*.56f,new Vector3(1.8f,.1f,2.3f),"OakDark");
-                Solid(car,"Gondola roof",car.position+Vector3.up*.66f,new Vector3(1.95f,.12f,2.45f),"Cream");
-                Beam(car,car.position+Vector3.up*.64f,hang,.075f,"Iron");
+                Solid(car,"Gondola body",body,new Vector3(1.7f,1.05f,2.2f),colour);
+                Solid(car,"Gondola floor",body-Vector3.up*.56f,new Vector3(1.8f,.1f,2.3f),"OakDark");
+                Solid(car,"Gondola roof",body+Vector3.up*.66f,new Vector3(1.95f,.12f,2.45f),"Cream");
+                Beam(car,body+Vector3.up*.64f,hang,.075f,"Iron");
+                foreach(int side in new[]{-1,1})Solid(car,"Cabin illuminated trim",body+new Vector3(0,.55f,side*1.15f),new Vector3(1.75f,.10f,.10f),"Glow");
+                Combine(car,"FerrisCabin_"+i);
                 Motion(car,AmbientMotion.Mode.Spin,Vector3.back,0f,FerrisPeriod);
             }
             Motion(wheel,AmbientMotion.Mode.Spin,Vector3.forward,0f,FerrisPeriod);
@@ -523,6 +527,11 @@ namespace Igruha.EditorTools
             }
             Transform ride=Ride(rides,"Carousel",centre);
             Model("CarouselFrame",ride,centre,Vector3.one*scale);
+            for(int i=0;i<48;i++)
+            {
+                float a=i*Mathf.PI*2/48;
+                Solid(ride,"Carousel canopy lamp",centre+new Vector3(Mathf.Sin(a)*3.1f*scale,3.15f*scale,Mathf.Cos(a)*3.1f*scale),Vector3.one*.18f,i%8<4?"Glow":"GlowPink");
+            }
             const int horses=6;
             for(int i=0;i<horses;i++)
             {
@@ -540,7 +549,10 @@ namespace Igruha.EditorTools
         static void DropTower(Transform art,Transform rides,Vector3 foot,float height,string colour)
         {
             foreach(int side in new[]{-1,1})
+            {
                 Beam(art,foot+new Vector3(side*1.15f,0,0),foot+new Vector3(side*1.15f,height,0),.20f,colour);
+                for(float h=1;h<height;h+=.65f)Solid(art,"Drop tower lamp",foot+new Vector3(side*1.15f,h,-.13f),Vector3.one*.18f,colour=="Red"?"GlowPink":"GlowBlue");
+            }
             for(float y=0;y<height-2.6f;y+=2.6f)
             {
                 Beam(art,foot+new Vector3(-1.15f,y,0),foot+new Vector3(1.15f,y+2.6f,0),.10f,"Cream");
@@ -562,50 +574,28 @@ namespace Igruha.EditorTools
 
         static void GameZone(Transform art,Transform rides)
         {
-            // Ряд игровых будок вдоль северной кромки аллеи, лицом к аллее.
-            for(int i=0;i<4;i++)
+            foreach(float x in new[]{44f,54f,64f})
             {
-                float x=46+i*9f;
-                Model("Booth",art,new Vector3(x,Ground,PromenadeZ+PromenadeHalf+3.2f),Vector3.one*1.75f,Quaternion.Euler(0,180,0));
-                Model("PrizeDisplay",art,new Vector3(x,Ground,PromenadeZ+PromenadeHalf+5.6f),new Vector3(.9f,.85f,.9f),Quaternion.Euler(0,180,0));
-                if(i%2==0)Model("Balloons",art,new Vector3(x+2.4f,Ground+1.6f,PromenadeZ+PromenadeHalf+3.0f),Vector3.one*1.2f);
+                Model("Booth",art,new Vector3(x,Ground,-15.5f),Vector3.one*1.5f,Quaternion.Euler(0,180,0));
+                Model("PrizeDisplay",art,new Vector3(x,Ground,-12.8f),new Vector3(.8f,.8f,.8f),Quaternion.Euler(0,180,0));
             }
-            // Одна будка с настоящим вращающимся колесом фортуны.
-            Transform fortune=Ride(rides,"FortuneWheel",new Vector3(64,Ground+2.45f,PromenadeZ+PromenadeHalf+2.1f));
-            Model("Wheel",fortune,fortune.position,Vector3.one*2.1f);
-            Motion(fortune,AmbientMotion.Mode.Spin,Vector3.forward,0f,13f);
-
-            // Еда — на южной кромке, напротив игр: между рядами остаётся проход.
-            Model("SnackBar",art,new Vector3(48,Ground,PromenadeZ-PromenadeHalf-3.4f),Vector3.one*1.7f);
-            Model("PopcornCart",art,new Vector3(55,Ground,PromenadeZ-PromenadeHalf-2.6f),Vector3.one*1.4f,Quaternion.Euler(0,-18,0));
-            Model("MenuBoard",art,new Vector3(50.6f,Ground,PromenadeZ-PromenadeHalf-2.2f),Vector3.one*1.3f,Quaternion.Euler(0,16,0));
-            Model("PrizeCart",art,new Vector3(61,Ground,PromenadeZ-PromenadeHalf-3.0f),Vector3.one*1.4f,Quaternion.Euler(0,12,0));
-            for(int i=0;i<4;i++)
-            {
-                Model("Bench",art,new Vector3(52+i*5f,Ground,PromenadeZ-PromenadeHalf-6.4f),Vector3.one*1.2f);
-                if(i%2==0)Model("Barrel",art,new Vector3(54.4f+i*5f,Ground,PromenadeZ-PromenadeHalf-6.4f),Vector3.one*.85f);
-            }
-            // Большой призовой шатёр замыкает ряд с востока.
-            Model("Tent",art,new Vector3(82,Ground,PromenadeZ-3f),Vector3.one*1.6f,Quaternion.Euler(0,-14,0));
-            Model("Tent",art,new Vector3(77,Ground,-6f),Vector3.one*1.3f,Quaternion.Euler(0,168,0));
-            Model("Tent",art,new Vector3(88,Ground,-12f),Vector3.one*1.15f,Quaternion.Euler(0,196,0));
-            Queue(art,new Vector3(62,Ground,PromenadeZ-8.5f),5,new Vector3(2.2f,0,0));
+            Transform fortune=Ride(rides,"FortuneWheel",new Vector3(54,Ground+2.45f,-16.6f));
+            Model("Wheel",fortune,fortune.position,Vector3.one*1.9f);
+            Motion(fortune,AmbientMotion.Mode.Spin,Vector3.forward,0,13);
+            Model("SnackBar",art,new Vector3(40,Ground,-32.8f),Vector3.one*1.5f);
+            Model("PopcornCart",art,new Vector3(48,Ground,-32.8f),Vector3.one*1.3f);
+            Model("MenuBoard",art,new Vector3(43,Ground,-33f),Vector3.one);
+            Model("Tent",art,new Vector3(47,Ground,-6f),Vector3.one*1.25f);
+            foreach(float x in new[]{35f,44f})Model("Bench",art,new Vector3(x,Ground,-52f),Vector3.one*1.2f);
         }
 
         static void ServiceYard(Transform art)
         {
-            // Хозяйственный двор сбоку от башни: объясняет, чем ярмарка живёт.
-            Solid(art,"Service yard",new Vector3(70,Ground+.03f,10f),new Vector3(34,.12f,26),"Gravel");
-            var rng=new System.Random(5150);
-            for(int i=0;i<10;i++)
-                Model("Barrel",art,new Vector3(57+i%5*2.2f,Ground,3f+i/5*2.4f),
-                    Vector3.one*(.85f+(float)rng.NextDouble()*.3f),Quaternion.Euler(0,rng.Next(360),0));
-            for(int i=0;i<6;i++)
-                Model("CrateCover",art,new Vector3(72+i%3*2.4f,Ground,13.5f+i/3*2.6f),Vector3.one*.95f,Quaternion.Euler(0,rng.Next(30),0));
-            Model("ServiceRack",art,new Vector3(82,Ground,18f),new Vector3(1.1f,1.1f,.8f),Quaternion.Euler(0,-90,0));
-            var truck=Model("Car",art,new Vector3(60,Ground,18.5f),Vector3.one*1.25f,Quaternion.Euler(0,104,0));
-            Retint(truck,"Teal","Earth");
-            Model("Timber",art,new Vector3(76,Ground,4f),new Vector3(2.2f,1.6f,2.2f));
+            // A compact fenced service strip, away from the ship's full swing envelope.
+            Solid(art,"Service yard",new Vector3(82,Ground+.11f,19f),new Vector3(12,.12f,9),"Gravel");
+            Model("ServiceRack",art,new Vector3(86,Ground,21f),Vector3.one,Quaternion.Euler(0,-90,0));
+            Model("Car",art,new Vector3(79,Ground,19f),Vector3.one,Quaternion.Euler(0,0,0));
+            foreach(float x in new[]{83f,86f})Model("Barrel",art,new Vector3(x,Ground,16f),Vector3.one);
         }
 
         /// <summary>
@@ -617,8 +607,8 @@ namespace Igruha.EditorTools
         {
             // Бордюр обводит мощение: без него плита обрывается в землю кромкой.
             Kerb(art,new Vector3(17.28f,Ground,-8f),48f,18f);
-            Kerb(art,new Vector3(FairCentre.x,Ground,-33.5f),11f,28f);
-            Kerb(art,new Vector3(70,Ground,10f),34f,26f);
+
+            Kerb(art,new Vector3(82,Ground,19f),12f,9f);
 
             // Зелёная кайма и живая изгородь по внутренней стороне ограды:
             // край утоптанной площадки перестаёт быть прямой линией.
@@ -632,32 +622,22 @@ namespace Igruha.EditorTools
                 for(float z=-56f;z<=24f;z+=6f)
                     Solid(art,"Hedge",new Vector3(x,Ground+.42f,z),new Vector3(1.5f,.84f,5.6f),"Leaf");
 
-            // Расчалки с вымпелами вдоль аллеи от ворот: раньше здесь
-            // был самый большой пустой кусок площадки.
-            for(int i=0;i<5;i++)
-            {
-                float z=GateZ+4f+i*5.2f;
-                foreach(int side in new[]{-1,1})
+            // Route lamps are placed at the junctions outside the ship's full swing.
+            foreach(float x in new[]{4f,30.3f})
+                foreach(float z in new[]{-43f,-34f})
                 {
-                    Vector3 foot=new Vector3(FairCentre.x+side*6.2f,Ground,z);
-                    Beam(art,foot,foot+Vector3.up*3.6f,.11f,"OakDark");
-                    if(i<4)Garland(art,foot+Vector3.up*3.3f,foot+new Vector3(0,3.3f,5.2f),.7f);
-                    if(i%2!=0)continue;
-                    Transform pennant=Group(rides,"Pennant");pennant.position=foot+Vector3.up*3.45f;
-                    Solid(pennant,"Pennant cloth",pennant.position+new Vector3(side*.5f,-.12f,0),
-                        new Vector3(.95f,.5f,.03f),i%4==0?"Red":"Blue");
-                    Motion(pennant,AmbientMotion.Mode.Sway,Vector3.up,13f,3.8f+i*.3f,i*.21f);
+                    Vector3 foot=new Vector3(x,Ground,z);LampPost(art,foot,4.4f);
+                    PointLight(art,foot+Vector3.up*3.9f,new Color(1,.77f,.45f),20,11);
                 }
-            }
             SignPost(art,new Vector3(FairCentre.x-7.6f,Ground,-30f),-24f);
             SignPost(art,new Vector3(FairCentre.x+7.6f,Ground,-20.5f),18f);
 
             // Урны и лавки по аллее: масштаб и обжитость.
             for(float x=-40f;x<=74f;x+=16f)
             {
-                Model("Barrel",art,new Vector3(x,Ground,PromenadeZ-PromenadeHalf-1.3f),Vector3.one*.8f);
+                if(!AttractionLane(x))Model("Barrel",art,new Vector3(x,Ground,PromenadeZ-PromenadeHalf-1.3f),Vector3.one*.8f);
                 // Восточнее 68 м начинается пятно большого шатра: лавка туда не влезает.
-                if(Mathf.Abs(x-FairCentre.x)>9f && x+6f<68f)
+                if(Mathf.Abs(x-FairCentre.x)>9f && x+6f<68f && !AttractionLane(x+6f) && (x+6f<4f || x+6f>32f))
                     Model("Bench",art,new Vector3(x+6f,Ground,PromenadeZ-PromenadeHalf-1.6f),Vector3.one*1.15f,
                         Quaternion.Euler(0,180,0));
             }
@@ -695,7 +675,7 @@ namespace Igruha.EditorTools
         static void ApproachRoad(Transform art)
         {
             Solid(art,"Road shoulder",new Vector3(20,Ground+.02f,RoadZ),new Vector3(266,.14f,12.6f),"Gravel");
-            Solid(art,"Approach road",new Vector3(20,Ground+.05f,RoadZ),new Vector3(264,.2f,9.4f),"Ink");
+            SurfaceTiles(art,"Approach road",new Vector3(20,Ground+.15f,RoadZ),264,9.4f,"RoadAsphalt");
             for(float x=-108f;x<150f;x+=9f)
                 Solid(art,"Road dash",new Vector3(x,Ground+.16f,RoadZ),new Vector3(4.4f,.06f,.3f),"Cream");
             // Съезд к воротам ярмарки.
@@ -706,31 +686,22 @@ namespace Igruha.EditorTools
                 Beam(art,foot,foot+Vector3.up*7.2f,.16f,"Iron");
                 Beam(art,foot+Vector3.up*7.2f,foot+new Vector3(0,7.4f,2.6f),.13f,"Iron");
                 Solid(art,"Street light",foot+new Vector3(0,7.25f,2.7f),new Vector3(.5f,.22f,1.0f),"Glow");
-            }
-            // Столбы линии электропередачи уводят взгляд в сторону города.
-            for(float x=-90f;x<150f;x+=34f)
-            {
-                Vector3 foot=new Vector3(x,Ground,RoadZ-12.5f);
-                Beam(art,foot,foot+Vector3.up*9.6f,.26f,"OakDark");
-                Beam(art,foot+new Vector3(-2.3f,8.4f,0),foot+new Vector3(2.3f,8.4f,0),.16f,"OakDark");
-                if(x+34f>=150f)continue;
-                foreach(int side in new[]{-1,1})
-                    Rope(art,foot+new Vector3(side*2.1f,8.4f,0),foot+new Vector3(side*2.1f+34f,8.4f,0),1.7f,"Iron");
+                RoadLight(art,foot+new Vector3(0,7.0f,2.7f),new Vector3(x,Ground,RoadZ));
             }
         }
 
         static void CarPark(Transform art)
         {
-            Solid(art,"Car park",new Vector3(70,Ground+.04f,-52f),new Vector3(52,.16f,15),"Gravel");
+            // Parking is across the road, outside every moving ride envelope.
+            SurfaceTiles(art,"City visitor parking",new Vector3(70,Ground+.14f,-73.5f),52,5,"Gravel");
             var rng=new System.Random(8812);
             string[] paint={"Red","Blue","Cream","Gold","Teal","Rose"};
-            for(int i=0;i<=9;i++)
+            for(int i=0;i<9;i++)
             {
                 float x=48+i*5.4f;
-                Solid(art,"Bay line",new Vector3(x-2.6f,Ground+.12f,-52f),new Vector3(.16f,.05f,10),"Cream");
-                if(i==9||rng.Next(5)==0)continue;              // не все места заняты
-                var car=Model("Car",art,new Vector3(x,Ground+.12f,-52.4f+(float)rng.NextDouble()*.8f),
-                    Vector3.one,Quaternion.Euler(0,rng.Next(2)==0?0:180,0));
+                Solid(art,"Bay line",new Vector3(x-2.6f,Ground+.18f,-73.5f),new Vector3(.12f,.025f,4.8f),"Cream");
+                if(rng.Next(5)==0)continue;
+                var car=Model("Car",art,new Vector3(x,Ground+.15f,-73.5f),Vector3.one,Quaternion.Euler(0,180,0));
                 Retint(car,"Teal",paint[rng.Next(paint.Length)]);
             }
         }
@@ -861,7 +832,7 @@ namespace Igruha.EditorTools
             for(int i=0;i<120;i++)
             {
                 float x=-58f+(float)rng.NextDouble()*150f,z=-58f+(float)rng.NextDouble()*86f;
-                if(InFiringSector(x,z))continue;
+                if(InFiringSector(x,z)||!((z>23f)||(x<-55f)||(x>89f)))continue;
                 if(Mathf.Abs(z-PromenadeZ)<PromenadeHalf+1f)continue;       // не на аллее
                 if(Mathf.Abs(z-RoadZ)<8f)continue;
                 Model("Grass",art,new Vector3(x,Ground+.01f,z),Vector3.one*(.85f+(float)rng.NextDouble()*1.2f));

@@ -68,8 +68,12 @@ namespace Igruha.Core.UI
             if (IsConfirmingExit) UiAudio.Play(CoreSfx.UiBack);
             IsConfirmingExit = WantsQuit = false;
             title.text = "Небольшой перерыв";
-            message.text = networked ? "Меню открыто только у вас. Друзья продолжают играть." : "Устраивайтесь поудобнее. Продолжим, когда будете готовы.";
-            status.text = networked ? "ОНЛАЙН  ·  ИГРА ПРОДОЛЖАЕТСЯ" : "ИГРА НА ПАУЗЕ";
+            var player = Igruha.Core.Session.SessionScoreboard.Current?.LocalPlayer?.Avatar;
+            bool arcade = player != null && player.GetComponent<Igruha.Core.Player.PlayerPushAbility>()?.ButtonOverride
+                is Igruha.Core.Hub.Activities.ArcadeStation;
+            message.text = networked ? arcade ? "Автомат на паузе. Друзья продолжают играть." :
+                "Меню открыто только у вас. Друзья продолжают играть." : "Устраивайтесь поудобнее. Продолжим, когда будете готовы.";
+            status.text = networked ? arcade ? "ОНЛАЙН  ·  АВТОМАТ НА ПАУЗЕ" : "ОНЛАЙН  ·  ИГРА ПРОДОЛЖАЕТСЯ" : "ИГРА НА ПАУЗЕ";
             primaryLabel.text = "Продолжить";
             secondaryLabel.text = leavingRound ? "Покинуть раунд" : "Выйти из игры";
             footer.text = "ESC — вернуться в игру  ·  ↑ ↓ — выбор";

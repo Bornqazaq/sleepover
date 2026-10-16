@@ -8,6 +8,7 @@ using Igruha.Core.Interaction;
 using Igruha.Core.Minigame;
 using Igruha.Core.Player;
 using Igruha.Core.Session;
+using Igruha.Core.UI;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -20,7 +21,7 @@ namespace Igruha.Tests
         private const BindingFlags Private = BindingFlags.Instance | BindingFlags.NonPublic;
         private static readonly PropertyInfo PushInput = typeof(PlayerInputReader).GetProperty("PushPressed");
         private ArkanoidStation station;
-        private ArkanoidCamera view;
+        private ArcadeScreenCamera view;
         private PlayerController body;
         private PlayerInputReader input;
         private PlayerPushAbility push;
@@ -72,7 +73,7 @@ namespace Igruha.Tests
             Check(body != null, "avatar spawned");
             if (failed) { Finish(); yield break; }
             station = FindFirstObjectByType<ArkanoidStation>();
-            view = FindFirstObjectByType<ArkanoidCamera>();
+            view = station != null ? station.transform.parent.GetComponent<ArcadeScreenCamera>() : null;
             Check(station != null && view != null, "cabinet present");
             if (failed) { Finish(); yield break; }
             input = body.GetComponent<PlayerInputReader>(); push = body.GetComponent<PlayerPushAbility>();
@@ -84,6 +85,7 @@ namespace Igruha.Tests
             {
                 yield return Enter(); autoplay = true;
                 yield return Wait(() => station.State.Score >= 80, 55, "host breaks bricks through normal input");
+                yield return PauseAndResume();
                 if (offline)
                 {
                     yield return LossAndRestart();
@@ -125,6 +127,7 @@ namespace Igruha.Tests
             {
                 yield return Wait(() => station.Occupant != HubActivityStation.NoOccupant, 40, "spectator receives occupied cabinet");
                 Check(!view.IsActive, "spectator camera untouched");
+                yield return SpectatorPause();
                 ulong owner = station.Occupant;
                 body.TeleportTo(station.StandPosition + station.transform.right, Quaternion.identity);
                 yield return new WaitForSeconds(.5f);
@@ -147,6 +150,7 @@ namespace Igruha.Tests
                     yield return Wait(() => station.State.Session >= 2 && station.Occupant == HubActivityStation.NoOccupant, 80, "host leaves");
                     yield return Enter(); autoplay = true;
                     yield return Wait(() => station.State.Score >= 60, 55, "client breaks bricks through RPC input");
+                    yield return PauseAndResume();
                     if (scenario == "disconnect")
                     {
                         autoplay = false; NetworkManager.Singleton.Shutdown();
@@ -177,6 +181,33 @@ namespace Igruha.Tests
             Check(body != null && !body.MovementLocked && push.ButtonOverride == null, "main game has movement and punch");
             Check(view == null || !view.IsActive, "main game has no arcade camera override");
             Finish();
+        }
+
+        private IEnumerator PauseAndResume()
+        {
+            var menu = PauseScreen.Current;
+            Check(menu != null, "pause menu exists");
+            if (menu == null) yield break;
+            typeof(PauseScreen).GetMethod("Pause", Private).Invoke(menu, null);
+            yield return Wait(() => station.IsArcadePaused, 4, "owner Esc pauses cabinet on server");
+            var snapshot = station.State;
+            yield return new WaitForSecondsRealtime(2);
+            Check(station.State.Equals(snapshot), "pause freezes positions score lives and timers");
+            Check(Mathf.Approximately(Time.timeScale, offline ? 0 : 1), "room keeps its normal network timescale");
+            menu.Resume();
+            yield return Wait(() => !station.IsArcadePaused && station.State.Tick > snapshot.Tick, 4, "resume continues same game");
+            Check(station.State.Session == snapshot.Session, "resume preserves session");
+        }
+
+        private IEnumerator SpectatorPause()
+        {
+            var menu = PauseScreen.Current;
+            if (menu == null) { Check(false, "spectator pause menu exists"); yield break; }
+            typeof(PauseScreen).GetMethod("Pause", Private).Invoke(menu, null);
+            yield return new WaitForSecondsRealtime(1);
+            uint tick = station.State.Tick;
+            yield return Wait(() => station.State.Tick > tick, 8, "spectator Esc leaves other cabinet running");
+            menu.Resume();
         }
 
         private IEnumerator LossAndRestart()
