@@ -29,10 +29,11 @@ namespace Igruha.Tests
         private float started, quitAt = -1, staleAt = -1;
         private bool ready, solved, opened, secondTurn, requestedFirst, requestedSecond, unauthorized;
         private bool staleSent, retried, accepted, firstSeen, secondSeen, failed, finished, captured, swappedCapture;
-        private bool spawnCaptured;
+        private bool spawnCaptured, replayedAfterDeparture;
         private readonly List<int> before = new List<int>();
         private int Winner => scenario == "host" ? 0 : 1;
-        private const int Victim = 2;
+        private const int FirstVictim = 2;
+        private int Victim => scenario == "target-disconnect" && Age > 12 ? 0 : FirstVictim;
         private int Local => (int)NetworkManager.Singleton.LocalClientId;
         private bool Server => NetworkManager.Singleton.IsServer;
         private double Age => NetworkClock.Now - ghost.State.StartedAt;
@@ -148,13 +149,13 @@ namespace Igruha.Tests
                     firstSeen = true; CheckExchange(ghost.State.First);
                     Debug.Log("GHOST_CHECK FIRST " + ghost.State.First.FirstSlot + ":" + ghost.State.First.SecondSlot);
                 }
-                if (Local == Victim && firstSeen && !staleSent)
+                if (Local == FirstVictim && firstSeen && !staleSent)
                 {
                     staleSent = true; staleAt = now;
                     game.TryGetGhostPlayer(Victim, out _, out var shelf, out _); shelf.Active = false;
                     network.SubmitArrangement(before.ToArray(), NetworkClock.Now, 0, game.Round.Circle);
                 }
-                if (Local == Victim && staleSent && !retried && now - staleAt > 1)
+                if (Local == FirstVictim && staleSent && !retried && now - staleAt > 1)
                 {
                     retried = true;
                     game.TryGetGhostPlayer(Victim, out _, out var shelf, out _);
@@ -162,7 +163,7 @@ namespace Igruha.Tests
                     shelf.SetArrangement(before); // The player can undo the trick and confirm again.
                     network.SubmitArrangement(before.ToArray(), NetworkClock.Now, ghost.AppliedRevision(Victim), game.Round.Circle);
                 }
-                if (Local == Victim && retried && !accepted && now - staleAt > 2)
+                if (Local == FirstVictim && retried && !accepted && now - staleAt > 2)
                 {
                     accepted = true;
                     if (!Entry(Victim).Confirmed) Fail("revised confirmation refused");
@@ -183,6 +184,17 @@ namespace Igruha.Tests
                 }
                 if (scenario == "disconnect" && Local == Winner && Age > 12)
                 { Debug.Log("GHOST_CHECK DISCONNECT owner"); NetworkManager.Singleton.Shutdown(); Application.Quit(0); return; }
+                if (scenario == "target-disconnect" && Local == FirstVictim && Age > 12)
+                { Debug.Log("GHOST_CHECK DISCONNECT target"); NetworkManager.Singleton.Shutdown(); Application.Quit(0); return; }
+                if (scenario == "target-disconnect" && Age > 15 && !replayedAfterDeparture &&
+                    !game.TryGetGhostPlayer(FirstVictim, out _, out _, out _))
+                {
+                    replayedAfterDeparture = true;
+                    // Reproduce a delayed snapshot processed after the roster removal:
+                    // the first event has not yet been consumed on this peer.
+                    Set(ghost, "appliedFirst", (byte)0);
+                    Debug.Log("GHOST_CHECK REPLAY first target already left");
+                }
                 if (scenario == "disconnect" && Server && Age > 14 && ghost.State.Active) Fail("disconnected ghost still active");
                 if (Server && Age > 24) game.EndMinigame();
             }
@@ -194,7 +206,8 @@ namespace Igruha.Tests
                     originalBody.isKinematic != originalKinematic)) Fail("source physics did not restore");
                 if (Mathf.Abs(CameraFieldOfView() - originalFieldOfView) > .001f) Fail("shelf lens did not restore");
                 if (!firstSeen || (scenario != "disconnect" && !secondSeen)) Fail("missing replicated tricks");
-                if (Local == Victim && !accepted) Fail("confirmation race not tested");
+                if (Local == FirstVictim && !accepted) Fail("confirmation race not tested");
+                if (scenario == "target-disconnect" && !replayedAfterDeparture) Fail("late departed-target event not tested");
                 Debug.Log("GHOST_CHECK PASS=" + !failed + " owner=" + Winner + " charges=" + ghost.State.Charges);
                 quitAt = now + (Server ? 4 : 1);
             }
@@ -243,7 +256,7 @@ namespace Igruha.Tests
         }
         private void CheckExchange(CansGhostTrick trick)
         {
-            game.TryGetGhostPlayer(Victim, out _, out var shelf, out _);
+            game.TryGetGhostPlayer(trick.TargetId, out _, out var shelf, out _);
             var after = new List<int>(); shelf.TryGetArrangement(after);
             if (before.Count != after.Count || before.Count == 0) { Fail("no shelf baseline"); return; }
             for (int i = 0; i < before.Count; i++)
@@ -251,7 +264,7 @@ namespace Igruha.Tests
                 int expected = i == trick.FirstSlot ? before[trick.SecondSlot] : i == trick.SecondSlot ? before[trick.FirstSlot] : before[i];
                 if (after[i] != expected) Fail("swap did not exchange exactly two slots: " + i);
             }
-            if (ghost.AppliedRevision(Victim) != trick.Serial) Fail("missing applied revision");
+            if (ghost.AppliedRevision(trick.TargetId) != trick.Serial) Fail("missing applied revision");
         }
         private void Request(int target)
         { if (Server) ghost.TryTrick(Local, target); else network.RequestGhostTrick(target); }

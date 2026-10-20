@@ -90,7 +90,10 @@ namespace Igruha.Minigames.CansOrder
         public bool ApplyGhostTrick(CansGhostTrick trick)
         {
             var c = Find(trick.TargetId);
-            if (c?.Shelf == null || c.Shelf.SlotCount == 0 || round.Circle < trick.Circle) return false;
+            // The roster can remove a departed target before a delayed trick snapshot
+            // is processed. Consume that record so the second trick can still arrive.
+            if (c == null) return true;
+            if (c.Shelf == null || c.Shelf.SlotCount == 0 || round.Circle < trick.Circle) return false;
             // Other peers have decorative shelves. They animate the same slots without receiving the private answer.
             c.Shelf.ApplyGhostSwap(trick.FirstSlot, trick.SecondSlot);
             if (c.LocallyControlled)
