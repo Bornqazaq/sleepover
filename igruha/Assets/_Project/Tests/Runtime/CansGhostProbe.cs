@@ -23,10 +23,13 @@ namespace Igruha.Tests
         private PlayerController original;
         private Rigidbody originalBody;
         private bool savedBody, originalMotorEnabled, originalKinematic;
+        private object flightCamera;
+        private float originalFieldOfView;
         private string scenario, screenshots;
         private float started, quitAt = -1, staleAt = -1;
         private bool ready, solved, opened, secondTurn, requestedFirst, requestedSecond, unauthorized;
         private bool staleSent, retried, accepted, firstSeen, secondSeen, failed, finished, captured, swappedCapture;
+        private bool spawnCaptured;
         private readonly List<int> before = new List<int>();
         private int Winner => scenario == "host" ? 0 : 1;
         private const int Victim = 2;
@@ -73,6 +76,8 @@ namespace Igruha.Tests
             {
                 savedBody = true; originalMotorEnabled = original.enabled;
                 originalBody = original.GetComponent<Rigidbody>(); originalKinematic = originalBody.isKinematic;
+                flightCamera = Get<object>(ghost, "cineCamera");
+                originalFieldOfView = CameraFieldOfView();
             }
             if (game.AwaitingTutorialReady && game.ContestantCount > 0 && !ready)
             { ready = true; game.ToggleTutorialReady(); }
@@ -88,8 +93,15 @@ namespace Igruha.Tests
                 if (ghost == null) { Fail("ghost component missing"); return; }
                 if (!ghost.HasAwarded) return;
                 if (ghost.State.OwnerId != Winner) Fail("wrong first finisher");
+                if (Age > 1 && Age < 2 && original != null)
+                {
+                    Vector2 fromCentre = new Vector2(ghost.Pose.Position.x, ghost.Pose.Position.z);
+                    Vector2 sourceCentre = new Vector2(original.transform.position.x, original.transform.position.z);
+                    if (fromCentre.magnitude >= sourceCentre.magnitude - 1) Fail("spawn is behind the cage");
+                }
                 if (ghost.State.Active && Age > 2 && original != null &&
                     (original.enabled || !originalBody.isKinematic)) Fail("hidden body still simulates");
+                if (ghost.IsLocalGhost && Age > 2 && CameraFieldOfView() < 50) Fail("flight retained the close shelf lens");
                 if (ghost.State.Active && Age > 2 && ghost.VisualRoot != null)
                 {
                     var visual = ghost.VisualRoot.GetComponent<CansGhostVisual>();
@@ -180,6 +192,7 @@ namespace Igruha.Tests
                 if (ghost.State.Active || ghost.VisualRoot != null || ghost.IsLocalGhost) Fail("ghost leaked into results");
                 if (original != null && (original.enabled != originalMotorEnabled ||
                     originalBody.isKinematic != originalKinematic)) Fail("source physics did not restore");
+                if (Mathf.Abs(CameraFieldOfView() - originalFieldOfView) > .001f) Fail("shelf lens did not restore");
                 if (!firstSeen || (scenario != "disconnect" && !secondSeen)) Fail("missing replicated tricks");
                 if (Local == Victim && !accepted) Fail("confirmation race not tested");
                 Debug.Log("GHOST_CHECK PASS=" + !failed + " owner=" + Winner + " charges=" + ghost.State.Charges);
@@ -189,6 +202,8 @@ namespace Igruha.Tests
         private void LateUpdate()
         {
             if (ghost == null || !ghost.State.Active || string.IsNullOrEmpty(screenshots)) return;
+            if (!spawnCaptured && Age > 1.2)
+            { spawnCaptured = true; ScreenCapture.CaptureScreenshot(screenshots + "-spawn.png"); }
             if (!captured && Age > 7.5)
             {
                 captured = true; ScreenCapture.CaptureScreenshot(screenshots + "-flight.png");
@@ -240,6 +255,7 @@ namespace Igruha.Tests
         }
         private void Request(int target)
         { if (Server) ghost.TryTrick(Local, target); else network.RequestGhostTrick(target); }
+        private float CameraFieldOfView() => Get<float>(Get<object>(flightCamera, "Lens"), "FieldOfView");
         private CansOrderEntry Entry(int id) => Get<CansOrderEntry>(Call(game, "Find", id), "Entry");
         private void Fail(string reason) { if (!failed) Debug.LogError("GHOST_CHECK FAIL " + reason); failed = true; }
         private static T Get<T>(object o, string name) => (T)o.GetType().GetField(name, Flags).GetValue(o);

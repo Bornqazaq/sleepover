@@ -49,8 +49,8 @@ namespace Igruha.Minigames.CansOrder
                     c.Entry.ConfirmTime < first.Entry.ConfirmTime ||
                     c.Entry.ConfirmTime == first.Entry.ConfirmTime && c.Entry.PlayerId < first.Entry.PlayerId)) first = c;
             if (first != null && NotSolvedCount > 0)
-                ghost.Award(first.Entry.PlayerId, first.Cage.transform.position -
-                    first.Cage.transform.forward * 2.3f + Vector3.up * 2f, first.Cage.transform.eulerAngles.y);
+                ghost.Award(first.Entry.PlayerId, first.Cage.transform.position +
+                    first.Cage.transform.forward * 3.4f + Vector3.up * 1.2f, first.Cage.transform.eulerAngles.y);
         }
 
         public bool CanGhostTrick(int sender, int target, Vector3 ghostPosition, double now)

@@ -3,7 +3,8 @@
   "target": "StandaloneOSX",
   "development": true,
   "result": "Succeeded",
-  "duration_seconds": 14.465166,
+  "duration_seconds_rounded": 43,
   "errors": 0,
-  "warnings": 0
+  "warnings": 0,
+  "method": "Igruha.EditorTools.AutotestBuild.BuildMac"
 }

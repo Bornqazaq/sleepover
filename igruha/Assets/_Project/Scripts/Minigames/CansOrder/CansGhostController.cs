@@ -17,7 +17,7 @@ namespace Igruha.Minigames.CansOrder
         [SerializeField] private Material puffMaterial;
         [SerializeField] private TMP_FontAsset font;
         [SerializeField] private AudioClip trickSound;
-        private const float LookSpeed = .13f, CameraDistance = 2.4f, CameraHeight = .55f;
+        private const float LookSpeed = .13f, CameraDistance = 2.4f, CameraHeight = .55f, FlightFieldOfView = 60f;
         private const float ResponseTimeout = 3f, RemoteSmooth = 15f;
         private CansOrderMinigame game;
         private CansOrderNetwork network;
@@ -40,6 +40,7 @@ namespace Igruha.Minigames.CansOrder
         private CansOrderLocalHud regularHud;
         private Vector3 previousRigPosition;
         private Quaternion previousRigRotation;
+        private float previousFieldOfView;
         private System.Random random;
         private readonly RaycastHit[] cameraHits = new RaycastHit[32];
         public CansGhostState State { get; private set; }
@@ -106,7 +107,12 @@ namespace Igruha.Minigames.CansOrder
             if (regularHud != null) regularHud.enabled = false;
             EnsureHud();
             if (cameraRig != null) cameras?.Apply(CameraMode.Fixed, cameraRig);
-            if (cineCamera != null) cineCamera.PreviousStateIsValid = false;
+            if (cineCamera != null)
+            {
+                previousFieldOfView = cineCamera.Lens.FieldOfView;
+                var lens = cineCamera.Lens; lens.FieldOfView = FlightFieldOfView; cineCamera.Lens = lens;
+                cineCamera.PreviousStateIsValid = false;
+            }
         }
 
         private void EnsureHud()
@@ -285,6 +291,11 @@ namespace Igruha.Minigames.CansOrder
             {
                 if (regularHud != null) regularHud.enabled = hudWasEnabled;
                 if (cameraRig != null) cameraRig.SetPositionAndRotation(previousRigPosition, previousRigRotation);
+                if (cineCamera != null)
+                {
+                    var lens = cineCamera.Lens; lens.FieldOfView = previousFieldOfView; cineCamera.Lens = lens;
+                    cineCamera.PreviousStateIsValid = false;
+                }
                 if (avatar != null) cameras?.Apply(CameraMode.ThirdPerson, avatar.transform);
             }
             hud?.RenderGhost(false, default, -1, string.Empty, false, false);
