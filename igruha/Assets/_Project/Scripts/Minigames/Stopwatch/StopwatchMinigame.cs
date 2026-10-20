@@ -21,7 +21,7 @@ namespace Igruha.Minigames.Stopwatch
     /// Весь рандом — типы, цели, период тика — считает авторитет и объявляет
     /// остальным. Клиент ничего не выбирает сам.
     /// </summary>
-    public sealed class StopwatchMinigame : MinigameControllerBase, IMinigameNetworkTarget
+    public sealed class StopwatchMinigame : MinigameControllerBase, IMinigameNetworkTarget, ICircusDuelAudience
     {
         /// <summary>
         /// Стадии подраунда. Значения уезжают в сеть байтом, порядок менять нельзя.
@@ -42,6 +42,9 @@ namespace Igruha.Minigames.Stopwatch
         [SerializeField] private StopwatchConfig config;
         [SerializeField] private CircusArenaConfig arenaConfig;
         [SerializeField] private MinigameStageState stageState;
+        public const byte StageDuel = 7;
+        private CircusDuelPresentation duel;
+        public CircusDuelPresentation Duel => duel;
         [SerializeField] private StopwatchScoreboard scoreboard;
         [Tooltip("Клетки арены — все восемь. Лишние гасятся по числу игроков")]
         [SerializeField] private CageStation[] cages = System.Array.Empty<CageStation>();
@@ -53,7 +56,7 @@ namespace Igruha.Minigames.Stopwatch
         [SerializeField] private CircusAttackPresentation attackPresentation;
         [Tooltip("Камера наблюдателя — включается выбывшему")]
         [SerializeField] private SpectatorCamera spectator;
-        [Tooltip("Отвлекалки: тик, рёв, толпа, прожекторы")]
+        [Tooltip("Отвлекалки: рёв, толпа, прожекторы")]
         [SerializeField] private DistractionDirector distractions;
 
         /// <summary>Участник матча: клетка, кнопка, ошибки, замер подраунда.</summary>
@@ -77,6 +80,7 @@ namespace Igruha.Minigames.Stopwatch
 
         private readonly List<PlayerController> cageOccupants = new List<PlayerController>(8);
         private readonly List<Contestant> contestants = new List<Contestant>(8);
+        private readonly CircusActionRestrictions actionRestrictions = new CircusActionRestrictions();
         private readonly List<StopwatchEntry> entries = new List<StopwatchEntry>(8);
         private readonly List<int> faulted = new List<int>(8);
         private readonly List<int> eliminatedThisSubround = new List<int>(8);
@@ -188,6 +192,7 @@ namespace Igruha.Minigames.Stopwatch
             // а не полем инспектора: арену пересобирает пункт меню, и ручную
             // ссылку пришлось бы перецеплять после каждой пересборки.
             network = GetComponent<StopwatchNetwork>();
+            duel = GetComponent<CircusDuelPresentation>();
         }
 
         protected override void OnEnable()
@@ -214,6 +219,7 @@ namespace Igruha.Minigames.Stopwatch
 
         protected override void OnPlayersReady()
         {
+            actionRestrictions.Dispose();
             finaleGate?.Cancel();
             if (config == null || arenaConfig == null)
             {
@@ -233,6 +239,8 @@ namespace Igruha.Minigames.Stopwatch
             random = new System.Random(System.Environment.TickCount);
             subround = 0;
             matchOver = false;
+            // A client may already have received the new scene's duel snapshot.
+            if (HasAuthority) duel?.ResetShow();
             waitingForPitFinale = false;
             finaleClearAt = -1f;
 
@@ -292,6 +300,7 @@ namespace Igruha.Minigames.Stopwatch
                 };
 
                 PlayerController avatar = Players[i].Avatar;
+                actionRestrictions.Bind(avatar);
                 cage.SetOccupant(avatar);
                 if (avatar != null && cage.PropSlot != null)
                 {
@@ -376,6 +385,8 @@ namespace Igruha.Minigames.Stopwatch
 
         protected override void OnRoundEnded()
         {
+            duel?.ResetShow();
+            actionRestrictions.Dispose();
             // Всё, что мини-игра навесила на игрока, она обязана снять сама:
             // персонаж переезжает между сценами живым, и незакрытая роль
             // уезжает в хаб вместе с ним.
@@ -451,7 +462,9 @@ namespace Igruha.Minigames.Stopwatch
             // раньше, чем у него откроется окно отмера.
             network?.PublishTask(subround, currentType, currentTarget, currentTickPeriod);
 
-            stageState.BeginSubround(subround, StageBriefing, config.BriefingSeconds);
+            bool introducing = TryBeginDuel();
+            stageState.BeginSubround(subround, introducing ? StageDuel : StageBriefing,
+                introducing ? CircusDuelState.IntroSeconds : config.BriefingSeconds);
         }
 
         /// <summary>Цель подраунда. Рандом серверный: клиент её только получает.</summary>
@@ -460,6 +473,40 @@ namespace Igruha.Minigames.Stopwatch
             config.GetTargetWindow(index, out float low, out float high);
             float raw = low + (float)random.NextDouble() * (high - low);
             return Mathf.Clamp(config.RoundTarget(raw), low, high);
+        }
+
+        public string DuelName(CageStation cage)
+        {
+            for (int i = 0; i < contestants.Count; i++)
+                if (contestants[i].Cage == cage) return contestants[i].Session.DisplayName;
+            return "ИГРОК";
+        }
+
+        public bool CanWatchDuel(CageStation first, CageStation second)
+        {
+            for (int i = 0; i < contestants.Count; i++)
+            {
+                var local = contestants[i];
+                if (!local.LocallyControlled) continue;
+                // Falling and the bear's knockout still belong to this player's own camera.
+                if (local.InPit || (local.Elimination != null && local.Elimination.IsPresenting)) return false;
+                return (spectator != null && spectator.IsActive) ||
+                    (local.Alive && (local.Cage == first || local.Cage == second));
+            }
+            return spectator != null && spectator.IsActive;
+        }
+
+        private bool TryBeginDuel()
+        {
+            if (!HasAuthority || IsPractice || duel == null || duel.State.Active || AliveCount != 2) return false;
+            CageStation first = null, second = null;
+            for (int i = 0; i < contestants.Count; i++)
+            {
+                var c = contestants[i];
+                if (!c.Alive) continue;
+                if (first == null) first = c.Cage; else second = c.Cage;
+            }
+            return duel.TryBegin(first, second);
         }
 
         private void HandleStageElapsed(byte stage)
@@ -471,6 +518,7 @@ namespace Igruha.Minigames.Stopwatch
 
             switch (stage)
             {
+                case StageDuel:
                 case StageBriefing:
                     EnterMeasure();
                     break;
@@ -638,7 +686,7 @@ namespace Igruha.Minigames.Stopwatch
                 anyDescends = true;
             }
 
-            stageState.EnterStage(StageDescend, anyDescends ? config.CageDescendSeconds : 0f);
+            stageState.EnterStage(StageDescend, anyDescends ? Mathf.Max(config.CageDescendSeconds, CircusCageMascot.ShowSeconds) : 0f);
         }
 
         /// <summary>

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Igruha.Core.Arena;
 using Igruha.Core.Player;
+using Igruha.Core.Minigame;
 
 namespace Igruha.Minigames.Circus
 {
@@ -39,16 +40,21 @@ namespace Igruha.Minigames.Circus
 
         /// <summary>Створки распахнулись — пассажир полетел вниз.</summary>
         public event Action<CageStation> DoorsOpened;
+        /// <summary>Presentation of an actual downward penalty, on the existing shared clock.</summary>
+        public event Action<CageStation, double, float> DescentStarted;
+        public event Action<CageStation> OccupantReleased;
 
         private RidePlatform platform;
         private CircusArenaConfig config;
         private PlayerController occupant;
         private Transform previousRespawnPoint;
-        private bool lockedByDescent;
         private Collider closedFloor;
         private Collider[] leafColliders = Array.Empty<Collider>();
         private Rigidbody occupantBody;
         private CapsuleCollider occupantCapsule;
+        private float previousFloorVelocity;
+        private const float PassengerSupportDistance = .12f;
+        private const float JumpVelocityTolerance = .1f;
 
         /// <summary>Детектор застревания пассажира и его состояние до посадки.</summary>
         private StuckDetector occupantStuckDetector;
@@ -87,7 +93,9 @@ namespace Igruha.Minigames.Circus
         {
             platform = GetComponent<RidePlatform>();
             platform.Mode = RidePlatform.DriveMode.Scripted;
-            platform.StabilizeScriptedPassenger = true;
+            // Cage support follows the lift with velocity after the normal motor.
+            // MovePosition on a dynamic passenger would compete with ground snap.
+            platform.StabilizeScriptedPassenger = false;
             platform.EaseScriptedMotion = true;
             platform.Arrived += HandleArrived;
             CacheCameraHiddenColliders();
@@ -119,7 +127,6 @@ namespace Igruha.Minigames.Circus
         private void HandleHatchReleased(HingedFloorHatch _)
         {
             if (closedFloor != null) closedFloor.enabled = false;
-            LockOccupant(false);
             platform.SetPassenger(null);
             if (occupant != null && fallingClip != null)
             {
@@ -220,10 +227,12 @@ namespace Igruha.Minigames.Circus
         /// <summary>Кто сидит в этой клетке. Ставит точку респавна внутрь клетки.</summary>
         public void SetOccupant(PlayerController player)
         {
+            if (occupant != player) OccupantReleased?.Invoke(this);
             occupant = player;
             occupantBody = player != null ? player.GetComponent<Rigidbody>() : null;
             occupantCapsule = player != null ? player.GetComponent<CapsuleCollider>() : null;
-            platform.SetPassenger(player);
+            platform.SetPassenger(null);
+            previousFloorVelocity = 0f;
 
             if (player == null || respawnPoint == null)
             {
@@ -255,10 +264,19 @@ namespace Igruha.Minigames.Circus
             if (position.x < floor.min.x || position.x > floor.max.x || position.z < floor.min.z || position.z > floor.max.z) return;
             Vector3 sole = occupant.transform.TransformVector(occupantCapsule.center - Vector3.up * (occupantCapsule.height * .5f));
             float penetration = floor.max.y - (position.y + sole.y);
-            if (penetration <= .001f) return;
-            occupantBody.position = position + Vector3.up * penetration;
             Vector3 velocity = occupantBody.linearVelocity;
-            if (velocity.y < 0) { velocity.y = 0; occupantBody.linearVelocity = velocity; }
+            float floorVelocity = platform.PendingVerticalDelta / Time.fixedDeltaTime;
+            bool jumping = velocity.y > Mathf.Max(0f, Mathf.Max(floorVelocity, previousFloorVelocity)) + JumpVelocityTolerance;
+            if (penetration > .001f)
+                occupantBody.position = position + Vector3.up * penetration;
+            if (penetration >= -PassengerSupportDistance && !jumping)
+            {
+                // Solve floor and passenger in the same physics step. Horizontal
+                // velocity remains the motor's; an actual jump leaves the support.
+                velocity.y = floorVelocity;
+                occupantBody.linearVelocity = velocity;
+            }
+            previousFloorVelocity = floorVelocity;
         }
 
         public void SnapToLevel(int levelSteps)
@@ -268,9 +286,8 @@ namespace Igruha.Minigames.Circus
         }
 
         /// <summary>
-        /// Спуститься на заданную ступень. Управление на время спуска отключено:
-        /// две секунды игрок только смотрит, как медведь становится ближе, —
-        /// это и есть смешное, а не помеха.
+        /// Спуститься на заданную ступень. Пассажир сохраняет управление
+        /// внутри клетки; только платформа определяет её вертикальный ход.
         /// </summary>
         public void DescendTo(int levelSteps, float duration)
         {
@@ -280,7 +297,7 @@ namespace Igruha.Minigames.Circus
             }
 
             Level = Mathf.Max(0, levelSteps);
-            LockOccupant(true);
+            NotifyDescent(config.GetCageBottomHeight(Level), duration, NetworkClock.Now);
             platform.MoveTo(config.GetCageBottomHeight(Level), duration);
         }
 
@@ -298,7 +315,7 @@ namespace Igruha.Minigames.Circus
             }
 
             Level = Mathf.Max(0, levelSteps);
-            LockOccupant(true);
+            NotifyDescent(config.GetCageBottomHeight(Level), duration, startTime);
             platform.MoveTo(config.GetCageBottomHeight(Level), duration, startTime);
         }
 
@@ -332,13 +349,20 @@ namespace Igruha.Minigames.Circus
 
             float bottom = config.GetCageBottomHeight(0);
             float top = config.GetCageBottomHeight(config.MaxLevelSteps);
-            LockOccupant(true);
-            platform.MoveTo(Mathf.Lerp(bottom, top, Mathf.Clamp01(t)), duration, startTime);
+            float destination = Mathf.Lerp(bottom, top, Mathf.Clamp01(t));
+            NotifyDescent(destination, duration, startTime);
+            platform.MoveTo(destination, duration, startTime);
+        }
+
+        private void NotifyDescent(float target, float duration, double started)
+        {
+            // A snap, briefing rise or unchanged destination must never mock a player.
+            if (occupant != null && duration > .05f && target < platform.CurrentY - .02f)
+                DescentStarted?.Invoke(this, started, duration);
         }
 
         private void HandleArrived()
         {
-            LockOccupant(false);
             Arrived?.Invoke(this);
         }
 
@@ -374,43 +398,16 @@ namespace Igruha.Minigames.Circus
                 closedFloor.enabled = true;
                 foreach (var collider in leafColliders) if (collider != null) collider.enabled = false;
             }
-            platform.SetPassenger(occupant);
-        }
-
-        private void LockOccupant(bool locked)
-        {
-            if (occupant == null)
-            {
-                return;
-            }
-
-            // Клетка снимает ровно ту блокировку, которую сама поставила:
-            // если игрока держит что-то ещё, чужое состояние трогать нельзя.
-            if (locked)
-            {
-                lockedByDescent = true;
-                occupant.MovementLocked = true;
-                return;
-            }
-
-            if (!lockedByDescent)
-            {
-                return;
-            }
-
-            lockedByDescent = false;
-            occupant.MovementLocked = false;
+            platform.SetPassenger(null);
         }
 
         /// <summary>
-        /// Отпустить игрока: снять блокировку и вернуть точку респавна.
-        /// Зовётся в конце раунда — персонаж переезжает между сценами живым,
-        /// и незакрытая блокировка уедет в хаб вместе с ним.
+        /// Отпустить игрока и вернуть точку респавна в конце раунда.
         /// </summary>
         public void ReleaseOccupant()
         {
+            OccupantReleased?.Invoke(this);
             if (occupant != null) occupant.GetComponent<CircusFallPose>()?.Clear();
-            LockOccupant(false);
             RestoreStuckDetector();
 
             if (occupant != null && occupant.TryGetComponent(out PlayerRespawner respawner))

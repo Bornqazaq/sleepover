@@ -66,6 +66,16 @@ namespace Igruha.Tests
             if(ground!=null)Object.DestroyImmediate(ground);
         }
 
+        [Test] public void NearlyAlignedRunnerGetsASwipeWithoutWaitingForPerfectAim()
+        {
+            Build("Player",180,false);
+            MovePlayer(new Vector3(.2f,0,2.65f));
+            bear.Tick(.001f,player,false);
+            Assert.That(bear.State,Is.EqualTo(PitBear.BearState.Attack));
+            for(int frame=0;frame<60;frame++) Step(1f/60);
+            Assert.That(hits,Is.EqualTo(1),"The earlier commit must still make real paw contact");
+        }
+
         [TestCaseSource(nameof(RosterAndRates))]
         public void FirstSwipeTouchesAStandingCharacterExactlyOnce(string character,int fps)
         { CheckFirstSwipe(character,fps,180); }
@@ -263,9 +273,10 @@ namespace Igruha.Tests
             MovePlayer(new Vector3(Mathf.Sin(startAngle*Mathf.Deg2Rad)*7.8f,0,Mathf.Cos(startAngle*Mathf.Deg2Rad)*7.8f));
             bear.RegisterFallen(player);
             const float dt=1f/60;
-            int attacks=0;
+            int attacks=0, pursuitFrames=0;
             for(int frame=0;frame<1800 && hits==0;frame++)
             {
+                pursuitFrames=frame+1;
                 float angle=startAngle*Mathf.Deg2Rad+direction*frame*dt*6.5f/7.8f;
                 MovePlayer(new Vector3(Mathf.Sin(angle)*7.8f,0,Mathf.Cos(angle)*7.8f));
                 avatar.transform.rotation=Quaternion.Euler(0,angle*Mathf.Rad2Deg+direction*90,0);
@@ -283,6 +294,7 @@ namespace Igruha.Tests
                 Assert.That(new Vector2(bear.transform.position.x,bear.transform.position.z).magnitude,
                     Is.LessThanOrEqualTo(8.64f-PitBear.BodyWallClearance+.001f));
             }
+            TestContext.Out.WriteLine("Rim intercept seconds="+(pursuitFrames*dt).ToString("F2")+" attacks="+attacks);
             Assert.That(hits,Is.EqualTo(1),"Circling the rim must not trap the bear against its movement limit. Attacks="+attacks);
         }
 
@@ -385,6 +397,58 @@ namespace Igruha.Tests
             Assert.That(hits,Is.Zero,"Crossing the whole remaining window cannot apply damage from a late released pose.");
         }
 
+        [TestCase(15)][TestCase(30)][TestCase(60)]
+        public void SmallSideStepDuringLiftIsTrackedButRunningDodgeStillEscapes(int fps)
+        {
+            float dt=1f/fps;
+            Build("Player");
+            for(int frame=0;frame<fps;frame++)
+            {
+                float time=(frame+1)*dt;
+                MovePlayer(new Vector3(Mathf.Clamp((time-.05f)*4,0,.4f),0,2.65f));
+                Step(dt);
+            }
+            Assert.That(hits,Is.EqualTo(1),"A brief 40 cm shuffle must not trivially evade the initial aim adjustment.");
+            Assert.That(Mathf.Abs(Mathf.DeltaAngle(0,bear.transform.eulerAngles.y)),Is.InRange(1,12.01f));
+            Clean();
+
+            Build("Player");
+            Quaternion committed=Quaternion.identity;
+            for(int frame=0;frame<fps;frame++)
+            {
+                float time=(frame+1)*dt;
+                MovePlayer(new Vector3(Mathf.Max(0,time-.05f)*6.5f,0,2.65f));
+                Step(dt);
+                if(time<=.20f)committed=bear.transform.rotation;
+                else Assert.That(Quaternion.Angle(committed,bear.transform.rotation),Is.LessThan(.01f),
+                    "Once the paw swings, the body must stop steering after the escaping player.");
+            }
+            Assert.That(hits,Is.Zero,"An early sustained dodge must remain possible.");
+        }
+
+        [TestCase(30)][TestCase(60)]
+        public void StrikeLiftKeepsElbowBelowShoulderAndLimbLengthsRigid(int fps)
+        {
+            Build("Player");
+            Transform upper=null,lower=null,paw=null;
+            foreach(var bone in bearObject.GetComponentsInChildren<Transform>())
+            {
+                if(bone.name=="ForeUpper.R")upper=bone;
+                if(bone.name=="ForeLower.R")lower=bone;
+                if(bone.name=="ForePaw.R")paw=bone;
+            }
+            float upperLength=Vector3.Distance(upper.position,lower.position);
+            float lowerLength=Vector3.Distance(lower.position,paw.position);
+            for(int frame=0;frame<Mathf.CeilToInt(.26f*fps);frame++)
+            {
+                Step(1f/fps);
+                Assert.That(lower.position.y,Is.LessThan(upper.position.y+.02f),
+                    "The old lifted elbow inverted above the shoulder and folded the upper-arm skin.");
+                Assert.That(Vector3.Distance(upper.position,lower.position),Is.EqualTo(upperLength).Within(.002f));
+                Assert.That(Vector3.Distance(lower.position,paw.position),Is.EqualTo(lowerLength).Within(.002f));
+            }
+        }
+
         [TestCase("Player",0f)][TestCase("Boss",90f)]
         [TestCase("Fat",180f)][TestCase("MyBoy",270f)]
         public void AdaptedStrikeSkinStaysInsideMasonryAndAboveTheFloor(string character,float heading)
@@ -429,7 +493,8 @@ namespace Igruha.Tests
             Invoke(motion,"Awake");Invoke(motion,"OnEnable");Invoke(bear,"Awake");
             // This regression test evaluates geometry, not audio/particle side effects.
             Set(bear,"feedback",null);
-            bear.Configure(8.2f,2.1f,2.35f,0,8,8.64f);
+            var tuning=AssetDatabase.LoadAssetAtPath<CircusBearConfig>("Assets/_Project/Settings/Gameplay/Minigames/CircusBearConfig.asset");
+            bear.Configure(tuning.ChaseSpeed,2.1f,2.35f,0,8,8.64f);
             bear.Caught+=(victim,impulse)=>hits++;
 
             avatar=Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Prefabs/Player/"+character+".prefab"));

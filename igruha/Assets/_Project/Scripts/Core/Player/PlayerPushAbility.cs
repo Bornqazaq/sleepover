@@ -36,6 +36,18 @@ namespace Igruha.Core.Player
         /// </summary>
         public IPushButtonOverride ButtonOverride { get; set; }
 
+        private bool inputSuppressed;
+        /// <summary>Round-scoped restriction, also checked by the server's push relay.</summary>
+        public bool InputSuppressed
+        {
+            get => inputSuppressed;
+            set
+            {
+                inputSuppressed = value;
+                if (value) { CancelPendingPush(); inputReader?.ConsumePush(); }
+            }
+        }
+
         /// <summary>Round-scoped cadence. Zero uses the shared character setting.</summary>
         public float CooldownOverride { get; set; }
         public float EffectiveCooldown => CooldownOverride > 0f ? CooldownOverride : self.Config.PushCooldown;
@@ -62,6 +74,12 @@ namespace Igruha.Core.Player
 
         private void Update()
         {
+            if (InputSuppressed)
+            {
+                CancelPendingPush();
+                inputReader?.ConsumePush();
+                return;
+            }
             cooldownTimer = Mathf.Max(0f, cooldownTimer - Time.deltaTime);
             if (inputReader != null && inputReader.Suspended)
             {
@@ -107,7 +125,7 @@ namespace Igruha.Core.Player
         /// <summary>Run the existing punch from a scene-specific input action, including its network relay.</summary>
         public void RequestPush()
         {
-            if (!enabled || inputReader == null || !inputReader.LocallyControlled ||
+            if (InputSuppressed || !enabled || inputReader == null || !inputReader.LocallyControlled ||
                 !inputReader.enabled || inputReader.Suspended || self.MovementLocked || self.IsKnockedDown ||
                 self.Config == null || cooldownTimer > 0f) return;
 

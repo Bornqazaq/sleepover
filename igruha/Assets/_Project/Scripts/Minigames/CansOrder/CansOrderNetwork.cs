@@ -60,6 +60,7 @@ namespace Igruha.Minigames.CansOrder
         public byte Stage;
         public double EndTime;
         public float Duration;
+        public CircusDuelState Duel;
 
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
@@ -67,13 +68,14 @@ namespace Igruha.Minigames.CansOrder
             serializer.SerializeValue(ref Stage);
             serializer.SerializeValue(ref EndTime);
             serializer.SerializeValue(ref Duration);
+            serializer.SerializeValue(ref Duel);
         }
 
         public bool Equals(CansOrderStageNetState other) =>
             Circle == other.Circle &&
             Stage == other.Stage &&
             EndTime.Equals(other.EndTime) &&
-            Mathf.Approximately(Duration, other.Duration);
+            Mathf.Approximately(Duration, other.Duration) && Duel.Equals(other.Duel);
     }
 
     /// <summary>
@@ -394,7 +396,8 @@ namespace Igruha.Minigames.CansOrder
                 Circle = stageState.Subround,
                 Stage = started,
                 EndTime = stageState.StageEndTime,
-                Duration = stageState.StageDuration
+                Duration = stageState.StageDuration,
+                Duel = game != null && game.Duel != null ? game.Duel.State : default
             };
         }
 
@@ -414,6 +417,9 @@ namespace Igruha.Minigames.CansOrder
                 return;
             }
 
+            // Results can overtake a final stage packet on another NetworkBehaviour.
+            if (game != null && game.Phase == MinigamePhase.Results) return;
+            game?.Duel?.ApplyState(value.Duel);
             stageState.ApplyState(value.Circle, value.Stage, value.EndTime, value.Duration);
         }
 

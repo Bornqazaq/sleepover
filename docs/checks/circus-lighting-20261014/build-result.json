@@ -1,0 +1,22 @@
+{
+  "result": "Succeeded",
+  "platform": "macOS",
+  "development": true,
+  "errors": 0,
+  "warnings": 0,
+  "seconds": 16.105905,
+  "startedUtc": "2026-10-14T07:50:58.006715Z",
+  "endedUtc": "2026-10-14T07:51:14.112620Z",
+  "shader": {
+    "name": "Igruha/Circus/SpotlightBeam",
+    "supported": true,
+    "errors": 0
+  },
+  "editorScene": "Stopwatch.unity",
+  "editorSceneDirty": false,
+  "editorPlayMode": false,
+  "consoleNotes": [
+    "Existing Addressables ProfileValueReference: GetValue called with empty id appeared during builds.",
+    "Editor solo attack camera reports CinemachineBrain.ManualUpdate was called but CinemachineBrain is not in ManualUpdate mode from unchanged CircusAttackPresentation.BeginShot. No corresponding errors in the final standalone Host + 3-client runs."
+  ]
+}

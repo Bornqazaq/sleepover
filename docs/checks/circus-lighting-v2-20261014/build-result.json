@@ -1,0 +1,14 @@
+{
+  "result": "Succeeded",
+  "platform": "macOS",
+  "development": true,
+  "errors": 0,
+  "warnings": 0,
+  "seconds": 44.432088,
+  "startedUtc": "2026-10-14T08:19:11.401438Z",
+  "endedUtc": "2026-10-14T08:19:55.833526Z",
+  "consoleNotes": [
+    "Existing Addressables ProfileValueReference: GetValue called with empty id during build; no C# compilation or shader errors.",
+    "Temporary offscreen review capture emitted Metal memoryless depth messages. The review cameras were removed on capture completion and were not saved in the scenes."
+  ]
+}

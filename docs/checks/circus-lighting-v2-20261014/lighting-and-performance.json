@@ -1,0 +1,36 @@
+{
+  "spotlights": 12,
+  "bearFollowSpots": 4,
+  "freeSweepSpots": 8,
+  "shadowCastingLights": 2,
+  "airborneDustMaxParticles": 280,
+  "newEffects": [
+    "Slow density variation in depth-clipped beams",
+    "Soft rotating gobo breakup on sweep lights",
+    "Dust colour and opacity respond to nearby spotlight cones"
+  ],
+  "performance": {
+    "method": "Separate 10-second Editor gameplay-camera samples, first two seconds discarded. Same scene and camera at the tutorial start, background bots and moving lights active. CPU frame time, not isolated GPU profiling. No review capture ran during either sample.",
+    "previousSixLights": {
+      "frames": 792,
+      "meanMs": 10.117,
+      "p95Ms": 20.397
+    },
+    "twelveLightsAndDust": {
+      "frames": 708,
+      "meanMs": 11.327,
+      "p95Ms": 23.506
+    }
+  },
+  "video": {
+    "path": "docs/art/circus-lighting-v2/Circus_Spotlights_Overview.mp4",
+    "seconds": 16,
+    "frames": 160,
+    "fps": 10,
+    "camera": "Temporary overview camera, not the gameplay camera."
+  },
+  "bearCloseupCamera": "Temporary camera near the pit; does not change the saved gameplay camera.",
+  "targetPlatformsChecked": [
+    "macOS"
+  ]
+}

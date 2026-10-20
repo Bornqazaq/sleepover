@@ -96,6 +96,20 @@ namespace Igruha.Core.Player
         /// </summary>
         public bool CrouchInputSuppressed { get; set; }
 
+        private bool jumpInputSuppressed;
+        /// <summary>Round-scoped jump restriction; changing it discards any buffered press.</summary>
+        public bool JumpInputSuppressed
+        {
+            get => jumpInputSuppressed;
+            set
+            {
+                if (jumpInputSuppressed == value) return;
+                jumpInputSuppressed = value;
+                jumpBufferTimer = 0f;
+                inputReader?.ConsumeJump();
+            }
+        }
+
         /// <summary>Ноги поставлены: замах удара, ввод движения не читается, тело тормозит.</summary>
         public bool FeetPlanted => plantTimer > 0f;
 
@@ -915,6 +929,7 @@ namespace Igruha.Core.Player
 
         private void TryJump()
         {
+            if (JumpInputSuppressed) { jumpBufferTimer = 0f; return; }
             if (jumpBufferTimer <= 0f || coyoteTimer <= 0f)
             {
                 return;

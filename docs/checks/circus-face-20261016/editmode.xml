@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="15" result="Passed" total="15" passed="15" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-10-16 11:54:51Z" end-time="2026-10-16 11:55:05Z" duration="13.6008473">
+  <test-suite type="TestSuite" id="1000" name="sleepover" fullname="sleepover" runstate="Runnable" testcasecount="791" result="Passed" start-time="2026-10-16 11:54:51Z" end-time="2026-10-16 11:55:05Z" duration="13.600847" total="15" passed="15" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1931" name="Igruha.Camera.Tests.dll" fullname="/Users/azamatyessimkhanuly/Dev/projects/sleepover/igruha/Library/ScriptAssemblies/Igruha.Camera.Tests.dll" runstate="Runnable" testcasecount="790" result="Passed" start-time="2026-10-16 11:54:51Z" end-time="2026-10-16 11:55:05Z" duration="13.400595" total="15" passed="15" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="85082" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="1932" name="Igruha" fullname="Igruha" runstate="Runnable" testcasecount="755" result="Passed" start-time="2026-10-16 11:54:52Z" end-time="2026-10-16 11:55:05Z" duration="13.204110" total="15" passed="15" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1933" name="Tests" fullname="Igruha.Tests" runstate="Runnable" testcasecount="755" result="Passed" start-time="2026-10-16 11:54:52Z" end-time="2026-10-16 11:55:05Z" duration="13.001704" total="15" passed="15" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestFixture" id="1314" name="CircusMascotTests" fullname="Igruha.Tests.CircusMascotTests" classname="Igruha.Tests.CircusMascotTests" runstate="Runnable" testcasecount="15" result="Passed" start-time="2026-10-16 11:54:52Z" end-time="2026-10-16 11:55:05Z" duration="12.905647" total="15" passed="15" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1331" name="AngerBeginsWithLaughterAndFullyDisappearsAfterwards" fullname="Igruha.Tests.CircusMascotTests.AngerBeginsWithLaughterAndFullyDisappearsAfterwards" methodname="AngerBeginsWithLaughterAndFullyDisappearsAfterwards" classname="Igruha.Tests.CircusMascotTests" runstate="Runnable" seed="1491941635" result="Passed" start-time="2026-10-16 11:54:52Z" end-time="2026-10-16 11:54:52Z" duration="0.010174" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-suite type="ParameterizedMethod" id="1323" name="AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar" fullname="Igruha.Tests.CircusMascotTests.AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar" classname="Igruha.Tests.CircusMascotTests" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-10-16 11:54:52Z" end-time="2026-10-16 11:55:05Z" duration="12.566379" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1315" name="AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar(&quot;Karlan&quot;)" fullname="Igruha.Tests.CircusMascotTests.AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar(&quot;Karlan&quot;)" methodname="AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar" classname="Igruha.Tests.CircusMascotTests" runstate="Runnable" seed="1588510107" result="Passed" start-time="2026-10-16 11:54:52Z" end-time="2026-10-16 11:54:54Z" duration="1.910507" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1316" name="AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar(&quot;Boss&quot;)" fullname="Igruha.Tests.CircusMascotTests.AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar(&quot;Boss&quot;)" methodname="AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar" classname="Igruha.Tests.CircusMascotTests" runstate="Runnable" seed="719860452" result="Passed" start-time="2026-10-16 11:54:54Z" end-time="2026-10-16 11:54:55Z" duration="0.976604" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1317" name="AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar(&quot;Shlanga&quot;)" fullname="Igruha.Tests.CircusMascotTests.AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar(&quot;Shlanga&quot;)" methodname="AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar" classname="Igruha.Tests.CircusMascotTests" runstate="Runnable" seed="1423219118" result="Passed" start-time="2026-10-16 11:54:55Z" end-time="2026-10-16 11:54:57Z" duration="2.054678" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1318" name="AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar(&quot;Fat&quot;)" fullname="Igruha.Tests.CircusMascotTests.AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar(&quot;Fat&quot;)" methodname="AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar" classname="Igruha.Tests.CircusMascotTests" runstate="Runnable" seed="1107383416" result="Passed" start-time="2026-10-16 11:54:57Z" end-time="2026-10-16 11:54:58Z" duration="0.955914" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1319" name="AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar(&quot;MyBoy&quot;)" fullname="Igruha.Tests.CircusMascotTests.AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar(&quot;MyBoy&quot;)" methodname="AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar" classname="Igruha.Tests.CircusMascotTests" runstate="Runnable" seed="529298624" result="Passed" start-time="2026-10-16 11:54:58Z" end-time="2026-10-16 11:54:59Z" duration="1.267744" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1320" name="AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar(&quot;Girl&quot;)" fullname="Igruha.Tests.CircusMascotTests.AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar(&quot;Girl&quot;)" methodname="AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar" classname="Igruha.Tests.CircusMascotTests" runstate="Runnable" seed="247318114" result="Passed" start-time="2026-10-16 11:54:59Z" end-time="2026-10-16 11:55:01Z" duration="2.008042" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1321" name="AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar(&quot;Milez&quot;)" fullname="Igruha.Tests.CircusMascotTests.AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar(&quot;Milez&quot;)" methodname="AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar" classname="Igruha.Tests.CircusMascotTests" runstate="Runnable" seed="1507182711" result="Passed" start-time="2026-10-16 11:55:01Z" end-time="2026-10-16 11:55:03Z" duration="1.534104" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1322" name="AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar(&quot;Aza&quot;)" fullname="Igruha.Tests.CircusMascotTests.AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar(&quot;Aza&quot;)" methodname="AngerSkinContainsOnlyHeadInfluencedVerticesOfTheOriginalAvatar" classname="Igruha.Tests.CircusMascotTests" runstate="Runnable" seed="144260736" result="Passed" start-time="2026-10-16 11:55:03Z" end-time="2026-10-16 11:55:05Z" duration="1.672786" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-case id="1329" name="HorsePopsAtFullSizeAndLeavesItsCloudAlive" fullname="Igruha.Tests.CircusMascotTests.HorsePopsAtFullSizeAndLeavesItsCloudAlive" methodname="HorsePopsAtFullSizeAndLeavesItsCloudAlive" classname="Igruha.Tests.CircusMascotTests" runstate="Runnable" seed="571696741" result="Passed" start-time="2026-10-16 11:55:05Z" end-time="2026-10-16 11:55:05Z" duration="0.013342" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1328" name="LaughterAndBlinkMoveTheRenderedFacialMesh" fullname="Igruha.Tests.CircusMascotTests.LaughterAndBlinkMoveTheRenderedFacialMesh" methodname="LaughterAndBlinkMoveTheRenderedFacialMesh" classname="Igruha.Tests.CircusMascotTests" runstate="Runnable" seed="1145559754" result="Passed" start-time="2026-10-16 11:55:05Z" end-time="2026-10-16 11:55:05Z" duration="0.187024" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-suite type="ParameterizedMethod" id="1327" name="MascotUsesActualFingerAndEyelidRig" fullname="Igruha.Tests.CircusMascotTests.MascotUsesActualFingerAndEyelidRig" classname="Igruha.Tests.CircusMascotTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-10-16 11:55:05Z" end-time="2026-10-16 11:55:05Z" duration="0.016807" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1324" name="MascotUsesActualFingerAndEyelidRig(0.8f,1.4f)" fullname="Igruha.Tests.CircusMascotTests.MascotUsesActualFingerAndEyelidRig(0.8f,1.4f)" methodname="MascotUsesActualFingerAndEyelidRig" classname="Igruha.Tests.CircusMascotTests" runstate="Runnable" seed="1796917125" result="Passed" start-time="2026-10-16 11:55:05Z" end-time="2026-10-16 11:55:05Z" duration="0.001869" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1325" name="MascotUsesActualFingerAndEyelidRig(1.7f,1.0f)" fullname="Igruha.Tests.CircusMascotTests.MascotUsesActualFingerAndEyelidRig(1.7f,1.0f)" methodname="MascotUsesActualFingerAndEyelidRig" classname="Igruha.Tests.CircusMascotTests" runstate="Runnable" seed="1232036619" result="Passed" start-time="2026-10-16 11:55:05Z" end-time="2026-10-16 11:55:05Z" duration="0.000398" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1326" name="MascotUsesActualFingerAndEyelidRig(2.6f,1.9f)" fullname="Igruha.Tests.CircusMascotTests.MascotUsesActualFingerAndEyelidRig(2.6f,1.9f)" methodname="MascotUsesActualFingerAndEyelidRig" classname="Igruha.Tests.CircusMascotTests" runstate="Runnable" seed="1374048121" result="Passed" start-time="2026-10-16 11:55:05Z" end-time="2026-10-16 11:55:05Z" duration="0.000341" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-case id="1330" name="SuppliedLaughFitsTheEntirePresentationAtOriginalPitch" fullname="Igruha.Tests.CircusMascotTests.SuppliedLaughFitsTheEntirePresentationAtOriginalPitch" methodname="SuppliedLaughFitsTheEntirePresentationAtOriginalPitch" classname="Igruha.Tests.CircusMascotTests" runstate="Runnable" seed="615965402" result="Passed" start-time="2026-10-16 11:55:05Z" end-time="2026-10-16 11:55:05Z" duration="0.006578" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+Saving results to: /Users/azamatyessimkhanuly/Library/Application Support/Dauqara/sleepover/TestResults.xml
+]]></output>
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

@@ -1,0 +1,11 @@
+{
+  "result": "Succeeded",
+  "errors": 0,
+  "warnings": 2,
+  "seconds": 44.368055,
+  "warning_source": "MCP for Unity websocket disconnect during build; no project compile errors",
+  "synty_catalog": {
+    "checked": 8198,
+    "invalid": 0
+  }
+}

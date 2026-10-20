@@ -1,0 +1,21 @@
+/Users/azamatyessimkhanuly/Dev/projects/sleepover/igruha/Builds/Autotest/logs/duel-Stopwatch-pair-20261019-154907
+0.log PASS 
+DUEL_CHECK SNAPSHOT 0:4:8.375108377919533
+DUEL_CHECK CUE 0 elapsed=0.075
+DUEL_CHECK CUE 1 elapsed=0.403
+DUEL_CHECK CUE 2 elapsed=2.658
+DUEL_CHECK CUE 3 elapsed=4.407
+DUEL_CHECK LAUNCH elapsedServer=6.409
+DUEL_CHECK CUE 4 elapsed=6.409
+DUEL_CHECK PASS=True cues=31
+1.log FAIL 
+DUEL_CHECK SNAPSHOT 0:4:8.375108377919533
+DUEL_CHECK CUE 0 elapsed=0.053
+DUEL_CHECK CUE 1 elapsed=0.407
+DUEL_CHECK CUE 2 elapsed=2.650
+DUEL_CHECK FAIL comic missing for audience
+DUEL_CHECK CUE 3 elapsed=4.401
+DUEL_CHECK LAUNCH elapsedServer=6.409
+DUEL_CHECK CUE 4 elapsed=6.409
+DUEL_CHECK PASS=False cues=31
+CIRCUS DUEL: FAIL

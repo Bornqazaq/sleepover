@@ -1,0 +1,14 @@
+Stopwatch button hands — 2026-10-14
+Unity 6000.3.11f1 / macOS Development
+
+EditMode: 240 passed, 0 failed (editmode.xml).
+Play Mode roster review: 8 passed; source skins, contact points, real PlayerInputReader/PlayerInteractor hold/release, camera/control restoration. Full measurements and captures: docs/art/stopwatch-button-hands/roster/.
+Final build: Succeeded, 0 errors, 0 warnings.
+Final Stopwatch network run: Host + 3 Clients PASS, actual E input, contact, owner-only rendering, button in output camera frame, release/return, free descent, hatch, bear attack, results, Hub. Two visible processes, two headless.
+Cans regression: Host + 3 Clients PASS on the first hand-enabled build. Subsequent fix changes only Stopwatch view transitions and its test assertions.
+Final network logs: stopwatch/ and network-stopwatch.txt.
+Cans logs: cans/ and network-initial-and-cans.txt. Initial Stopwatch run passed the old assertions but revealed an unwanted second camera blend in screenshots; final run adds a real output-framing assertion and fixes the local view transition.
+
+Scene rebuild: one StopwatchButtonPresentation, one StopwatchButtonHud, one StopwatchButtonCamera; scene clean. Original player prefabs/controllers/shared camera/keybindings have no diff.
+Performance: performance.txt; same button camera, UI and hidden full body, only isolated arm renderer toggled, 8 seconds each. No meaningful frame-time increase in this local sample.
+Known Editor messages: Metal memoryless depth load/store while capturing; pre-existing CinemachineBrain.ManualUpdate warning emitted as Error by unchanged CircusAttackPresentation.BeginShot (line 194). Windows and different physical machines not tested. Linear unavailable.

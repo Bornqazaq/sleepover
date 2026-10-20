@@ -77,7 +77,7 @@ namespace Igruha.Minigames.Stopwatch
 
         [Header("Медведь")]
         [Tooltip("Скорость погони, м/с. Быстрее игрока: от объявленного удара нужно уходить в сторону")]
-        [SerializeField] private float bearSpeed = 8.2f;
+        [SerializeField] private float bearSpeed = 8.8f;
         [Tooltip("Сколько секунд медведь разворачивается и разгоняется, прежде чем впервые ударить")]
         [SerializeField] private float bearFirstAttackDelay = 0f;
         [Tooltip("Радиус удара лапой, м")]

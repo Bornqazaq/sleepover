@@ -1,0 +1,11 @@
+tracking,side_step_m,hits,min_gap_m
+false,0.2,1,0.045
+false,0.3,0,0.105
+false,0.4,0,0.215
+false,0.5,0,0.286
+false,0.6,0,0.364
+true,0.2,1,0.000
+true,0.3,1,0.000
+true,0.4,1,0.000
+true,0.5,1,0.043
+true,0.6,0,0.093

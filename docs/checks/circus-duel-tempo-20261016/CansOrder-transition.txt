@@ -1,0 +1,22 @@
+/Users/azamatyessimkhanuly/Dev/projects/sleepover/igruha/Builds/Autotest/logs/duel-CansOrder-transition-20261016-182719
+0.log PASS 
+DUEL_CHECK SNAPSHOT 0:2:12.867591633459087
+DUEL_CHECK CUE 0 elapsed=0.014
+DUEL_CHECK CUE 1 elapsed=0.902
+DUEL_CHECK CUE 2 elapsed=2.652
+DUEL_CHECK CUE 3 elapsed=4.401
+DUEL_CHECK CUE 4 elapsed=6.404
+DUEL_CHECK LAUNCH elapsedServer=6.404
+DUEL_CHECK PASS=True cues=31
+1.log PASS 
+DUEL_CHECK SNAPSHOT 0:2:12.867591633459087
+DUEL_CHECK CUE 0 elapsed=0.025
+DUEL_CHECK CUE 1 elapsed=0.910
+DUEL_CHECK CUE 2 elapsed=2.655
+DUEL_CHECK CUE 3 elapsed=4.403
+DUEL_CHECK CUE 4 elapsed=6.402
+DUEL_CHECK LAUNCH elapsedServer=6.404
+DUEL_CHECK PASS=True cues=31
+2.log PASS 
+DUEL_CHECK DISCONNECT transition
+CIRCUS DUEL: PASS

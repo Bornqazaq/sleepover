@@ -48,7 +48,6 @@ namespace Igruha.EditorTools
             if (director != null)
             {
                 var serialized = new SerializedObject(director);
-                AssignClip(serialized, library, "tickClip", "tick");
                 AssignClip(serialized, library, "roarClip", "bear_roar");
                 AssignClip(serialized, library, "crowdClip", "crowd_ambience");
                 serialized.ApplyModifiedPropertiesWithoutUndo();
@@ -152,11 +151,7 @@ namespace Igruha.EditorTools
             SetArray(serialized, "buttons", buttons);
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
-            // Отвлекалки 8.12 крутят свои источники сами и до сих пор играли
-            // синтезированные заглушки (GenerateTick и соседи). Подменяем их
-            // настоящими клипами — сам ритм при этом не трогаем: период тика
-            // выбирает сервер один на всех, иначе подраунд перестаёт быть
-            // честным.
+            // Нерегулярные отвлечения используют готовые клипы; тиканье отключено.
             var director = Object.FindFirstObjectByType<DistractionDirector>(FindObjectsInactive.Include);
             if (director == null)
             {
@@ -164,7 +159,6 @@ namespace Igruha.EditorTools
             }
 
             var directorSerialized = new SerializedObject(director);
-            AssignClip(directorSerialized, library, "tickClip", "tick");
             AssignClip(directorSerialized, library, "roarClip", "bear_roar");
             AssignClip(directorSerialized, library, "crowdClip", "crowd_ambience");
             directorSerialized.ApplyModifiedPropertiesWithoutUndo();

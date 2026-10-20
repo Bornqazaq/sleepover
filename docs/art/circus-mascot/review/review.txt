@@ -1,0 +1,16 @@
+Karlan: overlays=1 steam=27 headOffset=(0.040, 1.402, 0.033) heat=1
+  blink=0..99.08808 pointDot=0.9999174
+Boss: overlays=1 steam=30 headOffset=(-0.050, 1.481, -0.345) heat=1
+  blink=0..98.15464 pointDot=0.9998475
+Shlanga: overlays=1 steam=30 headOffset=(0.015, 1.746, -0.048) heat=1
+  blink=0..99.80617 pointDot=0.999855
+Fat: overlays=1 steam=30 headOffset=(-0.075, 1.575, 0.070) heat=1
+  blink=0..98.10863 pointDot=0.9998689
+MyBoy: overlays=1 steam=27 headOffset=(0.000, 1.522, -0.290) heat=1
+  blink=0..98.68262 pointDot=0.9998298
+Girl: overlays=1 steam=27 headOffset=(-0.030, 1.480, 0.131) heat=1
+  blink=0..98.8625 pointDot=0.9999154
+Milez: overlays=1 steam=27 headOffset=(0.004, 1.529, 0.020) heat=1
+  blink=0..99.10525 pointDot=0.9998966
+Aza: overlays=1 steam=27 headOffset=(0.051, 1.607, 0.047) heat=1
+  blink=0..97.58411 pointDot=0.9998708

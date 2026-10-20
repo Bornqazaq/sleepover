@@ -31,7 +31,7 @@ namespace Igruha.Minigames.CansOrder
     /// и <c>NetworkList</c>. Всё, что меняет состояние круга, проходит через
     /// стадии, и каждая точка перехода уйдёт за <c>IsServer</c> без переписывания.
     /// </summary>
-    public sealed class CansOrderMinigame : MinigameControllerBase, IMinigameNetworkTarget
+    public sealed class CansOrderMinigame : MinigameControllerBase, IMinigameNetworkTarget, ICircusDuelAudience
     {
         /// <summary>Стадии круга. Значения уезжают в сеть байтом, порядок менять нельзя.</summary>
         private const byte StageBriefing = 1;
@@ -65,6 +65,9 @@ namespace Igruha.Minigames.CansOrder
         [SerializeField] private CircusArenaConfig arenaConfig;
         [SerializeField] private CircusBearConfig bearConfig;
         [SerializeField] private MinigameStageState stageState;
+        public const byte StageDuel = 6;
+        private CircusDuelPresentation duel;
+        public CircusDuelPresentation Duel => duel;
         [Tooltip("Табло над ямой — единственный источник информации в игре")]
         [SerializeField] private CanOrderBoard scoreboard;
         [Tooltip("Клетки арены — все восемь. Лишние гасятся по числу игроков")]
@@ -161,6 +164,7 @@ namespace Igruha.Minigames.CansOrder
 
         private readonly List<PlayerController> cageOccupants = new List<PlayerController>(8);
         private readonly List<Contestant> contestants = new List<Contestant>(8);
+        private readonly CircusActionRestrictions actionRestrictions = new CircusActionRestrictions();
         private readonly EliminationRanking ranking = new EliminationRanking();
 
         /// <summary>Группа вылета текущего раунда. Переиспользуется между раундами.</summary>
@@ -328,6 +332,7 @@ namespace Igruha.Minigames.CansOrder
             }
 
             network = GetComponent<CansOrderNetwork>();
+            duel = GetComponent<CircusDuelPresentation>();
             shelfVisibility = new CansShelfVisibility(cameraController, shelfCameraRig);
         }
 
@@ -357,6 +362,7 @@ namespace Igruha.Minigames.CansOrder
 
         protected override void OnPlayersReady()
         {
+            actionRestrictions.Dispose();
             finaleGate?.Cancel();
             shelfVisibility?.Dispose();
             if (config == null || arenaConfig == null)
@@ -369,6 +375,8 @@ namespace Igruha.Minigames.CansOrder
             contestants.Clear();
             ranking.Clear();
             matchOver = false;
+            // A client may already have received the new scene's duel snapshot.
+            if (HasAuthority) duel?.ResetShow();
             waitingForPitFinale = false;
             finaleClearAt = -1f;
             round = default;
@@ -455,6 +463,7 @@ namespace Igruha.Minigames.CansOrder
                 };
 
                 PlayerController avatar = Players[i].Avatar;
+                actionRestrictions.Bind(avatar);
                 cage.SetOccupant(avatar);
                 if (avatar != null && cage.PropSlot != null)
                 {
@@ -552,6 +561,8 @@ namespace Igruha.Minigames.CansOrder
 
         protected override void OnRoundEnded()
         {
+            duel?.ResetShow();
+            actionRestrictions.Dispose();
             shelfVisibility?.SetActive(false);
             SetShelfMovementLock(false);
             attackPresentation?.ResetPresentation();
@@ -686,7 +697,10 @@ namespace Igruha.Minigames.CansOrder
 
             scoreboard?.ShowTask(round.Round, round.CanCount);
             RaiseCagesForBriefing();
-            stageState.BeginSubround(BriefingCircle, StageBriefing, config.BriefingSeconds);
+            bool introducing = TryBeginDuel();
+            if (introducing) round.Deadline += CircusDuelState.IntroSeconds - config.BriefingSeconds;
+            stageState.BeginSubround(BriefingCircle, introducing ? StageDuel : StageBriefing,
+                introducing ? CircusDuelState.IntroSeconds : config.BriefingSeconds);
         }
 
         /// <summary>
@@ -764,6 +778,12 @@ namespace Igruha.Minigames.CansOrder
         private void BeginCircle()
         {
             if (PuzzleSecondsLeft <= 0f) { FinishPuzzle(); return; }
+            if (TryBeginDuel())
+            {
+                round.Deadline += CircusDuelState.IntroSeconds;
+                stageState.EnterStage(StageDuel, CircusDuelState.IntroSeconds);
+                return;
+            }
             round.Circle++;
             resultsRevealed = false;
 
@@ -1057,6 +1077,7 @@ namespace Igruha.Minigames.CansOrder
                 case StageReveal:
                 case StageHatch:
                 case StagePause:
+                case StageDuel:
                 case StageBriefing:
                     SetPlacementWindow(false);
                     ApplyShelfCamera(false);
@@ -1201,6 +1222,40 @@ namespace Igruha.Minigames.CansOrder
         /// Стадия отыграла своё. Единственная точка, которая двигает круг
         /// вперёд, — в фазе 3 она целиком уйдёт за <c>IsServer</c>.
         /// </summary>
+        public string DuelName(CageStation cage)
+        {
+            for (int i = 0; i < contestants.Count; i++)
+                if (contestants[i].Cage == cage) return contestants[i].Session.DisplayName;
+            return "ИГРОК";
+        }
+
+        public bool CanWatchDuel(CageStation first, CageStation second)
+        {
+            for (int i = 0; i < contestants.Count; i++)
+            {
+                var local = contestants[i];
+                if (!local.LocallyControlled) continue;
+                // Falling and the bear's knockout still belong to this player's own camera.
+                if (local.InPit || (local.Elimination != null && local.Elimination.IsPresenting)) return false;
+                return (spectator != null && spectator.IsActive) ||
+                    (local.Entry.Alive && (local.Cage == first || local.Cage == second));
+            }
+            return spectator != null && spectator.IsActive;
+        }
+
+        private bool TryBeginDuel()
+        {
+            if (!HasAuthority || IsPractice || duel == null || duel.State.Active || AliveCount != 2) return false;
+            CageStation first = null, second = null;
+            for (int i = 0; i < contestants.Count; i++)
+            {
+                var c = contestants[i];
+                if (!(c.Entry.Alive && !c.Entry.Solved)) continue;
+                if (first == null) first = c.Cage; else second = c.Cage;
+            }
+            return duel.TryBegin(first, second);
+        }
+
         /// <summary>
         /// Стадия отыграла своё. Единственная точка, которая двигает круг
         /// вперёд, — в фазе 3 она целиком уйдёт за <c>IsServer</c>.
@@ -1214,13 +1269,19 @@ namespace Igruha.Minigames.CansOrder
 
             switch (stage)
             {
+                case StageDuel:
                 case StageBriefing:
                     BeginCircle();
                     break;
 
                 case StagePlacement:
                     ResolveCircle();
-                    stageState.EnterStage(StageReveal, config.ResultsSeconds);
+                    // Let the mascot finish before another turn can open a bottom cage.
+                    float revealSeconds = config.ResultsSeconds;
+                    foreach (var contestant in contestants)
+                        if (contestant.Entry.Penalty == CansOrderPenalty.Descended)
+                            revealSeconds = Mathf.Max(revealSeconds, CircusCageMascot.ShowSeconds);
+                    stageState.EnterStage(StageReveal, revealSeconds);
                     break;
 
                 case StageReveal:

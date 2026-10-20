@@ -1,0 +1,14 @@
+[
+  {
+    "scene": "CansOrder",
+    "originalPhysicsObjects": 220,
+    "changedOriginalPhysicsObjects": [],
+    "addedPhysicsObjects": 0
+  },
+  {
+    "scene": "Stopwatch",
+    "originalPhysicsObjects": 212,
+    "changedOriginalPhysicsObjects": [],
+    "addedPhysicsObjects": 0
+  }
+]

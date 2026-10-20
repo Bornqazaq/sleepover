@@ -1,0 +1,48 @@
+{
+  "success": true,
+  "message": "Retrieved 6 log entries.",
+  "data": [
+    {
+      "type": "Error",
+      "message": "ProfileValueReference: GetValue called with empty id.",
+      "file": "./Library/PackageCache/com.unity.addressables@0cab9daba5dd/Editor/Settings/ProfileValueReference.cs",
+      "line": 96,
+      "stackTrace": null
+    },
+    {
+      "type": "Warning",
+      "message": "Addressable content successfully built (duration : 0:00:00.092)",
+      "file": "./Library/PackageCache/com.unity.addressables@0cab9daba5dd/Editor/Settings/AddressableAssetSettings.cs",
+      "line": 3338,
+      "stackTrace": null
+    },
+    {
+      "type": "Warning",
+      "message": "1 URP assets included in build\n- PC_RPAsset - Assets/_Project/Settings/PC_RPAsset.asset\n\t - PC_Renderer - Assets/_Project/Settings/PC_Renderer.asset - UnityEngine.Rendering.Universal.UniversalRendererData\n",
+      "file": "./Library/PackageCache/com.unity.render-pipelines.universal@e9f15c489688/Editor/BuildProcessors/URPPreprocessBuild.cs",
+      "line": 73,
+      "stackTrace": null
+    },
+    {
+      "type": "Warning",
+      "message": "<b><color=#cc7a00>MCP-FOR-UNITY</color></b>: [WebSocket] Keep-alive failed: The remote party closed the WebSocket connection without completing the close handshake.",
+      "file": "./Library/PackageCache/com.coplaydev.unity-mcp@a4c2d0a84573/Editor/Helpers/McpLog.cs",
+      "line": 45,
+      "stackTrace": null
+    },
+    {
+      "type": "Warning",
+      "message": "<b><color=#cc7a00>MCP-FOR-UNITY</color></b>: [WebSocket] Connection closed: The remote party closed the WebSocket connection without completing the close handshake.",
+      "file": "./Library/PackageCache/com.coplaydev.unity-mcp@a4c2d0a84573/Editor/Helpers/McpLog.cs",
+      "line": 45,
+      "stackTrace": null
+    },
+    {
+      "type": "Warning",
+      "message": "Stripping Runtime Debug Shader Variants, you won't be able to use some features of Rendering Debugger in the Player Build.",
+      "file": "./Library/PackageCache/com.unity.render-pipelines.core@84bf82d10e47/Editor/ShaderStripping/ShaderStrippingReport.cs",
+      "line": 379,
+      "stackTrace": null
+    }
+  ]
+}

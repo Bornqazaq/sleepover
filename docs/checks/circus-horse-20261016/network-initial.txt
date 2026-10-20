@@ -1,0 +1,219 @@
+circus-cans: /Users/azamatyessimkhanuly/Dev/projects/sleepover/igruha/Builds/Autotest/logs/playtest-circus-cans-20261016-134533
+client-1.log:
+PLAYTEST_CHECK shelf rush movingFrames=67 crouchedFrames=23 minimumFloorOffset=0 minimumSkinOffset=-0.02000046
+PLAYTEST_CHECK shelf renderFrames=54 blockingGeometry=True headless=False
+PLAYTEST_CHECK interface roundClockVisible=True cans=True
+PLAYTEST_CHECK quadruped cage attention frames=139,94 rears=0
+PLAYTEST_CHECK mascot begin cage=Cage_01 owner=Player(Clone) start=41.107
+PLAYTEST_CHECK mascot begin cage=Cage_05 owner=Boss(Clone) start=41.107
+PLAYTEST_CHECK cans circle=1 height=0.6666667 chances=2
+PLAYTEST_CHECK mascot begin cage=Cage_01 owner=Player(Clone) start=50.195
+PLAYTEST_CHECK mascot begin cage=Cage_05 owner=Boss(Clone) start=50.195
+PLAYTEST_CHECK cans circle=2 height=0.3333333 chances=2
+PLAYTEST_CHECK mascot begin cage=Cage_01 owner=Player(Clone) start=59.224
+PLAYTEST_CHECK mascot begin cage=Cage_05 owner=Boss(Clone) start=59.224
+PLAYTEST_CHECK cans circle=3 height=0 chances=2
+PLAYTEST_CHECK cans circle=4 height=0 chances=1
+PLAYTEST_CHECK cans circle=5 height=0 chances=0
+PLAYTEST_CHECK cage relativeOffsetRange=0.005000114
+PLAYTEST_CHECK bear source=PitBear attack=1 contact=True age=0.556 contactMin=0.0325 contactMax=1.8555 pawFrom=(0.000, 0.000, 0.000) pawTo=(0.214, 0.937, 6.098)
+PLAYTEST_CHECK bear source=PitBear attack=2 contact=True age=1.253 contactMin=0.3235 contactMax=1.8564 pawFrom=(0.218, 0.941, 6.121) pawTo=(-0.163, 0.230, 5.373)
+PLAYTEST_CHECK bear source=PitBear attack=3 contact=False age=1.440 contactMin=2.5050 contactMax=8.7639 pawFrom=(-0.210, 0.230, 5.294) pawTo=(1.451, 0.230, 7.046)
+PLAYTEST_CHECK bear source=PitBear attack=4 contact=False age=1.386 contactMin=0.5140 contactMax=7.7731 pawFrom=(1.451, 0.230, 7.046) pawTo=(-6.951, 0.230, 2.293)
+PLAYTEST_CHECK bear source=PitBear attack=5 contact=False age=1.387 contactMin=0.4023 contactMax=7.7074 pawFrom=(-6.951, 0.230, 2.293) pawTo=(-4.330, 0.230, -5.896)
+PLAYTEST_CHECK bear source=PitBear_Second attack=1 contact=True age=1.385 contactMin=0.0000 contactMax=1.2955 pawFrom=(0.000, 0.000, 0.000) pawTo=(-7.174, 0.230, -0.481)
+PLAYTEST_CHECK hatch maximumUpwardStep=0 finalHeights=2.76,2.76
+PLAYTEST_CHECK circus floors=True,True fall=True,True caught=True,True chasePeak=9.62
+PLAYTEST_CHECK bear pair secondChased=True travel=40.61 separation=4.805
+PLAYTEST_CHECK circus Results observed=True inputBlocked=True
+PLAYTEST_CHECK bear view localHit=True contactShot=True spectator=True longestShot=1.457
+PLAYTEST_CHECK circus motionReview frames=103 manifest=/Users/azamatyessimkhanuly/Dev/projects/sleepover/igruha/Builds/Autotest/logs/playtest-circus-cans-20261016-134533/client-1-motion.csv
+PLAYTEST_CHECK bear view localHit=True contactShot=True spectator=True longestShot=1.457
+PLAYTEST_CHECK free cage movement frames=180 metres=14.03 animated=156 crouched=79 floor=0..0.005000114
+PLAYTEST_CHECK mascot events=6 frames=1264 hot=412 steam=412 blink=0..99.16553 smile=0..99.99902 pointDot=0.9975036 fullLengthFrames=60 exitCloudFrames=254 audioTime=5.027165
+PLAYTEST_CHECK PASS mode=circus-cans id=1
+client-2.log:
+PLAYTEST_CHECK shelf rush movingFrames=119 crouchedFrames=39 minimumFloorOffset=-9.536743E-07 minimumSkinOffset=0.0001211166
+PLAYTEST_CHECK shelf renderFrames=1 blockingGeometry=True headless=True
+PLAYTEST_CHECK interface roundClockVisible=True cans=True
+PLAYTEST_CHECK quadruped cage attention frames=185,146 rears=0
+PLAYTEST_CHECK mascot begin cage=Cage_01 owner=Player(Clone) start=41.107
+PLAYTEST_CHECK mascot begin cage=Cage_05 owner=Boss(Clone) start=41.107
+PLAYTEST_CHECK cans circle=1 height=1 chances=2
+PLAYTEST_CHECK mascot begin cage=Cage_01 owner=Player(Clone) start=50.195
+PLAYTEST_CHECK mascot begin cage=Cage_05 owner=Boss(Clone) start=50.195
+PLAYTEST_CHECK cans circle=2 height=1 chances=2
+PLAYTEST_CHECK mascot begin cage=Cage_01 owner=Player(Clone) start=59.224
+PLAYTEST_CHECK mascot begin cage=Cage_05 owner=Boss(Clone) start=59.224
+PLAYTEST_CHECK cans circle=3 height=1 chances=2
+PLAYTEST_CHECK cans circle=4 height=1 chances=2
+PLAYTEST_CHECK cans circle=5 height=1 chances=2
+PLAYTEST_CHECK bear source=PitBear attack=1 contact=True age=0.469 contactMin=0.1046 contactMax=1.6060 pawFrom=(0.000, 0.000, 0.000) pawTo=(0.067, 1.169, 6.047)
+PLAYTEST_CHECK bear source=PitBear attack=2 contact=True age=1.382 contactMin=0.0247 contactMax=1.9049 pawFrom=(0.201, 0.956, 6.058) pawTo=(-0.211, 0.230, 5.292)
+PLAYTEST_CHECK bear source=PitBear attack=3 contact=False age=1.430 contactMin=0.8255 contactMax=7.9149 pawFrom=(-0.211, 0.230, 5.292) pawTo=(1.451, 0.230, 7.046)
+PLAYTEST_CHECK bear source=PitBear attack=4 contact=False age=1.380 contactMin=0.0000 contactMax=6.7655 pawFrom=(1.451, 0.230, 7.046) pawTo=(-6.951, 0.230, 2.293)
+PLAYTEST_CHECK bear source=PitBear attack=5 contact=False age=1.389 contactMin=0.0000 contactMax=6.7619 pawFrom=(-6.951, 0.230, 2.293) pawTo=(-4.330, 0.230, -5.896)
+PLAYTEST_CHECK bear source=PitBear_Second attack=1 contact=True age=1.392 contactMin=0.0000 contactMax=1.4307 pawFrom=(0.000, 0.000, 0.000) pawTo=(-7.160, 0.230, -0.504)
+PLAYTEST_CHECK hatch maximumUpwardStep=0 finalHeights=2.76,2.76
+PLAYTEST_CHECK circus floors=True,True fall=True,True caught=True,True chasePeak=8.96
+PLAYTEST_CHECK bear pair secondChased=True travel=40.03 separation=4.854
+PLAYTEST_CHECK circus Results observed=True inputBlocked=True
+PLAYTEST_CHECK bear view localHit=False contactShot=False spectator=False longestShot=0.000
+PLAYTEST_CHECK bear view localHit=False contactShot=False spectator=False longestShot=0.000
+PLAYTEST_CHECK free cage movement frames=0 metres=0.00 animated=0 crouched=0 floor=3.402823E+38..-3.402823E+38
+PLAYTEST_CHECK mascot events=6 frames=1696 hot=608 steam=0 blink=0..99.96758 smile=0..99.99991 pointDot=0.9971025 fullLengthFrames=72 exitCloudFrames=306 audioTime=0
+PLAYTEST_CHECK PASS mode=circus-cans id=2
+client-3.log:
+PLAYTEST_CHECK shelf rush movingFrames=119 crouchedFrames=39 minimumFloorOffset=0 minimumSkinOffset=0.002923965
+PLAYTEST_CHECK shelf renderFrames=1 blockingGeometry=True headless=True
+PLAYTEST_CHECK interface roundClockVisible=True cans=True
+PLAYTEST_CHECK quadruped cage attention frames=185,144 rears=0
+PLAYTEST_CHECK mascot begin cage=Cage_01 owner=Player(Clone) start=41.107
+PLAYTEST_CHECK mascot begin cage=Cage_05 owner=Boss(Clone) start=41.107
+PLAYTEST_CHECK cans circle=1 height=1 chances=2
+PLAYTEST_CHECK mascot begin cage=Cage_01 owner=Player(Clone) start=50.195
+PLAYTEST_CHECK mascot begin cage=Cage_05 owner=Boss(Clone) start=50.195
+PLAYTEST_CHECK cans circle=2 height=1 chances=2
+PLAYTEST_CHECK mascot begin cage=Cage_01 owner=Player(Clone) start=59.224
+PLAYTEST_CHECK mascot begin cage=Cage_05 owner=Boss(Clone) start=59.224
+PLAYTEST_CHECK cans circle=3 height=1 chances=2
+PLAYTEST_CHECK cans circle=4 height=1 chances=2
+PLAYTEST_CHECK cans circle=5 height=1 chances=2
+PLAYTEST_CHECK bear source=PitBear attack=1 contact=True age=0.471 contactMin=0.1156 contactMax=1.6046 pawFrom=(0.000, 0.000, 0.000) pawTo=(0.073, 1.168, 6.033)
+PLAYTEST_CHECK bear source=PitBear attack=2 contact=True age=1.396 contactMin=0.0243 contactMax=1.9052 pawFrom=(0.090, 1.153, 6.040) pawTo=(-0.211, 0.230, 5.292)
+PLAYTEST_CHECK bear source=PitBear attack=3 contact=False age=1.430 contactMin=0.7460 contactMax=7.9056 pawFrom=(-0.211, 0.230, 5.292) pawTo=(1.451, 0.230, 7.046)
+PLAYTEST_CHECK bear source=PitBear attack=4 contact=False age=1.399 contactMin=0.0000 contactMax=6.8486 pawFrom=(1.451, 0.230, 7.046) pawTo=(-6.951, 0.230, 2.293)
+PLAYTEST_CHECK bear source=PitBear attack=5 contact=False age=1.368 contactMin=0.0000 contactMax=6.7290 pawFrom=(-6.951, 0.230, 2.293) pawTo=(-4.330, 0.230, -5.896)
+PLAYTEST_CHECK bear source=PitBear_Second attack=1 contact=True age=1.384 contactMin=0.0000 contactMax=1.3966 pawFrom=(0.000, 0.000, 0.000) pawTo=(-7.160, 0.230, -0.504)
+PLAYTEST_CHECK hatch maximumUpwardStep=0 finalHeights=2.76,2.76
+PLAYTEST_CHECK circus floors=True,True fall=True,True caught=True,True chasePeak=8.92
+PLAYTEST_CHECK bear pair secondChased=True travel=40.05 separation=4.853
+PLAYTEST_CHECK circus Results observed=True inputBlocked=True
+PLAYTEST_CHECK bear view localHit=False contactShot=False spectator=False longestShot=0.000
+PLAYTEST_CHECK bear view localHit=False contactShot=False spectator=False longestShot=0.000
+PLAYTEST_CHECK free cage movement frames=0 metres=0.00 animated=0 crouched=0 floor=3.402823E+38..-3.402823E+38
+PLAYTEST_CHECK mascot events=6 frames=1686 hot=602 steam=0 blink=0..99.75372 smile=0..99.99997 pointDot=0.9970742 fullLengthFrames=72 exitCloudFrames=302 audioTime=0
+PLAYTEST_CHECK PASS mode=circus-cans id=3
+host.log:
+PLAYTEST_CHECK shelf rush movingFrames=68 crouchedFrames=23 minimumFloorOffset=0 minimumSkinOffset=-0.02000046
+PLAYTEST_CHECK shelf renderFrames=62 blockingGeometry=True headless=False
+PLAYTEST_CHECK interface roundClockVisible=True cans=True
+PLAYTEST_CHECK quadruped cage attention frames=142,100 rears=0
+PLAYTEST_CHECK mascot begin cage=Cage_01 owner=Player(Clone) start=41.107
+PLAYTEST_CHECK mascot begin cage=Cage_05 owner=Boss(Clone) start=41.107
+PLAYTEST_CHECK cans circle=1 height=0.6666667 chances=2
+PLAYTEST_CHECK mascot begin cage=Cage_01 owner=Player(Clone) start=50.195
+PLAYTEST_CHECK mascot begin cage=Cage_05 owner=Boss(Clone) start=50.195
+PLAYTEST_CHECK cans circle=2 height=0.3333333 chances=2
+PLAYTEST_CHECK mascot begin cage=Cage_01 owner=Player(Clone) start=59.224
+PLAYTEST_CHECK mascot begin cage=Cage_05 owner=Boss(Clone) start=59.224
+PLAYTEST_CHECK cans circle=3 height=0 chances=2
+PLAYTEST_CHECK cans circle=4 height=0 chances=1
+PLAYTEST_CHECK cans circle=5 height=0 chances=0
+PLAYTEST_CHECK cage relativeOffsetRange=0.005008221
+PLAYTEST_CHECK bear CONTACT source=PitBear target=Player(Clone) age=0.450 paw=(0.181, 0.947, 6.158) contactDistance=0.0503
+PLAYTEST_CHECK bear source=PitBear attack=1 contact=True age=1.397 contactMin=0.0000 contactMax=1.8973 pawFrom=(0.000, 0.000, 0.000) pawTo=(-0.206, 0.230, 5.301)
+PLAYTEST_CHECK pursuit state=Chase bear=(0.63, 0.00, 4.83) yaw=343.0 target=(-1.20, 0.00, 7.70) targetTransform=(-1.19, 0.00, 7.70)
+PLAYTEST_CHECK bear source=PitBear attack=2 contact=False age=1.356 contactMin=0.0000 contactMax=7.0679 pawFrom=(-0.212, 0.230, 5.292) pawTo=(1.450, 0.230, 7.046)
+PLAYTEST_CHECK pursuit state=Chase bear=(1.03, 0.00, 5.83) yaw=77.6 target=(6.45, 0.00, -5.19) targetTransform=(6.12, 0.00, -5.57)
+PLAYTEST_CHECK pursuit state=Chase bear=(-6.27, 0.00, 1.08) yaw=307.2 target=(-8.25, 0.00, -0.50) targetTransform=(-8.25, 0.00, -0.39)
+PLAYTEST_CHECK bear source=PitBear attack=3 contact=False age=1.385 contactMin=0.0000 contactMax=6.6593 pawFrom=(1.450, 0.230, 7.046) pawTo=(-6.950, 0.230, 2.293)
+PLAYTEST_CHECK pursuit state=Chase bear=(-4.41, 0.00, 2.87) yaw=86.9 target=(5.58, 0.00, 6.09) targetTransform=(5.67, 0.00, 6.01)
+PLAYTEST_CHECK pursuit state=Chase bear=(-1.39, 0.00, -4.25) yaw=194.1 target=(0.40, 0.00, -8.25) targetTransform=(0.30, 0.00, -8.25)
+PLAYTEST_CHECK bear source=PitBear attack=4 contact=False age=1.382 contactMin=0.0000 contactMax=6.6103 pawFrom=(-6.950, 0.230, 2.293) pawTo=(-4.330, 0.230, -5.896)
+PLAYTEST_CHECK bear CONTACT source=PitBear_Second target=Boss(Clone) age=0.392 paw=(-7.580, 1.040, 0.398) contactDistance=0.0124
+PLAYTEST_CHECK bear source=PitBear_Second attack=1 contact=True age=1.397 contactMin=0.0000 contactMax=1.2801 pawFrom=(0.000, 0.000, 0.000) pawTo=(-7.160, 0.230, -0.504)
+PLAYTEST_CHECK hatch maximumUpwardStep=0 finalHeights=2.76,2.76
+PLAYTEST_CHECK circus floors=True,True fall=True,True caught=True,True chasePeak=8.20
+PLAYTEST_CHECK bear pair secondChased=True travel=41.50 separation=4.800
+PLAYTEST_CHECK circus Results observed=True inputBlocked=True
+PLAYTEST_CHECK bear view localHit=True contactShot=True spectator=True longestShot=1.495
+PLAYTEST_CHECK circus motionReview frames=85 manifest=/Users/azamatyessimkhanuly/Dev/projects/sleepover/igruha/Builds/Autotest/logs/playtest-circus-cans-20261016-134533/host-motion.csv
+PLAYTEST_CHECK bear view localHit=True contactShot=True spectator=True longestShot=1.495
+PLAYTEST_CHECK free cage movement frames=212 metres=15.81 animated=173 crouched=87 floor=0..0.005008221
+PLAYTEST_CHECK mascot events=6 frames=1162 hot=416 steam=416 blink=0..97.55383 smile=0..99.99998 pointDot=0.9964346 fullLengthFrames=50 exitCloudFrames=256 audioTime=5.027165
+PLAYTEST_CHECK PASS mode=circus-cans id=0
+circus-cans: PASS
+circus-stopwatch: /Users/azamatyessimkhanuly/Dev/projects/sleepover/igruha/Builds/Autotest/logs/playtest-circus-stopwatch-20261016-134741
+client-1.log:
+PLAYTEST_CHECK stopwatch hand contact, held input, privacy=True framed=True rendered=74 released=True
+PLAYTEST_CHECK interface roundClockVisible=False cans=False
+PLAYTEST_CHECK quadruped cage attention frames=186,131 rears=0
+PLAYTEST_CHECK mascot begin cage=Cage_01 owner=Player(Clone) start=45.785
+PLAYTEST_CHECK mascot begin cage=Cage_03 owner=Boss(Clone) start=45.785
+PLAYTEST_CHECK bear source=PitBear_Second attack=1 contact=True age=0.568 contactMin=0.0322 contactMax=2.9207 pawFrom=(0.000, 0.000, 0.000) pawTo=(-0.965, 0.960, 7.532)
+PLAYTEST_CHECK bear source=PitBear_Second attack=2 contact=True age=1.274 contactMin=0.0118 contactMax=0.6367 pawFrom=(-0.952, 0.962, 7.558) pawTo=(-1.444, 0.230, 6.867)
+PLAYTEST_CHECK bear source=PitBear_Second attack=3 contact=True age=1.395 contactMin=0.0000 contactMax=1.8705 pawFrom=(-1.461, 0.230, 6.845) pawTo=(-4.576, 0.230, 5.017)
+PLAYTEST_CHECK hatch maximumUpwardStep=2.384186E-07 finalHeights=2.76,2.76
+PLAYTEST_CHECK circus floors=True,True fall=True,True caught=True,True chasePeak=6.29
+PLAYTEST_CHECK bear pair secondChased=True travel=20.58 separation=4.843
+PLAYTEST_CHECK circus Results observed=True inputBlocked=True
+PLAYTEST_CHECK bear view localHit=False contactShot=False spectator=False longestShot=0.000
+PLAYTEST_CHECK circus motionReview frames=86 manifest=/Users/azamatyessimkhanuly/Dev/projects/sleepover/igruha/Builds/Autotest/logs/playtest-circus-stopwatch-20261016-134741/client-1-motion.csv
+PLAYTEST_CHECK bear view localHit=False contactShot=False spectator=False longestShot=0.000
+PLAYTEST_CHECK free cage movement frames=0 metres=0.00 animated=0 crouched=0 floor=3.402823E+38..-3.402823E+38
+PLAYTEST_CHECK FAIL mascot did not finish its five-second laugh and exit cloud
+PLAYTEST_CHECK mascot events=2 frames=990 hot=408 steam=408 blink=0..99.12215 smile=13.93787..99.99892 pointDot=0.9998155 fullLengthFrames=0 exitCloudFrames=158 audioTime=5.027165
+client-2.log:
+PLAYTEST_CHECK stopwatch hand contact, held input, privacy=True framed=True rendered=0 released=True
+PLAYTEST_CHECK interface roundClockVisible=False cans=False
+PLAYTEST_CHECK quadruped cage attention frames=300,209 rears=0
+PLAYTEST_CHECK mascot begin cage=Cage_01 owner=Player(Clone) start=45.785
+PLAYTEST_CHECK mascot begin cage=Cage_03 owner=Boss(Clone) start=45.785
+PLAYTEST_CHECK bear source=PitBear_Second attack=1 contact=True age=0.489 contactMin=0.1482 contactMax=3.1519 pawFrom=(0.000, 0.000, 0.000) pawTo=(-1.088, 1.152, 7.433)
+PLAYTEST_CHECK bear source=PitBear_Second attack=2 contact=True age=1.323 contactMin=0.0171 contactMax=0.6788 pawFrom=(-0.986, 0.986, 7.474) pawTo=(-1.494, 0.230, 6.803)
+PLAYTEST_CHECK bear source=PitBear_Second attack=3 contact=True age=1.414 contactMin=0.0000 contactMax=1.6523 pawFrom=(-1.499, 0.230, 6.797) pawTo=(-4.576, 0.230, 5.017)
+PLAYTEST_CHECK lift relativeOffsetRange=0.00503087
+PLAYTEST_CHECK hatch maximumUpwardStep=0 finalHeights=2.76,2.76
+PLAYTEST_CHECK circus floors=True,True fall=True,True caught=True,True chasePeak=6.25
+PLAYTEST_CHECK bear pair secondChased=True travel=20.60 separation=4.844
+PLAYTEST_CHECK circus Results observed=True inputBlocked=True
+PLAYTEST_CHECK bear view localHit=True contactShot=True spectator=True longestShot=1.510
+PLAYTEST_CHECK bear view localHit=True contactShot=True spectator=True longestShot=1.510
+PLAYTEST_CHECK free cage movement frames=94 metres=4.08 animated=74 crouched=42 floor=0..0.00503087
+PLAYTEST_CHECK FAIL mascot did not finish its five-second laugh and exit cloud
+PLAYTEST_CHECK mascot events=2 frames=574 hot=200 steam=0 blink=0..98.69633 smile=21.81808..99.99644 pointDot=0.9999666 fullLengthFrames=0 exitCloudFrames=100 audioTime=0
+client-3.log:
+PLAYTEST_CHECK stopwatch hand contact, held input, privacy=True framed=True rendered=0 released=False
+PLAYTEST_CHECK interface roundClockVisible=False cans=False
+PLAYTEST_CHECK quadruped cage attention frames=299,212 rears=0
+PLAYTEST_CHECK mascot begin cage=Cage_01 owner=Player(Clone) start=45.785
+PLAYTEST_CHECK mascot begin cage=Cage_03 owner=Boss(Clone) start=45.785
+PLAYTEST_CHECK bear source=PitBear_Second attack=1 contact=True age=0.483 contactMin=0.1398 contactMax=3.1845 pawFrom=(0.000, 0.000, 0.000) pawTo=(-1.096, 1.157, 7.445)
+PLAYTEST_CHECK bear source=PitBear_Second attack=2 contact=True age=1.334 contactMin=0.0166 contactMax=0.6819 pawFrom=(-0.985, 0.984, 7.477) pawTo=(-1.497, 0.230, 6.799)
+PLAYTEST_CHECK bear source=PitBear_Second attack=3 contact=True age=1.429 contactMin=0.0000 contactMax=1.6368 pawFrom=(-1.499, 0.230, 6.797) pawTo=(-4.576, 0.230, 5.017)
+PLAYTEST_CHECK hatch maximumUpwardStep=0 finalHeights=2.76,2.76
+PLAYTEST_CHECK circus floors=True,True fall=True,True caught=True,True chasePeak=6.26
+PLAYTEST_CHECK bear pair secondChased=True travel=20.58 separation=4.844
+PLAYTEST_CHECK circus Results observed=True inputBlocked=True
+PLAYTEST_CHECK bear view localHit=False contactShot=False spectator=False longestShot=0.000
+PLAYTEST_CHECK bear view localHit=False contactShot=False spectator=False longestShot=0.000
+PLAYTEST_CHECK free cage movement frames=0 metres=0.00 animated=0 crouched=0 floor=3.402823E+38..-3.402823E+38
+PLAYTEST_CHECK FAIL mascot did not finish its five-second laugh and exit cloud
+PLAYTEST_CHECK mascot events=2 frames=574 hot=204 steam=0 blink=0..96.99521 smile=17.92944..99.99249 pointDot=0.9998451 fullLengthFrames=0 exitCloudFrames=102 audioTime=0
+host.log:
+PLAYTEST_CHECK stopwatch hand contact, held input, privacy=True framed=True rendered=79 released=True
+PLAYTEST_CHECK interface roundClockVisible=False cans=False
+PLAYTEST_CHECK quadruped cage attention frames=160,128 rears=0
+PLAYTEST_CHECK mascot begin cage=Cage_01 owner=Player(Clone) start=45.785
+PLAYTEST_CHECK mascot begin cage=Cage_03 owner=Boss(Clone) start=45.785
+PLAYTEST_CHECK pursuit state=Chase bear=(-5.91, 0.00, 1.21) yaw=208.7 target=(-1.03, 0.00, 8.04) targetTransform=(-1.03, 0.00, 8.04)
+PLAYTEST_CHECK bear CONTACT source=PitBear_Second target=Player(Clone) age=0.457 paw=(-0.987, 0.966, 7.611) contactDistance=0.0426
+PLAYTEST_CHECK pursuit state=Chase bear=(-4.33, 0.00, -0.17) yaw=63.3 target=(-3.01, 0.00, -7.62) targetTransform=(-3.41, 0.00, -7.45)
+PLAYTEST_CHECK bear source=PitBear_Second attack=1 contact=True age=1.389 contactMin=0.0000 contactMax=1.8589 pawFrom=(0.000, 0.000, 0.000) pawTo=(-1.498, 0.230, 6.798)
+PLAYTEST_CHECK pursuit state=Chase bear=(-2.57, 0.00, -1.89) yaw=205.4 target=(-5.32, 0.00, 6.35) targetTransform=(-5.32, 0.00, 6.35)
+PLAYTEST_CHECK pursuit state=Chase bear=(-4.71, 0.00, -0.53) yaw=14.6 target=(-5.32, 0.00, 6.35) targetTransform=(-5.32, 0.00, 6.35)
+PLAYTEST_CHECK bear CONTACT source=PitBear_Second target=Boss(Clone) age=0.382 paw=(-4.779, 1.042, 5.824) contactDistance=0.0000
+PLAYTEST_CHECK bear source=PitBear_Second attack=2 contact=True age=1.400 contactMin=0.0000 contactMax=1.1504 pawFrom=(-1.498, 0.230, 6.798) pawTo=(-4.576, 0.230, 5.016)
+PLAYTEST_CHECK lift relativeOffsetRange=0.004882097
+PLAYTEST_CHECK hatch maximumUpwardStep=0 finalHeights=2.76,2.76
+PLAYTEST_CHECK circus floors=True,True fall=True,True caught=True,True chasePeak=7.12
+PLAYTEST_CHECK bear pair secondChased=True travel=20.72 separation=4.812
+PLAYTEST_CHECK circus Results observed=True inputBlocked=True
+PLAYTEST_CHECK bear view localHit=True contactShot=True spectator=True longestShot=1.447
+PLAYTEST_CHECK circus motionReview frames=84 manifest=/Users/azamatyessimkhanuly/Dev/projects/sleepover/igruha/Builds/Autotest/logs/playtest-circus-stopwatch-20261016-134741/host-motion.csv
+PLAYTEST_CHECK bear view localHit=True contactShot=True spectator=True longestShot=1.447
+PLAYTEST_CHECK free cage movement frames=22 metres=5.23 animated=16 crouched=7 floor=0..0.004882097
+PLAYTEST_CHECK mascot events=2 frames=114 hot=46 steam=46 blink=0..99.94659 smile=0..99.87328 pointDot=0.9999241 fullLengthFrames=8 exitCloudFrames=32 audioTime=4.982812
+PLAYTEST_CHECK PASS mode=circus-stopwatch id=0
+circus-stopwatch: FAIL

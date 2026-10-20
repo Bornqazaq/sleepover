@@ -1,0 +1,16 @@
+{
+  "success": true,
+  "message": "Build Succeeded.",
+  "data": {
+    "job_id": "build-f281dcf92b",
+    "result": "succeeded",
+    "platform": "StandaloneOSX",
+    "output_path": "Builds/Autotest/sleepover.app",
+    "started_at": "2026-10-19T10:09:24.838002Z",
+    "duration_seconds": 49.335063999999996,
+    "completed_at": "2026-10-19T10:10:14.173066Z",
+    "total_size_mb": 2346.86,
+    "errors": 0,
+    "warnings": 0
+  }
+}

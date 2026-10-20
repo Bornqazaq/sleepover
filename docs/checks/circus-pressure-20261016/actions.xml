@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="2" result="Passed" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-10-16 09:33:58Z" end-time="2026-10-16 09:33:58Z" duration="0.8273285">
+  <test-suite type="TestSuite" id="1000" name="sleepover" fullname="sleepover" runstate="Runnable" testcasecount="768" result="Passed" start-time="2026-10-16 09:33:58Z" end-time="2026-10-16 09:33:58Z" duration="0.827329" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1901" name="Igruha.Camera.Tests.dll" fullname="/Users/azamatyessimkhanuly/Dev/projects/sleepover/igruha/Library/ScriptAssemblies/Igruha.Camera.Tests.dll" runstate="Runnable" testcasecount="767" result="Passed" start-time="2026-10-16 09:33:58Z" end-time="2026-10-16 09:33:58Z" duration="0.636287" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="18671" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="1902" name="Igruha" fullname="Igruha" runstate="Runnable" testcasecount="754" result="Passed" start-time="2026-10-16 09:33:58Z" end-time="2026-10-16 09:33:58Z" duration="0.548811" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1903" name="Tests" fullname="Igruha.Tests" runstate="Runnable" testcasecount="754" result="Passed" start-time="2026-10-16 09:33:58Z" end-time="2026-10-16 09:33:58Z" duration="0.447664" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestFixture" id="1052" name="CircusActionRestrictionTests" fullname="Igruha.Tests.CircusActionRestrictionTests" classname="Igruha.Tests.CircusActionRestrictionTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-10-16 09:33:58Z" end-time="2026-10-16 09:33:58Z" duration="0.261872" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1053" name="BlocksRealJumpAndPunchAndRestoresThemOnExit" fullname="Igruha.Tests.CircusActionRestrictionTests.BlocksRealJumpAndPunchAndRestoresThemOnExit" methodname="BlocksRealJumpAndPunchAndRestoresThemOnExit" classname="Igruha.Tests.CircusActionRestrictionTests" runstate="Runnable" seed="176024121" result="Passed" start-time="2026-10-16 09:33:58Z" end-time="2026-10-16 09:33:58Z" duration="0.110537" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1054" name="RestoresPreExistingRestrictionsAndCancelsPendingPunch" fullname="Igruha.Tests.CircusActionRestrictionTests.RestoresPreExistingRestrictionsAndCancelsPendingPunch" methodname="RestoresPreExistingRestrictionsAndCancelsPendingPunch" classname="Igruha.Tests.CircusActionRestrictionTests" runstate="Runnable" seed="845486025" result="Passed" start-time="2026-10-16 09:33:58Z" end-time="2026-10-16 09:33:58Z" duration="0.032130" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+Saving results to: /Users/azamatyessimkhanuly/Library/Application Support/Dauqara/sleepover/TestResults.xml
+]]></output>
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

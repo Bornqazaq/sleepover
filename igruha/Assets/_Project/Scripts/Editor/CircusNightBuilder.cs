@@ -89,10 +89,12 @@ namespace Igruha.EditorTools
             BuildLighting(root,config);
             BuildAtmosphere(root);
             CircusCraftBuilder.Apply(root,arena,config);
-            ApplyNaturalLighting();
             if (PhysicsSignature(arena) != physicsBefore) throw new InvalidOperationException("The art pass changed arena collision geometry.");
             CircusBearPairBuilder.ApplyActive();
+            ApplyNaturalLighting();
             CircusInterfaceBuilder.ApplyActive();
+            CircusMascotBuilder.ApplyActive();
+            CircusDuelBuilder.ApplyActive();
             EditorSceneManager.MarkSceneDirty(scene);
             AssetDatabase.SaveAssets();
             Debug.Log("Grand Chapiteau applied to " + scene.name + ": striped Blender tent, theatrical lighting and Bruno; gameplay colliders preserved.");
@@ -297,6 +299,7 @@ namespace Igruha.EditorTools
                 var balance=Ensure<WhiteBalance>(profile);balance.temperature.Override(0);balance.tint.Override(0);
                 EditorUtility.SetDirty(profile);
             }
+            CircusShowLightingBuilder.ApplyActive();
             DynamicGI.UpdateEnvironment();
         }
 
