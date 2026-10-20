@@ -1,0 +1,14 @@
+/Users/azamatyessimkhanuly/Dev/projects/sleepover/igruha/Builds/Autotest/logs/duel-CansOrder-disconnect-20261016-182748
+0.log PASS 
+DUEL_CHECK SNAPSHOT 0:4:9.1954169550421643
+DUEL_CHECK CUE 0 elapsed=0.030
+DUEL_CHECK CUE 1 elapsed=0.902
+DUEL_CHECK CUE 2 elapsed=2.657
+DUEL_CHECK PASS=True cues=7
+1.log PASS 
+DUEL_CHECK SNAPSHOT 0:4:9.1954169550421643
+DUEL_CHECK CUE 0 elapsed=0.024
+DUEL_CHECK CUE 1 elapsed=0.916
+DUEL_CHECK CUE 2 elapsed=2.655
+DUEL_CHECK DISCONNECT intro
+CIRCUS DUEL: PASS

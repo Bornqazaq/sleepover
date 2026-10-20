@@ -28,6 +28,10 @@ namespace Igruha.Minigames.CansOrder
 
         private Renderer visual;
         private MaterialPropertyBlock block;
+        private Renderer[] presentationRenderers;
+        private bool[] previousRenderingOff;
+        private bool presentationHidden;
+        public bool PresentationHidden => presentationHidden;
 
         /// <summary>Идентификатор банки — её индекс в палитре конфига. По нему считаются совпадения.</summary>
         public int CanId { get; private set; }
@@ -80,6 +84,8 @@ namespace Igruha.Minigames.CansOrder
             // в префабе рядом с корпусом лежат пять знаков, и порядок обхода
             // отдал бы палитре знак вместо банки.
             visual = body != null ? body : GetComponentInChildren<Renderer>();
+            presentationRenderers = GetComponentsInChildren<Renderer>(true);
+            previousRenderingOff = new bool[presentationRenderers.Length];
         }
 
         /// <summary>
@@ -97,6 +103,20 @@ namespace Igruha.Minigames.CansOrder
             highlight = state;
             transform.localPosition = Vector3.up * LiftFor(state);
             ApplyColor(TintFor(state));
+        }
+
+        /// <summary>Temporary cinematic privacy, preserving each renderer's prior visibility and the actual arrangement.</summary>
+        public void SetPresentationHidden(bool hidden)
+        {
+            if (presentationHidden == hidden || presentationRenderers == null) return;
+            presentationHidden = hidden;
+            for (int i = 0; i < presentationRenderers.Length; i++)
+            {
+                var renderer = presentationRenderers[i];
+                if (renderer == null) continue;
+                if (hidden) previousRenderingOff[i] = renderer.forceRenderingOff;
+                renderer.forceRenderingOff = hidden || previousRenderingOff[i];
+            }
         }
 
         private static float LiftFor(Highlight state)

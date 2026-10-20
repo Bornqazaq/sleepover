@@ -19,17 +19,39 @@ namespace Igruha.Minigames.Circus
         [SerializeField] private float turnDegreesPerSecond = 32f;
         private const float BearAimHeight = 1.05f;
         private const float PlayerAimHeight = 1.0f;
+        private const float CelebrationNearRadius = 2.8f, CelebrationFarRadius = 5.4f;
+        private const float CelebrationAngleSpeed = .09f, CelebrationRadiusSpeed = .13f;
         private float baseIntensity;
         private float outerConeCos;
         private float innerConeCos;
+        private Color baseColor;
+        private Texture baseCookie;
+        private Renderer beam;
+        private MaterialPropertyBlock beamProperties;
+        private float beamDensity;
+        private float showDimmer = 1f, showSpeed = 1f;
+        private Transform showFocus;
+        private Color showColor;
+        private static readonly int DensityId = Shader.PropertyToID("_Density");
+        private static readonly int ColorId = Shader.PropertyToID("_BaseColor");
 
         public Transform Head => head;
+        public bool FollowsBear => followBear;
 
         private void Awake()
         {
             if (spotlight == null) spotlight = GetComponentInChildren<Light>();
             if (spotlight == null) return;
             baseIntensity = spotlight.intensity;
+            baseColor = spotlight.color;
+            baseCookie = spotlight.cookie;
+            var beamTransform = spotlight.transform.Find("HazeBeam");
+            if (beamTransform != null) beam = beamTransform.GetComponent<Renderer>();
+            if (beam != null)
+            {
+                beamDensity = beam.sharedMaterial.GetFloat(DensityId);
+                beamProperties = new MaterialPropertyBlock();
+            }
             outerConeCos = Mathf.Cos(spotlight.spotAngle * .5f * Mathf.Deg2Rad);
             innerConeCos = Mathf.Cos(spotlight.innerSpotAngle * .5f * Mathf.Deg2Rad);
         }
@@ -38,14 +60,66 @@ namespace Igruha.Minigames.Circus
         {
             if (head == null) return;
             double clock = NetworkClock.Now;
-            Vector3 aim = EvaluateAim(clock);
+            Vector3 aim = showFocus != null ? showFocus.position + Vector3.up * PlayerAimHeight :
+                celebration && fixtureIndex % 4 < 2 ? CelebrationAim(clock) : EvaluateAim(clock * showSpeed);
             Vector3 direction = aim - head.position;
             if (direction.sqrMagnitude < .01f) return;
             float roll = followBear ? 0f : (float)(clock * (fixtureIndex % 2 == 0 ? 4.7 : -6.1));
-            head.rotation = Quaternion.RotateTowards(head.rotation, Quaternion.LookRotation(direction) * Quaternion.Euler(0, 0, roll),
-                turnDegreesPerSecond * Time.deltaTime);
-            if (spotlight != null && !followBear)
-                spotlight.intensity = baseIntensity * (.87f + .13f * Mathf.PerlinNoise((float)clock * .19f, fixtureIndex * 3.17f));
+            head.rotation = showFocus != null ? Quaternion.LookRotation(direction) :
+                Quaternion.RotateTowards(head.rotation, Quaternion.LookRotation(direction) * Quaternion.Euler(0, 0, roll),
+                    turnDegreesPerSecond * showSpeed * Time.deltaTime);
+            if (spotlight != null)
+            {
+                float variation = followBear || showFocus != null ? 1f :
+                    .87f + .13f * Mathf.PerlinNoise((float)clock * .19f, fixtureIndex * 3.17f);
+                spotlight.intensity = baseIntensity * showDimmer * variation;
+                spotlight.color = showFocus != null || celebration ? showColor : baseColor;
+                spotlight.cookie = showFocus != null ? null : baseCookie;
+                if (beam != null)
+                {
+                    beam.GetPropertyBlock(beamProperties);
+                    beamProperties.SetFloat(DensityId, beamDensity * Mathf.Min(showDimmer, 1.1f));
+                    beamProperties.SetColor(ColorId, spotlight.color);
+                    beam.SetPropertyBlock(beamProperties);
+                }
+            }
+        }
+
+        public void SetShowLighting(float dimmer, float speed, Transform focus, Color tint)
+        {
+            showDimmer = Mathf.Max(0, dimmer);
+            showSpeed = speed;
+            showFocus = focus;
+            showColor = tint;
+            celebration = false;
+        }
+
+        private bool celebration;
+        public bool IsCelebrating => celebration;
+        public void SetCelebrationLighting(float strength, float speed, Color tint)
+        {
+            SetShowLighting(Mathf.Max(1f, strength), speed, null, tint);
+            celebration = true;
+        }
+
+        private Vector3 CelebrationAim(double clock)
+        {
+            // Half of the decorative lamps cross the pit itself; the rest still tour the tent.
+            // Unequal noise curves avoid giving the hidden stopwatch a rhythmic counting aid.
+            float drift = Mathf.PerlinNoise((float)clock * CelebrationAngleSpeed, fixtureIndex * 3.17f);
+            float angle = (fixtureIndex * 120f + drift * 180f) * Mathf.Deg2Rad;
+            float radius = Mathf.Lerp(CelebrationNearRadius, CelebrationFarRadius,
+                Mathf.PerlinNoise((float)clock * CelebrationRadiusSpeed, fixtureIndex * 5.31f));
+            return new Vector3(Mathf.Sin(angle) * radius, .25f, Mathf.Cos(angle) * radius);
+        }
+
+        public void ResetShowLighting()
+        {
+            showDimmer = showSpeed = 1f;
+            showFocus = null;
+            celebration = false;
+            if (spotlight != null) { spotlight.intensity = baseIntensity; spotlight.color = baseColor; spotlight.cookie = baseCookie; }
+            if (beam != null) beam.SetPropertyBlock(null);
         }
 
         public Vector3 EvaluateAim(double clock)

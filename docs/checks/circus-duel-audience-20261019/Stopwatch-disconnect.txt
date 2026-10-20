@@ -1,0 +1,14 @@
+/Users/azamatyessimkhanuly/Dev/projects/sleepover/igruha/Builds/Autotest/logs/duel-Stopwatch-disconnect-20261019-151250
+0.log PASS 
+DUEL_CHECK SNAPSHOT 0:4:9.1976136509072965
+DUEL_CHECK CUE 0 elapsed=0.026
+DUEL_CHECK CUE 1 elapsed=0.909
+DUEL_CHECK CUE 2 elapsed=2.653
+DUEL_CHECK PASS=True cues=7
+1.log PASS 
+DUEL_CHECK SNAPSHOT 0:4:9.1976136509072965
+DUEL_CHECK CUE 0 elapsed=0.005
+DUEL_CHECK CUE 1 elapsed=0.912
+DUEL_CHECK CUE 2 elapsed=2.662
+DUEL_CHECK DISCONNECT intro
+CIRCUS DUEL: PASS

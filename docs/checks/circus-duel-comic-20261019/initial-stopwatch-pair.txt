@@ -1,0 +1,20 @@
+/Users/azamatyessimkhanuly/Dev/projects/sleepover/igruha/Builds/Autotest/logs/duel-Stopwatch-pair-20261019-154526
+0.log PASS 
+DUEL_CHECK SNAPSHOT 0:4:8.371691803501454
+DUEL_CHECK CUE 0 elapsed=0.237
+DUEL_CHECK CUE 1 elapsed=0.402
+DUEL_CHECK CUE 2 elapsed=2.658
+DUEL_CHECK CUE 3 elapsed=4.406
+DUEL_CHECK LAUNCH elapsedServer=6.402
+DUEL_CHECK CUE 4 elapsed=6.402
+DUEL_CHECK PASS=True cues=31
+1.log PASS 
+DUEL_CHECK SNAPSHOT 0:4:8.371691803501454
+DUEL_CHECK CUE 0 elapsed=0.195
+DUEL_CHECK CUE 1 elapsed=0.412
+DUEL_CHECK CUE 2 elapsed=2.656
+DUEL_CHECK CUE 3 elapsed=4.407
+DUEL_CHECK LAUNCH elapsedServer=6.402
+DUEL_CHECK CUE 4 elapsed=6.412
+DUEL_CHECK PASS=True cues=31
+CIRCUS DUEL: PASS

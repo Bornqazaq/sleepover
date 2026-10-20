@@ -94,6 +94,7 @@ namespace Igruha.EditorTools
             ApplyNaturalLighting();
             CircusInterfaceBuilder.ApplyActive();
             CircusMascotBuilder.ApplyActive();
+            CircusDuelBuilder.ApplyActive();
             EditorSceneManager.MarkSceneDirty(scene);
             AssetDatabase.SaveAssets();
             Debug.Log("Grand Chapiteau applied to " + scene.name + ": striped Blender tent, theatrical lighting and Bruno; gameplay colliders preserved.");

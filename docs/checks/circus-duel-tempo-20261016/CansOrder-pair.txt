@@ -1,0 +1,20 @@
+/Users/azamatyessimkhanuly/Dev/projects/sleepover/igruha/Builds/Autotest/logs/duel-CansOrder-pair-20261016-182651
+0.log PASS 
+DUEL_CHECK SNAPSHOT 0:4:8.29340088286437
+DUEL_CHECK CUE 0 elapsed=0.031
+DUEL_CHECK CUE 1 elapsed=0.908
+DUEL_CHECK CUE 2 elapsed=2.656
+DUEL_CHECK CUE 3 elapsed=4.406
+DUEL_CHECK CUE 4 elapsed=6.404
+DUEL_CHECK LAUNCH elapsedServer=6.404
+DUEL_CHECK PASS=True cues=31
+1.log PASS 
+DUEL_CHECK SNAPSHOT 0:4:8.29340088286437
+DUEL_CHECK CUE 0 elapsed=0.023
+DUEL_CHECK CUE 1 elapsed=0.907
+DUEL_CHECK CUE 2 elapsed=2.657
+DUEL_CHECK CUE 3 elapsed=4.415
+DUEL_CHECK LAUNCH elapsedServer=6.404
+DUEL_CHECK CUE 4 elapsed=6.414
+DUEL_CHECK PASS=True cues=31
+CIRCUS DUEL: PASS

@@ -2,32 +2,14 @@ using UnityEngine;
 
 namespace Igruha.Minigames.Stopwatch
 {
-    /// <summary>
-    /// Отвлекалки: тик, рёв, толпа, прожекторы.
-    ///
-    /// Без них «Секундомер» — соревнование в устном счёте, и выигрывает тот,
-    /// кто ровнее проговаривает «двадцать один, двадцать два». Тикающий звук
-    /// в неправильном ритме — не украшение, а главная механика: он звучит
-    /// убедительно, почти совпадает с секундами и врёт.
-    ///
-    /// <b>Период тика приходит снаружи и не выбирается здесь.</b> Если бы каждая
-    /// машина крутила свой ритм, игроки мерили бы время под разную подсказку,
-    /// и подраунд перестал бы быть честным. Рулетку крутит авторитет, сюда
-    /// приезжает готовое число.
-    ///
-    /// Звуки — процедурные заглушки, чтобы механику можно было проверить ушами
-    /// уже на каркасе. В 8.23 они меняются на настоящие: достаточно назначить
-    /// клипы в поля, генерация тогда сама отключится.
-    /// </summary>
+    /// <summary>Нерегулярные рёв, публика и прожекторы. Тиканье убрано по плейтесту.</summary>
     public sealed class DistractionDirector : MonoBehaviour
     {
         [Header("Звук — пусто значит процедурная заглушка")]
-        [SerializeField] private AudioClip tickClip;
         [SerializeField] private AudioClip roarClip;
         [SerializeField] private AudioClip crowdClip;
 
         [Header("Громкость на максимуме интенсивности")]
-        [SerializeField] private float tickVolume = 0.55f;
         [SerializeField] private float roarVolume = 0.8f;
         [SerializeField] private float crowdVolume = 0.25f;
 
@@ -37,7 +19,6 @@ namespace Igruha.Minigames.Stopwatch
         [Tooltip("Высота, с которой светит прожектор, м")]
         [SerializeField] private float spotlightHeight = 17f;
 
-        private AudioSource tickSource;
         private AudioSource roarSource;
         private AudioSource crowdSource;
         private float crowdTimer;
@@ -49,7 +30,6 @@ namespace Igruha.Minigames.Stopwatch
 
         private float intensity;
         private float tickPeriod = 1f;
-        private float tickTimer;
         private float roarTimer;
         private float sweepTimer;
         private float sweepLeft;
@@ -62,7 +42,7 @@ namespace Igruha.Minigames.Stopwatch
         private float arenaRadius = 8.64f;
         private System.Random random;
 
-        /// <summary>Период тика текущего подраунда, с. Наружу — для замеров приёмки.</summary>
+        /// <summary>Старое поле сетевого снимка; больше не управляет звуком.</summary>
         public float TickPeriod => tickPeriod;
 
         /// <summary>Интенсивность текущего подраунда, 0..1.</summary>
@@ -70,7 +50,6 @@ namespace Igruha.Minigames.Stopwatch
 
         private void Awake()
         {
-            tickSource = CreateSource("Tick", tickClip != null ? tickClip : GenerateTick(), false);
             roarSource = CreateSource("Roar", roarClip != null ? roarClip : GenerateRoar(), false);
             crowdSource = CreateSource("Crowd", crowdClip != null ? crowdClip : GenerateCrowd(), false);
             CreateSpotlight();
@@ -86,8 +65,8 @@ namespace Igruha.Minigames.Stopwatch
         }
 
         /// <summary>
-        /// Новый подраунд. <paramref name="period"/> — уже выбранный авторитетом
-        /// период тика, <paramref name="level"/> — интенсивность 0..1.
+        /// Новый подраунд. Старый <paramref name="period"/> сохранён для совместимости снимка;
+        /// <paramref name="level"/> — интенсивность нерегулярных отвлечений, 0..1.
         /// </summary>
         public void BeginSubround(float period, float level)
         {
@@ -95,7 +74,6 @@ namespace Igruha.Minigames.Stopwatch
             intensity = Mathf.Clamp01(level);
             running = intensity > 0f;
 
-            tickTimer = 0f;
             roarTimer = NextInterval(roarInterval);
             sweepTimer = NextInterval(sweepInterval);
 
@@ -141,17 +119,6 @@ namespace Igruha.Minigames.Stopwatch
             }
 
             float dt = Time.deltaTime;
-
-            tickTimer -= dt;
-            if (tickTimer <= 0f)
-            {
-                tickTimer += tickPeriod;
-                if (tickSource != null)
-                {
-                    tickSource.volume = tickVolume * intensity;
-                    tickSource.Play();
-                }
-            }
 
             roarTimer -= dt;
             if (roarTimer <= 0f)
@@ -218,7 +185,7 @@ namespace Igruha.Minigames.Stopwatch
             source.clip = clip;
             source.loop = loop;
             source.playOnAwake = false;
-            // 2D: тик и толпа звучат одинаково из любой клетки, привязывать
+            // 2D: фон публики звучит одинаково из любой клетки, привязывать
             // их к точке в мире незачем.
             source.spatialBlend = 0f;
             return source;
@@ -235,27 +202,6 @@ namespace Igruha.Minigames.Stopwatch
             spotlight.range = spotlightHeight * 2f;
             spotlight.color = new Color(1f, 0.96f, 0.85f);
             spotlight.enabled = false;
-        }
-
-        // ===== Процедурные заглушки звука =====
-        // Нужны затем, чтобы тик можно было проверить ушами уже на каркасе:
-        // «период не равен секунде» — это пункт приёмки, а не вопрос вкуса.
-
-        private static AudioClip GenerateTick()
-        {
-            const int rate = 44100;
-            int samples = rate / 20;
-            var data = new float[samples];
-            for (int i = 0; i < samples; i++)
-            {
-                float t = i / (float)rate;
-                float decay = Mathf.Exp(-t * 60f);
-                data[i] = Mathf.Sin(2f * Mathf.PI * 1400f * t) * decay;
-            }
-
-            var clip = AudioClip.Create("TickStub", samples, 1, rate, false);
-            clip.SetData(data, 0);
-            return clip;
         }
 
         private static AudioClip GenerateRoar()

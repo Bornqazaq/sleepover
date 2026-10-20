@@ -157,6 +157,15 @@ namespace Igruha.Minigames.CansOrder
         /// <summary>Сколько слотов на полке. Равно числу банок в задании.</summary>
         public int SlotCount => slots.Count;
 
+        private bool presentationHidden;
+
+        public void SetPresentationHidden(bool hidden)
+        {
+            presentationHidden = hidden;
+            for (int i = 0; i < cans.Count; i++)
+                if (cans[i] != null) cans[i].SetPresentationHidden(hidden);
+        }
+
         /// <summary>
         /// Доска полки — та точка, вокруг которой стоят слоты. Корень самой
         /// полки для прицела не годится: он сидит в центре клетки, метром
@@ -228,6 +237,8 @@ namespace Igruha.Minigames.CansOrder
                 slots.Add(slot);
 
                 Can can = BuildCan(config, i);
+                // A delayed private snapshot may rebuild this shelf during the introduction.
+                can.SetPresentationHidden(presentationHidden);
                 cans.Add(can);
                 occupants.Add(can);
                 PlaceInSlot(can, i);

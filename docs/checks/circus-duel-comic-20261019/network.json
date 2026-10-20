@@ -1,0 +1,62 @@
+{
+  "passed": 8,
+  "processes": 24,
+  "cases": [
+    {
+      "game": "stopwatch",
+      "scenario": "pair",
+      "passed": true,
+      "processes": 2,
+      "log_directory": "/Users/azamatyessimkhanuly/Dev/projects/sleepover/igruha/Builds/Autotest/logs/duel-Stopwatch-pair-20261019-155131"
+    },
+    {
+      "game": "stopwatch",
+      "scenario": "pit-client",
+      "passed": true,
+      "processes": 4,
+      "log_directory": "/Users/azamatyessimkhanuly/Dev/projects/sleepover/igruha/Builds/Autotest/logs/duel-Stopwatch-pit-client-20261019-160157"
+    },
+    {
+      "game": "stopwatch",
+      "scenario": "pit-host",
+      "passed": true,
+      "processes": 4,
+      "log_directory": "/Users/azamatyessimkhanuly/Dev/projects/sleepover/igruha/Builds/Autotest/logs/duel-Stopwatch-pit-host-20261019-160714"
+    },
+    {
+      "game": "stopwatch",
+      "scenario": "disconnect",
+      "passed": true,
+      "processes": 2,
+      "log_directory": "/Users/azamatyessimkhanuly/Dev/projects/sleepover/igruha/Builds/Autotest/logs/duel-Stopwatch-disconnect-20261019-155737"
+    },
+    {
+      "game": "cansorder",
+      "scenario": "pair",
+      "passed": true,
+      "processes": 2,
+      "log_directory": "/Users/azamatyessimkhanuly/Dev/projects/sleepover/igruha/Builds/Autotest/logs/duel-CansOrder-pair-20261019-160129"
+    },
+    {
+      "game": "cansorder",
+      "scenario": "pit-client",
+      "passed": true,
+      "processes": 4,
+      "log_directory": "/Users/azamatyessimkhanuly/Dev/projects/sleepover/igruha/Builds/Autotest/logs/duel-CansOrder-pit-client-20261019-160637"
+    },
+    {
+      "game": "cansorder",
+      "scenario": "pit-host",
+      "passed": true,
+      "processes": 4,
+      "log_directory": "/Users/azamatyessimkhanuly/Dev/projects/sleepover/igruha/Builds/Autotest/logs/duel-CansOrder-pit-host-20261019-160308"
+    },
+    {
+      "game": "cansorder",
+      "scenario": "disconnect",
+      "passed": true,
+      "processes": 2,
+      "log_directory": "/Users/azamatyessimkhanuly/Dev/projects/sleepover/igruha/Builds/Autotest/logs/duel-CansOrder-disconnect-20261019-160110"
+    }
+  ]
+}

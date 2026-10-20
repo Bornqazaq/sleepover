@@ -1,0 +1,15 @@
+/Users/azamatyessimkhanuly/Dev/projects/sleepover/igruha/Builds/Autotest/logs/duel-CansOrder-disconnect-20261019-155756
+0.log PASS 
+DUEL_CHECK SNAPSHOT 0:4:9.1603623422351674
+DUEL_CHECK CUE 0 elapsed=0.062
+DUEL_CHECK CUE 1 elapsed=0.403
+DUEL_CHECK CUE 2 elapsed=2.656
+DUEL_CHECK PASS=True cues=7
+1.log FAIL 
+DUEL_CHECK SNAPSHOT 0:4:9.1603623422351674
+DUEL_CHECK CUE 0 elapsed=0.059
+DUEL_CHECK FAIL can identities escaped cinematic privacy or stayed hidden
+DUEL_CHECK CUE 1 elapsed=0.413
+DUEL_CHECK CUE 2 elapsed=2.656
+DUEL_CHECK DISCONNECT intro
+CIRCUS DUEL: FAIL
