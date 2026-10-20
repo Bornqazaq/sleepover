@@ -1,0 +1,11 @@
+{
+  "source_commit": "0da95a152062ff9d97346347e10bab8b583177f2",
+  "result": "AutotestBuild: Succeeded, ошибок 0, предупреждений 0, 48 с → Builds/Autotest/sleepover.app",
+  "exit_code": 0,
+  "batchmode_success": true,
+  "compiler_errors": 0,
+  "shutdown_messages": [
+    "Leak Detected : Persistent allocates 68 individual allocations. To find out more please enable 'Settings > Jobs > Leak Detection Level > Enabled With Stack Trace' and reproduce the leak again.",
+    "debugger-agent: Unable to listen on 43"
+  ]
+}
