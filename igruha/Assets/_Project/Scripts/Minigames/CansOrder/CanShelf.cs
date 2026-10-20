@@ -683,8 +683,25 @@ namespace Igruha.Minigames.CansOrder
             }
         }
 
+        /// <summary>Server-authorized interruption. The permutation changes atomically; the visible cans follow two arcs.</summary>
+        public bool ApplyGhostSwap(int a, int b)
+        {
+            if (a < 0 || b < 0 || a >= occupants.Count || b >= occupants.Count || a == b) return false;
+            Can first = occupants[a], second = occupants[b];
+            if (first == null || second == null) return false;
+            Vector3 fromFirst = first.transform.position, fromSecond = second.transform.position;
+            Swap(a, b);
+            markedSlot = NoCell;
+            RefreshHighlights();
+            first.BeginGhostFlight(fromFirst, 1f);
+            second.BeginGhostFlight(fromSecond, -1f);
+            RaiseChanged();
+            return true;
+        }
+
         private void PlaceInSlot(Can can, int slotIndex)
         {
+            can.CancelGhostFlight();
             occupants[slotIndex] = can;
             can.SlotIndex = slotIndex;
             can.transform.SetParent(slots[slotIndex], false);

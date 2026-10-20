@@ -1,0 +1,9 @@
+{
+  "unity": "6000.3.11f1",
+  "target": "StandaloneOSX",
+  "development": true,
+  "result": "Succeeded",
+  "duration_seconds": 14.465166,
+  "errors": 0,
+  "warnings": 0
+}

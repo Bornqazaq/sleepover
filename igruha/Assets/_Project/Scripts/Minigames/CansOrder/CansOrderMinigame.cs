@@ -31,7 +31,7 @@ namespace Igruha.Minigames.CansOrder
     /// и <c>NetworkList</c>. Всё, что меняет состояние круга, проходит через
     /// стадии, и каждая точка перехода уйдёт за <c>IsServer</c> без переписывания.
     /// </summary>
-    public sealed class CansOrderMinigame : MinigameControllerBase, IMinigameNetworkTarget, ICircusDuelAudience
+    public sealed partial class CansOrderMinigame : MinigameControllerBase, IMinigameNetworkTarget, ICircusDuelAudience
     {
         /// <summary>Стадии круга. Значения уезжают в сеть байтом, порядок менять нельзя.</summary>
         private const byte StageBriefing = 1;
@@ -333,6 +333,8 @@ namespace Igruha.Minigames.CansOrder
 
             network = GetComponent<CansOrderNetwork>();
             duel = GetComponent<CircusDuelPresentation>();
+            ghost = GetComponent<CansGhostController>();
+            ghost?.Bind(this, network, cameraController, shelfCameraRig, localHud);
             shelfVisibility = new CansShelfVisibility(cameraController, shelfCameraRig);
         }
 
@@ -362,6 +364,7 @@ namespace Igruha.Minigames.CansOrder
 
         protected override void OnPlayersReady()
         {
+            ghost?.ResetRound();
             actionRestrictions.Dispose();
             finaleGate?.Cancel();
             shelfVisibility?.Dispose();
@@ -561,6 +564,7 @@ namespace Igruha.Minigames.CansOrder
 
         protected override void OnRoundEnded()
         {
+            ghost?.EndRound();
             duel?.ResetShow();
             actionRestrictions.Dispose();
             shelfVisibility?.SetActive(false);
@@ -1126,6 +1130,7 @@ namespace Igruha.Minigames.CansOrder
 
         private void ApplyShelfCamera(bool toShelf)
         {
+            if (ghost != null && ghost.IsLocalGhost) { shelfVisibility?.SetActive(false); return; }
             if ((attackPresentation != null && attackPresentation.OwnsCamera) || cameraController == null ||
                 spectator == null || spectator.IsActive)
             {
@@ -1368,8 +1373,8 @@ namespace Igruha.Minigames.CansOrder
                 c.Entry.SolvedThisCircle = true;
                 round.SolvedCount++;
 
-                // Полка гаснет, клетка замирает на той высоте, где он собрал,
-                // и игрок сидит и смотрит. Это и есть его награда (спека 5.2).
+                // Собранный ответ защищён. Первый финишировавший получит
+                // роль призрака после обработки всех ответов этого круга.
                 c.Button?.MarkSolved();
                 if (c.Shelf != null)
                 {
@@ -1379,6 +1384,7 @@ namespace Igruha.Minigames.CansOrder
                 SpawnFanfare(c);
                 network?.AnnounceSolved(c.Entry.PlayerId);
             }
+            AwardFirstGhost();
             candidates.Clear();
             for (int i = 0; i < contestants.Count; i++) candidates.Add(contestants[i].Entry);
             int worst = CanOrderDescentRules.WorstScore(candidates);
@@ -1485,7 +1491,7 @@ namespace Igruha.Minigames.CansOrder
 
             if (HasAuthority)
             {
-                ServerApplyArrangement(c.Entry.PlayerId, intentBuffer, NetworkClock.Now, NetworkClock.Now);
+                ServerApplyArrangement(c.Entry.PlayerId, intentBuffer, NetworkClock.Now, NetworkClock.Now, ghost != null ? ghost.AppliedRevision(c.Entry.PlayerId) : (byte)0);
                 return;
             }
 
@@ -1498,7 +1504,7 @@ namespace Igruha.Minigames.CansOrder
             // менять на ней больше нечего. Именно этого не хватало на
             // плейтесте 22.08 — «меняю после подтверждения, а не считается».
             c.Shelf.Active = false;
-            network?.SubmitArrangement(c.Submitted, NetworkClock.Now);
+            network?.SubmitArrangement(c.Submitted, NetworkClock.Now, ghost != null ? ghost.AppliedRevision(c.Entry.PlayerId) : (byte)0, round.Circle);
         }
 
         /// <summary>
@@ -1511,7 +1517,7 @@ namespace Igruha.Minigames.CansOrder
         /// </summary>
         /// <param name="stamp">Момент нажатия на общих часах, присланный клиентом.</param>
         /// <param name="arrival">Момент прибытия пакета на сервер.</param>
-        public bool ServerApplyArrangement(int playerId, IReadOnlyList<int> arrangement, double stamp, double arrival)
+        public bool ServerApplyArrangement(int playerId, IReadOnlyList<int> arrangement, double stamp, double arrival, byte trickRevision = 0)
         {
             if (!HasAuthority || arrangement == null || config == null)
             {
@@ -1558,6 +1564,8 @@ namespace Igruha.Minigames.CansOrder
                                  $"[{string.Join(",", arrangement)}] при {round.CanCount} банках — отказ", this);
                 return false;
             }
+
+            if (ghost != null && trickRevision != ghost.State.RequiredRevision(playerId, round.Circle)) return false;
 
             CopyInto(arrangement, c.Submitted);
             c.Entry.Confirmed = true;
@@ -2497,7 +2505,7 @@ namespace Igruha.Minigames.CansOrder
         /// кто нажимал: факт «этот уже подтвердил» до стадии показа не знает
         /// никто, кроме него самого.
         /// </summary>
-        public void ApplyNetworkConfirmAnswer(bool accepted)
+        public void ApplyNetworkConfirmAnswer(bool accepted, int circle = -1, bool retryAfterTrick = false)
         {
             if (HasAuthority)
             {
@@ -2510,8 +2518,17 @@ namespace Igruha.Minigames.CansOrder
                 return;
             }
 
+            if (circle >= 0 && circle != round.Circle) return;
             if (!accepted)
             {
+                if (retryAfterTrick && Stage == StagePlacement && !local.Entry.Solved && !local.Entry.Confirmed)
+                {
+                    local.Submitted.Clear();
+                    local.Button?.OpenWindow();
+                    if (local.Shelf != null) local.Shelf.Active = true;
+                    ghost?.NotifyVictim();
+                    return;
+                }
                 // Отвергнутое подтверждение равно «не подтвердил»: попытка
                 // потрачена, на табло будет «НЕ ПОДТВЕРДИЛ» (спека 10.3).
                 local.Submitted.Clear();

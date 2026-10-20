@@ -1,0 +1,485 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="64" result="Passed" total="64" passed="64" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-10-20 11:27:46Z" end-time="2026-10-20 11:28:38Z" duration="51.9609711">
+  <test-suite type="TestSuite" id="1000" name="sleepover" fullname="sleepover" runstate="Runnable" testcasecount="802" result="Passed" start-time="2026-10-20 11:27:46Z" end-time="2026-10-20 11:28:38Z" duration="51.960971" total="64" passed="64" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1945" name="Igruha.Camera.Tests.dll" fullname="/Users/azamatyessimkhanuly/Dev/projects/sleepover/igruha/Library/ScriptAssemblies/Igruha.Camera.Tests.dll" runstate="Runnable" testcasecount="801" result="Passed" start-time="2026-10-20 11:27:46Z" end-time="2026-10-20 11:28:38Z" duration="51.761824" total="64" passed="64" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="10156" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="1946" name="Igruha" fullname="Igruha" runstate="Runnable" testcasecount="766" result="Passed" start-time="2026-10-20 11:27:46Z" end-time="2026-10-20 11:28:38Z" duration="51.582091" total="64" passed="64" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1947" name="Tests" fullname="Igruha.Tests" runstate="Runnable" testcasecount="766" result="Passed" start-time="2026-10-20 11:27:47Z" end-time="2026-10-20 11:28:38Z" duration="51.384133" total="64" passed="64" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestFixture" id="1047" name="CansDescentTests" fullname="Igruha.Tests.CansDescentTests" classname="Igruha.Tests.CansDescentTests" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-10-20 11:27:47Z" end-time="2026-10-20 11:27:47Z" duration="0.303265" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1050" name="BetterTurnAtBottomPreservesChance" fullname="Igruha.Tests.CansDescentTests.BetterTurnAtBottomPreservesChance" methodname="BetterTurnAtBottomPreservesChance" classname="Igruha.Tests.CansDescentTests" runstate="Runnable" seed="953290060" result="Passed" start-time="2026-10-20 11:27:47Z" end-time="2026-10-20 11:27:47Z" duration="0.045638" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1053" name="EveryoneSolvedAndEliminatedPlayersDoNotDescend" fullname="Igruha.Tests.CansDescentTests.EveryoneSolvedAndEliminatedPlayersDoNotDescend" methodname="EveryoneSolvedAndEliminatedPlayersDoNotDescend" classname="Igruha.Tests.CansDescentTests" runstate="Runnable" seed="937214158" result="Passed" start-time="2026-10-20 11:27:47Z" end-time="2026-10-20 11:27:47Z" duration="0.003072" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1052" name="NoConfirmationIsWorseThanConfirmedZeroWithoutInventingMatches" fullname="Igruha.Tests.CansDescentTests.NoConfirmationIsWorseThanConfirmedZeroWithoutInventingMatches" methodname="NoConfirmationIsWorseThanConfirmedZeroWithoutInventingMatches" classname="Igruha.Tests.CansDescentTests" runstate="Runnable" seed="909325707" result="Passed" start-time="2026-10-20 11:27:47Z" end-time="2026-10-20 11:27:47Z" duration="0.003934" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1048" name="OnlyWorstCurrentResultDescendsIncludingTies" fullname="Igruha.Tests.CansDescentTests.OnlyWorstCurrentResultDescendsIncludingTies" methodname="OnlyWorstCurrentResultDescendsIncludingTies" classname="Igruha.Tests.CansDescentTests" runstate="Runnable" seed="692573691" result="Passed" start-time="2026-10-20 11:27:47Z" end-time="2026-10-20 11:27:47Z" duration="0.001636" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1049" name="ReachingBottomThenTwoMoreLossesOpensHatch" fullname="Igruha.Tests.CansDescentTests.ReachingBottomThenTwoMoreLossesOpensHatch" methodname="ReachingBottomThenTwoMoreLossesOpensHatch" classname="Igruha.Tests.CansDescentTests" runstate="Runnable" seed="958800808" result="Passed" start-time="2026-10-20 11:27:47Z" end-time="2026-10-20 11:27:47Z" duration="0.001225" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1054" name="SolvedOnBottomRanksAboveUnsolvedAtTop" fullname="Igruha.Tests.CansDescentTests.SolvedOnBottomRanksAboveUnsolvedAtTop" methodname="SolvedOnBottomRanksAboveUnsolvedAtTop" classname="Igruha.Tests.CansDescentTests" runstate="Runnable" seed="783084793" result="Passed" start-time="2026-10-20 11:27:47Z" end-time="2026-10-20 11:27:47Z" duration="0.014221" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1051" name="SolvingOnLastChanceIsSafe" fullname="Igruha.Tests.CansDescentTests.SolvingOnLastChanceIsSafe" methodname="SolvingOnLastChanceIsSafe" classname="Igruha.Tests.CansDescentTests" runstate="Runnable" seed="1271597520" result="Passed" start-time="2026-10-20 11:27:47Z" end-time="2026-10-20 11:27:47Z" duration="0.000917" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1055" name="SurvivorsRankAboveEliminatedAndLaterEliminationRanksHigher" fullname="Igruha.Tests.CansDescentTests.SurvivorsRankAboveEliminatedAndLaterEliminationRanksHigher" methodname="SurvivorsRankAboveEliminatedAndLaterEliminationRanksHigher" classname="Igruha.Tests.CansDescentTests" runstate="Runnable" seed="995868632" result="Passed" start-time="2026-10-20 11:27:47Z" end-time="2026-10-20 11:27:47Z" duration="0.000834" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+          </test-suite>
+          <test-suite type="TestFixture" id="1056" name="CansGhostTests" fullname="Igruha.Tests.CansGhostTests" classname="Igruha.Tests.CansGhostTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-10-20 11:27:47Z" end-time="2026-10-20 11:27:47Z" duration="0.109934" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1059" name="BothTricksSurviveSnapshotSerializationAndRevisionsArePrivatePerTarget" fullname="Igruha.Tests.CansGhostTests.BothTricksSurviveSnapshotSerializationAndRevisionsArePrivatePerTarget" methodname="BothTricksSurviveSnapshotSerializationAndRevisionsArePrivatePerTarget" classname="Igruha.Tests.CansGhostTests" runstate="Runnable" seed="2131946206" result="Passed" start-time="2026-10-20 11:27:47Z" end-time="2026-10-20 11:27:47Z" duration="0.047405" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1060" name="FlightRejectsNonFiniteInputAndStaysInsideTheArena" fullname="Igruha.Tests.CansGhostTests.FlightRejectsNonFiniteInputAndStaysInsideTheArena" methodname="FlightRejectsNonFiniteInputAndStaysInsideTheArena" classname="Igruha.Tests.CansGhostTests" runstate="Runnable" seed="2043457469" result="Passed" start-time="2026-10-20 11:27:47Z" end-time="2026-10-20 11:27:47Z" duration="0.002101" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1057" name="OnlyWinnerCanInterruptAnUnconfirmedLivingOpponent" fullname="Igruha.Tests.CansGhostTests.OnlyWinnerCanInterruptAnUnconfirmedLivingOpponent" methodname="OnlyWinnerCanInterruptAnUnconfirmedLivingOpponent" classname="Igruha.Tests.CansGhostTests" runstate="Runnable" seed="1434146587" result="Passed" start-time="2026-10-20 11:27:47Z" end-time="2026-10-20 11:27:47Z" duration="0.001626" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1058" name="TwoChargesCannotHitTwiceInOneTurnOrInTheLastSeconds" fullname="Igruha.Tests.CansGhostTests.TwoChargesCannotHitTwiceInOneTurnOrInTheLastSeconds" methodname="TwoChargesCannotHitTwiceInOneTurnOrInTheLastSeconds" classname="Igruha.Tests.CansGhostTests" runstate="Runnable" seed="1689039978" result="Passed" start-time="2026-10-20 11:27:47Z" end-time="2026-10-20 11:27:47Z" duration="0.000799" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+          </test-suite>
+          <test-suite type="TestFixture" id="1061" name="CansShelfVisibilityTests" fullname="Igruha.Tests.CansShelfVisibilityTests" classname="Igruha.Tests.CansShelfVisibilityTests" runstate="Runnable" testcasecount="15" result="Passed" start-time="2026-10-20 11:27:47Z" end-time="2026-10-20 11:27:48Z" duration="0.549062" total="15" passed="15" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1065" name="DeactivationAndSceneCleanupRestoreInterruptedRender" fullname="Igruha.Tests.CansShelfVisibilityTests.DeactivationAndSceneCleanupRestoreInterruptedRender" methodname="DeactivationAndSceneCleanupRestoreInterruptedRender" classname="Igruha.Tests.CansShelfVisibilityTests" runstate="Runnable" seed="901698902" result="Passed" start-time="2026-10-20 11:27:47Z" end-time="2026-10-20 11:27:47Z" duration="0.032303" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1068" name="DestroyingAvatarDuringRenderIsSafe" fullname="Igruha.Tests.CansShelfVisibilityTests.DestroyingAvatarDuringRenderIsSafe" methodname="DestroyingAvatarDuringRenderIsSafe" classname="Igruha.Tests.CansShelfVisibilityTests" runstate="Runnable" seed="469912292" result="Passed" start-time="2026-10-20 11:27:47Z" end-time="2026-10-20 11:27:47Z" duration="0.009647" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-suite type="ParameterizedMethod" id="1077" name="EveryCharacterMeshIsExcludedWithoutChangingEnabledState" fullname="Igruha.Tests.CansShelfVisibilityTests.EveryCharacterMeshIsExcludedWithoutChangingEnabledState" classname="Igruha.Tests.CansShelfVisibilityTests" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-10-20 11:27:47Z" end-time="2026-10-20 11:27:48Z" duration="0.273501" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1069" name="EveryCharacterMeshIsExcludedWithoutChangingEnabledState(&quot;Player&quot;)" fullname="Igruha.Tests.CansShelfVisibilityTests.EveryCharacterMeshIsExcludedWithoutChangingEnabledState(&quot;Player&quot;)" methodname="EveryCharacterMeshIsExcludedWithoutChangingEnabledState" classname="Igruha.Tests.CansShelfVisibilityTests" runstate="Runnable" seed="234348385" result="Passed" start-time="2026-10-20 11:27:47Z" end-time="2026-10-20 11:27:48Z" duration="0.054468" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1070" name="EveryCharacterMeshIsExcludedWithoutChangingEnabledState(&quot;Aza&quot;)" fullname="Igruha.Tests.CansShelfVisibilityTests.EveryCharacterMeshIsExcludedWithoutChangingEnabledState(&quot;Aza&quot;)" methodname="EveryCharacterMeshIsExcludedWithoutChangingEnabledState" classname="Igruha.Tests.CansShelfVisibilityTests" runstate="Runnable" seed="2030544424" result="Passed" start-time="2026-10-20 11:27:48Z" end-time="2026-10-20 11:27:48Z" duration="0.018483" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1071" name="EveryCharacterMeshIsExcludedWithoutChangingEnabledState(&quot;Boss&quot;)" fullname="Igruha.Tests.CansShelfVisibilityTests.EveryCharacterMeshIsExcludedWithoutChangingEnabledState(&quot;Boss&quot;)" methodname="EveryCharacterMeshIsExcludedWithoutChangingEnabledState" classname="Igruha.Tests.CansShelfVisibilityTests" runstate="Runnable" seed="1505666924" result="Passed" start-time="2026-10-20 11:27:48Z" end-time="2026-10-20 11:27:48Z" duration="0.007804" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1072" name="EveryCharacterMeshIsExcludedWithoutChangingEnabledState(&quot;Fat&quot;)" fullname="Igruha.Tests.CansShelfVisibilityTests.EveryCharacterMeshIsExcludedWithoutChangingEnabledState(&quot;Fat&quot;)" methodname="EveryCharacterMeshIsExcludedWithoutChangingEnabledState" classname="Igruha.Tests.CansShelfVisibilityTests" runstate="Runnable" seed="1435413084" result="Passed" start-time="2026-10-20 11:27:48Z" end-time="2026-10-20 11:27:48Z" duration="0.006410" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1073" name="EveryCharacterMeshIsExcludedWithoutChangingEnabledState(&quot;Girl&quot;)" fullname="Igruha.Tests.CansShelfVisibilityTests.EveryCharacterMeshIsExcludedWithoutChangingEnabledState(&quot;Girl&quot;)" methodname="EveryCharacterMeshIsExcludedWithoutChangingEnabledState" classname="Igruha.Tests.CansShelfVisibilityTests" runstate="Runnable" seed="233878310" result="Passed" start-time="2026-10-20 11:27:48Z" end-time="2026-10-20 11:27:48Z" duration="0.005743" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1074" name="EveryCharacterMeshIsExcludedWithoutChangingEnabledState(&quot;Milez&quot;)" fullname="Igruha.Tests.CansShelfVisibilityTests.EveryCharacterMeshIsExcludedWithoutChangingEnabledState(&quot;Milez&quot;)" methodname="EveryCharacterMeshIsExcludedWithoutChangingEnabledState" classname="Igruha.Tests.CansShelfVisibilityTests" runstate="Runnable" seed="685401161" result="Passed" start-time="2026-10-20 11:27:48Z" end-time="2026-10-20 11:27:48Z" duration="0.013752" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1075" name="EveryCharacterMeshIsExcludedWithoutChangingEnabledState(&quot;MyBoy&quot;)" fullname="Igruha.Tests.CansShelfVisibilityTests.EveryCharacterMeshIsExcludedWithoutChangingEnabledState(&quot;MyBoy&quot;)" methodname="EveryCharacterMeshIsExcludedWithoutChangingEnabledState" classname="Igruha.Tests.CansShelfVisibilityTests" runstate="Runnable" seed="610773005" result="Passed" start-time="2026-10-20 11:27:48Z" end-time="2026-10-20 11:27:48Z" duration="0.006772" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1076" name="EveryCharacterMeshIsExcludedWithoutChangingEnabledState(&quot;Shlanga&quot;)" fullname="Igruha.Tests.CansShelfVisibilityTests.EveryCharacterMeshIsExcludedWithoutChangingEnabledState(&quot;Shlanga&quot;)" methodname="EveryCharacterMeshIsExcludedWithoutChangingEnabledState" classname="Igruha.Tests.CansShelfVisibilityTests" runstate="Runnable" seed="1178304196" result="Passed" start-time="2026-10-20 11:27:48Z" end-time="2026-10-20 11:27:48Z" duration="0.007792" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-case id="1063" name="NestedCameraSeesAvatarAndReturnsToHiddenShelfBeforeRestoring" fullname="Igruha.Tests.CansShelfVisibilityTests.NestedCameraSeesAvatarAndReturnsToHiddenShelfBeforeRestoring" methodname="NestedCameraSeesAvatarAndReturnsToHiddenShelfBeforeRestoring" classname="Igruha.Tests.CansShelfVisibilityTests" runstate="Runnable" seed="196523509" result="Passed" start-time="2026-10-20 11:27:48Z" end-time="2026-10-20 11:27:48Z" duration="0.002064" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1062" name="OnlyShelfOutputHidesModelAndRestoresExactStateAfterFrame" fullname="Igruha.Tests.CansShelfVisibilityTests.OnlyShelfOutputHidesModelAndRestoresExactStateAfterFrame" methodname="OnlyShelfOutputHidesModelAndRestoresExactStateAfterFrame" classname="Igruha.Tests.CansShelfVisibilityTests" runstate="Runnable" seed="180528013" result="Passed" start-time="2026-10-20 11:27:48Z" end-time="2026-10-20 11:27:48Z" duration="0.003936" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1066" name="RebindingDoesNotLeaveOldAvatarHidden" fullname="Igruha.Tests.CansShelfVisibilityTests.RebindingDoesNotLeaveOldAvatarHidden" methodname="RebindingDoesNotLeaveOldAvatarHidden" classname="Igruha.Tests.CansShelfVisibilityTests" runstate="Runnable" seed="21461943" result="Passed" start-time="2026-10-20 11:27:48Z" end-time="2026-10-20 11:27:48Z" duration="0.020511" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1067" name="RenderContextEndRecoversMissingCameraEnd" fullname="Igruha.Tests.CansShelfVisibilityTests.RenderContextEndRecoversMissingCameraEnd" methodname="RenderContextEndRecoversMissingCameraEnd" classname="Igruha.Tests.CansShelfVisibilityTests" runstate="Runnable" seed="23378059" result="Passed" start-time="2026-10-20 11:27:48Z" end-time="2026-10-20 11:27:48Z" duration="0.038658" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1064" name="ThirdPersonOrDifferentFixedTargetDoesNotHideAvatar" fullname="Igruha.Tests.CansShelfVisibilityTests.ThirdPersonOrDifferentFixedTargetDoesNotHideAvatar" methodname="ThirdPersonOrDifferentFixedTargetDoesNotHideAvatar" classname="Igruha.Tests.CansShelfVisibilityTests" runstate="Runnable" seed="409705121" result="Passed" start-time="2026-10-20 11:27:48Z" end-time="2026-10-20 11:27:48Z" duration="0.008189" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+          </test-suite>
+          <test-suite type="TestFixture" id="1086" name="CircusActionRestrictionTests" fullname="Igruha.Tests.CircusActionRestrictionTests" classname="Igruha.Tests.CircusActionRestrictionTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-10-20 11:27:48Z" end-time="2026-10-20 11:27:48Z" duration="0.132627" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1087" name="BlocksRealJumpAndPunchAndRestoresThemOnExit" fullname="Igruha.Tests.CircusActionRestrictionTests.BlocksRealJumpAndPunchAndRestoresThemOnExit" methodname="BlocksRealJumpAndPunchAndRestoresThemOnExit" classname="Igruha.Tests.CircusActionRestrictionTests" runstate="Runnable" seed="1486859028" result="Passed" start-time="2026-10-20 11:27:48Z" end-time="2026-10-20 11:27:48Z" duration="0.030031" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1088" name="RestoresPreExistingRestrictionsAndCancelsPendingPunch" fullname="Igruha.Tests.CircusActionRestrictionTests.RestoresPreExistingRestrictionsAndCancelsPendingPunch" methodname="RestoresPreExistingRestrictionsAndCancelsPendingPunch" classname="Igruha.Tests.CircusActionRestrictionTests" runstate="Runnable" seed="288720262" result="Passed" start-time="2026-10-20 11:27:48Z" end-time="2026-10-20 11:27:48Z" duration="0.010453" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+          </test-suite>
+          <test-suite type="TestFixture" id="1272" name="CircusCageSafetyTests" fullname="Igruha.Tests.CircusCageSafetyTests" classname="Igruha.Tests.CircusCageSafetyTests" runstate="Runnable" testcasecount="14" result="Passed" start-time="2026-10-20 11:27:48Z" end-time="2026-10-20 11:28:15Z" duration="27.266496" total="14" passed="14" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="ParameterizedMethod" id="1278" name="ContinuousFloorReleasesWithTheHatchAndReturnsWhenClosed" fullname="Igruha.Tests.CircusCageSafetyTests.ContinuousFloorReleasesWithTheHatchAndReturnsWhenClosed" classname="Igruha.Tests.CircusCageSafetyTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-10-20 11:27:48Z" end-time="2026-10-20 11:27:57Z" duration="9.040044" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1276" name="ContinuousFloorReleasesWithTheHatchAndReturnsWhenClosed(&quot;CansOrder&quot;)" fullname="Igruha.Tests.CircusCageSafetyTests.ContinuousFloorReleasesWithTheHatchAndReturnsWhenClosed(&quot;CansOrder&quot;)" methodname="ContinuousFloorReleasesWithTheHatchAndReturnsWhenClosed" classname="Igruha.Tests.CircusCageSafetyTests" runstate="Runnable" seed="2141325350" result="Passed" start-time="2026-10-20 11:27:48Z" end-time="2026-10-20 11:27:51Z" duration="3.349795" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1277" name="ContinuousFloorReleasesWithTheHatchAndReturnsWhenClosed(&quot;Stopwatch&quot;)" fullname="Igruha.Tests.CircusCageSafetyTests.ContinuousFloorReleasesWithTheHatchAndReturnsWhenClosed(&quot;Stopwatch&quot;)" methodname="ContinuousFloorReleasesWithTheHatchAndReturnsWhenClosed" classname="Igruha.Tests.CircusCageSafetyTests" runstate="Runnable" seed="750765695" result="Passed" start-time="2026-10-20 11:27:51Z" end-time="2026-10-20 11:27:57Z" duration="5.463789" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-case id="1288" name="CrouchCapsuleCannotCrossClosedSupportButCanFallAfterRelease" fullname="Igruha.Tests.CircusCageSafetyTests.CrouchCapsuleCannotCrossClosedSupportButCanFallAfterRelease" methodname="CrouchCapsuleCannotCrossClosedSupportButCanFallAfterRelease" classname="Igruha.Tests.CircusCageSafetyTests" runstate="Runnable" seed="1272817039" result="Passed" start-time="2026-10-20 11:27:57Z" end-time="2026-10-20 11:27:58Z" duration="1.522477" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-suite type="ParameterizedMethod" id="1275" name="LowestClosedCageClearsTheActualMasonryAndOpensWithoutRising" fullname="Igruha.Tests.CircusCageSafetyTests.LowestClosedCageClearsTheActualMasonryAndOpensWithoutRising" classname="Igruha.Tests.CircusCageSafetyTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-10-20 11:27:58Z" end-time="2026-10-20 11:28:03Z" duration="4.958554" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1273" name="LowestClosedCageClearsTheActualMasonryAndOpensWithoutRising(&quot;CansOrder&quot;)" fullname="Igruha.Tests.CircusCageSafetyTests.LowestClosedCageClearsTheActualMasonryAndOpensWithoutRising(&quot;CansOrder&quot;)" methodname="LowestClosedCageClearsTheActualMasonryAndOpensWithoutRising" classname="Igruha.Tests.CircusCageSafetyTests" runstate="Runnable" seed="1319070339" result="Passed" start-time="2026-10-20 11:27:59Z" end-time="2026-10-20 11:28:02Z" duration="3.017105" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1274" name="LowestClosedCageClearsTheActualMasonryAndOpensWithoutRising(&quot;Stopwatch&quot;)" fullname="Igruha.Tests.CircusCageSafetyTests.LowestClosedCageClearsTheActualMasonryAndOpensWithoutRising(&quot;Stopwatch&quot;)" methodname="LowestClosedCageClearsTheActualMasonryAndOpensWithoutRising" classname="Igruha.Tests.CircusCageSafetyTests" runstate="Runnable" seed="749189099" result="Passed" start-time="2026-10-20 11:28:02Z" end-time="2026-10-20 11:28:03Z" duration="1.897577" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-case id="1289" name="OpenLeafIsHiddenOnlyForTheObstructedLocalCameraAndRestoredAfterRendering" fullname="Igruha.Tests.CircusCageSafetyTests.OpenLeafIsHiddenOnlyForTheObstructedLocalCameraAndRestoredAfterRendering" methodname="OpenLeafIsHiddenOnlyForTheObstructedLocalCameraAndRestoredAfterRendering" classname="Igruha.Tests.CircusCageSafetyTests" runstate="Runnable" seed="144844930" result="Passed" start-time="2026-10-20 11:28:03Z" end-time="2026-10-20 11:28:03Z" duration="0.026558" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-suite type="ParameterizedMethod" id="1287" name="RunningIntoShelfCannotPushPlayerThroughClosedFloor" fullname="Igruha.Tests.CircusCageSafetyTests.RunningIntoShelfCannotPushPlayerThroughClosedFloor" classname="Igruha.Tests.CircusCageSafetyTests" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-10-20 11:28:03Z" end-time="2026-10-20 11:28:15Z" duration="11.638772" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1279" name="RunningIntoShelfCannotPushPlayerThroughClosedFloor(&quot;Player&quot;)" fullname="Igruha.Tests.CircusCageSafetyTests.RunningIntoShelfCannotPushPlayerThroughClosedFloor(&quot;Player&quot;)" methodname="RunningIntoShelfCannotPushPlayerThroughClosedFloor" classname="Igruha.Tests.CircusCageSafetyTests" runstate="Runnable" seed="1516448761" result="Passed" start-time="2026-10-20 11:28:03Z" end-time="2026-10-20 11:28:05Z" duration="1.519151" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Player root y=-1.788139E-07..0.006075978 support=-3.72529E-08
+]]></output>
+              </test-case>
+              <test-case id="1280" name="RunningIntoShelfCannotPushPlayerThroughClosedFloor(&quot;Boss&quot;)" fullname="Igruha.Tests.CircusCageSafetyTests.RunningIntoShelfCannotPushPlayerThroughClosedFloor(&quot;Boss&quot;)" methodname="RunningIntoShelfCannotPushPlayerThroughClosedFloor" classname="Igruha.Tests.CircusCageSafetyTests" runstate="Runnable" seed="1765787979" result="Passed" start-time="2026-10-20 11:28:05Z" end-time="2026-10-20 11:28:06Z" duration="1.332073" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Boss root y=-1.788139E-07..0.006075978 support=-2.235174E-08
+]]></output>
+              </test-case>
+              <test-case id="1281" name="RunningIntoShelfCannotPushPlayerThroughClosedFloor(&quot;Fat&quot;)" fullname="Igruha.Tests.CircusCageSafetyTests.RunningIntoShelfCannotPushPlayerThroughClosedFloor(&quot;Fat&quot;)" methodname="RunningIntoShelfCannotPushPlayerThroughClosedFloor" classname="Igruha.Tests.CircusCageSafetyTests" runstate="Runnable" seed="34882288" result="Passed" start-time="2026-10-20 11:28:06Z" end-time="2026-10-20 11:28:08Z" duration="1.401808" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Fat root y=-1.192093E-07..0.006075978 support=-3.72529E-08
+]]></output>
+              </test-case>
+              <test-case id="1282" name="RunningIntoShelfCannotPushPlayerThroughClosedFloor(&quot;MyBoy&quot;)" fullname="Igruha.Tests.CircusCageSafetyTests.RunningIntoShelfCannotPushPlayerThroughClosedFloor(&quot;MyBoy&quot;)" methodname="RunningIntoShelfCannotPushPlayerThroughClosedFloor" classname="Igruha.Tests.CircusCageSafetyTests" runstate="Runnable" seed="1373276785" result="Passed" start-time="2026-10-20 11:28:08Z" end-time="2026-10-20 11:28:09Z" duration="1.342876" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[MyBoy root y=-1.490116E-07..0.006075978 support=-3.72529E-08
+]]></output>
+              </test-case>
+              <test-case id="1283" name="RunningIntoShelfCannotPushPlayerThroughClosedFloor(&quot;Girl&quot;)" fullname="Igruha.Tests.CircusCageSafetyTests.RunningIntoShelfCannotPushPlayerThroughClosedFloor(&quot;Girl&quot;)" methodname="RunningIntoShelfCannotPushPlayerThroughClosedFloor" classname="Igruha.Tests.CircusCageSafetyTests" runstate="Runnable" seed="114327252" result="Passed" start-time="2026-10-20 11:28:09Z" end-time="2026-10-20 11:28:11Z" duration="1.434424" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Girl root y=-1.788139E-07..0.006075978 support=-1.117587E-08
+]]></output>
+              </test-case>
+              <test-case id="1284" name="RunningIntoShelfCannotPushPlayerThroughClosedFloor(&quot;Milez&quot;)" fullname="Igruha.Tests.CircusCageSafetyTests.RunningIntoShelfCannotPushPlayerThroughClosedFloor(&quot;Milez&quot;)" methodname="RunningIntoShelfCannotPushPlayerThroughClosedFloor" classname="Igruha.Tests.CircusCageSafetyTests" runstate="Runnable" seed="447206454" result="Passed" start-time="2026-10-20 11:28:11Z" end-time="2026-10-20 11:28:12Z" duration="1.582308" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Milez root y=-1.788139E-07..0.006075978 support=-1.117587E-08
+]]></output>
+              </test-case>
+              <test-case id="1285" name="RunningIntoShelfCannotPushPlayerThroughClosedFloor(&quot;Aza&quot;)" fullname="Igruha.Tests.CircusCageSafetyTests.RunningIntoShelfCannotPushPlayerThroughClosedFloor(&quot;Aza&quot;)" methodname="RunningIntoShelfCannotPushPlayerThroughClosedFloor" classname="Igruha.Tests.CircusCageSafetyTests" runstate="Runnable" seed="1448044510" result="Passed" start-time="2026-10-20 11:28:12Z" end-time="2026-10-20 11:28:14Z" duration="1.468377" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Aza root y=-1.788139E-07..0.006075978 support=2.980232E-08
+]]></output>
+              </test-case>
+              <test-case id="1286" name="RunningIntoShelfCannotPushPlayerThroughClosedFloor(&quot;Shlanga&quot;)" fullname="Igruha.Tests.CircusCageSafetyTests.RunningIntoShelfCannotPushPlayerThroughClosedFloor(&quot;Shlanga&quot;)" methodname="RunningIntoShelfCannotPushPlayerThroughClosedFloor" classname="Igruha.Tests.CircusCageSafetyTests" runstate="Runnable" seed="1028350222" result="Passed" start-time="2026-10-20 11:28:14Z" end-time="2026-10-20 11:28:15Z" duration="1.511151" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Shlanga root y=-2.384186E-07..0.006076038 support=-3.72529E-08
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+          <test-suite type="TestFixture" id="1290" name="CircusDuelTests" fullname="Igruha.Tests.CircusDuelTests" classname="Igruha.Tests.CircusDuelTests" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-10-20 11:28:15Z" end-time="2026-10-20 11:28:16Z" duration="0.416078" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1296" name="CansSubsequentStageRetainsDuelWithoutReplayingIntroduction" fullname="Igruha.Tests.CircusDuelTests.CansSubsequentStageRetainsDuelWithoutReplayingIntroduction" methodname="CansSubsequentStageRetainsDuelWithoutReplayingIntroduction" classname="Igruha.Tests.CircusDuelTests" runstate="Runnable" seed="864694802" result="Passed" start-time="2026-10-20 11:28:15Z" end-time="2026-10-20 11:28:15Z" duration="0.051987" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1298" name="CinematicPrivacyRestoresPreviouslyHiddenCanDetailsWithoutChangingItsSlot" fullname="Igruha.Tests.CircusDuelTests.CinematicPrivacyRestoresPreviouslyHiddenCanDetailsWithoutChangingItsSlot" methodname="CinematicPrivacyRestoresPreviouslyHiddenCanDetailsWithoutChangingItsSlot" classname="Igruha.Tests.CircusDuelTests" runstate="Runnable" seed="1968649335" result="Passed" start-time="2026-10-20 11:28:15Z" end-time="2026-10-20 11:28:15Z" duration="0.004904" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-suite type="ParameterizedMethod" id="1293" name="OnlyFinalistsAndActualSpectatorsWatchTheDuel" fullname="Igruha.Tests.CircusDuelTests.OnlyFinalistsAndActualSpectatorsWatchTheDuel" classname="Igruha.Tests.CircusDuelTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-10-20 11:28:15Z" end-time="2026-10-20 11:28:15Z" duration="0.181426" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1291" name="OnlyFinalistsAndActualSpectatorsWatchTheDuel(False)" fullname="Igruha.Tests.CircusDuelTests.OnlyFinalistsAndActualSpectatorsWatchTheDuel(False)" methodname="OnlyFinalistsAndActualSpectatorsWatchTheDuel" classname="Igruha.Tests.CircusDuelTests" runstate="Runnable" seed="464957149" result="Passed" start-time="2026-10-20 11:28:15Z" end-time="2026-10-20 11:28:15Z" duration="0.071955" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1292" name="OnlyFinalistsAndActualSpectatorsWatchTheDuel(True)" fullname="Igruha.Tests.CircusDuelTests.OnlyFinalistsAndActualSpectatorsWatchTheDuel(True)" methodname="OnlyFinalistsAndActualSpectatorsWatchTheDuel" classname="Igruha.Tests.CircusDuelTests" runstate="Runnable" seed="384267117" result="Passed" start-time="2026-10-20 11:28:15Z" end-time="2026-10-20 11:28:15Z" duration="0.001518" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-case id="1294" name="PitKeepsNormalLightingAndJoiningSpectatorUsesTheCurrentCue" fullname="Igruha.Tests.CircusDuelTests.PitKeepsNormalLightingAndJoiningSpectatorUsesTheCurrentCue" methodname="PitKeepsNormalLightingAndJoiningSpectatorUsesTheCurrentCue" classname="Igruha.Tests.CircusDuelTests" runstate="Runnable" seed="1120344893" result="Passed" start-time="2026-10-20 11:28:15Z" end-time="2026-10-20 11:28:16Z" duration="0.006047" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1297" name="RepeatedSnapshotAndCancellationRestoreTheOriginalLightingExactly" fullname="Igruha.Tests.CircusDuelTests.RepeatedSnapshotAndCancellationRestoreTheOriginalLightingExactly" methodname="RepeatedSnapshotAndCancellationRestoreTheOriginalLightingExactly" classname="Igruha.Tests.CircusDuelTests" runstate="Runnable" seed="275082761" result="Passed" start-time="2026-10-20 11:28:16Z" end-time="2026-10-20 11:28:16Z" duration="0.002567" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1295" name="StopwatchStageCarriesOriginalCueClockAndFinalistsThroughNgoSerialization" fullname="Igruha.Tests.CircusDuelTests.StopwatchStageCarriesOriginalCueClockAndFinalistsThroughNgoSerialization" methodname="StopwatchStageCarriesOriginalCueClockAndFinalistsThroughNgoSerialization" classname="Igruha.Tests.CircusDuelTests" runstate="Runnable" seed="1729363128" result="Passed" start-time="2026-10-20 11:28:16Z" end-time="2026-10-20 11:28:16Z" duration="0.001245" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+          </test-suite>
+          <test-suite type="TestFixture" id="1299" name="CircusFinaleGateTests" fullname="Igruha.Tests.CircusFinaleGateTests" classname="Igruha.Tests.CircusFinaleGateTests" runstate="Runnable" testcasecount="6" result="Passed" start-time="2026-10-20 11:28:16Z" end-time="2026-10-20 11:28:36Z" duration="20.874427" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <output><![CDATA[ProfileValueReference: GetValue called with empty id.
+Addressable content successfully built (duration : 0:00:00.097)
+1 URP assets included in build
+- PC_RPAsset - Assets/_Project/Settings/PC_RPAsset.asset
+	 - PC_Renderer - Assets/_Project/Settings/PC_Renderer.asset - UnityEngine.Rendering.Universal.UniversalRendererData
+
+Stripping Runtime Debug Shader Variants, you won't be able to use some features of Rendering Debugger in the Player Build.
+[MCP Build] Build succeeded: StandaloneOSX → Builds/Autotest/sleepover.app (2350.96 MB, 20.5s)
+]]></output>
+            <test-suite type="ParameterizedMethod" id="1302" name="DelayedHitDeliversPhaseThenIndependentPayloadInEitherPacketOrder" fullname="Igruha.Tests.CircusFinaleGateTests.DelayedHitDeliversPhaseThenIndependentPayloadInEitherPacketOrder" classname="Igruha.Tests.CircusFinaleGateTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-10-20 11:28:36Z" end-time="2026-10-20 11:28:36Z" duration="0.134165" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1300" name="DelayedHitDeliversPhaseThenIndependentPayloadInEitherPacketOrder(False)" fullname="Igruha.Tests.CircusFinaleGateTests.DelayedHitDeliversPhaseThenIndependentPayloadInEitherPacketOrder(False)" methodname="DelayedHitDeliversPhaseThenIndependentPayloadInEitherPacketOrder" classname="Igruha.Tests.CircusFinaleGateTests" runstate="Runnable" seed="115060182" result="Passed" start-time="2026-10-20 11:28:36Z" end-time="2026-10-20 11:28:36Z" duration="0.003842" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1301" name="DelayedHitDeliversPhaseThenIndependentPayloadInEitherPacketOrder(True)" fullname="Igruha.Tests.CircusFinaleGateTests.DelayedHitDeliversPhaseThenIndependentPayloadInEitherPacketOrder(True)" methodname="DelayedHitDeliversPhaseThenIndependentPayloadInEitherPacketOrder" classname="Igruha.Tests.CircusFinaleGateTests" runstate="Runnable" seed="239002922" result="Passed" start-time="2026-10-20 11:28:36Z" end-time="2026-10-20 11:28:36Z" duration="0.000087" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="ParameterizedMethod" id="1305" name="DisableResetOrNewPhaseDiscardsQueuedResults" fullname="Igruha.Tests.CircusFinaleGateTests.DisableResetOrNewPhaseDiscardsQueuedResults" classname="Igruha.Tests.CircusFinaleGateTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-10-20 11:28:36Z" end-time="2026-10-20 11:28:36Z" duration="0.097116" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1303" name="DisableResetOrNewPhaseDiscardsQueuedResults(False)" fullname="Igruha.Tests.CircusFinaleGateTests.DisableResetOrNewPhaseDiscardsQueuedResults(False)" methodname="DisableResetOrNewPhaseDiscardsQueuedResults" classname="Igruha.Tests.CircusFinaleGateTests" runstate="Runnable" seed="737964843" result="Passed" start-time="2026-10-20 11:28:36Z" end-time="2026-10-20 11:28:36Z" duration="0.000915" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1304" name="DisableResetOrNewPhaseDiscardsQueuedResults(True)" fullname="Igruha.Tests.CircusFinaleGateTests.DisableResetOrNewPhaseDiscardsQueuedResults(True)" methodname="DisableResetOrNewPhaseDiscardsQueuedResults" classname="Igruha.Tests.CircusFinaleGateTests" runstate="Runnable" seed="465114278" result="Passed" start-time="2026-10-20 11:28:36Z" end-time="2026-10-20 11:28:36Z" duration="0.000277" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-case id="1306" name="NoLocalPresentationDeliversBothMessagesImmediately" fullname="Igruha.Tests.CircusFinaleGateTests.NoLocalPresentationDeliversBothMessagesImmediately" methodname="NoLocalPresentationDeliversBothMessagesImmediately" classname="Igruha.Tests.CircusFinaleGateTests" runstate="Runnable" seed="1141818310" result="Passed" start-time="2026-10-20 11:28:36Z" end-time="2026-10-20 11:28:36Z" duration="0.000709" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1307" name="StalledKnockoutCannotHoldResultsLongerThanTwoRealtimeSeconds" fullname="Igruha.Tests.CircusFinaleGateTests.StalledKnockoutCannotHoldResultsLongerThanTwoRealtimeSeconds" methodname="StalledKnockoutCannotHoldResultsLongerThanTwoRealtimeSeconds" classname="Igruha.Tests.CircusFinaleGateTests" runstate="Runnable" seed="2094165926" result="Passed" start-time="2026-10-20 11:28:36Z" end-time="2026-10-20 11:28:36Z" duration="0.000534" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+          </test-suite>
+          <test-suite type="TestFixture" id="1308" name="CircusInterfacePresentationTests" fullname="Igruha.Tests.CircusInterfacePresentationTests" classname="Igruha.Tests.CircusInterfacePresentationTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-10-20 11:28:36Z" end-time="2026-10-20 11:28:38Z" duration="1.426626" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1309" name="StopwatchCannotReactivateItsRoundClockOnRestart" fullname="Igruha.Tests.CircusInterfacePresentationTests.StopwatchCannotReactivateItsRoundClockOnRestart" methodname="StopwatchCannotReactivateItsRoundClockOnRestart" classname="Igruha.Tests.CircusInterfacePresentationTests" runstate="Runnable" seed="534269464" result="Passed" start-time="2026-10-20 11:28:36Z" end-time="2026-10-20 11:28:38Z" duration="1.209000" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-suite type="ParameterizedMethod" id="1312" name="StopwatchScreenShowsStaticTargetAndRevealsTimesOnlyWithResults" fullname="Igruha.Tests.CircusInterfacePresentationTests.StopwatchScreenShowsStaticTargetAndRevealsTimesOnlyWithResults" classname="Igruha.Tests.CircusInterfacePresentationTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-10-20 11:28:38Z" end-time="2026-10-20 11:28:38Z" duration="0.120634" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1310" name="StopwatchScreenShowsStaticTargetAndRevealsTimesOnlyWithResults(2)" fullname="Igruha.Tests.CircusInterfacePresentationTests.StopwatchScreenShowsStaticTargetAndRevealsTimesOnlyWithResults(2)" methodname="StopwatchScreenShowsStaticTargetAndRevealsTimesOnlyWithResults" classname="Igruha.Tests.CircusInterfacePresentationTests" runstate="Runnable" seed="1203509203" result="Passed" start-time="2026-10-20 11:28:38Z" end-time="2026-10-20 11:28:38Z" duration="0.019617" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1311" name="StopwatchScreenShowsStaticTargetAndRevealsTimesOnlyWithResults(8)" fullname="Igruha.Tests.CircusInterfacePresentationTests.StopwatchScreenShowsStaticTargetAndRevealsTimesOnlyWithResults(8)" methodname="StopwatchScreenShowsStaticTargetAndRevealsTimesOnlyWithResults" classname="Igruha.Tests.CircusInterfacePresentationTests" runstate="Runnable" seed="1009224989" result="Passed" start-time="2026-10-20 11:28:38Z" end-time="2026-10-20 11:28:38Z" duration="0.011196" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+          </test-suite>
+          <test-suite type="TestFixture" id="1313" name="CircusInterfacePrivacyTests" fullname="Igruha.Tests.CircusInterfacePrivacyTests" classname="Igruha.Tests.CircusInterfacePrivacyTests" runstate="Runnable" testcasecount="5" result="Passed" start-time="2026-10-20 11:28:38Z" end-time="2026-10-20 11:28:38Z" duration="0.176871" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1315" name="ConfirmedUnsolvedAttemptRevealsOnlyItsOwnSnapshot" fullname="Igruha.Tests.CircusInterfacePrivacyTests.ConfirmedUnsolvedAttemptRevealsOnlyItsOwnSnapshot" methodname="ConfirmedUnsolvedAttemptRevealsOnlyItsOwnSnapshot" classname="Igruha.Tests.CircusInterfacePrivacyTests" runstate="Runnable" seed="779456609" result="Passed" start-time="2026-10-20 11:28:38Z" end-time="2026-10-20 11:28:38Z" duration="0.004142" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1314" name="CurrentScoreAndOrderRemainHiddenUntilReveal" fullname="Igruha.Tests.CircusInterfacePrivacyTests.CurrentScoreAndOrderRemainHiddenUntilReveal" methodname="CurrentScoreAndOrderRemainHiddenUntilReveal" classname="Igruha.Tests.CircusInterfacePrivacyTests" runstate="Runnable" seed="297031741" result="Passed" start-time="2026-10-20 11:28:38Z" end-time="2026-10-20 11:28:38Z" duration="0.000719" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1317" name="MissingConfirmationDoesNotBecomeZeroMatches" fullname="Igruha.Tests.CircusInterfacePrivacyTests.MissingConfirmationDoesNotBecomeZeroMatches" methodname="MissingConfirmationDoesNotBecomeZeroMatches" classname="Igruha.Tests.CircusInterfacePrivacyTests" runstate="Runnable" seed="1382072044" result="Passed" start-time="2026-10-20 11:28:38Z" end-time="2026-10-20 11:28:38Z" duration="0.000383" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1318" name="PreviousRoundNeverLeaksIntoNewRoundTicket" fullname="Igruha.Tests.CircusInterfacePrivacyTests.PreviousRoundNeverLeaksIntoNewRoundTicket" methodname="PreviousRoundNeverLeaksIntoNewRoundTicket" classname="Igruha.Tests.CircusInterfacePrivacyTests" runstate="Runnable" seed="312044693" result="Passed" start-time="2026-10-20 11:28:38Z" end-time="2026-10-20 11:28:38Z" duration="0.000565" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1316" name="WinningOrderIsNeverPrintedInResultTicket" fullname="Igruha.Tests.CircusInterfacePrivacyTests.WinningOrderIsNeverPrintedInResultTicket" methodname="WinningOrderIsNeverPrintedInResultTicket" classname="Igruha.Tests.CircusInterfacePrivacyTests" runstate="Runnable" seed="1339656988" result="Passed" start-time="2026-10-20 11:28:38Z" end-time="2026-10-20 11:28:38Z" duration="0.000325" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+Saving results to: /Users/azamatyessimkhanuly/Library/Application Support/Dauqara/sleepover/TestResults.xml
+]]></output>
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>
