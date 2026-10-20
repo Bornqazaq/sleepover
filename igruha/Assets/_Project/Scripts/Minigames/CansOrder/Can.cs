@@ -77,6 +77,33 @@ namespace Igruha.Minigames.CansOrder
         private const float MarkedTint = 0.8f;
 
         private Highlight highlight = Highlight.None;
+        private float ghostFlightAt = -100f, ghostFlightSide;
+        private Vector3 ghostFlightFrom;
+        private const float GhostArcHeight = .32f, GhostArcDepth = .18f;
+
+        public void BeginGhostFlight(Vector3 fromWorld, float side)
+        {
+            ghostFlightFrom = transform.parent.InverseTransformPoint(fromWorld);
+            ghostFlightAt = Time.time; ghostFlightSide = side;
+        }
+
+        public void CancelGhostFlight()
+        {
+            ghostFlightAt = -100f;
+            transform.localRotation = Quaternion.identity;
+        }
+
+        private void LateUpdate()
+        {
+            float t = (Time.time - ghostFlightAt) / CansGhostRules.SwapSeconds;
+            if (ghostFlightAt < 0 || t < 0) return;
+            if (t >= 1) { transform.localPosition = Vector3.up * LiftFor(highlight); CancelGhostFlight(); return; }
+            float arc = Mathf.Sin(t * Mathf.PI);
+            Vector3 destination = Vector3.up * LiftFor(highlight);
+            transform.localPosition = Vector3.Lerp(ghostFlightFrom, destination, Mathf.SmoothStep(0, 1, t)) +
+                new Vector3(0, arc * GhostArcHeight, arc * GhostArcDepth * ghostFlightSide);
+            transform.localRotation = Quaternion.Euler(0, t * 360f * ghostFlightSide, arc * 16f * ghostFlightSide);
+        }
 
         private void Awake()
         {

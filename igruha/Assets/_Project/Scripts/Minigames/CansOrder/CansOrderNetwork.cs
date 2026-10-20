@@ -241,7 +241,7 @@ namespace Igruha.Minigames.CansOrder
     /// по детерминированному правилу сортировки, тройка сходится у всех сама.</item>
     /// </list>
     /// </summary>
-    public sealed class CansOrderNetwork : NetworkBehaviour
+    public sealed partial class CansOrderNetwork : NetworkBehaviour
     {
         private readonly NetworkVariable<CansOrderRoundNetState> round =
             new NetworkVariable<CansOrderRoundNetState>();
@@ -468,14 +468,14 @@ namespace Igruha.Minigames.CansOrder
         /// часах: она решает, попал ли игрок в окно, когда пакет опоздал из-за
         /// пинга.
         /// </summary>
-        public void SubmitArrangement(IReadOnlyList<int> arrangement, double stamp)
+        public void SubmitArrangement(IReadOnlyList<int> arrangement, double stamp, byte trickRevision = 0, int circle = -1)
         {
             if (!IsSpawned || IsServer || arrangement == null)
             {
                 return;
             }
 
-            SubmitArrangementRpc(ToBytes(arrangement), stamp);
+            SubmitArrangementRpc(ToBytes(arrangement), stamp, trickRevision, circle);
         }
 
         /// <summary>
@@ -488,7 +488,7 @@ namespace Igruha.Minigames.CansOrder
         /// от решения сервера, а не от факта нажатия.
         /// </summary>
         [Rpc(SendTo.Server, RequireOwnership = false)]
-        private void SubmitArrangementRpc(byte[] arrangement, double stamp, RpcParams rpcParams = default)
+        private void SubmitArrangementRpc(byte[] arrangement, double stamp, byte trickRevision, int circle, RpcParams rpcParams = default)
         {
             if (game == null)
             {
@@ -498,8 +498,9 @@ namespace Igruha.Minigames.CansOrder
             ulong senderId = rpcParams.Receive.SenderClientId;
             ToIntList(arrangement, incoming);
 
-            bool accepted = game.ServerApplyArrangement((int)senderId, incoming, stamp, NetworkManager.ServerTime.Time);
-            ConfirmAnswerRpc(accepted, RpcTarget.Single(senderId, RpcTargetUse.Temp));
+            bool staleTrick = game.Ghost != null && trickRevision != game.Ghost.State.RequiredRevision((int)senderId, game.Round.Circle);
+            bool accepted = circle == game.Round.Circle && game.ServerApplyArrangement((int)senderId, incoming, stamp, NetworkManager.ServerTime.Time, trickRevision);
+            ConfirmAnswerRpc(accepted, circle, staleTrick, RpcTarget.Single(senderId, RpcTargetUse.Temp));
         }
 
         /// <summary>
@@ -511,9 +512,9 @@ namespace Igruha.Minigames.CansOrder
         /// числами круга — то есть на стадии показа.
         /// </summary>
         [Rpc(SendTo.SpecifiedInParams)]
-        private void ConfirmAnswerRpc(bool accepted, RpcParams rpcParams = default)
+        private void ConfirmAnswerRpc(bool accepted, int circle, bool retryAfterTrick, RpcParams rpcParams = default)
         {
-            game?.ApplyNetworkConfirmAnswer(accepted);
+            game?.ApplyNetworkConfirmAnswer(accepted, circle, retryAfterTrick);
         }
 
         // ========== СОБЫТИЯ КРУГА ==========
@@ -689,6 +690,7 @@ namespace Igruha.Minigames.CansOrder
                     entriesDirty = false;
                     ApplyEntries();
                 }
+                SyncGhost();
 
                 return;
             }
@@ -700,6 +702,7 @@ namespace Igruha.Minigames.CansOrder
 
             PublishRound();
             PublishEntries();
+            SyncGhost();
         }
 
         private void PublishRound()

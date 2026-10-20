@@ -1,0 +1,1 @@
+one-way delay=75 ms; jitter=20 ms

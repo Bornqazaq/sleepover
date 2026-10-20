@@ -1,0 +1,12 @@
+0.log
+GHOST_CHECK FIRST 4:0
+GHOST_CHECK PASS=True owner=1 charges=1
+
+1.log
+GHOST_CHECK FIRST 4:0
+GHOST_CHECK DISCONNECT owner
+
+2.log
+GHOST_CHECK FIRST 4:0
+GHOST_CHECK CONFIRM stale rejected; shelf reopened; corrected answer accepted
+GHOST_CHECK PASS=True owner=1 charges=1

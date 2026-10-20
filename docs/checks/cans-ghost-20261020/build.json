@@ -1,0 +1,10 @@
+{
+  "unity": "6000.3.11f1",
+  "target": "StandaloneOSX",
+  "development": true,
+  "result": "Succeeded",
+  "duration_seconds_rounded": 43,
+  "errors": 0,
+  "warnings": 0,
+  "method": "Igruha.EditorTools.AutotestBuild.BuildMac"
+}
