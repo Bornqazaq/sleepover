@@ -9,7 +9,7 @@ from check_sumo import DelayedLink
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--scenario', choices=['host', 'client', 'disconnect'], default='client')
+    parser.add_argument('--scenario', choices=['host', 'client', 'disconnect', 'target-disconnect'], default='client')
     parser.add_argument('--graphics-client', type=int, default=-1,
                         help='Render this client to inspect the ghost or the victim shelf.')
     parser.add_argument('--latency-ms', type=int, default=0)
@@ -77,7 +77,7 @@ def main():
         ok &= len(first) == 3 and len(set(first)) == 1
         if args.scenario != 'disconnect':
             second = [line for log in logs.glob('*.log') for line in log.read_text(errors='replace').splitlines() if line.startswith('GHOST_CHECK SECOND ')]
-            ok &= len(second) == 3 and len(set(second)) == 1
+            ok &= len(second) == (2 if args.scenario == 'target-disconnect' else 3) and len(set(second)) == 1
         print('CANS GHOST:', 'PASS' if ok else 'FAIL', flush=True)
         return 0 if ok else 1
     finally:
