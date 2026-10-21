@@ -1,0 +1,11 @@
+{
+  "success": true,
+  "message": "Code executed successfully.",
+  "data": {
+    "result": [
+      "<b><color=#cc7a00>MCP-FOR-UNITY</color></b>: [WebSocket] Keep-alive failed: The remote party closed the WebSocket connection without completing the close handshake.",
+      "<b><color=#cc7a00>MCP-FOR-UNITY</color></b>: [WebSocket] Connection closed: The remote party closed the WebSocket connection without completing the close handshake."
+    ],
+    "compiler": "codedom"
+  }
+}

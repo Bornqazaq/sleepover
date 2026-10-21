@@ -1,0 +1,14 @@
+{
+  "success": true,
+  "message": "Code executed successfully.",
+  "data": {
+    "result": {
+      "building": false,
+      "result": "Succeeded",
+      "errors": 0,
+      "warnings": 2,
+      "seconds": 46.613156
+    },
+    "compiler": "codedom"
+  }
+}

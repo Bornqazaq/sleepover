@@ -20,11 +20,11 @@ namespace Igruha.Minigames.CansOrder
     /// без остатка стадии игрок не понимает, сколько ещё можно двигать банки,
     /// и это не атмосфера, а просто непонятный интерфейс.
     ///
-    /// Совпадений, счёта и чужих расстановок эта панель не знает вовсе:
-    /// она читает только <see cref="MinigameStageState"/>, где ничего
-    /// секретного нет.
+    /// В основном раунде свой результат открывается только после общей проверки.
+    /// В тренировке отдельная карточка показывает число совпадений при перестановке;
+    /// ответ сервера получает только владелец своей полки.
     /// </summary>
-    public sealed class CansOrderLocalHud : MonoBehaviour
+    public sealed partial class CansOrderLocalHud : MonoBehaviour
     {
         [SerializeField] private TMP_Text label;
         [SerializeField] private Igruha.Minigames.Circus.CircusHudView presentation;
@@ -92,6 +92,7 @@ namespace Igruha.Minigames.CansOrder
 
         private void OnDisable()
         {
+            if (practiceCanvas != null) practiceCanvas.SetActive(false);
             presentation?.Hide();
             // These labels can live outside this component's hierarchy.
             // Hide them explicitly when the local player falls into the pit.
@@ -153,6 +154,7 @@ namespace Igruha.Minigames.CansOrder
 
         private void Update()
         {
+            RenderPractice();
             if(presentation!=null){presentation.RenderCans(stageState,shelf,rules);return;}
             if (stageState == null)
             {

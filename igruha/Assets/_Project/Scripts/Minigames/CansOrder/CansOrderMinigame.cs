@@ -365,6 +365,7 @@ namespace Igruha.Minigames.CansOrder
         protected override void OnPlayersReady()
         {
             ResetGhosts();
+            ResetPracticePreview();
             actionRestrictions.Dispose();
             finaleGate?.Cancel();
             shelfVisibility?.Dispose();
