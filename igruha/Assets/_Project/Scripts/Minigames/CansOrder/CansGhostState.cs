@@ -8,12 +8,12 @@ namespace Igruha.Minigames.CansOrder
     public struct CansGhostTrick : INetworkSerializable, IEquatable<CansGhostTrick>
     {
         public byte Serial, FirstSlot, SecondSlot;
-        public int TargetId, Circle;
+        public int OwnerId, TargetId, Circle;
         public double StartedAt;
         public void NetworkSerialize<T>(BufferSerializer<T> s) where T : IReaderWriter
         {
             s.SerializeValue(ref Serial); s.SerializeValue(ref FirstSlot); s.SerializeValue(ref SecondSlot);
-            s.SerializeValue(ref TargetId); s.SerializeValue(ref Circle); s.SerializeValue(ref StartedAt);
+            s.SerializeValue(ref OwnerId); s.SerializeValue(ref TargetId); s.SerializeValue(ref Circle); s.SerializeValue(ref StartedAt);
         }
         public bool Equals(CansGhostTrick v) => Serial == v.Serial && FirstSlot == v.FirstSlot &&
             SecondSlot == v.SecondSlot && TargetId == v.TargetId && Circle == v.Circle && StartedAt == v.StartedAt;
@@ -49,6 +49,51 @@ namespace Igruha.Minigames.CansOrder
         public void NetworkSerialize<T>(BufferSerializer<T> s) where T : IReaderWriter
         { s.SerializeValue(ref Position); s.SerializeValue(ref Yaw); }
         public bool Equals(CansGhostPose v) => Position.Equals(v.Position) && Yaw.Equals(v.Yaw);
+    }
+
+    public struct CansGhostSnapshot : INetworkSerializable, IEquatable<CansGhostSnapshot>
+    {
+        public CansGhostState State;
+        public CansGhostPose Pose;
+        public void NetworkSerialize<T>(BufferSerializer<T> s) where T : IReaderWriter
+        { s.SerializeValue(ref State); s.SerializeValue(ref Pose); }
+        public bool Equals(CansGhostSnapshot other) => State.Equals(other.State) && Pose.Equals(other.Pose);
+    }
+
+    /// <summary>One server order across all ghosts; swaps sharing a slot do not commute.</summary>
+    public sealed class CansGhostTrickHistory
+    {
+        private const int Capacity = 8 * CansGhostRules.TrickLimit;
+        private readonly CansGhostTrick[] records = new CansGhostTrick[Capacity + 1];
+        private byte latest, applied;
+        public byte NextSerial => (byte)(latest + 1);
+        public void Record(CansGhostTrick trick)
+        {
+            if (trick.Serial == 0 || trick.Serial > Capacity) return;
+            records[trick.Serial] = trick;
+            if (trick.Serial > latest) latest = trick.Serial;
+        }
+        public bool TryPeekNext(out CansGhostTrick trick)
+        {
+            trick = applied < Capacity ? records[applied + 1] : default;
+            return trick.Serial != 0;
+        }
+        public void Consume(CansGhostTrick trick)
+        {
+            if (trick.Serial == applied + 1) applied = trick.Serial;
+        }
+        public byte Revision(int playerId, int circle, bool appliedOnly)
+        {
+            for (int i = appliedOnly ? applied : latest; i > 0; i--)
+                if (records[i].Serial != 0 && records[i].TargetId == playerId && records[i].Circle <= circle)
+                    return (byte)i;
+            return 0;
+        }
+        public void Clear()
+        {
+            Array.Clear(records, 0, records.Length);
+            latest = applied = 0;
+        }
     }
 
     public static class CansGhostRules

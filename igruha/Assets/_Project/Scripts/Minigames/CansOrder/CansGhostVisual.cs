@@ -47,13 +47,19 @@ namespace Igruha.Minigames.CansOrder
                 Vector3[] vertices = mesh.vertices, normals = mesh.normals;
                 BoneWeight[] weights = skin.sharedMesh.boneWeights;
                 Transform[] bones = skin.bones;
+                // Classify each bone once; seven simultaneous ghosts otherwise repeat
+                // native Transform hierarchy queries for every weighted vertex.
+                var headBones = new bool[bones.Length];
+                if (head != null)
+                    for (int b = 0; b < bones.Length; b++)
+                        headBones[b] = bones[b] != null && (bones[b] == head || bones[b].IsChildOf(head));
                 for (int v = 0; v < vertices.Length; v++)
                 {
                     vertices[v] = toPlayer.MultiplyPoint3x4(vertices[v]);
                     if (v < normals.Length) normals[v] = toPlayer.MultiplyVector(normals[v]).normalized;
                     if (!hasBody) { bodyBounds = new Bounds(vertices[v], Vector3.zero); hasBody = true; }
                     else bodyBounds.Encapsulate(vertices[v]);
-                    if (head == null || v >= weights.Length || !HeadWeighted(weights[v], bones, head)) continue;
+                    if (head == null || v >= weights.Length || !HeadWeighted(weights[v], headBones)) continue;
                     Vector3 inFace = new Vector3(Vector3.Dot(vertices[v], faceRight),
                         Vector3.Dot(vertices[v], faceUp), Vector3.Dot(vertices[v], faceForward));
                     if (!hasHead) { headBounds = new Bounds(inFace, Vector3.zero); hasHead = true; }
@@ -135,12 +141,11 @@ namespace Igruha.Minigames.CansOrder
             }
         }
 
-        private static bool HeadWeighted(BoneWeight w, Transform[] bones, Transform head) =>
-            HeadBone(w.boneIndex0, w.weight0, bones, head) || HeadBone(w.boneIndex1, w.weight1, bones, head) ||
-            HeadBone(w.boneIndex2, w.weight2, bones, head) || HeadBone(w.boneIndex3, w.weight3, bones, head);
-        private static bool HeadBone(int index, float weight, Transform[] bones, Transform head) =>
-            weight > .35f && index >= 0 && index < bones.Length && bones[index] != null &&
-            (bones[index] == head || bones[index].IsChildOf(head));
+        private static bool HeadWeighted(BoneWeight w, bool[] headBones) =>
+            HeadBone(w.boneIndex0, w.weight0, headBones) || HeadBone(w.boneIndex1, w.weight1, headBones) ||
+            HeadBone(w.boneIndex2, w.weight2, headBones) || HeadBone(w.boneIndex3, w.weight3, headBones);
+        private static bool HeadBone(int index, float weight, bool[] headBones) =>
+            weight > .35f && index >= 0 && index < headBones.Length && headBones[index];
 
         private void Cross(Vector3 center, Vector3 right, Vector3 up, Material glow)
         {

@@ -364,7 +364,7 @@ namespace Igruha.Minigames.CansOrder
 
         protected override void OnPlayersReady()
         {
-            ghost?.ResetRound();
+            ResetGhosts();
             actionRestrictions.Dispose();
             finaleGate?.Cancel();
             shelfVisibility?.Dispose();
@@ -564,7 +564,7 @@ namespace Igruha.Minigames.CansOrder
 
         protected override void OnRoundEnded()
         {
-            ghost?.EndRound();
+            EndGhosts();
             duel?.ResetShow();
             actionRestrictions.Dispose();
             shelfVisibility?.SetActive(false);
@@ -585,7 +585,7 @@ namespace Igruha.Minigames.CansOrder
 
                 // Банка кинематическая и прицеплена к руке: если матч кончился,
                 // пока игрок её держал, она уедет в хаб вместе с ним.
-                c.Bot?.Disarm();
+                if (c.Bot != null) c.Bot.Disarm();
                 c.Shelf?.Release();
                 c.Cage?.ReleaseOccupant();
 
@@ -1130,7 +1130,7 @@ namespace Igruha.Minigames.CansOrder
 
         private void ApplyShelfCamera(bool toShelf)
         {
-            if (ghost != null && ghost.IsLocalGhost) { shelfVisibility?.SetActive(false); return; }
+            if (LocalGhost != null) { shelfVisibility?.SetActive(false); return; }
             if ((attackPresentation != null && attackPresentation.OwnsCamera) || cameraController == null ||
                 spectator == null || spectator.IsActive)
             {
@@ -1373,8 +1373,8 @@ namespace Igruha.Minigames.CansOrder
                 c.Entry.SolvedThisCircle = true;
                 round.SolvedCount++;
 
-                // Собранный ответ защищён. Первый финишировавший получит
-                // роль призрака после обработки всех ответов этого круга.
+                // Собранный ответ защищён. Каждый собравший получит роль
+                // призрака, если после проверки хода ещё остались несобравшие.
                 c.Button?.MarkSolved();
                 if (c.Shelf != null)
                 {
@@ -1384,7 +1384,7 @@ namespace Igruha.Minigames.CansOrder
                 SpawnFanfare(c);
                 network?.AnnounceSolved(c.Entry.PlayerId);
             }
-            AwardFirstGhost();
+            AwardSolvedGhosts();
             candidates.Clear();
             for (int i = 0; i < contestants.Count; i++) candidates.Add(contestants[i].Entry);
             int worst = CanOrderDescentRules.WorstScore(candidates);
@@ -1466,7 +1466,7 @@ namespace Igruha.Minigames.CansOrder
             CircusAnimationCullingScope.Bind(c.Session.Avatar);
             if (c.LocallyControlled) attackPresentation?.BeginPit();
             for (int b = 0; b < BearCount; b++) GetBear(b).RegisterFallen(c.Session.Avatar);
-            c.Bot?.Disarm();
+            if (c.Bot != null) c.Bot.Disarm();
             c.Shelf?.Release();
             c.Button?.CloseWindow();
             c.Cage?.OpenDoors(config.HatchOpenSeconds);
@@ -1491,7 +1491,7 @@ namespace Igruha.Minigames.CansOrder
 
             if (HasAuthority)
             {
-                ServerApplyArrangement(c.Entry.PlayerId, intentBuffer, NetworkClock.Now, NetworkClock.Now, ghost != null ? ghost.AppliedRevision(c.Entry.PlayerId) : (byte)0);
+                ServerApplyArrangement(c.Entry.PlayerId, intentBuffer, NetworkClock.Now, NetworkClock.Now, AppliedGhostRevision(c.Entry.PlayerId));
                 return;
             }
 
@@ -1504,7 +1504,7 @@ namespace Igruha.Minigames.CansOrder
             // менять на ней больше нечего. Именно этого не хватало на
             // плейтесте 22.08 — «меняю после подтверждения, а не считается».
             c.Shelf.Active = false;
-            network?.SubmitArrangement(c.Submitted, NetworkClock.Now, ghost != null ? ghost.AppliedRevision(c.Entry.PlayerId) : (byte)0, round.Circle);
+            network?.SubmitArrangement(c.Submitted, NetworkClock.Now, AppliedGhostRevision(c.Entry.PlayerId), round.Circle);
         }
 
         /// <summary>
@@ -1565,7 +1565,7 @@ namespace Igruha.Minigames.CansOrder
                 return false;
             }
 
-            if (ghost != null && trickRevision != ghost.State.RequiredRevision(playerId, round.Circle)) return false;
+            if (trickRevision != RequiredGhostRevision(playerId)) return false;
 
             CopyInto(arrangement, c.Submitted);
             c.Entry.Confirmed = true;
@@ -1770,6 +1770,7 @@ namespace Igruha.Minigames.CansOrder
         /// </summary>
         private void Update()
         {
+            ApplyPendingGhostTricks();
             finaleGate?.Tick(LocalKnockoutPresenting(), Time.realtimeSinceStartup);
             // The puzzle owns its deadline and waits for the pit finale. Feed the
             // shared HUD the same remaining time without enabling automatic round end.
@@ -2215,7 +2216,7 @@ namespace Igruha.Minigames.CansOrder
                 c.Button.CloseWindow();
             }
 
-            c.Bot?.Disarm();
+            if (c.Bot != null) c.Bot.Disarm();
             c.Shelf?.Release();
             c.Cage?.ReleaseOccupant();
 
@@ -2526,7 +2527,7 @@ namespace Igruha.Minigames.CansOrder
                     local.Submitted.Clear();
                     local.Button?.OpenWindow();
                     if (local.Shelf != null) local.Shelf.Active = true;
-                    ghost?.NotifyVictim();
+                    NotifyGhostVictim();
                     return;
                 }
                 // Отвергнутое подтверждение равно «не подтвердил»: попытка

@@ -498,7 +498,7 @@ namespace Igruha.Minigames.CansOrder
             ulong senderId = rpcParams.Receive.SenderClientId;
             ToIntList(arrangement, incoming);
 
-            bool staleTrick = game.Ghost != null && trickRevision != game.Ghost.State.RequiredRevision((int)senderId, game.Round.Circle);
+            bool staleTrick = trickRevision != game.RequiredGhostRevision((int)senderId);
             bool accepted = circle == game.Round.Circle && game.ServerApplyArrangement((int)senderId, incoming, stamp, NetworkManager.ServerTime.Time, trickRevision);
             ConfirmAnswerRpc(accepted, circle, staleTrick, RpcTarget.Single(senderId, RpcTargetUse.Temp));
         }
