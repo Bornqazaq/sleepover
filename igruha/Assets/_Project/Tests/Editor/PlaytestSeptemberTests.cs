@@ -94,20 +94,11 @@ namespace Igruha.Tests
         [Test]
         public void MatchesCountPositionsNotColorsPresent()
         {
-            var go = new GameObject("CountMatches regression"); go.SetActive(false);
-            try
-            {
-                var game = go.AddComponent<CansOrderMinigame>();
-                var flags = BindingFlags.Instance | BindingFlags.NonPublic;
-                var answer = (List<int>)typeof(CansOrderMinigame).GetField("solution", flags).GetValue(game);
-                answer.AddRange(new[] { 0, 1, 2, 3, 4 });
-                var count = typeof(CansOrderMinigame).GetMethod("CountMatches", flags);
-                Assert.That(count.Invoke(game, new object[] { new List<int>{0,1,2,3,4} }), Is.EqualTo(5));
-                Assert.That(count.Invoke(game, new object[] { new List<int>{1,2,3,4,0} }), Is.EqualTo(0));
-                Assert.That(count.Invoke(game, new object[] { new List<int>{0,2,1,4,3} }), Is.EqualTo(1));
-                Assert.That(count.Invoke(game, new object[] { new List<int>{1,0,2,3,4} }), Is.EqualTo(3));
-            }
-            finally { Object.DestroyImmediate(go); }
+            var answer = new[] { 0, 1, 2, 3, 4 };
+            Assert.That(CansOrderSolutions.CountMatches(new[] { 0, 1, 2, 3, 4 }, answer), Is.EqualTo(5));
+            Assert.That(CansOrderSolutions.CountMatches(new[] { 1, 2, 3, 4, 0 }, answer), Is.EqualTo(0));
+            Assert.That(CansOrderSolutions.CountMatches(new[] { 0, 2, 1, 4, 3 }, answer), Is.EqualTo(1));
+            Assert.That(CansOrderSolutions.CountMatches(new[] { 1, 0, 2, 3, 4 }, answer), Is.EqualTo(3));
         }
 
         [Test]

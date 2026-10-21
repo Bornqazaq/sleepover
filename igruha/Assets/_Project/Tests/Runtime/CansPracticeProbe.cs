@@ -16,14 +16,17 @@ namespace Igruha.Tests
     public sealed class CansPracticeProbe : MonoBehaviour
     {
         private const BindingFlags Private = BindingFlags.Instance | BindingFlags.NonPublic;
-        private static readonly int[] Answer = { 0, 1, 2, 3, 4 };
+        private List<int> answer;
+        private List<int> copied;
+        private List<int> almost;
         private static readonly int[][] Initial = { new[] { 0, 1, 2, 4, 3 }, new[] { 1, 0, 2, 4, 3 }, new[] { 1, 2, 3, 4, 0 } };
         private static readonly int[] Expected = { 3, 1, 0 };
         private CansOrderMinigame game;
         private CanShelf shelf;
         private float started, practiceAt = -1, roundAt = -1, quitAt = -1;
         private int step;
-        private bool configured, initialChecked, wrongChecked, fullChecked, ready, failed;
+        private bool configured, initialChecked, wrongChecked, fullChecked, ready, failed, copiedChecked, roundConfigured;
+        private int sentCircle;
         private string screenshot;
         private int Local => (int)NetworkManager.Singleton.LocalClientId;
         private bool Server => NetworkManager.Singleton.IsServer;
@@ -61,18 +64,22 @@ namespace Igruha.Tests
                 if (!configured)
                 {
                     configured = true; practiceAt = now;
+                    answer = CansSolutionFixture.Known(Local, game.Round.CanCount);
+                    copied = CansSolutionFixture.Known((Local + 1) % 3, game.Round.CanCount);
+                    almost = new List<int>(); foreach (int index in Initial[0]) almost.Add(answer[index]);
                     if (Server)
                     {
-                        var answer = (List<int>)typeof(CansOrderMinigame).GetField("solution", Private).GetValue(game);
-                        answer.Clear(); answer.AddRange(Answer);
+                        if (!CansSolutionFixture.HasUniqueAnswers(game)) Fail("practice answers repeated");
+                        CansSolutionFixture.SetKnown(game);
                         typeof(CansOrderMinigame).GetMethod("ResetPracticePreview", Private).Invoke(game, null);
                         game.GetComponent<MinigameStageState>().EnterStage(2, 45);
-                        CansOrderEntryNetState.TryPack(Answer, out ulong packed, out byte count);
+                        CansOrderEntryNetState.TryPack(answer, out ulong packed, out byte count);
                         if (game.TryGetPracticeMatches(99, packed, count, game.Round.Circle, out _) ||
                             game.TryGetPracticeMatches(0, packed, count, game.Round.Circle - 1, out _) ||
                             game.TryGetPracticeMatches(0, 0, count, game.Round.Circle, out _)) Fail("invalid preview accepted");
                     }
-                    shelf.SetArrangement(Initial[Local]);
+                    var initial = new List<int>(); foreach (int index in Initial[Local]) initial.Add(answer[index]);
+                    shelf.SetArrangement(initial);
                 }
                 float age = now - practiceAt;
                 if (age > 1 && !initialChecked && game.PracticeMatches == Expected[Local])
@@ -80,16 +87,16 @@ namespace Igruha.Tests
                     initialChecked = true; CheckHud();
                     Debug.Log("CANS_PRACTICE INITIAL local=" + Local + " matches=" + game.PracticeMatches);
                 }
-                if (age > 2 && step == 0) { step = 1; shelf.SetArrangement(Answer); }
-                if (age > 2.05f && step == 1) { step = 2; shelf.SetArrangement(Initial[0]); }
+                if (age > 2 && step == 0) { step = 1; shelf.SetArrangement(answer); }
+                if (age > 2.05f && step == 1) { step = 2; shelf.SetArrangement(almost); }
                 if (age > 3 && !wrongChecked && step == 2 && game.PracticeMatches == 3)
                 {
                     wrongChecked = true;
-                    CansOrderEntryNetState.TryPack(Answer, out ulong old, out byte count);
+                    CansOrderEntryNetState.TryPack(answer, out ulong old, out byte count);
                     game.ReceivePracticePreview(old, count, game.Round.Circle, 5);
                     if (game.PracticeMatches != 3) Fail("stale preview replaced current score");
                     Debug.Log("CANS_PRACTICE RAPID_SWAP current=3 stale ignored");
-                    shelf.SetArrangement(Answer); step = 3;
+                    shelf.SetArrangement(answer); step = 3;
                 }
                 if (age > 4 && !fullChecked && game.PracticeMatches == 5)
                 {
@@ -106,27 +113,78 @@ namespace Igruha.Tests
                     game.ToggleTutorialReady();
                 }
             }
-            if (game.Phase == MinigamePhase.Round && game.Stage == 2)
+            if (game.Phase != MinigamePhase.Round) return;
+            if (!roundConfigured && game.Stage == 2)
             {
-                if (roundAt < 0)
+                roundConfigured = true; roundAt = now;
+                if (Server)
                 {
-                    roundAt = now;
-                    CansOrderEntryNetState.TryPack(Answer, out ulong packed, out byte count);
-                    if (Server && game.TryGetPracticeMatches(Local, packed, count, game.Round.Circle, out _)) Fail("preview leaked in real round");
-                    if (!Server) game.GetComponent<CansOrderNetwork>().RequestPracticePreview(packed, count, game.Round.Circle);
+                    if (!CansSolutionFixture.HasUniqueAnswers(game)) Fail("round answers repeated");
+                    Debug.Log("CANS_PRACTICE UNIQUE personal answers generated for every player");
+                    CansSolutionFixture.SetKnown(game);
                 }
-                if (now - roundAt > 1)
+                else
                 {
-                    if (game.PracticeMatches != -1) Fail("practice score carried into real round");
-                    var hud = FindAnyObjectByType<CansOrderLocalHud>();
-                    var card = (GameObject)typeof(CansOrderLocalHud).GetField("practiceCanvas", Private).GetValue(hud);
-                    if (card != null && card.activeInHierarchy) Fail("practice HUD survived in real round");
-                    if (!fullChecked || !initialChecked || !wrongChecked) Fail("practice was skipped");
-                    Debug.Log("CANS_PRACTICE PASS=" + !failed + " local=" + Local + " round oracle blocked");
+                    for (int i = 0; i < game.ContestantCount; i++)
+                    {
+                        game.TryGetEntry(i, out var entry, out _);
+                        if (CansSolutionFixture.Answer(game, entry.PlayerId).Count != 0) Fail("secret reached client");
+                    }
+                }
+                CansOrderEntryNetState.TryPack(answer, out ulong packed, out byte count);
+                if (Server && game.TryGetPracticeMatches(Local, packed, count, game.Round.Circle, out _)) Fail("preview leaked in real round");
+                if (!Server) game.GetComponent<CansOrderNetwork>().RequestPracticePreview(packed, count, game.Round.Circle);
+            }
+            if (!roundConfigured || now - roundAt < 1.5f) return;
+            if (game.PracticeMatches != -1) Fail("practice score carried into real round");
+            var hud = FindAnyObjectByType<CansOrderLocalHud>();
+            var card = (GameObject)typeof(CansOrderLocalHud).GetField("practiceCanvas", Private).GetValue(hud);
+            if (card != null && card.activeInHierarchy) Fail("practice HUD survived in real round");
+            if (!fullChecked || !initialChecked || !wrongChecked) Fail("practice was skipped");
+            var turn = game.GetComponent<MinigameStageState>();
+            if (game.Stage == 2 && sentCircle != game.Round.Circle && turn.StageDuration - turn.StageRemaining > 1)
+            {
+                sentCircle = game.Round.Circle;
+                var attempt = sentCircle == 1 ? copied : answer;
+                Debug.Log("CANS_PRACTICE SEND local=" + Local + " circle=" + sentCircle);
+                shelf.SetArrangement(attempt);
+                double stamp = NetworkClock.Now;
+                if (Server)
+                {
+                    if (!game.ServerApplyArrangement(Local, attempt, stamp, stamp, game.RequiredGhostRevision(Local))) Fail("host attempt refused");
+                }
+                else game.GetComponent<CansOrderNetwork>().SubmitArrangement(attempt, stamp, game.RequiredGhostRevision(Local), game.Round.Circle);
+            }
+            for (int i = 0; i < game.ContestantCount; i++)
+            {
+                game.TryGetEntryNetState(i, out var state);
+                if (!Server)
+                {
+                    // The stage and the entry list travel independently. Do not rebuild a
+                    // server snapshot from a client's accepted lamp and not-yet-revealed score.
+                    var states = (NetworkList<CansOrderEntryNetState>)typeof(CansOrderNetwork)
+                        .GetField("entries", Private).GetValue(game.GetComponent<CansOrderNetwork>());
+                    if (i >= states.Count) continue;
+                    state = states[i];
+                }
+                if (state.PlayerId != Local || !state.Revealed || !state.Confirmed || state.Attempts != sentCircle) continue;
+                if (sentCircle == 1 && !copiedChecked)
+                {
+                    copiedChecked = true;
+                    int expected = CansOrderSolutions.CountMatches(copied, answer);
+                    if (state.Solved || state.Matches != expected || state.Attempts != 1) Fail("copied solution scored as own");
+                    Debug.Log("CANS_PRACTICE COPY local=" + Local + " matches=" + state.Matches + " solved=" + state.Solved);
+                }
+                if (sentCircle > 1 && state.Solved)
+                {
+                    if (!copiedChecked || state.Matches != 5 || state.Attempts != 2 || state.ArrangementCount != 0) Fail("own solution or answer privacy failed");
+                    if (Server && game.Round.SolvedCount != game.ContestantCount) continue;
+                    Debug.Log("CANS_PRACTICE PASS=" + !failed + " local=" + Local + " own answer 5/5, copied answer rejected, secrets private");
                     quitAt = now + (Server ? 4 : 1);
                 }
             }
         }
+
         private void CheckHud()
         {
             var hud = FindAnyObjectByType<CansOrderLocalHud>();

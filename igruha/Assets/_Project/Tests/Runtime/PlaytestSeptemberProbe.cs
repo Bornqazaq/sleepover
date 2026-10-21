@@ -418,13 +418,9 @@ namespace Igruha.Tests
             while(cans.Round.CanCount<=0 && Time.realtimeSinceStartup<readyDeadline) yield return null;
             if(cans.Round.CanCount<=0){Fail("cans state not received");yield break;}
             // Known fixture lives only in this opt-in probe; normal clients never receive the answer.
-            var solution=new List<int>(); for(int i=0;i<cans.Round.CanCount;i++)solution.Add(i);
-            if(NetworkManager.Singleton.IsServer)
-            {
-                var secret=(List<int>)typeof(CansOrderMinigame).GetField("solution",Private).GetValue(cans);
-                secret.Clear();secret.AddRange(solution);
-            }
             int localId=SessionScoreboard.Current.LocalPlayer.Id;
+            var solution=CansSolutionFixture.Known(localId,cans.Round.CanCount);
+            if(NetworkManager.Singleton.IsServer) CansSolutionFixture.SetKnown(cans);
             int client=(int)NetworkManager.Singleton.LocalClientId;
             bool submitted=false, results=false;
             cans.ResultsReported += value =>

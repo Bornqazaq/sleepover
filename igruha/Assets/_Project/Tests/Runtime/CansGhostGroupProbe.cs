@@ -228,7 +228,8 @@ namespace Igruha.Tests
         }
         private void SubmitSolution(int id)
         {
-            var answer = (List<int>)typeof(CansOrderMinigame).GetField("solution", Flags).GetValue(game);
+            if (!CansSolutionFixture.HasUniqueAnswers(game)) Fail("personal answers are not unique");
+            var answer = CansSolutionFixture.Answer(game, id);
             double windowStart = (double)typeof(CansOrderMinigame).GetField("placementWindowStart", Flags).GetValue(game);
             double stamp = Math.Max(NetworkClock.Now, windowStart);
             if (!game.ServerApplyArrangement(id, answer, stamp, NetworkClock.Now, game.RequiredGhostRevision(id))) Fail("solution refused " + id);

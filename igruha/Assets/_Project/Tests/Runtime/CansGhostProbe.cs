@@ -88,7 +88,7 @@ namespace Igruha.Tests
                 if (Server && !solved && game.Stage == 2)
                 {
                     solved = true;
-                    var answer = Get<List<int>>(game, "solution");
+                    var answer = CansSolutionFixture.Answer(game, Winner);
                     double stamp = Math.Max(NetworkClock.Now, Get<double>(game, "placementWindowStart"));
                     if (!game.ServerApplyArrangement(Winner, answer, stamp, NetworkClock.Now)) Fail("winner answer refused");
                     stage.EndStageNow();

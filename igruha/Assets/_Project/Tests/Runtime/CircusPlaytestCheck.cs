@@ -931,12 +931,8 @@ namespace Igruha.Tests
         private static IEnumerator CheckCanTurns(CansOrderMinigame cans,PlayerController local,PlayerController[] victims,CageTravelProbe travelProbe,Action<string> fail)
         {
             int count=cans.Round.CanCount;
-            var solution=Enumerable.Range(0,count).ToList();
-            if(NetworkManager.Singleton.IsServer)
-            {
-                var secret=(System.Collections.Generic.List<int>)Get(cans,"solution");
-                secret.Clear();secret.AddRange(solution);
-            }
+            var solution=CansSolutionFixture.Known(SessionScoreboard.Current.LocalPlayer.Id,count);
+            if(NetworkManager.Singleton.IsServer) CansSolutionFixture.SetKnown(cans);
             var mine=((IList)Get(cans,"contestants")).Cast<object>().Single(c=>((SessionPlayer)c.GetType().GetField("Session").GetValue(c)).Avatar==local);
             var shelf=(CanShelf)mine.GetType().GetField("Shelf").GetValue(mine);
             var button=(CanConfirmButton)mine.GetType().GetField("Button").GetValue(mine);
@@ -957,7 +953,7 @@ namespace Igruha.Tests
                 if(cans.Stage==2 && stage.Subround==cans.Round.Circle && sent!=cans.Round.Circle && stage.StageDuration-stage.StageRemaining>.9f)
                 {
                     if(cans.Round.Circle==2)Capture("interface-board");
-                    var order=Enumerable.Range(0,count).Select(i=>(i+1)%count).ToList();
+                    var order=Enumerable.Range(0,count).Select(i=>solution[(i+1)%count]).ToList();
                     if(!victim){order=solution.ToList();int t=order[0];order[0]=order[1];order[1]=t;}
                     shelf.SetArrangement(order);button.Interact(local);sent=cans.Round.Circle;
                 }

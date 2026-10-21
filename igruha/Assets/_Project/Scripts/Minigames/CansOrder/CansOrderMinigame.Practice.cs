@@ -49,7 +49,7 @@ namespace Igruha.Minigames.CansOrder
             practiceIncoming.Clear();
             for (int i = 0; i < count; i++) practiceIncoming.Add((byte)(packed >> (i * 8)));
             if (!IsPermutation(practiceIncoming, round.CanCount)) return false;
-            matches = CountMatches(practiceIncoming);
+            matches = CansOrderSolutions.CountMatches(practiceIncoming, player.Solution);
             return true;
         }
 

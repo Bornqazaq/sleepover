@@ -65,7 +65,7 @@ namespace Igruha.Minigames.CansOrder
             board.BeginRows();
             board.EndRows();
             panel?.Clear();
-            presentation?.Task($"ПОРЯДОК БАНОК · РАУНД {roundNumber}", $"{canCount} БАНОК · ОДИН ВЕРНЫЙ ПОРЯДОК", true);
+            presentation?.Task($"ПОРЯДОК БАНОК · РАУНД {roundNumber}", $"{canCount} БАНОК · У КАЖДОГО СВОЙ ПОРЯДОК", true);
         }
 
         /// <summary>
@@ -93,8 +93,7 @@ namespace Igruha.Minigames.CansOrder
 
             int shownArrangements = 0;
             int capacity = board.RowCapacity;
-            // Шаг до победы: тот самый момент, когда вся катка бросается
-            // списывать. Он обязан бросаться в глаза.
+            // Игрока в одном обмене от победы выделяем для сравнения прогресса.
             //
             // Порог — <b>N − 2</b>, а не N − 1, и это не опечатка. Расстановка —
             // это перестановка, а у перестановки не может быть ровно N − 1
@@ -236,7 +235,7 @@ namespace Igruha.Minigames.CansOrder
                 var entry = ordered[i];
                 if (entry.Confirmed && !entry.Solved && game.TryGetSubmitted(IndexOf(game, entry.PlayerId), submitted)) featured++;
             }
-            presentation.Header($"РАУНД {game.Round.Round} · КРУГ {game.Round.Circle}", "ЛУЧШИЕ ПОПЫТКИ · СОВПАДЕНИЯ / БАНКИ");
+            presentation.Header($"РАУНД {game.Round.Round} · КРУГ {game.Round.Circle}", "ЛИЧНЫЕ ПОРЯДКИ · СОВПАДЕНИЯ / БАНКИ");
             presentation.Begin(ordered.Count, featured, game.Round.CanCount);
             int shown = 0;
             for (int i = 0; i < ordered.Count && i < 8; i++)
