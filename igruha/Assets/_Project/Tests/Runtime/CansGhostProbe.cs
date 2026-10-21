@@ -102,7 +102,8 @@ namespace Igruha.Tests
                     Vector2 sourceCentre = new Vector2(original.transform.position.x, original.transform.position.z);
                     if (fromCentre.magnitude >= sourceCentre.magnitude - 1) Fail("spawn is behind the cage");
                 }
-                if (ghost.State.Active && Age > 2 && original != null &&
+                // Owners first see the full two-second card, including delivery time.
+                if (ghost.State.Active && Age > CansGhostRules.SolvedSeconds + 2 && original != null &&
                     (original.enabled || !originalBody.isKinematic)) Fail("hidden body still simulates");
                 if (ghost.IsLocalGhost && Age > 2 && CameraFieldOfView() < 50) Fail("flight retained the close shelf lens");
                 if (ghost.State.Active && Age > 2 && ghost.VisualRoot != null)

@@ -17,7 +17,8 @@ namespace Igruha.Minigames.CansOrder
         [SerializeField] private Material puffMaterial;
         [SerializeField] private TMP_FontAsset font;
         [SerializeField] private AudioClip trickSound;
-        private const float LookSpeed = .13f, CameraDistance = 2.4f, CameraHeight = .55f, FlightFieldOfView = 60f;
+        private const float LookSpeed = .13f, CameraDistance = 2.7f, CameraHeight = .65f, FlightFieldOfView = 60f;
+        private const float InitialPitch = 20f;
         private const float ResponseTimeout = 3f, RemoteSmooth = 15f;
         private CansOrderMinigame game;
         private CansOrderNetwork network;
@@ -73,8 +74,10 @@ namespace Igruha.Minigames.CansOrder
 
         private void TryPresent()
         {
-            if (presenting || !State.Active || !game.GhostGameplay ||
+            if (presenting || !CansGhostRules.CanFly(State, NetworkClock.Now) || !game.GhostGameplay ||
                 !game.TryGetGhostPlayer(State.OwnerId, out avatar, out _, out local)) return;
+            // A late network snapshot still owes its owner the full visible success card.
+            if (local && game.LocalSolveCelebrating) return;
             game.PrepareGhostBody(State.OwnerId);
             reader = avatar.GetComponent<PlayerInputReader>();
             bodyWasLocked = avatar.MovementLocked;
@@ -96,7 +99,7 @@ namespace Igruha.Minigames.CansOrder
             go.transform.SetParent(transform, false);
             visual = go.AddComponent<CansGhostVisual>();
             visual.Build(avatar, ghostMaterial, ribbonMaterial, puffMaterial, trickSound);
-            yaw = Pose.Yaw; pitch = 8f;
+            yaw = Pose.Yaw; pitch = InitialPitch;
             predictedPosition = visualPosition = Pose.Position;
             presenting = true;
             if (!local) return;
@@ -126,6 +129,11 @@ namespace Igruha.Minigames.CansOrder
             EnsureHud(); hud.ShowVictim();
         }
 
+        public void ShowSolved(int count, bool willBecomeGhost)
+        {
+            EnsureHud(); hud.ShowSolved(count, willBecomeGhost);
+        }
+
         public CansGhostController CreatePeer()
         {
             var go = new GameObject("Solver ghost controller");
@@ -141,7 +149,7 @@ namespace Igruha.Minigames.CansOrder
 
         public void AcceptInput(int sender, Vector3 direction, float heading)
         {
-            if (game == null || !game.GhostAuthority || !game.GhostGameplay || !State.Active ||
+            if (game == null || !game.GhostAuthority || !game.GhostGameplay || !CansGhostRules.CanFly(State, NetworkClock.Now) ||
                 State.OwnerId != sender || !CansGhostRules.Finite(direction) || !CansGhostRules.Finite(heading)) return;
             serverInput = Vector3.ClampMagnitude(direction, 1f);
             lastInputAt = Time.unscaledTime;

@@ -1770,6 +1770,7 @@ namespace Igruha.Minigames.CansOrder
         /// </summary>
         private void Update()
         {
+            UpdateSolvedNotice();
             ApplyPendingGhostTricks();
             finaleGate?.Tick(LocalKnockoutPresenting(), Time.realtimeSinceStartup);
             // The puzzle owns its deadline and waits for the pit finale. Feed the

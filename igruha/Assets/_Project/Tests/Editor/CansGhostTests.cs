@@ -28,6 +28,18 @@ namespace Igruha.Tests
         }
 
         [Test]
+        public void SuccessCardPrecedesFlightAndTricks()
+        {
+            var ghost = Winner; ghost.StartedAt = 20;
+            Assert.That(CansGhostRules.CanFly(ghost, 21.999), Is.False);
+            Assert.That(Allowed(ghost, now: 21.999), Is.False);
+            Assert.That(CansGhostRules.CanFly(ghost, 22), Is.True);
+            Assert.That(Allowed(ghost, now: 22), Is.True);
+            ghost.Active = false;
+            Assert.That(CansGhostRules.CanFly(ghost, 30), Is.False);
+        }
+
+        [Test]
         public void TwoChargesCannotHitTwiceInOneTurnOrInTheLastSeconds()
         {
             var ghost = Winner; ghost.Used = 1;

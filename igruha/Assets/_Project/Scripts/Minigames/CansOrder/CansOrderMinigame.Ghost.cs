@@ -10,6 +10,21 @@ namespace Igruha.Minigames.CansOrder
         private CansGhostController ghost;
         private readonly List<CansGhostController> ghosts = new List<CansGhostController>(8);
         private readonly CansGhostTrickHistory ghostTricks = new CansGhostTrickHistory();
+        private bool localSolvedNoticeShown;
+        private float localSolvedNoticeUntil;
+        public bool LocalSolveCelebrating => !localSolvedNoticeShown || Time.unscaledTime < localSolvedNoticeUntil;
+
+        private void UpdateSolvedNotice()
+        {
+            // Solved is already an adjudicated, persistent result. A delayed client
+            // can receive it after Reveal has ended; it must not wait another turn.
+            if (localSolvedNoticeShown || !GhostGameplay || ghost == null) return;
+            var local = FindLocal();
+            if (local == null || !local.Entry.Solved) return;
+            localSolvedNoticeShown = true;
+            localSolvedNoticeUntil = Time.unscaledTime + CansGhostRules.SolvedSeconds;
+            ghost.ShowSolved(round.CanCount, NotSolvedCount > 0);
+        }
         public IReadOnlyList<CansGhostController> Ghosts => ghosts;
         public CansGhostController LocalGhost
         {
@@ -32,6 +47,8 @@ namespace Igruha.Minigames.CansOrder
         }
         private void ResetGhosts()
         {
+            localSolvedNoticeShown = false;
+            localSolvedNoticeUntil = 0;
             foreach (var role in ghosts)
             {
                 role.ResetRound();
@@ -43,6 +60,7 @@ namespace Igruha.Minigames.CansOrder
         private void EndGhosts()
         {
             foreach (var role in ghosts) if (role != null) role.EndRound();
+            if (ghost != null && ghosts.Count == 0) ghost.EndRound();
         }
         public void ReceiveGhost(CansGhostSnapshot snapshot)
         {

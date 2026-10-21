@@ -28,6 +28,8 @@ namespace Igruha.Tests
         private Rigidbody body;
         private int participantCount;
         private float started, staleAt, quitAt = -1, solvedSnapshotAt = -1;
+        private float noticeAt = -1, localGhostAt = -1;
+        private bool noticeCaptured, transitionChecked;
         private readonly List<int> baseline = new List<int>();
         private readonly List<CansGhostTrick> tricks = new List<CansGhostTrick>();
         private int Local => (int)NetworkManager.Singleton.LocalClientId;
@@ -77,6 +79,7 @@ namespace Igruha.Tests
             { ready = true; participantCount = game.ContestantCount; game.ToggleTutorialReady(); }
             if (game.Phase == MinigamePhase.Round)
             {
+                CheckSuccessTransition(now);
                 if (Server && !firstSolved && game.Stage == 2)
                 {
                     firstSolved = true; SubmitSolution(FirstSolver); stage.EndStageNow();
@@ -101,10 +104,13 @@ namespace Igruha.Tests
                     if (complete)
                     {
                         rolesChecked = true;
+                        foreach (var role in game.Ghosts)
+                            if (role.VisualRoot.GetComponent<CansGhostVisual>().ArmForwardDot < .98f) Fail("ghost arms are not forward");
                         if (Local != Victim && avatar != null && (avatar.enabled || !body.isKinematic)) Fail("ghost body still simulates");
                         Debug.Log("GHOST_GROUP ROLES " + game.Ghosts.Count + " local=" + Local + " delay=" + (now - solvedSnapshotAt).ToString("F3"));
                     }
-                    else if (now - solvedSnapshotAt > 5) Fail("solved players did not receive visible controllable ghosts");
+                    else if (now - solvedSnapshotAt > CansGhostRules.SolvedSeconds + 5)
+                        Fail("solved players did not receive visible controllable ghosts");
                 }
                 if (Server && !opened && Age > 5) { opened = true; BeginTurn(); }
                 if (Server && !positioned && Age > 6)
@@ -169,12 +175,15 @@ namespace Igruha.Tests
                 }
                 if (Server && !ended && Age > 30)
                 {
-                    ended = true; SubmitSolution(Victim); stage.EndStageNow();
+                    ended = true; SubmitSolution(Victim);
+                    // The final submission already closes Placement automatically.
+                    // Do not skip its Reveal (and success card) a second time.
+                    if (game.Stage == 2) stage.EndStageNow();
                     foreach (var role in game.Ghosts) if (role.State.Active) Fail("ghost survived last solution");
                     if (game.GetGhost(Victim) != null) Fail("last solver briefly became ghost");
                     Debug.Log("GHOST_GROUP ALL_SOLVED roles stopped");
-                    game.EndMinigame();
                 }
+                if (Server && ended && Age > 33) game.EndMinigame();
             }
             if (game.Phase == MinigamePhase.Results && !finished)
             {
@@ -182,15 +191,30 @@ namespace Igruha.Tests
                 foreach (var role in game.Ghosts)
                     if (role.State.Active || role.IsLocalGhost || role.VisualRoot != null) Fail("ghost leaked into results");
                 if (saved && avatar != null && (avatar.enabled != motorEnabled || body.isKinematic != kinematic)) Fail("body not restored");
-                if (!rolesChecked || !firstChecked || !secondChecked || Local == Victim && !confirmed) Fail("missing scenario checks");
+                if (!rolesChecked || !firstChecked || !secondChecked || noticeAt < 0 ||
+                    Local != Victim && !transitionChecked || Local == Victim && !confirmed) Fail("missing scenario checks");
                 Debug.Log("GHOST_GROUP PASS=" + !failed + " ghosts=" + game.Ghosts.Count);
                 quitAt = now + (Server ? 4 : 1);
             }
         }
         private void LateUpdate()
         {
-            if (capture || game == null || game.LocalGhost == null || string.IsNullOrEmpty(screenshots) || Age < 8) return;
+            if (game == null || string.IsNullOrEmpty(screenshots)) return;
+            if (!noticeCaptured && noticeAt >= 0 && Time.realtimeSinceStartup - noticeAt > .35f)
+            { noticeCaptured = true; ScreenCapture.CaptureScreenshot(screenshots + "-solved.png"); }
+            if (capture || game.LocalGhost == null || localGhostAt < 0 || Time.realtimeSinceStartup - localGhostAt < .35f) return;
             capture = true; ScreenCapture.CaptureScreenshot(screenshots + "-multiple.png");
+        }
+        private void CheckSuccessTransition(float now)
+        {
+            bool showing = false;
+            foreach (var hud in game.GetComponentsInChildren<CansGhostHud>()) showing |= hud.ShowingSolved;
+            if (showing && noticeAt < 0) { noticeAt = now; Debug.Log("GHOST_GROUP SUCCESS_CARD local=" + Local); }
+            if (showing && game.LocalGhost != null) Fail("ghost appeared before success card ended");
+            if (game.LocalGhost == null || transitionChecked) return;
+            localGhostAt = now; transitionChecked = true;
+            if (noticeAt < 0 || now - noticeAt < CansGhostRules.SolvedSeconds - .05f) Fail("success card skipped or too short");
+            Debug.Log("GHOST_GROUP TRANSFORM after=" + (now - noticeAt).ToString("F3"));
         }
         private bool AllUsed(int used)
         {

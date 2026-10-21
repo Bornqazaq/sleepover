@@ -99,15 +99,19 @@ namespace Igruha.Minigames.CansOrder
     public static class CansGhostRules
     {
         public const int TrickLimit = 2;
+        public const float SolvedSeconds = 2f;
         public const float Cooldown = 8f, ReactionWindow = 3f, Reach = 6f, FlightSpeed = 7f;
         public const float InputTimeout = .4f, NetworkInterval = .05f, SwapSeconds = .7f;
+
+        public static bool CanFly(CansGhostState ghost, double now) =>
+            ghost.Active && now >= ghost.StartedAt + SolvedSeconds;
 
         public static bool CanTrick(CansGhostState ghost, int sender, int target, int circle,
             bool placement, bool alive, bool solved, bool confirmed, int canCount,
             float secondsLeft, float distance, double now)
         {
             int lastCircle = ghost.Used == 2 ? ghost.Second.Circle : ghost.First.Circle;
-            return ghost.Active && ghost.OwnerId == sender && target != sender && ghost.Used < TrickLimit &&
+            return CanFly(ghost, now) && ghost.OwnerId == sender && target != sender && ghost.Used < TrickLimit &&
                 placement && alive && !solved && !confirmed && canCount >= 2 &&
                 secondsLeft > ReactionWindow && now >= ghost.ReadyAt && distance <= Reach &&
                 (ghost.Used == 0 || lastCircle != circle);
