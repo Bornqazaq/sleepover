@@ -1,0 +1,14 @@
+{
+  "success": true,
+  "message": "Code executed successfully.",
+  "data": {
+    "result": {
+      "phase": "Practice",
+      "players": 4,
+      "uniqueAnswers": 4,
+      "correctBotAnswers": 4,
+      "practiceMatches": -1
+    },
+    "compiler": "codedom"
+  }
+}

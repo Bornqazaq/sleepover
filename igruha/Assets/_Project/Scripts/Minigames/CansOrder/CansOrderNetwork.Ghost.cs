@@ -5,26 +5,30 @@ namespace Igruha.Minigames.CansOrder
 {
     public sealed partial class CansOrderNetwork
     {
-        private readonly NetworkVariable<CansGhostState> ghostState = new NetworkVariable<CansGhostState>();
-        private readonly NetworkVariable<CansGhostPose> ghostPose = new NetworkVariable<CansGhostPose>();
+        // Entries persist after departure so committed swaps cannot disappear.
+        private readonly NetworkList<CansGhostSnapshot> ghostStates = new NetworkList<CansGhostSnapshot>();
         private double nextGhostPose;
 
         private void SyncGhost()
         {
-            if (game?.Ghost == null) return;
+            if (game == null) return;
             if (!IsServer)
             {
-                game.Ghost.Receive(ghostState.Value, ghostPose.Value);
+                for (int i = 0; i < ghostStates.Count; i++) game.ReceiveGhost(ghostStates[i]);
                 return;
             }
-            // Publish the spawn pose with the award, even between movement ticks.
-            if (game.Ghost.State.Active && !ghostState.Value.Active)
-                ghostPose.Value = game.Ghost.Pose;
-            if (!ghostState.Value.Equals(game.Ghost.State)) ghostState.Value = game.Ghost.State;
+            if (ghostStates.Count > game.Ghosts.Count) ghostStates.Clear();
             double now = NetworkManager.ServerTime.Time;
-            if (now < nextGhostPose) return;
-            nextGhostPose = now + CansGhostRules.NetworkInterval;
-            if (!ghostPose.Value.Equals(game.Ghost.Pose)) ghostPose.Value = game.Ghost.Pose;
+            bool publishPose = now >= nextGhostPose;
+            if (publishPose) nextGhostPose = now + CansGhostRules.NetworkInterval;
+            for (int i = 0; i < game.Ghosts.Count; i++)
+            {
+                var role = game.Ghosts[i];
+                var snapshot = new CansGhostSnapshot { State = role.State, Pose = role.Pose };
+                if (i >= ghostStates.Count) { ghostStates.Add(snapshot); continue; }
+                if (!publishPose) snapshot.Pose = ghostStates[i].Pose;
+                if (!ghostStates[i].Equals(snapshot)) ghostStates[i] = snapshot;
+            }
         }
 
         public void SendGhostInput(Vector3 direction, float yaw)
@@ -35,7 +39,7 @@ namespace Igruha.Minigames.CansOrder
         [Rpc(SendTo.Server, RequireOwnership = false, Delivery = RpcDelivery.Unreliable)]
         private void GhostFlightRpc(Vector3 direction, float yaw, RpcParams p = default)
         {
-            game?.Ghost?.AcceptInput((int)p.Receive.SenderClientId, direction, yaw);
+            game?.GetGhost((int)p.Receive.SenderClientId)?.AcceptInput((int)p.Receive.SenderClientId, direction, yaw);
         }
 
         public void RequestGhostTrick(int target)
@@ -46,11 +50,12 @@ namespace Igruha.Minigames.CansOrder
         [Rpc(SendTo.Server, RequireOwnership = false)]
         private void GhostTrickRpc(int target, RpcParams p = default)
         {
-            bool accepted = game?.Ghost != null && game.Ghost.TryTrick((int)p.Receive.SenderClientId, target);
+            var role = game?.GetGhost((int)p.Receive.SenderClientId);
+            bool accepted = role != null && role.TryTrick((int)p.Receive.SenderClientId, target);
             GhostReplyRpc(accepted, RpcTarget.Single(p.Receive.SenderClientId, RpcTargetUse.Temp));
         }
 
         [Rpc(SendTo.SpecifiedInParams)]
-        private void GhostReplyRpc(bool accepted, RpcParams p = default) => game?.Ghost?.ReceiveReply(accepted);
+        private void GhostReplyRpc(bool accepted, RpcParams p = default) => game?.LocalGhost?.ReceiveReply(accepted);
     }
 }

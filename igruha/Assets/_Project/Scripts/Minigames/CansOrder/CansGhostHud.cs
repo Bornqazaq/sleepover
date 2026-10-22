@@ -9,11 +9,13 @@ namespace Igruha.Minigames.CansOrder
     {
         private static readonly Color Ink = new Color(.035f, .055f, .105f, .94f);
         private static readonly Color Mint = new Color(.58f, 1f, .88f);
-        private GameObject canvasRoot, flight, victim;
-        private TMP_Text charges, targetLabel, action, victimText;
+        private GameObject canvasRoot, flight, victim, solved;
+        private TMP_Text charges, targetLabel, action, victimText, solvedCount, solvedNext;
         private Image dot;
         private CanvasGroup victimAlpha;
-        private float victimUntil, rejectedUntil;
+        private CanvasGroup solvedAlpha;
+        private float victimUntil, rejectedUntil, solvedUntil;
+        public bool ShowingSolved => solved != null && solved.activeSelf;
         private int lastTarget = int.MinValue, lastCharges = -1, lastWait = -1, lastMode = -1;
 
         public void Build(TMP_FontAsset font)
@@ -41,6 +43,11 @@ namespace Igruha.Minigames.CansOrder
             var v = Panel(root, "Someone swapped your cans", new Vector2(.5f, 1), new Vector2(0, -166), new Vector2(650, 76));
             victim = v.gameObject; victimAlpha = victim.AddComponent<CanvasGroup>();
             victimText = Text(v, font, "БУ! ПРИЗРАК ПОМЕНЯЛ ДВЕ БАНКИ", Vector2.zero, new Vector2(620, 60), 25, Mint);
+            var success = Panel(root, "All cans solved", new Vector2(.5f, .62f), Vector2.zero, new Vector2(740, 204));
+            solved = success.gameObject; solvedAlpha = solved.AddComponent<CanvasGroup>();
+            solvedCount = Text(success, font, "", new Vector2(0, 55), new Vector2(690, 52), 42, Mint);
+            Text(success, font, "ВСЕ БАНКИ СОБРАНЫ!", new Vector2(0, 2), new Vector2(690, 42), 32, Color.white);
+            solvedNext = Text(success, font, "", new Vector2(0, -58), new Vector2(710, 44), 20, new Color(.78f, .9f, .88f));
             HideAll();
         }
 
@@ -72,9 +79,23 @@ namespace Igruha.Minigames.CansOrder
             if (victim == null) return;
             victimUntil = Time.unscaledTime + 2.4f; victim.SetActive(true); victimAlpha.alpha = 1;
         }
+        public void ShowSolved(int count, bool willBecomeGhost)
+        {
+            solvedCount.SetText("{0} / {0}", count);
+            solvedNext.text = willBecomeGhost ? "Результат сохранён. Сейчас станешь призраком…"
+                : "Результат сохранён. Ждём итогов раунда.";
+            solvedUntil = Time.unscaledTime + CansGhostRules.SolvedSeconds;
+            solvedAlpha.alpha = 1f; solved.SetActive(true);
+        }
         public void Rejected() => rejectedUntil = Time.unscaledTime + 1.6f;
         private void Update()
         {
+            if (ShowingSolved)
+            {
+                float remaining = solvedUntil - Time.unscaledTime;
+                solvedAlpha.alpha = Mathf.Clamp01(remaining / .2f);
+                if (remaining <= 0) solved.SetActive(false);
+            }
             if (victim == null || !victim.activeSelf) return;
             float left = victimUntil - Time.unscaledTime;
             victimAlpha.alpha = Mathf.Clamp01(left / .35f);
@@ -82,6 +103,7 @@ namespace Igruha.Minigames.CansOrder
         }
         public void HideAll()
         {
+            if (solved != null) solved.SetActive(false);
             if (flight != null) flight.SetActive(false);
             if (victim != null) victim.SetActive(false);
             lastTarget = int.MinValue; lastCharges = lastWait = lastMode = -1;

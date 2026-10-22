@@ -22,6 +22,7 @@ namespace Igruha.Minigames.CansOrder
         private bool released;
         public int EyeCrossCount { get; private set; }
         public int BodyMeshCount { get; private set; }
+        public float ArmForwardDot { get; private set; }
 
         public void Build(PlayerController player, Material bodyMaterial, Material glowMaterial, Material puffMaterial, AudioClip sound)
         {
@@ -37,30 +38,42 @@ namespace Igruha.Minigames.CansOrder
             Bounds bodyBounds = default, headBounds = default;
             bool hasBody = false, hasHead = false;
             var baked = new List<(Mesh mesh, Material[] source)>();
-            foreach (var skin in player.GetComponentsInChildren<SkinnedMeshRenderer>())
+            // Only the baked ghost receives this pose. Restore the live skeleton even
+            // if baking fails; no animation controller or shared avatar is modified.
+            using (var pose = new FloatingArmsPose(animator, player.transform))
             {
-                if (!skin.enabled || skin.sharedMesh == null || skin.shadowCastingMode == ShadowCastingMode.ShadowsOnly) continue;
-                var mesh = new Mesh { name = "Ghost skin (temporary)" };
-                skin.BakeMesh(mesh);
-                meshes.Add(mesh);
-                Matrix4x4 toPlayer = player.transform.worldToLocalMatrix * skin.transform.localToWorldMatrix;
-                Vector3[] vertices = mesh.vertices, normals = mesh.normals;
-                BoneWeight[] weights = skin.sharedMesh.boneWeights;
-                Transform[] bones = skin.bones;
-                for (int v = 0; v < vertices.Length; v++)
+                ArmForwardDot = pose.ForwardDot;
+                foreach (var skin in player.GetComponentsInChildren<SkinnedMeshRenderer>())
                 {
-                    vertices[v] = toPlayer.MultiplyPoint3x4(vertices[v]);
-                    if (v < normals.Length) normals[v] = toPlayer.MultiplyVector(normals[v]).normalized;
-                    if (!hasBody) { bodyBounds = new Bounds(vertices[v], Vector3.zero); hasBody = true; }
-                    else bodyBounds.Encapsulate(vertices[v]);
-                    if (head == null || v >= weights.Length || !HeadWeighted(weights[v], bones, head)) continue;
-                    Vector3 inFace = new Vector3(Vector3.Dot(vertices[v], faceRight),
-                        Vector3.Dot(vertices[v], faceUp), Vector3.Dot(vertices[v], faceForward));
-                    if (!hasHead) { headBounds = new Bounds(inFace, Vector3.zero); hasHead = true; }
-                    else headBounds.Encapsulate(inFace);
+                    if (!skin.enabled || skin.sharedMesh == null || skin.shadowCastingMode == ShadowCastingMode.ShadowsOnly) continue;
+                    var mesh = new Mesh { name = "Ghost skin (temporary)" };
+                    skin.BakeMesh(mesh);
+                    meshes.Add(mesh);
+                    Matrix4x4 toPlayer = player.transform.worldToLocalMatrix * skin.transform.localToWorldMatrix;
+                    Vector3[] vertices = mesh.vertices, normals = mesh.normals;
+                    BoneWeight[] weights = skin.sharedMesh.boneWeights;
+                    Transform[] bones = skin.bones;
+                    // Classify each bone once; seven simultaneous ghosts otherwise repeat
+                    // native Transform hierarchy queries for every weighted vertex.
+                    var headBones = new bool[bones.Length];
+                    if (head != null)
+                        for (int b = 0; b < bones.Length; b++)
+                            headBones[b] = bones[b] != null && (bones[b] == head || bones[b].IsChildOf(head));
+                    for (int v = 0; v < vertices.Length; v++)
+                    {
+                        vertices[v] = toPlayer.MultiplyPoint3x4(vertices[v]);
+                        if (v < normals.Length) normals[v] = toPlayer.MultiplyVector(normals[v]).normalized;
+                        if (!hasBody) { bodyBounds = new Bounds(vertices[v], Vector3.zero); hasBody = true; }
+                        else bodyBounds.Encapsulate(vertices[v]);
+                        if (head == null || v >= weights.Length || !HeadWeighted(weights[v], headBones)) continue;
+                        Vector3 inFace = new Vector3(Vector3.Dot(vertices[v], faceRight),
+                            Vector3.Dot(vertices[v], faceUp), Vector3.Dot(vertices[v], faceForward));
+                        if (!hasHead) { headBounds = new Bounds(inFace, Vector3.zero); hasHead = true; }
+                        else headBounds.Encapsulate(inFace);
+                    }
+                    mesh.vertices = vertices; mesh.normals = normals; mesh.RecalculateBounds();
+                    baked.Add((mesh, skin.sharedMaterials));
                 }
-                mesh.vertices = vertices; mesh.normals = normals; mesh.RecalculateBounds();
-                baked.Add((mesh, skin.sharedMaterials));
             }
             float scale = Height / Mathf.Max(.3f, bodyBounds.size.y);
             Vector3 offset = new Vector3(bodyBounds.center.x, bodyBounds.min.y, bodyBounds.center.z);
@@ -107,6 +120,7 @@ namespace Igruha.Minigames.CansOrder
             var tailRenderer = tail.AddComponent<MeshRenderer>();
             var tailMat = new Material(glowMaterial); materials.Add(tailMat);
             tailMat.SetColor("_BaseColor", new Color(.62f, 1f, .92f, .28f)); tailMat.SetFloat("_Wave", .035f);
+            tailMat.SetFloat("_VertexTint", 1f);
             tailRenderer.sharedMaterial = tailMat; tailRenderer.shadowCastingMode = ShadowCastingMode.Off;
             var trail = holder.gameObject.AddComponent<TrailRenderer>();
             var trailMaterial = new Material(glowMaterial); materials.Add(trailMaterial);
@@ -135,12 +149,47 @@ namespace Igruha.Minigames.CansOrder
             }
         }
 
-        private static bool HeadWeighted(BoneWeight w, Transform[] bones, Transform head) =>
-            HeadBone(w.boneIndex0, w.weight0, bones, head) || HeadBone(w.boneIndex1, w.weight1, bones, head) ||
-            HeadBone(w.boneIndex2, w.weight2, bones, head) || HeadBone(w.boneIndex3, w.weight3, bones, head);
-        private static bool HeadBone(int index, float weight, Transform[] bones, Transform head) =>
-            weight > .35f && index >= 0 && index < bones.Length && bones[index] != null &&
-            (bones[index] == head || bones[index].IsChildOf(head));
+        private static bool HeadWeighted(BoneWeight w, bool[] headBones) =>
+            HeadBone(w.boneIndex0, w.weight0, headBones) || HeadBone(w.boneIndex1, w.weight1, headBones) ||
+            HeadBone(w.boneIndex2, w.weight2, headBones) || HeadBone(w.boneIndex3, w.weight3, headBones);
+        private static bool HeadBone(int index, float weight, bool[] headBones) =>
+            weight > .35f && index >= 0 && index < headBones.Length && headBones[index];
+
+        private sealed class FloatingArmsPose : System.IDisposable
+        {
+            private readonly Transform[] bones = new Transform[4];
+            private readonly Quaternion[] rotations = new Quaternion[4];
+            public float ForwardDot { get; private set; } = 1f;
+
+            public FloatingArmsPose(Animator animator, Transform root)
+            {
+                if (animator == null || !animator.isHuman) { ForwardDot = 0; return; }
+                bones[0] = animator.GetBoneTransform(HumanBodyBones.LeftUpperArm);
+                bones[1] = animator.GetBoneTransform(HumanBodyBones.LeftLowerArm);
+                bones[2] = animator.GetBoneTransform(HumanBodyBones.RightUpperArm);
+                bones[3] = animator.GetBoneTransform(HumanBodyBones.RightLowerArm);
+                for (int i = 0; i < bones.Length; i++)
+                    if (bones[i] != null) rotations[i] = bones[i].localRotation;
+                Aim(0, animator.GetBoneTransform(HumanBodyBones.LeftHand), root, -1f);
+                Aim(2, animator.GetBoneTransform(HumanBodyBones.RightHand), root, 1f);
+            }
+
+            private void Aim(int index, Transform hand, Transform root, float side)
+            {
+                var upper = bones[index]; var lower = bones[index + 1];
+                if (upper == null || lower == null || hand == null) { ForwardDot = 0; return; }
+                Vector3 direction = (root.forward + root.right * (side * .12f) - root.up * .05f).normalized;
+                upper.rotation = Quaternion.FromToRotation(lower.position - upper.position, direction) * upper.rotation;
+                lower.rotation = Quaternion.FromToRotation(hand.position - lower.position, direction) * lower.rotation;
+                ForwardDot = Mathf.Min(ForwardDot, Vector3.Dot((hand.position - upper.position).normalized, root.forward));
+            }
+
+            public void Dispose()
+            {
+                for (int i = 0; i < bones.Length; i++)
+                    if (bones[i] != null) bones[i].localRotation = rotations[i];
+            }
+        }
 
         private void Cross(Vector3 center, Vector3 right, Vector3 up, Material glow)
         {
@@ -165,24 +214,26 @@ namespace Igruha.Minigames.CansOrder
             const int Rings = 9, Segments = 32;
             var vertices = new Vector3[(Rings + 1) * (Segments + 1)];
             var uv = new Vector2[vertices.Length]; var triangles = new int[Rings * Segments * 6];
+            var colors = new Color[vertices.Length];
             for (int r = 0; r <= Rings; r++)
             {
                 float t = r / (float)Rings;
-                float radius = Mathf.Lerp(.205f, .012f, Mathf.Pow(t, 1.8f));
+                float radius = Mathf.Lerp(.15f, .012f, Mathf.Pow(t, 1.8f));
                 for (int j = 0; j <= Segments; j++)
                 {
                     float angle = j * Mathf.PI * 2 / Segments; int v = r * (Segments + 1) + j;
                     vertices[v] = new Vector3(Mathf.Cos(angle) * radius + .11f * t * t,
-                        .49f - t * .65f + Mathf.Sin(angle * 5f) * .035f * Mathf.Sin(t * Mathf.PI),
+                        .51f - t * .67f + Mathf.Sin(angle * 5f) * .055f * Mathf.Sin(t * Mathf.PI),
                         Mathf.Sin(angle) * radius - .15f * t * t);
                     uv[v] = new Vector2(j / (float)Segments, t);
+                    colors[v] = new Color(1f, 1f, 1f, Mathf.SmoothStep(0, 1, t / .25f));
                     if (r == Rings || j == Segments) continue;
                     int k = (r * Segments + j) * 6, n = v + Segments + 1;
                     triangles[k] = v; triangles[k + 1] = n; triangles[k + 2] = v + 1;
                     triangles[k + 3] = v + 1; triangles[k + 4] = n; triangles[k + 5] = n + 1;
                 }
             }
-            var mesh = new Mesh { name = "Spirit waves", vertices = vertices, uv = uv, triangles = triangles };
+            var mesh = new Mesh { name = "Spirit waves", vertices = vertices, uv = uv, colors = colors, triangles = triangles };
             mesh.RecalculateNormals(); mesh.RecalculateBounds(); return mesh;
         }
 

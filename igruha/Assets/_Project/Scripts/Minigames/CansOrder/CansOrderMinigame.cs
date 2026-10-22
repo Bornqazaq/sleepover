@@ -114,7 +114,7 @@ namespace Igruha.Minigames.CansOrder
         /// <b>Ровно один круг назад, и это дизайнерское решение, а не экономия.</b>
         /// Полный журнал попыток превратил бы игру в «Мастермайнд с блокнотом»:
         /// имея все свои расстановки со счётом, скрытую находишь логикой за пару
-        /// кругов, и память как механика умирает вместе со списыванием с табло
+        /// кругов, и память как механика перестаёт работать
         /// (решение 18.4 LDD — «заметок нет»). Один прошлый круг снимает только
         /// тупую фрустрацию «забыл, что ставил пятнадцать секунд назад»:
         /// круги с первого по позапрошлый всё равно держишь в голове сам.
@@ -147,6 +147,9 @@ namespace Igruha.Minigames.CansOrder
             /// В фазе 3 этот же снимок приедет аргументом <c>ServerRpc</c>.
             /// </summary>
             public readonly List<int> Submitted = new List<int>(8);
+
+            /// <summary>Личный ответ. Заполняется только у сервера, в сеть не передаётся.</summary>
+            public readonly List<int> Solution = new List<int>(8);
 
             /// <summary>Упал в яму и ещё не убит медведем.</summary>
             public bool InPit;
@@ -242,15 +245,6 @@ namespace Igruha.Minigames.CansOrder
             finaleGate ??= new CircusFinaleGate(base.ApplyPhase, base.ApplyResults);
             finaleGate.ReceiveResults(results, seriesFinal, !HasAuthority && LocalKnockoutPresenting(), Time.realtimeSinceStartup);
         }
-
-        /// <summary>
-        /// Скрытая расстановка раунда — одна на всех и её никогда не показывают.
-        ///
-        /// Лежит только здесь и в фазе 3 не реплицируется ни при каких
-        /// условиях: это и есть ответ, и клиент, читающий сетевое
-        /// состояние напрямую, не должен найти его там физически (спека 10.1).
-        /// </summary>
-        private readonly List<int> solution = new List<int>(8);
 
         /// <summary>Буфер под перетасовку. Переиспользуется, чтобы не аллоцировать каждый раунд.</summary>
         private readonly List<int> shuffleBuffer = new List<int>(8);
@@ -364,7 +358,8 @@ namespace Igruha.Minigames.CansOrder
 
         protected override void OnPlayersReady()
         {
-            ghost?.ResetRound();
+            ResetGhosts();
+            ResetPracticePreview();
             actionRestrictions.Dispose();
             finaleGate?.Cancel();
             shelfVisibility?.Dispose();
@@ -383,7 +378,6 @@ namespace Igruha.Minigames.CansOrder
             waitingForPitFinale = false;
             finaleClearAt = -1f;
             round = default;
-            solution.Clear();
             leftThisRound.Clear();
             pendingShelf.Clear();
             rosterDirty = false;
@@ -564,7 +558,7 @@ namespace Igruha.Minigames.CansOrder
 
         protected override void OnRoundEnded()
         {
-            ghost?.EndRound();
+            EndGhosts();
             duel?.ResetShow();
             actionRestrictions.Dispose();
             shelfVisibility?.SetActive(false);
@@ -585,7 +579,7 @@ namespace Igruha.Minigames.CansOrder
 
                 // Банка кинематическая и прицеплена к руке: если матч кончился,
                 // пока игрок её держал, она уедет в хаб вместе с ним.
-                c.Bot?.Disarm();
+                if (c.Bot != null) c.Bot.Disarm();
                 c.Shelf?.Release();
                 c.Cage?.ReleaseOccupant();
 
@@ -659,7 +653,7 @@ namespace Igruha.Minigames.CansOrder
             round.Quota = 0;
             round.SolvedCount = 0;
 
-            GenerateSolution(round.CanCount);
+            GenerateSolutions(round.CanCount);
 
             for (int i = 0; i < contestants.Count; i++)
             {
@@ -696,7 +690,9 @@ namespace Igruha.Minigames.CansOrder
 
             if (config.DebugRevealSolution)
             {
-                Debug.Log($"🔑 [ОТЛАДКА] Скрытая расстановка раунда {round.Round}: [{string.Join(",", solution)}]", this);
+                foreach (Contestant c in contestants)
+                    if (c.Entry.Alive)
+                        Debug.Log($"🔑 [ОТЛАДКА] Личный порядок игрока {c.Entry.PlayerId}: [{string.Join(",", c.Solution)}]", this);
             }
 
             scoreboard?.ShowTask(round.Round, round.CanCount);
@@ -1130,7 +1126,7 @@ namespace Igruha.Minigames.CansOrder
 
         private void ApplyShelfCamera(bool toShelf)
         {
-            if (ghost != null && ghost.IsLocalGhost) { shelfVisibility?.SetActive(false); return; }
+            if (LocalGhost != null) { shelfVisibility?.SetActive(false); return; }
             if ((attackPresentation != null && attackPresentation.OwnsCamera) || cameraController == null ||
                 spectator == null || spectator.IsActive)
             {
@@ -1310,23 +1306,9 @@ namespace Igruha.Minigames.CansOrder
         }
 
         /// <summary>
-        /// Разобрать круг: посчитать попытки и совпадения.
-        ///
-        /// Попытка тратится и у того, кто ничего не подтвердил, — отсидеться
-        /// нельзя. Но ноль совпадений ему при этом <b>не приписывается</b>:
-        /// ноль это полноценная информация, он вычёркивает все позиции сразу,
-        /// и фальшивый ноль отравил бы общий котёл (спека 5.4).
-        /// </summary>
-        /// <summary>
-        /// Разобрать круг: потратить попытки и посчитать совпадения
-        /// по снятым в момент подтверждения расстановкам.
-        ///
-        /// Попытка тратится и у того, кто ничего не подтвердил, — отсидеться
-        /// нельзя. Но ноль совпадений ему при этом <b>не приписывается</b>:
-        /// ноль — это полноценная информация, он вычёркивает все позиции
-        /// сразу, и фальшивый ноль отравил бы общий котёл, ради которого
-        /// и выбран этот вариант игры (спека 5.4 и 13, пункт 3).
-        /// Состояние такого игрока — отдельное: <c>Confirmed == false</c>.
+        /// Потратить попытки и сравнить подтверждённые расстановки с личными ответами.
+        /// Неподтверждённая попытка не получает ложный ноль: он означал бы, что
+        /// все позиции неверны. Такое состояние обозначается Confirmed == false.
         /// </summary>
         private void ResolveCircle()
         {
@@ -1355,7 +1337,7 @@ namespace Igruha.Minigames.CansOrder
                     continue;
                 }
 
-                int matches = CountMatches(c.Submitted);
+                int matches = CansOrderSolutions.CountMatches(c.Submitted, c.Solution);
                 c.Entry.Matches = matches;
 
                 if (matches > c.Entry.BestMatches)
@@ -1373,8 +1355,8 @@ namespace Igruha.Minigames.CansOrder
                 c.Entry.SolvedThisCircle = true;
                 round.SolvedCount++;
 
-                // Собранный ответ защищён. Первый финишировавший получит
-                // роль призрака после обработки всех ответов этого круга.
+                // Собранный ответ защищён. Каждый собравший получит роль
+                // призрака, если после проверки хода ещё остались несобравшие.
                 c.Button?.MarkSolved();
                 if (c.Shelf != null)
                 {
@@ -1384,7 +1366,7 @@ namespace Igruha.Minigames.CansOrder
                 SpawnFanfare(c);
                 network?.AnnounceSolved(c.Entry.PlayerId);
             }
-            AwardFirstGhost();
+            AwardSolvedGhosts();
             candidates.Clear();
             for (int i = 0; i < contestants.Count; i++) candidates.Add(contestants[i].Entry);
             int worst = CanOrderDescentRules.WorstScore(candidates);
@@ -1466,7 +1448,7 @@ namespace Igruha.Minigames.CansOrder
             CircusAnimationCullingScope.Bind(c.Session.Avatar);
             if (c.LocallyControlled) attackPresentation?.BeginPit();
             for (int b = 0; b < BearCount; b++) GetBear(b).RegisterFallen(c.Session.Avatar);
-            c.Bot?.Disarm();
+            if (c.Bot != null) c.Bot.Disarm();
             c.Shelf?.Release();
             c.Button?.CloseWindow();
             c.Cage?.OpenDoors(config.HatchOpenSeconds);
@@ -1491,7 +1473,7 @@ namespace Igruha.Minigames.CansOrder
 
             if (HasAuthority)
             {
-                ServerApplyArrangement(c.Entry.PlayerId, intentBuffer, NetworkClock.Now, NetworkClock.Now, ghost != null ? ghost.AppliedRevision(c.Entry.PlayerId) : (byte)0);
+                ServerApplyArrangement(c.Entry.PlayerId, intentBuffer, NetworkClock.Now, NetworkClock.Now, AppliedGhostRevision(c.Entry.PlayerId));
                 return;
             }
 
@@ -1504,7 +1486,7 @@ namespace Igruha.Minigames.CansOrder
             // менять на ней больше нечего. Именно этого не хватало на
             // плейтесте 22.08 — «меняю после подтверждения, а не считается».
             c.Shelf.Active = false;
-            network?.SubmitArrangement(c.Submitted, NetworkClock.Now, ghost != null ? ghost.AppliedRevision(c.Entry.PlayerId) : (byte)0, round.Circle);
+            network?.SubmitArrangement(c.Submitted, NetworkClock.Now, AppliedGhostRevision(c.Entry.PlayerId), round.Circle);
         }
 
         /// <summary>
@@ -1565,7 +1547,7 @@ namespace Igruha.Minigames.CansOrder
                 return false;
             }
 
-            if (ghost != null && trickRevision != ghost.State.RequiredRevision(playerId, round.Circle)) return false;
+            if (trickRevision != RequiredGhostRevision(playerId)) return false;
 
             CopyInto(arrangement, c.Submitted);
             c.Entry.Confirmed = true;
@@ -1592,7 +1574,7 @@ namespace Igruha.Minigames.CansOrder
                 // ОТЛАДОЧНЫЙ режим и ничто иное: он ломает честность игры,
                 // показывая результат раньше общего показа.
                 Debug.Log($"🔑 [ОТЛАДКА] игрок {playerId} подтвердил [{string.Join(",", c.Submitted)}] — " +
-                          $"совпадений {CountMatches(c.Submitted)} из {round.CanCount}", this);
+                          $"совпадений {CansOrderSolutions.CountMatches(c.Submitted, c.Solution)} из {round.CanCount}", this);
             }
 
             // Все, кому ещё было что подтверждать, подтвердили — дальше окно
@@ -1665,33 +1647,15 @@ namespace Igruha.Minigames.CansOrder
             }
         }
 
-        /// <summary>
-        /// Сколько банок стоит на своих местах. Единственный отклик игры —
-        /// число, без указания, какие именно.
-        /// </summary>
-        private int CountMatches(List<int> arrangement)
+        /// <summary>Разные скрытые ответы на весь раунд. Клиентам они не передаются.</summary>
+        private void GenerateSolutions(int canCount)
         {
-            int matches = 0;
-            int count = Mathf.Min(arrangement.Count, solution.Count);
-            for (int i = 0; i < count; i++)
+            var answers = CansOrderSolutions.Deal(canCount, AliveCount, random);
+            int next = 0;
+            foreach (Contestant c in contestants)
             {
-                if (arrangement[i] == solution[i])
-                {
-                    matches++;
-                }
-            }
-
-            return matches;
-        }
-
-        /// <summary>Скрытая расстановка раунда: случайная перестановка, одна на всех.</summary>
-        private void GenerateSolution(int canCount)
-        {
-            Shuffle(canCount);
-            solution.Clear();
-            for (int i = 0; i < shuffleBuffer.Count; i++)
-            {
-                solution.Add(shuffleBuffer[i]);
+                c.Solution.Clear();
+                if (c.Entry.Alive) CopyInto(answers[next++], c.Solution);
             }
         }
 
@@ -1770,6 +1734,8 @@ namespace Igruha.Minigames.CansOrder
         /// </summary>
         private void Update()
         {
+            UpdateSolvedNotice();
+            ApplyPendingGhostTricks();
             finaleGate?.Tick(LocalKnockoutPresenting(), Time.realtimeSinceStartup);
             // The puzzle owns its deadline and waits for the pit finale. Feed the
             // shared HUD the same remaining time without enabling automatic round end.
@@ -2045,19 +2011,24 @@ namespace Igruha.Minigames.CansOrder
         /// у авторитета и только вне сетевой катки. В сети болванок нет
         /// вообще, и этот метод там ничего не отдаёт.
         /// </summary>
-        public bool TryGetBotArrangement(bool wantSolution, List<int> into)
+        public bool TryGetBotArrangement(CanShelf ownerShelf, bool wantSolution, List<int> into)
         {
-            if (into == null || !HasAuthority || WorldAuthority.IsNetworkSession || solution.Count == 0)
+            if (into == null || !HasAuthority || WorldAuthority.IsNetworkSession)
             {
                 return false;
             }
 
+            Contestant owner = null;
+            foreach (Contestant c in contestants)
+                if (c.Shelf == ownerShelf) { owner = c; break; }
+            if (ownerShelf == null || owner == null || owner.Solution.Count == 0) return false;
+
             into.Clear();
             if (wantSolution)
             {
-                for (int i = 0; i < solution.Count; i++)
+                for (int i = 0; i < owner.Solution.Count; i++)
                 {
-                    into.Add(solution[i]);
+                    into.Add(owner.Solution[i]);
                 }
 
                 return true;
@@ -2116,11 +2087,10 @@ namespace Igruha.Minigames.CansOrder
             // её показывает табло: стадия показа, игрок подтвердил и не собрал.
             //
             // Условие «не собрал» здесь не косметика, а замок: расстановка
-            // собравшего и есть ответ раунда, и она не должна оказаться
+            // собравшего и есть его личный ответ, и она не должна оказаться
             // в сетевом состоянии вообще — ни в стадии показа, ни после
-            // (спека 5.3 и 12). Остальные расстановки приехать обязаны, иначе
-            // у клиента на табло не будет тройки, ради которой вся катка
-            // и списывает с лидера круга.
+            // (спека 5.3 и 12). Неполные попытки нужны для публичного табло;
+            // их совпадения относятся только к личному ответу автора.
             if (resultsRevealed && c.Entry.Confirmed && !c.Entry.Solved
                 && CansOrderEntryNetState.TryPack(c.Submitted, out ulong packed, out byte packedCount))
             {
@@ -2215,7 +2185,7 @@ namespace Igruha.Minigames.CansOrder
                 c.Button.CloseWindow();
             }
 
-            c.Bot?.Disarm();
+            if (c.Bot != null) c.Bot.Disarm();
             c.Shelf?.Release();
             c.Cage?.ReleaseOccupant();
 
@@ -2526,7 +2496,7 @@ namespace Igruha.Minigames.CansOrder
                     local.Submitted.Clear();
                     local.Button?.OpenWindow();
                     if (local.Shelf != null) local.Shelf.Active = true;
-                    ghost?.NotifyVictim();
+                    NotifyGhostVictim();
                     return;
                 }
                 // Отвергнутое подтверждение равно «не подтвердил»: попытка

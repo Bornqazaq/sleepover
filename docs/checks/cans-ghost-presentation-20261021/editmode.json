@@ -1,0 +1,42 @@
+{
+  "result": {
+    "success": true,
+    "message": "Test job status retrieved.",
+    "error": null,
+    "data": {
+      "job_id": "2557d77cc2d7423dbb6a1794200cf168",
+      "status": "succeeded",
+      "mode": "EditMode",
+      "started_unix_ms": 1792572234046,
+      "finished_unix_ms": 1792572243792,
+      "last_update_unix_ms": 1792572243792,
+      "progress": {
+        "completed": 31,
+        "total": 31,
+        "current_test_full_name": null,
+        "current_test_started_unix_ms": 1792572243614,
+        "last_finished_test_full_name": "Igruha.Tests.CansShelfVisibilityTests.ThirdPersonOrDifferentFixedTargetDoesNotHideAvatar",
+        "last_finished_unix_ms": 1792572243615,
+        "stuck_suspected": false,
+        "editor_is_focused": false,
+        "blocked_reason": null,
+        "failures_so_far": [],
+        "failures_capped": false
+      },
+      "error": null,
+      "result": {
+        "mode": "EditMode",
+        "summary": {
+          "total": 31,
+          "passed": 31,
+          "failed": 0,
+          "skipped": 0,
+          "durationSeconds": 1.6300838,
+          "resultState": "Passed"
+        },
+        "results": []
+      }
+    },
+    "hint": null
+  }
+}

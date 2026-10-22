@@ -1,0 +1,30 @@
+Host + 2 clients; one-way delay 75 ms, jitter 20 ms.
+igruha/Builds/Autotest/logs/cans-practice-20261021-143620
+
+0.log
+CANS_PRACTICE INITIAL local=0 matches=3
+CANS_PRACTICE RAPID_SWAP current=3 stale ignored
+CANS_PRACTICE FULL 5/5 without confirmation
+CANS_PRACTICE UNIQUE personal answers generated for every player
+CANS_PRACTICE SEND local=0 circle=1
+CANS_PRACTICE COPY local=0 matches=1 solved=False
+CANS_PRACTICE SEND local=0 circle=2
+CANS_PRACTICE PASS=True local=0 own answer 5/5, copied answer rejected, secrets private
+
+1.log
+CANS_PRACTICE INITIAL local=1 matches=1
+CANS_PRACTICE RAPID_SWAP current=3 stale ignored
+CANS_PRACTICE FULL 5/5 without confirmation
+CANS_PRACTICE SEND local=1 circle=1
+CANS_PRACTICE COPY local=1 matches=2 solved=False
+CANS_PRACTICE SEND local=1 circle=2
+CANS_PRACTICE PASS=True local=1 own answer 5/5, copied answer rejected, secrets private
+
+2.log
+CANS_PRACTICE INITIAL local=2 matches=0
+CANS_PRACTICE RAPID_SWAP current=3 stale ignored
+CANS_PRACTICE FULL 5/5 without confirmation
+CANS_PRACTICE SEND local=2 circle=1
+CANS_PRACTICE COPY local=2 matches=0 solved=False
+CANS_PRACTICE SEND local=2 circle=2
+CANS_PRACTICE PASS=True local=2 own answer 5/5, copied answer rejected, secrets private

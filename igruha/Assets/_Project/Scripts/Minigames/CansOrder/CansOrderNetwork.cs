@@ -16,7 +16,7 @@ namespace Igruha.Minigames.CansOrder
     /// клетки, поехавшие по чужому знаменателю.
     ///
     /// <b>Скрытой расстановки здесь нет и быть не может.</b> Это и есть ответ:
-    /// он живёт только в серверном поле контроллера и не реплицируется ни в
+    /// у каждого игрока свой ответ, он хранится только у сервера и не реплицируется ни в
     /// каком виде до конца раунда (спека 10.1).
     /// </summary>
     public struct CansOrderRoundNetState : INetworkSerializable, IEquatable<CansOrderRoundNetState>
@@ -498,7 +498,7 @@ namespace Igruha.Minigames.CansOrder
             ulong senderId = rpcParams.Receive.SenderClientId;
             ToIntList(arrangement, incoming);
 
-            bool staleTrick = game.Ghost != null && trickRevision != game.Ghost.State.RequiredRevision((int)senderId, game.Round.Circle);
+            bool staleTrick = trickRevision != game.RequiredGhostRevision((int)senderId);
             bool accepted = circle == game.Round.Circle && game.ServerApplyArrangement((int)senderId, incoming, stamp, NetworkManager.ServerTime.Time, trickRevision);
             ConfirmAnswerRpc(accepted, circle, staleTrick, RpcTarget.Single(senderId, RpcTargetUse.Temp));
         }

@@ -67,17 +67,18 @@ namespace Igruha.Tests
             }
             if (game == null && MinigameControllerBase.Current is CansOrderMinigame cans)
             {
-                game = cans; ghost = game.Ghost; network = game.GetComponent<CansOrderNetwork>();
+                game = cans; network = game.GetComponent<CansOrderNetwork>();
                 stage = game.GetComponent<MinigameStageState>();
                 foreach (var behaviour in FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None))
                     if (behaviour.GetType().Name.EndsWith("DebugBot", StringComparison.Ordinal)) behaviour.enabled = false;
             }
             if (game == null) return;
+            ghost = game.GetGhost(Winner);
             if (!savedBody && game.TryGetGhostPlayer(Winner, out original, out _, out _))
             {
                 savedBody = true; originalMotorEnabled = original.enabled;
                 originalBody = original.GetComponent<Rigidbody>(); originalKinematic = originalBody.isKinematic;
-                flightCamera = Get<object>(ghost, "cineCamera");
+                flightCamera = Get<object>(game.GetComponent<CansGhostController>(), "cineCamera");
                 originalFieldOfView = CameraFieldOfView();
             }
             if (game.AwaitingTutorialReady && game.ContestantCount > 0 && !ready)
@@ -87,11 +88,12 @@ namespace Igruha.Tests
                 if (Server && !solved && game.Stage == 2)
                 {
                     solved = true;
-                    var answer = Get<List<int>>(game, "solution");
-                    if (!game.ServerApplyArrangement(Winner, answer, NetworkClock.Now, NetworkClock.Now)) Fail("winner answer refused");
+                    var answer = CansSolutionFixture.Answer(game, Winner);
+                    double stamp = Math.Max(NetworkClock.Now, Get<double>(game, "placementWindowStart"));
+                    if (!game.ServerApplyArrangement(Winner, answer, stamp, NetworkClock.Now)) Fail("winner answer refused");
                     stage.EndStageNow();
                 }
-                if (ghost == null) { Fail("ghost component missing"); return; }
+                if (ghost == null) return;
                 if (!ghost.HasAwarded) return;
                 if (ghost.State.OwnerId != Winner) Fail("wrong first finisher");
                 if (Age > 1 && Age < 2 && original != null)
@@ -100,7 +102,8 @@ namespace Igruha.Tests
                     Vector2 sourceCentre = new Vector2(original.transform.position.x, original.transform.position.z);
                     if (fromCentre.magnitude >= sourceCentre.magnitude - 1) Fail("spawn is behind the cage");
                 }
-                if (ghost.State.Active && Age > 2 && original != null &&
+                // Owners first see the full two-second card, including delivery time.
+                if (ghost.State.Active && Age > CansGhostRules.SolvedSeconds + 2 && original != null &&
                     (original.enabled || !originalBody.isKinematic)) Fail("hidden body still simulates");
                 if (ghost.IsLocalGhost && Age > 2 && CameraFieldOfView() < 50) Fail("flight retained the close shelf lens");
                 if (ghost.State.Active && Age > 2 && ghost.VisualRoot != null)
@@ -161,7 +164,7 @@ namespace Igruha.Tests
                     game.TryGetGhostPlayer(Victim, out _, out var shelf, out _);
                     if (!shelf.Active || Entry(Victim).Confirmed) Fail("stale confirmation did not reopen shelf");
                     shelf.SetArrangement(before); // The player can undo the trick and confirm again.
-                    network.SubmitArrangement(before.ToArray(), NetworkClock.Now, ghost.AppliedRevision(Victim), game.Round.Circle);
+                    network.SubmitArrangement(before.ToArray(), NetworkClock.Now, game.AppliedGhostRevision(Victim), game.Round.Circle);
                 }
                 if (Local == FirstVictim && retried && !accepted && now - staleAt > 2)
                 {
@@ -192,7 +195,8 @@ namespace Igruha.Tests
                     replayedAfterDeparture = true;
                     // Reproduce a delayed snapshot processed after the roster removal:
                     // the first event has not yet been consumed on this peer.
-                    Set(ghost, "appliedFirst", (byte)0);
+                    Get<CansGhostTrickHistory>(game, "ghostTricks").Clear();
+                    game.CommitGhostTrick(ghost.State.First);
                     Debug.Log("GHOST_CHECK REPLAY first target already left");
                 }
                 if (scenario == "disconnect" && Server && Age > 14 && ghost.State.Active) Fail("disconnected ghost still active");
@@ -264,7 +268,7 @@ namespace Igruha.Tests
                 int expected = i == trick.FirstSlot ? before[trick.SecondSlot] : i == trick.SecondSlot ? before[trick.FirstSlot] : before[i];
                 if (after[i] != expected) Fail("swap did not exchange exactly two slots: " + i);
             }
-            if (ghost.AppliedRevision(trick.TargetId) != trick.Serial) Fail("missing applied revision");
+            if (game.AppliedGhostRevision(trick.TargetId) != trick.Serial) Fail("missing applied revision");
         }
         private void Request(int target)
         { if (Server) ghost.TryTrick(Local, target); else network.RequestGhostTrick(target); }

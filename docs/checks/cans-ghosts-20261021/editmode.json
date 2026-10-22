@@ -1,0 +1,313 @@
+{
+  "result": {
+    "success": true,
+    "message": "Test job status retrieved.",
+    "error": null,
+    "data": {
+      "job_id": "e60784418eeb4067b332ed586920101c",
+      "status": "succeeded",
+      "mode": "EditMode",
+      "started_unix_ms": 1792570503143,
+      "finished_unix_ms": 1792570505366,
+      "last_update_unix_ms": 1792570505366,
+      "progress": {
+        "completed": 30,
+        "total": 30,
+        "current_test_full_name": null,
+        "current_test_started_unix_ms": 1792570505344,
+        "last_finished_test_full_name": "Igruha.Tests.CansShelfVisibilityTests.ThirdPersonOrDifferentFixedTargetDoesNotHideAvatar",
+        "last_finished_unix_ms": 1792570505344,
+        "stuck_suspected": false,
+        "editor_is_focused": true,
+        "blocked_reason": null,
+        "failures_so_far": [],
+        "failures_capped": false
+      },
+      "error": null,
+      "result": {
+        "mode": "EditMode",
+        "summary": {
+          "total": 30,
+          "passed": 30,
+          "failed": 0,
+          "skipped": 0,
+          "durationSeconds": 0.1095691,
+          "resultState": "Passed"
+        },
+        "results": [
+          {
+            "name": "BetterTurnAtBottomPreservesChance",
+            "fullName": "Igruha.Tests.CansDescentTests.BetterTurnAtBottomPreservesChance",
+            "state": "Passed",
+            "durationSeconds": 0.0072381,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "EveryoneSolvedAndEliminatedPlayersDoNotDescend",
+            "fullName": "Igruha.Tests.CansDescentTests.EveryoneSolvedAndEliminatedPlayersDoNotDescend",
+            "state": "Passed",
+            "durationSeconds": 0.0005334,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "NoConfirmationIsWorseThanConfirmedZeroWithoutInventingMatches",
+            "fullName": "Igruha.Tests.CansDescentTests.NoConfirmationIsWorseThanConfirmedZeroWithoutInventingMatches",
+            "state": "Passed",
+            "durationSeconds": 0.0007492,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "OnlyWorstCurrentResultDescendsIncludingTies",
+            "fullName": "Igruha.Tests.CansDescentTests.OnlyWorstCurrentResultDescendsIncludingTies",
+            "state": "Passed",
+            "durationSeconds": 0.0003039,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "ReachingBottomThenTwoMoreLossesOpensHatch",
+            "fullName": "Igruha.Tests.CansDescentTests.ReachingBottomThenTwoMoreLossesOpensHatch",
+            "state": "Passed",
+            "durationSeconds": 0.0002003,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "SolvedOnBottomRanksAboveUnsolvedAtTop",
+            "fullName": "Igruha.Tests.CansDescentTests.SolvedOnBottomRanksAboveUnsolvedAtTop",
+            "state": "Passed",
+            "durationSeconds": 0.0014627,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "SolvingOnLastChanceIsSafe",
+            "fullName": "Igruha.Tests.CansDescentTests.SolvingOnLastChanceIsSafe",
+            "state": "Passed",
+            "durationSeconds": 0.0001168,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "SurvivorsRankAboveEliminatedAndLaterEliminationRanksHigher",
+            "fullName": "Igruha.Tests.CansDescentTests.SurvivorsRankAboveEliminatedAndLaterEliminationRanksHigher",
+            "state": "Passed",
+            "durationSeconds": 0.0001156,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "BothTricksSurviveSnapshotSerializationAndRevisionsArePrivatePerTarget",
+            "fullName": "Igruha.Tests.CansGhostTests.BothTricksSurviveSnapshotSerializationAndRevisionsArePrivatePerTarget",
+            "state": "Passed",
+            "durationSeconds": 0.0028713,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "DifferentGhostsSharingSlotsApplyInServerOrderEvenWhenSnapshotsArriveBackwards",
+            "fullName": "Igruha.Tests.CansGhostTests.DifferentGhostsSharingSlotsApplyInServerOrderEvenWhenSnapshotsArriveBackwards",
+            "state": "Passed",
+            "durationSeconds": 0.0007816,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "EachSolverKeepsTwoIndependentChargesAndItsOwnTurnCooldown",
+            "fullName": "Igruha.Tests.CansGhostTests.EachSolverKeepsTwoIndependentChargesAndItsOwnTurnCooldown",
+            "state": "Passed",
+            "durationSeconds": 0.0002808,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "FlightRejectsNonFiniteInputAndStaysInsideTheArena",
+            "fullName": "Igruha.Tests.CansGhostTests.FlightRejectsNonFiniteInputAndStaysInsideTheArena",
+            "state": "Passed",
+            "durationSeconds": 0.0003434,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "OnlyWinnerCanInterruptAnUnconfirmedLivingOpponent",
+            "fullName": "Igruha.Tests.CansGhostTests.OnlyWinnerCanInterruptAnUnconfirmedLivingOpponent",
+            "state": "Passed",
+            "durationSeconds": 0.0001847,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "SevenGhostsCanSpendBothChargesWithoutLosingTheLastPlayersRevision",
+            "fullName": "Igruha.Tests.CansGhostTests.SevenGhostsCanSpendBothChargesWithoutLosingTheLastPlayersRevision",
+            "state": "Passed",
+            "durationSeconds": 0.0001949,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "TwoChargesCannotHitTwiceInOneTurnOrInTheLastSeconds",
+            "fullName": "Igruha.Tests.CansGhostTests.TwoChargesCannotHitTwiceInOneTurnOrInTheLastSeconds",
+            "state": "Passed",
+            "durationSeconds": 0.0001746,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "DeactivationAndSceneCleanupRestoreInterruptedRender",
+            "fullName": "Igruha.Tests.CansShelfVisibilityTests.DeactivationAndSceneCleanupRestoreInterruptedRender",
+            "state": "Passed",
+            "durationSeconds": 0.0046577,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "DestroyingAvatarDuringRenderIsSafe",
+            "fullName": "Igruha.Tests.CansShelfVisibilityTests.DestroyingAvatarDuringRenderIsSafe",
+            "state": "Passed",
+            "durationSeconds": 0.0011337,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "EveryCharacterMeshIsExcludedWithoutChangingEnabledState(\"Player\")",
+            "fullName": "Igruha.Tests.CansShelfVisibilityTests.EveryCharacterMeshIsExcludedWithoutChangingEnabledState(\"Player\")",
+            "state": "Passed",
+            "durationSeconds": 0.007134,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "EveryCharacterMeshIsExcludedWithoutChangingEnabledState(\"Aza\")",
+            "fullName": "Igruha.Tests.CansShelfVisibilityTests.EveryCharacterMeshIsExcludedWithoutChangingEnabledState(\"Aza\")",
+            "state": "Passed",
+            "durationSeconds": 0.0018721,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "EveryCharacterMeshIsExcludedWithoutChangingEnabledState(\"Boss\")",
+            "fullName": "Igruha.Tests.CansShelfVisibilityTests.EveryCharacterMeshIsExcludedWithoutChangingEnabledState(\"Boss\")",
+            "state": "Passed",
+            "durationSeconds": 0.0016684,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "EveryCharacterMeshIsExcludedWithoutChangingEnabledState(\"Fat\")",
+            "fullName": "Igruha.Tests.CansShelfVisibilityTests.EveryCharacterMeshIsExcludedWithoutChangingEnabledState(\"Fat\")",
+            "state": "Passed",
+            "durationSeconds": 0.0017432,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "EveryCharacterMeshIsExcludedWithoutChangingEnabledState(\"Girl\")",
+            "fullName": "Igruha.Tests.CansShelfVisibilityTests.EveryCharacterMeshIsExcludedWithoutChangingEnabledState(\"Girl\")",
+            "state": "Passed",
+            "durationSeconds": 0.001206,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "EveryCharacterMeshIsExcludedWithoutChangingEnabledState(\"Milez\")",
+            "fullName": "Igruha.Tests.CansShelfVisibilityTests.EveryCharacterMeshIsExcludedWithoutChangingEnabledState(\"Milez\")",
+            "state": "Passed",
+            "durationSeconds": 0.0012181,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "EveryCharacterMeshIsExcludedWithoutChangingEnabledState(\"MyBoy\")",
+            "fullName": "Igruha.Tests.CansShelfVisibilityTests.EveryCharacterMeshIsExcludedWithoutChangingEnabledState(\"MyBoy\")",
+            "state": "Passed",
+            "durationSeconds": 0.0010337,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "EveryCharacterMeshIsExcludedWithoutChangingEnabledState(\"Shlanga\")",
+            "fullName": "Igruha.Tests.CansShelfVisibilityTests.EveryCharacterMeshIsExcludedWithoutChangingEnabledState(\"Shlanga\")",
+            "state": "Passed",
+            "durationSeconds": 0.0011743,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "NestedCameraSeesAvatarAndReturnsToHiddenShelfBeforeRestoring",
+            "fullName": "Igruha.Tests.CansShelfVisibilityTests.NestedCameraSeesAvatarAndReturnsToHiddenShelfBeforeRestoring",
+            "state": "Passed",
+            "durationSeconds": 0.0005057,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "OnlyShelfOutputHidesModelAndRestoresExactStateAfterFrame",
+            "fullName": "Igruha.Tests.CansShelfVisibilityTests.OnlyShelfOutputHidesModelAndRestoresExactStateAfterFrame",
+            "state": "Passed",
+            "durationSeconds": 0.0005806,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "RebindingDoesNotLeaveOldAvatarHidden",
+            "fullName": "Igruha.Tests.CansShelfVisibilityTests.RebindingDoesNotLeaveOldAvatarHidden",
+            "state": "Passed",
+            "durationSeconds": 0.000398,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "RenderContextEndRecoversMissingCameraEnd",
+            "fullName": "Igruha.Tests.CansShelfVisibilityTests.RenderContextEndRecoversMissingCameraEnd",
+            "state": "Passed",
+            "durationSeconds": 0.0004823,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "ThirdPersonOrDifferentFixedTargetDoesNotHideAvatar",
+            "fullName": "Igruha.Tests.CansShelfVisibilityTests.ThirdPersonOrDifferentFixedTargetDoesNotHideAvatar",
+            "state": "Passed",
+            "durationSeconds": 0.0006142,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          }
+        ]
+      }
+    },
+    "hint": null
+  }
+}

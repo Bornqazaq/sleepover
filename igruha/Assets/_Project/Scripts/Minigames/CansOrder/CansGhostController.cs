@@ -8,7 +8,7 @@ using UnityEngine.InputSystem;
 
 namespace Igruha.Minigames.CansOrder
 {
-    /// <summary>Winner role, server-simulated flight, private-shelf tricks and local presentation lifecycle.</summary>
+    /// <summary>Per-player ghost role, server-simulated flight, private-shelf tricks and local presentation lifecycle.</summary>
     [DefaultExecutionOrder(100)]
     public sealed class CansGhostController : MonoBehaviour
     {
@@ -17,7 +17,8 @@ namespace Igruha.Minigames.CansOrder
         [SerializeField] private Material puffMaterial;
         [SerializeField] private TMP_FontAsset font;
         [SerializeField] private AudioClip trickSound;
-        private const float LookSpeed = .13f, CameraDistance = 2.4f, CameraHeight = .55f, FlightFieldOfView = 60f;
+        private const float LookSpeed = .13f, CameraDistance = 2.7f, CameraHeight = .65f, FlightFieldOfView = 60f;
+        private const float InitialPitch = 20f;
         private const float ResponseTimeout = 3f, RemoteSmooth = 15f;
         private CansOrderMinigame game;
         private CansOrderNetwork network;
@@ -30,7 +31,6 @@ namespace Igruha.Minigames.CansOrder
         private CansGhostHud hud;
         private Vector3 serverInput, predictedPosition, visualPosition;
         private float yaw, pitch, nextInputAt, lastInputAt, requestAt;
-        private byte appliedFirst, appliedSecond;
         private bool local, pendingRequest, presenting, bodyWasLocked;
         private Rigidbody body;
         private bool motorWasEnabled, bodyWasKinematic, bodyUsedGravity;
@@ -74,8 +74,10 @@ namespace Igruha.Minigames.CansOrder
 
         private void TryPresent()
         {
-            if (presenting || !State.Active || !game.GhostGameplay ||
+            if (presenting || !CansGhostRules.CanFly(State, NetworkClock.Now) || !game.GhostGameplay ||
                 !game.TryGetGhostPlayer(State.OwnerId, out avatar, out _, out local)) return;
+            // A late network snapshot still owes its owner the full visible success card.
+            if (local && game.LocalSolveCelebrating) return;
             game.PrepareGhostBody(State.OwnerId);
             reader = avatar.GetComponent<PlayerInputReader>();
             bodyWasLocked = avatar.MovementLocked;
@@ -97,7 +99,7 @@ namespace Igruha.Minigames.CansOrder
             go.transform.SetParent(transform, false);
             visual = go.AddComponent<CansGhostVisual>();
             visual.Build(avatar, ghostMaterial, ribbonMaterial, puffMaterial, trickSound);
-            yaw = Pose.Yaw; pitch = 8f;
+            yaw = Pose.Yaw; pitch = InitialPitch;
             predictedPosition = visualPosition = Pose.Position;
             presenting = true;
             if (!local) return;
@@ -127,31 +129,27 @@ namespace Igruha.Minigames.CansOrder
             EnsureHud(); hud.ShowVictim();
         }
 
-        public byte AppliedRevision(int playerId)
+        public void ShowSolved(int count, bool willBecomeGhost)
         {
-            if (appliedSecond > 0 && State.Second.TargetId == playerId) return appliedSecond;
-            return appliedFirst > 0 && State.First.TargetId == playerId ? appliedFirst : (byte)0;
+            EnsureHud(); hud.ShowSolved(count, willBecomeGhost);
         }
 
-        private void ApplyTricks()
+        public CansGhostController CreatePeer()
         {
-            if (State.First.Serial > appliedFirst)
-            {
-                if (!game.ApplyGhostTrick(State.First)) return;
-                appliedFirst = State.First.Serial;
-                visual?.Trick(State.First.TargetId);
-            }
-            if (State.Second.Serial > appliedSecond)
-            {
-                if (!game.ApplyGhostTrick(State.Second)) return;
-                appliedSecond = State.Second.Serial;
-                visual?.Trick(State.Second.TargetId);
-            }
+            var go = new GameObject("Solver ghost controller");
+            go.transform.SetParent(transform, false);
+            var peer = go.AddComponent<CansGhostController>();
+            peer.ghostMaterial = ghostMaterial; peer.ribbonMaterial = ribbonMaterial;
+            peer.puffMaterial = puffMaterial; peer.font = font; peer.trickSound = trickSound;
+            peer.Bind(game, network, cameras, cameraRig, regularHud);
+            return peer;
         }
+
+        public void PlayTrick(int target) => visual?.Trick(target);
 
         public void AcceptInput(int sender, Vector3 direction, float heading)
         {
-            if (game == null || !game.GhostAuthority || !game.GhostGameplay || !State.Active ||
+            if (game == null || !game.GhostAuthority || !game.GhostGameplay || !CansGhostRules.CanFly(State, NetworkClock.Now) ||
                 State.OwnerId != sender || !CansGhostRules.Finite(direction) || !CansGhostRules.Finite(heading)) return;
             serverInput = Vector3.ClampMagnitude(direction, 1f);
             lastInputAt = Time.unscaledTime;
@@ -166,13 +164,13 @@ namespace Igruha.Minigames.CansOrder
             int first = random.Next(count), second = random.Next(count - 1);
             if (second >= first) second++;
             var next = State;
-            var trick = new CansGhostTrick { Serial = (byte)(next.Used + 1), TargetId = target,
+            var trick = new CansGhostTrick { Serial = game.NextGhostTrickSerial, OwnerId = sender, TargetId = target,
                 FirstSlot = (byte)first, SecondSlot = (byte)second, Circle = game.Round.Circle, StartedAt = NetworkClock.Now };
             if (next.Used == 0) next.First = trick; else next.Second = trick;
             next.Used++;
             next.ReadyAt = NetworkClock.Now + CansGhostRules.Cooldown;
             State = next;
-            ApplyTricks();
+            game.CommitGhostTrick(trick);
             return true;
         }
 
@@ -185,8 +183,6 @@ namespace Igruha.Minigames.CansOrder
         private void Update()
         {
             if (game == null) return;
-            // A committed trick survives the ghost owner's disconnect.
-            if (game.GhostGameplay) ApplyTricks();
             if (!State.Active || !game.GhostGameplay)
             {
                 if (presenting) ReleasePresentation();
@@ -199,7 +195,6 @@ namespace Igruha.Minigames.CansOrder
                 ReleasePresentation(); return;
             }
             TryPresent();
-            ApplyTricks();
             if (!presenting) return;
             if (local) ReadInput();
             if (game.GhostAuthority)
@@ -312,7 +307,7 @@ namespace Igruha.Minigames.CansOrder
         public void ResetRound()
         {
             EndRound(); State = default; Pose = default; HasAwarded = false;
-            appliedFirst = appliedSecond = 0; nextInputAt = 0;
+            nextInputAt = 0;
         }
         private void OnDisable() => EndRound();
     }

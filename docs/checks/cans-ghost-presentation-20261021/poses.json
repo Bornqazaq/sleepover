@@ -1,0 +1,65 @@
+{
+  "success": true,
+  "message": "Code executed successfully.",
+  "data": {
+    "result": [
+      {
+        "name": "Aza",
+        "armDot": 0.9916546,
+        "sourcePoseDegreesChanged": 0,
+        "meshes": 1,
+        "eyes": 2
+      },
+      {
+        "name": "Boss",
+        "armDot": 0.991655,
+        "sourcePoseDegreesChanged": 0,
+        "meshes": 1,
+        "eyes": 2
+      },
+      {
+        "name": "Fat",
+        "armDot": 0.991656,
+        "sourcePoseDegreesChanged": 0,
+        "meshes": 1,
+        "eyes": 2
+      },
+      {
+        "name": "Girl",
+        "armDot": 0.991655946,
+        "sourcePoseDegreesChanged": 0,
+        "meshes": 1,
+        "eyes": 2
+      },
+      {
+        "name": "Milez",
+        "armDot": 0.9916559,
+        "sourcePoseDegreesChanged": 0,
+        "meshes": 1,
+        "eyes": 2
+      },
+      {
+        "name": "MyBoy",
+        "armDot": 0.991654634,
+        "sourcePoseDegreesChanged": 0,
+        "meshes": 1,
+        "eyes": 2
+      },
+      {
+        "name": "Shlanga",
+        "armDot": 0.9916558,
+        "sourcePoseDegreesChanged": 0,
+        "meshes": 1,
+        "eyes": 2
+      },
+      {
+        "name": "Player",
+        "armDot": 0.9916554,
+        "sourcePoseDegreesChanged": 0,
+        "meshes": 1,
+        "eyes": 2
+      }
+    ],
+    "compiler": "codedom"
+  }
+}

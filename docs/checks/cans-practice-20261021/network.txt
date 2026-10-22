@@ -1,0 +1,19 @@
+Host + 2 Clients; delay 75±20 ms each direction.
+
+0.log
+CANS_PRACTICE INITIAL local=0 matches=3
+CANS_PRACTICE RAPID_SWAP current=3 stale ignored
+CANS_PRACTICE FULL 5/5 without confirmation
+CANS_PRACTICE PASS=True local=0 round oracle blocked
+
+1.log
+CANS_PRACTICE INITIAL local=1 matches=1
+CANS_PRACTICE RAPID_SWAP current=3 stale ignored
+CANS_PRACTICE FULL 5/5 without confirmation
+CANS_PRACTICE PASS=True local=1 round oracle blocked
+
+2.log
+CANS_PRACTICE INITIAL local=2 matches=0
+CANS_PRACTICE RAPID_SWAP current=3 stale ignored
+CANS_PRACTICE FULL 5/5 without confirmation
+CANS_PRACTICE PASS=True local=2 round oracle blocked

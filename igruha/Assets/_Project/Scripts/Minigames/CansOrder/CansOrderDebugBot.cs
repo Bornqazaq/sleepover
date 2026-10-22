@@ -111,7 +111,7 @@ namespace Igruha.Minigames.CansOrder
         private void Submit()
         {
             bool solve = random.NextDouble() < chanceToSolve;
-            if (!game.TryGetBotArrangement(solve, arrangement))
+            if (!game.TryGetBotArrangement(shelf, solve, arrangement))
             {
                 return;
             }

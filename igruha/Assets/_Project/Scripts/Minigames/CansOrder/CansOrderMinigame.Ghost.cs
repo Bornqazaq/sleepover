@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Igruha.Core.Minigame;
 using Igruha.Core.Player;
 using UnityEngine;
@@ -7,7 +8,87 @@ namespace Igruha.Minigames.CansOrder
     public sealed partial class CansOrderMinigame
     {
         private CansGhostController ghost;
-        public CansGhostController Ghost => ghost;
+        private readonly List<CansGhostController> ghosts = new List<CansGhostController>(8);
+        private readonly CansGhostTrickHistory ghostTricks = new CansGhostTrickHistory();
+        private bool localSolvedNoticeShown;
+        private float localSolvedNoticeUntil;
+        public bool LocalSolveCelebrating => !localSolvedNoticeShown || Time.unscaledTime < localSolvedNoticeUntil;
+
+        private void UpdateSolvedNotice()
+        {
+            // Solved is already an adjudicated, persistent result. A delayed client
+            // can receive it after Reveal has ended; it must not wait another turn.
+            if (localSolvedNoticeShown || !GhostGameplay || ghost == null) return;
+            var local = FindLocal();
+            if (local == null || !local.Entry.Solved) return;
+            localSolvedNoticeShown = true;
+            localSolvedNoticeUntil = Time.unscaledTime + CansGhostRules.SolvedSeconds;
+            ghost.ShowSolved(round.CanCount, NotSolvedCount > 0);
+        }
+        public IReadOnlyList<CansGhostController> Ghosts => ghosts;
+        public CansGhostController LocalGhost
+        {
+            get
+            {
+                foreach (var role in ghosts) if (role.IsLocalGhost) return role;
+                return null;
+            }
+        }
+        public CansGhostController GetGhost(int owner)
+        {
+            foreach (var role in ghosts) if (role.State.OwnerId == owner) return role;
+            return null;
+        }
+        private CansGhostController CreateGhost()
+        {
+            var role = ghosts.Count == 0 ? ghost : ghost.CreatePeer();
+            ghosts.Add(role);
+            return role;
+        }
+        private void ResetGhosts()
+        {
+            localSolvedNoticeShown = false;
+            localSolvedNoticeUntil = 0;
+            foreach (var role in ghosts)
+            {
+                role.ResetRound();
+                if (role != ghost) Destroy(role.gameObject);
+            }
+            ghosts.Clear(); ghostTricks.Clear();
+            if (ghost != null) ghost.ResetRound();
+        }
+        private void EndGhosts()
+        {
+            foreach (var role in ghosts) if (role != null) role.EndRound();
+            if (ghost != null && ghosts.Count == 0) ghost.EndRound();
+        }
+        public void ReceiveGhost(CansGhostSnapshot snapshot)
+        {
+            if (ghost == null || HasAuthority || Phase == MinigamePhase.Results) return;
+            var role = GetGhost(snapshot.State.OwnerId) ?? CreateGhost();
+            role.Receive(snapshot.State, snapshot.Pose);
+            ghostTricks.Record(snapshot.State.First);
+            ghostTricks.Record(snapshot.State.Second);
+        }
+        public byte NextGhostTrickSerial => ghostTricks.NextSerial;
+        public byte AppliedGhostRevision(int id) => ghostTricks.Revision(id, round.Circle, true);
+        public byte RequiredGhostRevision(int id) => ghostTricks.Revision(id, round.Circle, false);
+        public void CommitGhostTrick(CansGhostTrick trick)
+        {
+            ghostTricks.Record(trick);
+            ApplyPendingGhostTricks();
+        }
+        private void ApplyPendingGhostTricks()
+        {
+            if (!GhostGameplay) return;
+            while (ghostTricks.TryPeekNext(out var trick))
+            {
+                if (!ApplyGhostTrick(trick)) return;
+                ghostTricks.Consume(trick);
+                GetGhost(trick.OwnerId)?.PlayTrick(trick.TargetId);
+            }
+        }
+        public void NotifyGhostVictim() { if (ghost != null) ghost.NotifyVictim(); }
         public bool GhostAuthority => HasAuthority;
         public bool GhostGameplay => Phase == MinigamePhase.Round && !IsPractice && !matchOver;
         public float GhostFlightRadius => arenaConfig != null ? arenaConfig.CageRingRadius + arenaConfig.CageInnerSize : 14f;
@@ -36,28 +117,28 @@ namespace Igruha.Minigames.CansOrder
                 c.Session.Avatar.MovementLocked = c.MovementWasLocked;
                 c.ShelfLocked = false;
             }
-            c.Bot?.Disarm();
+            if (c.Bot != null) c.Bot.Disarm();
             if (c.LocallyControlled) shelfVisibility?.SetActive(false);
         }
 
-        private void AwardFirstGhost()
+        private void AwardSolvedGhosts()
         {
-            if (ghost == null || !GhostGameplay || ghost.State.Active || ghost.HasAwarded) return;
-            Contestant first = null;
+            if (ghost == null || !GhostGameplay) return;
+            if (NotSolvedCount == 0) { EndGhosts(); return; }
             foreach (var c in contestants)
-                if (c.Entry.Alive && c.Entry.Solved && (first == null ||
-                    c.Entry.ConfirmTime < first.Entry.ConfirmTime ||
-                    c.Entry.ConfirmTime == first.Entry.ConfirmTime && c.Entry.PlayerId < first.Entry.PlayerId)) first = c;
-            if (first != null && NotSolvedCount > 0)
-                ghost.Award(first.Entry.PlayerId, first.Cage.transform.position +
-                    first.Cage.transform.forward * 3.4f + Vector3.up * 1.2f, first.Cage.transform.eulerAngles.y);
+            {
+                if (!c.Entry.Alive || !c.Entry.Solved || GetGhost(c.Entry.PlayerId) != null) continue;
+                CreateGhost().Award(c.Entry.PlayerId, c.Cage.transform.position +
+                    c.Cage.transform.forward * 3.4f + Vector3.up * 1.2f, c.Cage.transform.eulerAngles.y);
+            }
         }
 
         public bool CanGhostTrick(int sender, int target, Vector3 ghostPosition, double now)
         {
             var c = Find(target);
-            return GhostGameplay && ghost != null && c?.Shelf?.Board != null &&
-                CansGhostRules.CanTrick(ghost.State, sender, target, round.Circle,
+            var role = GetGhost(sender);
+            return GhostGameplay && role != null && c?.Shelf?.Board != null &&
+                CansGhostRules.CanTrick(role.State, sender, target, round.Circle,
                     Stage == StagePlacement, c.Entry.Alive, c.Entry.Solved, c.Entry.Confirmed,
                     round.CanCount, stageState.StageRemaining,
                     Vector3.Distance(ghostPosition, c.Shelf.Board.position), now);
@@ -69,7 +150,7 @@ namespace Igruha.Minigames.CansOrder
             float best = float.MinValue;
             foreach (var c in contestants)
             {
-                if (c.Entry.PlayerId == ghost.State.OwnerId || !c.Entry.Alive || c.Entry.Solved || c.Shelf?.Board == null) continue;
+                if (!c.Entry.Alive || c.Entry.Solved || c.Shelf?.Board == null) continue;
                 Vector3 delta = c.Shelf.Board.position + Vector3.up * .6f - position;
                 float distance = delta.magnitude;
                 float facing = distance > .01f ? Vector3.Dot(forward, delta / distance) : 1f;
@@ -95,10 +176,10 @@ namespace Igruha.Minigames.CansOrder
             if (c == null) return true;
             if (c.Shelf == null || c.Shelf.SlotCount == 0 || round.Circle < trick.Circle) return false;
             // Other peers have decorative shelves. They animate the same slots without receiving the private answer.
-            c.Shelf.ApplyGhostSwap(trick.FirstSlot, trick.SecondSlot);
+            if (!c.Shelf.ApplyGhostSwap(trick.FirstSlot, trick.SecondSlot)) return false;
             if (c.LocallyControlled)
             {
-                ghost.NotifyVictim();
+                NotifyGhostVictim();
                 localHud?.RefreshResult();
             }
             return true;
